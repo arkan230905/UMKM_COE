@@ -22,6 +22,13 @@ Route::get('/', function () {
 })->name('welcome');
 
 // ========================================================
+// 🏢 Tentang Perusahaan
+// ========================================================
+Route::get('/tentang-perusahaan', function () {
+    return view('tentang-perusahaan'); // Pastikan file ini ada di resources/views/tentang-perusahaan.blade.php
+})->name('tentang.perusahaan');
+
+// ========================================================
 // 📊 Dashboard (Menu Utama Admin)
 // ========================================================
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -48,7 +55,7 @@ Route::middleware(['auth', 'verified'])
     ->prefix('master-data')
     ->name('master-data.')
     ->group(function () {
-        // CRUD Data Pegawai (id, nama, email, no_telp, alamat, jenis_kelamin, jabatan, gaji)
+        // CRUD Data Pegawai
         Route::resource('pegawai', PegawaiController::class);
 
         // CRUD Presensi Pegawai
