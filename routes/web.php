@@ -25,7 +25,7 @@ Route::get('/', function () {
 // 🏢 Tentang Perusahaan
 // ========================================================
 Route::get('/tentang-perusahaan', function () {
-    return view('tentang-perusahaan'); // Pastikan file ini ada di resources/views/tentang-perusahaan.blade.php
+    return view('tentang.perusahaan'); // Pastikan file ini ada di resources/views/tentang-perusahaan.blade.php
 })->name('tentang.perusahaan');
 
 // ========================================================
