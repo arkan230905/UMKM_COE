@@ -12,6 +12,7 @@ use App\Http\Controllers\BahanBakuController;
 use App\Http\Controllers\BomController;
 use App\Http\Controllers\PembelianController;
 use App\Http\Controllers\PenjualanController;
+use App\Http\Controllers\PenggajianController;
 use App\Http\Controllers\ReturController;
 
 // ========================================================
@@ -75,6 +76,7 @@ Route::middleware(['auth', 'verified'])
 
         // CRUD Bill of Material (BOM)
         Route::resource('bom', BomController::class);
+
     });
 
 // ========================================================
@@ -89,6 +91,9 @@ Route::middleware(['auth', 'verified'])
 
         // CRUD Penjualan Produk
         Route::resource('penjualan', PenjualanController::class);
+
+        // CRUD Penggajian
+        Route::resource('penggajian', PenggajianController::class);
 
         // CRUD Retur (Barang Kembali)
         Route::resource('retur', ReturController::class);
