@@ -1,22 +1,45 @@
 @extends('layouts.app')
+
 @section('content')
-<h2>Tambah COA</h2>
-@if ($errors->any())
-<div class="alert alert-danger"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
-@endif
-<form action="{{ route('master-data.coa.store') }}" method="POST">
-@csrf
-<div class="mb-3"><label>Kode Akun</label><input type="text" name="kode" class="form-control" required></div>
-<div class="mb-3"><label>Nama Akun</label><input type="text" name="nama" class="form-control" required></div>
-<div class="mb-3"><label>Jenis</label>
-<select name="jenis" class="form-control" required>
-<option value="Aset">Aset</option>
-<option value="Kewajiban">Kewajiban</option>
-<option value="Ekuitas">Ekuitas</option>
-<option value="Pendapatan">Pendapatan</option>
-<option value="Beban">Beban</option>
-</select></div>
-<button class="btn btn-success">Simpan</button>
-<a href="{{ route('master-data.coa.index') }}" class="btn btn-secondary">Batal</a>
-</form>
+<div class="container mt-4">
+    <h2>Tambah COA</h2>
+
+    <form action="{{ route('master-data.coa.store') }}" method="POST">
+        @csrf
+
+        <div class="mb-3">
+            <label for="tipe_akun" class="form-label">Tipe Akun</label>
+            <select name="tipe_akun" id="tipe_akun" class="form-select" onchange="generateKode()" required>
+                <option value="">Pilih tipe</option>
+                <option value="Asset">Asset</option>
+                <option value="Liability">Liability</option>
+                <option value="Equity">Equity</option>
+                <option value="Revenue">Revenue</option>
+                <option value="Expense">Expense</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label for="nama_akun" class="form-label">Nama Akun</label>
+            <input type="text" name="nama_akun" id="nama_akun" class="form-control" required>
+        </div>
+
+        <input type="hidden" name="kode_akun" id="kode_akun">
+
+        <button type="submit" class="btn btn-primary">Simpan</button>
+    </form>
+</div>
+
+<script>
+function generateKode() {
+    const tipe = document.getElementById('tipe_akun').value;
+    if (!tipe) return;
+
+    fetch(`/master-data/coa/generate-kode?tipe=${tipe}`)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('kode_akun').value = data.kode_akun;
+        });
+}
+</script>
 @endsection

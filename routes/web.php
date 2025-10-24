@@ -1,100 +1,126 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\PegawaiController;
-use App\Http\Controllers\PresensiController;
-use App\Http\Controllers\ProdukController;
-use App\Http\Controllers\VendorController;
-use App\Http\Controllers\CoaController;
-use App\Http\Controllers\BahanBakuController;
-use App\Http\Controllers\BomController;
-use App\Http\Controllers\PembelianController;
-use App\Http\Controllers\PenjualanController;
-use App\Http\Controllers\ReturController;
+use App\Http\Controllers\{
+    DashboardController,
+    ProfileController,
+    PegawaiController,
+    PresensiController,
+    ProdukController,
+    VendorController,
+    CoaController,
+    BahanBakuController,
+    BomController,
+    PembelianController,
+    PenjualanController,
+    ReturController,
+    LaporanController
+};
 
 // ========================================================
 // 🏠 Halaman Utama (Welcome Page)
 // ========================================================
-Route::get('/', function () {
-    return view('welcome');
-})->name('welcome');
+Route::view('/', 'welcome')->name('welcome');
 
 // ========================================================
 // 🏢 Tentang Perusahaan
 // ========================================================
-Route::get('/tentang-perusahaan', function () {
-    return view('tentang.perusahaan'); // Pastikan file ini ada di resources/views/tentang-perusahaan.blade.php
-})->name('tentang.perusahaan');
+Route::view('/tentang-perusahaan', 'tentang.perusahaan')->name('tentang.perusahaan');
 
 // ========================================================
-// 📊 Dashboard (Menu Utama Admin)
+// 🔐 Middleware: Auth + Verified
 // ========================================================
 Route::middleware(['auth', 'verified'])->group(function () {
+
+    // ====================================================
+    // 📊 Dashboard
+    // ====================================================
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/admin', [DashboardController::class, 'index'])->name('admin.dashboard');
-});
 
-// ========================================================
-// 👤 Profile (Edit Profil User)
-// ========================================================
-Route::middleware(['auth', 'verified'])
-    ->prefix('profile')
-    ->name('profile.')
-    ->group(function () {
+    // ====================================================
+    // 👤 Profile
+    // ====================================================
+    Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'edit'])->name('edit');
         Route::patch('/', [ProfileController::class, 'update'])->name('update');
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
 
-// ========================================================
-// 🗂️ Master Data
-// ========================================================
-Route::middleware(['auth', 'verified'])
-    ->prefix('master-data')
-    ->name('master-data.')
-    ->group(function () {
-        // CRUD Data Pegawai
+    // ====================================================
+    // 🗂️ MASTER DATA
+    // ====================================================
+    Route::prefix('master-data')->name('master-data.')->group(function () {
+
+        // Pegawai
         Route::resource('pegawai', PegawaiController::class);
 
-        // CRUD Presensi Pegawai
+        // Presensi
         Route::resource('presensi', PresensiController::class);
 
-        // CRUD Produk
+        // Produk
         Route::resource('produk', ProdukController::class);
 
-        // CRUD Vendor
+        // Vendor
         Route::resource('vendor', VendorController::class);
 
-        // CRUD Chart of Account (COA)
+        // COA
         Route::resource('coa', CoaController::class);
+        Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generateKode');
 
-        // CRUD Bahan Baku
-        Route::resource('bahan-baku', BahanBakuController::class);
-
-        // CRUD Bill of Material (BOM)
+        // BOM
         Route::resource('bom', BomController::class);
+
+        // Bahan Baku (nama route tetap konsisten)
+        Route::resource('bahan-baku', BahanBakuController::class)->names([
+            'index'   => 'bahan-baku.index',
+            'create'  => 'bahan-baku.create',
+            'store'   => 'bahan-baku.store',
+            'show'    => 'bahan-baku.show',
+            'edit'    => 'bahan-baku.edit',
+            'update'  => 'bahan-baku.update',
+            'destroy' => 'bahan-baku.destroy',
+        ]);
     });
 
-// ========================================================
-// 💸 Transaksi
-// ========================================================
-Route::middleware(['auth', 'verified'])
-    ->prefix('transaksi')
-    ->name('transaksi.')
-    ->group(function () {
-        // CRUD Pembelian Barang
+    // ====================================================
+    // 💸 TRANSAKSI
+    // ====================================================
+    Route::prefix('transaksi')->name('transaksi.')->group(function () {
+
+        // Pembelian
         Route::resource('pembelian', PembelianController::class);
 
-        // CRUD Penjualan Produk
+        // Penjualan
         Route::resource('penjualan', PenjualanController::class);
 
-        // CRUD Retur (Barang Kembali)
+        // Retur
         Route::resource('retur', ReturController::class);
     });
 
+    // ====================================================
+    // 📑 LAPORAN
+    // ====================================================
+    Route::prefix('laporan')->name('laporan.')->group(function () {
+
+        // Laporan Pembelian
+        Route::get('/pembelian', [LaporanController::class, 'pembelian'])->name('pembelian');
+        Route::get('/pembelian/export/pdf', [LaporanController::class, 'exportPembelianPdf'])->name('pembelian.export.pdf');
+        Route::get('/pembelian/export/excel', [LaporanController::class, 'exportPembelianExcel'])->name('pembelian.export.excel');
+
+        // Laporan Penjualan
+        Route::get('/penjualan', [LaporanController::class, 'penjualan'])->name('penjualan');
+        Route::get('/penjualan/export/pdf', [LaporanController::class, 'exportPenjualanPdf'])->name('penjualan.export.pdf');
+        Route::get('/penjualan/export/excel', [LaporanController::class, 'exportPenjualanExcel'])->name('penjualan.export.excel');
+
+        // Laporan Stok Produk
+        Route::get('/stok', [LaporanController::class, 'stok'])->name('stok');
+        Route::get('/stok/export/pdf', [LaporanController::class, 'exportStokPdf'])->name('stok.export.pdf');
+        Route::get('/stok/export/excel', [LaporanController::class, 'exportStokExcel'])->name('stok.export.excel');
+    });
+});
+
 // ========================================================
-// 🔐 Autentikasi (Login, Register, Forgot Password, dll)
+// 🔐 Autentikasi (Login, Register, dsb.)
 // ========================================================
 require __DIR__ . '/auth.php';

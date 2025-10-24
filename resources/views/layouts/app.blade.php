@@ -84,6 +84,16 @@
                     <li class="nav-item"><a class="nav-link" href="{{ route('transaksi.retur.index') }}">Retur</a></li>
                 </ul>
             </div>
+
+            <!-- Laporan -->
+            <div class="nav-section">
+                <div class="nav-title">Laporan</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a class="nav-link" href="{{ route('laporan.penjualan') }}">Laporan Penjualan</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('laporan.pembelian') }}">Laporan Pembelian</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('laporan.stok') }}">Laporan Stok</a></li>
+                </ul>
+            </div>
         </div>
 
         <!-- Content -->

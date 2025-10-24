@@ -2,107 +2,73 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\BahanBaku;
+use Illuminate\Http\Request;
 
 class BahanBakuController extends Controller
 {
-    // Menampilkan daftar bahan baku
+    // Menampilkan semua data bahan baku
     public function index()
     {
-        $bahanBaku = BahanBaku::orderBy('id', 'asc')->get();
-
-        // Tambahkan logika perhitungan detail harga
-        foreach ($bahanBaku as $item) {
-            $item->detail_harga = $this->generateDetailHarga($item);
-        }
-
+        $bahanBaku = BahanBaku::all();
         return view('master-data.bahan-baku.index', compact('bahanBaku'));
     }
 
-    // Form tambah bahan baku
+    // Menampilkan form tambah data
     public function create()
     {
-        $satuanOptions = ['Kg', 'Liter', 'Pcs', 'Unit'];
-        return view('master-data.bahan-baku.create', compact('satuanOptions'));
+        return view('master-data.bahan-baku.create');
     }
 
-    // Simpan bahan baku baru
+    // Simpan data baru ke database
     public function store(Request $request)
     {
         $request->validate([
             'nama_bahan' => 'required|string|max:255',
+            'satuan' => 'required|string|max:50',
             'stok' => 'required|numeric|min:0',
-            'satuan' => 'required|string',
-            'harga_satuan' => 'required|numeric|min:0',
+            'harga' => 'required|numeric|min:0',
         ]);
 
-        BahanBaku::create($request->all());
-        return redirect()->route('master-data.bahan-baku.index')
-                         ->with('success', 'Bahan Baku berhasil ditambahkan.');
+        BahanBaku::create([
+            'nama_bahan' => $request->nama_bahan,
+            'satuan' => $request->satuan,
+            'stok' => $request->stok,
+            'harga' => $request->harga,
+        ]);
+
+        return redirect()->route('bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
     }
 
-    // Form edit bahan baku
-    public function edit(BahanBaku $bahanBaku)
+    // Menampilkan form edit
+    public function edit($id)
     {
-        $satuanOptions = ['Kg', 'Liter', 'Pcs', 'Unit'];
-        return view('master-data.bahan-baku.edit', compact('bahanBaku', 'satuanOptions'));
+        $bahanBaku = BahanBaku::findOrFail($id);
+        return view('master-data.bahan-baku.edit', compact('bahanBaku'));
     }
 
-    // Update bahan baku
-    public function update(Request $request, BahanBaku $bahanBaku)
+    // Update data
+    public function update(Request $request, $id)
     {
         $request->validate([
             'nama_bahan' => 'required|string|max:255',
+            'satuan' => 'required|string|max:50',
             'stok' => 'required|numeric|min:0',
-            'satuan' => 'required|string',
-            'harga_satuan' => 'required|numeric|min:0',
+            'harga' => 'required|numeric|min:0',
         ]);
 
+        $bahanBaku = BahanBaku::findOrFail($id);
         $bahanBaku->update($request->all());
-        return redirect()->route('master-data.bahan-baku.index')
-                         ->with('success', 'Bahan Baku berhasil diperbarui.');
+
+        return redirect()->route('bahan-baku.index')->with('success', 'Data bahan baku berhasil diperbarui!');
     }
 
-    // Hapus bahan baku
-    public function destroy(BahanBaku $bahanBaku)
+    // Hapus data
+    public function destroy($id)
     {
+        $bahanBaku = BahanBaku::findOrFail($id);
         $bahanBaku->delete();
-        return redirect()->route('master-data.bahan-baku.index')
-                         ->with('success', 'Bahan Baku berhasil dihapus.');
-    }
 
-    // 🔹 Fungsi tambahan untuk menghitung detail harga berdasarkan satuan utama
-    private function generateDetailHarga($item)
-    {
-        $harga = $item->harga_satuan;
-        $satuan = strtolower($item->satuan);
-
-        switch ($satuan) {
-            case 'kg':
-                return [
-                    'g' => 'Rp ' . number_format($harga / 1000, 0, ',', '.'),
-                    'mg' => 'Rp ' . number_format($harga / 1000000, 0, ',', '.'),
-                ];
-
-            case 'liter':
-                return [
-                    'ml' => 'Rp ' . number_format($harga / 1000, 0, ',', '.'),
-                    'cl' => 'Rp ' . number_format($harga / 100, 0, ',', '.'),
-                ];
-
-            case 'pcs':
-                return [
-                    'buah' => 'Rp ' . number_format($harga, 0, ',', '.'),
-                ];
-
-            case 'unit':
-                return [
-                    'buah' => 'Rp ' . number_format($harga, 0, ',', '.'),
-                ];
-
-            default:
-                return ['-' => '-'];
-        }
+        return redirect()->route('bahan-baku.index')->with('success', 'Data bahan baku berhasil dihapus!');
     }
 }

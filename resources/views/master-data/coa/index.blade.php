@@ -2,41 +2,49 @@
 
 @section('content')
 <div class="container">
-    <h1>Data COA</h1>
+    <h2>Data Chart of Account (COA)</h2>
 
-    <a href="{{ route('master-data.coa.create') }}" class="btn btn-primary mb-3">Tambah COA</a>
+    <a href="{{ route('master-data.coa.create') }}" class="btn btn-primary mb-3">Tambah Akun</a>
 
-    @if(session('success'))
+    @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
     <table class="table table-bordered">
-        <thead class="table-dark">
+        <thead class="table-light">
             <tr>
                 <th>ID</th>
                 <th>Kode Akun</th>
                 <th>Nama Akun</th>
-                <th>Jenis</th>
+                <th>Tipe Akun</th>
+                <th>Dibuat Pada</th>
+                <th>Diperbarui Pada</th>
                 <th>Aksi</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($coas as $coa)
-            <tr>
-                <td>{{ $coa->id }}</td>
-                <td>{{ $coa->kode_akun }}</td>
-                <td>{{ $coa->nama_akun }}</td>
-                <td>{{ $coa->jenis }}</td>
-                <td>
-                    <a href="{{ route('master-data.coa.edit', $coa->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                    <form action="{{ route('master-data.coa.destroy', $coa->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus COA ini?')">
-                        @csrf
-                        @method('DELETE')
-                        <button class="btn btn-danger btn-sm">Hapus</button>
-                    </form>
-                </td>
-            </tr>
-            @endforeach
+            @forelse ($coas as $coa)
+                <tr>
+                    <td>{{ $coa->id }}</td>
+                    <td>{{ $coa->kode_akun }}</td>
+                    <td>{{ $coa->nama_akun }}</td>
+                    <td>{{ $coa->tipe_akun }}</td>
+                    <td>{{ $coa->created_at ? $coa->created_at->format('d/m/Y H:i') : '-' }}</td>
+                    <td>{{ $coa->updated_at ? $coa->updated_at->format('d/m/Y H:i') : '-' }}</td>
+                    <td>
+                        <a href="{{ route('master-data.coa.edit', $coa->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                        <form action="{{ route('master-data.coa.destroy', $coa->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus akun ini?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                        </form>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="7" class="text-center">Belum ada data COA.</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
 </div>

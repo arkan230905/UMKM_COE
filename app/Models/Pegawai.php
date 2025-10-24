@@ -16,6 +16,7 @@ class Pegawai extends Model
         'alamat',
         'jenis_kelamin',
         'jabatan',
+        'kategori_tenaga_kerja',
         'gaji',
     ];
 }

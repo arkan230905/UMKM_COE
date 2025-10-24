@@ -2,23 +2,32 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Pegawai;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\Pegawai;
 
 class PegawaiController extends Controller
 {
     /**
-     * Tampilkan daftar semua pegawai.
+     * Menampilkan daftar pegawai, bisa difilter berdasarkan kategori.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $pegawais = Pegawai::orderBy('id', 'asc')->get();
+        $kategori = $request->query('kategori'); // Ambil parameter filter kategori
 
-        return view('master-data.pegawai.index', compact('pegawais'));
+        $query = Pegawai::query();
+
+        if ($kategori && in_array($kategori, ['BTKL', 'BTKTL'])) {
+            $query->where('kategori_tenaga_kerja', $kategori);
+        }
+
+        $pegawais = $query->get();
+
+        return view('master-data.pegawai.index', compact('pegawais', 'kategori'));
     }
 
     /**
-     * Tampilkan form tambah pegawai.
+     * Tampilkan form untuk menambahkan pegawai baru.
      */
     public function create()
     {
@@ -30,24 +39,24 @@ class PegawaiController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nama' => 'required|string|max:255',
             'email' => 'required|email|unique:pegawais,email',
-            'no_telp' => 'required|string|max:20',
-            'alamat' => 'required|string|max:255',
+            'no_telp' => 'required|string|max:15',
+            'alamat' => 'required|string',
             'jenis_kelamin' => 'required|in:L,P',
-            'jabatan' => 'required|string|max:100',
+            'jabatan' => 'required|string',
+            'kategori_tenaga_kerja' => 'required|in:BTKL,BTKTL',
             'gaji' => 'required|numeric|min:0',
         ]);
 
-        Pegawai::create($request->all());
+        Pegawai::create($validated);
 
-        return redirect()->route('master-data.pegawai.index')
-                         ->with('success', 'Pegawai berhasil ditambahkan.');
+        return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil ditambahkan.');
     }
 
     /**
-     * Form edit data pegawai.
+     * Tampilkan form untuk mengedit pegawai.
      */
     public function edit($id)
     {
@@ -62,31 +71,28 @@ class PegawaiController extends Controller
     {
         $pegawai = Pegawai::findOrFail($id);
 
-        $request->validate([
+        $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            'email' => 'required|email|unique:pegawais,email,' . $pegawai->id,
-            'no_telp' => 'required|string|max:20',
-            'alamat' => 'required|string|max:255',
+            'email' => 'required|email|unique:pegawais,email,' . $id,
+            'no_telp' => 'required|string|max:15',
+            'alamat' => 'required|string',
             'jenis_kelamin' => 'required|in:L,P',
-            'jabatan' => 'required|string|max:100',
+            'jabatan' => 'required|string',
+            'kategori_tenaga_kerja' => 'required|in:BTKL,BTKTL',
             'gaji' => 'required|numeric|min:0',
         ]);
 
-        $pegawai->update($request->all());
+        $pegawai->update($validated);
 
-        return redirect()->route('master-data.pegawai.index')
-                         ->with('success', 'Data pegawai berhasil diperbarui.');
+        return redirect()->route('master-data.pegawai.index')->with('success', 'Data pegawai berhasil diperbarui.');
     }
 
     /**
-     * Hapus data pegawai.
+     * Hapus pegawai.
      */
     public function destroy($id)
     {
-        $pegawai = Pegawai::findOrFail($id);
-        $pegawai->delete();
-
-        return redirect()->route('master-data.pegawai.index')
-                         ->with('success', 'Pegawai berhasil dihapus.');
+        Pegawai::findOrFail($id)->delete();
+        return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil dihapus.');
     }
 }

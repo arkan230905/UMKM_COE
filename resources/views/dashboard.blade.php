@@ -85,7 +85,7 @@
             $transaksiData = [
                 ['title'=>'Pembelian','count'=>$totalPembelian,'icon'=>'bi-cart4','route'=>'transaksi.pembelian.index'],
                 ['title'=>'Penjualan','count'=>$totalPenjualan,'icon'=>'bi-currency-dollar','route'=>'transaksi.penjualan.index'],
-                ['title'=>'Retur','count'=>round($totalRetur),'icon'=>'bi-arrow-counterclockwise','route'=>'transaksi.retur.index'],
+                ['title'=>'Retur','count'=>$totalRetur,'icon'=>'bi-arrow-counterclockwise','route'=>'transaksi.retur.index'],
             ];
         @endphp
 
@@ -98,6 +98,32 @@
                         <i class="bi {{ $data['icon'] }} fs-2 mb-2 opacity-75"></i>
                         <h6 class="card-title">{{ $data['title'] }}</h6>
                         <h3 class="card-text">{{ $data['count'] }}</h3>
+                    </div>
+                </div>
+            </a>
+        </div>
+        @endforeach
+    </div>
+
+    <!-- Grid Cards: Laporan -->
+    <h4 class="text-white mt-5 mb-3 px-2">Laporan</h4>
+    <div class="row g-4 px-2">
+        @php
+            $laporanData = [
+                ['title'=>'Laporan Penjualan','icon'=>'bi-graph-up','route'=>'laporan.penjualan'],
+                ['title'=>'Laporan Pembelian','icon'=>'bi-receipt','route'=>'laporan.pembelian'],
+                ['title'=>'Laporan Stok','icon'=>'bi-clipboard-data','route'=>'laporan.stok'],
+            ];
+        @endphp
+
+        @foreach($laporanData as $data)
+        <div class="col-lg-2 col-md-4 col-sm-6">
+            <a href="{{ route($data['route']) }}" class="text-decoration-none">
+                <div class="card shadow hover-card text-white text-center" 
+                     style="background-color: #2c2c3e; border-radius: 15px; min-height: 120px;">
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                        <i class="bi {{ $data['icon'] }} fs-2 mb-2 opacity-75"></i>
+                        <h6 class="card-title">{{ $data['title'] }}</h6>
                     </div>
                 </div>
             </a>
