@@ -32,6 +32,9 @@
             <a href="{{ route('transaksi.penjualan.index') }}" class="nav-link text-white">Penjualan</a>
         </li>
         <li class="nav-item mb-2">
+            <a href="{{ route('transaksi.penggajian.index') }}" class="nav-link text-white">Penggajian</a>
+        </li>
+        <li class="nav-item mb-2">
             <a href="{{ route('transaksi.retur.index') }}" class="nav-link text-white">Retur</a>
         </li>
     </ul>
