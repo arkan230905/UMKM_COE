@@ -1,30 +1,28 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Presensi extends Model
+class Penggajian extends Model
 {
-    use HasFactory;
+     use HasFactory;
 
-    protected $table = 'presensis';
+    protected $table = 'penggajians';
 
     protected $fillable = [
         'pegawai_id', 
-        'tgl_presensi', 
-        'jam_masuk', 
-        'jam_keluar', 
-        'status'
+        'gaji_pokok', 
+        'tunjangan', 
+        'potongan', 
+        'total_jam_kerja',
+        'total_gaji', 
+        'tanggal_penggajian'
     ];
 
     public function pegawai()
     {
         return $this->belongsTo(Pegawai::class, 'pegawai_id');
     }
-
-    protected $casts = [
-    'jam_masuk' => 'datetime:H:i',
-    'jam_keluar' => 'datetime:H:i',
-    ];
 }
