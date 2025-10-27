@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+<<<<<<< HEAD
 use App\Http\Controllers\{
     DashboardController,
     ProfileController,
@@ -16,19 +17,39 @@ use App\Http\Controllers\{
     ReturController,
     LaporanController
 };
+=======
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PegawaiController;
+use App\Http\Controllers\PresensiController;
+use App\Http\Controllers\ProdukController;
+use App\Http\Controllers\SatuanController;
+use App\Http\Controllers\VendorController;
+use App\Http\Controllers\CoaController;
+use App\Http\Controllers\BahanBakuController;
+use App\Http\Controllers\BomController;
+use App\Http\Controllers\BopController;
+use App\Http\Controllers\PembelianController;
+use App\Http\Controllers\PenjualanController;
+use App\Http\Controllers\ReturController;
+>>>>>>> 68de30b (pembuatan bop dan satuan)
 
 // ========================================================
-// 🏠 Halaman Utama (Welcome Page)
+// 🏠 Halaman Utama
 // ========================================================
 Route::view('/', 'welcome')->name('welcome');
 
 // ========================================================
+<<<<<<< HEAD
 // 🏢 Tentang Perusahaan
 // ========================================================
 Route::view('/tentang-perusahaan', 'tentang.perusahaan')->name('tentang.perusahaan');
 
 // ========================================================
 // 🔐 Middleware: Auth + Verified
+=======
+// 📊 Dashboard & Tentang Perusahaan
+>>>>>>> 68de30b (pembuatan bop dan satuan)
 // ========================================================
 Route::middleware(['auth', 'verified'])->group(function () {
 
@@ -37,16 +58,34 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ====================================================
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/admin', [DashboardController::class, 'index'])->name('admin.dashboard');
+<<<<<<< HEAD
 
     // ====================================================
     // 👤 Profile
     // ====================================================
     Route::prefix('profile')->name('profile.')->group(function () {
+=======
+
+    Route::get('/tentang-perusahaan', [DashboardController::class, 'tentangPerusahaan'])
+        ->name('tentang-perusahaan');
+    Route::post('/tentang-perusahaan/update', [DashboardController::class, 'updatePerusahaan'])
+        ->name('tentang-perusahaan.update');
+});
+
+// ========================================================
+// 👤 Profile
+// ========================================================
+Route::middleware(['auth', 'verified'])
+    ->prefix('profile')
+    ->name('profile.')
+    ->group(function () {
+>>>>>>> 68de30b (pembuatan bop dan satuan)
         Route::get('/', [ProfileController::class, 'edit'])->name('edit');
         Route::patch('/', [ProfileController::class, 'update'])->name('update');
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
 
+<<<<<<< HEAD
     // ====================================================
     // 🗂️ MASTER DATA
     // ====================================================
@@ -95,6 +134,40 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('penjualan', PenjualanController::class);
 
         // Retur
+=======
+// ========================================================
+// 🗂️ Master Data
+// ========================================================
+Route::middleware(['auth', 'verified'])
+    ->prefix('master-data')
+    ->name('master-data.')
+    ->group(function () {
+        Route::resource('pegawai', PegawaiController::class);
+        Route::resource('presensi', PresensiController::class);
+        Route::resource('produk', ProdukController::class);
+        Route::resource('satuan', SatuanController::class);
+        Route::resource('vendor', VendorController::class);
+        Route::resource('coa', CoaController::class);
+        Route::resource('bahan-baku', BahanBakuController::class);
+        Route::resource('bom', BomController::class);
+
+        // ✅ BOP tanpa tambah data (create & store dihapus)
+        Route::resource('bop', BopController::class)->except(['create', 'store']);
+
+        // ✅ Route khusus COA
+        Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generateKode');
+    });
+
+// ========================================================
+// 💸 Transaksi
+// ========================================================
+Route::middleware(['auth', 'verified'])
+    ->prefix('transaksi')
+    ->name('transaksi.')
+    ->group(function () {
+        Route::resource('pembelian', PembelianController::class);
+        Route::resource('penjualan', PenjualanController::class);
+>>>>>>> 68de30b (pembuatan bop dan satuan)
         Route::resource('retur', ReturController::class);
     });
 
@@ -121,6 +194,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // ========================================================
+<<<<<<< HEAD
 // 🔐 Autentikasi (Login, Register, dsb.)
+=======
+// 🔐 Autentikasi
+>>>>>>> 68de30b (pembuatan bop dan satuan)
 // ========================================================
 require __DIR__ . '/auth.php';
