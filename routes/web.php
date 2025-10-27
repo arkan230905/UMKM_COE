@@ -15,29 +15,10 @@ use App\Http\Controllers\{
     BopController,
     PembelianController,
     PenjualanController,
+    PenggajianController,
     ReturController,
     LaporanController
 };
-<<<<<<< HEAD
-=======
-=======
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\PegawaiController;
-use App\Http\Controllers\PresensiController;
-use App\Http\Controllers\ProdukController;
-use App\Http\Controllers\SatuanController;
-use App\Http\Controllers\VendorController;
-use App\Http\Controllers\CoaController;
-use App\Http\Controllers\BahanBakuController;
-use App\Http\Controllers\BomController;
-use App\Http\Controllers\BopController;
-use App\Http\Controllers\PembelianController;
-use App\Http\Controllers\PenjualanController;
-use App\Http\Controllers\PenggajianController;
-use App\Http\Controllers\ReturController;
->>>>>>> 68de30b (pembuatan bop dan satuan)
->>>>>>> origin/master
 
 // ========================================================
 // 🏠 Halaman Utama
@@ -86,7 +67,6 @@ Route::middleware(['auth', 'verified'])
         Route::resource('vendor', VendorController::class);
         Route::resource('coa', CoaController::class);
         Route::resource('bahan-baku', BahanBakuController::class);
-<<<<<<< HEAD
 
         // ✅ Bill of Material (BOM)
         Route::prefix('bom')->name('bom.')->group(function () {
@@ -101,9 +81,6 @@ Route::middleware(['auth', 'verified'])
 
         // ✅ Route khusus COA
         Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generateKode');
-=======
-        Route::resource('bom', BomController::class);
->>>>>>> origin/master
     });
 
 // ========================================================
@@ -115,10 +92,6 @@ Route::middleware(['auth', 'verified'])
     ->group(function () {
         Route::resource('pembelian', PembelianController::class);
         Route::resource('penjualan', PenjualanController::class);
-HEAD
-
-        // CRUD Retur (Barang Kembali)
-origin/master
         Route::resource('retur', ReturController::class);
     });
 
