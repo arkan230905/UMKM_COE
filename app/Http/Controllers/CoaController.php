@@ -4,72 +4,122 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Coa;
+use App\Models\Bop;
 
 class CoaController extends Controller
 {
-    // Menampilkan semua COA
     public function index()
     {
-        $coas = Coa::all(); // Ambil semua data dari tabel coa
+        $coas = Coa::all();
         return view('master-data.coa.index', compact('coas'));
     }
 
-    // Menampilkan form tambah COA
     public function create()
     {
         return view('master-data.coa.create');
     }
 
-    // Simpan COA baru
     public function store(Request $request)
     {
-        $request->validate([
-            'kode_akun' => 'required|string|max:50',
+<<<<<<< HEAD
+        // Generate kode otomatis dulu sebelum validasi
+=======
+        // Generate kode otomatis sebelum validasi
+>>>>>>> 68de30b (pembuatan bop dan satuan)
+        if ($request->tipe_akun) {
+            $maxKode = Coa::where('tipe_akun', $request->tipe_akun)->max('kode_akun');
+            $request->merge([
+                'kode_akun' => $maxKode ? $maxKode + 1 : $this->defaultKode($request->tipe_akun)
+            ]);
+        }
+
+        $validated = $request->validate([
+            'kode_akun' => 'required|unique:coas,kode_akun',
             'nama_akun' => 'required|string|max:255',
-            'jenis' => 'required|string|max:50',
+<<<<<<< HEAD
+            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense',
         ]);
 
-        Coa::create([
-            'kode_akun' => $request->kode_akun,
-            'nama_akun' => $request->nama_akun,
-            'jenis' => $request->jenis,
-        ]);
+        Coa::create($validated);
 
-        return redirect()->route('master-data.coa.index')->with('success', 'COA berhasil ditambahkan');
+        return redirect()->route('master-data.coa.index')->with('success', 'COA berhasil ditambahkan.');
     }
 
-    // Menampilkan form edit COA
-    public function edit($id)
+    public function generateKode(Request $request)
     {
-        $coa = Coa::findOrFail($id);
+        $tipe = $request->tipe;
+        $maxKode = Coa::where('tipe_akun', $tipe)->max('kode_akun');
+        $kode = $maxKode ? $maxKode + 1 : $this->defaultKode($tipe);
+
+        return response()->json(['kode_akun' => $kode]);
+    }
+
+    private function defaultKode($tipe)
+    {
+=======
+            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Beban',
+        ]);
+
+        $coa = Coa::create($validated);
+
+        // 🔽 Otomatis tambahkan ke BOP jika tipe akun "Beban"
+        if ($coa->tipe_akun === 'Beban') {
+            Bop::create([
+                'coa_id' => $coa->id,
+                'keterangan' => 'Otomatis dari COA',
+            ]);
+        }
+
+        return redirect()->route('master-data.coa.index')->with('success', 'COA berhasil ditambahkan.');
+    }
+
+    public function edit(Coa $coa)
+    {
         return view('master-data.coa.edit', compact('coa'));
     }
 
-    // Update COA
-    public function update(Request $request, $id)
+    public function update(Request $request, Coa $coa)
     {
-        $request->validate([
-            'kode_akun' => 'required|string|max:50',
+        $validated = $request->validate([
+            'kode_akun' => 'required|unique:coas,kode_akun,' . $coa->id,
             'nama_akun' => 'required|string|max:255',
-            'jenis' => 'required|string|max:50',
+            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Beban',
         ]);
 
-        $coa = Coa::findOrFail($id);
-        $coa->update([
-            'kode_akun' => $request->kode_akun,
-            'nama_akun' => $request->nama_akun,
-            'jenis' => $request->jenis,
-        ]);
+        $coa->update($validated);
 
-        return redirect()->route('master-data.coa.index')->with('success', 'COA berhasil diperbarui');
+        return redirect()->route('master-data.coa.index')->with('success', 'COA berhasil diperbarui.');
     }
 
-    // Hapus COA
-    public function destroy($id)
+    public function destroy(Coa $coa)
     {
-        $coa = Coa::findOrFail($id);
         $coa->delete();
+        return redirect()->route('master-data.coa.index')->with('success', 'COA berhasil dihapus.');
+    }
 
-        return redirect()->route('master-data.coa.index')->with('success', 'COA berhasil dihapus');
+    public function generateKode(Request $request)
+    {
+        $tipe = $request->tipe;
+        $maxKode = Coa::where('tipe_akun', $tipe)->max('kode_akun');
+        $kode = $maxKode ? $maxKode + 1 : $this->defaultKode($tipe);
+
+        return response()->json(['kode_akun' => $kode]);
+    }
+
+    private function defaultKode($tipe)
+    {
+>>>>>>> 68de30b (pembuatan bop dan satuan)
+        return match($tipe) {
+            'Asset' => 101,
+            'Liability' => 201,
+            'Equity' => 301,
+            'Revenue' => 401,
+<<<<<<< HEAD
+            'Expense' => 501,
+=======
+            'Expense', 'Beban' => 501,
+>>>>>>> 68de30b (pembuatan bop dan satuan)
+            default => 100,
+        };
     }
 }

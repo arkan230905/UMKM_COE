@@ -9,15 +9,20 @@ class Bom extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['produk_id'];
+    protected $fillable = [
+        'produk_id',
+        'bahan_baku_id',
+        'jumlah',
+        'total_biaya',
+    ];
 
     public function produk()
     {
         return $this->belongsTo(Produk::class);
     }
 
-    public function details()
+    public function bahanBaku()
     {
-        return $this->hasMany(BomDetail::class);
+        return $this->belongsTo(BahanBaku::class);
     }
 }

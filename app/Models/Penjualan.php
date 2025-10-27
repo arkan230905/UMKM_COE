@@ -11,9 +11,12 @@ class Penjualan extends Model
 
     protected $table = 'penjualans';
 
-    protected $fillable = ['produk_id', 'tanggal', 'total'];
+    protected $fillable = [
+        'produk_id',
+        'tanggal',
+        'total',
+    ];
 
-    // Relasi ke Produk
     public function produk()
     {
         return $this->belongsTo(Produk::class, 'produk_id');

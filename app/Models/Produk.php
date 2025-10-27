@@ -3,18 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Produk extends Model
 {
-    use HasFactory;
-
+    protected $table = 'produks'; // atau 'produk' sesuai DB-mu
     protected $fillable = [
-        'nama_produk', 'harga_jual',
+        'nama',
+        // kolom lain
     ];
-
-    public function boms()
-    {
-        return $this->hasMany(Bom::class);
-    }
 }

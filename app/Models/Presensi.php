@@ -11,11 +11,20 @@ class Presensi extends Model
     protected $table = 'presensis';
 
     protected $fillable = [
-        'pegawai_id', 'tgl_presensi', 'jam_masuk', 'jam_keluar', 'status'
+        'pegawai_id', 
+        'tgl_presensi', 
+        'jam_masuk', 
+        'jam_keluar', 
+        'status'
     ];
 
     public function pegawai()
     {
         return $this->belongsTo(Pegawai::class, 'pegawai_id');
     }
+
+    protected $casts = [
+    'jam_masuk' => 'datetime:H:i',
+    'jam_keluar' => 'datetime:H:i',
+    ];
 }
