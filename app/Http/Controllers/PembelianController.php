@@ -2,57 +2,75 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Pembelian;
 use App\Models\Vendor;
+use App\Models\BahanBaku;
+use App\Models\Pembelian;
+use App\Models\PembelianDetail;
 use Illuminate\Http\Request;
 
 class PembelianController extends Controller
 {
     public function index()
     {
-        $pembelians = Pembelian::with('vendor')->get();
+        $pembelians = Pembelian::with(['vendor', 'details.bahanBaku'])->get();
         return view('transaksi.pembelian.index', compact('pembelians'));
     }
 
     public function create()
     {
         $vendors = Vendor::all();
-        return view('transaksi.pembelian.create', compact('vendors'));
+        $bahanBakus = BahanBaku::all();
+        return view('transaksi.pembelian.create', compact('vendors', 'bahanBakus'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
+            'vendor_id' => 'required',
             'tanggal' => 'required|date',
-            'vendor_id' => 'required|exists:vendors,id',
-            'total' => 'required|numeric',
+            'bahan_baku_id.*' => 'required|exists:bahan_bakus,id',
+            'jumlah.*' => 'required|numeric|min:1',
+            'harga_satuan.*' => 'required|numeric|min:0',
         ]);
 
-        Pembelian::create($request->all());
-        return redirect()->route('transaksi.pembelian.index')->with('success', 'Pembelian berhasil ditambahkan.');
-    }
+        $total = 0;
+        foreach ($request->jumlah as $i => $jumlah) {
+            $total += $jumlah * $request->harga_satuan[$i];
+        }
 
-    public function edit(Pembelian $pembelian)
-    {
-        $vendors = Vendor::all();
-        return view('transaksi.pembelian.edit', compact('pembelian','vendors'));
-    }
-
-    public function update(Request $request, Pembelian $pembelian)
-    {
-        $request->validate([
-            'tanggal' => 'required|date',
-            'vendor_id' => 'required|exists:vendors,id',
-            'total' => 'required|numeric',
+        $pembelian = Pembelian::create([
+            'vendor_id' => $request->vendor_id,
+            'tanggal' => $request->tanggal,
+            'total' => $total,
         ]);
 
-        $pembelian->update($request->all());
-        return redirect()->route('transaksi.pembelian.index')->with('success', 'Pembelian berhasil diupdate.');
+        foreach ($request->bahan_baku_id as $i => $bahanId) {
+            PembelianDetail::create([
+                'pembelian_id' => $pembelian->id,
+                'bahan_baku_id' => $bahanId,
+                'jumlah' => $request->jumlah[$i],
+                'harga_satuan' => $request->harga_satuan[$i],
+                'subtotal' => $request->jumlah[$i] * $request->harga_satuan[$i],
+            ]);
+        }
+
+        return redirect()->route('transaksi.pembelian.index')
+                         ->with('success', 'Pembelian berhasil disimpan.');
     }
 
-    public function destroy(Pembelian $pembelian)
+    public function show($id)
     {
+        $pembelian = Pembelian::with(['vendor', 'details.bahanBaku'])->findOrFail($id);
+        return view('transaksi.pembelian.show', compact('pembelian'));
+    }
+
+    public function destroy($id)
+    {
+        $pembelian = Pembelian::findOrFail($id);
+        $pembelian->details()->delete();
         $pembelian->delete();
-        return redirect()->route('transaksi.pembelian.index')->with('success', 'Pembelian berhasil dihapus.');
+
+        return redirect()->route('transaksi.pembelian.index')
+                         ->with('success', 'Pembelian berhasil dihapus.');
     }
 }

@@ -7,7 +7,9 @@
     <a href="{{ route('master-data.pegawai.create') }}" class="btn btn-primary mb-3">+ Tambah Pegawai</a>
 
     @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
+        <div class="alert alert-success text-dark fw-semibold shadow-sm mx-3">
+            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+        </div>
     @endif
 
     <table class="table table-bordered table-striped">
