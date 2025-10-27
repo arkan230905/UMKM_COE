@@ -31,6 +31,7 @@ use App\Http\Controllers\BomController;
 use App\Http\Controllers\BopController;
 use App\Http\Controllers\PembelianController;
 use App\Http\Controllers\PenjualanController;
+use App\Http\Controllers\PenggajianController;
 use App\Http\Controllers\ReturController;
 >>>>>>> 68de30b (pembuatan bop dan satuan)
 
@@ -150,12 +151,6 @@ Route::middleware(['auth', 'verified'])
         Route::resource('coa', CoaController::class);
         Route::resource('bahan-baku', BahanBakuController::class);
         Route::resource('bom', BomController::class);
-
-        // ✅ BOP tanpa tambah data (create & store dihapus)
-        Route::resource('bop', BopController::class)->except(['create', 'store']);
-
-        // ✅ Route khusus COA
-        Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generateKode');
     });
 
 // ========================================================
@@ -167,7 +162,8 @@ Route::middleware(['auth', 'verified'])
     ->group(function () {
         Route::resource('pembelian', PembelianController::class);
         Route::resource('penjualan', PenjualanController::class);
->>>>>>> 68de30b (pembuatan bop dan satuan)
+
+        // CRUD Retur (Barang Kembali)
         Route::resource('retur', ReturController::class);
     });
 

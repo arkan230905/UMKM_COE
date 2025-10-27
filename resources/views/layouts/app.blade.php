@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ config('app.name', 'Laravel') }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <style>
         body {
             background-color: #1e1e2f;
@@ -17,9 +17,6 @@
             background-color: #111129;
             padding: 1rem;
         }
-        .sidebar h5 {
-            color: #fff;
-        }
         .sidebar .nav-link {
             color: #fff;
             padding: 0.5rem 1rem;
@@ -30,13 +27,6 @@
             background: linear-gradient(135deg, #6a11cb, #2575fc);
             color: #fff;
         }
-        .sidebar .nav-section {
-            margin-top: 1.5rem;
-        }
-        .content {
-            flex-grow: 1;
-            padding: 2rem;
-        }
         .nav-title {
             font-size: 1rem;
             font-weight: 600;
@@ -44,13 +34,17 @@
             text-transform: uppercase;
             opacity: 0.7;
         }
+        .content {
+            flex-grow: 1;
+            padding: 2rem;
+        }
     </style>
 </head>
 <body>
     <div class="d-flex">
         <!-- Sidebar -->
         <div class="sidebar">
-            <h5>Menu</h5>
+            <div class="nav-title">Menu</div>
 
             <!-- Dashboard -->
             <ul class="nav flex-column">
@@ -65,17 +59,14 @@
             <div class="nav-section">
                 <div class="nav-title">Master Data</div>
                 <ul class="nav flex-column">
-                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.pegawai.index') }}">Pegawai</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.presensi.index') }}">Presensi</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.produk.index') }}">Produk</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.satuan.index') }}">Satuan</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.vendor.index') }}">Vendor</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.coa.index') }}">COA</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.bahan-baku.index') }}">Bahan Baku</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.bom.index') }}">BOM</a></li>
-
-                    {{-- ✅ Tambahan menu BOP --}}
-                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.bop.index') }}">BOP</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.pegawai.index') }}"><i class="bi bi-people me-2"></i> Pegawai</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.presensi.index') }}"><i class="bi bi-calendar-check me-2"></i> Presensi</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.produk.index') }}"><i class="bi bi-box-seam me-2"></i> Produk</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.vendor.index') }}"><i class="bi bi-building me-2"></i> Vendor</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.coa.index') }}"><i class="bi bi-journal-text me-2"></i> COA</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.bahan-baku.index') }}"><i class="bi bi-droplet-half me-2"></i> Bahan Baku</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.bom.index') }}"><i class="bi bi-diagram-3 me-2"></i> BOM</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.bop.index') }}"><i class="bi bi-gear me-2"></i> BOP</a></li>
                 </ul>
             </div>
 
@@ -83,9 +74,10 @@
             <div class="nav-section">
                 <div class="nav-title">Transaksi</div>
                 <ul class="nav flex-column">
-                    <li class="nav-item"><a class="nav-link" href="{{ route('transaksi.pembelian.index') }}">Pembelian</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ route('transaksi.penjualan.index') }}">Penjualan</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ route('transaksi.retur.index') }}">Retur</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('transaksi.pembelian.index') }}"><i class="bi bi-cart-check me-2"></i> Pembelian</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('transaksi.penjualan.index') }}"><i class="bi bi-cash-coin me-2"></i> Penjualan</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('transaksi.penggajian.index') }}"><i class="bi bi-wallet2 me-2"></i> Penggajian</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('transaksi.retur.index') }}"><i class="bi bi-arrow-counterclockwise me-2"></i> Retur</a></li>
                 </ul>
             </div>
 
