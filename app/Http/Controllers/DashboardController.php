@@ -9,6 +9,7 @@ use App\Models\Produk;
 use App\Models\Vendor;
 use App\Models\BahanBaku;
 use App\Models\Bom;
+use App\Models\Aset;
 use App\Models\Pembelian;
 use App\Models\Penjualan;
 use App\Models\Retur;
@@ -17,20 +18,18 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Hitung Master Data
         $totalPegawai     = Pegawai::count();
         $totalPresensi    = Presensi::count();
         $totalProduk      = Produk::count();
         $totalVendor      = Vendor::count();
         $totalBahanBaku   = BahanBaku::count();
         $totalBOM         = Bom::count();
+        $totalAset        = Aset::count(); // Tambahan Aset
 
-        // Hitung Transaksi
         $totalPembelian   = Pembelian::count();
         $totalPenjualan   = Penjualan::count();
-        $totalRetur       = Retur::sum('jumlah'); // Bisa di-round atau integer
+        $totalRetur       = Retur::sum('jumlah');
 
-        // Kirim semua ke view
         return view('dashboard', compact(
             'totalPegawai',
             'totalPresensi',
@@ -38,6 +37,7 @@ class DashboardController extends Controller
             'totalVendor',
             'totalBahanBaku',
             'totalBOM',
+            'totalAset',        // Kirim data Aset ke view
             'totalPembelian',
             'totalPenjualan',
             'totalRetur'
