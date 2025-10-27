@@ -30,7 +30,7 @@ class DashboardController extends Controller
         $totalPenjualan   = Penjualan::count();
         $totalRetur       = Retur::sum('jumlah'); // Bisa di-round atau integer
 
-        // Kirim semua ke view
+        // Kirim semua ke view dashboard
         return view('dashboard', compact(
             'totalPegawai',
             'totalPresensi',
@@ -43,4 +43,33 @@ class DashboardController extends Controller
             'totalRetur'
         ));
     }
+
+  public function tentangPerusahaan()
+{
+    // Data perusahaan (disimpan sementara di session agar bisa diubah manual)
+    $dataPerusahaan = session('dataPerusahaan', (object)[
+        'nama' => 'PT Madusem Digital Nusantara',
+        'alamat' => 'Jl. Merdeka No. 123, Bandung, Jawa Barat',
+        'email' => 'info@madusem.co.id',
+        'telepon' => '(022) 123-4567'
+    ]);
+
+    return view('tentang-perusahaan', compact('dataPerusahaan'));
+}
+
+public function updatePerusahaan(Request $request)
+{
+    // Ambil data dari form dan simpan ke session (sementara, belum database)
+    $dataPerusahaan = (object)[
+        'nama' => $request->nama,
+        'alamat' => $request->alamat,
+        'email' => $request->email,
+        'telepon' => $request->telepon,
+    ];
+
+    session(['dataPerusahaan' => $dataPerusahaan]);
+
+    return redirect()->route('tentang-perusahaan')->with('success', 'Data perusahaan berhasil diperbarui!');
+}
+
 }

@@ -17,4 +17,23 @@ class Coa extends Model
         'nama_akun',
         'tipe_akun',
     ];
+
+    // 🔽 Relasi ke Bop
+    public function bop()
+    {
+        return $this->hasMany(Bop::class, 'coa_id');
+    }
+
+    // 🔽 Event otomatis membuat data BOP
+    protected static function booted()
+    {
+        static::created(function ($coa) {
+            if ($coa->tipe_akun === 'Expense') {
+                \App\Models\Bop::create([
+                    'coa_id' => $coa->id,
+                    'keterangan' => 'Otomatis dari COA',
+                ]);
+            }
+        });
+    }
 }

@@ -28,7 +28,11 @@
 
                 <!-- 🏢 Tentang Perusahaan -->
                 <li>
+<<<<<<< HEAD
                     <a href="{{ route('tentang.perusahaan') }}" class="dropdown-item text-white">
+=======
+                    <a href="{{ route('tentang-perusahaan') }}" class="dropdown-item text-white">
+>>>>>>> 68de30b (pembuatan bop dan satuan)
                         <i class="bi bi-building me-2"></i> Tentang Perusahaan
                     </a>
                 </li>

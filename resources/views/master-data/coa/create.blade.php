@@ -35,11 +35,19 @@ function generateKode() {
     const tipe = document.getElementById('tipe_akun').value;
     if (!tipe) return;
 
+<<<<<<< HEAD
     fetch(`/master-data/coa/generate-kode?tipe=${tipe}`)
+=======
+    fetch(/master-data/coa/generate-kode?tipe=${tipe})
+>>>>>>> 68de30b (pembuatan bop dan satuan)
         .then(res => res.json())
         .then(data => {
             document.getElementById('kode_akun').value = data.kode_akun;
         });
 }
 </script>
+<<<<<<< HEAD
 @endsection
+=======
+@endsection
+>>>>>>> 68de30b (pembuatan bop dan satuan)

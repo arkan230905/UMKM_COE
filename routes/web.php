@@ -7,10 +7,12 @@ use App\Http\Controllers\{
     PegawaiController,
     PresensiController,
     ProdukController,
+    SatuanController,
     VendorController,
     CoaController,
     BahanBakuController,
     BomController,
+    BopController,
     PembelianController,
     PenjualanController,
     ReturController,
@@ -18,80 +20,87 @@ use App\Http\Controllers\{
 };
 
 // ========================================================
-// 🏠 Halaman Utama (Welcome Page)
+// 🏠 Halaman Utama
 // ========================================================
 Route::view('/', 'welcome')->name('welcome');
 
 // ========================================================
-// 🏢 Tentang Perusahaan
-// ========================================================
-Route::view('/tentang-perusahaan', 'tentang.perusahaan')->name('tentang.perusahaan');
-
-// ========================================================
-// 🔐 Middleware: Auth + Verified
+// 📊 Dashboard & Tentang Perusahaan
 // ========================================================
 Route::middleware(['auth', 'verified'])->group(function () {
 
-    // ====================================================
-    // 📊 Dashboard
-    // ====================================================
+    // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/admin', [DashboardController::class, 'index'])->name('admin.dashboard');
 
-    // ====================================================
-    // 👤 Profile
-    // ====================================================
-    Route::prefix('profile')->name('profile.')->group(function () {
+    // Tentang Perusahaan
+    Route::get('/tentang-perusahaan', [DashboardController::class, 'tentangPerusahaan'])
+        ->name('tentang-perusahaan');
+    Route::post('/tentang-perusahaan/update', [DashboardController::class, 'updatePerusahaan'])
+        ->name('tentang-perusahaan.update');
+});
+
+// ========================================================
+// 👤 Profile
+// ========================================================
+Route::middleware(['auth', 'verified'])
+    ->prefix('profile')
+    ->name('profile.')
+    ->group(function () {
         Route::get('/', [ProfileController::class, 'edit'])->name('edit');
         Route::patch('/', [ProfileController::class, 'update'])->name('update');
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
 
-    // ====================================================
-    // 🗂️ MASTER DATA
-    // ====================================================
-    Route::prefix('master-data')->name('master-data.')->group(function () {
-
+// ========================================================
+// 🗂️ Master Data
+// ========================================================
+Route::middleware(['auth', 'verified'])
+    ->prefix('master-data')
+    ->name('master-data.')
+    ->group(function () {
         Route::resource('pegawai', PegawaiController::class);
         Route::resource('presensi', PresensiController::class);
         Route::resource('produk', ProdukController::class);
+        Route::resource('satuan', SatuanController::class);
         Route::resource('vendor', VendorController::class);
-
         Route::resource('coa', CoaController::class);
-        Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generateKode');
-
-        Route::resource('bahan-baku', BahanBakuController::class)->names([
-            'index'   => 'bahan-baku.index',
-            'create'  => 'bahan-baku.create',
-            'store'   => 'bahan-baku.store',
-            'show'    => 'bahan-baku.show',
-            'edit'    => 'bahan-baku.edit',
-            'update'  => 'bahan-baku.update',
-            'destroy' => 'bahan-baku.destroy',
-        ]);
+        Route::resource('bahan-baku', BahanBakuController::class);
 
         // ✅ Bill of Material (BOM)
         Route::prefix('bom')->name('bom.')->group(function () {
-            Route::get('/', [BomController::class, 'index'])->name('index'); // Halaman utama BOM
-            Route::get('/view/{produk_id}', [BomController::class, 'view'])->name('view'); // AJAX tabel BOM
-            Route::get('/create', [BomController::class, 'create'])->name('create'); // Form Tambah BOM
-            Route::post('/store', [BomController::class, 'store'])->name('store');   // Simpan BOM
+            Route::get('/', [BomController::class, 'index'])->name('index');
+            Route::get('/view/{produk_id}', [BomController::class, 'view'])->name('view');
+            Route::get('/create', [BomController::class, 'create'])->name('create');
+            Route::post('/store', [BomController::class, 'store'])->name('store');
         });
+
+        // ✅ BOP tanpa tambah data (create & store dihapus)
+        Route::resource('bop', BopController::class)->except(['create', 'store']);
+
+        // ✅ Route khusus COA
+        Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generateKode');
     });
 
-    // ====================================================
-    // 💸 TRANSAKSI
-    // ====================================================
-    Route::prefix('transaksi')->name('transaksi.')->group(function () {
+// ========================================================
+// 💸 Transaksi
+// ========================================================
+Route::middleware(['auth', 'verified'])
+    ->prefix('transaksi')
+    ->name('transaksi.')
+    ->group(function () {
         Route::resource('pembelian', PembelianController::class);
         Route::resource('penjualan', PenjualanController::class);
         Route::resource('retur', ReturController::class);
     });
 
-    // ====================================================
-    // 📑 LAPORAN
-    // ====================================================
-    Route::prefix('laporan')->name('laporan.')->group(function () {
+// ========================================================
+// 📑 Laporan
+// ========================================================
+Route::middleware(['auth', 'verified'])
+    ->prefix('laporan')
+    ->name('laporan.')
+    ->group(function () {
         Route::get('/pembelian', [LaporanController::class, 'pembelian'])->name('pembelian');
         Route::get('/pembelian/export/pdf', [LaporanController::class, 'exportPembelianPdf'])->name('pembelian.export.pdf');
         Route::get('/pembelian/export/excel', [LaporanController::class, 'exportPembelianExcel'])->name('pembelian.export.excel');
@@ -104,6 +113,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/stok/export/pdf', [LaporanController::class, 'exportStokPdf'])->name('stok.export.pdf');
         Route::get('/stok/export/excel', [LaporanController::class, 'exportStokExcel'])->name('stok.export.excel');
     });
-});
 
+// ========================================================
+// 🔐 Autentikasi
+// ========================================================
 require __DIR__ . '/auth.php';

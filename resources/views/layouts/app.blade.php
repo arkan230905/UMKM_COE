@@ -68,10 +68,14 @@
                     <li class="nav-item"><a class="nav-link" href="{{ route('master-data.pegawai.index') }}">Pegawai</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ route('master-data.presensi.index') }}">Presensi</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ route('master-data.produk.index') }}">Produk</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.satuan.index') }}">Satuan</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ route('master-data.vendor.index') }}">Vendor</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ route('master-data.coa.index') }}">COA</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ route('master-data.bahan-baku.index') }}">Bahan Baku</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ route('master-data.bom.index') }}">BOM</a></li>
+
+                    {{-- ✅ Tambahan menu BOP --}}
+                    <li class="nav-item"><a class="nav-link" href="{{ route('master-data.bop.index') }}">BOP</a></li>
                 </ul>
             </div>
 
