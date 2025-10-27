@@ -1,27 +1,28 @@
-@extends('layouts.app')
+<select id="produkSelect" class="form-select">
+    <option value="">-- Pilih Produk --</option>
+    @foreach($produks as $p)
+        <option value="{{ $p->id }}">{{ $p->nama_produk }}</option>
+    @endforeach
+</select>
 
-@section('content')
-<div class="container">
-    <h3>Bill of Materials (BOM)</h3>
-
-    <div class="row mb-3">
-        <div class="col-md-6">
-            <label for="produk_id" class="form-label">Pilih Produk</label>
-            <select id="produk_id" class="form-control" onchange="location = this.value;">
-                <option value="">-- Pilih Produk --</option>
-                @foreach($produks as $produk)
-                    <option value="{{ route('master-data.bom.show', $produk->id) }}">
-                        {{ $produk->nama_produk }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-
-        <div class="col-md-6 d-flex align-items-end">
-            <a href="{{ route('master-data.bom.create') }}" class="btn btn-primary w-100">
-                <i class="bi bi-plus-circle"></i> Tambah BOM
-            </a>
-        </div>
-    </div>
+<div id="bomTable">
+    <p class="text-muted">Pilih produk untuk melihat BOM.</p>
 </div>
-@endsection
+
+<script>
+document.getElementById('produkSelect').addEventListener('change', function() {
+    let produkId = this.value;
+    let bomTable = document.getElementById('bomTable');
+
+    if(produkId) {
+        fetch(`/master-data/bom/view/${produkId}`)
+            .then(response => response.text())
+            .then(html => bomTable.innerHTML = html)
+            .catch(err => {
+                bomTable.innerHTML = '<p class="text-danger">Gagal memuat data BOM.</p>';
+            });
+    } else {
+        bomTable.innerHTML = '<p class="text-muted">Pilih produk untuk melihat BOM.</p>';
+    }
+});
+</script>

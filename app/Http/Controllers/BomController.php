@@ -6,89 +6,107 @@ use Illuminate\Http\Request;
 use App\Models\Produk;
 use App\Models\BahanBaku;
 use App\Models\Bom;
-use App\Models\BomDetail;
+use App\Models\BTKL;
+use App\Models\BOP;
+use Illuminate\Support\Facades\DB;
 
 class BomController extends Controller
 {
-    // Menampilkan daftar produk
+    // ===============================
+    // 🏠 Halaman Utama BOM
+    // ===============================
     public function index()
     {
+        // Ambil semua produk (untuk dropdown)
         $produks = Produk::all();
+
         return view('master-data.bom.index', compact('produks'));
     }
 
-    // Form tambah BOM
-    public function create(Request $request)
+    // ===============================
+    // ➕ Form Tambah BOM
+    // ===============================
+    public function create()
     {
         $produks = Produk::all();
-        $bahanBaku = BahanBaku::all();
-        $selectedProdukId = $request->query('produk_id');
-
-        return view('master-data.bom.create', compact('produks', 'bahanBaku', 'selectedProdukId'));
+        $bahan_bakus = BahanBaku::all();
+        return view('master-data.bom.create', compact('produks', 'bahan_bakus'));
     }
 
-    // Form edit BOM
-    public function edit($produk_id)
-    {
-        $produk = Produk::findOrFail($produk_id);
-        $bahanBaku = BahanBaku::all();
-
-        $bom = Bom::firstOrCreate(['produk_id' => $produk_id]);
-        $bomDetails = BomDetail::where('bom_id', $bom->id)->get();
-
-        return view('master-data.bom.edit', compact('produk', 'bahanBaku', 'bomDetails'));
-    }
-
-    // Simpan atau update BOM
+    // ===============================
+    // 💾 Simpan BOM ke Database
+    // ===============================
     public function store(Request $request)
     {
         $request->validate([
-            'produk_id' => 'required|exists:produk,id',
-            'bahan_baku_id.*' => 'required|exists:bahan_bakus,id',
-            'jumlah.*' => 'required|numeric|min:0',
-            'kategori.*' => 'required|in:BTKL,BOP',
+            'produk_id' => 'required',
+            'bahan_baku_id' => 'required|array',
+            'jumlah' => 'required|array',
         ]);
 
-        $bom = Bom::firstOrCreate(['produk_id' => $request->produk_id]);
+        DB::transaction(function () use ($request) {
+            $produk = Produk::findOrFail($request->produk_id);
+            $total_bahan = 0;
 
-        foreach ($request->bahan_baku_id as $i => $bahan_id) {
-            $bahan = BahanBaku::findOrFail($bahan_id);
-            $jumlah = $request->jumlah[$i];
-            $kategori = $request->kategori[$i];
+            foreach ($request->bahan_baku_id as $i => $bahan_id) {
+                $bahan = BahanBaku::findOrFail($bahan_id);
+                $qty = $request->jumlah[$i];
+                $subtotal = $bahan->harga_satuan * $qty;
 
-            BomDetail::updateOrCreate(
-                ['bom_id' => $bom->id, 'bahan_baku_id' => $bahan_id],
-                [
-                    'jumlah' => $jumlah,
-                    'satuan' => $bahan->satuan,
-                    'harga_per_satuan' => $bahan->harga_satuan,
-                    'total_harga' => $jumlah * $bahan->harga_satuan,
-                    'kategori' => $kategori
-                ]
-            );
-        }
+                $total_bahan += $subtotal;
 
-        return redirect()->route('master-data.bom.show', $request->produk_id)
-                         ->with('success', 'BOM berhasil disimpan.');
+                Bom::create([
+                    'produk_id' => $produk->id,
+                    'bahan_baku_id' => $bahan_id,
+                    'jumlah' => $qty,
+                    'total_biaya' => $subtotal,
+                ]);
+            }
+
+            $btkl_sum = BTKL::sum('nominal');
+            $bop_sum = BOP::sum('nominal');
+            $grand_total = $total_bahan + $btkl_sum + $bop_sum;
+            $harga_jual = $grand_total * 1.6;
+
+            $produk->update(['harga_produk' => $harga_jual]);
+        });
+
+        return redirect()->route('master-data.bom.index')->with('success', 'BOM berhasil ditambahkan!');
     }
 
-    // Update BOM (edit)
-    public function update(Request $request, $produk_id)
-    {
-        return $this->store($request); // bisa gunakan store karena logikanya sama
-    }
-
-    // Tampilkan detail BOM
-    public function show($produk_id)
+    // ===============================
+    // 📄 Tampilkan BOM per Produk (AJAX)
+    // ===============================
+    public function view($produk_id)
     {
         $produk = Produk::findOrFail($produk_id);
 
-        $bomDetails = BomDetail::whereHas('bom', function($q) use ($produk_id) {
-            $q->where('produk_id', $produk_id);
-        })->with('bahanBaku')->get();
+        // Ambil bahan baku terkait
+        $items = Bom::where('produk_id', $produk_id)
+            ->join('bahan_bakus', 'boms.bahan_baku_id', '=', 'bahan_bakus.id')
+            ->select(
+                'bahan_bakus.nama_bahan',
+                'bahan_bakus.satuan',
+                'bahan_bakus.harga_satuan',
+                'boms.jumlah',
+                'boms.total_biaya'
+            )
+            ->get();
 
-        $totalBOM = $bomDetails->sum(fn($d) => $d->total_harga);
+        $total_bahan = $items->sum('total_biaya');
+        $btkl_sum = BTKL::sum('nominal');
+        $bop_sum = BOP::sum('nominal');
+        $grand_total = $total_bahan + $btkl_sum + $bop_sum;
+        $harga_jual = $grand_total * 1.6;
 
-        return view('master-data.bom.show', compact('produk', 'bomDetails', 'totalBOM'));
+        return view('master-data.bom.partials.table', compact(
+            'produk',
+            'items',
+            'total_bahan',
+            'btkl_sum',
+            'bop_sum',
+            'grand_total',
+            'harga_jual'
+        ));
     }
 }
