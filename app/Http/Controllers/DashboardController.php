@@ -8,68 +8,49 @@ use App\Models\Presensi;
 use App\Models\Produk;
 use App\Models\Vendor;
 use App\Models\BahanBaku;
+use App\Models\Bop;
 use App\Models\Bom;
+use App\Models\Coa;
 use App\Models\Pembelian;
 use App\Models\Penjualan;
 use App\Models\Retur;
+use App\Models\Penggajian;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // Hitung Master Data
+        // Master Data
         $totalPegawai     = Pegawai::count();
         $totalPresensi    = Presensi::count();
         $totalProduk      = Produk::count();
         $totalVendor      = Vendor::count();
         $totalBahanBaku   = BahanBaku::count();
+        $totalSatuan      = \App\Models\Satuan::count();
+        $totalBOP         = Bop::count();
         $totalBOM         = Bom::count();
+        $totalCOA         = Coa::count();
 
-        // Hitung Transaksi
+        // Transaksi
         $totalPembelian   = Pembelian::count();
         $totalPenjualan   = Penjualan::count();
-        $totalRetur       = Retur::sum('jumlah'); // Bisa di-round atau integer
+        $totalRetur       = Retur::sum('jumlah');
+        $totalPenggajian  = Penggajian::count();
 
-        // Kirim semua ke view dashboard
         return view('dashboard', compact(
             'totalPegawai',
             'totalPresensi',
             'totalProduk',
             'totalVendor',
             'totalBahanBaku',
+            'totalSatuan',
+            'totalBOP',
             'totalBOM',
+            'totalCOA',
             'totalPembelian',
             'totalPenjualan',
-            'totalRetur'
+            'totalRetur',
+            'totalPenggajian'
         ));
     }
-
-  public function tentangPerusahaan()
-{
-    // Data perusahaan (disimpan sementara di session agar bisa diubah manual)
-    $dataPerusahaan = session('dataPerusahaan', (object)[
-        'nama' => 'PT Madusem Digital Nusantara',
-        'alamat' => 'Jl. Merdeka No. 123, Bandung, Jawa Barat',
-        'email' => 'info@madusem.co.id',
-        'telepon' => '(022) 123-4567'
-    ]);
-
-    return view('tentang-perusahaan', compact('dataPerusahaan'));
-}
-
-public function updatePerusahaan(Request $request)
-{
-    // Ambil data dari form dan simpan ke session (sementara, belum database)
-    $dataPerusahaan = (object)[
-        'nama' => $request->nama,
-        'alamat' => $request->alamat,
-        'email' => $request->email,
-        'telepon' => $request->telepon,
-    ];
-
-    session(['dataPerusahaan' => $dataPerusahaan]);
-
-    return redirect()->route('tentang-perusahaan')->with('success', 'Data perusahaan berhasil diperbarui!');
-}
-
 }

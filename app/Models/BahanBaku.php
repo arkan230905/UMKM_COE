@@ -14,6 +14,6 @@ class BahanBaku extends Model
         'nama_bahan',
         'satuan',
         'stok',
-        'harga',
+        'harga_satuan',
     ];
 }

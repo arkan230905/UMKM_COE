@@ -9,8 +9,7 @@ class Pegawai extends Model
 {
     use HasFactory;
 
-    protected $table = 'pegawais';
-
+    protected $table = 'pegawais'; // pastikan nama tabel sama dengan database
     protected $fillable = [
         'nama',
         'email',
@@ -20,16 +19,8 @@ class Pegawai extends Model
         'jabatan',
         'kategori_tenaga_kerja',
         'gaji',
+        'gaji_pokok',
+        'tunjangan',
+        'jenis_pegawai',
     ];
-    
-    public function penggajian()
-    {
-        return $this->hasMany(Penggajian::class);
-    }
-
-    public function presensi()
-    {
-        return $this->hasMany(Presensi::class);
-    }
-
 }

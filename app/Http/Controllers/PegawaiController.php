@@ -2,97 +2,106 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Pegawai;
+use Illuminate\Http\Request;
 
 class PegawaiController extends Controller
 {
-    /**
-     * Menampilkan daftar pegawai, bisa difilter berdasarkan kategori.
-     */
-    public function index(Request $request)
+    // Menampilkan daftar pegawai
+    public function index()
     {
-        $kategori = $request->query('kategori'); // Ambil parameter filter kategori
-
-        $query = Pegawai::query();
-
-        if ($kategori && in_array($kategori, ['BTKL', 'BTKTL'])) {
-            $query->where('kategori_tenaga_kerja', $kategori);
+        $jenis = request('jenis');
+        if (in_array(strtolower((string)$jenis), ['btkl','btktl'])) {
+            $pegawais = Pegawai::where('jenis_pegawai', strtolower($jenis))->get();
+        } else {
+            $pegawais = Pegawai::all();
+            $jenis = null;
         }
 
-        $pegawais = $query->get();
-
-        return view('master-data.pegawai.index', compact('pegawais', 'kategori'));
+        return view('master-data.pegawai.index', compact('pegawais', 'jenis'));
     }
 
-    /**
-     * Tampilkan form untuk menambahkan pegawai baru.
-     */
+    // Tampilkan form create
     public function create()
     {
         return view('master-data.pegawai.create');
     }
 
-    /**
-     * Simpan data pegawai baru.
-     */
+    // Simpan data baru
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $request->validate([
             'nama' => 'required|string|max:255',
             'email' => 'required|email|unique:pegawais,email',
-            'no_telp' => 'required|string|max:15',
+            'no_telp' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jenis_kelamin' => 'required|in:L,P',
             'jabatan' => 'required|string',
-            'kategori_tenaga_kerja' => 'required|in:BTKL,BTKTL',
-            'gaji' => 'required|numeric|min:0',
+            'gaji' => 'required|numeric',
+            'kategori_tenaga_kerja' => 'nullable|in:BTKL,BTKTL',
         ]);
 
-        Pegawai::create($validated);
+        $data = $request->all();
+        if (!empty($data['kategori_tenaga_kerja'])) {
+            $data['jenis_pegawai'] = strtolower($data['kategori_tenaga_kerja']);
+        }
+        if (!isset($data['gaji_pokok'])) {
+            $data['gaji_pokok'] = $data['gaji'] ?? 0;
+        }
+        if (!isset($data['tunjangan'])) {
+            $data['tunjangan'] = $data['tunjangan'] ?? 0;
+        }
+
+        Pegawai::create($data);
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil ditambahkan.');
     }
 
-    /**
-     * Tampilkan form untuk mengedit pegawai.
-     */
+    // Form edit pegawai
     public function edit($id)
     {
         $pegawai = Pegawai::findOrFail($id);
         return view('master-data.pegawai.edit', compact('pegawai'));
     }
 
-    /**
-     * Update data pegawai.
-     */
+    // Update data pegawai
     public function update(Request $request, $id)
     {
         $pegawai = Pegawai::findOrFail($id);
 
-        $validated = $request->validate([
+        $request->validate([
             'nama' => 'required|string|max:255',
-            'email' => 'required|email|unique:pegawais,email,' . $id,
-            'no_telp' => 'required|string|max:15',
+            'email' => 'required|email|unique:pegawais,email,'.$pegawai->id,
+            'no_telp' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jenis_kelamin' => 'required|in:L,P',
             'jabatan' => 'required|string',
-            'kategori_tenaga_kerja' => 'required|in:BTKL,BTKTL',
-            'gaji' => 'required|numeric|min:0',
+            'gaji' => 'required|numeric',
+            'kategori_tenaga_kerja' => 'nullable|in:BTKL,BTKTL',
         ]);
 
-        $pegawai->update($validated);
+        $data = $request->all();
+        if (!empty($data['kategori_tenaga_kerja'])) {
+            $data['jenis_pegawai'] = strtolower($data['kategori_tenaga_kerja']);
+        }
+        if (!isset($data['gaji_pokok'])) {
+            $data['gaji_pokok'] = $data['gaji'] ?? $pegawai->gaji_pokok;
+        }
+        if (!isset($data['tunjangan'])) {
+            $data['tunjangan'] = $data['tunjangan'] ?? ($pegawai->tunjangan ?? 0);
+        }
 
-        return redirect()->route('master-data.pegawai.index')->with('success', 'Data pegawai berhasil diperbarui.');
+        $pegawai->update($data);
+
+        return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil diperbarui.');
     }
 
-    /**
-     * Hapus pegawai.
-     */
+    // Hapus pegawai
     public function destroy($id)
     {
-        Pegawai::findOrFail($id)->delete();
+        $pegawai = Pegawai::findOrFail($id);
+        $pegawai->delete();
+
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil dihapus.');
     }
 }

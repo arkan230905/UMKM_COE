@@ -9,62 +9,91 @@ use Carbon\Carbon;
 
 class PresensiController extends Controller
 {
+    /**
+     * Tampilkan daftar presensi
+     */
     public function index()
     {
-        $presensis = Presensi::with('pegawai')->get();
+        // Ambil semua presensi beserta relasi pegawai
+        $presensis = Presensi::with('pegawai')->orderBy('tgl_presensi', 'desc')->get();
         return view('master-data.presensi.index', compact('presensis'));
     }
 
+    /**
+     * Form tambah presensi
+     */
     public function create()
     {
-        $pegawais = Pegawai::all();
+        $pegawais = Pegawai::all(); // untuk select pegawai
         return view('master-data.presensi.create', compact('pegawais'));
     }
 
+    /**
+     * Simpan presensi baru
+     */
     public function store(Request $request)
     {
+        // Validasi input
         $validated = $request->validate([
-        'pegawai_id' => 'required|exists:pegawais,id',
-        'tanggal' => 'required|date',
-        'jam_masuk' => 'required|date_format:H:i',
-        'jam_keluar' => 'required|date_format:H:i|after:jam_masuk',
-    ]);
+            'pegawai_id' => 'required|exists:pegawais,id',
+            'tgl_presensi' => 'required|date',
+            'jam_masuk' => 'required|date_format:H:i',
+            'jam_keluar' => 'required|date_format:H:i|after:jam_masuk',
+        ]);
 
-    // Hitung total jam kerja
-    $jamMasuk = Carbon::parse($validated['jam_masuk']);
-    $jamKeluar = Carbon::parse($validated['jam_keluar']);
-    $totalJam = $jamKeluar->floatDiffInHours($jamMasuk);
+        // Hitung total jam kerja
+        $jamMasuk = Carbon::parse($validated['jam_masuk']);
+        $jamKeluar = Carbon::parse($validated['jam_keluar']);
+        $validated['total_jam'] = $jamKeluar->floatDiffInHours($jamMasuk);
 
-    $validated['total_jam'] = $totalJam;
+        // Simpan ke database
+        Presensi::create($validated);
 
-    Presensi::create($validated);
-
-    return redirect()->back()->with('success', 'Presensi berhasil disimpan');
+        return redirect()->route('master-data.presensi.index')
+                         ->with('success', 'Presensi berhasil disimpan.');
     }
 
+    /**
+     * Form edit presensi
+     */
     public function edit(Presensi $presensi)
     {
         $pegawais = Pegawai::all();
         return view('master-data.presensi.edit', compact('presensi', 'pegawais'));
     }
 
+    /**
+     * Update presensi
+     */
     public function update(Request $request, Presensi $presensi)
     {
-        $request->validate([
+        $validated = $request->validate([
             'pegawai_id' => 'required|exists:pegawais,id',
             'tgl_presensi' => 'required|date',
-            'jam_masuk' => 'required',
-            'status' => 'required|in:Hadir,Absen,Izin,Sakit'
+            'jam_masuk' => 'required|date_format:H:i',
+            'jam_keluar' => 'required|date_format:H:i|after:jam_masuk',
+            'status' => 'required|in:Hadir,Absen,Izin,Sakit',
         ]);
 
-        $presensi->update($request->all());
+        // Hitung total jam kerja
+        $jamMasuk = Carbon::parse($validated['jam_masuk']);
+        $jamKeluar = Carbon::parse($validated['jam_keluar']);
+        $validated['total_jam'] = $jamKeluar->floatDiffInHours($jamMasuk);
 
-        return redirect()->route('master-data.presensi.index')->with('success', 'Data presensi berhasil diperbarui.');
+        // Update presensi
+        $presensi->update($validated);
+
+        return redirect()->route('master-data.presensi.index')
+                         ->with('success', 'Presensi berhasil diperbarui.');
     }
 
+    /**
+     * Hapus presensi
+     */
     public function destroy(Presensi $presensi)
     {
         $presensi->delete();
-        return redirect()->route('master-data.presensi.index')->with('success', 'Data presensi berhasil dihapus.');
+        return redirect()->route('master-data.presensi.index')
+                         ->with('success', 'Presensi berhasil dihapus.');
     }
 }

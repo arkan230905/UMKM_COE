@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Bop;
 
 class Coa extends Model
 {
     use HasFactory;
 
-    // Pastikan tabel yang digunakan benar
     protected $table = 'coas';
 
     protected $fillable = [
@@ -18,20 +18,23 @@ class Coa extends Model
         'tipe_akun',
     ];
 
-    // 🔽 Relasi ke Bop
+    // Relasi ke BOP
     public function bop()
     {
         return $this->hasMany(Bop::class, 'coa_id');
     }
 
-    // 🔽 Event otomatis membuat data BOP
+    // Event otomatis membuat data BOP jika tipe akun sesuai
     protected static function booted()
     {
         static::created(function ($coa) {
-            if ($coa->tipe_akun === 'Expense') {
-                \App\Models\Bop::create([
+            // Ubah sesuai tipe akun yang kamu gunakan
+            if (in_array(strtolower($coa->tipe_akun), ['expense', 'beban', 'biaya'])) {
+                Bop::create([
                     'coa_id' => $coa->id,
                     'keterangan' => 'Otomatis dari COA',
+                    'nominal' => null,
+                    'tanggal' => null,
                 ]);
             }
         });
