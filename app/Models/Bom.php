@@ -13,6 +13,7 @@ class Bom extends Model
         'produk_id',
         'bahan_baku_id',
         'jumlah',
+        'satuan_resep',
         'total_biaya',
     ];
 

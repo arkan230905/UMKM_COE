@@ -1,165 +1,155 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid py-4" style="background-color: #1e1e2f; min-height: 100vh;">
+<div class="d-flex" style="min-height: 100vh;">
 
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
-        <h1 class="text-white">Dashboard</h1>
+    <!-- ========== SIDEBAR ========== -->
+    <div class="sidebar p-3">
+        <h4 class="text-white fw-bold mb-4">UMKM COE</h4>
 
-        <!-- Dropdown Profile -->
-        <div class="dropdown">
-            <button class="btn btn-dark dropdown-toggle d-flex align-items-center" 
-                    type="button" 
-                    id="dropdownProfile" 
-                    data-bs-toggle="dropdown" 
-                    aria-expanded="false"
-                    style="border-radius: 10px; background-color: #2c2c3e; border: none;">
-                <i class="bi bi-person-circle fs-5 me-2"></i>
-                <span>{{ Auth::user()->name }}</span>
-            </button>
+        <!-- DASHBOARD -->
+        <ul class="nav flex-column mb-4">
+            <li class="nav-item mb-1">
+                <a href="{{ route('dashboard') }}" 
+                   class="nav-link text-white rounded d-flex align-items-center {{ request()->is('dashboard') ? 'active' : '' }}">
+                    <i class="bi bi-speedometer2 me-2"></i> Dashboard
+                </a>
+            </li>
+        </ul>
 
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownProfile" style="background-color: #2c2c3e;">
-                <li class="dropdown-header text-white">
-                    <strong>{{ Auth::user()->name }}</strong><br>
-                    <small>{{ Auth::user()->email }}</small>
-                </li>
-                <li><hr class="dropdown-divider"></li>
+        <!-- MASTER DATA -->
+        <span class="text-white small fw-semibold">MASTER DATA</span>
+        <ul class="nav flex-column mb-4 mt-2">
+            <li class="nav-item mb-1">
+                <a href="{{ route('master-data.pegawai.index') }}" class="nav-link text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-people-fill me-2"></i> Pegawai</span>
+                    <span class="badge bg-primary">{{ $totalPegawai ?? 0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="{{ route('master-data.presensi.index') }}" class="nav-link text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-calendar-check me-2"></i> Presensi</span>
+                    <span class="badge bg-success">{{ $totalPresensi ?? 0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="{{ route('master-data.produk.index') }}" class="nav-link text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-box-seam me-2"></i> Produk</span>
+                    <span class="badge bg-warning text-dark">{{ $totalProduk ?? 0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="{{ route('master-data.vendor.index') }}" class="nav-link text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-truck me-2"></i> Vendor</span>
+                    <span class="badge bg-info text-dark">{{ $totalVendor ?? 0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="{{ route('master-data.bahan-baku.index') }}" class="nav-link text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-basket3 me-2"></i> Bahan Baku</span>
+                    <span class="badge bg-secondary">{{ $totalBahanBaku ?? 0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="{{ route('master-data.satuan.index') }}" class="nav-link text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-upc-scan me-2"></i> Satuan</span>
+                    <span class="badge bg-dark">{{ $totalSatuan ?? 0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="{{ route('master-data.coa.index') }}" class="nav-link text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-list-check me-2"></i> COA</span>
+                    <span class="badge bg-danger">{{ $totalCOA ?? 0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="{{ route('master-data.bop.index') }}" class="nav-link text-white">
+                    <i class="bi bi-currency-dollar me-2"></i> BOP
+                </a>
+            </li>
+            <li class="nav-item mb-1">
+                <a href="{{ route('master-data.bom.index') }}" class="nav-link text-white">
+                    <i class="bi bi-diagram-3 me-2"></i> BOM
+                </a>
+            </li>
+        </ul>
 
-                <!-- 🏢 Tentang Perusahaan -->
-                <li>
-<<<<<<< HEAD
-                    <a href="{{ route('tentang.perusahaan') }}" class="dropdown-item text-white">
-=======
-                    <a href="{{ route('tentang-perusahaan') }}" class="dropdown-item text-white">
->>>>>>> 68de30b (pembuatan bop dan satuan)
-                        <i class="bi bi-building me-2"></i> Tentang Perusahaan
-                    </a>
-                </li>
+        <!-- TRANSAKSI -->
+        <span class="text-white small fw-semibold">TRANSAKSI</span>
+        <ul class="nav flex-column mb-4 mt-2">
+            <li><a href="{{ route('transaksi.produksi.index') }}" class="nav-link text-white"><i class="bi bi-diagram-3 me-2"></i> Produksi</a></li>
+            <li><a href="{{ route('transaksi.pembelian.index') }}" class="nav-link text-white"><i class="bi bi-cart me-2"></i> Pembelian</a></li>
+            <li><a href="{{ route('transaksi.penjualan.index') }}" class="nav-link text-white"><i class="bi bi-currency-dollar me-2"></i> Penjualan</a></li>
+            <li><a href="{{ route('transaksi.retur.index') }}" class="nav-link text-white"><i class="bi bi-arrow-counterclockwise me-2"></i> Retur</a></li>
+            <li><a href="{{ route('transaksi.penggajian.index') }}" class="nav-link text-white"><i class="bi bi-wallet2 me-2"></i> Penggajian</a></li>
+        </ul>
 
-                <li><hr class="dropdown-divider"></li>
-
-                <!-- 🚪 Logout -->
-                <li>
-                    <form action="{{ route('logout') }}" method="POST">
-                        @csrf
-                        <button type="submit" class="dropdown-item text-danger">
-                            <i class="bi bi-box-arrow-right me-2"></i> Logout
-                        </button>
-                    </form>
-                </li>
-            </ul>
-        </div>
+        <!-- LAPORAN -->
+        <span class="text-white small fw-semibold">LAPORAN</span>
+        <ul class="nav flex-column mt-2">
+            <li><a href="{{ route('laporan.stok') }}" class="nav-link text-white"><i class="bi bi-box-seam me-2"></i> Laporan Stok</a></li>
+            <li><a href="{{ route('laporan.penjualan') }}" class="nav-link text-white"><i class="bi bi-file-bar-graph me-2"></i> Laporan Penjualan</a></li>
+            <li><a href="{{ route('laporan.pembelian') }}" class="nav-link text-white"><i class="bi bi-file-text me-2"></i> Laporan Pembelian</a></li>
+            <li><a href="{{ route('akuntansi.jurnal-umum') }}" class="nav-link text-white"><i class="bi bi-journal-text me-2"></i> Jurnal Umum</a></li>
+            <li><a href="{{ route('akuntansi.buku-besar') }}" class="nav-link text-white"><i class="bi bi-journal-richtext me-2"></i> Buku Besar</a></li>
+            <li><a href="{{ route('akuntansi.neraca-saldo') }}" class="nav-link text-white"><i class="bi bi-ui-checks-grid me-2"></i> Neraca Saldo</a></li>
+            <li><a href="{{ route('akuntansi.laba-rugi') }}" class="nav-link text-white"><i class="bi bi-graph-up me-2"></i> Laba Rugi</a></li>
+        </ul>
     </div>
 
-    <!-- Grid Cards: Master Data -->
-    <h4 class="text-white mb-3 px-2">Master Data</h4>
-    <div class="row g-4 px-2">
-        @php
-            $masterData = [
-                ['title'=>'Pegawai','count'=>$totalPegawai,'icon'=>'bi-people','route'=>'master-data.pegawai.index'],
-                ['title'=>'Presensi','count'=>$totalPresensi,'icon'=>'bi-clock','route'=>'master-data.presensi.index'],
-                ['title'=>'Produk','count'=>$totalProduk,'icon'=>'bi-box-seam','route'=>'master-data.produk.index'],
-                ['title'=>'Vendor','count'=>$totalVendor,'icon'=>'bi-shop','route'=>'master-data.vendor.index'],
-                ['title'=>'Bahan Baku','count'=>$totalBahanBaku,'icon'=>'bi-droplet','route'=>'master-data.bahan-baku.index'],
-                ['title'=>'BOM','count'=>$totalBOM,'icon'=>'bi-gear','route'=>'master-data.bom.index'],
-            ];
-        @endphp
-
-        @foreach($masterData as $data)
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a href="{{ route($data['route']) }}" class="text-decoration-none">
-                <div class="card shadow hover-card text-white text-center" 
-                     style="background-color: #2c2c3e; border-radius: 15px; min-height: 120px;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <i class="bi {{ $data['icon'] }} fs-2 mb-2 opacity-75"></i>
-                        <h6 class="card-title">{{ $data['title'] }}</h6>
-                        <h3 class="card-text">{{ $data['count'] }}</h3>
-                    </div>
-                </div>
-            </a>
+    <!-- ========== DASHBOARD CONTENT ========== -->
+    <div class="content flex-grow-1 p-4">
+        <div class="row g-3">
+            <x-dashboard-card title="Pegawai" :count="$totalPegawai" bg="primary" icon="bi-people-fill"/>
+            <x-dashboard-card title="Presensi" :count="$totalPresensi" bg="success" icon="bi-calendar-check"/>
+            <x-dashboard-card title="Produk" :count="$totalProduk" bg="warning" icon="bi-box-seam"/>
+            <x-dashboard-card title="Vendor" :count="$totalVendor" bg="info" icon="bi-truck"/>
+            <x-dashboard-card title="Bahan Baku" :count="$totalBahanBaku" bg="secondary" icon="bi-basket3"/>
+            <x-dashboard-card title="Satuan" :count="$totalSatuan" bg="dark" icon="bi-upc-scan"/>
+            <x-dashboard-card title="COA" :count="$totalCOA" bg="danger" icon="bi-list-check"/>
+            <x-dashboard-card title="Pembelian" :count="$totalPembelian" bg="primary" icon="bi-cart"/>
+            <x-dashboard-card title="Penjualan" :count="$totalPenjualan" bg="success" icon="bi-currency-dollar"/>
+            <x-dashboard-card title="Retur" :count="$totalRetur" bg="warning" icon="bi-arrow-counterclockwise"/>
+            <x-dashboard-card title="Penggajian" :count="$totalPenggajian" bg="info" icon="bi-wallet2"/>
         </div>
-        @endforeach
     </div>
-
-    <!-- Grid Cards: Transaksi -->
-    <h4 class="text-white mt-5 mb-3 px-2">Transaksi</h4>
-    <div class="row g-4 px-2">
-        @php
-            $transaksiData = [
-                ['title'=>'Pembelian','count'=>$totalPembelian,'icon'=>'bi-cart4','route'=>'transaksi.pembelian.index'],
-                ['title'=>'Penjualan','count'=>$totalPenjualan,'icon'=>'bi-currency-dollar','route'=>'transaksi.penjualan.index'],
-                ['title'=>'Retur','count'=>$totalRetur,'icon'=>'bi-arrow-counterclockwise','route'=>'transaksi.retur.index'],
-            ];
-        @endphp
-
-        @foreach($transaksiData as $data)
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a href="{{ route($data['route']) }}" class="text-decoration-none">
-                <div class="card shadow hover-card text-white text-center" 
-                     style="background-color: #2c2c3e; border-radius: 15px; min-height: 120px;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <i class="bi {{ $data['icon'] }} fs-2 mb-2 opacity-75"></i>
-                        <h6 class="card-title">{{ $data['title'] }}</h6>
-                        <h3 class="card-text">{{ $data['count'] }}</h3>
-                    </div>
-                </div>
-            </a>
-        </div>
-        @endforeach
-    </div>
-
-    <!-- Grid Cards: Laporan -->
-    <h4 class="text-white mt-5 mb-3 px-2">Laporan</h4>
-    <div class="row g-4 px-2">
-        @php
-            $laporanData = [
-                ['title'=>'Laporan Penjualan','icon'=>'bi-graph-up','route'=>'laporan.penjualan'],
-                ['title'=>'Laporan Pembelian','icon'=>'bi-receipt','route'=>'laporan.pembelian'],
-                ['title'=>'Laporan Stok','icon'=>'bi-clipboard-data','route'=>'laporan.stok'],
-            ];
-        @endphp
-
-        @foreach($laporanData as $data)
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a href="{{ route($data['route']) }}" class="text-decoration-none">
-                <div class="card shadow hover-card text-white text-center" 
-                     style="background-color: #2c2c3e; border-radius: 15px; min-height: 120px;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <i class="bi {{ $data['icon'] }} fs-2 mb-2 opacity-75"></i>
-                        <h6 class="card-title">{{ $data['title'] }}</h6>
-                    </div>
-                </div>
-            </a>
-        </div>
-        @endforeach
-    </div>
-
 </div>
 
 <style>
-.hover-card:hover {
-    transform: translateY(-5px);
-    transition: 0.3s;
-    cursor: pointer;
-    box-shadow: 0 12px 25px rgba(0,0,0,0.5);
+/* --- SIDEBAR --- */
+.sidebar {
+    width: 250px;
+    background-color: #222232;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    overflow-y: auto;
+    box-shadow: 3px 0 10px rgba(0, 0, 0, 0.3);
 }
-.card-title {
-    letter-spacing: 0.5px;
-    margin-bottom: 0;
+
+/* --- MAIN CONTENT --- */
+.content {
+    margin-left: 250px;
+    background: #f7f8fc;
+    min-height: 100vh;
 }
-.card-text {
-    font-weight: bold;
-    margin-top: 5px;
+
+/* --- LINK STYLE --- */
+.nav-link {
+    font-size: 0.9rem;
+    color: #ccc !important;
+    border-radius: 8px;
+    transition: 0.2s;
+    padding: 8px 12px;
 }
-.dropdown-menu {
-    border: none;
-    border-radius: 10px;
-    padding: 0.5rem;
+.nav-link:hover,
+.nav-link.active {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff !important;
 }
-.dropdown-item:hover {
-    background-color: #3a3a50 !important;
+.nav-item .badge {
+    font-size: 0.7rem;
 }
-h1,h4,h6 { color: #fff; }
 </style>
 @endsection

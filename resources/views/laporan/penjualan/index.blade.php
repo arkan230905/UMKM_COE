@@ -2,27 +2,37 @@
 
 @section('content')
 <div class="container">
-    <h1 class="mb-4">Laporan Penjualan</h1>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Laporan Penjualan</h3>
+    </div>
 
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th>No</th>
-                <th>Produk</th>
-                <th>Tanggal</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($penjualan as $index => $p)
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped align-middle">
+            <thead class="table-dark">
                 <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>{{ $p->produk->nama_produk ?? '-' }}</td>
-                    <td>{{ $p->tanggal }}</td>
-                    <td>Rp{{ number_format($p->total, 0, ',', '.') }}</td>
+                    <th style="width:5%">#</th>
+                    <th>Produk</th>
+                    <th>Tanggal</th>
+                    <th class="text-end">Total</th>
+                    <th style="width:15%">Aksi</th>
                 </tr>
-            @endforeach
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach ($penjualan as $index => $p)
+                    <tr>
+                        <td>{{ $index + 1 }}</td>
+                        <td>{{ $p->produk->nama_produk ?? '-' }}</td>
+                        <td>{{ optional($p->tanggal)->format('d-m-Y') ?? $p->tanggal }}</td>
+                        <td class="text-end">Rp {{ number_format($p->total, 0, ',', '.') }}</td>
+                        <td>
+                            <a class="btn btn-sm btn-outline-primary" target="_blank" href="{{ route('laporan.penjualan.invoice', $p->id) }}">
+                                Cetak Invoice
+                            </a>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
 </div>
 @endsection

@@ -14,6 +14,7 @@ class PembelianDetail extends Model
         'pembelian_id',
         'bahan_baku_id',
         'jumlah',
+        'satuan',
         'harga_satuan',
         'subtotal',
     ];

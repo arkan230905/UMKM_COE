@@ -14,11 +14,24 @@ class Penjualan extends Model
     protected $fillable = [
         'produk_id',
         'tanggal',
+        'payment_method',
+        'harga_satuan',
+        'jumlah',
+        'diskon_nominal',
         'total',
+    ];
+
+    protected $casts = [
+        'tanggal' => 'date',
     ];
 
     public function produk()
     {
         return $this->belongsTo(Produk::class, 'produk_id');
+    }
+
+    public function details()
+    {
+        return $this->hasMany(PenjualanDetail::class);
     }
 }

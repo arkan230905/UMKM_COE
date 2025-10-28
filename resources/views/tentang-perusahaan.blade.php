@@ -65,13 +65,11 @@
     </div>
 </div>
 
-<!-- SCRIPT TOGGLE -->
 <script>
 document.getElementById('btnEdit').addEventListener('click', function() {
     document.getElementById('info-section').style.display = 'none';
     document.getElementById('edit-section').style.display = 'block';
 });
-
 document.getElementById('btnBatal').addEventListener('click', function() {
     document.getElementById('edit-section').style.display = 'none';
     document.getElementById('info-section').style.display = 'block';
