@@ -12,9 +12,6 @@ use Filament\Tables\Table;
 use Filament\Schemas\Components\TextInput;
 use Filament\Schemas\Components\DateInput;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\DeleteBulkAction;
 
 class AsetResource extends Resource
 {
@@ -62,13 +59,7 @@ class AsetResource extends Resource
                     ->sortable(),
             ])
             ->filters([])
-            ->actions([
-                EditAction::make(),
-                DeleteAction::make(),
-            ])
-            ->bulkActions([
-                DeleteBulkAction::make(),
-            ]);
+            ;
     }
 
     public static function getPages(): array

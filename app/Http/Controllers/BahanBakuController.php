@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BahanBaku;
+use App\Models\Satuan;
 use Illuminate\Http\Request;
 
 class BahanBakuController extends Controller
@@ -17,7 +18,8 @@ class BahanBakuController extends Controller
     // Menampilkan form tambah data
     public function create()
     {
-        return view('master-data.bahan-baku.create');
+        $satuans = Satuan::all();
+        return view('master-data.bahan-baku.create', compact('satuans'));
     }
 
     // Simpan data baru ke database
@@ -25,42 +27,51 @@ class BahanBakuController extends Controller
     {
         $request->validate([
             'nama_bahan' => 'required|string|max:255',
-            'satuan' => 'required|string|max:50',
+            'satuan_id' => 'required|exists:satuans,id',
             'stok' => 'required|numeric|min:0',
-            'harga' => 'required|numeric|min:0',
+            'harga_satuan' => 'required|numeric|min:0',
         ]);
 
         BahanBaku::create([
             'nama_bahan' => $request->nama_bahan,
-            'satuan' => $request->satuan,
+            'satuan_id' => $request->satuan_id,
             'stok' => $request->stok,
-            'harga' => $request->harga,
+            'harga_satuan' => $request->harga_satuan,
         ]);
 
-        return redirect()->route('bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
+        return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
     }
 
     // Menampilkan form edit
     public function edit($id)
     {
-        $bahanBaku = BahanBaku::findOrFail($id);
-        return view('master-data.bahan-baku.edit', compact('bahanBaku'));
+        $bahanBaku = BahanBaku::with('satuan')->findOrFail($id);
+        $satuans = Satuan::all();
+        return view('master-data.bahan-baku.edit', compact('bahanBaku', 'satuans'));
     }
 
     // Update data
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $validatedData = $request->validate([
             'nama_bahan' => 'required|string|max:255',
-            'satuan' => 'required|string|max:50',
+            'satuan_id' => 'required|exists:satuans,id',
             'stok' => 'required|numeric|min:0',
-            'harga' => 'required|numeric|min:0',
+            'harga_satuan' => 'required|numeric|min:0',
         ]);
 
         $bahanBaku = BahanBaku::findOrFail($id);
-        $bahanBaku->update($request->all());
+        
+        // Update properti satu per satu dan simpan
+        $bahanBaku->nama_bahan = $request->nama_bahan;
+        $bahanBaku->satuan_id = $request->satuan_id;
+        $bahanBaku->stok = $request->stok;
+        $bahanBaku->harga_satuan = $request->harga_satuan;
+        
+        // Simpan perubahan
+        $bahanBaku->save();
 
-        return redirect()->route('bahan-baku.index')->with('success', 'Data bahan baku berhasil diperbarui!');
+        return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil diperbarui!');
     }
 
     // Hapus data
@@ -69,6 +80,6 @@ class BahanBakuController extends Controller
         $bahanBaku = BahanBaku::findOrFail($id);
         $bahanBaku->delete();
 
-        return redirect()->route('bahan-baku.index')->with('success', 'Data bahan baku berhasil dihapus!');
+        return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil dihapus!');
     }
 }

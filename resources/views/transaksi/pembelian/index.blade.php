@@ -18,6 +18,7 @@
             <tr>
                 <th>Tanggal</th>
                 <th>Vendor</th>
+                <th>Pembayaran</th>
                 <th>Total Harga</th>
                 <th>Aksi</th>
             </tr>
@@ -26,8 +27,9 @@
             @forelse ($pembelians as $pembelian)
                 <tr>
                     <td>{{ $pembelian->tanggal->format('d-m-Y') }}</td>
-                    <td>{{ $pembelian->vendor->nama ?? '-' }}</td>
-                    <td>{{ number_format($pembelian->total, 0, ',', '.') }}</td>
+                    <td>{{ $pembelian->vendor->nama_vendor ?? '-' }}</td>
+                    <td>{{ ($pembelian->payment_method ?? 'cash') === 'credit' ? 'Kredit' : 'Tunai' }}</td>
+                    <td>Rp {{ number_format($pembelian->total, 0, ',', '.') }}</td>
                     <td>
                         <a href="{{ route('transaksi.pembelian.show', $pembelian->id) }}" class="btn btn-info btn-sm">Detail</a>
                         <form action="{{ route('transaksi.pembelian.destroy', $pembelian->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus?')">

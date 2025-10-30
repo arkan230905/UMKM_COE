@@ -34,6 +34,7 @@
 function generateKode() {
     const tipe = document.getElementById('tipe_akun').value;
     if (!tipe) return;
+
     fetch(`/master-data/coa/generate-kode?tipe=${tipe}`)
         .then(res => res.json())
         .then(data => {

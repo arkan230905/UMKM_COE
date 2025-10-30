@@ -15,12 +15,28 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Admin UMKM',
-            'email' => 'adminumkm@gmail.com',
-            'password' => bcrypt('password')
+        // Pastikan user admin dibuat terlebih dahulu
+        $this->call([
+            UserSeeder::class,
         ]);
+
+        // Kemudian jalankan seeder lainnya
+        $this->call([
+            AccountsTableSeeder::class,
+            CoaSeeder::class,
+            PegawaiSeeder::class,
+            BopSeeder::class,
+            PresensiSeeder::class, // Add PresensiSeeder after PegawaiSeeder
+        ]);
+
+        // Buat user tambahan jika diperlukan
+        if (!User::where('email', 'adminumkm@gmail.com')->exists()) {
+            User::create([
+                'name' => 'Admin UMKM',
+                'email' => 'adminumkm@gmail.com',
+                'password' => bcrypt('password'),
+                'email_verified_at' => now(),
+            ]);
+        }
     }
 }
