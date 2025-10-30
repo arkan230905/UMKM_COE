@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Presensi extends Model
 {
-    use HasFactory;
-
+    protected $table = 'presensis';
+    protected $primaryKey = 'id';
+    
     protected $fillable = [
         'pegawai_id',
         'tgl_presensi',
@@ -16,31 +17,35 @@ class Presensi extends Model
         'jam_keluar',
         'status',
         'jumlah_jam',
+        'keterangan'
     ];
 
-    protected static function boot()
+    protected $casts = [
+        'tgl_presensi' => 'date',
+        'jam_masuk' => 'datetime',
+        'jam_keluar' => 'datetime',
+        'jumlah_jam' => 'decimal:2'
+    ];
+
+    protected $dates = [
+        'tgl_presensi',
+        'created_at',
+        'updated_at'
+    ];
+
+    public function pegawai(): BelongsTo
     {
-        parent::boot();
-
-        static::creating(function ($presensi) {
-            if ($presensi->jam_masuk && $presensi->jam_keluar) {
-                $jamMasuk = strtotime($presensi->jam_masuk);
-                $jamKeluar = strtotime($presensi->jam_keluar);
-                $presensi->jumlah_jam = round(($jamKeluar - $jamMasuk) / 3600, 2);
-            }
-        });
-
-        static::updating(function ($presensi) {
-            if ($presensi->jam_masuk && $presensi->jam_keluar) {
-                $jamMasuk = strtotime($presensi->jam_masuk);
-                $jamKeluar = strtotime($presensi->jam_keluar);
-                $presensi->jumlah_jam = round(($jamKeluar - $jamMasuk) / 3600, 2);
-            }
-        });
+        return $this->belongsTo(Pegawai::class, 'pegawai_id', 'nomor_induk_pegawai');
     }
 
-    public function pegawai()
+    // Scope untuk pencarian
+    public function scopeSearch($query, $search)
     {
-        return $this->belongsTo(Pegawai::class);
+        return $query->whereHas('pegawai', function($q) use ($search) {
+            $q->where('nama', 'like', "%{$search}%")
+              ->orWhere('nomor_induk_pegawai', 'like', "%{$search}%");
+        })
+        ->orWhere('status', 'like', "%{$search}%")
+        ->orWhereDate('tgl_presensi', $search);
     }
 }

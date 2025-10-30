@@ -35,23 +35,27 @@ class ProduksiController extends Controller
             'qty_produksi' => 'required|numeric|min:0.0001',
         ]);
 
-        return DB::transaction(function () use ($request, $stock) {
+        return DB::transaction(function () use ($request, $stock, $journal) {
             $produk = Produk::findOrFail($request->produk_id);
             $qtyProd = (float)$request->qty_produksi;
             $tanggal = $request->tanggal;
             $converter = new UnitConverter();
 
             $bomItems = Bom::with('bahanBaku')->where('produk_id', $produk->id)->get();
-            // Validasi stok cukup untuk setiap bahan baku
+            // Validasi stok cukup untuk setiap bahan baku (cek ke StockLayer via StockService)
             $shortages = [];
             foreach ($bomItems as $it) {
                 $bahan = $it->bahanBaku;
+                if (!$bahan) { continue; }
                 $qtyPerUnit = (float)$it->jumlah;
                 $satuanResep = $it->satuan_resep ?: $bahan->satuan;
                 $qtyResepTotal = $qtyPerUnit * $qtyProd;
                 $qtyBase = $converter->convert($qtyResepTotal, (string)$satuanResep, (string)$bahan->satuan);
-                if ((float)($bahan->stok ?? 0) < $qtyBase) {
-                    $shortages[] = "Stok {$bahan->nama_bahan} kurang: butuh " . rtrim(rtrim(number_format($qtyBase,4,',','.'),'0'),',') . " {$bahan->satuan}, tersedia " . rtrim(rtrim(number_format((float)($bahan->stok ?? 0),4,',','.'),'0'),',') . " {$bahan->satuan}";
+                $available = (float) $stock->getAvailableQty('material', (int)$bahan->id);
+                if ($available + 1e-9 < $qtyBase) {
+                    $shortages[] = "Stok {$bahan->nama_bahan} kurang: butuh "
+                        . rtrim(rtrim(number_format($qtyBase,4,',','.'),'0'),',') . " {$bahan->satuan}, tersedia "
+                        . rtrim(rtrim(number_format($available,4,',','.'),'0'),',') . " {$bahan->satuan}";
                 }
             }
             if (!empty($shortages)) {
@@ -78,7 +82,11 @@ class ProduksiController extends Controller
                 $totalBahan += $subtotal;
 
                 // FIFO consume bahan (gunakan biaya FIFO untuk jurnal WIP)
-                $fifoCost = $stock->consume('material', $bahan->id, $qtyBase, (string)$bahan->satuan, 'production', $produksi->id, $tanggal);
+                try {
+                    $fifoCost = $stock->consume('material', $bahan->id, $qtyBase, (string)$bahan->satuan, 'production', $produksi->id, $tanggal);
+                } catch (\RuntimeException $e) {
+                    return back()->withErrors(["Stok {$bahan->nama_bahan} tidak mencukupi untuk produksi. ".$e->getMessage()])->withInput();
+                }
                 $fifoCostMaterials += (float)$fifoCost;
 
                 // Update stok bahan baku master
@@ -162,5 +170,24 @@ class ProduksiController extends Controller
     {
         $produksi = Produksi::with(['produk','details.bahanBaku'])->findOrFail($id);
         return view('transaksi.produksi.show', compact('produksi'));
+    }
+
+    public function destroy($id, JournalService $journal)
+    {
+        $produksi = Produksi::findOrFail($id);
+        DB::transaction(function () use ($produksi, $journal) {
+            // Hapus jurnal terkait produksi
+            $journal->deleteByRef('production_material', (int)$produksi->id);
+            $journal->deleteByRef('production_labor_overhead', (int)$produksi->id);
+            $journal->deleteByRef('production_finish', (int)$produksi->id);
+
+            // Hapus detail produksi
+            \App\Models\ProduksiDetail::where('produksi_id', $produksi->id)->delete();
+
+            // Hapus header produksi
+            $produksi->delete();
+        });
+
+        return redirect()->route('transaksi.produksi.index')->with('success', 'Data produksi telah dihapus.');
     }
 }
