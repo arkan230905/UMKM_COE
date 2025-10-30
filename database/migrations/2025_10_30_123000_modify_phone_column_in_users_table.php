@@ -8,15 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('satuans', function (Blueprint $table) {
-            $table->id();
-            $table->string('nama_satuan');
-            $table->timestamps();
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('phone')->nullable()->change();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('satuans');
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('phone')->nullable(false)->change();
+        });
     }
 };

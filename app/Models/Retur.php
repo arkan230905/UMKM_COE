@@ -3,14 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\ReturDetail;
 
 class Retur extends Model
 {
     protected $fillable = [
+        'type',       // 'sale' | 'purchase'
+        'ref_id',     // id penjualan/pembelian sumber
         'tanggal',
-        'pembelian_id',
-        'produk_id',
-        'jumlah',
+        'kompensasi', // 'refund' | 'credit'
+        'status',     // 'draft' | 'approved' | 'posted'
+        'alasan',
+        'memo',
     ];
 
     public function produk()
@@ -21,5 +25,10 @@ class Retur extends Model
     public function pembelian()
     {
         return $this->belongsTo(Pembelian::class, 'pembelian_id');
+    }
+
+    public function details()
+    {
+        return $this->hasMany(ReturDetail::class, 'retur_id');
     }
 }
