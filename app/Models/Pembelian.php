@@ -12,19 +12,23 @@ class Pembelian extends Model
     protected $table = 'pembelians';
 
     protected $fillable = [
-        'produk_id',
         'vendor_id',
         'tanggal',
+        'payment_method',
         'total',
     ];
 
-    public function produk()
-    {
-        return $this->belongsTo(Produk::class, 'produk_id');
-    }
+    protected $casts = [
+        'tanggal' => 'date',
+    ];
 
     public function vendor()
     {
         return $this->belongsTo(Vendor::class, 'vendor_id');
+    }
+
+    public function details()
+    {
+        return $this->hasMany(PembelianDetail::class);
     }
 }

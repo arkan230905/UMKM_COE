@@ -21,7 +21,7 @@ class CoaController extends Controller
 
     public function store(Request $request)
     {
-        // Generate kode otomatis sebelum validasi
+        // Generate kode otomatis jika tipe akun diberikan
         if ($request->tipe_akun) {
             $maxKode = Coa::where('tipe_akun', $request->tipe_akun)->max('kode_akun');
             $request->merge([
@@ -37,7 +37,7 @@ class CoaController extends Controller
 
         $coa = Coa::create($validated);
 
-        // 🔽 Otomatis tambahkan ke BOP jika tipe akun "Beban"
+        // Otomatis tambahkan ke BOP jika tipe akun "Beban"
         if ($coa->tipe_akun === 'Beban') {
             Bop::create([
                 'coa_id' => $coa->id,

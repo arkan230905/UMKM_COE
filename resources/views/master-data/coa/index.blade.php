@@ -16,7 +16,7 @@
                 <th>ID</th>
                 <th>Kode Akun</th>
                 <th>Nama Akun</th>
-                <th>Jenis</th>
+                <th>Tipe Akun</th>
                 <th>Aksi</th>
             </tr>
         </thead>
@@ -26,7 +26,7 @@
                 <td>{{ $coa->id }}</td>
                 <td>{{ $coa->kode_akun }}</td>
                 <td>{{ $coa->nama_akun }}</td>
-                <td>{{ $coa->jenis }}</td>
+                <td>{{ $coa->tipe_akun }}</td>
                 <td>
                     <a href="{{ route('master-data.coa.edit', $coa->id) }}" class="btn btn-warning btn-sm">Edit</a>
                     <form action="{{ route('master-data.coa.destroy', $coa->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus COA ini?')">

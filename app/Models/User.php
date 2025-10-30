@@ -11,9 +11,23 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+        'username',
         'email',
+        'phone',
         'password',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($user) {
+            $user->username = strtolower($user->username);
+        });
+    }
+
+    public function getRouteKeyName()
+    {
+        return 'username';
+    }
 
     protected $hidden = [
         'password',

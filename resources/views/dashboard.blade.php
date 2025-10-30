@@ -2,337 +2,441 @@
 
 @section('content')
 <div class="container-fluid py-4" style="background-color: #1e1e2f; min-height: 100vh;">
-
-    <div class="d-flex justify-content-between align-items-center mb-4 px-2">
-        <h1 class="text-white">Dashboard</h1>
-
-        <div class="dropdown">
-            <button class="btn btn-dark dropdown-toggle d-flex align-items-center" 
-                    type="button" id="dropdownProfile" data-bs-toggle="dropdown" 
-                    aria-expanded="false" style="border-radius: 10px; background-color: #2c2c3e; border: none;">
-                <i class="bi bi-person-circle fs-5 me-2"></i>
-                <span>{{ Auth::user()->name }}</span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownProfile" style="background-color: #2c2c3e;">
-                <li class="dropdown-header text-white">
-                    <strong>{{ Auth::user()->name }}</strong><br>
-                    <small>{{ Auth::user()->email }}</small>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
-                    <a href="{{ route('tentang-perusahaan') }}" class="dropdown-item text-white">
-                        <i class="bi bi-building me-2"></i> Tentang Perusahaan
-                    </a>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
-                    <form action="{{ route('logout') }}" method="POST">
-                        @csrf
-                        <button type="submit" class="dropdown-item text-danger">
-                            <i class="bi bi-box-arrow-right me-2"></i> Logout
-                        </button>
-                    </form>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <h4 class="text-white mb-3 px-2">Master Data</h4>
-    <div class="row g-4 px-2">
-        @php
-            $masterData = [
-                ['title'=>'Pegawai','count'=>$totalPegawai,'icon'=>'bi-people','route'=>'master-data.pegawai.index'],
-                ['title'=>'Presensi','count'=>$totalPresensi,'icon'=>'bi-clock','route'=>'master-data.presensi.index'],
-                ['title'=>'Produk','count'=>$totalProduk,'icon'=>'bi-box-seam','route'=>'master-data.produk.index'],
-                ['title'=>'Vendor','count'=>$totalVendor,'icon'=>'bi-shop','route'=>'master-data.vendor.index'],
-                ['title'=>'Bahan Baku','count'=>$totalBahanBaku,'icon'=>'bi-droplet','route'=>'master-data.bahan-baku.index'],
-                ['title'=>'BOM','count'=>$totalBOM,'icon'=>'bi-gear','route'=>'master-data.bom.index'],
-            ];
-        @endphp
-
-        @foreach($masterData as $data)
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a href="{{ route($data['route']) }}" class="text-decoration-none">
-                <div class="card shadow hover-card text-white text-center" style="background-color: #2c2c3e; border-radius: 15px; min-height: 120px;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <i class="bi {{ $data['icon'] }} fs-2 mb-2 opacity-75"></i>
-                        <h6 class="card-title">{{ $data['title'] }}</h6>
-                        <h3 class="card-text">{{ $data['count'] }}</h3>
-                    </div>
-                </div>
-            </a>
-        </div>
-        @endforeach
-    </div>
-
-    <h4 class="text-white mt-5 mb-3 px-2">Transaksi</h4>
-    <div class="row g-4 px-2">
-        @php
-            $transaksiData = [
-                ['title'=>'Pembelian','count'=>$totalPembelian,'icon'=>'bi-cart4','route'=>'transaksi.pembelian.index'],
-                ['title'=>'Penjualan','count'=>$totalPenjualan,'icon'=>'bi-currency-dollar','route'=>'transaksi.penjualan.index'],
-                ['title'=>'Retur','count'=>$totalRetur,'icon'=>'bi-arrow-counterclockwise','route'=>'transaksi.retur.index'],
-            ];
-        @endphp
-        @foreach($transaksiData as $data)
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a href="{{ route($data['route']) }}" class="text-decoration-none">
-                <div class="card shadow hover-card text-white text-center" style="background-color: #2c2c3e; border-radius: 15px; min-height: 120px;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <i class="bi {{ $data['icon'] }} fs-2 mb-2 opacity-75"></i>
-                        <h6 class="card-title">{{ $data['title'] }}</h6>
-                        <h3 class="card-text">{{ $data['count'] }}</h3>
-                    </div>
-                </div>
-            </a>
-        </div>
-        @endforeach
-    </div>
-
-    <h4 class="text-white mt-5 mb-3 px-2">Laporan</h4>
-    <div class="row g-4 px-2">
-        @php
-            $laporanData = [
-                ['title'=>'Laporan Penjualan','icon'=>'bi-graph-up','route'=>'laporan.penjualan'],
-                ['title'=>'Laporan Pembelian','icon'=>'bi-receipt','route'=>'laporan.pembelian'],
-                ['title'=>'Laporan Stok','icon'=>'bi-clipboard-data','route'=>'laporan.stok'],
-            ];
-        @endphp
-        @foreach($laporanData as $data)
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a href="{{ route($data['route']) }}" class="text-decoration-none">
-                <div class="card shadow hover-card text-white text-center" style="background-color: #2c2c3e; border-radius: 15px; min-height: 120px;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <i class="bi {{ $data['icon'] }} fs-2 mb-2 opacity-75"></i>
-                        <h6 class="card-title">{{ $data['title'] }}</h6>
-                    </div>
-                </div>
-            </a>
-        </div>
-        @endforeach
-    </div>
-
-</div>
-
-<style>
-.hover-card:hover { transform: translateY(-5px); transition: 0.3s; cursor: pointer; box-shadow: 0 12px 25px rgba(0,0,0,0.5); }
-.card-title { letter-spacing: 0.5px; margin-bottom: 0; }
-.card-text { font-weight: bold; margin-top: 5px; }
-.dropdown-menu { border: none; border-radius: 10px; padding: 0.5rem; }
-.dropdown-item:hover { background-color: #3a3a50 !important; }
-h1,h4,h6 { color: #fff; }
- </style>
- @endsection
-                        <p class="text-2xl font-semibold text-gray-900">{{ $totalPegawai }}</p>
-=======
-<div class="container-fluid py-4" style="background-color: #1e1e2f; min-height: 100vh;">
-
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4 px-2">
-        <h1 class="text-white">Dashboard</h1>
+        <div>
+            <h1 class="text-white mb-0">Dashboard</h1>
+            <small class="text-white-50">Selamat datang, {{ Auth::user()->name }}! {{ now()->format('d M Y H:i') }}</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('transaksi.expense-payment.create') }}" class="btn btn-primary">
+                <i class="bi bi-cash-coin me-1"></i> Bayar Beban
+            </a>
+            <a href="{{ route('transaksi.ap-settlement.index') }}" class="btn btn-success">
+                <i class="bi bi-currency-exchange me-1"></i> Lunasi Utang
+            </a>
+        </div>
+    </div>
 
-        <!-- Dropdown Profile -->
-        <div class="dropdown">
-            <button class="btn btn-dark dropdown-toggle d-flex align-items-center" 
-                    type="button" 
-                    id="dropdownProfile" 
-                    data-bs-toggle="dropdown" 
-                    aria-expanded="false"
-                    style="border-radius: 10px; background-color: #2c2c3e; border: none;">
-                <i class="bi bi-person-circle fs-5 me-2"></i>
-                <span>{{ Auth::user()->name }}</span>
-            </button>
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Total Kas & Bank</h6>
+                            <h3 class="mb-0">Rp {{ number_format($totalKasBank, 0, ',', '.') }}</h3>
+                        </div>
+                        <i class="bi bi-wallet2 fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Pendapatan Bulan Ini</h6>
+                            <h3 class="mb-0">Rp {{ number_format($pendapatanBulanIni, 0, ',', '.') }}</h3>
+                        </div>
+                        <i class="bi bi-graph-up-arrow fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Total Piutang</h6>
+                            <h3 class="mb-0">Rp {{ number_format($totalPiutang, 0, ',', '.') }}</h3>
+                        </div>
+                        <i class="bi bi-receipt fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Total Utang</h6>
+                            <h3 class="mb-0">Rp {{ number_format($totalUtang, 0, ',', '.') }}</h3>
+                        </div>
+                        <i class="bi bi-credit-card fs-1 opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownProfile" style="background-color: #2c2c3e;">
-                <li class="dropdown-header text-white">
-                    <strong>{{ Auth::user()->name }}</strong><br>
-                    <small>{{ Auth::user()->email }}</small>
-                </li>
-                <li><hr class="dropdown-divider"></li>
-
-                <!-- 🏢 Tentang Perusahaan -->
-                <li>
-<<<<<<< HEAD
-                    <a href="{{ route('tentang.perusahaan') }}" class="dropdown-item text-white">
-=======
-                    <a href="{{ route('tentang-perusahaan') }}" class="dropdown-item text-white">
->>>>>>> 68de30b (pembuatan bop dan satuan)
-                        <i class="bi bi-building me-2"></i> Tentang Perusahaan
-                    </a>
-                </li>
-
-                <li><hr class="dropdown-divider"></li>
-
-                <!-- 🚪 Logout -->
-                <li>
-                    <form action="{{ route('logout') }}" method="POST">
-                        @csrf
-                        <button type="submit" class="dropdown-item text-danger">
-                            <i class="bi bi-box-arrow-right me-2"></i> Logout
-                        </button>
-                    </form>
-                </li>
-            </ul>
+    <!-- Quick Actions -->
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <div class="card" style="background-color: #2c2c3e; border: none;">
+                <div class="card-body">
+                    <h5 class="text-white mb-3">Quick Actions</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('transaksi.penjualan.create') }}" class="btn btn-outline-light">
+                            <i class="bi bi-cart-plus me-1"></i> Transaksi Baru
+                        </a>
+                        <a href="{{ route('transaksi.pembelian.create') }}" class="btn btn-outline-light">
+                            <i class="bi bi-cart4 me-1"></i> Pembelian Baru
+                        </a>
+                        <a href="{{ route('transaksi.produksi.create') }}" class="btn btn-outline-light">
+                            <i class="bi bi-gear me-1"></i> Produksi Baru
+                        </a>
+                        <a href="{{ route('transaksi.expense-payment.create') }}" class="btn btn-outline-light">
+                            <i class="bi bi-cash-coin me-1"></i> Bayar Beban
+                        </a>
+                        <a href="{{ route('transaksi.ap-settlement.index') }}" class="btn btn-outline-light">
+                            <i class="bi bi-currency-exchange me-1"></i> Lunasi Utang
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Grid Cards: Master Data -->
-    <h4 class="text-white mb-3 px-2">Master Data</h4>
-    <div class="row g-4 px-2">
-        @php
-            $masterData = [
-                ['title'=>'Pegawai','count'=>$totalPegawai,'icon'=>'bi-people','route'=>'master-data.pegawai.index'],
-                ['title'=>'Presensi','count'=>$totalPresensi,'icon'=>'bi-clock','route'=>'master-data.presensi.index'],
-                ['title'=>'Produk','count'=>$totalProduk,'icon'=>'bi-box-seam','route'=>'master-data.produk.index'],
-                ['title'=>'Vendor','count'=>$totalVendor,'icon'=>'bi-shop','route'=>'master-data.vendor.index'],
-                ['title'=>'Bahan Baku','count'=>$totalBahanBaku,'icon'=>'bi-droplet','route'=>'master-data.bahan-baku.index'],
-                ['title'=>'BOM','count'=>$totalBOM,'icon'=>'bi-gear','route'=>'master-data.bom.index'],
-            ];
-        @endphp
-
-        @foreach($masterData as $data)
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a href="{{ route($data['route']) }}" class="text-decoration-none">
-                <div class="card shadow hover-card text-white text-center" 
-                     style="background-color: #2c2c3e; border-radius: 15px; min-height: 120px;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <i class="bi {{ $data['icon'] }} fs-2 mb-2 opacity-75"></i>
-                        <h6 class="card-title">{{ $data['title'] }}</h6>
-                        <h3 class="card-text">{{ $data['count'] }}</h3>
->>>>>>> 73ecd34c0ff44e1b46e8fcae2de615861d360f74
-                    </div>
-                </div>
+    <div class="card mb-4" style="background-color: #2c2c3e; border: none;">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="text-white mb-0">Master Data</h5>
+                <a href="#" class="text-primary text-decoration-none small">Lihat Semua</a>
             </div>
+            <div class="row g-3">
+                @php
+                    $masterData = [
+                        ['title'=>'Produk','count'=>$totalProduk,'icon'=>'bi-box-seam','route'=>'master-data.produk.index'],
+                        ['title'=>'Bahan Baku','count'=>$totalBahanBaku,'icon'=>'bi-droplet','route'=>'master-data.bahan-baku.index'],
+                        ['title'=>'Vendor','count'=>$totalVendor,'icon'=>'bi-shop','route'=>'master-data.vendor.index'],
+                        ['title'=>'BOM','count'=>$totalBOM,'icon'=>'bi-gear','route'=>'master-data.bom.index'],
+                        ['title'=>'Pegawai','count'=>$totalPegawai,'icon'=>'bi-people','route'=>'master-data.pegawai.index'],
+                        ['title'=>'Presensi','count'=>$totalPresensi,'icon'=>'bi-clock','route'=>'master-data.presensi.index'],
+                    ];
+                @endphp
 
-<<<<<<< HEAD
-            <!-- Total Produk -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-green-100 text-green-600 mr-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Total Produk</p>
-                        <p class="text-2xl font-semibold text-gray-900">{{ $totalProduk }}</p>
-=======
-    <!-- Grid Cards: Transaksi -->
-    <h4 class="text-white mt-5 mb-3 px-2">Transaksi</h4>
-    <div class="row g-4 px-2">
-        @php
-            $transaksiData = [
-                ['title'=>'Pembelian','count'=>$totalPembelian,'icon'=>'bi-cart4','route'=>'transaksi.pembelian.index'],
-                ['title'=>'Penjualan','count'=>$totalPenjualan,'icon'=>'bi-currency-dollar','route'=>'transaksi.penjualan.index'],
-                ['title'=>'Retur','count'=>$totalRetur,'icon'=>'bi-arrow-counterclockwise','route'=>'transaksi.retur.index'],
-            ];
-        @endphp
-
-        @foreach($transaksiData as $data)
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a href="{{ route($data['route']) }}" class="text-decoration-none">
-                <div class="card shadow hover-card text-white text-center" 
-                     style="background-color: #2c2c3e; border-radius: 15px; min-height: 120px;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <i class="bi {{ $data['icon'] }} fs-2 mb-2 opacity-75"></i>
-                        <h6 class="card-title">{{ $data['title'] }}</h6>
-                        <h3 class="card-text">{{ $data['count'] }}</h3>
->>>>>>> 73ecd34c0ff44e1b46e8fcae2de615861d360f74
-                    </div>
+                @foreach($masterData as $data)
+                <div class="col-lg-2 col-md-4 col-sm-6">
+                    <a href="{{ route($data['route']) }}" class="text-decoration-none">
+                        <div class="card shadow hover-card text-white text-center" style="background-color: #2c2c3e; border-radius: 15px; min-height: 140px;">
+                            <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                                <div class="rounded-circle bg-primary bg-opacity-10 p-3 mb-2">
+                                    <i class="bi {{ $data['icon'] }} fs-3 text-primary"></i>
+                                </div>
+                                <h6 class="card-title text-white-50 mb-1">{{ $data['title'] }}</h6>
+                                <h5 class="card-text fw-bold">{{ $data['count'] }}</h5>
+                            </div>
+                        </div>
+                    </a>
                 </div>
+                @endforeach
             </div>
+        </div>
+    </div>
 
-<<<<<<< HEAD
-            <!-- Total Vendor -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-yellow-100 text-yellow-600 mr-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
+    <!-- Transaksi Terbaru -->
+    <div class="row">
+        <!-- Pembayaran Beban Terbaru -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100" style="background-color: #2c2c3e; border: none;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="text-white mb-0">Pembayaran Beban Terakhir</h5>
+                        <a href="{{ route('transaksi.expense-payment.index') }}" class="btn btn-sm btn-outline-light">Lihat Semua</a>
                     </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Total Vendor</p>
-                        <p class="text-2xl font-semibold text-gray-900">{{ $totalVendor }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Total Aset -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-medium text-gray-500">Total Aset</p>
-                        <p class="text-2xl font-semibold text-gray-900">{{ $totalAset }}</p>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover table-borderless">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Tanggal</th>
+                                    <th>Keterangan</th>
+                                    <th class="text-end">Nominal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($recentExpensePayments as $item)
+                                <tr>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td>{{ $item->tanggal->format('d/m/Y') }}</td>
+                                    <td>{{ $item->deskripsi ?? 'Pembayaran Beban' }}</td>
+                                    <td class="text-end">Rp {{ number_format($item->nominal, 0, ',', '.') }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="4" class="text-center">Belum ada data</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Additional Stats Row -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Bahan Baku -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
-                <div class="flex items-center">
-                    <div class="p-3 rounded-full bg-red-100 text-red-600 mr-4">
-    </div>
-
-    <!-- Grid Cards: Laporan -->
-    <h4 class="text-white mt-5 mb-3 px-2">Laporan</h4>
-    <div class="row g-4 px-2">
-        @php
-            $laporanData = [
-                ['title'=>'Laporan Penjualan','icon'=>'bi-graph-up','route'=>'laporan.penjualan'],
-                ['title'=>'Laporan Pembelian','icon'=>'bi-receipt','route'=>'laporan.pembelian'],
-                ['title'=>'Laporan Stok','icon'=>'bi-clipboard-data','route'=>'laporan.stok'],
-            ];
-        @endphp
-
-        @foreach($laporanData as $data)
-        <div class="col-lg-2 col-md-4 col-sm-6">
-            <a href="{{ route($data['route']) }}" class="text-decoration-none">
-                <div class="card shadow hover-card text-white text-center" 
-                     style="background-color: #2c2c3e; border-radius: 15px; min-height: 120px;">
-                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                        <i class="bi {{ $data['icon'] }} fs-2 mb-2 opacity-75"></i>
-                        <h6 class="card-title">{{ $data['title'] }}</h6>
+        <!-- Pelunasan Utang Terbaru -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100" style="background-color: #2c2c3e; border: none;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="text-white mb-0">Pelunasan Utang Terakhir</h5>
+                        <a href="{{ route('transaksi.ap-settlement.index') }}" class="btn btn-sm btn-outline-light">Lihat Semua</a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover table-borderless">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Tanggal</th>
+                                    <th>Vendor</th>
+                                    <th class="text-end">Dibayar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($recentApSettlements as $item)
+                                <tr>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td>{{ $item->tanggal->format('d/m/Y') }}</td>
+                                    <td>{{ $item->pembelian->vendor->nama_vendor ?? 'Vendor' }}</td>
+                                    <td class="text-end">Rp {{ number_format($item->dibayar_bersih, 0, ',', '.') }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="4" class="text-center">Belum ada data</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-            </a>
+            </div>
         </div>
-        @endforeach
+    </div>
     </div>
 
+    <!-- Ringkasan Transaksi -->
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <div class="card" style="background-color: #2c2c3e; border: none;">
+                <div class="card-body">
+                    <h5 class="text-white mb-3">Ringkasan Transaksi</h5>
+                    <div class="row g-3">
+                        @php
+                            $transaksiData = [
+                                [
+                                    'title' => 'Penjualan',
+                                    'count' => $totalPenjualan,
+                                    'icon' => 'bi-cart-check',
+                                    'route' => 'transaksi.penjualan.index',
+                                    'color' => 'success',
+                                    'trend' => $trendPenjualan ?? 0
+                                ],
+                                [
+                                    'title' => 'Pembelian',
+                                    'count' => $totalPembelian,
+                                    'icon' => 'bi-cart4',
+                                    'route' => 'transaksi.pembelian.index',
+                                    'color' => 'primary',
+                                    'trend' => $trendPembelian ?? 0
+                                ],
+                                [
+                                    'title' => 'Produksi',
+                                    'count' => $totalProduksi ?? 0,
+                                    'icon' => 'bi-gear-wide-connected',
+                                    'route' => 'transaksi.produksi.index',
+                                    'color' => 'info',
+                                    'trend' => $trendProduksi ?? 0
+                                ],
+                                [
+                                    'title' => 'Retur',
+                                    'count' => $totalRetur ?? 0,
+                                    'icon' => 'bi-arrow-return-left',
+                                    'route' => 'transaksi.retur.index',
+                                    'color' => 'warning',
+                                    'trend' => $trendRetur ?? 0
+                                ]
+                            ];
+                        @endphp
+                        
+                        @foreach($transaksiData as $data)
+                        <div class="col-md-3 col-sm-6">
+                            <a href="{{ route($data['route']) }}" class="text-decoration-none">
+                                <div class="card h-100" style="background-color: #2c2c3e; border-left: 4px solid var(--bs-{{ $data['color'] }});">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1 text-white-50">{{ $data['title'] }}</h6>
+                                                <h4 class="mb-0 text-white">{{ number_format($data['count']) }}</h4>
+                                            </div>
+                                            <div class="bg-{{ $data['color'] }} bg-opacity-10 p-2 rounded">
+                                                <i class="bi {{ $data['icon'] }} fs-4 text-{{ $data['color'] }}"></i>
+                                            </div>
+                                        </div>
+                                        @if(isset($data['trend']))
+                                        <div class="mt-2">
+                                            <span class="badge bg-{{ $data['trend'] >= 0 ? 'success' : 'danger' }} bg-opacity-25 text-{{ $data['trend'] >= 0 ? 'success' : 'danger' }} me-1">
+                                                <i class="bi {{ $data['trend'] >= 0 ? 'bi-arrow-up' : 'bi-arrow-down' }} me-1"></i>
+                                                {{ abs($data['trend']) }}%
+                                            </span>
+                                            <small class="text-white-50">vs bulan lalu</small>
+                                        </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
+:root {
+    --primary: #5e72e4;
+    --secondary: #6c757d;
+    --success: #2dce89;
+    --info: #11cdef;
+    --warning: #fb6340;
+    --danger: #f5365c;
+    --light: #f8f9fa;
+    --dark: #32325d;
+}
+
+body {
+    background-color: #1e1e2f;
+    color: #fff;
+}
+
+.card {
+    border: none;
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
 .hover-card:hover {
     transform: translateY(-5px);
-    transition: 0.3s;
+    transition: all 0.3s ease;
     cursor: pointer;
-    box-shadow: 0 12px 25px rgba(0,0,0,0.5);
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15) !important;
 }
-.card-title {
-    letter-spacing: 0.5px;
+
+.bg-primary { background-color: var(--primary) !important; }
+.bg-success { background-color: var(--success) !important; }
+.bg-warning { background-color: var(--warning) !important; }
+.bg-danger { background-color: var(--danger) !important; }
+.bg-info { background-color: var(--info) !important; }
+
+.text-primary { color: var(--primary) !important; }
+.text-success { color: var(--success) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-danger { color: var(--danger) !important; }
+.text-info { color: var(--info) !important; }
+
+.table {
+    --bs-table-bg: transparent;
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
     margin-bottom: 0;
 }
-.card-text {
-    font-weight: bold;
-    margin-top: 5px;
+
+.table > :not(caption) > * > * {
+    padding: 1rem 1.5rem;
+    border-bottom-width: 1px;
+    box-shadow: inset 0 0 0 9999px var(--bs-table-accent-bg);
 }
-.dropdown-menu {
-    border: none;
-    border-radius: 10px;
-    padding: 0.5rem;
+
+.table > :not(:first-child) {
+    border-top: 0;
 }
-.dropdown-item:hover {
-    background-color: #3a3a50 !important;
+
+.table-hover > tbody > tr:hover > * {
+    --bs-table-accent-bg: var(--bs-table-hover-bg);
+    color: var(--bs-table-hover-color);
 }
-h1,h4,h6 { color: #fff; }
+
+.btn {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 0.5rem 1.25rem;
+}
+
+.btn-outline-light {
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.btn-outline-light:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2c2c3e;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #5e72e4;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #4a5bd9;
+}
 </style>
+
+@push('scripts')
+<script>
+    // Update time every minute
+    function updateTime() {
+        const now = new Date();
+        const options = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        document.getElementById('current-time').textContent = now.toLocaleDateString('id-ID', options);
+    }
+    
+    // Initial call
+    updateTime();
+    
+    // Update every minute
+    setInterval(updateTime, 60000);
+</script>
+@endpush
 @endsection

@@ -2,7 +2,6 @@
 
 @section('content')
 <div class="container-fluid py-4" style="background-color: #1b1b28; min-height: 100vh;">
-    <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4 px-3">
         <h2 class="text-white fw-bold mb-0">
             <i class="bi bi-calendar-check me-2"></i> Data Presensi
@@ -12,16 +11,44 @@
         </a>
     </div>
 
-    <!-- Notifikasi -->
     @if(session('success'))
-        <div class="alert alert-success text-dark fw-semibold shadow-sm mx-3">
+        <div class="alert alert-success alert-dismissible fade show mx-3" role="alert">
             <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
-    <!-- Card Tabel -->
-    <div class="card shadow-lg border-0 mx-3"
-         style="background-color: #222232; border-radius: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show mx-3" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    <div class="card shadow-lg border-0 mx-3" style="background-color: #222232; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
+        <div class="card-header bg-transparent border-0 py-3 px-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-list-ul me-2"></i>Daftar Presensi
+                    </h5>
+                </div>
+                <div class="col-md-6">
+                    <form action="{{ route('master-data.presensi.index') }}" method="GET" class="d-flex">
+                        <input type="text" name="search" class="form-control bg-dark text-white border-dark" 
+                               placeholder="Cari nama pegawai atau NIP..." value="{{ request('search') }}">
+                        <button type="submit" class="btn btn-primary ms-2">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        @if(request('search'))
+                            <a href="{{ route('master-data.presensi.index') }}" class="btn btn-outline-light ms-2">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </a>
+                        @endif
+                    </form>
+                </div>
+            </div>
+        </div>
         <div class="card-body px-4 py-4">
             <div class="table-responsive">
                 <table class="table table-borderless align-middle mb-0 custom-table">
@@ -33,127 +60,196 @@
                             <th>Jam Masuk</th>
                             <th>Jam Keluar</th>
                             <th>Status</th>
+                            <th>Jumlah Jam</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($presensis as $presensi)
                         <tr class="data-row">
-                            <td class="ps-3 fw-bold text-light">{{ $loop->iteration }}</td>
-                            <td class="fw-bold text-white">{{ $presensi->pegawai->nama }}</td>
-                            <td class="fw-semibold text-secondary">{{ $presensi->tgl_presensi }}</td>
-                            <td class="fw-semibold text-secondary">{{ $presensi->jam_masuk }}</td>
-                            <td class="fw-semibold text-secondary">{{ $presensi->jam_keluar }}</td>
-                            <td class="fw-bold 
-                                @if($presensi->status == 'Hadir') text-success 
-                                @elseif($presensi->status == 'Izin') text-warning 
-                                @else text-danger @endif">
-                                {{ $presensi->status }}
+                            <td class="ps-3 fw-bold text-light">{{ ($presensis->currentPage() - 1) * $presensis->perPage() + $loop->iteration }}</td>
+                            <td class="fw-bold text-white">
+                                <div class="d-flex align-items-center">
+                                    <div class="flex-shrink-0 me-2">
+                                        <i class="bi bi-person-circle fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold">{{ $presensi->pegawai->nama }}</div>
+                                        <div class="text-muted small">{{ $presensi->pegawai->nomor_induk_pegawai }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="fw-semibold text-secondary">
+                                {{ \Carbon\Carbon::parse($presensi->tgl_presensi)->isoFormat('dddd, D MMMM YYYY') }}
+                            </td>
+                            <td class="fw-semibold text-secondary">
+                                @if($presensi->status === 'Hadir')
+                                    {{ \Carbon\Carbon::parse($presensi->jam_masuk)->format('H:i') }}
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td class="fw-semibold text-secondary">
+                                @if($presensi->status === 'Hadir')
+                                    {{ \Carbon\Carbon::parse($presensi->jam_keluar)->format('H:i') }}
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if($presensi->status == 'Hadir')
+                                    <span class="badge bg-success">{{ $presensi->status }}</span>
+                                @elseif(in_array($presensi->status, ['Izin', 'Sakit']))
+                                    <span class="badge bg-warning text-dark">{{ $presensi->status }}</span>
+                                @else
+                                    <span class="badge bg-danger">{{ $presensi->status }}</span>
+                                @endif
+                            </td>
+                            <td class="fw-semibold text-secondary">
+                                @if($presensi->status === 'Hadir')
+                                    {{ number_format($presensi->jumlah_jam, 1) }} jam
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
                             </td>
                             <td class="text-center">
-                                <a href="{{ route('master-data.presensi.edit', $presensi->id) }}" 
-                                   class="btn btn-sm btn-warning text-dark me-1 shadow-sm fw-semibold">
-                                    <i class="bi bi-pencil-square"></i>
-                                </a>
-                                <form action="{{ route('master-data.presensi.destroy', $presensi->id) }}" 
-                                      method="POST" class="d-inline"
-                                      onsubmit="return confirm('Yakin ingin menghapus data ini?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-sm btn-danger text-white shadow-sm fw-semibold">
-                                        <i class="bi bi-trash3"></i>
-                                    </button>
-                                </form>
+                                <div class="d-flex justify-content-center gap-2">
+                                    <a href="{{ route('master-data.presensi.edit', $presensi->id) }}" 
+                                       class="btn btn-sm btn-warning text-dark shadow-sm fw-semibold"
+                                       data-bs-toggle="tooltip" data-bs-placement="top" title="Edit">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <form action="{{ route('master-data.presensi.destroy', $presensi->id) }}" 
+                                          method="POST" class="d-inline delete-form"
+                                          data-bs-toggle="tooltip" data-bs-placement="top" title="Hapus">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button" class="btn btn-sm btn-danger text-white shadow-sm fw-semibold delete-btn">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                                Belum ada data presensi
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                <h5 class="mb-0">Belum ada data presensi</h5>
+                                <p class="mb-0">Klik tombol "Tambah Presensi" untuk menambahkan data baru</p>
                             </td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+            
+            @if($presensis->hasPages())
+                <div class="d-flex justify-content-between align-items-center mt-4 px-2">
+                    <div class="text-muted">
+                        Menampilkan {{ $presensis->firstItem() }} sampai {{ $presensis->lastItem() }} dari {{ $presensis->total() }} data
+                    </div>
+                    <div>
+                        {{ $presensis->withQueryString()->links() }}
+                    </div>
+                </div>
+            @endif
         </div>
     </div>
 </div>
-
-<style>
-/* Header tabel */
-.custom-table thead th {
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-    font-size: 0.85rem;
-    color: #e0e0ee;
-    background: linear-gradient(180deg, #2a2a3a 0%, #232333 100%);
-    border: none;
-    padding: 14px 10px;
-    border-radius: 12px;
-}
-
-/* Isi tabel */
-.custom-table tbody td {
-    font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    padding: 16px 14px !important;
-    color: rgb(0, 0, 37) !important; /* teks lebih terlihat */
-}
-
-/* Baris tabel */
-.data-row {
-    background: linear-gradient(160deg, #242436, #1b1b2b) !important;
-    border-radius: 14px !important;
-    transition: all 0.25s ease !important;
-    border-bottom: 2px solid rgba(255, 255, 255, 0.05); /* garis pemisah halus antar baris */
-}
-
-/* Hover efek lembut */
-.data-row:hover {
-    background: linear-gradient(160deg, #2f2f45, #23233a) !important;
-    transform: translateY(-3px) !important;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.4) !important;
-}
-
-/* Card tabel */
-.card {
-    background-color: #1b1b28 !important;
-    border-radius: 18px !important;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.5) !important;
-}
-
-/* Tombol */
-.btn {
-    border-radius: 12px;
-    font-weight: 600;
-    transition: 0.2s ease;
-}
-
-.btn-warning {
-    background-color: #f6c23e;
-    border: none;
-}
-
-.btn-warning:hover {
-    background-color: #e0ae2f;
-}
-
-.btn-danger {
-    background-color: #e74a3b;
-    border: none;
-}
-
-.btn-danger:hover {
-    background-color: #c0392b;
-}
-
-/* Alert */
-.alert {
-    border-radius: 12px;
-    font-size: 0.95rem;
-}
-</style>
 @endsection
+
+@push('styles')
+<style>
+    .custom-table {
+        --bs-table-bg: transparent;
+        --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+        --bs-table-hover-bg: rgba(108, 99, 255, 0.1);
+    }
+    
+    .table > :not(caption) > * > * {
+        padding: 0.75rem 0.5rem;
+        color: var(--bs-table-color-state, var(--bs-table-color-type, var(--bs-table-color)));
+    }
+    
+    .pagination .page-link {
+        background-color: #2d2d3a;
+        border-color: #3a3a4a;
+        color: #ffffff;
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: #6c63ff;
+        border-color: #6c63ff;
+    }
+    
+    .pagination .page-link:hover {
+        background-color: #5a52d3;
+        border-color: #5a52d3;
+        color: #ffffff;
+    }
+    
+    .badge {
+        font-weight: 500;
+        padding: 0.4em 0.8em;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inisialisasi tooltip
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Konfirmasi hapus data
+    const deleteForms = document.querySelectorAll('.delete-form');
+    deleteForms.forEach(form => {
+        const deleteBtn = form.querySelector('.delete-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                Swal.fire({
+                    title: 'Apakah Anda yakin?',
+                    text: "Data yang dihapus tidak dapat dikembalikan!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#6c63ff',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Ya, hapus!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
+        }
+    });
+    
+    // Tambahkan animasi pada baris tabel
+    const dataRows = document.querySelectorAll('.data-row');
+    dataRows.forEach((row, index) => {
+        row.style.opacity = '0';
+        row.style.transform = 'translateY(20px)';
+        row.style.transition = `opacity 0.3s ease-out ${index * 0.05}s, transform 0.3s ease-out ${index * 0.05}s`;
+        
+        // Trigger reflow
+        void row.offsetWidth;
+        
+        // Tambahkan kelas untuk animasi
+        row.style.opacity = '1';
+        row.style.transform = 'translateY(0)';
+    });
+});
+</script>
+@endpush

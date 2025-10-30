@@ -25,7 +25,7 @@
                 <tr>
                     <td>{{ $bahan->id }}</td>
                     <td>{{ $bahan->nama_bahan }}</td>
-                    <td>{{ $bahan->satuan }}</td>
+                    <td>{{ $bahan->satuan ? $bahan->satuan->nama . ' (' . $bahan->satuan->kode . ')' : '-' }}</td>
                     <td>Rp {{ number_format($bahan->harga_satuan, 0, ',', '.') }}</td>
                     <td>
                         <a href="{{ route('master-data.bahan-baku.edit', $bahan->id) }}" class="btn btn-sm btn-warning">Edit</a>
