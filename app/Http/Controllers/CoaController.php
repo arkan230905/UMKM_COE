@@ -21,11 +21,7 @@ class CoaController extends Controller
 
     public function store(Request $request)
     {
-<<<<<<< HEAD
-        // Generate kode otomatis dulu sebelum validasi
-=======
         // Generate kode otomatis sebelum validasi
->>>>>>> 68de30b (pembuatan bop dan satuan)
         if ($request->tipe_akun) {
             $maxKode = Coa::where('tipe_akun', $request->tipe_akun)->max('kode_akun');
             $request->merge([
@@ -36,27 +32,6 @@ class CoaController extends Controller
         $validated = $request->validate([
             'kode_akun' => 'required|unique:coas,kode_akun',
             'nama_akun' => 'required|string|max:255',
-<<<<<<< HEAD
-            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense',
-        ]);
-
-        Coa::create($validated);
-
-        return redirect()->route('master-data.coa.index')->with('success', 'COA berhasil ditambahkan.');
-    }
-
-    public function generateKode(Request $request)
-    {
-        $tipe = $request->tipe;
-        $maxKode = Coa::where('tipe_akun', $tipe)->max('kode_akun');
-        $kode = $maxKode ? $maxKode + 1 : $this->defaultKode($tipe);
-
-        return response()->json(['kode_akun' => $kode]);
-    }
-
-    private function defaultKode($tipe)
-    {
-=======
             'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Beban',
         ]);
 
@@ -108,17 +83,12 @@ class CoaController extends Controller
 
     private function defaultKode($tipe)
     {
->>>>>>> 68de30b (pembuatan bop dan satuan)
         return match($tipe) {
             'Asset' => 101,
             'Liability' => 201,
             'Equity' => 301,
             'Revenue' => 401,
-<<<<<<< HEAD
-            'Expense' => 501,
-=======
             'Expense', 'Beban' => 501,
->>>>>>> 68de30b (pembuatan bop dan satuan)
             default => 100,
         };
     }
