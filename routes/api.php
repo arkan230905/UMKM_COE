@@ -17,3 +17,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Asset related API routes
+Route::prefix('aset')->group(function () {
+    Route::get('/kategori', [\App\Http\Controllers\Api\AsetController::class, 'getKategoriByJenis']);
+});

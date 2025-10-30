@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | UMKM Digital</title>
     <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/sass/app.scss', 'resources/js/app.js'])
     <style>
         /* Video background */
         video#bg-video {
@@ -83,12 +83,12 @@
         <source src="{{ asset('umkm.mp4') }}" type="video/mp4">
     </video>
 
-    <div class="login-container">
+    <div class="login-container px-3">
         <div class="login-box">
             <h1>Login UMKM</h1>
 
             @if (session('status'))
-                <div style="color: #a7f3d0; margin-bottom: 1rem;">
+                <div class="alert alert-success py-2 mb-3">
                     {{ session('status') }}
                 </div>
             @endif
@@ -96,31 +96,30 @@
             <form method="POST" action="{{ route('login') }}">
                 @csrf
 
-                <div style="margin-bottom: 1rem;">
-                    <label for="email">Email</label>
-                    <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus class="w-full p-2 rounded-md mt-1">
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus class="form-control">
                     @error('email')
-                        <p style="color: #f87171;">{{ $message }}</p>
+                        <div class="text-danger small">{{ $message }}</div>
                     @enderror
                 </div>
 
-                <div style="margin-bottom: 1rem;">
-                    <label for="password">Password</label>
-                    <input id="password" type="password" name="password" required class="w-full p-2 rounded-md mt-1">
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input id="password" type="password" name="password" required class="form-control">
                     @error('password')
-                        <p style="color: #f87171;">{{ $message }}</p>
+                        <div class="text-danger small">{{ $message }}</div>
                     @enderror
                 </div>
 
-                <div style="margin-bottom: 1rem;">
-                    <label>
-                        <input type="checkbox" name="remember"> Remember Me
-                    </label>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                    <label class="form-check-label" for="remember">Remember Me</label>
                 </div>
 
-                <button type="submit">LOGIN</button>
+                <button type="submit" class="btn btn-primary w-100">LOGIN</button>
 
-                <div style="text-align:center; margin-top:1rem;">
+                <div class="text-center mt-3">
                     <a href="{{ route('password.request') }}">Forgot your password?</a>
                 </div>
             </form>

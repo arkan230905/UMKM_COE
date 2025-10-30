@@ -16,6 +16,11 @@ class Produk extends Model
         'harga_jual', // nullable awalnya
         'btkl_default',
         'bop_default',
+        'margin_percent',
+        'bopb_method',
+        'bopb_rate',
+        'labor_hours_per_unit',
+        'btkl_per_unit',
     ];
 
     public function boms()
