@@ -43,7 +43,12 @@ class PenjualanController extends Controller
             $tanggal = $request->tanggal;
             $produkIds = $request->produk_id;
             $jumlahArr = $request->jumlah;
-            $hargaArr = $request->harga_satuan;
+            // Override harga jual dengan harga_jual dari master produk
+            $hargaArr = [];
+            foreach ($produkIds as $i => $pid) {
+                $p = Produk::findOrFail($pid);
+                $hargaArr[$i] = (float) ($p->harga_jual ?? 0);
+            }
             $diskonPctArr = $request->diskon_persen ?? [];
 
             // Validasi stok cukup per item
@@ -98,6 +103,13 @@ class PenjualanController extends Controller
 
                 // Guard: jangan jual di bawah HPP FIFO (estimasi tanpa konsumsi)
                 $estCogs = $stock->estimateCost('product', $prod->id, $qty);
+                if ($estCogs <= 0) {
+                    // fallback ke Harga BOM per unit
+                    $sumBom = (float) \App\Models\Bom::where('produk_id', $prod->id)->sum('total_biaya');
+                    $btkl = (float) ($prod->btkl_default ?? 0);
+                    $bop  = (float) ($prod->bop_default ?? 0);
+                    $estCogs = ($sumBom + $btkl + $bop) * $qty;
+                }
                 if ($line + 0.0001 < $estCogs) { // toleransi floating
                     $errorsBelowCost[] = "Harga jual di bawah HPP untuk {$prod->nama_produk}. HPP: Rp " . number_format($estCogs,0,',','.') . ", Subtotal (setelah diskon): Rp " . number_format($line,0,',','.');
                 }
@@ -114,7 +126,14 @@ class PenjualanController extends Controller
 
                 // FIFO OUT dan pengurangan stok
                 $cogs = $stock->consume('product', $prod->id, $qty, 'pcs', 'sale', $penjualan->id, $tanggal);
-                $cogsSum += (float)$cogs;
+                $cogsVal = (float) $cogs;
+                if ($cogsVal <= 0) {
+                    $sumBom = (float) \App\Models\Bom::where('produk_id', $prod->id)->sum('total_biaya');
+                    $btkl = (float) ($prod->btkl_default ?? 0);
+                    $bop  = (float) ($prod->bop_default ?? 0);
+                    $cogsVal = ($sumBom + $btkl + $bop) * $qty;
+                }
+                $cogsSum += $cogsVal;
                 $prod->stok = (float)($prod->stok ?? 0) - $qty;
                 $prod->save();
             }
@@ -154,7 +173,9 @@ class PenjualanController extends Controller
         ]);
 
         $qty = (float)$request->jumlah;
-        $price = (float)$request->harga_satuan;
+        // Override harga jual dengan harga_jual dari master produk
+        $produk = Produk::findOrFail($request->produk_id);
+        $price = (float) ($produk->harga_jual ?? 0);
         $disc = (float)($request->diskon_nominal ?? 0);
         if ($disc <= 0 && $request->filled('diskon_persen')) {
             $disc = max((($qty * $price) * ((float)$request->diskon_persen) / 100.0), 0);
@@ -162,13 +183,18 @@ class PenjualanController extends Controller
         $total = max(($qty * $price) - $disc, 0);
 
         // Validasi stok cukup
-        $produk = Produk::findOrFail($request->produk_id);
         if ((float)($produk->stok ?? 0) < $qty) {
             return back()->withErrors(["Stok produk {$produk->nama_produk} tidak cukup. Butuh $qty, tersedia " . (float)($produk->stok ?? 0)])->withInput();
         }
 
         // Guard: jangan jual di bawah HPP FIFO (estimasi tanpa konsumsi)
         $estCogs = $stock->estimateCost('product', (int)$request->produk_id, $qty);
+        if ($estCogs <= 0) {
+            $sumBom = (float) \App\Models\Bom::where('produk_id', $produk->id)->sum('total_biaya');
+            $btkl = (float) ($produk->btkl_default ?? 0);
+            $bop  = (float) ($produk->bop_default ?? 0);
+            $estCogs = ($sumBom + $btkl + $bop) * $qty;
+        }
         if ($total + 0.0001 < $estCogs) {
             return back()->withErrors(["Harga jual di bawah HPP. HPP: Rp " . number_format($estCogs,0,',','.') . ", Total (setelah diskon): Rp " . number_format($total,0,',','.')])->withInput();
         }
@@ -186,6 +212,12 @@ class PenjualanController extends Controller
         $tanggal = $request->tanggal;
         $qty     = (float)$request->jumlah;
         $cogs = $stock->consume('product', $produk->id, $qty, 'pcs', 'sale', $penjualan->id, $tanggal);
+        if ((float)$cogs <= 0) {
+            $sumBom = (float) \App\Models\Bom::where('produk_id', $produk->id)->sum('total_biaya');
+            $btkl = (float) ($produk->btkl_default ?? 0);
+            $bop  = (float) ($produk->bop_default ?? 0);
+            $cogs = ($sumBom + $btkl + $bop) * $qty;
+        }
         $produk->stok = (float)($produk->stok ?? 0) - $qty;
         $produk->save();
 

@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\Bom;
 use App\Models\Produk;
 use App\Models\BahanBaku;
-use App\Models\Bom;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
-use App\Support\UnitConverter;
 
 class BomController extends Controller
 {
@@ -15,119 +15,245 @@ class BomController extends Controller
     {
         $produks = Produk::all();
         $selectedProductId = request('produk_id');
-        return view('master-data.bom.index', compact('produks', 'selectedProductId'));
+        
+        $query = Bom::with(['produk', 'details.bahanBaku.satuan']);
+        
+        if ($selectedProductId) {
+            $query->where('produk_id', $selectedProductId);
+        }
+        
+        $boms = $query->latest()->paginate(10);
+            
+        return view('master-data.bom.index', compact('boms', 'produks', 'selectedProductId'));
     }
 
     public function create()
     {
-        $produks = Produk::all();
-        $bahan_bakus = BahanBaku::all();
-        return view('master-data.bom.create', compact('produks', 'bahan_bakus'));
+        // Ambil ID produk yang sudah memiliki BOM
+        $produkIdsWithBom = Bom::pluck('produk_id')->toArray();
+        
+        // Ambil produk yang belum memiliki BOM
+        $produks = Produk::whereNotIn('id', $produkIdsWithBom)->get();
+        
+        // Jika tidak ada produk yang bisa dibuat BOM-nya
+        if ($produks->isEmpty()) {
+            return redirect()->route('master-data.bom.index')
+                ->with('info', 'Semua produk sudah memiliki BOM. Tidak ada produk yang bisa ditambahkan BOM-nya.');
+        }
+        
+        $bahanBakus = BahanBaku::with('satuan')->get();
+        
+        // Debug data bahan baku
+        \Log::info('Bahan Baku Data:', $bahanBakus->toArray());
+        
+        // Ambil semua satuan yang tersedia
+        $satuans = \App\Models\Satuan::all();
+        
+        return view('master-data.bom.create', [
+            'produks' => $produks,
+            'bahanBakus' => $bahanBakus,
+            'satuans' => $satuans
+        ]);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'produk_id' => 'required',
-            'bahan_baku_id' => 'required|array',
-            'jumlah' => 'required|array',
-            'satuan_resep' => 'nullable|array',
-            'btkl' => 'nullable|numeric',
-            'bop' => 'nullable|numeric',
+        $validated = $request->validate([
+            'produk_id' => 'required|exists:produks,id|unique:boms,produk_id',
+            'kode_bom' => 'required|unique:boms,kode_bom',
+            'details' => 'required|array|min:1',
+            'details.*.bahan_baku_id' => 'required|exists:bahan_bakus,id',
+            'details.*.kuantitas' => 'required|numeric|min:0.01',
+            'persentase_keuntungan' => 'required|numeric|min:0|max:1000',
+            'catatan' => 'nullable|string'
         ]);
 
-        DB::transaction(function () use ($request) {
-            $produk = Produk::findOrFail($request->produk_id);
-            $total_bahan = 0;
-            $converter = new UnitConverter();
+        DB::beginTransaction();
+        
+        try {
+            // Hitung total biaya
+            $totalBiaya = 0;
+            $details = [];
 
-            foreach ($request->bahan_baku_id as $i => $bahan_id) {
-                $bahan = BahanBaku::findOrFail($bahan_id);
-                $qtyResep = (float) ($request->jumlah[$i] ?? 0);
-                $satuanResep = $request->satuan_resep[$i] ?? $bahan->satuan;
+            foreach ($request->details as $detail) {
+                $bahanBaku = BahanBaku::find($detail['bahan_baku_id']);
+                $subtotal = $bahanBaku->harga_satuan * $detail['kuantitas'];
+                
+                $details[] = [
+                    'bahan_baku_id' => $bahanBaku->id,
+                    'kuantitas' => $detail['kuantitas'],
+                    'harga_satuan' => $bahanBaku->harga_satuan,
+                    'subtotal' => $subtotal,
+                    'keterangan' => $detail['keterangan'] ?? null,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
 
-                // Konversi jumlah resep ke satuan dasar bahan (satuan harga)
-                $qtyDalamSatuanBahan = $converter->convert($qtyResep, $satuanResep, $bahan->satuan);
-                $subtotal = (float) $bahan->harga_satuan * (float) $qtyDalamSatuanBahan;
-                $total_bahan += $subtotal;
-
-                Bom::create([
-                    'produk_id' => $produk->id,
-                    'bahan_baku_id' => $bahan_id,
-                    'jumlah' => $qtyResep,
-                    'satuan_resep' => $satuanResep,
-                    'total_biaya' => $subtotal,
-                ]);
+                $totalBiaya += $subtotal;
             }
 
-            // Tambahkan BTKL & BOP (otomatis dari persentase total bahan jika tidak diisi)
-            $btklRate = (float) (config('app.btkl_percent') ?? 0.2); // 20% default
-            $bopRate  = (float) (config('app.bop_percent') ?? 0.1);  // 10% default
+            // Hitung harga jual
+            $persentaseKeuntungan = $request->persentase_keuntungan;
+            $keuntungan = $totalBiaya * ($persentaseKeuntungan / 100);
+            $hargaJual = $totalBiaya + $keuntungan;
 
-            $btkl_sum = $request->filled('btkl') ? (float)$request->btkl : ($total_bahan * $btklRate);
-            $bop_sum  = $request->filled('bop')  ? (float)$request->bop  : ($total_bahan * $bopRate);
-            $grand_total = $total_bahan + $btkl_sum + $bop_sum;
+            // Simpan BOM
+            $bom = new Bom();
+            $bom->produk_id = $validated['produk_id'];
+            $bom->kode_bom = $validated['kode_bom'];
+            $bom->total_biaya = $totalBiaya;
+            $bom->persentase_keuntungan = $persentaseKeuntungan;
+            $bom->harga_jual = $hargaJual;
+            $bom->catatan = $request->catatan;
+            $bom->save();
 
-            // Set harga jual otomatis dari BOM + 30% keuntungan
-            $harga_jual = $grand_total * 1.3;
-            $produk->update([
-                'harga_jual' => $harga_jual,
-                'btkl_default' => $btkl_sum,
-                'bop_default' => $bop_sum,
-            ]);
-        });
+            // Simpan detail BOM
+            $bom->details()->createMany($details);
 
-        return redirect()->route('master-data.bom.index', ['produk_id' => $request->produk_id])
-                         ->with('success', 'BOM berhasil ditambahkan.');
+            // Update harga jual produk
+            $produk = $bom->produk;
+            $produk->update(['harga_jual' => $hargaJual]);
+
+            DB::commit();
+
+            return redirect()
+                ->route('master-data.bom.show', $bom->id)
+                ->with('success', 'BOM berhasil disimpan. Harga jual produk telah diperbarui.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
-    public function view($produk_id)
+    public function show($id)
     {
-        $produk = Produk::findOrFail($produk_id);
-        $items = Bom::with('bahanBaku')->where('produk_id', $produk_id)->get();
+        $bom = Bom::with(['produk', 'details.bahanBaku.satuan'])
+            ->findOrFail($id);
+            
+        return view('master-data.bom.show', compact('bom'));
+    }
 
-        $converter = new UnitConverter();
-        $breakdown = [];
-        $total_bahan = 0.0;
+    public function edit($id)
+    {
+        $bom = Bom::with(['details.bahanBaku.satuan', 'produk'])
+            ->findOrFail($id);
+            
+        $bahanBakus = BahanBaku::with('satuan')->get();
+        
+        return view('master-data.bom.edit', compact('bom', 'bahanBakus'));
+    }
 
-        foreach ($items as $it) {
-            $bahan = $it->bahanBaku;
-            if (!$bahan) { continue; }
-            $qtyResep = (float) ($it->jumlah ?? 0);
-            $satuanResep = $it->satuan_resep ?: $bahan->satuan;
-            $satuanBahan = $bahan->satuan;
-            $hargaSatuan = (float) ($bahan->harga_satuan ?? 0);
-            $qtyBase = $converter->convert($qtyResep, (string)$satuanResep, (string)$satuanBahan);
-            $desc = $converter->describe((string)$satuanResep, (string)$satuanBahan);
-            $subtotal = $hargaSatuan * $qtyBase;
-            $total_bahan += $subtotal;
+    public function update(Request $request, $id)
+    {
+        $bom = Bom::findOrFail($id);
+        
+        $request->validate([
+            'details' => 'required|array|min:1',
+            'details.*.bahan_baku_id' => 'required|exists:bahan_bakus,id',
+            'details.*.kuantitas' => 'required|numeric|min:0.01',
+            'persentase_keuntungan' => 'required|numeric|min:0|max:1000',
+            'catatan' => 'nullable|string'
+        ]);
 
-            $breakdown[] = [
-                'bom_id' => $it->id,
-                'nama_bahan' => $bahan->nama_bahan,
-                'qty_resep' => $qtyResep,
-                'satuan_resep' => $satuanResep,
-                'satuan_bahan' => $satuanBahan,
-                'qty_konversi' => $qtyBase,
-                'konversi_ket' => $desc,
-                'harga_satuan' => $hargaSatuan,
-                'subtotal' => $subtotal,
-            ];
+        DB::beginTransaction();
+
+        try {
+            // Hapus detail lama
+            $bom->details()->delete();
+
+            // Hitung total biaya baru
+            $totalBiaya = 0;
+            $details = [];
+
+            foreach ($request->details as $detail) {
+                $bahanBaku = BahanBaku::find($detail['bahan_baku_id']);
+                $subtotal = $bahanBaku->harga_satuan * $detail['kuantitas'];
+                
+                $details[] = [
+                    'bahan_baku_id' => $bahanBaku->id,
+                    'kuantitas' => $detail['kuantitas'],
+                    'harga_satuan' => $bahanBaku->harga_satuan,
+                    'subtotal' => $subtotal,
+                    'keterangan' => $detail['keterangan'] ?? null,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+
+                $totalBiaya += $subtotal;
+            }
+
+            // Hitung harga jual baru
+            $persentaseKeuntungan = $request->persentase_keuntungan;
+            $keuntungan = $totalBiaya * ($persentaseKeuntungan / 100);
+            $hargaJual = $totalBiaya + $keuntungan;
+
+            // Update BOM
+            $bom->update([
+                'total_biaya' => $totalBiaya,
+                'persentase_keuntungan' => $persentaseKeuntungan,
+                'harga_jual' => $hargaJual,
+                'catatan' => $request->catatan
+            ]);
+
+            // Simpan detail baru
+            $bom->details()->createMany($details);
+
+            // Update harga jual produk
+            $produk = $bom->produk;
+            $produk->update(['harga_jual' => $hargaJual]);
+
+            DB::commit();
+
+            return redirect()
+                ->route('master-data.bom.show', $bom->id)
+                ->with('success', 'BOM berhasil diperbarui. Harga jual produk telah disesuaikan.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
+    }
 
-        // Gunakan default BTKL/BOP dari produk jika tersedia
-        $btkl_sum = (float) ($produk->btkl_default ?? 0);
-        $bop_sum = (float) ($produk->bop_default ?? 0);
-        $grand_total = $total_bahan + $btkl_sum + $bop_sum;
-
-        return view('master-data.bom.partials.table', [
-            'produk' => $produk,
-            'items' => $items,
-            'breakdown' => $breakdown,
-            'total_bahan' => $total_bahan,
-            'btkl_sum' => $btkl_sum,
-            'bop_sum' => $bop_sum,
-            'grand_total' => $grand_total,
+    public function destroy($id)
+    {
+        $bom = Bom::findOrFail($id);
+        $produk_id = $bom->produk_id;
+        
+        DB::beginTransaction();
+        
+        try {
+            $bom->details()->delete();
+            $bom->delete();
+            
+            DB::commit();
+            
+            return redirect()
+                ->route('master-data.produk.show', $produk_id)
+                ->with('success', 'BOM berhasil dihapus.');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()
+                ->with('error', 'Gagal menghapus BOM: ' . $e->getMessage());
+        }
+    }
+    
+    public function generateKodeBom()
+    {
+        $prefix = 'BOM-' . date('Ym') . '-';
+        $latest = Bom::where('kode_bom', 'like', $prefix . '%')
+            ->orderBy('kode_bom', 'desc')
+            ->first();
+            
+        $number = $latest ? (int) substr($latest->kode_bom, strlen($prefix)) + 1 : 1;
+        
+        return response()->json([
+            'kode_bom' => $prefix . str_pad($number, 4, '0', STR_PAD_LEFT)
         ]);
     }
 
@@ -155,14 +281,33 @@ class BomController extends Controller
             ]);
         }
 
-        // BTKL/BOP: gunakan input jika ada, jika tidak pakai persentase default dari total bahan
+        // BTKL/BOPB: gunakan field produk jika ada, jika tidak pakai input/fallback persen dari total bahan
         $btklRate = (float) (config('app.btkl_percent') ?? 0.2);
         $bopRate  = (float) (config('app.bop_percent') ?? 0.1);
-        $btkl_sum = $request->filled('btkl') ? (float)$request->btkl : ($total_bahan * $btklRate);
-        $bop_sum  = $request->filled('bop')  ? (float)$request->bop  : ($total_bahan * $bopRate);
+
+        if (!is_null($produk->btkl_per_unit)) {
+            $btkl_sum = (float) $produk->btkl_per_unit;
+        } else {
+            $btkl_sum = $request->filled('btkl') ? (float)$request->btkl : ($total_bahan * $btklRate);
+        }
+
+        if ($produk->bopb_method && $produk->bopb_rate) {
+            $method = strtolower($produk->bopb_method);
+            if ($method === 'per_unit') {
+                $bop_sum = (float) $produk->bopb_rate;
+            } elseif ($method === 'per_hour') {
+                $hours = (float) ($produk->labor_hours_per_unit ?? 0);
+                $bop_sum = (float) $produk->bopb_rate * $hours;
+            } else {
+                $bop_sum = $total_bahan * $bopRate;
+            }
+        } else {
+            $bop_sum  = $request->filled('bop')  ? (float)$request->bop  : ($total_bahan * $bopRate);
+        }
 
         $grand_total = $total_bahan + $btkl_sum + $bop_sum;
-        $harga_jual = $grand_total * 1.3;
+        $margin = (float) ($produk->margin_percent ?? 0);
+        $harga_jual = $grand_total * (1 + $margin/100);
 
         $produk->update([
             'harga_jual' => $harga_jual,

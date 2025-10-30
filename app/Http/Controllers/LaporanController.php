@@ -32,6 +32,106 @@ class LaporanController extends Controller
         return view('laporan.penjualan.index', compact('penjualan'));
     }
 
+    // === LAPORAN RETUR ===
+    public function laporanRetur(Request $request)
+    {
+        $query = \App\Models\Retur::with(['penjualan', 'customer'])
+            ->when($request->bulan, function($q) use ($request) {
+                $bulan = \Carbon\Carbon::parse($request->bulan);
+                return $q->whereYear('tanggal', $bulan->year)
+                       ->whereMonth('tanggal', $bulan->month);
+            })
+            ->latest();
+
+        if ($request->has('export') && $request->export == 'pdf') {
+            $returs = $query->get();
+            $total = $returs->sum('total');
+            
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.retur.pdf', compact('returs', 'total'));
+            return $pdf->download('laporan-retur-' . now()->format('Y-m-d') . '.pdf');
+        }
+
+        $returs = $query->paginate(15);
+        $total = $query->sum('total');
+
+        return view('laporan.retur.index', compact('returs', 'total'));
+    }
+
+    // === LAPORAN PENGAJIAN ===
+    public function laporanPenggajian(Request $request)
+    {
+        $query = \App\Models\Penggajian::with(['pegawai', 'detailGaji'])
+            ->when($request->bulan, function($q) use ($request) {
+                $bulan = \Carbon\Carbon::parse($request->bulan);
+                return $q->whereYear('periode', $bulan->year)
+                       ->whereMonth('periode', $bulan->month);
+            })
+            ->latest();
+
+        if ($request->has('export') && $request->export == 'pdf') {
+            $penggajians = $query->get();
+            $total = $penggajians->sum('total_gaji');
+            
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.penggajian.pdf', compact('penggajians', 'total'));
+            return $pdf->download('laporan-penggajian-' . now()->format('Y-m-d') . '.pdf');
+        }
+
+        $penggajians = $query->paginate(15);
+        $total = $query->sum('total_gaji');
+
+        return view('laporan.penggajian.index', compact('penggajians', 'total'));
+    }
+
+    // === LAPORAN PEMBAYARAN BEBAN ===
+    public function laporanPembayaranBeban(Request $request)
+    {
+        $query = \App\Models\ExpensePayment::with(['coa'])
+            ->when($request->bulan, function($q) use ($request) {
+                $bulan = \Carbon\Carbon::parse($request->bulan);
+                return $q->whereYear('tanggal', $bulan->year)
+                       ->whereMonth('tanggal', $bulan->month);
+            })
+            ->latest();
+
+        if ($request->has('export') && $request->export == 'pdf') {
+            $pembayaranBeban = $query->get();
+            $total = $pembayaranBeban->sum('nominal');
+            
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.pembayaran-beban.pdf', compact('pembayaranBeban', 'total'));
+            return $pdf->download('laporan-pembayaran-beban-' . now()->format('Y-m-d') . '.pdf');
+        }
+
+        $pembayaranBeban = $query->paginate(15);
+        $total = $query->sum('nominal');
+
+        return view('laporan.pembayaran-beban.index', compact('pembayaranBeban', 'total'));
+    }
+
+    // === LAPORAN PELUNASAN UTANG ===
+    public function laporanPelunasanUtang(Request $request)
+    {
+        $query = \App\Models\ApSettlement::with(['pembelian', 'vendor'])
+            ->when($request->bulan, function($q) use ($request) {
+                $bulan = \Carbon\Carbon::parse($request->bulan);
+                return $q->whereYear('tanggal', $bulan->year)
+                       ->whereMonth('tanggal', $bulan->month);
+            })
+            ->latest();
+
+        if ($request->has('export') && $request->export == 'pdf') {
+            $pelunasanUtang = $query->get();
+            $total = $pelunasanUtang->sum('total_bayar');
+            
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.pelunasan-utang.pdf', compact('pelunasanUtang', 'total'));
+            return $pdf->download('laporan-pelunasan-utang-' . now()->format('Y-m-d') . '.pdf');
+        }
+
+        $pelunasanUtang = $query->paginate(15);
+        $total = $query->sum('total_bayar');
+
+        return view('laporan.pelunasan-utang.index', compact('pelunasanUtang', 'total'));
+    }
+
     // === LAPORAN STOK ===
     public function laporanStok(Request $request)
     {

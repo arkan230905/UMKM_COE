@@ -44,25 +44,23 @@ class BopController extends Controller
         $periodeInput = $request->input('periode'); // format expected: YYYY-MM
         $periode = $periodeInput ? Carbon::createFromFormat('Y-m', $periodeInput) : Carbon::now();
 
-        $hoursPerDay = (int) (config('app.btkl_hours_per_day') ?? 8);
-        $workingDays = (int) (config('app.working_days_per_month') ?? 26);
-
+        // Hanya kumpulkan gaji BTKTL (tenaga kerja tidak langsung) untuk BOP
         $perkiraan = 0.0;
         foreach (Pegawai::all() as $p) {
             $jenis = strtolower($p->jenis_pegawai ?? '');
+            if ($jenis !== 'btktl') { // selain BTKTL tidak masuk BOP
+                continue;
+            }
             $base = (float) ($p->gaji_pokok ?? 0);
             if ($base <= 0) { $base = (float) ($p->gaji ?? 0); }
             $tunj = (float) ($p->tunjangan ?? 0);
-
-            if ($jenis === 'btkl') {
-                $perkiraan += ($base * $hoursPerDay * $workingDays) + $tunj;
-            } else {
-                $perkiraan += $base + $tunj;
-            }
+            $perkiraan += ($base + $tunj);
         }
 
-        $coaBebanGaji = Coa::whereRaw('LOWER(nama_akun) = ?', ['beban gaji'])
-            ->orWhere('kode_akun', 501)
+        // COA sasaran: Beban Gaji BTKTL / BOP (prioritas kode 212)
+        $coaBebanGaji = Coa::where('kode_akun', 212)
+            ->orWhereRaw('LOWER(nama_akun) like ?', ['%btktl%'])
+            ->orWhereRaw('LOWER(nama_akun) like ?', ['%tenaga kerja tidak langsung%'])
             ->first();
 
         if ($coaBebanGaji) {
