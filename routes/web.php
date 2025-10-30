@@ -1,30 +1,10 @@
 <?php
 
-<<<<<<< HEAD
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\AsetController;
-use Illuminate\Support\Facades\Route;
-
-Route::get('/', function () {
-    return view('welcome');
-});
-
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
-
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    
-    // Master Data Routes
-    Route::prefix('master-data')->name('master-data.')->group(function () {
-        Route::resource('aset', AsetController::class);
-=======
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
     DashboardController,
     ProfileController,
+    AsetController,
     PegawaiController,
     PresensiController,
     ProdukController,
@@ -72,13 +52,8 @@ Route::middleware(['auth', 'verified'])
         Route::get('/', [ProfileController::class, 'edit'])->name('edit');
         Route::patch('/', [ProfileController::class, 'update'])->name('update');
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
->>>>>>> 73ecd34c0ff44e1b46e8fcae2de615861d360f74
     });
-});
 
-<<<<<<< HEAD
-require __DIR__.'/auth.php';
-=======
 // ========================================================
 // 🗂️ Master Data
 // ========================================================
@@ -86,6 +61,7 @@ Route::middleware(['auth', 'verified'])
     ->prefix('master-data')
     ->name('master-data.')
     ->group(function () {
+        Route::resource('aset', AsetController::class);
         Route::resource('pegawai', PegawaiController::class);
         Route::resource('presensi', PresensiController::class);
         Route::resource('produk', ProdukController::class);
@@ -118,6 +94,7 @@ Route::middleware(['auth', 'verified'])
     ->group(function () {
         Route::resource('pembelian', PembelianController::class);
         Route::resource('penjualan', PenjualanController::class);
+        Route::resource('penggajian', PenggajianController::class);
         Route::resource('retur', ReturController::class);
     });
 
@@ -145,4 +122,3 @@ Route::middleware(['auth', 'verified'])
 // 🔐 Autentikasi
 // ========================================================
 require __DIR__ . '/auth.php';
->>>>>>> 73ecd34c0ff44e1b46e8fcae2de615861d360f74

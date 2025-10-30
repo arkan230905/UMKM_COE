@@ -4,17 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Selamat Datang di Platform UMKM</title>
-
-<<<<<<< HEAD
-@section('content')
-<div class="flex-center position-ref full-height">
-    <div class="content">
-        <div class="title m-b-md">Laravel</div>
-        <p>Selamat datang di web UMKM.</p>
-    </div>
-</div>
-@endsection
-=======
     <!-- Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -148,4 +137,3 @@
 
 </body>
 </html>
->>>>>>> 73ecd34c0ff44e1b46e8fcae2de615861d360f74
