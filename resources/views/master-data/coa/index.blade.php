@@ -28,8 +28,8 @@
                 <td>{{ $coa->nama_akun }}</td>
                 <td>{{ $coa->tipe_akun }}</td>
                 <td>
-                    <a href="{{ route('master-data.coa.edit', $coa->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                    <form action="{{ route('master-data.coa.destroy', $coa->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus COA ini?')">
+                    <a href="{{ route('master-data.coa.edit', $coa->kode_akun) }}" class="btn btn-warning btn-sm">Edit</a>
+                    <form action="{{ route('master-data.coa.destroy', $coa->kode_akun) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus COA ini?')">
                         @csrf
                         @method('DELETE')
                         <button class="btn btn-danger btn-sm">Hapus</button>
