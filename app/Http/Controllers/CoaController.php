@@ -56,7 +56,7 @@ class CoaController extends Controller
     public function update(Request $request, Coa $coa)
     {
         $validated = $request->validate([
-            'kode_akun' => 'required|unique:coas,kode_akun,' . $coa->id,
+            'kode_akun' => 'required|unique:coas,kode_akun,' . $coa->kode_akun . ',kode_akun',
             'nama_akun' => 'required|string|max:255',
             'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Beban',
         ]);
