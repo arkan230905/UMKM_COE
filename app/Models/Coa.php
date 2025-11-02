@@ -15,6 +15,14 @@ class Coa extends Model
     public $incrementing = false;
     protected $keyType = 'string';
     
+    /**
+     * Use 'kode_akun' for route model binding.
+     */
+    public function getRouteKeyName()
+    {
+        return 'kode_akun';
+    }
+
     // Tipe akun untuk BOP
     const TIPE_BIAYA = 'Biaya';
 
