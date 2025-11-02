@@ -7,6 +7,7 @@
     <form action="{{ route('master-data.bahan-baku.update', $bahanBaku->id) }}" method="POST">
         @csrf
         @method('PUT')
+        <input type="hidden" name="stok" value="{{ old('stok', $bahanBaku->stok) }}">
 
         <div class="mb-3">
             <label for="nama_bahan" class="form-label">Nama Bahan</label>

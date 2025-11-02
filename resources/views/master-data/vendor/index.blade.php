@@ -47,8 +47,9 @@
                             <td class="text-secondary">{{ $vendor->alamat }}</td>
                             <td class="fw-semibold text-secondary">{{ $vendor->no_telp }}</td>
                             <td class="fw-semibold text-secondary">{{ $vendor->email }}</td>
-                            <td class="text-muted">{{ $vendor->created_at->format('d-m-Y H:i') }}</td>
-                            <td class="text-muted">{{ $vendor->updated_at->format('d-m-Y H:i') }}</td>
+                            <td class="text-muted">{{ $vendor->created_at ? $vendor->created_at->format('d-m-Y H:i') : '-' }}</td>
+                            <td class="text-muted">{{ $vendor->updated_at ? $vendor->updated_at->format('d-m-Y H:i') : '-' }}</td>
+
                             <td class="text-center">
                                 <a href="{{ route('master-data.vendor.edit', $vendor->id) }}" 
                                    class="btn btn-sm btn-warning text-dark me-1 shadow-sm fw-semibold">

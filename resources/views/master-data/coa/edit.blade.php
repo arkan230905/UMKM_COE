@@ -4,17 +4,18 @@
 @if ($errors->any())
 <div class="alert alert-danger"><ul>@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
 @endif
-<form action="{{ route('master-data.coa.update',$coa->id) }}" method="POST">
+<form action="{{ route('master-data.coa.update',$coa->kode_akun) }}" method="POST">
 @csrf @method('PATCH')
-<div class="mb-3"><label>Kode Akun</label><input type="text" name="kode" class="form-control" value="{{ $coa->kode }}" required></div>
-<div class="mb-3"><label>Nama Akun</label><input type="text" name="nama" class="form-control" value="{{ $coa->nama }}" required></div>
-<div class="mb-3"><label>Jenis</label>
-<select name="jenis" class="form-control" required>
-<option value="Aset" {{ $coa->jenis=='Aset'?'selected':'' }}>Aset</option>
-<option value="Kewajiban" {{ $coa->jenis=='Kewajiban'?'selected':'' }}>Kewajiban</option>
-<option value="Ekuitas" {{ $coa->jenis=='Ekuitas'?'selected':'' }}>Ekuitas</option>
-<option value="Pendapatan" {{ $coa->jenis=='Pendapatan'?'selected':'' }}>Pendapatan</option>
-<option value="Beban" {{ $coa->jenis=='Beban'?'selected':'' }}>Beban</option>
+<div class="mb-3"><label>Kode Akun</label><input type="text" name="kode_akun" class="form-control" value="{{ $coa->kode_akun }}" required></div>
+<div class="mb-3"><label>Nama Akun</label><input type="text" name="nama_akun" class="form-control" value="{{ $coa->nama_akun }}" required></div>
+<div class="mb-3"><label>Tipe Akun</label>
+<select name="tipe_akun" class="form-control" required>
+<option value="Asset" {{ $coa->tipe_akun=='Asset'?'selected':'' }}>Asset</option>
+<option value="Liability" {{ $coa->tipe_akun=='Liability'?'selected':'' }}>Liability</option>
+<option value="Equity" {{ $coa->tipe_akun=='Equity'?'selected':'' }}>Equity</option>
+<option value="Revenue" {{ $coa->tipe_akun=='Revenue'?'selected':'' }}>Revenue</option>
+<option value="Expense" {{ $coa->tipe_akun=='Expense'?'selected':'' }}>Expense</option>
+<option value="Beban" {{ $coa->tipe_akun=='Beban'?'selected':'' }}>Beban</option>
 </select></div>
 <button class="btn btn-success">Update</button>
 <a href="{{ route('master-data.coa.index') }}" class="btn btn-secondary">Batal</a>
