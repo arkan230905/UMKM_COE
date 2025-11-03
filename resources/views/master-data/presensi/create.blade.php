@@ -24,6 +24,22 @@
         </div>
     @endif
 
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show mx-3" role="alert">
+            <i class="bi bi-exclamation-octagon me-2"></i>
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show mx-3" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <div class="card border-0 shadow-sm mx-3" style="background-color: #222232; border-radius: 15px;">
         <div class="card-body p-4">
             <form action="{{ route('master-data.presensi.store') }}" method="POST" id="presensiForm">
@@ -40,8 +56,8 @@
                             required>
                             <option value="">-- Pilih Pegawai --</option>
                             @foreach($pegawais as $pegawai)
-                                <option value="{{ $pegawai->nomor_induk_pegawai }}" 
-                                    {{ old('pegawai_id') == $pegawai->nomor_induk_pegawai ? 'selected' : '' }}
+                                <option value="{{ $pegawai->id }}" 
+                                    {{ old('pegawai_id') == $pegawai->id ? 'selected' : '' }}
                                     class="text-white">
                                     {{ $pegawai->nama }} ({{ $pegawai->nomor_induk_pegawai }})
                                 </option>

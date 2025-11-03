@@ -22,8 +22,8 @@ class Presensi extends Model
 
     protected $casts = [
         'tgl_presensi' => 'date',
-        'jam_masuk' => 'datetime',
-        'jam_keluar' => 'datetime',
+        'jam_masuk' => 'string',
+        'jam_keluar' => 'string',
         'jumlah_jam' => 'decimal:2'
     ];
 
@@ -35,7 +35,7 @@ class Presensi extends Model
 
     public function pegawai(): BelongsTo
     {
-        return $this->belongsTo(Pegawai::class, 'pegawai_id', 'nomor_induk_pegawai');
+        return $this->belongsTo(Pegawai::class, 'pegawai_id', 'id');
     }
 
     // Scope untuk pencarian

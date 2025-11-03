@@ -102,10 +102,10 @@
                                 <td>{{ $key + 1 }}</td>
                                 <td>{{ $aset->kode_aset }}</td>
                                 <td>{{ $aset->nama_aset }}</td>
-                                <td>{{ $aset->jenisAset->nama ?? '-' }}</td>
+                                <td>{{ $aset->kategori->jenisAset->nama ?? '-' }}</td>
                                 <td>{{ $aset->kategori->nama ?? '-' }}</td>
                                 <td class="text-end">{{ number_format($aset->harga_perolehan, 0, ',', '.') }}</td>
-                                <td>{{ $aset->tanggal_beli->format('d/m/Y') }}</td>
+                                <td>{{ is_string($aset->tanggal_beli) ? \Carbon\Carbon::parse($aset->tanggal_beli)->format('d/m/Y') : $aset->tanggal_beli->format('d/m/Y') }}</td>
                                 <td class="text-end">{{ number_format($aset->nilai_buku, 0, ',', '.') }}</td>
                                 <td>
                                     @php

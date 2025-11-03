@@ -1,0 +1,4 @@
+kode_aset,nama_aset,kategori,tanggal_perolehan,harga_perolehan,nilai_sisa,umur_ekonomis_tahun,metode_penyusutan,lokasi,nomor_serial,status,keterangan
+AST-202511-0001,Kursi Salon,Furniture & Fixtures,2022-11-02,4000000,2500000,4,garis_lurus,Salon Utama,SL-001,aktif,Kursi salon dari manual book
+AST-202511-0002,Kursi Cuci Rambut,Furniture & Fixtures,2022-11-02,2000000,1000000,4,garis_lurus,Area Cuci,CR-001,aktif,Kursi cuci rambut dari manual book
+AST-202511-0003,Gedung,Bangunan,2022-11-02,30000000,20000000,4,garis_lurus,Jl. Utama No. 123,GD-001,aktif,Gedung dari manual book
