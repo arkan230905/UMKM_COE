@@ -46,7 +46,7 @@
     @if(!empty($itemId))
         <div class="card mb-3">
             <div class="card-body">
-                <h6 class="mb-2">Saldo Awal</h6>
+                <h6 class="mb-2">Jumlah Stok Awal</h6>
                 <div>
                     <span class="me-3"><strong>Qty:</strong> {{ rtrim(rtrim(number_format($saldoAwalQty ?? 0,4,',','.'),'0'),',') }}</span>
                     <span><strong>Nilai:</strong> Rp {{ number_format($saldoAwalNilai ?? 0, 0, ',', '.') }}</span>
@@ -67,8 +67,8 @@
                                 <th class="text-end">Masuk (Rp)</th>
                                 <th class="text-end">Keluar (Qty)</th>
                                 <th class="text-end">Keluar (Rp)</th>
-                                <th class="text-end">Saldo (Qty)</th>
-                                <th class="text-end">Saldo (Rp)</th>
+                                <th class="text-end">Jumlah Stok (Qty)</th>
+                                <th class="text-end">Jumlah Stok (Rp)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -92,14 +92,14 @@
     @else
         <div class="card mb-3">
             <div class="card-body">
-                <h6 class="mb-2">Saldo per Item</h6>
+                <h6 class="mb-2">Jumlah Stok per Item</h6>
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered align-middle">
                         <thead class="table-light">
                             <tr>
                                 <th style="width:5%">#</th>
                                 <th>Nama</th>
-                                <th class="text-end">Saldo</th>
+                                <th class="text-end">Jumlah Stok</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -109,7 +109,38 @@
                                     <tr>
                                         <td>{{ $i++ }}</td>
                                         <td>{{ $m->nama_bahan }}</td>
-                                        <td class="text-end">{{ rtrim(rtrim(number_format($saldoPerItem[$m->id] ?? 0,4,',','.'),'0'),',') }} {{ $m->satuan }}</td>
+                                        <td class="text-end">
+                                            {{-- Tampilkan jumlah stok --}}
+                                            @if(isset($saldoPerItem[$m->id]))
+                                                {{ number_format($saldoPerItem[$m->id], 0, ',', '.') }}
+                                            @else
+                                                0
+                                            @endif
+                                            
+                                            {{-- Tampilkan satuan --}}
+                                            @php
+                                                $satuan = $m->satuan;
+                                                
+                                                // Jika satuan adalah string yang berisi JSON
+                                                if (is_string($satuan) && strpos($satuan, '{') === 0) {
+                                                    $decoded = json_decode($satuan, true);
+                                                    if (json_last_error() === JSON_ERROR_NONE) {
+                                                        echo isset($decoded['nama']) ? ' ' . $decoded['nama'] : '';
+                                                    } else {
+                                                        echo ' ' . $satuan;
+                                                    }
+                                                } 
+                                                // Jika satuan adalah object atau array
+                                                elseif (is_object($satuan) || is_array($satuan)) {
+                                                    $satuan = (array) $satuan;
+                                                    echo ' ' . ($satuan['nama'] ?? '');
+                                                }
+                                                // Jika satuan adalah string biasa
+                                                else {
+                                                    echo ' ' . $satuan;
+                                                }
+                                            @endphp
+                                        </td>
                                     </tr>
                                 @endforeach
                             @else
@@ -117,7 +148,14 @@
                                     <tr>
                                         <td>{{ $i++ }}</td>
                                         <td>{{ $p->nama_produk }}</td>
-                                        <td class="text-end">{{ rtrim(rtrim(number_format($saldoPerItem[$p->id] ?? 0,4,',','.'),'0'),',') }} pcs</td>
+                                        <td class="text-end">
+                                            @if(isset($saldoPerItem[$p->id]))
+                                                {{ number_format($saldoPerItem[$p->id], 0, ',', '.') }}
+                                            @else
+                                                0
+                                            @endif
+                                            pcs
+                                        </td>
                                     </tr>
                                 @endforeach
                             @endif
