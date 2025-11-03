@@ -5,11 +5,14 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">BOP Budget - {{ \Carbon\Carbon::parse($periode)->isoFormat('MMMM YYYY') }}</h5>
-            <div>
-                <form method="GET" class="form-inline">
+            <div class="d-flex align-items-center gap-2">
+                <form method="GET" class="form-inline me-2">
                     <input type="month" name="periode" id="periode" class="form-control" 
-                           value="{{ $periode }}" onchange="this.form.submit()">
+                           value="{{ $periode }}" onchange="this.form.submit()" style="width: 180px;">
                 </form>
+                <a href="{{ route('master-data.bop-budget.create', ['periode' => $periode]) }}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Tambah BOPB
+                </a>
             </div>
         </div>
         <div class="card-body">
@@ -79,8 +82,14 @@
             serverSide: true,
             ajax: {
                 url: '{{ route("master-data.bop-budget.index") }}',
+                type: 'GET',
                 data: function(d) {
                     d.periode = '{{ $periode }}';
+                },
+                error: function(xhr, error, code) {
+                    console.error('Error loading data:', error);
+                    console.error('Status:', xhr.status);
+                    console.error('Response:', xhr.responseText);
                 }
             },
             columns: [
