@@ -37,13 +37,18 @@ class PresensiController extends Controller
     {
         try {
             $validated = $request->validate([
-                'pegawai_id' => 'required|exists:pegawais,nomor_induk_pegawai',
+                'pegawai_id' => 'required|exists:pegawais,id',
                 'tgl_presensi' => 'required|date',
-                'jam_masuk' => 'required|date_format:H:i',
-                'jam_keluar' => 'required|date_format:H:i|after:jam_masuk',
-                'status' => 'required|in:Hadir,Izin,Sakit,Alpa',
+                'jam_masuk' => 'required_if:status,Hadir|nullable|date_format:H:i',
+                'jam_keluar' => 'required_if:status,Hadir|nullable|date_format:H:i|after:jam_masuk',
+                'status' => 'required|in:Hadir,Izin,Sakit,Absen,Alpa',
                 'keterangan' => 'nullable|string|max:255'
             ]);
+
+            // Normalisasi status agar cocok dengan enum DB (bila enum memakai 'Absen')
+            if (($validated['status'] ?? '') === 'Alpa') {
+                $validated['status'] = 'Absen';
+            }
 
             // Cek apakah sudah ada presensi untuk pegawai di tanggal yang sama
             $existingPresensi = Presensi::where('pegawai_id', $validated['pegawai_id'])
@@ -56,10 +61,16 @@ class PresensiController extends Controller
                     ->with('error', 'Pegawai sudah memiliki presensi di tanggal yang sama');
             }
 
-            // Hitung jumlah jam kerja
-            $jamMasuk = Carbon::parse($validated['jam_masuk']);
-            $jamKeluar = Carbon::parse($validated['jam_keluar']);
-            $validated['jumlah_jam'] = $jamKeluar->diffInHours($jamMasuk, true);
+            // Hitung jumlah jam kerja hanya untuk status Hadir
+            if (($validated['status'] ?? '') === 'Hadir' && !empty($validated['jam_masuk']) && !empty($validated['jam_keluar'])) {
+                $jamMasuk = Carbon::parse($validated['jam_masuk']);
+                $jamKeluar = Carbon::parse($validated['jam_keluar']);
+                $validated['jumlah_jam'] = $jamKeluar->diffInHours($jamMasuk, true);
+            } else {
+                $validated['jam_masuk'] = null;
+                $validated['jam_keluar'] = null;
+                $validated['jumlah_jam'] = 0;
+            }
 
             Presensi::create($validated);
 
@@ -89,11 +100,11 @@ class PresensiController extends Controller
     {
         try {
             $validated = $request->validate([
-                'pegawai_id' => 'required|exists:pegawais,nomor_induk_pegawai',
+                'pegawai_id' => 'required|exists:pegawais,id',
                 'tgl_presensi' => 'required|date',
-                'jam_masuk' => 'required|date_format:H:i',
-                'jam_keluar' => 'required|date_format:H:i|after:jam_masuk',
-                'status' => 'required|in:Hadir,Izin,Sakit,Alpa',
+                'jam_masuk' => 'required_if:status,Hadir|nullable|date_format:H:i',
+                'jam_keluar' => 'required_if:status,Hadir|nullable|date_format:H:i|after:jam_masuk',
+                'status' => 'required|in:Hadir,Izin,Sakit,Absen,Alpa',
                 'keterangan' => 'nullable|string|max:255'
             ]);
 
@@ -111,10 +122,21 @@ class PresensiController extends Controller
                     ->with('error', 'Pegawai sudah memiliki presensi di tanggal yang sama');
             }
 
-            // Hitung jumlah jam kerja
-            $jamMasuk = Carbon::parse($validated['jam_masuk']);
-            $jamKeluar = Carbon::parse($validated['jam_keluar']);
-            $validated['jumlah_jam'] = $jamKeluar->diffInHours($jamMasuk, true);
+            // Normalisasi status Alpa->Absen bila diperlukan
+            if (($validated['status'] ?? '') === 'Alpa') {
+                $validated['status'] = 'Absen';
+            }
+
+            // Hitung jumlah jam kerja hanya untuk status Hadir
+            if (($validated['status'] ?? '') === 'Hadir' && !empty($validated['jam_masuk']) && !empty($validated['jam_keluar'])) {
+                $jamMasuk = Carbon::parse($validated['jam_masuk']);
+                $jamKeluar = Carbon::parse($validated['jam_keluar']);
+                $validated['jumlah_jam'] = $jamKeluar->diffInHours($jamMasuk, true);
+            } else {
+                $validated['jam_masuk'] = null;
+                $validated['jam_keluar'] = null;
+                $validated['jumlah_jam'] = 0;
+            }
 
             $presensi->update($validated);
 
