@@ -74,7 +74,7 @@
                                         <i class="bi bi-person-circle fs-4"></i>
                                     </div>
                                     <div>
-                                        <div class="fw-bold">{{ $presensi->pegawai->nama }}</div>
+                                        <div class="fw-bold">{{ $presensi->pegawai->nama ?: $presensi->pegawai->nomor_induk_pegawai }}</div>
                                         <div class="text-muted small">{{ $presensi->pegawai->nomor_induk_pegawai }}</div>
                                     </div>
                                 </div>

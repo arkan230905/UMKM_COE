@@ -14,6 +14,14 @@
         </div>
     @endif
 
+    @if (session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+    @endif
+
+    @if (session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+
     <div class="card">
         <div class="card-body">
             <form action="{{ route('master-data.aset.store') }}" method="POST" id="asetForm">
@@ -26,9 +34,9 @@
                 </div>
                 
                 <div class="mb-3">
-                    <label for="nama" class="form-label text-white">Nama Aset</label>
-                    <input type="text" class="form-control bg-dark text-white @error('nama') is-invalid @enderror" id="nama" name="nama" value="{{ old('nama') }}" required>
-                    @error('nama')
+                    <label for="nama_aset" class="form-label text-white">Nama Aset</label>
+                    <input type="text" class="form-control bg-dark text-white @error('nama_aset') is-invalid @enderror" id="nama_aset" name="nama_aset" value="{{ old('nama_aset') }}" required>
+                    @error('nama_aset')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
@@ -225,9 +233,9 @@
                 </script>
 
                 <div class="mb-3">
-                    <label for="harga" class="form-label text-white">Harga (Rp)</label>
-                    <input type="number" class="form-control bg-dark text-white @error('harga') is-invalid @enderror" id="harga" name="harga" value="{{ old('harga') }}" required oninput="hitungResidu()">
-                    @error('harga')
+                    <label for="harga_perolehan" class="form-label text-white">Harga Perolehan (Rp)</label>
+                    <input type="number" class="form-control bg-dark text-white @error('harga_perolehan') is-invalid @enderror" id="harga_perolehan" name="harga_perolehan" value="{{ old('harga_perolehan') }}" required oninput="hitungResidu()">
+                    @error('harga_perolehan')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
@@ -241,9 +249,9 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="useful_life_years" class="form-label text-white">Masa Manfaat (tahun)</label>
-                    <input type="number" class="form-control bg-dark text-white @error('useful_life_years') is-invalid @enderror" id="useful_life_years" name="useful_life_years" value="{{ old('useful_life_years', 4) }}" min="1" oninput="hitungResidu()">
-                    @error('useful_life_years')
+                    <label for="umur_manfaat" class="form-label text-white">Umur Manfaat (tahun)</label>
+                    <input type="number" class="form-control bg-dark text-white @error('umur_manfaat') is-invalid @enderror" id="umur_manfaat" name="umur_manfaat" value="{{ old('umur_manfaat', 4) }}" min="1" oninput="hitungResidu()">
+                    @error('umur_manfaat')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
@@ -270,9 +278,9 @@
                 // Fungsi untuk menghitung nilai residu dan penyusutan
                 function hitungResidu() {
                     try {
-                        const harga = parseFloat(document.getElementById('harga').value) || 0;
-                        const acquisitionCost = parseFloat(document.getElementById('acquisition_cost').value) || 0;
-                        const usefulLifeYears = parseFloat(document.getElementById('useful_life_years').value) || 1;
+                        const harga = parseFloat(document.getElementById('harga_perolehan').value) || 0;
+                        const acquisitionCost = harga;
+                        const usefulLifeYears = parseFloat(document.getElementById('umur_manfaat').value) || 1;
                         
                         // Hitung nilai residu (5% dari harga perolehan)
                         const residualValue = acquisitionCost * 0.05;
@@ -311,6 +319,20 @@
                     <input type="date" class="form-control bg-dark text-light @error('tanggal_beli') is-invalid @enderror" id="tanggal_beli" name="tanggal_beli" value="{{ old('tanggal_beli') }}" required>
                     @error('tanggal_beli')
                         <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="mb-3">
+                    <label for="status" class="form-label text-white">Status</label>
+                    <select class="form-select bg-dark text-white @error('status') is-invalid @enderror" id="status" name="status" required>
+                        <option value="" disabled selected>-- Pilih Status --</option>
+                        <option value="aktif" {{ old('status') == 'aktif' ? 'selected' : '' }}>Aktif</option>
+                        <option value="disewakan" {{ old('status') == 'disewakan' ? 'selected' : '' }}>Disewakan</option>
+                        <option value="dioperasikan" {{ old('status') == 'dioperasikan' ? 'selected' : '' }}>Dioperasikan</option>
+                        <option value="dihapus" {{ old('status') == 'dihapus' ? 'selected' : '' }}>Dihapus</option>
+                    </select>
+                    @error('status')
+                        <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
 

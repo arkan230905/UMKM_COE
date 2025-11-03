@@ -11,22 +11,22 @@ class Pegawai extends Model
     use HasFactory;
 
     protected $table = 'pegawais';
-    protected $primaryKey = 'nomor_induk_pegawai';
-    public $incrementing = false;
-    protected $keyType = 'string';
 
     protected $fillable = [
         'nomor_induk_pegawai',
         'nama',
-        'alamat',
-        'no_telp',
-        'jabatan',
         'email',
+        'no_telp',
+        'alamat',
+        'jenis_kelamin',
+        'jabatan',
+        'kategori_tenaga_kerja',
         'tanggal_masuk',
-        'status_pegawai',
+        'status_aktif',
         'gaji_pokok',
+        'tarif_per_jam',
+        'gaji',
         'tunjangan',
-        'foto',
     ];
 
     protected $dates = [
@@ -37,7 +37,7 @@ class Pegawai extends Model
 
     public function presensis(): HasMany
     {
-        return $this->hasMany(Presensi::class, 'pegawai_id', 'nomor_induk_pegawai');
+        return $this->hasMany(Presensi::class, 'pegawai_id');
     }
 
     // Scope untuk pencarian
@@ -45,5 +45,13 @@ class Pegawai extends Model
     {
         return $query->where('nama', 'like', "%{$search}%")
                     ->orWhere('nomor_induk_pegawai', 'like', "%{$search}%");
+    }
+
+    /**
+     * Use nomor_induk_pegawai as the route key for implicit model binding.
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'nomor_induk_pegawai';
     }
 }

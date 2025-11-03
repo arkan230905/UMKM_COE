@@ -19,6 +19,25 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 // Asset related API routes
-Route::prefix('aset')->group(function () {
-    Route::get('/kategori', [\App\Http\Controllers\Api\AsetController::class, 'getKategoriByJenis']);
+Route::prefix('asets')->middleware('auth:sanctum')->group(function () {
+    // CRUD Aset
+    Route::get('/', [\App\Http\Controllers\Api\AsetController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\AsetController::class, 'store']);
+    Route::get('/{aset}', [\App\Http\Controllers\Api\AsetController::class, 'show']);
+    Route::put('/{aset}', [\App\Http\Controllers\Api\AsetController::class, 'update']);
+    Route::delete('/{aset}', [\App\Http\Controllers\Api\AsetController::class, 'destroy']);
+
+    // Depreciation Schedule
+    Route::post('/{aset}/generate-schedule', [\App\Http\Controllers\Api\AsetController::class, 'generateSchedule']);
+    Route::post('/{aset}/save-schedule', [\App\Http\Controllers\Api\AsetController::class, 'saveSchedule']);
+    Route::get('/{aset}/depreciation-schedules', [\App\Http\Controllers\Api\AsetController::class, 'depreciationSchedules']);
 });
+
+// Depreciation Schedule routes
+Route::prefix('depreciation-schedules')->middleware('auth:sanctum')->group(function () {
+    Route::post('/{schedule}/post', [\App\Http\Controllers\Api\AsetController::class, 'postSchedule']);
+    Route::post('/{schedule}/reverse', [\App\Http\Controllers\Api\AsetController::class, 'reverseSchedule']);
+});
+
+// Kategori options (public)
+Route::get('/aset/kategori', [\App\Http\Controllers\Api\AsetController::class, 'getKategoriByJenis']);
