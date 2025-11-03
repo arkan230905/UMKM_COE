@@ -7,7 +7,7 @@
             <h5>Tambah BOP Budget</h5>
         </div>
         <div class="card-body">
-            <form action="{{ route('bop-budget.store') }}" method="POST">
+            <form action="{{ route('master-data.bop-budget.store') }}" method="POST">
                 @csrf
                 <div class="row">
                     <div class="col-md-6">
@@ -61,7 +61,7 @@
                     </div>
                 </div>
                 <div class="d-flex justify-content-between">
-                    <a href="{{ route('bop-budget.index') }}?periode={{ $periode }}" class="btn btn-secondary">
+                    <a href="{{ route('master-data.bop-budget.index') }}?periode={{ $periode }}" class="btn btn-secondary">
                         <i class="fas fa-arrow-left"></i> Kembali
                     </a>
                     <button type="submit" class="btn btn-primary">
