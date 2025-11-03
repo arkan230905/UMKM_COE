@@ -55,6 +55,10 @@ class BopBudgetController extends Controller
                 ->orderBy(DB::raw('LENGTH(kode_akun), kode_akun'));
 
             return DataTables::of($query)
+                ->addColumn('DT_RowIndex', function($row) {
+                    // This will be auto-incremented by DataTables
+                    return '';
+                })
                 ->addIndexColumn()
                 ->addColumn('action', function($row) {
                     $btn = '<div class="btn-group">';
@@ -97,12 +101,12 @@ class BopBudgetController extends Controller
             ->toArray();
             
         $coas = Coa::where(function($query) {
-                $query->where('kategori', 'like', '%Beban%')
+                $query->where('kategori_akun', 'like', '%Beban%')
                       ->orWhere('nama_akun', 'like', '%Beban%');
             })
             ->whereNotIn('id', $existingCoaIds)
-            ->orderBy('kode')
-            ->get(['id', 'kode', 'nama_akun']);
+            ->orderBy('kode_akun')
+            ->get(['id', 'kode_akun', 'nama_akun']);
 
         return view('master-data.bop-budget.create', [
             'coas' => $coas,
