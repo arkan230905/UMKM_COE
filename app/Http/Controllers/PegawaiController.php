@@ -102,16 +102,14 @@ class PegawaiController extends Controller
     }
 
     // Form edit pegawai
-    public function edit($id)
+    public function edit(Pegawai $pegawai)
     {
-        $pegawai = Pegawai::findOrFail($id);
         return view('master-data.pegawai.edit', compact('pegawai'));
     }
 
     // Update data pegawai
-    public function update(Request $request, $id)
+    public function update(Request $request, Pegawai $pegawai)
     {
-        $pegawai = Pegawai::findOrFail($id);
 
         $rules = [
             'nama' => 'required|string|max:255',
@@ -175,9 +173,8 @@ class PegawaiController extends Controller
     }
 
     // Hapus pegawai
-    public function destroy($id)
+    public function destroy(Pegawai $pegawai)
     {
-        $pegawai = Pegawai::findOrFail($id);
         $pegawai->delete();
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil dihapus.');
