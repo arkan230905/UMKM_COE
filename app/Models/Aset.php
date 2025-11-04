@@ -28,16 +28,24 @@ class Aset extends Model
         'tanggal_beli',
         'tanggal_akuisisi',
         'status',
+        'metode_penyusutan',
+        'nilai_sisa',
+        'akumulasi_penyusutan',
         'keterangan'
     ];
 
     protected $casts = [
         'tanggal_perolehan' => 'date',
+        'tanggal_beli' => 'date',
+        'tanggal_akuisisi' => 'date',
         'harga_perolehan' => 'decimal:2',
+        'biaya_perolehan' => 'decimal:2',
+        'nilai_residu' => 'decimal:2',
         'nilai_sisa' => 'decimal:2',
         'nilai_buku' => 'decimal:2',
         'akumulasi_penyusutan' => 'decimal:2',
         'persentase_penyusutan' => 'decimal:2',
+        'umur_manfaat' => 'integer',
         'umur_ekonomis_tahun' => 'integer',
     ];
 
