@@ -1,7 +1,5 @@
-@extends('layouts.app')
-
-@section('content')
-<!-- CACHE BUSTER: {{ uniqid() }} - {{ now()->timestamp }} -->
+<?php $__env->startSection('content'); ?>
+<!-- CACHE BUSTER: <?php echo e(uniqid()); ?> - <?php echo e(now()->timestamp); ?> -->
 <div class="container-fluid py-4" style="background-color: #1b1b28; min-height: 100vh;">
     <script>
         // Force reload jika ada cache
@@ -13,24 +11,26 @@
         <h2 class="text-white fw-bold mb-0">
             <i class="bi bi-calendar-check me-2"></i> Data Presensi
         </h2>
-        <a href="{{ route('master-data.presensi.create') }}" class="btn btn-primary fw-semibold shadow-sm">
+        <a href="<?php echo e(route('master-data.presensi.create')); ?>" class="btn btn-primary fw-semibold shadow-sm">
             <i class="bi bi-plus-circle me-1"></i> Tambah Presensi
         </a>
     </div>
 
-    @if(session('success'))
+    <?php if(session('success')): ?>
         <div class="alert alert-success alert-dismissible fade show mx-3" role="alert">
-            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
+            <i class="bi bi-check-circle me-2"></i><?php echo e(session('success')); ?>
 
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show mx-3" role="alert">
-            <i class="bi bi-exclamation-triangle me-2"></i>{{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-    @endif
+    <?php endif; ?>
+
+    <?php if(session('error')): ?>
+        <div class="alert alert-danger alert-dismissible fade show mx-3" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i><?php echo e(session('error')); ?>
+
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    <?php endif; ?>
 
     <div class="card shadow-lg border-0 mx-3" style="background-color: #222232; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
         <div class="card-header bg-transparent border-0 py-3 px-4">
@@ -41,17 +41,17 @@
                     </h5>
                 </div>
                 <div class="col-md-6">
-                    <form action="{{ route('master-data.presensi.index') }}" method="GET" class="d-flex">
+                    <form action="<?php echo e(route('master-data.presensi.index')); ?>" method="GET" class="d-flex">
                         <input type="text" name="search" class="form-control bg-dark text-white border-dark" 
-                               placeholder="Cari nama pegawai atau NIP..." value="{{ request('search') }}">
+                               placeholder="Cari nama pegawai atau NIP..." value="<?php echo e(request('search')); ?>">
                         <button type="submit" class="btn btn-primary ms-2">
                             <i class="bi bi-search"></i>
                         </button>
-                        @if(request('search'))
-                            <a href="{{ route('master-data.presensi.index') }}" class="btn btn-outline-light ms-2">
+                        <?php if(request('search')): ?>
+                            <a href="<?php echo e(route('master-data.presensi.index')); ?>" class="btn btn-outline-light ms-2">
                                 <i class="bi bi-arrow-counterclockwise"></i>
                             </a>
-                        @endif
+                        <?php endif; ?>
                     </form>
                 </div>
             </div>
@@ -72,65 +72,69 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($presensis as $presensi)
+                        <?php $__empty_1 = true; $__currentLoopData = $presensis; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $presensi): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <tr class="data-row">
-                            <td class="ps-3 fw-bold text-light">{{ ($presensis->currentPage() - 1) * $presensis->perPage() + $loop->iteration }}</td>
+                            <td class="ps-3 fw-bold text-light"><?php echo e(($presensis->currentPage() - 1) * $presensis->perPage() + $loop->iteration); ?></td>
                             <td>
                                 <div style="display: flex; align-items: center; gap: 10px;">
                                     <i class="bi bi-person-circle" style="font-size: 24px; color: #6c63ff;"></i>
                                     <div>
                                         <div class="fw-semibold text-secondary" style="font-size: 15px;">
-                                            {{ $presensi->pegawai->nama_display ?? $presensi->pegawai->nama }}
+                                            <?php echo e($presensi->pegawai->nama_display ?? $presensi->pegawai->nama); ?>
+
                                         </div>
-                                        <div style="color: #999; font-size: 11px; margin-top: 2px;">NIP: {{ $presensi->pegawai->nomor_induk_pegawai }}</div>
+                                        <div style="color: #999; font-size: 11px; margin-top: 2px;">NIP: <?php echo e($presensi->pegawai->nomor_induk_pegawai); ?></div>
                                     </div>
                                 </div>
                             </td>
                             <td class="fw-semibold text-secondary">
-                                {{ \Carbon\Carbon::parse($presensi->tgl_presensi)->isoFormat('dddd, D MMMM YYYY') }}
+                                <?php echo e(\Carbon\Carbon::parse($presensi->tgl_presensi)->isoFormat('dddd, D MMMM YYYY')); ?>
+
                             </td>
                             <td class="fw-semibold text-secondary">
-                                @if($presensi->status === 'Hadir')
-                                    {{ \Carbon\Carbon::parse($presensi->jam_masuk)->format('H:i') }}
-                                @else
+                                <?php if($presensi->status === 'Hadir'): ?>
+                                    <?php echo e(\Carbon\Carbon::parse($presensi->jam_masuk)->format('H:i')); ?>
+
+                                <?php else: ?>
                                     <span class="text-muted">-</span>
-                                @endif
+                                <?php endif; ?>
                             </td>
                             <td class="fw-semibold text-secondary">
-                                @if($presensi->status === 'Hadir')
-                                    {{ \Carbon\Carbon::parse($presensi->jam_keluar)->format('H:i') }}
-                                @else
+                                <?php if($presensi->status === 'Hadir'): ?>
+                                    <?php echo e(\Carbon\Carbon::parse($presensi->jam_keluar)->format('H:i')); ?>
+
+                                <?php else: ?>
                                     <span class="text-muted">-</span>
-                                @endif
+                                <?php endif; ?>
                             </td>
                             <td>
-                                @if($presensi->status == 'Hadir')
-                                    <span class="badge bg-success">{{ $presensi->status }}</span>
-                                @elseif(in_array($presensi->status, ['Izin', 'Sakit']))
-                                    <span class="badge bg-warning text-dark">{{ $presensi->status }}</span>
-                                @else
-                                    <span class="badge bg-danger">{{ $presensi->status }}</span>
-                                @endif
+                                <?php if($presensi->status == 'Hadir'): ?>
+                                    <span class="badge bg-success"><?php echo e($presensi->status); ?></span>
+                                <?php elseif(in_array($presensi->status, ['Izin', 'Sakit'])): ?>
+                                    <span class="badge bg-warning text-dark"><?php echo e($presensi->status); ?></span>
+                                <?php else: ?>
+                                    <span class="badge bg-danger"><?php echo e($presensi->status); ?></span>
+                                <?php endif; ?>
                             </td>
                             <td class="fw-semibold text-secondary">
-                                @if($presensi->status === 'Hadir')
-                                    {{ number_format($presensi->jumlah_jam, 1) }} jam
-                                @else
+                                <?php if($presensi->status === 'Hadir'): ?>
+                                    <?php echo e(number_format($presensi->jumlah_jam, 1)); ?> jam
+                                <?php else: ?>
                                     <span class="text-muted">-</span>
-                                @endif
+                                <?php endif; ?>
                             </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
-                                    <a href="{{ route('master-data.presensi.edit', $presensi->id) }}" 
+                                    <a href="<?php echo e(route('master-data.presensi.edit', $presensi->id)); ?>" 
                                        class="btn btn-sm btn-warning text-dark shadow-sm fw-semibold"
                                        data-bs-toggle="tooltip" data-bs-placement="top" title="Edit">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
-                                    <form action="{{ route('master-data.presensi.destroy', $presensi->id) }}" 
+                                    <form action="<?php echo e(route('master-data.presensi.destroy', $presensi->id)); ?>" 
                                           method="POST" class="d-inline delete-form"
                                           data-bs-toggle="tooltip" data-bs-placement="top" title="Hapus">
-                                        @csrf
-                                        @method('DELETE')
+                                        <?php echo csrf_field(); ?>
+                                        <?php echo method_field('DELETE'); ?>
                                         <button type="button" class="btn btn-sm btn-danger text-white shadow-sm fw-semibold delete-btn">
                                             <i class="bi bi-trash3"></i>
                                         </button>
@@ -138,7 +142,7 @@
                                 </div>
                             </td>
                         </tr>
-                        @empty
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <tr>
                             <td colspan="8" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox fs-1 d-block mb-2"></i>
@@ -146,27 +150,28 @@
                                 <p class="mb-0">Klik tombol "Tambah Presensi" untuk menambahkan data baru</p>
                             </td>
                         </tr>
-                        @endforelse
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
             
-            @if($presensis->hasPages())
+            <?php if($presensis->hasPages()): ?>
                 <div class="d-flex justify-content-between align-items-center mt-4 px-2">
                     <div class="text-muted">
-                        Menampilkan {{ $presensis->firstItem() }} sampai {{ $presensis->lastItem() }} dari {{ $presensis->total() }} data
+                        Menampilkan <?php echo e($presensis->firstItem()); ?> sampai <?php echo e($presensis->lastItem()); ?> dari <?php echo e($presensis->total()); ?> data
                     </div>
                     <div>
-                        {{ $presensis->withQueryString()->links() }}
+                        <?php echo e($presensis->withQueryString()->links()); ?>
+
                     </div>
                 </div>
-            @endif
+            <?php endif; ?>
         </div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('styles')
+<?php $__env->startPush('styles'); ?>
 <style>
     .custom-table {
         --bs-table-bg: transparent;
@@ -206,9 +211,9 @@
         font-size: 0.75rem;
     }
 </style>
-@endpush
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Inisialisasi tooltip
@@ -259,4 +264,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\UMKM_COE\resources\views/master-data/presensi/index.blade.php ENDPATH**/ ?>
