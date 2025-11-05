@@ -39,10 +39,11 @@ return new class extends Migration
             }
         });
 
-        // Create a composite unique or at least index on nomor_induk_pegawai if exists
+        // Create index on nomor_induk_pegawai if exists (not unique to avoid conflicts)
         Schema::table('pegawais', function (Blueprint $table) {
             if (Schema::hasColumn('pegawais', 'nomor_induk_pegawai')) {
-                $table->unique('nomor_induk_pegawai', 'uniq_pegawais_nip');
+                // Use index instead of unique to avoid duplicate value errors
+                $table->index('nomor_induk_pegawai', 'idx_pegawais_nip');
             }
         });
     }
