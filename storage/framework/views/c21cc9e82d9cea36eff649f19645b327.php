@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>{{ config('app.name', 'UMKM COE') }}</title>
+    <title><?php echo e(config('app.name', 'UMKM COE')); ?></title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    @vite(['resources/js/app.js'])
+    <?php echo app('Illuminate\Foundation\Vite')(['resources/js/app.js']); ?>
     <style>
         :root {
             --primary-bg: #1e1e2f;
@@ -213,20 +213,21 @@
     </style>
 </head>
 <body>
-    @include('layouts.sidebar')
+    <?php echo $__env->make('layouts.sidebar', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     <div class="main">
         <div class="d-flex justify-content-end align-items-center gap-2 px-3 py-2 border-bottom" style="background:#111729; position:sticky; top:0; z-index:1040;">
-            <span class="small text-light me-2"><i class="bi bi-person-circle me-1"></i> {{ Auth::user()->name ?? 'Admin' }}</span>
-            <a href="{{ route('profil-admin') }}" class="btn btn-sm btn-outline-light"><i class="bi bi-person-badge me-1"></i> Profil</a>
-            <a href="{{ route('tentang-perusahaan') }}" class="btn btn-sm btn-outline-light"><i class="bi bi-building me-1"></i> Perusahaan</a>
-            <form action="{{ route('logout') }}" method="POST" class="d-inline">
-                @csrf
+            <span class="small text-light me-2"><i class="bi bi-person-circle me-1"></i> <?php echo e(Auth::user()->name ?? 'Admin'); ?></span>
+            <a href="<?php echo e(route('profil-admin')); ?>" class="btn btn-sm btn-outline-light"><i class="bi bi-person-badge me-1"></i> Profil</a>
+            <a href="<?php echo e(route('tentang-perusahaan')); ?>" class="btn btn-sm btn-outline-light"><i class="bi bi-building me-1"></i> Perusahaan</a>
+            <form action="<?php echo e(route('logout')); ?>" method="POST" class="d-inline">
+                <?php echo csrf_field(); ?>
                 <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-box-arrow-right me-1"></i> Logout</button>
             </form>
         </div>
-        @yield('content')
+        <?php echo $__env->yieldContent('content'); ?>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    @yield('scripts')
+    <?php echo $__env->yieldContent('scripts'); ?>
 </body>
 </html>
+<?php /**PATH C:\xampp\htdocs\UMKM_COE\resources\views/layouts/app.blade.php ENDPATH**/ ?>

@@ -23,6 +23,14 @@ class PresensiController extends Controller
             ->orderBy('tgl_presensi', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
+        
+        // Force load pegawai nama untuk setiap presensi
+        $presensis->getCollection()->transform(function ($presensi) {
+            if ($presensi->pegawai) {
+                $presensi->pegawai->nama_display = $presensi->pegawai->nama ?: $presensi->pegawai->nomor_induk_pegawai;
+            }
+            return $presensi;
+        });
             
         return view('master-data.presensi.index', compact('presensis', 'search'));
     }
