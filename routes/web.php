@@ -103,6 +103,10 @@ Route::middleware('auth')->group(function () {
         // Bahan Baku
         Route::resource('bahan-baku', BahanBakuController::class);
         Route::resource('pegawai', PegawaiController::class);
+        
+        // Test route untuk presensi (bypass cache)
+        Route::get('presensi-test', [PresensiController::class, 'index'])->name('presensi.test');
+        
         Route::resource('presensi', PresensiController::class);
         Route::resource('produk', ProdukController::class);
         Route::resource('vendor', VendorController::class);
