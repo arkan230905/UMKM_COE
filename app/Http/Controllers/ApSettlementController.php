@@ -38,6 +38,22 @@ class ApSettlementController extends Controller
             'coa_kasbank'=>'required',
         ]);
 
+        // Cek saldo kas/bank cukup untuk pelunasan
+        $cashCode = (string)($request->coa_kasbank ?? '101');
+        $saldoAwal = (float) (\App\Models\Coa::where('kode_akun', $cashCode)->value('saldo_awal') ?? 0);
+        $acc = \App\Models\Account::where('code', $cashCode)->first();
+        $journalBalance = 0.0;
+        if ($acc) {
+            $journalBalance = (float) (\App\Models\JournalLine::where('account_id', $acc->id)
+                ->selectRaw('COALESCE(SUM(debit - credit),0) as bal')->value('bal') ?? 0);
+        }
+        $cashBalance = $saldoAwal + $journalBalance;
+        if ($cashBalance + 1e-6 < (float)$request->dibayar_bersih) {
+            return back()->withErrors([
+                'kas' => 'Nominal kas tidak cukup untuk melakukan transaksi. Saldo kas saat ini: Rp '.number_format($cashBalance,0,',','.').' ; Nominal transaksi: Rp '.number_format((float)$request->dibayar_bersih,0,',','.'),
+            ])->withInput();
+        }
+
         $pembelian = Pembelian::with('vendor')->findOrFail($request->pembelian_id);
 
         $row = ApSettlement::create([

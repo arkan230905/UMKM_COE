@@ -163,10 +163,8 @@ class AsetController extends Controller
      */
     public function show(Aset $aset)
     {
-        $aset->load('kategori.jenisAset');
-        $depreciationSchedule = $aset->jadwalPenyusutan();
-        
-        return view('master-data.aset.show', compact('aset', 'depreciationSchedule'));
+        // Redirect to the simplified example-style Asset pages for a consistent UI
+        return redirect()->route('aset.show', ['aset' => $aset->id]);
     }
 
     /**

@@ -31,6 +31,22 @@ class ExpensePaymentController extends Controller
             'nominal'=>'required|numeric|min:0',
         ]);
 
+        // Cek saldo kas/bank cukup
+        $cashCode = (string)($request->coa_kasbank ?? '101');
+        $saldoAwal = (float) (\App\Models\Coa::where('kode_akun', $cashCode)->value('saldo_awal') ?? 0);
+        $acc = \App\Models\Account::where('code', $cashCode)->first();
+        $journalBalance = 0.0;
+        if ($acc) {
+            $journalBalance = (float) (\App\Models\JournalLine::where('account_id', $acc->id)
+                ->selectRaw('COALESCE(SUM(debit - credit),0) as bal')->value('bal') ?? 0);
+        }
+        $cashBalance = $saldoAwal + $journalBalance;
+        if ($cashBalance + 1e-6 < (float)$request->nominal) {
+            return back()->withErrors([
+                'kas' => 'Nominal kas tidak cukup untuk melakukan transaksi. Saldo kas saat ini: Rp '.number_format($cashBalance,0,',','.').' ; Nominal transaksi: Rp '.number_format((float)$request->nominal,0,',','.'),
+            ])->withInput();
+        }
+
         $row = ExpensePayment::create([
             'tanggal'=>$request->tanggal,
             'coa_beban_id'=>$request->coa_beban_id,

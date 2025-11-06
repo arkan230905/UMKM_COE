@@ -58,33 +58,55 @@ class BomController extends Controller
 
     public function store(Request $request)
     {
+        // Accept alternate payload shape: bahan_baku_id[], jumlah[], kategori[] -> details[*]
+        if (is_array($request->input('bahan_baku_id'))) {
+            $ids = $request->input('bahan_baku_id', []);
+            $qtys = $request->input('jumlah', []);
+            $sats = $request->input('satuan', []);
+            $details = [];
+            foreach ($ids as $i => $bbid) {
+                if (!$bbid) { continue; }
+                $details[] = [
+                    'bahan_baku_id' => (int)$bbid,
+                    'jumlah' => (float)($qtys[$i] ?? 0),
+                    'satuan' => $sats[$i] ?? null,
+                ];
+            }
+            if (!empty($details)) {
+                $request->merge(['details' => $details]);
+            }
+        }
         $validated = $request->validate([
             'produk_id' => 'required|exists:produks,id|unique:boms,produk_id',
-            'kode_bom' => 'required|unique:boms,kode_bom',
             'details' => 'required|array|min:1',
             'details.*.bahan_baku_id' => 'required|exists:bahan_bakus,id',
-            'details.*.kuantitas' => 'required|numeric|min:0.01',
-            'persentase_keuntungan' => 'required|numeric|min:0|max:1000',
-            'catatan' => 'nullable|string'
+            'details.*.jumlah' => 'required|numeric|min:0.01',
         ]);
 
         DB::beginTransaction();
         
         try {
-            // Hitung total biaya
+            // Validasi harga_satuan bahan; jika belum ada pembelian -> error spesifik
             $totalBiaya = 0;
             $details = [];
+            $missing = [];
 
             foreach ($request->details as $detail) {
                 $bahanBaku = BahanBaku::find($detail['bahan_baku_id']);
-                $subtotal = $bahanBaku->harga_satuan * $detail['kuantitas'];
-                
+                $harga = (float)($bahanBaku->harga_satuan ?? 0);
+                if ($harga <= 0) {
+                    $missing[] = (string)($bahanBaku->nama_bahan ?? $bahanBaku->nama ?? ('ID #'.$bahanBaku->id));
+                    continue;
+                }
+                $qty = (float)($detail['jumlah'] ?? $detail['kuantitas'] ?? 0);
+                $subtotal = $harga * $qty;
+
                 $details[] = [
                     'bahan_baku_id' => $bahanBaku->id,
-                    'kuantitas' => $detail['kuantitas'],
-                    'harga_satuan' => $bahanBaku->harga_satuan,
-                    'subtotal' => $subtotal,
-                    'keterangan' => $detail['keterangan'] ?? null,
+                    'jumlah' => $qty,
+                    'satuan' => $detail['satuan'] ?? null,
+                    'harga_per_satuan' => $harga,
+                    'total_harga' => $subtotal,
                     'created_at' => now(),
                     'updated_at' => now()
                 ];
@@ -92,33 +114,32 @@ class BomController extends Controller
                 $totalBiaya += $subtotal;
             }
 
-            // Hitung harga jual
-            $persentaseKeuntungan = $request->persentase_keuntungan;
-            $keuntungan = $totalBiaya * ($persentaseKeuntungan / 100);
-            $hargaJual = $totalBiaya + $keuntungan;
+            if (!empty($missing)) {
+                return back()->withErrors([
+                    'harga_satuan' => 'Bahan baku '.implode(', ', $missing).' belum pernah dibeli (harga belum ada).'
+                ])->withInput();
+            }
 
             // Simpan BOM
             $bom = new Bom();
             $bom->produk_id = $validated['produk_id'];
-            $bom->kode_bom = $validated['kode_bom'];
+            // generate kode BOM otomatis
+            $prefix = 'BOM-'.date('Ym').'-';
+            $latest = Bom::where('kode_bom','like',$prefix.'%')->orderBy('kode_bom','desc')->first();
+            $number = $latest ? ((int) substr($latest->kode_bom, strlen($prefix))) + 1 : 1;
+            $bom->kode_bom = $prefix . str_pad((string)$number, 4, '0', STR_PAD_LEFT);
             $bom->total_biaya = $totalBiaya;
-            $bom->persentase_keuntungan = $persentaseKeuntungan;
-            $bom->harga_jual = $hargaJual;
-            $bom->catatan = $request->catatan;
             $bom->save();
 
             // Simpan detail BOM
             $bom->details()->createMany($details);
 
-            // Update harga jual produk
-            $produk = $bom->produk;
-            $produk->update(['harga_jual' => $hargaJual]);
+            // Tidak mengubah harga_jual produk di tahap BOM
 
             DB::commit();
 
-            return redirect()
-                ->route('master-data.bom.show', $bom->id)
-                ->with('success', 'BOM berhasil disimpan. Harga jual produk telah diperbarui.');
+            return redirect()->route('master-data.bom.index', ['produk_id' => $bom->produk_id])
+                ->with('success', 'BOM berhasil disimpan.');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -149,13 +170,26 @@ class BomController extends Controller
     public function update(Request $request, $id)
     {
         $bom = Bom::findOrFail($id);
-        
+        // Accept alternate payload shape: bahan_baku_id[], jumlah[], kategori[] -> details[*]
+        if (is_array($request->input('bahan_baku_id'))) {
+            $ids = $request->input('bahan_baku_id', []);
+            $qtys = $request->input('jumlah', []);
+            $details = [];
+            foreach ($ids as $i => $bbid) {
+                if (!$bbid) { continue; }
+                $details[] = [
+                    'bahan_baku_id' => (int)$bbid,
+                    'kuantitas' => (float)($qtys[$i] ?? 0),
+                ];
+            }
+            if (!empty($details)) {
+                $request->merge(['details' => $details]);
+            }
+        }
         $request->validate([
             'details' => 'required|array|min:1',
             'details.*.bahan_baku_id' => 'required|exists:bahan_bakus,id',
-            'details.*.kuantitas' => 'required|numeric|min:0.01',
-            'persentase_keuntungan' => 'required|numeric|min:0|max:1000',
-            'catatan' => 'nullable|string'
+            'details.*.jumlah' => 'required|numeric|min:0.01',
         ]);
 
         DB::beginTransaction();
@@ -164,20 +198,27 @@ class BomController extends Controller
             // Hapus detail lama
             $bom->details()->delete();
 
-            // Hitung total biaya baru
+            // Hitung total biaya baru + validasi harga
             $totalBiaya = 0;
             $details = [];
+            $missing = [];
 
             foreach ($request->details as $detail) {
                 $bahanBaku = BahanBaku::find($detail['bahan_baku_id']);
-                $subtotal = $bahanBaku->harga_satuan * $detail['kuantitas'];
+                $harga = (float)($bahanBaku->harga_satuan ?? 0);
+                if ($harga <= 0) {
+                    $missing[] = (string)($bahanBaku->nama_bahan ?? $bahanBaku->nama ?? ('ID #'.$bahanBaku->id));
+                    continue;
+                }
+                $qty = (float)($detail['jumlah'] ?? $detail['kuantitas'] ?? 0);
+                $subtotal = $harga * $qty;
                 
                 $details[] = [
                     'bahan_baku_id' => $bahanBaku->id,
-                    'kuantitas' => $detail['kuantitas'],
-                    'harga_satuan' => $bahanBaku->harga_satuan,
-                    'subtotal' => $subtotal,
-                    'keterangan' => $detail['keterangan'] ?? null,
+                    'jumlah' => $qty,
+                    'satuan' => $detail['satuan'] ?? null,
+                    'harga_per_satuan' => $harga,
+                    'total_harga' => $subtotal,
                     'created_at' => now(),
                     'updated_at' => now()
                 ];
@@ -185,17 +226,15 @@ class BomController extends Controller
                 $totalBiaya += $subtotal;
             }
 
-            // Hitung harga jual baru
-            $persentaseKeuntungan = $request->persentase_keuntungan;
-            $keuntungan = $totalBiaya * ($persentaseKeuntungan / 100);
-            $hargaJual = $totalBiaya + $keuntungan;
+            if (!empty($missing)) {
+                return back()->withErrors([
+                    'harga_satuan' => 'Bahan baku '.implode(', ', $missing).' belum pernah dibeli (harga belum ada).'
+                ])->withInput();
+            }
 
-            // Update BOM
+            // Update BOM (tanpa harga_jual/persentase_keuntungan)
             $bom->update([
                 'total_biaya' => $totalBiaya,
-                'persentase_keuntungan' => $persentaseKeuntungan,
-                'harga_jual' => $hargaJual,
-                'catatan' => $request->catatan
             ]);
 
             // Simpan detail baru
@@ -207,9 +246,8 @@ class BomController extends Controller
 
             DB::commit();
 
-            return redirect()
-                ->route('master-data.bom.show', $bom->id)
-                ->with('success', 'BOM berhasil diperbarui. Harga jual produk telah disesuaikan.');
+            return redirect()->route('master-data.bom.index', ['produk_id' => $bom->produk_id])
+                ->with('success', 'BOM berhasil diperbarui.');
 
         } catch (\Exception $e) {
             DB::rollBack();

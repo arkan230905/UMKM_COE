@@ -9,28 +9,30 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // For portability (SQLite/MySQL), do best-effort changes with try/catch
+        // Use Laravel's portable FK toggles to support MySQL
+        Schema::disableForeignKeyConstraints();
+        // Best-effort drop FK if exists to allow column change
         try {
-            // Drop FK if any (best effort, driver dependent)
-            DB::statement('PRAGMA foreign_keys = OFF');
             Schema::table('presensis', function (Blueprint $table) {
-                // Ensure pegawai_id is string to store NIP (EMP0001)
-                if (Schema::hasColumn('presensis', 'pegawai_id')) {
-                    try { $table->string('pegawai_id', 50)->change(); } catch (\Throwable $e) {}
-                } else {
-                    $table->string('pegawai_id', 50)->after('id');
-                }
-                // Columns that controller expects
-                if (!Schema::hasColumn('presensis', 'jumlah_jam')) {
-                    $table->decimal('jumlah_jam', 5, 2)->default(0)->after('status');
-                }
-                if (Schema::hasColumn('presensis', 'status')) {
-                    // ensure enum includes Alpa - cannot change enum easily cross-db; leave as text validation handled app-side
-                }
+                try { $table->dropForeign(['pegawai_id']); } catch (\Throwable $e) {}
             });
-        } finally {
-            DB::statement('PRAGMA foreign_keys = ON');
-        }
+        } catch (\Throwable $e) {}
+        Schema::table('presensis', function (Blueprint $table) {
+            // Ensure pegawai_id is string to store NIP (EMP0001)
+            if (Schema::hasColumn('presensis', 'pegawai_id')) {
+                try { $table->string('pegawai_id', 50)->change(); } catch (\Throwable $e) {}
+            } else {
+                $table->string('pegawai_id', 50)->after('id');
+            }
+            // Columns that controller expects
+            if (!Schema::hasColumn('presensis', 'jumlah_jam')) {
+                $table->decimal('jumlah_jam', 5, 2)->default(0)->after('status');
+            }
+            if (Schema::hasColumn('presensis', 'status')) {
+                // leave as-is
+            }
+        });
+        Schema::enableForeignKeyConstraints();
 
         // Do not add FK here to keep cross-db compatibility. App validation already enforces existence.
     }

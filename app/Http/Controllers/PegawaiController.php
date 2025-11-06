@@ -17,7 +17,7 @@ class PegawaiController extends Controller
         
         // Filter berdasarkan jenis pegawai
         if (in_array(strtolower((string)$jenis), ['btkl','btktl'])) {
-            $query->where('kategori_tenaga_kerja', strtoupper($jenis));
+            $query->where('kategori', strtoupper($jenis));
         }
         
         // Pencarian
@@ -39,64 +39,47 @@ class PegawaiController extends Controller
     // Tampilkan form create
     public function create()
     {
-        return view('master-data.pegawai.create');
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji','tarif')->orderBy('nama')->get();
+        return view('master-data.pegawai.create', compact('jabatans'));
     }
 
     // Simpan data baru
     public function store(Request $request)
     {
-        $rules = [
+        $validated = $request->validate([
             'nama' => 'required|string|max:255',
             'email' => 'required|email|unique:pegawais,email',
-            'no_telp' => 'required|string|max:20',
+            'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
-            'jenis_kelamin' => 'required|in:L,P',
-            'jabatan' => 'required|string',
-            'kategori_tenaga_kerja' => 'required|in:BTKL,BTKTL',
-            'tanggal_masuk' => 'required|date',
-            'status_aktif' => 'required|boolean'
-        ];
+            'nama_bank' => 'nullable|string|max:100',
+            'no_rekening' => 'nullable|string|max:50',
+            'jabatan_id' => 'required|exists:jabatans,id',
+        ]);
 
-        // Tambahkan validasi berdasarkan kategori tenaga kerja
-        if ($request->kategori_tenaga_kerja === 'BTKL') {
-            $rules['tarif_per_jam'] = 'required|numeric|min:0';
-        } else {
-            $rules['gaji_pokok'] = 'required|numeric|min:0';
+        // Generate kode_pegawai otomatis: PGW0001, PGW0002, ...
+        $last = Pegawai::orderByDesc('id')->value('kode_pegawai');
+        $seq = 0;
+        if ($last && preg_match('/(\d+)$/', $last, $m)) {
+            $seq = (int)$m[1];
         }
+        $kodeBaru = 'PGW' . str_pad($seq + 1, 4, '0', STR_PAD_LEFT);
 
-        $validated = $request->validate($rules);
-
-        // Generate nomor induk pegawai
-        $lastPegawai = Pegawai::orderBy('nomor_induk_pegawai', 'desc')->first();
-        $lastNumber = $lastPegawai ? intval(substr($lastPegawai->nomor_induk_pegawai, 3)) : 0;
-        $nomorInduk = 'EMP' . str_pad($lastNumber + 1, 4, '0', STR_PAD_LEFT);
-
-        // Siapkan data untuk disimpan
-        $data = [
-            'nomor_induk_pegawai' => $nomorInduk,
+        $jab = \App\Models\Jabatan::find($validated['jabatan_id']);
+        Pegawai::create([
+            'kode_pegawai' => $kodeBaru,
             'nama' => $validated['nama'],
             'email' => $validated['email'],
-            'no_telp' => $validated['no_telp'],
+            'no_telepon' => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
-            'jenis_kelamin' => $validated['jenis_kelamin'],
-            'jabatan' => $validated['jabatan'],
-            'kategori_tenaga_kerja' => $validated['kategori_tenaga_kerja'],
-            'tanggal_masuk' => $validated['tanggal_masuk'],
-            'status_aktif' => $validated['status_aktif'],
-            'tunjangan' => $request->tunjangan ?? 0,
-            'created_by' => auth()->id()
-        ];
-
-        // Set gaji berdasarkan kategori
-        if ($validated['kategori_tenaga_kerja'] === 'BTKL') {
-            $data['tarif_per_jam'] = $validated['tarif_per_jam'];
-            $data['gaji'] = 0; // Akan dihitung berdasarkan presensi
-        } else {
-            $data['gaji_pokok'] = $validated['gaji_pokok'];
-            $data['gaji'] = $validated['gaji_pokok'] + ($request->tunjangan ?? 0);
-        }
-
-        Pegawai::create($data);
+            'nama_bank' => $request->nama_bank,
+            'no_rekening' => $request->no_rekening,
+            'jabatan' => $jab?->nama ?? '',
+            'kategori' => strtoupper($jab?->kategori ?? ''),
+            'asuransi' => $jab?->asuransi ?? 0,
+            'tarif' => $jab?->tarif ?? 0,
+            'tunjangan' => $jab?->tunjangan ?? 0,
+            'gaji' => $jab?->gaji ?? 0,
+        ]);
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil ditambahkan.');
     }
@@ -104,70 +87,39 @@ class PegawaiController extends Controller
     // Form edit pegawai
     public function edit(Pegawai $pegawai)
     {
-        return view('master-data.pegawai.edit', compact('pegawai'));
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji','tarif')->orderBy('nama')->get();
+        return view('master-data.pegawai.edit', compact('pegawai','jabatans'));
     }
 
     // Update data pegawai
     public function update(Request $request, Pegawai $pegawai)
     {
 
-        $rules = [
+        $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            'email' => 'required|email|unique:pegawais,email,'.$pegawai->nomor_induk_pegawai.',nomor_induk_pegawai',
-            'no_telp' => 'required|string|max:20',
+            'email' => 'required|email|unique:pegawais,email,'.$pegawai->id,
+            'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
-            'jenis_kelamin' => 'required|in:L,P',
-            'jabatan' => 'required|string',
-            'kategori_tenaga_kerja' => 'required|in:BTKL,BTKTL',
-            'tanggal_masuk' => 'required|date',
-            'status_aktif' => 'required|boolean',
-            'tunjangan' => 'nullable|numeric|min:0'
-        ];
+            'nama_bank' => 'nullable|string|max:100',
+            'no_rekening' => 'nullable|string|max:50',
+            'jabatan_id' => 'required|exists:jabatans,id',
+        ]);
 
-        // Tambahkan validasi berdasarkan kategori tenaga kerja
-        if ($request->kategori_tenaga_kerja === 'BTKL') {
-            $rules['tarif_per_jam'] = 'required|numeric|min:0';
-        } else {
-            $rules['gaji_pokok'] = 'required|numeric|min:0';
-        }
-
-        $validated = $request->validate($rules);
-
-        // Siapkan data untuk diupdate
-        $data = [
+        $jab = \App\Models\Jabatan::find($validated['jabatan_id']);
+        $pegawai->update([
             'nama' => $validated['nama'],
             'email' => $validated['email'],
-            'no_telp' => $validated['no_telp'],
+            'no_telepon' => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
-            'jenis_kelamin' => $validated['jenis_kelamin'],
-            'jabatan' => $validated['jabatan'],
-            'kategori_tenaga_kerja' => $validated['kategori_tenaga_kerja'],
-            'tanggal_masuk' => $validated['tanggal_masuk'],
-            'status_aktif' => $validated['status_aktif'],
-            'tunjangan' => $validated['tunjangan'] ?? 0,
-            'updated_by' => auth()->id()
-        ];
-
-        // Update data gaji berdasarkan kategori
-        if ($validated['kategori_tenaga_kerja'] === 'BTKL') {
-            $data['tarif_per_jam'] = $validated['tarif_per_jam'];
-            $data['gaji_pokok'] = 0; // Reset gaji pokok untuk BTKL
-            // Gaji akan dihitung berdasarkan presensi
-            $data['gaji'] = $data['tunjangan'] ?? 0;
-        } else {
-            $data['gaji_pokok'] = $validated['gaji_pokok'];
-            $data['tarif_per_jam'] = 0; // Reset tarif per jam untuk BTKTL
-            $data['gaji'] = $validated['gaji_pokok'] + ($validated['tunjangan'] ?? 0);
-        }
-
-        // Jika status tidak aktif, isi tanggal keluar
-        if (!$validated['status_aktif'] && $pegawai->status_aktif) {
-            $data['tanggal_keluar'] = now();
-        } elseif ($validated['status_aktif'] && !$pegawai->status_aktif) {
-            $data['tanggal_keluar'] = null;
-        }
-
-        $pegawai->update($data);
+            'nama_bank' => $request->nama_bank,
+            'no_rekening' => $request->no_rekening,
+            'jabatan' => $jab?->nama ?? '',
+            'kategori' => strtoupper($jab?->kategori ?? ''),
+            'asuransi' => $jab?->asuransi ?? 0,
+            'tarif' => $jab?->tarif ?? 0,
+            'tunjangan' => $jab?->tunjangan ?? 0,
+            'gaji' => $jab?->gaji ?? 0,
+        ]);
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil diperbarui.');
     }

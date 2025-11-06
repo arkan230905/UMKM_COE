@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
+use App\Models\Jabatan;
+use App\Observers\JabatanObserver;
 
 // Import semua model yang digunakan untuk sidebar
 use App\Models\Pegawai;
@@ -29,6 +31,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Jabatan::observe(JabatanObserver::class);
+
         // View composer global untuk semua tampilan
         View::composer('*', function ($view) {
             $view->with([

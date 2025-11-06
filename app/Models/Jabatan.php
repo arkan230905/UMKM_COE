@@ -1,0 +1,15 @@
+<?php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Jabatan extends Model
+{
+    protected $fillable = ['nama','kategori','tunjangan','asuransi','tarif','gaji'];
+
+    public function pegawais(): HasMany
+    {
+        return $this->hasMany(Pegawai::class);
+    }
+}

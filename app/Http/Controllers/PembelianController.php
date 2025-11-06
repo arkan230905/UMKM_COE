@@ -31,7 +31,8 @@ class PembelianController extends Controller
     {
         $vendors = Vendor::all();
         $bahanBakus = BahanBaku::all();
-        return view('transaksi.pembelian.create', compact('vendors', 'bahanBakus'));
+        $satuans = \App\Models\Satuan::all();
+        return view('transaksi.pembelian.create', compact('vendors', 'bahanBakus', 'satuans'));
     }
 
     public function store(Request $request, StockService $stock, JournalService $journal)
@@ -48,14 +49,35 @@ class PembelianController extends Controller
                 'satuan' => 'nullable|array',
             ]);
 
-            return DB::transaction(function () use ($request, $stock, $journal) {
-                $converter = new UnitConverter();
-                $total = 0;
-                foreach ($request->bahan_baku_id as $i => $bbId) {
-                    $qtyInput = (float) ($request->jumlah[$i] ?? 0);
-                    $pricePerInputUnit = (float) ($request->harga_satuan[$i] ?? 0);
-                    $total += $qtyInput * $pricePerInputUnit;
+            // Hitung total terlebih dahulu untuk validasi kas
+            $computedTotal = 0.0;
+            foreach ($request->bahan_baku_id as $i => $bbId) {
+                $qtyInput = (float) ($request->jumlah[$i] ?? 0);
+                $pricePerInputUnit = (float) ($request->harga_satuan[$i] ?? 0);
+                $computedTotal += $qtyInput * $pricePerInputUnit;
+            }
+
+            // Cek saldo kas jika pembayaran tunai
+            if ($request->payment_method === 'cash') {
+                $cashCode = '101';
+                $saldoAwal = (float) (\App\Models\Coa::where('kode_akun', $cashCode)->value('saldo_awal') ?? 0);
+                $acc = \App\Models\Account::where('code', $cashCode)->first();
+                $journalBalance = 0.0;
+                if ($acc) {
+                    $journalBalance = (float) (\App\Models\JournalLine::where('account_id', $acc->id)
+                        ->selectRaw('COALESCE(SUM(debit - credit),0) as bal')->value('bal') ?? 0);
                 }
+                $cashBalance = $saldoAwal + $journalBalance;
+                if ($cashBalance + 1e-6 < $computedTotal) {
+                    return back()->withErrors([
+                        'kas' => 'Saldo kas tidak cukup untuk pembelian tunai. Saldo kas saat ini: Rp '.number_format($cashBalance,0,',','.').' ; Total pembelian: Rp '.number_format($computedTotal,0,',','.'),
+                    ])->withInput();
+                }
+            }
+
+            return DB::transaction(function () use ($request, $stock, $journal, $computedTotal) {
+                $converter = new UnitConverter();
+                $total = $computedTotal;
 
                 $pembelian = Pembelian::create([
                     'vendor_id' => $request->vendor_id,
@@ -96,7 +118,8 @@ class PembelianController extends Controller
                     $bahan->save();
 
                     // FIFO layer IN + movement
-                    $stock->addLayer('material', $bahan->id, $qtyBase, (string)$bahan->satuan, $unitCostBase, 'purchase', $pembelian->id, $request->tanggal);
+                    $unitStr = (string)($bahan->satuan->kode ?? $bahan->satuan->nama ?? $bahan->satuan ?? 'pcs');
+                    $stock->addLayer('material', $bahan->id, $qtyBase, $unitStr, $unitCostBase, 'purchase', $pembelian->id, $request->tanggal);
                 }
 
                 // Jurnal: Dr Persediaan Bahan Baku (121) ; Cr Kas/Bank (101) atau Hutang Usaha (201) jika kredit

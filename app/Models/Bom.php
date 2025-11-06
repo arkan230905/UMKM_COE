@@ -32,16 +32,7 @@ class Bom extends Model
             if (is_null($model->total_biaya)) {
                 $model->total_biaya = $model->hitungTotalBiaya();
             }
-            if (is_null($model->harga_jual)) {
-                $model->harga_jual = $model->hitungHargaJual();
-            }
-        });
-
-        static::saved(function ($model) {
-            // Update harga jual produk saat BOM disimpan
-            if ($model->produk) {
-                $model->produk->update(['harga_jual' => $model->harga_juel]);
-            }
+            // Tidak mengubah harga_jual produk di tahap BOM
         });
     }
 

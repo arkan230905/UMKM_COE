@@ -12,34 +12,27 @@ class BomDetail extends Model
     protected $fillable = [
         'bom_id',
         'bahan_baku_id',
-        'kuantitas',
-        'harga_satuan',
-        'subtotal',
+        'jumlah',
+        'satuan',
+        'harga_per_satuan',
+        'total_harga',
         'keterangan'
     ];
 
     protected $casts = [
-        'kuantitas' => 'decimal:2',
-        'harga_satuan' => 'decimal:2',
-        'subtotal' => 'decimal:2'
+        'jumlah' => 'decimal:4',
+        'harga_per_satuan' => 'decimal:2',
+        'total_harga' => 'decimal:2'
     ];
 
     protected static function booted()
     {
         static::saving(function ($model) {
-            $model->subtotal = $model->kuantitas * $model->harga_satuan;
-            
-            // Update total biaya di BOM
-            if ($model->bom) {
-                $model->bom->updateHargaJual();
-            }
+            $model->total_harga = (float)($model->jumlah ?? 0) * (float)($model->harga_per_satuan ?? 0);
         });
 
         static::deleted(function ($model) {
-            // Update total biaya di BOM saat detail dihapus
-            if ($model->bom) {
-                $model->bom->updateHargaJual();
-            }
+            // no-op
         });
     }
 

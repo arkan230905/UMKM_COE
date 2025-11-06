@@ -81,55 +81,39 @@
                     </thead>
                     <tbody>
                         @forelse($asets as $aset)
-                        <tr>
-                            <td>{{ $loop->iteration + (($asets->currentPage() - 1) * $asets->perPage()) }}</td>
-                            <td>{{ $aset->nama }}</td>
-                            <td>{{ $aset->jenis_aset }}</td>
-                            <td>{{ $aset->kategori }}</td>
-                            <td class="text-right">@money($aset->harga, 'IDR', true)</td>
-                            <td>{{ $aset->tanggal_beli->format('d/m/Y') }}</td>
-                            <td class="text-right">@money($aset->nilai_buku ?? $aset->harga, 'IDR', true)</td>
-                            <td>
-                                @php
-                                    $statusClass = [
-                                        'aktif' => 'success',
-                                        'nonaktif' => 'secondary',
-                                        'dijual' => 'info',
-                                        'hilang' => 'warning',
-                                        'rusak' => 'danger'
-                                    ][$aset->status] ?? 'secondary';
-                                @endphp
-                                <span class="badge bg-{{ $statusClass }}">
-                                    {{ ucfirst($aset->status) }}
-                                </span>
-                            </td>
-                            <td>
-                                <div class="btn-group" role="group">
-                                    <a href="{{ route('aset.show', $aset->id) }}" class="btn btn-sm btn-info" title="Detail">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ route('aset.edit', $aset->id) }}" class="btn btn-sm btn-warning" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <form action="{{ route('aset.destroy', $aset->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus aset ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" title="Hapus">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
+                            <tr>
+                                <td>{{ $loop->iteration + (($asets->currentPage() - 1) * $asets->perPage()) }}</td>
+                                <td>{{ $aset->nama_asset ?? $aset->nama_aset }}</td>
+                                <td>{{ optional($aset->tanggal_beli)->format('d/m/Y') }}</td>
+                                <td class="text-end">{{ number_format((float)$aset->harga_perolehan, 2, ',', '.') }}</td>
+                                <td class="text-end">{{ number_format((float)$aset->nilai_sisa, 2, ',', '.') }}</td>
+                                <td>{{ $aset->umur_ekonomis }}</td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ route('aset.show', $aset->id) }}" class="btn btn-sm btn-info" title="Detail">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ route('aset.edit', $aset->id) }}" class="btn btn-sm btn-warning" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form action="{{ route('aset.destroy', $aset->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus aset ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Hapus">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
                         @empty
-                        <tr>
-                            <td colspan="9" class="text-center">Tidak ada data aset</td>
-                        </tr>
+                            <tr>
+                                <td colspan="7" class="text-center">Tidak ada data aset</td>
+                            </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div>
                     Menampilkan {{ $asets->firstItem() ?? 0 }} - {{ $asets->lastItem() ?? 0 }} dari {{ $asets->total() }} data
@@ -141,7 +125,7 @@
         </div>
     </div>
 </div>
-
+@endsection
 @push('scripts')
 <script>
     $(document).ready(function() {

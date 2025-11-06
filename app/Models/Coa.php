@@ -33,12 +33,14 @@ class Coa extends Model
         'tipe_akun',
         'kode_induk',
         'saldo_normal',
-        'keterangan'
+        'keterangan',
+        'is_akun_header',
+        'saldo_awal',
+        'tanggal_saldo_awal',
+        'posted_saldo_awal',
     ];
 
-    protected $casts = [
-        'saldo_normal' => 'decimal:2'
-    ];
+    // No casts: saldo_normal stores strings like 'debit'/'kredit'
 
     /**
      * Relasi ke akun induk (hierarchical)
