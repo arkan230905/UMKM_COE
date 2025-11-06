@@ -14,15 +14,15 @@
             <div class="text-uppercase text-muted small mb-2">Master Data</div>
         </li>
         <li class="nav-item"><a href="<?php echo e(route('master-data.coa.index')); ?>" class="nav-link"><i class="bi bi-list-check me-2"></i> COA</a></li>
-        <li class="nav-item"><a href="<?php echo e(url('/master-data/aset')); ?>" class="nav-link"><i class="bi bi-box2-heart me-2"></i> Aset</a></li>
-        <li class="nav-item"><a href="<?php echo e(route('master-data.satuan.index')); ?>" class="nav-link"><i class="bi bi-upc-scan me-2"></i> Satuan</a></li>
-        <li class="nav-item"><a href="<?php echo e(route('master-data.jabatan.index')); ?>" class="nav-link"><i class="bi bi-briefcase me-2"></i> Jabatan</a></li>
+        <li class="nav-item"><a href="<?php echo e(route('master-data.aset.index')); ?>" class="nav-link"><i class="bi bi-box2-heart me-2"></i> Aset</a></li>
+        <li class="nav-item"><a href="<?php echo e(route('master-data.jabatan.index')); ?>" class="nav-link"><i class="bi bi-person-badge me-2"></i> Jabatan</a></li>
         <li class="nav-item"><a href="<?php echo e(route('master-data.pegawai.index')); ?>" class="nav-link"><i class="bi bi-people-fill me-2"></i> Pegawai</a></li>
         <li class="nav-item"><a href="<?php echo e(route('master-data.presensi.index')); ?>" class="nav-link"><i class="bi bi-calendar-check me-2"></i> Presensi</a></li>
         <li class="nav-item"><a href="<?php echo e(route('master-data.vendor.index')); ?>" class="nav-link"><i class="bi bi-truck me-2"></i> Vendor</a></li>
-        <li class="nav-item"><a href="<?php echo e(route('master-data.bahan-baku.index')); ?>" class="nav-link"><i class="bi bi-basket3 me-2"></i> Bahan Baku</a></li>
-        <li class="nav-item"><a href="<?php echo e(route('master-data.bop-budget.index')); ?>" class="nav-link"><i class="bi bi-calculator me-2"></i> BOP</a></li>
+        <li class="nav-item"><a href="<?php echo e(route('master-data.satuan.index')); ?>" class="nav-link"><i class="bi bi-upc-scan me-2"></i> Satuan</a></li>
         <li class="nav-item"><a href="<?php echo e(route('master-data.produk.index')); ?>" class="nav-link"><i class="bi bi-box-seam me-2"></i> Produk</a></li>
+        <li class="nav-item"><a href="<?php echo e(route('master-data.bahan-baku.index')); ?>" class="nav-link"><i class="bi bi-basket3 me-2"></i> Bahan Baku</a></li>
+        <li class="nav-item"><a href="<?php echo e(route('master-data.bop.index')); ?>" class="nav-link"><i class="bi bi-calculator me-2"></i> BOP</a></li>
         <li class="nav-item"><a href="<?php echo e(route('master-data.bom.index')); ?>" class="nav-link"><i class="bi bi-diagram-3 me-2"></i> BOM</a></li>
 
         <li class="nav-item mt-3">
