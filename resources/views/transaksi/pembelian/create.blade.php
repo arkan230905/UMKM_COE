@@ -71,16 +71,9 @@
                     <td>
                         <select name="satuan[]" class="form-select satuan">
                             <option value="">(ikuti satuan bahan)</option>
-                            <option value="g">g</option>
-                            <option value="kg">kg</option>
-                            <option value="mg">mg</option>
-                            <option value="ml">ml</option>
-                            <option value="sdt">sdt</option>
-                            <option value="sdm">sdm</option>
-                            <option value="cup">cup</option>
-                            <option value="pcs">pcs</option>
-                            <option value="buah">buah</option>
-                            <option value="butir">butir</option>
+                            @foreach(($satuans ?? []) as $sat)
+                                <option value="{{ $sat->kode }}">{{ $sat->kode }} ({{ $sat->nama }})</option>
+                            @endforeach
                         </select>
                     </td>
                     <td><input type="number" name="harga_satuan[]" class="form-control harga" min="0" value="0" required></td>

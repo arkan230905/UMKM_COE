@@ -29,41 +29,52 @@ return new class extends Migration
         //   maka konversi ke pegawais.nomor_induk_pegawai.
         // - Jika sudah string/NIP, langsung disalin apa adanya.
         $driver = DB::getDriverName();
+        $hasNip = Schema::hasColumn('pegawais', 'nomor_induk_pegawai');
+
+        // Detect presensis column names
+        $colDate = Schema::hasColumn('presensis', 'tgl_presensi') ? 'tgl_presensi' : (Schema::hasColumn('presensis','tanggal') ? 'tanggal' : null);
+        $colIn   = Schema::hasColumn('presensis', 'jam_masuk') ? 'jam_masuk' : null;
+        $colOut  = Schema::hasColumn('presensis', 'jam_keluar') ? 'jam_keluar' : null;
+        $colSt   = Schema::hasColumn('presensis', 'status') ? 'status' : null;
+        $colJJ   = Schema::hasColumn('presensis', 'jumlah_jam') ? 'jumlah_jam' : null;
+        $colKet  = Schema::hasColumn('presensis', 'keterangan') ? 'keterangan' : null;
+
+        // Build selectable expressions
+        $exprDate = $colDate ? "p.$colDate" : "p.created_at";
+        $exprIn   = $colIn ? "p.$colIn" : "NULL";
+        $exprOut  = $colOut ? "p.$colOut" : "NULL";
+        $exprSt   = $colSt ? ($driver==='sqlite' ? "CASE WHEN p.$colSt = 'Alpa' THEN 'Absen' ELSE p.$colSt END" : "IF(p.$colSt = 'Alpa','Absen',p.$colSt)") : "'Hadir'";
+        $exprJJ   = $colJJ ? "COALESCE(p.$colJJ, 0)" : "0";
+        $exprKet  = $colKet ? "p.$colKet" : "NULL";
 
         if ($driver === 'sqlite') {
-            // SQLite: gunakan LEFT JOIN sederhana
-            DB::statement(
-                "INSERT INTO presensis_new (id, pegawai_id, tgl_presensi, jam_masuk, jam_keluar, status, jumlah_jam, keterangan, created_at, updated_at)
-                 SELECT p.id,
-                        COALESCE(pg.nomor_induk_pegawai, p.pegawai_id) as pegawai_id,
-                        p.tgl_presensi,
-                        p.jam_masuk,
-                        p.jam_keluar,
-                        CASE WHEN p.status = 'Alpa' THEN 'Absen' ELSE p.status END as status,
-                        COALESCE(p.jumlah_jam, 0),
-                        p.keterangan,
-                        p.created_at,
-                        p.updated_at
-                 FROM presensis p
-                 LEFT JOIN pegawais pg ON CAST(p.pegawai_id AS TEXT) = CAST(pg.id AS TEXT) OR p.pegawai_id = pg.nomor_induk_pegawai"
-            );
+            $sql = "INSERT INTO presensis_new (id, pegawai_id, tgl_presensi, jam_masuk, jam_keluar, status, jumlah_jam, keterangan, created_at, updated_at)
+                    SELECT p.id,
+                           ".($hasNip ? "COALESCE(pg.nomor_induk_pegawai, p.pegawai_id)" : "p.pegawai_id")." as pegawai_id,
+                           $exprDate,
+                           $exprIn,
+                           $exprOut,
+                           $exprSt as status,
+                           $exprJJ,
+                           $exprKet,
+                           p.created_at,
+                           p.updated_at
+                    FROM presensis p ".($hasNip ? "LEFT JOIN pegawais pg ON CAST(p.pegawai_id AS TEXT) = CAST(pg.id AS TEXT) OR p.pegawai_id = pg.nomor_induk_pegawai" : "");
+            DB::statement($sql);
         } else {
-            // MySQL/Postgres
-            DB::statement(
-                "INSERT INTO presensis_new (id, pegawai_id, tgl_presensi, jam_masuk, jam_keluar, status, jumlah_jam, keterangan, created_at, updated_at)
-                 SELECT p.id,
-                        COALESCE(pg.nomor_induk_pegawai, p.pegawai_id) as pegawai_id,
-                        p.tgl_presensi,
-                        p.jam_masuk,
-                        p.jam_keluar,
-                        IF(p.status = 'Alpa','Absen',p.status) as status,
-                        COALESCE(p.jumlah_jam, 0),
-                        p.keterangan,
-                        p.created_at,
-                        p.updated_at
-                 FROM presensis p
-                 LEFT JOIN pegawais pg ON p.pegawai_id = pg.id OR p.pegawai_id = pg.nomor_induk_pegawai"
-            );
+            $sql = "INSERT INTO presensis_new (id, pegawai_id, tgl_presensi, jam_masuk, jam_keluar, status, jumlah_jam, keterangan, created_at, updated_at)
+                    SELECT p.id,
+                           ".($hasNip ? "COALESCE(pg.nomor_induk_pegawai, p.pegawai_id)" : "p.pegawai_id")." as pegawai_id,
+                           $exprDate,
+                           $exprIn,
+                           $exprOut,
+                           $exprSt as status,
+                           $exprJJ,
+                           $exprKet,
+                           p.created_at,
+                           p.updated_at
+                    FROM presensis p ".($hasNip ? "LEFT JOIN pegawais pg ON p.pegawai_id = pg.id OR p.pegawai_id = pg.nomor_induk_pegawai" : "");
+            DB::statement($sql);
         }
 
         // 3) Ganti tabel lama dengan yang baru (tanpa FK untuk kompatibilitas lintas DB)

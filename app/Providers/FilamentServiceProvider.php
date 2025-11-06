@@ -34,6 +34,16 @@ class FilamentServiceProvider extends ServiceProvider
                             ->url($this->safeRoute('filament.resources.presensis.index', '/dashboard'))
                             ->icon('heroicon-o-calendar'),
 
+                        // Jabatan dikelola via Blade, tidak perlu tampil di panel Filament
+
+                        NavigationItem::make('COA')
+                            ->url($this->safeRoute('filament.admin.resources.coas.index', '/dashboard'))
+                            ->icon('heroicon-o-rectangle-stack'),
+
+                        NavigationItem::make('Aset')
+                            ->url($this->safeRoute('filament.admin.resources.assets.index', '/dashboard'))
+                            ->icon('heroicon-o-archive-box'),
+
                         NavigationItem::make('Produk')
                             ->url($this->safeRoute('filament.resources.produks.index', '/dashboard'))
                             ->icon('heroicon-o-archive-box'),

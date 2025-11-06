@@ -57,6 +57,8 @@ use App\Http\Controllers\AkuntansiController;
 // Produksi
 use App\Http\Controllers\ProduksiController;
 
+// Asset
+use App\Http\Controllers\AssetController;
 
 // ====================================================================
 // HALAMAN UTAMA
@@ -95,6 +97,11 @@ Route::middleware('auth')->group(function () {
     // ================================================================
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+    // ================================================================
+    // ASSET (example-style simple module)
+    // ================================================================
+    Route::resource('/aset', AssetController::class)->names('aset');
+    Route::get('/aset/{asset}/depreciation', [AssetController::class, 'calculateDepreciation'])->name('aset.depreciation');
 
     // ================================================================
     // MASTER DATA
@@ -107,6 +114,8 @@ Route::middleware('auth')->group(function () {
         // Test route untuk presensi (bypass cache)
         Route::get('presensi-test', [PresensiController::class, 'index'])->name('presensi.test');
         
+        // Jabatan master data
+        Route::resource('jabatan', \App\Http\Controllers\JabatanController::class);
         Route::resource('presensi', PresensiController::class);
         Route::resource('produk', ProdukController::class);
         Route::resource('vendor', VendorController::class);
@@ -190,6 +199,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{id}', [ApSettlementController::class, 'show'])->name('show');
             Route::get('/print/{id}', [ApSettlementController::class, 'print'])->name('print');
         });
+
     });
 
 

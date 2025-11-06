@@ -35,6 +35,16 @@ class ProduksiController extends Controller
             'qty_produksi' => 'required|numeric|min:0.0001',
         ]);
 
+        // Guard: pastikan produk sudah memiliki BOM dan detail
+        $bom = \App\Models\Bom::where('produk_id', $request->produk_id)
+            ->withCount('details')
+            ->first();
+        if (!$bom || (int)($bom->details_count ?? 0) === 0) {
+            return back()->withErrors([
+                'bom' => 'Produk belum melewati perhitungan Bill Of Material. Silakan lakukan perhitungan Bill Of Material untuk produk tersebut.',
+            ])->withInput();
+        }
+
         return DB::transaction(function () use ($request, $stock, $journal) {
             $produk = Produk::findOrFail($request->produk_id);
             $qtyProd = (float)$request->qty_produksi;
@@ -44,6 +54,7 @@ class ProduksiController extends Controller
             $bomItems = Bom::with('bahanBaku')->where('produk_id', $produk->id)->get();
             // Validasi stok cukup untuk setiap bahan baku (cek ke StockLayer via StockService)
             $shortages = [];
+            $shortNames = [];
             foreach ($bomItems as $it) {
                 $bahan = $it->bahanBaku;
                 if (!$bahan) { continue; }
@@ -53,13 +64,14 @@ class ProduksiController extends Controller
                 $qtyBase = $converter->convert($qtyResepTotal, (string)$satuanResep, (string)$bahan->satuan);
                 $available = (float) $stock->getAvailableQty('material', (int)$bahan->id);
                 if ($available + 1e-9 < $qtyBase) {
-                    $shortages[] = "Stok {$bahan->nama_bahan} kurang: butuh "
-                        . rtrim(rtrim(number_format($qtyBase,4,',','.'),'0'),',') . " {$bahan->satuan}, tersedia "
-                        . rtrim(rtrim(number_format($available,4,',','.'),'0'),',') . " {$bahan->satuan}";
+                    $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh $qtyBase, tersedia " . (float)($available);
+                    $shortNames[] = (string)($bahan->nama_bahan ?? $bahan->nama ?? 'Bahan');
                 }
             }
             if (!empty($shortages)) {
-                return back()->withErrors($shortages)->withInput();
+                // Gabungkan pesan ringkas sesuai permintaan user
+                $msg = 'Bahan baku '.implode(', ', $shortNames).' kurang untuk melakukan produksi produk.';
+                return back()->withErrors([$msg])->withInput();
             }
 
             $totalBahan = 0.0;
@@ -83,7 +95,8 @@ class ProduksiController extends Controller
 
                 // FIFO consume bahan (gunakan biaya FIFO untuk jurnal WIP)
                 try {
-                    $fifoCost = $stock->consume('material', $bahan->id, $qtyBase, (string)$bahan->satuan, 'production', $produksi->id, $tanggal);
+                    $unitStr = (string)($bahan->satuan->kode ?? $bahan->satuan->nama ?? $bahan->satuan ?? 'pcs');
+                    $fifoCost = $stock->consume('material', $bahan->id, $qtyBase, $unitStr, 'production', $produksi->id, $tanggal);
                 } catch (\RuntimeException $e) {
                     return back()->withErrors(["Stok {$bahan->nama_bahan} tidak mencukupi untuk produksi. ".$e->getMessage()])->withInput();
                 }

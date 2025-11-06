@@ -3,6 +3,8 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 return new class extends Migration
 {
@@ -52,12 +54,19 @@ return new class extends Migration
             }
         });
 
-        // Add foreign key in a separate statement to avoid issues on some drivers
-        Schema::table('asets', function (Blueprint $table) {
-            if (Schema::hasColumn('asets', 'kategori_aset_id')) {
-                $table->foreign('kategori_aset_id')->references('id')->on('kategori_asets')->onDelete('set null');
+        // Add foreign key in a safe way; ignore if types mismatch or FK cannot be created
+        try {
+            if (Schema::hasTable('kategori_asets') && Schema::hasColumn('kategori_asets', 'id') && Schema::hasColumn('asets', 'kategori_aset_id')) {
+                Schema::table('asets', function (Blueprint $table) {
+                    // Some drivers require index before adding FK; Laravel will create it automatically.
+                    $table->foreign('kategori_aset_id')->references('id')->on('kategori_asets')->nullOnDelete();
+                });
             }
-        });
+        } catch (\Throwable $e) {
+            // Leave the column without FK if the constraint cannot be formed.
+            // This avoids migration failure due to legacy data/types.
+            Log::warning('align_asets_schema: skip adding FK kategori_aset_id', ['error' => $e->getMessage()]);
+        }
     }
 
     public function down(): void

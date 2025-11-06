@@ -16,7 +16,7 @@
         </div>
     @endif
 
-    <form action="{{ route('master-data.pegawai.store') }}" method="POST">
+    <form action="{{ route('master-data.pegawai.store') }}" method="POST" id="pegawai-form">
         @csrf
 
         <div class="row">
@@ -31,8 +31,8 @@
             </div>
 
             <div class="col-md-6 mb-3">
-                <label for="no_telp" class="form-label">No. Telepon</label>
-                <input type="text" name="no_telp" id="no_telp" class="form-control" value="{{ old('no_telp') }}" required>
+                <label for="no_telepon" class="form-label">No. Telepon</label>
+                <input type="text" name="no_telepon" id="no_telepon" class="form-control" value="{{ old('no_telepon') }}" required>
             </div>
 
             <div class="col-md-6 mb-3">
@@ -41,58 +41,51 @@
             </div>
 
             <div class="col-md-6 mb-3">
-                <label for="jenis_kelamin" class="form-label">Jenis Kelamin</label>
-                <select name="jenis_kelamin" id="jenis_kelamin" class="form-select" required>
-                    <option value="">-- Pilih --</option>
-                    <option value="L" {{ old('jenis_kelamin')=='L' ? 'selected' : '' }}>Laki-laki</option>
-                    <option value="P" {{ old('jenis_kelamin')=='P' ? 'selected' : '' }}>Perempuan</option>
+                <label for="nama_bank" class="form-label">Nama Bank</label>
+                <input type="text" name="nama_bank" id="nama_bank" class="form-control" value="{{ old('nama_bank') }}">
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="no_rekening" class="form-label">No. Rekening</label>
+                <input type="text" name="no_rekening" id="no_rekening" class="form-control" value="{{ old('no_rekening') }}">
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="jabatan_id" class="form-label">Jabatan</label>
+                <select name="jabatan_id" id="jabatan_id" class="form-select" required>
+                    <option value="">-- Pilih Jabatan --</option>
+                    @foreach($jabatans as $j)
+                        <option value="{{ $j->id }}"
+                                data-nama="{{ $j->nama }}"
+                                data-kategori="{{ $j->kategori }}"
+                                data-tunjangan="{{ $j->tunjangan }}"
+                                data-asuransi="{{ $j->asuransi }}"
+                                data-gaji="{{ $j->gaji }}"
+                                data-tarif="{{ $j->tarif }}"
+                                {{ old('jabatan_id')==$j->id?'selected':'' }}>
+                            {{ $j->nama }} ({{ strtoupper($j->kategori) }})
+                        </option>
+                    @endforeach
                 </select>
             </div>
 
-            <div class="col-md-6 mb-3">
-                <label for="jabatan" class="form-label">Jabatan</label>
-                <input type="text" name="jabatan" id="jabatan" class="form-control" value="{{ old('jabatan') }}" required>
-            </div>
+            <!-- Hidden fields auto-filled -->
+            <input type="hidden" name="jabatan" id="jabatan" value="{{ old('jabatan') }}">
+            <input type="hidden" name="kategori" id="kategori" value="{{ old('kategori') }}">
+            <input type="hidden" name="tunjangan" id="tunjangan" value="{{ old('tunjangan') }}">
+            <input type="hidden" name="asuransi" id="asuransi" value="{{ old('asuransi') }}">
+            <input type="hidden" name="gaji" id="gaji" value="{{ old('gaji') }}">
+            <input type="hidden" name="tarif" id="tarif" value="{{ old('tarif') }}">
 
-            <div class="col-md-6 mb-3">
-                <label for="kategori_tenaga_kerja" class="form-label">Kategori Tenaga Kerja</label>
-                <select name="kategori_tenaga_kerja" id="kategori_tenaga_kerja" class="form-select" required>
-                    <option value="">-- Pilih Jenis --</option>
-                    <option value="BTKL" {{ old('kategori_tenaga_kerja')=='BTKL' ? 'selected' : '' }}>BTKL (Buruh Tenaga Kerja Langsung)</option>
-                    <option value="BTKTL" {{ old('kategori_tenaga_kerja')=='BTKTL' ? 'selected' : '' }}>BTKTL (Buruh Tenaga Kerja Tidak Langsung)</option>
-                </select>
-            </div>
-
-            <div class="col-md-6 mb-3">
-                <label for="tanggal_masuk" class="form-label">Tanggal Masuk</label>
-                <input type="date" name="tanggal_masuk" id="tanggal_masuk" class="form-control" value="{{ old('tanggal_masuk') }}" required>
-            </div>
-
-            <div class="col-md-6 mb-3">
-                <label for="status_aktif" class="form-label">Status Aktif</label>
-                <select name="status_aktif" id="status_aktif" class="form-select" required>
-                    <option value="">-- Pilih Status --</option>
-                    <option value="1" {{ old('status_aktif')==='1' ? 'selected' : '' }}>Aktif</option>
-                    <option value="0" {{ old('status_aktif')==='0' ? 'selected' : '' }}>Tidak Aktif</option>
-                </select>
-            </div>
-
-            <!-- Gaji Pokok (untuk BTKTL) -->
-            <div class="col-md-6 mb-3">
-                <label for="gaji_pokok" class="form-label">Gaji Pokok (Rp)</label>
-                <input type="number" name="gaji_pokok" id="gaji_pokok" class="form-control" value="{{ old('gaji_pokok', 0) }}" min="0">
-            </div>
-
-            <!-- Tarif per Jam (untuk BTKL) -->
-            <div class="col-md-6 mb-3">
-                <label for="tarif_per_jam" class="form-label">Tarif per Jam (Rp) (BTKL)</label>
-                <input type="number" name="tarif_per_jam" id="tarif_per_jam" class="form-control" value="{{ old('tarif_per_jam', 0) }}" min="0">
-            </div>
-
-            <!-- Tunjangan (opsional) -->
-            <div class="col-md-6 mb-3">
-                <label for="tunjangan" class="form-label">Tunjangan (Rp)</label>
-                <input type="number" name="tunjangan" id="tunjangan" class="form-control" value="{{ old('tunjangan', 0) }}" min="0">
+            <!-- Preview otomatis dari Jabatan -->
+            <div class="col-12">
+                <div class="alert alert-secondary small" id="preview-box" style="display:none">
+                    <div><strong>Kategori:</strong> <span id="pv-kategori">-</span></div>
+                    <div><strong>Tunjangan:</strong> Rp <span id="pv-tunjangan">0</span></div>
+                    <div><strong>Asuransi:</strong> Rp <span id="pv-asuransi">0</span></div>
+                    <div><strong>Gaji (BTKTL/bulan):</strong> Rp <span id="pv-gaji">0</span></div>
+                    <div><strong>Tarif / Jam (BTKL):</strong> Rp <span id="pv-tarif">0</span></div>
+                </div>
             </div>
         </div>
 
@@ -102,4 +95,40 @@
         </div>
     </form>
 </div>
+
+<script>
+    (function(){
+        const fmt = (n)=> new Intl.NumberFormat('id-ID').format(Number(n||0));
+        const dd = document.getElementById('jabatan_id');
+        const mapFromSelect = () => {
+            const opt = dd.options[dd.selectedIndex];
+            if (!opt) { document.getElementById('preview-box').style.display='none'; return; }
+            const ds = opt.dataset;
+            const data = {
+                nama: ds.nama || '',
+                kategori: ds.kategori || '',
+                tunjangan: ds.tunjangan || 0,
+                asuransi: ds.asuransi || 0,
+                gaji: ds.gaji || 0,
+                tarif: ds.tarif || 0,
+            };
+            // set hidden
+            document.getElementById('jabatan').value = data.nama;
+            document.getElementById('kategori').value = (data.kategori||'').toUpperCase();
+            document.getElementById('tunjangan').value = data.tunjangan;
+            document.getElementById('asuransi').value = data.asuransi;
+            document.getElementById('gaji').value = data.gaji;
+            document.getElementById('tarif').value = data.tarif;
+            // preview
+            document.getElementById('pv-kategori').textContent = (data.kategori||'').toUpperCase();
+            document.getElementById('pv-tunjangan').textContent = fmt(data.tunjangan);
+            document.getElementById('pv-asuransi').textContent = fmt(data.asuransi);
+            document.getElementById('pv-gaji').textContent = fmt(data.gaji);
+            document.getElementById('pv-tarif').textContent = fmt(data.tarif);
+            document.getElementById('preview-box').style.display='block';
+        };
+        dd.addEventListener('change', mapFromSelect);
+        if (dd.value) mapFromSelect();
+    })();
+</script>
 @endsection
