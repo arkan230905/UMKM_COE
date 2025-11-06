@@ -71,7 +71,12 @@ class Coa extends Model
      */
     public function bops()
     {
-        return $this->hasMany(Bop::class, 'kode_akun', 'kode_akun');
+        return $this->hasMany(Bop::class, 'coa_id', 'id');
+    }
+
+    public function bop()
+    {
+        return $this->hasOne(Bop::class, 'coa_id', 'id');
     }
 
     /**
