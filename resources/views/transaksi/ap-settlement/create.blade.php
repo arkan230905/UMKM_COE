@@ -3,6 +3,15 @@
 @section('content')
 <div class="container">
   <h3>Pelunasan Utang Pembelian #{{ $pembelian->id }}</h3>
+  @if ($errors->any())
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        @foreach ($errors->all() as $error)
+          <li>{{ $error }}</li>
+        @endforeach
+      </ul>
+    </div>
+  @endif
   <form action="{{ route('transaksi.ap-settlement.store') }}" method="POST">@csrf
     <input type="hidden" name="pembelian_id" value="{{ $pembelian->id }}">
     <div class="mb-3">
@@ -24,7 +33,7 @@
       </div>
       <div class="col-md-3">
         <label class="form-label">Dibayar Bersih</label>
-        <input type="number" step="0.01" min="0" name="dibayar_bersih" class="form-control" required>
+        <input type="number" step="0.01" min="0" name="dibayar_bersih" id="dibayar_bersih" class="form-control" required>
       </div>
     </div>
     <div class="row g-3 mt-2">
@@ -50,4 +59,21 @@
     <a href="{{ route('transaksi.ap-settlement.index') }}" class="btn btn-secondary">Batal</a>
   </form>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const total = document.querySelector('input[name="total_tagihan"]');
+  const diskon = document.querySelector('input[name="diskon"]');
+  const denda = document.querySelector('input[name="denda_bunga"]');
+  const bersih = document.getElementById('dibayar_bersih');
+  function recalc(){
+    const t = parseFloat(total.value || '0')||0;
+    const d = parseFloat(diskon.value || '0')||0;
+    const f = parseFloat(denda.value || '0')||0;
+    const val = Math.max(t - d + f, 0);
+    bersih.value = val.toFixed(2);
+  }
+  [total,diskon,denda].forEach(el=>{ if(el){ el.addEventListener('input', recalc); }});
+  recalc();
+});
+</script>
 @endsection

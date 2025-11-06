@@ -39,32 +39,23 @@
                     <thead>
                         <tr>
                             <th>Bahan Baku</th>
-                            <th>Jumlah</th>
-                            <th>Satuan</th>
-                            <th>Harga Satuan</th>
-                            <th>Total</th>
+                            <th class="text-end">Kuantitas</th>
+                            <th class="text-end">Harga Satuan</th>
+                            <th class="text-end">Subtotal</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @php
-                            $total_bahan_baku = 0;
-                        @endphp
                         @foreach($bom->details as $detail)
-                            @php
-                                $total = $detail->jumlah * $detail->harga_per_satuan;
-                                $total_bahan_baku += $total;
-                            @endphp
                             <tr>
-                                <td>{{ $detail->bahanBaku->nama_bahan }}</td>
-                                <td class="text-end">{{ number_format($detail->jumlah, 2) }}</td>
-                                <td>{{ $detail->satuan_resep }}</td>
-                                <td class="text-end">Rp {{ number_format($detail->harga_per_satuan, 0, ',', '.') }}</td>
-                                <td class="text-end">Rp {{ number_format($total, 0, ',', '.') }}</td>
+                                <td>{{ $detail->bahanBaku->nama_bahan ?? '-' }}</td>
+                                <td class="text-end">{{ number_format((float)($detail->kuantitas ?? 0), 2, ',', '.') }}</td>
+                                <td class="text-end">Rp {{ number_format((float)($detail->harga_satuan ?? 0), 0, ',', '.') }}</td>
+                                <td class="text-end">Rp {{ number_format((float)($detail->subtotal ?? (($detail->kuantitas ?? 0)*($detail->harga_satuan ?? 0))), 0, ',', '.') }}</td>
                             </tr>
                         @endforeach
-                        <tr>
-                            <th colspan="4" class="text-end">Total Bahan Baku</th>
-                            <th class="text-end">Rp {{ number_format($total_bahan_baku, 0, ',', '.') }}</th>
+                        <tr class="table-active">
+                            <th colspan="3" class="text-end">Total Bahan</th>
+                            <th class="text-end">Rp {{ number_format((float)($bom->total_biaya ?? 0), 0, ',', '.') }}</th>
                         </tr>
                     </tbody>
                 </table>

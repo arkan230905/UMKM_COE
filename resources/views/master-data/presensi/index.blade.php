@@ -82,7 +82,7 @@
                                         <div class="fw-semibold text-secondary" style="font-size: 15px;">
                                             {{ $presensi->pegawai->nama_display ?? $presensi->pegawai->nama }}
                                         </div>
-                                        <div style="color: #999; font-size: 11px; margin-top: 2px;">NIP: {{ $presensi->pegawai->nomor_induk_pegawai }}</div>
+                                        <div style="color: #999; font-size: 11px; margin-top: 2px;">NIP: {{ $presensi->pegawai->kode_pegawai }}</div>
                                     </div>
                                 </div>
                             </td>

@@ -4,12 +4,25 @@
 <div class="container py-4">
     <h3 class="mb-4"><i class="bi bi-diagram-3"></i> Bill of Materials (BOM)</h3>
 
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+    @if($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             <form action="{{ route('master-data.bom.index') }}" method="GET" id="filterForm">
                 <div class="row g-3 align-items-center">
                     <div class="col-md-4">
-                        <label for="produkSelect" class="form-label">Pilih Produk</label>
+                        <label for="produkSelect" class="form-label text-white">Pilih Produk</label>
                         <select name="produk_id" id="produkSelect" class="form-select" onchange="this.form.submit()">
                             <option value="">-- Semua Produk --</option>
                             @foreach($produks as $p)
@@ -53,9 +66,9 @@
                                 <tr>
                                     <td>{{ $bom->kode_bom }}</td>
                                     <td>{{ $bom->produk->nama_produk }}</td>
-                                    <td class="text-end">@money($bom->total_biaya)</td>
-                                    <td class="text-end">{{ $bom->persentase_keuntungan }}%</td>
-                                    <td class="text-end fw-bold">@money($bom->harga_jual)</td>
+                                    <td class="text-end">Rp {{ number_format((float)($bom->total_biaya ?? 0), 0, ',', '.') }}</td>
+                                    <td class="text-end">{{ number_format((float)($bom->persentase_keuntungan ?? 0), 2) }}%</td>
+                                    <td class="text-end fw-bold">Rp {{ number_format((float)($bom->harga_jual ?? ($bom->total_biaya ?? 0) + (($bom->persentase_keuntungan ?? 0)/100.0 * ($bom->total_biaya ?? 0))), 0, ',', '.') }}</td>
                                     <td class="text-center">
                                         <a href="{{ route('master-data.bom.show', $bom->id) }}" class="btn btn-sm btn-info text-white" title="Lihat">
                                             <i class="bi bi-eye"></i>
@@ -81,7 +94,7 @@
                 </div>
             @else
                 <div class="text-center py-4">
-                    <p class="text-muted mb-0">Tidak ada data BOM yang ditemukan.</p>
+                    <p class="mb-0 text-white">Tidak ada data BOM yang ditemukan.</p>
                     @if(isset($selectedProductId))
                         <a href="{{ route('master-data.bom.create', ['produk_id' => $selectedProductId]) }}" class="btn btn-primary mt-3">
                             <i class="bi bi-plus-circle"></i> Buat BOM Baru

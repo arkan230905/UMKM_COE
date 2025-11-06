@@ -25,8 +25,11 @@
             <h6 class="text-uppercase text-muted mt-4 mb-2" style="font-size: 0.75rem;">Transaksi</h6>
         </li>
         <li class="nav-item mb-2"><a href="{{ route('transaksi.pembelian.index') }}" class="nav-link text-white">Pembelian</a></li>
+        <li class="nav-item mb-2"><a href="{{ route('transaksi.produksi.index') }}" class="nav-link text-white">Produksi</a></li>
         <li class="nav-item mb-2"><a href="{{ route('transaksi.penjualan.index') }}" class="nav-link text-white">Penjualan</a></li>
-        <li class="nav-item mb-2"><a href="{{ route('transaksi.penggajian.index') }}" class="nav-link text-white">Penggajian</a></li>
         <li class="nav-item mb-2"><a href="{{ route('transaksi.retur.index') }}" class="nav-link text-white">Retur</a></li>
+        <li class="nav-item mb-2"><a href="{{ route('transaksi.expense-payment.index') }}" class="nav-link text-white">Pembayaran Beban</a></li>
+        <li class="nav-item mb-2"><a href="{{ route('transaksi.ap-settlement.index') }}" class="nav-link text-white">Pelunasan Utang</a></li>
+        <li class="nav-item mb-2"><a href="{{ route('transaksi.penggajian.index') }}" class="nav-link text-white">Penggajian</a></li>
     </ul>
 </div>

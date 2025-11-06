@@ -47,6 +47,7 @@ class Aset extends Model
         'persentase_penyusutan' => 'decimal:2',
         'umur_manfaat' => 'integer',
         'umur_ekonomis_tahun' => 'integer',
+        'umur_manfaat' => 'integer',
     ];
 
     /**
@@ -136,8 +137,9 @@ class Aset extends Model
      */
     public function hitungPenyusutan()
     {
-        // Calculate nilai_buku based on harga_perolehan and nilai_residu
-        $this->nilai_buku = $this->harga_perolehan - $this->nilai_residu;
+        // Calculate nilai_buku based on total perolehan (harga + biaya) and nilai_residu
+        $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
+        $this->nilai_buku = $total - (float)($this->nilai_residu ?? 0);
     }
 
     /**
@@ -145,10 +147,12 @@ class Aset extends Model
      */
     public function hitungBebanPenyusutanBulanan(): float
     {
-        $nilaiTerdepresiasi = $this->harga_perolehan - $this->nilai_sisa;
-        $bulanEkonomis = $this->umur_ekonomis_tahun * 12;
+        $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
+        $nilaiTerdepresiasi = $total - (float)($this->nilai_sisa ?? 0);
+        $umurTahun = (int)($this->umur_manfaat ?? $this->umur_ekonomis_tahun ?? 0);
+        $bulanEkonomis = max($umurTahun, 0) * 12;
 
-        return $nilaiTerdepresiasi / $bulanEkonomis;
+        return $bulanEkonomis > 0 ? ($nilaiTerdepresiasi / $bulanEkonomis) : 0.0;
     }
 
     /**
@@ -156,9 +160,10 @@ class Aset extends Model
      */
     public function hitungBebanPenyusutanTahunan(): float
     {
-        $nilaiTerdepresiasi = $this->harga_perolehan - $this->nilai_sisa;
-
-        return $nilaiTerdepresiasi / $this->umur_ekonomis_tahun;
+        $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
+        $nilaiTerdepresiasi = $total - (float)($this->nilai_sisa ?? 0);
+        $umurTahun = (int)($this->umur_manfaat ?? $this->umur_ekonomis_tahun ?? 0);
+        return $umurTahun > 0 ? ($nilaiTerdepresiasi / $umurTahun) : 0.0;
     }
 
     /**
@@ -174,7 +179,109 @@ class Aset extends Model
      */
     public function updateNilaiBuku(): void
     {
-        $this->nilai_buku = $this->harga_perolehan - $this->akumulasi_penyusutan;
+        $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
+        $this->nilai_buku = $total - (float)($this->akumulasi_penyusutan ?? 0);
         $this->save();
+    }
+
+    /**
+     * Accessor: penyusutan per tahun (depreciation_per_year) ala contoh.
+     */
+    public function getDepreciationPerYearAttribute(): float
+    {
+        $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
+        $umur = (int)($this->umur_manfaat ?? $this->umur_ekonomis_tahun ?? 0);
+        if ($umur > 0) {
+            return ($total - (float)($this->nilai_sisa ?? $this->nilai_residu ?? 0)) / $umur;
+        }
+        return 0.0;
+    }
+
+    /**
+     * Monthly schedule aggregated by year with monthly_breakdown, following the user's example.
+     */
+    public function calculateDepreciationSchedule(): array
+    {
+        $startDate = Carbon::parse($this->tanggal_akuisisi ?? $this->tanggal_beli ?? now());
+        $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
+        $residu = (float)($this->nilai_sisa ?? $this->nilai_residu ?? 0);
+        $umur = (int)($this->umur_manfaat ?? $this->umur_ekonomis_tahun ?? 0);
+        if ($umur <= 0 || $total <= 0) return [];
+
+        $perBulan = ($total - $residu) / ($umur * 12);
+        $akumulasi = 0.0; $nilaiBuku = $total;
+        $byYear = [];
+
+        for ($m = 0; $m < $umur * 12; $m++) {
+            $current = $startDate->copy()->addMonths($m);
+            $year = $current->year;
+
+            $akumulasi += $perBulan;
+            $nilaiBuku -= $perBulan;
+
+            if (!isset($byYear[$year])) {
+                $byYear[$year] = [
+                    'tahun' => $year,
+                    'biaya_penyusutan' => 0,
+                    'akumulasi_penyusutan' => 0,
+                    'nilai_buku' => $total,
+                    'start_month' => $current->copy(),
+                    'end_month' => $current->copy(),
+                    'monthly_breakdown' => [],
+                ];
+            }
+
+            $byYear[$year]['monthly_breakdown'][] = [
+                'month' => $current->format('F Y'),
+                'biaya_penyusutan' => round($perBulan, 2),
+                'akumulasi_penyusutan' => round($akumulasi, 2),
+                'nilai_buku' => round(max($nilaiBuku, $residu), 2),
+            ];
+
+            $byYear[$year]['biaya_penyusutan'] += $perBulan;
+            $byYear[$year]['akumulasi_penyusutan'] = $akumulasi;
+            $byYear[$year]['nilai_buku'] = max($nilaiBuku, $residu);
+            $byYear[$year]['end_month'] = $current->copy();
+        }
+
+        foreach ($byYear as &$row) {
+            $row['biaya_penyusutan'] = round($row['biaya_penyusutan'], 2);
+            $row['akumulasi_penyusutan'] = round($row['akumulasi_penyusutan'], 2);
+            $row['nilai_buku'] = round($row['nilai_buku'], 2);
+            $row['periode'] = $row['tahun'] . ' (' . $row['start_month']->format('F') . ' – ' . $row['end_month']->format('F') . ')';
+            unset($row['start_month'], $row['end_month']);
+        }
+
+        return array_values($byYear);
+    }
+
+    /**
+     * Generate jadwal penyusutan tahunan (garis lurus)
+     */
+    public function jadwalPenyusutan(): array
+    {
+        $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
+        $residu = (float)($this->nilai_residu ?? 0);
+        $umur = (int)($this->umur_manfaat ?? $this->umur_ekonomis_tahun ?? 0);
+        if ($umur <= 0 || $total <= 0) return [];
+
+        $base = max($total - $residu, 0);
+        $perTahun = $base / $umur;
+        $start = $this->tanggal_akuisisi ?? $this->tanggal_beli ?? now()->toDateString();
+        $startYear = Carbon::parse($start)->year;
+
+        $acc = 0.0; $book = $total; $rows = [];
+        for ($i = 0; $i < $umur; $i++) {
+            $year = $startYear + $i;
+            $dep = min($perTahun, max($book - $residu, 0));
+            $acc += $dep; $book -= $dep;
+            $rows[] = [
+                'tahun' => $year,
+                'beban_penyusutan' => round($dep, 2),
+                'akumulasi_penyusutan' => round($acc, 2),
+                'nilai_buku_akhir' => round($book, 2),
+            ];
+        }
+        return $rows;
     }
 }

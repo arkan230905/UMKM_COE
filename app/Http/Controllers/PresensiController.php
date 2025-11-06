@@ -16,7 +16,7 @@ class PresensiController extends Controller
             ->when($search, function($query) use ($search) {
                 return $query->whereHas('pegawai', function($q) use ($search) {
                     $q->where('nama', 'like', "%{$search}%")
-                      ->orWhere('nomor_induk_pegawai', 'like', "%{$search}%");
+                      ->orWhere('kode_pegawai', 'like', "%{$search}%");
                 })
                 ->orWhere('status', 'like', "%{$search}%");
             })

@@ -17,47 +17,21 @@
     <form action="{{ route('master-data.bom.store') }}" method="POST">
         @csrf
 
-        <div class="card mb-4">
-            <div class="card-header" style="background-color: #2c3e50 !important; border-bottom: 1px solid rgba(0,0,0,.125) !important;">
-                <h5 style="color: #ffffff !important; margin: 0 !important;">Informasi Dasar</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="produk_id" class="form-label">Produk</label>
-                            <select name="produk_id" id="produk_id" class="form-select" required>
-                                <option value="">-- Pilih Produk --</option>
-                                @foreach($produks as $produk)
-                                    <option value="{{ $produk->id }}" {{ old('produk_id') == $produk->id ? 'selected' : '' }}>
-                                        {{ $produk->nama_produk }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="kode_bom" class="form-label">Kode BOM</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="kode_bom" name="kode_bom" 
-                                       value="{{ old('kode_bom') }}" required>
-                                <button type="button" class="btn btn-outline-secondary" id="generateKode">
-                                    <i class="bi bi-arrow-repeat"></i> Generate
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="mb-3">
+            <label for="produk_id" class="form-label">Produk</label>
+            <select name="produk_id" id="produk_id" class="form-select" required>
+                <option value="">-- Pilih Produk --</option>
+                @foreach($produks as $produk)
+                    <option value="{{ $produk->id }}" {{ old('produk_id') == $produk->id ? 'selected' : '' }}>
+                        {{ $produk->nama_produk }}
+                    </option>
+                @endforeach
+            </select>
         </div>
 
         <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center" style="background-color: #2c3e50 !important; border-bottom: 1px solid rgba(0,0,0,.125) !important;">
-                <h5 class="mb-0" style="color: #ffffff !important; margin: 0 !important;">Daftar Bahan Baku</h5>
-                <button type="button" class="btn btn-sm btn-primary" id="addRow">
-                    <i class="bi bi-plus-circle"></i> Tambah Bahan Baku
-                </button>
+            <div class="card-header" style="background-color: #2c3e50 !important; border-bottom: 1px solid rgba(0,0,0,.125) !important;">
+                <h5 class="mb-0" style="color: #ffffff !important; margin: 0 !important;">Bahan Baku</h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -65,120 +39,44 @@
                         <thead class="table-light">
                             <tr>
                                 <th width="40%">Bahan Baku</th>
-                                <th>Jumlah</th>
-                                <th>Satuan</th>
-                                <th>Harga Satuan (Rp)</th>
+                                <th width="15%">Jumlah</th>
+                                <th width="25%">Satuan Resep</th>
                                 <th width="10%">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td>
-                                    <select name="bahan_baku_id[]" class="form-select bahan-baku-select" required>
-                                        <option value="">-- Pilih Bahan Baku --</option>
-                                        @php
-                                            // Debug data bahan baku
-                                            // dd($bahanBakus->toArray());
-                                        @endphp
-                                        @forelse($bahanBakus as $bahan)
+                                    <select name="bahan_baku_id[]" class="form-select bahanSelect" required>
+                                        <option value="">-- Pilih Bahan --</option>
+                                        @foreach($bahanBakus as $bahan)
                                             @php
                                                 $satuan = $bahan->satuan ? $bahan->satuan->nama : 'Satuan';
-                                                $harga = $bahan->harga_beli ?? 0;
-                                                $hargaFormatted = number_format($harga, 0, ',', '.');
-                                                $namaBahan = $bahan->nama ?? 'Nama Bahan Tidak Tersedia';
-                                                $stok = $bahan->stok ?? 0;
-                                                $stokFormatted = number_format($stok, 2, ',', '.');
-                                                $satuanId = $bahan->satuan_id ?? 0;
+                                                $harga = $bahan->harga_satuan ?? 0; // gunakan harga_satuan aktual
                                             @endphp
-                                            <option value="{{ $bahan->id }}" 
-                                                data-harga="{{ $harga }}" 
-                                                data-satuan="{{ $satuan }}"
-                                                data-stok="{{ $stok }}"
-                                                data-satuan-id="{{ $satuanId }}">
-                                                {{ $namaBahan }} | Harga: Rp{{ $hargaFormatted }} | Stok: {{ $stokFormatted }} {{ $satuan }}
-                                            </option>
-                                        @empty
-                                            <option value="" disabled>Tidak ada bahan baku tersedia</option>
-                                        @endforelse
-                                    </select>
-                                    <input type="hidden" name="harga_satuan[]" class="harga-satuan-input">
-                                </td>
-                                <td>
-                                    <input type="number" name="kuantitas[]" class="form-control qty" min="0.01" step="0.01" required>
-                                    <small class="text-danger stok-error d-none">Stok tidak mencukupi</small>
-                                </td>
-                                <td>
-                                    <select name="satuan_id[]" class="form-select satuan-select" required>
-                                        <option value="">Pilih Satuan</option>
-                                        @foreach($satuans as $satuan)
-                                            <option value="{{ $satuan->id }}">{{ $satuan->nama }}</option>
+                                            <option value="{{ $bahan->id }}" data-satuan="{{ $satuan }}" data-harga="{{ $harga }}">{{ $bahan->nama ?? $bahan->nama_bahan ?? 'Bahan' }}</option>
                                         @endforeach
                                     </select>
-                                    <input type="hidden" name="konversi[]" class="konversi-input" value="1">
                                 </td>
                                 <td>
-                                    <div class="input-group">
-                                        <span class="input-group-text">Rp</span>
-                                        <input type="text" class="form-control harga-satuan" 
-                                               value="{{ $bahanBakus->first() ? number_format($bahanBakus->first()->harga_satuan, 0, ',', '.') : '0' }}" 
-                                               readonly>
-                                    </div>
+                                    <input type="number" step="0.01" min="0.01" name="jumlah[]" class="form-control jumlahInput" value="1" required>
+                                </td>
+                                <td>
+                                    <select name="satuan[]" class="form-select form-select-sm satuanSelect">
+                                        <option value="">(ikuti satuan bahan)</option>
+                                        @foreach(($satuans ?? []) as $sat)
+                                            <option value="{{ $sat->kode }}">{{ $sat->kode }} ({{ $sat->nama }})</option>
+                                        @endforeach
+                                    </select>
                                 </td>
                                 <td class="text-center">
-                                    <button type="button" class="btn btn-danger btn-sm removeRow">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
+                                    <button type="button" class="btn btn-sm btn-danger removeRow">Hapus</button>
                                 </td>
                             </tr>
                         </tbody>
-                        <tfoot>
-                            <tr>
-                                <th colspan="3" class="text-end">Total Biaya Bahan Baku:</th>
-                                <th colspan="2" class="text-start" id="totalBiaya">Rp 0</th>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
-            </div>
-        </div>
-
-        <div class="card mb-4">
-            <div class="card-header" style="background-color: #2c3e50 !important; border-bottom: 1px solid rgba(0,0,0,.125) !important;">
-                <h5 style="color: #ffffff !important; margin: 0 !important;">Perhitungan Harga Jual</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="persentase_keuntungan" class="form-label">Persentase Keuntungan</label>
-                            <div class="input-group">
-                                <input type="number" class="form-control" id="persentase_keuntungan" 
-                                       name="persentase_keuntungan" value="{{ old('persentase_keuntungan', 30) }}" 
-                                       min="0" max="1000" step="0.01" required>
-                                <span class="input-group-text">%</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">Total Biaya Bahan Baku</label>
-                            <input type="text" class="form-control" id="totalBiayaField" readonly>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label class="form-label">Perkiraan Harga Jual</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="text" class="form-control" id="hargaJual" readonly>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label for="catatan" class="form-label">Catatan</label>
-                    <textarea class="form-control" id="catatan" name="catatan" rows="2">{{ old('catatan') }}</textarea>
-                </div>
+                <button type="button" class="btn btn-secondary btn-sm mt-2" id="addRow">Tambah Baris</button>
             </div>
         </div>
 
@@ -186,12 +84,12 @@
             <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Kembali
             </a>
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-save"></i> Simpan BOM
-            </button>
+            <button type="submit" class="btn btn-success">Simpan BOM & Hitung Harga Jual</button>
         </div>
     </form>
 </div>
+
+@include('master-data.bom.js')
 
 @push('styles')
 <style>

@@ -133,21 +133,19 @@ class DashboardController extends Controller
     private function getTotalKasBank()
     {
         try {
-            // Cek apakah tabel jurnal_umum ada
-            if (!\Schema::hasTable('jurnal_umum')) {
-                return 0;
-            }
-            
-            // Sum balances from cash and bank accounts
-            $kas = \App\Models\JurnalUmum::whereHas('coa', function($q) {
-                    $q->whereIn('kode_akun', ['1101', '1102']); // Kas & Bank accounts
-                })
-                ->sum('debit') - \App\Models\JurnalUmum::whereHas('coa', function($q) {
-                    $q->whereIn('kode_akun', ['1101', '1102']);
-                })
-                ->sum('kredit');
+            if (!\Schema::hasTable('coas')) { return 0; }
 
-            return max(0, $kas); // Pastikan tidak negatif
+            $ids = $this->getKasBankCoaIds();
+            if (empty($ids)) { return 0; }
+
+            $saldoAwal = Coa::whereIn('id', $ids)->sum('saldo_awal');
+            if (\Schema::hasTable('jurnal_umum')) {
+                $debit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)->sum('debit');
+                $kredit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)->sum('kredit');
+            } else {
+                $debit = 0; $kredit = 0;
+            }
+            return max(0, (float)$saldoAwal + (float)$debit - (float)$kredit);
         } catch (\Exception $e) {
             return 0; // Kembalikan 0 jika ada error
         }
@@ -159,21 +157,23 @@ class DashboardController extends Controller
     private function getPendapatanBulanIni()
     {
         try {
-            // Cek apakah tabel yang dibutuhkan ada
-            if (!\Schema::hasTable('jurnal_umum') || !\Schema::hasTable('coas')) {
+            if (!\Schema::hasTable('coas')) {
                 return 0;
             }
             
             $startOfMonth = now()->startOfMonth();
             $endOfMonth = now()->endOfMonth();
 
-            $pendapatan = \App\Models\JurnalUmum::whereHas('coa', function($q) {
-                    $q->whereIn('kode_akun', ['4001', '4002']); // Pendapatan accounts
-                })
+            $ids = $this->getRevenueCoaIds();
+            if (empty($ids) || !\Schema::hasTable('jurnal_umum')) { return 0; }
+
+            $kredit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)
                 ->whereBetween('tanggal', [$startOfMonth, $endOfMonth])
                 ->sum('kredit');
-
-            return $pendapatan;
+            $debit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)
+                ->whereBetween('tanggal', [$startOfMonth, $endOfMonth])
+                ->sum('debit');
+            return (float)$kredit - (float)$debit;
         } catch (\Exception $e) {
             return 0; // Kembalikan 0 jika ada error
         }
@@ -185,18 +185,19 @@ class DashboardController extends Controller
     private function getTotalPiutang()
     {
         try {
-            // Cek apakah tabel yang dibutuhkan ada
-            if (!\Schema::hasTable('jurnal_umum') || !\Schema::hasTable('coas')) {
+            if (!\Schema::hasTable('coas')) {
                 return 0;
             }
             
-            return \App\Models\JurnalUmum::whereHas('coa', function($q) {
-                    $q->where('kode_akun', 'like', '13%'); // Akun piutang
-                })
-                ->sum('debit') - \App\Models\JurnalUmum::whereHas('coa', function($q) {
-                    $q->where('kode_akun', 'like', '13%');
-                })
-                ->sum('kredit');
+            $ids = $this->getReceivableCoaIds();
+            if (empty($ids)) { return 0; }
+
+            $saldoAwal = Coa::whereIn('id', $ids)->sum('saldo_awal');
+            if (\Schema::hasTable('jurnal_umum')) {
+                $debit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)->sum('debit');
+                $kredit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)->sum('kredit');
+            } else { $debit = 0; $kredit = 0; }
+            return (float)$saldoAwal + (float)$debit - (float)$kredit;
         } catch (\Exception $e) {
             return 0; // Kembalikan 0 jika ada error
         }
@@ -208,18 +209,19 @@ class DashboardController extends Controller
     private function getTotalUtang()
     {
         try {
-            // Cek apakah tabel yang dibutuhkan ada
-            if (!\Schema::hasTable('jurnal_umum') || !\Schema::hasTable('coas')) {
+            if (!\Schema::hasTable('coas')) {
                 return 0;
             }
             
-            return \App\Models\JurnalUmum::whereHas('coa', function($q) {
-                    $q->where('kode_akun', 'like', '21%'); // Akun utang
-                })
-                ->sum('kredit') - \App\Models\JurnalUmum::whereHas('coa', function($q) {
-                    $q->where('kode_akun', 'like', '21%');
-                })
-                ->sum('debit');
+            $ids = $this->getPayableCoaIds();
+            if (empty($ids)) { return 0; }
+
+            $saldoAwal = Coa::whereIn('id', $ids)->sum('saldo_awal');
+            if (\Schema::hasTable('jurnal_umum')) {
+                $debit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)->sum('debit');
+                $kredit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)->sum('kredit');
+            } else { $debit = 0; $kredit = 0; }
+            return max(0, (float)$saldoAwal + (float)$kredit - (float)$debit);
         } catch (\Exception $e) {
             return 0; // Kembalikan 0 jika ada error
         }
@@ -292,5 +294,41 @@ class DashboardController extends Controller
         }
 
         return round((($currentCount - $lastCount) / $lastCount) * 100, 1);
+    }
+
+    // === Helper: guess COA categories robustly across differing charts ===
+    private function getKasBankCoaIds(): array
+    {
+        $query = Coa::query();
+        $query->where(function($q){
+            $q->whereIn('kode_akun', ['101','102','1101','1102'])
+              ->orWhere('nama_akun', 'like', '%kas%')
+              ->orWhere('nama_akun', 'like', '%bank%');
+        });
+        return $query->pluck('id')->all();
+    }
+
+    private function getRevenueCoaIds(): array
+    {
+        return Coa::where('tipe_akun', 'Revenue')
+            ->orWhere('kode_akun', 'like', '4%')
+            ->pluck('id')->all();
+    }
+
+    private function getReceivableCoaIds(): array
+    {
+        $q = Coa::query();
+        $q->where('nama_akun', 'like', '%piutang%')
+          ->orWhere('kode_akun', 'like', '12%')
+          ->orWhere('kode_akun', 'like', '13%');
+        return $q->pluck('id')->all();
+    }
+
+    private function getPayableCoaIds(): array
+    {
+        $q = Coa::query();
+        $q->where('nama_akun', 'like', '%utang%')
+          ->orWhere('kode_akun', 'like', '21%');
+        return $q->pluck('id')->all();
     }
 }

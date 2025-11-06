@@ -28,7 +28,7 @@ class JurnalUmum extends Model
 
     public function coa(): BelongsTo
     {
-        return $this->belongsTo(Coa::class);
+        return $this->belongsTo(Coa::class, 'coa_id', 'id');
     }
 
     public function createdBy(): BelongsTo

@@ -45,16 +45,23 @@
         
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 table-wide">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 60px">#</th>
-                            <th>Nama Pegawai</th>
-                            <th>Kontak</th>
+                            <th class="text-center" style="width: 50px">#</th>
+                            <th>Kode</th>
+                            <th>Nama</th>
+                            <th>No. Telepon</th>
+                            <th>Email</th>
+                            <th class="col-alamat">Alamat</th>
+                            <th>Bank</th>
+                            <th>No. Rekening</th>
                             <th>Jabatan</th>
                             <th class="text-center">Kategori</th>
-                            <th class="text-end">Gaji Pokok</th>
+                            <th class="text-end">Asuransi</th>
+                            <th class="text-end">Tarif/Jam</th>
                             <th class="text-end">Tunjangan</th>
+                            <th class="text-end">Gaji</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -62,32 +69,24 @@
                         @forelse($pegawais as $index => $pegawai)
                         <tr>
                             <td class="text-center text-muted">{{ ($pegawais->currentPage() - 1) * $pegawais->perPage() + $loop->iteration }}</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-sm bg-light rounded-circle me-2">
-                                        <i class="bi bi-person-fill text-primary"></i>
-                                    </div>
-                                    <div>
-                                        <div class="fw-semibold">{{ $pegawai->nama }}</div>
-                                        <small class="text-muted">{{ $pegawai->email }}</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div>{{ $pegawai->no_telp }}</div>
-                                <small class="text-muted">{{ Str::limit($pegawai->alamat, 30) }}</small>
-                            </td>
+                            <td>{{ $pegawai->kode_pegawai }}</td>
+                            <td>{{ $pegawai->nama }}</td>
+                            <td>{{ $pegawai->no_telepon }}</td>
+                            <td>{{ $pegawai->email }}</td>
+                            <td class="col-alamat"><small class="text-muted">{{ Str::limit($pegawai->alamat, 60) }}</small></td>
+                            <td>{{ $pegawai->nama_bank }}</td>
+                            <td>{{ $pegawai->no_rekening }}</td>
                             <td>{{ $pegawai->jabatan }}</td>
                             <td class="text-center">
-                                <span class="badge bg-{{ $pegawai->kategori_tenaga_kerja == 'btkl' ? 'primary' : 'success' }}">
-                                    {{ strtoupper($pegawai->kategori_tenaga_kerja) }}
-                                </span>
+                                <span class="badge bg-{{ strtolower($pegawai->kategori) == 'btkl' ? 'primary' : 'success' }}">{{ strtoupper($pegawai->kategori) }}</span>
                             </td>
-                            <td class="text-end fw-semibold">Rp {{ number_format($pegawai->gaji_pokok, 0, ',', '.') }}</td>
-                            <td class="text-end fw-semibold">Rp {{ number_format($pegawai->tunjangan, 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format($pegawai->asuransi, 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format($pegawai->tarif, 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format($pegawai->tunjangan, 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format($pegawai->gaji, 0, ',', '.') }}</td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm" role="group">
-                                    <a href="{{ route('master-data.pegawai.edit', $pegawai->nomor_induk_pegawai) }}" 
+                                    <a href="{{ route('master-data.pegawai.edit', ['pegawai' => $pegawai->id]) }}" 
                                        class="btn btn-outline-primary" 
                                        data-bs-toggle="tooltip" 
                                        title="Edit">
@@ -115,7 +114,7 @@
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                <form action="{{ route('master-data.pegawai.destroy', $pegawai->nomor_induk_pegawai) }}" method="POST">
+                                                <form action="{{ route('master-data.pegawai.destroy', ['pegawai' => $pegawai->id]) }}" method="POST">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-danger">Hapus</button>
@@ -182,6 +181,8 @@
 @endpush
 
 <style>
+    .table-responsive { overflow-x: auto; }
+    .table-wide { min-width: 1400px; }
     .avatar {
         width: 36px;
         height: 36px;

@@ -16,7 +16,8 @@ class CoaController extends Controller
 
     public function create()
     {
-        return view('master-data.coa.create');
+        $coas = Coa::orderBy('kode_akun')->get(['kode_akun','nama_akun']);
+        return view('master-data.coa.create', compact('coas'));
     }
 
     public function store(Request $request)
@@ -32,10 +33,30 @@ class CoaController extends Controller
         $validated = $request->validate([
             'kode_akun' => 'required|unique:coas,kode_akun',
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Beban',
+            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Beban,Aset,Kewajiban,Ekuitas,Pendapatan',
+            'kategori_akun' => 'nullable|string|max:255',
+            'is_akun_header' => 'nullable|boolean',
+            'kode_induk' => 'nullable|string|exists:coas,kode_akun',
+            'saldo_normal' => 'nullable|in:debit,kredit',
+            'saldo_awal' => 'nullable|numeric',
+            'tanggal_saldo_awal' => 'nullable|date',
+            'keterangan' => 'nullable|string',
+            'posted_saldo_awal' => 'nullable|boolean',
         ]);
 
-        $coa = Coa::create($validated);
+        $coa = Coa::create([
+            'kode_akun' => $validated['kode_akun'],
+            'nama_akun' => $validated['nama_akun'],
+            'tipe_akun' => $validated['tipe_akun'],
+            'kategori_akun' => $request->kategori_akun,
+            'is_akun_header' => $request->boolean('is_akun_header'),
+            'kode_induk' => $request->kode_induk,
+            'saldo_normal' => $request->saldo_normal,
+            'saldo_awal' => $request->saldo_awal,
+            'tanggal_saldo_awal' => $request->tanggal_saldo_awal,
+            'keterangan' => $request->keterangan,
+            'posted_saldo_awal' => $request->boolean('posted_saldo_awal'),
+        ]);
 
         // Otomatis tambahkan ke BOP jika tipe akun "Beban"
         if ($coa->tipe_akun === 'Beban') {
@@ -50,7 +71,8 @@ class CoaController extends Controller
 
     public function edit(Coa $coa)
     {
-        return view('master-data.coa.edit', compact('coa'));
+        $coas = Coa::orderBy('kode_akun')->get(['kode_akun','nama_akun']);
+        return view('master-data.coa.edit', compact('coa','coas'));
     }
 
     public function update(Request $request, Coa $coa)
@@ -58,10 +80,30 @@ class CoaController extends Controller
         $validated = $request->validate([
             'kode_akun' => 'required|unique:coas,kode_akun,' . $coa->kode_akun . ',kode_akun',
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Beban',
+            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Beban,Aset,Kewajiban,Ekuitas,Pendapatan',
+            'kategori_akun' => 'nullable|string|max:255',
+            'is_akun_header' => 'nullable|boolean',
+            'kode_induk' => 'nullable|string|exists:coas,kode_akun',
+            'saldo_normal' => 'nullable|in:debit,kredit',
+            'saldo_awal' => 'nullable|numeric',
+            'tanggal_saldo_awal' => 'nullable|date',
+            'keterangan' => 'nullable|string',
+            'posted_saldo_awal' => 'nullable|boolean',
         ]);
 
-        $coa->update($validated);
+        $coa->update([
+            'kode_akun' => $validated['kode_akun'],
+            'nama_akun' => $validated['nama_akun'],
+            'tipe_akun' => $validated['tipe_akun'],
+            'kategori_akun' => $request->kategori_akun,
+            'is_akun_header' => $request->boolean('is_akun_header'),
+            'kode_induk' => $request->kode_induk,
+            'saldo_normal' => $request->saldo_normal,
+            'saldo_awal' => $request->saldo_awal,
+            'tanggal_saldo_awal' => $request->tanggal_saldo_awal,
+            'keterangan' => $request->keterangan,
+            'posted_saldo_awal' => $request->boolean('posted_saldo_awal'),
+        ]);
 
         return redirect()->route('master-data.coa.index')->with('success', 'COA berhasil diperbarui.');
     }

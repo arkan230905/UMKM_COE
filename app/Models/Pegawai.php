@@ -13,24 +13,22 @@ class Pegawai extends Model
     protected $table = 'pegawais';
 
     protected $fillable = [
-        'nomor_induk_pegawai',
+        'kode_pegawai',
         'nama',
+        'no_telepon',
         'email',
-        'no_telp',
         'alamat',
-        'jenis_kelamin',
+        'nama_bank',
+        'no_rekening',
         'jabatan',
-        'kategori_tenaga_kerja',
-        'tanggal_masuk',
-        'status_aktif',
-        'gaji_pokok',
-        'tarif_per_jam',
-        'gaji',
+        'kategori',
+        'asuransi',
+        'tarif',
         'tunjangan',
+        'gaji',
     ];
 
     protected $dates = [
-        'tanggal_masuk',
         'created_at',
         'updated_at'
     ];
@@ -44,14 +42,8 @@ class Pegawai extends Model
     public function scopeSearch($query, $search)
     {
         return $query->where('nama', 'like', "%{$search}%")
-                    ->orWhere('nomor_induk_pegawai', 'like', "%{$search}%");
+                    ->orWhere('no_telepon', 'like', "%{$search}%");
     }
 
-    /**
-     * Use nomor_induk_pegawai as the route key for implicit model binding.
-     */
-    public function getRouteKeyName(): string
-    {
-        return 'nomor_induk_pegawai';
-    }
+    // Use default 'id' for route model binding so views can pass numeric IDs
 }
