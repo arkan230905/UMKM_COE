@@ -29,6 +29,7 @@ use App\Http\Controllers\BopController;
 use App\Http\Controllers\BopBudgetController;
 use App\Http\Controllers\BomController;
 use App\Http\Controllers\AsetController;
+use App\Http\Controllers\JabatanController;
 
 // Transaksi
 use App\Http\Controllers\PembelianController;
@@ -109,23 +110,18 @@ Route::middleware('auth')->group(function () {
     Route::prefix('master-data')->name('master-data.')->group(function () {
         // Bahan Baku
         Route::resource('bahan-baku', BahanBakuController::class);
-        Route::resource('pegawai', PegawaiController::class);
-        
-        // Test route untuk presensi (bypass cache)
-        Route::get('presensi-test', [PresensiController::class, 'index'])->name('presensi.test');
-        
-        // Jabatan master data
-        Route::resource('jabatan', \App\Http\Controllers\JabatanController::class);
-        Route::resource('presensi', PresensiController::class);
-        Route::resource('produk', ProdukController::class);
-        Route::resource('vendor', VendorController::class);
-        Route::resource('satuan', SatuanController::class);
         Route::resource('coa', CoaController::class);
         Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generate-kode');
+        Route::resource('aset', AsetController::class);
+        Route::resource('jabatan', JabatanController::class);
+        Route::resource('pegawai', PegawaiController::class);
+        Route::resource('presensi', PresensiController::class);
+        Route::resource('vendor', VendorController::class);
+        Route::resource('satuan', SatuanController::class);
+        Route::resource('produk', ProdukController::class);
         Route::resource('bop', BopController::class);
         Route::post('bop/recalc', [BopController::class, 'recalc'])->name('bop.recalc');
         Route::resource('bop-budget', BopBudgetController::class)->names('bop-budget');
-        Route::resource('aset', AsetController::class);
         // Specific view route must be defined before resource to avoid being captured by 'bom/{bom}' show
         Route::get('bom/by-produk/{id}', [BomController::class, 'view'])->name('bom.view');
         Route::post('bom/by-produk/{id}', [BomController::class, 'updateByProduk'])->name('bom.updateByProduk');
