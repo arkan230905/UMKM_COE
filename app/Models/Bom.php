@@ -11,28 +11,36 @@ class Bom extends Model
 
     protected $fillable = [
         'produk_id',
-        'kode_bom',
+        'bahan_baku_id',
+        'jumlah',
+        'satuan_resep',
         'total_biaya',
-        'persentase_keuntungan',
-        'harga_jual',
-        'catatan'
+        'btkl_per_unit',
+        'bop_rate',
+        'bop_per_unit',
+        'total_btkl',
+        'total_bop',
+        'periode',
+        'created_at',
+        'updated_at'
     ];
 
     protected $casts = [
+        'jumlah' => 'decimal:4',
         'total_biaya' => 'decimal:2',
-        'persentase_keuntungan' => 'decimal:2',
-        'harga_jual' => 'decimal:2'
+        'btkl_per_unit' => 'decimal:2',
+        'bop_rate' => 'decimal:2',
+        'bop_per_unit' => 'decimal:2',
+        'total_btkl' => 'decimal:2',
+        'total_bop' => 'decimal:2'
     ];
-
-    protected $appends = ['keuntungan'];
 
     protected static function booted()
     {
         static::saving(function ($model) {
-            if (is_null($model->total_biaya)) {
-                $model->total_biaya = $model->hitungTotalBiaya();
+            if (empty($model->periode)) {
+                $model->periode = now()->format('Y-m');
             }
-            // Tidak mengubah harga_jual produk di tahap BOM
         });
     }
 
@@ -43,41 +51,26 @@ class Bom extends Model
 
     public function details()
     {
-        return $this->hasMany(BomDetail::class);
+        return $this->hasMany(BomDetail::class, 'bom_id');
     }
 
-    public function getKeuntunganAttribute()
+    public function bahanBaku()
     {
-        return $this->total_biaya * ($this->persentase_keuntungan / 100);
+        return $this->belongsTo(BahanBaku::class, 'bahan_baku_id');
     }
 
     public function hitungTotalBiaya()
     {
-        return $this->details->sum('subtotal');
+        $totalBahanBaku = $this->details->sum('total_harga');
+        $this->total_biaya = $totalBahanBaku + $this->total_btkl + $this->total_bop;
+        return $this->total_biaya;
     }
 
-    public function hitungHargaJual()
+    public function updateHargaProduk()
     {
-        return $this->total_biaya + $this->keuntungan;
-    }
-
-    public function updateHargaJual()
-    {
-        $this->total_biaya = $this->hitungTotalBiaya();
-        $this->harga_jual = $this->hitungHargaJual();
-        $this->save();
-
-        // Update harga jual di produk
         if ($this->produk) {
-            $this->produk->update(['harga_jual' => $this->harga_jual]);
+            $this->produk->update(['harga' => $this->total_biaya]);
         }
-        
         return $this;
-    }
-
-    public static function calculateBopForAll($periode = null)
-    {
-        $bom = new static;
-        return $bom->calculateBop($periode);
     }
 }

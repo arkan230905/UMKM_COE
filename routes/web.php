@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -122,11 +123,22 @@ Route::middleware('auth')->group(function () {
         Route::resource('bop', BopController::class);
         Route::post('bop/recalc', [BopController::class, 'recalc'])->name('bop.recalc');
         Route::resource('bop-budget', BopBudgetController::class)->names('bop-budget');
-        // Specific view route must be defined before resource to avoid being captured by 'bom/{bom}' show
-        Route::get('bom/by-produk/{id}', [BomController::class, 'view'])->name('bom.view');
-        Route::post('bom/by-produk/{id}', [BomController::class, 'updateByProduk'])->name('bom.updateByProduk');
-        Route::get('bom/generate-kode', [BomController::class, 'generateKodeBom'])->name('bom.generate-kode');
-        Route::resource('bom', BomController::class);
+        // BOM Routes
+        Route::prefix('bom')->name('bom.')->group(function () {
+            Route::get('by-produk/{id}', [BomController::class, 'view'])->name('view-by-produk');
+            Route::post('by-produk/{id}', [BomController::class, 'updateByProduk'])->name('update-by-produk');
+            Route::get('generate-kode', [BomController::class, 'generateKodeBom'])->name('generate-kode');
+            
+            // Resource routes with explicit names to avoid conflicts
+            Route::get('/', [BomController::class, 'index'])->name('index');
+            Route::get('/create', [BomController::class, 'create'])->name('create');
+            Route::post('/', [BomController::class, 'store'])->name('store');
+            Route::get('/{bom}', [BomController::class, 'show'])->name('show');
+            Route::get('/{bom}/print', [BomController::class, 'print'])->name('print');
+            Route::get('/{bom}/edit', [BomController::class, 'edit'])->name('edit');
+            Route::put('/{bom}', [BomController::class, 'update'])->name('update');
+            Route::delete('/{bom}', [BomController::class, 'destroy'])->name('destroy');
+        });
     });
 
 
@@ -205,6 +217,9 @@ Route::middleware('auth')->group(function () {
     Route::prefix('laporan')->name('laporan.')->group(function () {
         // Laporan Utama
         Route::get('/stok', [LaporanController::class, 'laporanStok'])->name('stok');
+        
+        // Laporan Produksi
+        Route::get('/produksi', [LaporanController::class, 'produksi'])->name('produksi');
         
         // Laporan Transaksi
         Route::get('/penjualan', [LaporanController::class, 'penjualan'])->name('penjualan');

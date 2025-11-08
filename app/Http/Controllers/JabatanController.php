@@ -10,13 +10,21 @@ class JabatanController extends Controller
     public function index()
     {
         $search = request('search');
+        $kategori = request('kategori');
+        
         $q = Jabatan::query();
+        
         if ($search) {
-            $q->where('nama', 'like', "%{$search}%")
-              ->orWhere('kategori', 'like', "%{$search}%");
+            $q->where('nama', 'like', "%{$search}%");
         }
+        
+        if ($kategori) {
+            $q->where('kategori', $kategori);
+        }
+        
         $jabatans = $q->orderBy('nama')->paginate(10)->withQueryString();
-        return view('master-data.jabatan.index', compact('jabatans','search'));
+        
+        return view('master-data.jabatan.index', compact('jabatans', 'search'));
     }
 
     public function create()

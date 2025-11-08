@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\BopApiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -8,11 +9,16 @@ use Illuminate\Support\Facades\Route;
 | API Routes
 |--------------------------------------------------------------------------
 |
-| Di sini kamu bisa mendefinisikan route untuk API aplikasi kamu.
-| Route ini otomatis dimuat oleh RouteServiceProvider dan semuanya
-| akan memiliki prefix "api".
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
 |
 */
+
+// BOP API Routes
+Route::prefix('bop')->group(function () {
+    Route::post('/update-aktual', [BopApiController::class, 'updateAktual'])->name('api.bop.update-aktual');
+});
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();

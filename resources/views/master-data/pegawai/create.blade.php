@@ -41,13 +41,15 @@
             </div>
 
             <div class="col-md-6 mb-3">
-                <label for="nama_bank" class="form-label">Nama Bank</label>
-                <input type="text" name="nama_bank" id="nama_bank" class="form-control" value="{{ old('nama_bank') }}">
-            </div>
-
-            <div class="col-md-6 mb-3">
-                <label for="no_rekening" class="form-label">No. Rekening</label>
-                <input type="text" name="no_rekening" id="no_rekening" class="form-control" value="{{ old('no_rekening') }}">
+                <label class="form-label">Jenis Kelamin</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="jenis_kelamin" id="laki_laki" value="L" {{ old('jenis_kelamin') == 'L' ? 'checked' : '' }} required>
+                    <label class="form-check-label" for="laki_laki">Laki-laki</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="jenis_kelamin" id="perempuan" value="P" {{ old('jenis_kelamin') == 'P' ? 'checked' : '' }} required>
+                    <label class="form-check-label" for="perempuan">Perempuan</label>
+                </div>
             </div>
 
             <div class="col-md-6 mb-3">

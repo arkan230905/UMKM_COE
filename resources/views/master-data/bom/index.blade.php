@@ -4,8 +4,36 @@
 <div class="container py-4">
     <h3 class="mb-4"><i class="bi bi-diagram-3"></i> Bill of Materials (BOM)</h3>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
+    @if(session('success') || request()->has('highlight'))
+        @php
+            $bomId = request()->get('highlight') ?? session('bom_id');
+        @endphp
+        
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>
+            {{ session('success') ?? 'BOM berhasil disimpan' }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Scroll ke BOM yang baru ditambahkan
+                const bomRow = document.getElementById('bom-{{ $bomId }}');
+                if (bomRow) {
+                    // Tambahkan class highlight
+                    bomRow.classList.add('table-success');
+                    // Scroll ke elemen
+                    setTimeout(() => {
+                        bomRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
+                    
+                    // Hapus highlight setelah 5 detik
+                    setTimeout(() => {
+                        bomRow.classList.remove('table-success');
+                    }, 5000);
+                }
+            });
+        </script>
     @endif
     @if($errors->any())
         <div class="alert alert-danger">
@@ -55,22 +83,18 @@
                             <tr>
                                 <th>Kode BOM</th>
                                 <th>Produk</th>
-                                <th class="text-end">Total Biaya</th>
-                                <th class="text-end">Keuntungan</th>
-                                <th class="text-end">Harga Jual</th>
+                                <th class="text-end">Total Biaya Produksi</th>
                                 <th class="text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($boms as $bom)
-                                <tr>
-                                    <td>{{ $bom->kode_bom }}</td>
+                                <tr id="bom-{{ $bom->id }}" class="{{ session('bom_id') == $bom->id ? 'table-success' : '' }}">
+                                    <td>{{ $bom->kode_bom ?? 'BOM-' . str_pad($bom->id, 4, '0', STR_PAD_LEFT) }}</td>
                                     <td>{{ $bom->produk->nama_produk }}</td>
-                                    <td class="text-end">Rp {{ number_format((float)($bom->total_biaya ?? 0), 0, ',', '.') }}</td>
-                                    <td class="text-end">{{ number_format((float)($bom->persentase_keuntungan ?? 0), 2) }}%</td>
-                                    <td class="text-end fw-bold">Rp {{ number_format((float)($bom->harga_jual ?? ($bom->total_biaya ?? 0) + (($bom->persentase_keuntungan ?? 0)/100.0 * ($bom->total_biaya ?? 0))), 0, ',', '.') }}</td>
+                                    <td class="text-end">Rp {{ number_format($bom->total_biaya_produksi, 0, ',', '.') }}</td>
                                     <td class="text-center">
-                                        <a href="{{ route('master-data.bom.show', $bom->id) }}" class="btn btn-sm btn-info text-white" title="Lihat">
+                                        <a href="{{ route('master-data.bom.show', $bom->id) }}" class="btn btn-sm btn-info" title="Lihat Detail">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         <a href="{{ route('master-data.bom.edit', $bom->id) }}" class="btn btn-sm btn-warning" title="Edit">

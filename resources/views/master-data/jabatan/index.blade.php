@@ -19,11 +19,30 @@
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3">
             <form method="GET" class="row g-2">
-                <div class="col-md-4">
-                    <input type="text" name="search" value="{{ $search }}" class="form-control" placeholder="Cari nama/kategori..">
+                <div class="col-md-3">
+                    <input type="text" 
+                           name="search" 
+                           value="{{ request('search') }}" 
+                           class="form-control" 
+                           placeholder="Cari nama jabatan..."
+                           style="color: #000; background-color: #f8f9fa;">
                 </div>
-                <div class="col-md-2">
-                    <button class="btn btn-outline-secondary">Cari</button>
+                <div class="col-md-3">
+                    <select name="kategori" class="form-select" onchange="this.form.submit()" style="color: #000; background-color: #f8f9fa;">
+                        <option value="">Semua Kategori</option>
+                        <option value="btkl" {{ request('kategori') == 'btkl' ? 'selected' : '' }}>BTKL</option>
+                        <option value="btktl" {{ request('kategori') == 'btktl' ? 'selected' : '' }}>BTKTL</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search"></i> Cari
+                    </button>
+                    @if(request('search') || request('kategori'))
+                        <a href="{{ route('master-data.jabatan.index') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                        </a>
+                    @endif
                 </div>
             </form>
         </div>

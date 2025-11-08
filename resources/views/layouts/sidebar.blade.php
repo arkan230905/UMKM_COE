@@ -1,55 +1,202 @@
 <div class="sidebar">
-    <div class="d-flex align-items-center mb-3">
-        <i class="bi bi-gem fs-4 me-2"></i>
-        <span class="fw-semibold">UMKM COE</span>
+    <div class="sidebar-brand">
+        <h4 class="text-white">UMKM COE</h4>
+        <small class="text-white-50">Aplikasi Manajemen UMKM</small>
     </div>
-    <ul class="nav flex-column">
-        <li class="nav-item">
-            <a href="{{ route('dashboard') }}" class="nav-link">
-                <i class="bi bi-speedometer2 me-2"></i> Dashboard
-            </a>
-        </li>
+    
+    <div class="sidebar-nav">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a href="{{ route('dashboard') }}" class="nav-link {{ request()->is('dashboard') ? 'active' : '' }}">
+                    <i class="fas fa-fw fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            
+            <!-- Master -->
+            <li class="nav-item mt-2">
+                <div class="text-uppercase text-white-50 small px-3 mb-1">Master</div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('master-data/coa*') ? 'active' : '' }}" href="{{ route('master-data.coa.index') }}">
+                    <i class="fas fa-fw fa-book"></i>
+                    <span>COA</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('master-data/aset*') ? 'active' : '' }}" href="{{ route('master-data.aset.index') }}">
+                    <i class="fas fa-fw fa-laptop"></i>
+                    <span>Aset</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('master-data/satuan*') ? 'active' : '' }}" href="{{ route('master-data.satuan.index') }}">
+                    <i class="fas fa-fw fa-ruler"></i>
+                    <span>Satuan</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('master-data/jabatan*') ? 'active' : '' }}" href="{{ route('master-data.jabatan.index') }}">
+                    <i class="fas fa-fw fa-user-tie"></i>
+                    <span>Jabatan</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('master-data/pegawai*') ? 'active' : '' }}" href="{{ route('master-data.pegawai.index') }}">
+                    <i class="fas fa-fw fa-users"></i>
+                    <span>Pegawai</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('master-data/presensi*') ? 'active' : '' }}" href="{{ route('master-data.presensi.index') }}">
+                    <i class="fas fa-fw fa-calendar-check"></i>
+                    <span>Presensi</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('master-data/vendor*') ? 'active' : '' }}" href="{{ route('master-data.vendor.index') }}">
+                    <i class="fas fa-fw fa-truck"></i>
+                    <span>Vendor</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('master-data/bahan-baku*') ? 'active' : '' }}" href="{{ route('master-data.bahan-baku.index') }}">
+                    <i class="fas fa-fw fa-boxes"></i>
+                    <span>Bahan Baku</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('master-data/produk*') ? 'active' : '' }}" href="{{ route('master-data.produk.index') }}">
+                    <i class="fas fa-fw fa-box"></i>
+                    <span>Produk</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('master-data/bop*') ? 'active' : '' }}" href="{{ route('master-data.bop.index') }}">
+                    <i class="fas fa-fw fa-calculator"></i>
+                    <span>BOP</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('master-data/bom*') ? 'active' : '' }}" href="{{ route('master-data.bom.index') }}">
+                    <i class="fas fa-fw fa-list-alt"></i>
+                    <span>BOM</span>
+                </a>
+            </li>
+            
+            <!-- Transaksi -->
+            <li class="nav-item mt-2">
+                <div class="text-uppercase text-white-50 small px-3 mb-1">Transaksi</div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('transaksi/pembelian*') ? 'active' : '' }}" href="{{ route('transaksi.pembelian.index') }}">
+                    <i class="fas fa-fw fa-shopping-cart"></i>
+                    <span>Pembelian</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('transaksi/produksi*') ? 'active' : '' }}" href="{{ route('transaksi.produksi.index') }}">
+                    <i class="fas fa-fw fa-industry"></i>
+                    <span>Produksi</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('transaksi/penjualan*') ? 'active' : '' }}" href="{{ route('transaksi.penjualan.index') }}">
+                    <i class="fas fa-fw fa-cash-register"></i>
+                    <span>Penjualan</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('transaksi/retur*') ? 'active' : '' }}" href="{{ route('transaksi.retur.index') }}">
+                    <i class="fas fa-fw fa-undo"></i>
+                    <span>Retur</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-fw fa-money-bill-wave"></i>
+                    <span>Pembayaran Beban</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-fw fa-hand-holding-usd"></i>
+                    <span>Pelunasan Utang</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-fw fa-money-bill"></i>
+                    <span>Penggajian</span>
+                </a>
+            </li>
+            
+            <!-- Laporan -->
+            <li class="nav-item mt-2">
+                <div class="text-uppercase text-white-50 small px-3 mb-1">Laporan</div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('laporan/stok*') ? 'active' : '' }}" href="{{ route('laporan.stok') }}">
+                    <i class="fas fa-fw fa-boxes"></i>
+                    <span>Laporan Stok</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('laporan/penjualan*') ? 'active' : '' }}" href="{{ route('laporan.penjualan') }}">
+                    <i class="fas fa-fw fa-file-invoice"></i>
+                    <span>Laporan Penjualan</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-fw fa-undo"></i>
+                    <span>Laporan Retur</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-fw fa-money-bill"></i>
+                    <span>Laporan Penggajian</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-fw fa-money-bill-wave"></i>
+                    <span>Laporan Pembayaran Beban</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-fw fa-hand-holding-usd"></i>
+                    <span>Laporan Pelunasan Utang</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-fw fa-book"></i>
+                    <span>Jurnal Umum</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-fw fa-book-open"></i>
+                    <span>Buku Besar</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-fw fa-balance-scale"></i>
+                    <span>Neraca Saldo</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-fw fa-chart-line"></i>
+                    <span>Laba Rugi</span>
+                </a>
+            </li>
+        </ul>
+    </div>
 
-        <li class="nav-item mt-3">
-            <div class="text-uppercase text-muted small mb-2">Master Data</div>
-        </li>
-        <li class="nav-item"><a href="{{ route('master-data.coa.index') }}" class="nav-link"><i class="bi bi-list-check me-2"></i> COA</a></li>
-        <li class="nav-item"><a href="{{ route('master-data.aset.index') }}" class="nav-link"><i class="bi bi-box2-heart me-2"></i> Aset</a></li>
-        <li class="nav-item"><a href="{{ route('master-data.jabatan.index') }}" class="nav-link"><i class="bi bi-person-badge me-2"></i> Jabatan</a></li>
-        <li class="nav-item"><a href="{{ route('master-data.pegawai.index') }}" class="nav-link"><i class="bi bi-people-fill me-2"></i> Pegawai</a></li>
-        <li class="nav-item"><a href="{{ route('master-data.presensi.index') }}" class="nav-link"><i class="bi bi-calendar-check me-2"></i> Presensi</a></li>
-        <li class="nav-item"><a href="{{ route('master-data.vendor.index') }}" class="nav-link"><i class="bi bi-truck me-2"></i> Vendor</a></li>
-        <li class="nav-item"><a href="{{ route('master-data.satuan.index') }}" class="nav-link"><i class="bi bi-upc-scan me-2"></i> Satuan</a></li>
-        <li class="nav-item"><a href="{{ route('master-data.produk.index') }}" class="nav-link"><i class="bi bi-box-seam me-2"></i> Produk</a></li>
-        <li class="nav-item"><a href="{{ route('master-data.bahan-baku.index') }}" class="nav-link"><i class="bi bi-basket3 me-2"></i> Bahan Baku</a></li>
-        <li class="nav-item"><a href="{{ route('master-data.bop.index') }}" class="nav-link"><i class="bi bi-calculator me-2"></i> BOP</a></li>
-        <li class="nav-item"><a href="{{ route('master-data.bom.index') }}" class="nav-link"><i class="bi bi-diagram-3 me-2"></i> BOM</a></li>
-
-        <li class="nav-item mt-3">
-            <div class="text-uppercase text-muted small mb-2">Transaksi</div>
-        </li>
-        <li class="nav-item"><a href="{{ route('transaksi.pembelian.index') }}" class="nav-link"><i class="bi bi-cart me-2"></i> Pembelian</a></li>
-        <li class="nav-item"><a href="{{ route('transaksi.produksi.index') }}" class="nav-link"><i class="bi bi-diagram-3 me-2"></i> Produksi</a></li>
-        <li class="nav-item"><a href="{{ route('transaksi.penjualan.index') }}" class="nav-link"><i class="bi bi-currency-dollar me-2"></i> Penjualan</a></li>
-        <li class="nav-item"><a href="{{ route('transaksi.retur.index') }}" class="nav-link"><i class="bi bi-arrow-counterclockwise me-2"></i> Retur</a></li>
-        <li class="nav-item"><a href="{{ route('transaksi.expense-payment.index') }}" class="nav-link"><i class="bi bi-cash-coin me-2"></i> Pembayaran Beban</a></li>
-        <li class="nav-item"><a href="{{ route('transaksi.ap-settlement.index') }}" class="nav-link"><i class="bi bi-credit-card me-2"></i> Pelunasan Utang</a></li>
-        <li class="nav-item"><a href="{{ route('transaksi.penggajian.index') }}" class="nav-link"><i class="bi bi-wallet2 me-2"></i> Penggajian</a></li>
-
-        <li class="nav-item mt-3">
-            <div class="text-uppercase text-muted small mb-2">Laporan</div>
-        </li>
-        <li class="nav-item"><a href="{{ route('laporan.stok') }}" class="nav-link"><i class="bi bi-box-seam me-2"></i> Laporan Stok</a></li>
-        <li class="nav-item"><a href="{{ route('laporan.penjualan') }}" class="nav-link"><i class="bi bi-file-bar-graph me-2"></i> Laporan Penjualan</a></li>
-        <li class="nav-item"><a href="{{ route('laporan.pembelian') }}" class="nav-link"><i class="bi bi-file-text me-2"></i> Laporan Pembelian</a></li>
-        <li class="nav-item"><a href="{{ route('laporan.retur') }}" class="nav-link"><i class="bi bi-arrow-return-left me-2"></i> Laporan Retur</a></li>
-        <li class="nav-item"><a href="{{ route('laporan.penggajian') }}" class="nav-link"><i class="bi bi-cash-stack me-2"></i> Laporan Penggajian</a></li>
-        <li class="nav-item"><a href="{{ route('laporan.pembayaran-beban') }}" class="nav-link"><i class="bi bi-credit-card-2-back me-2"></i> Laporan Pembayaran Beban</a></li>
-        <li class="nav-item"><a href="{{ route('laporan.pelunasan-utang') }}" class="nav-link"><i class="bi bi-wallet2 me-2"></i> Laporan Pelunasan Utang</a></li>
-        <li class="nav-item"><a href="{{ route('akuntansi.jurnal-umum') }}" class="nav-link"><i class="bi bi-journal-text me-2"></i> Jurnal Umum</a></li>
-        <li class="nav-item"><a href="{{ route('akuntansi.buku-besar') }}" class="nav-link"><i class="bi bi-journal-richtext me-2"></i> Buku Besar</a></li>
-        <li class="nav-item mb-1"><a href="{{ route('akuntansi.neraca-saldo') }}" class="nav-link"><i class="bi bi-ui-checks-grid me-2"></i> Neraca Saldo</a></li>
-        <li class="nav-item mb-1"><a href="{{ route('akuntansi.laba-rugi') }}" class="nav-link"><i class="bi bi-graph-up me-2"></i> Laba Rugi</a></li>
-
-    </ul>
+    <!-- User Profile Section Removed -->
 </div>

@@ -75,6 +75,12 @@ class ProdukController extends Controller
         return view('master-data.produk.edit', compact('produk'));
     }
 
+    public function show($id)
+    {
+        $produk = Produk::with(['boms.bahanBaku'])->findOrFail($id);
+        return view('master-data.produk.show', compact('produk'));
+    }
+
     public function update(Request $request, Produk $produk)
     {
         $request->validate([

@@ -14,8 +14,11 @@
         </div>
     @endif
 
-    <form action="{{ route('master-data.bom.store') }}" method="POST">
+    <form action="{{ route('master-data.bom.store') }}" method="POST" id="bomForm" class="needs-validation" novalidate>
         @csrf
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Silakan tambahkan bahan baku yang dibutuhkan. BTKL dan BOP akan dihitung otomatis oleh sistem.
+        </div>
 
         <div class="mb-3">
             <label for="produk_id" class="form-label">Produk</label>
@@ -38,10 +41,15 @@
                     <table class="table table-bordered" id="bomTable">
                         <thead class="table-light">
                             <tr>
-                                <th width="40%">Bahan Baku</th>
-                                <th width="15%">Jumlah</th>
-                                <th width="25%">Satuan Resep</th>
-                                <th width="10%">Aksi</th>
+                                <th>Bahan Baku</th>
+                                <th>Jumlah</th>
+                                <th>Satuan</th>
+                                <th>Harga Utama</th>
+                                <th>Harga 1</th>
+                                <th>Harga 2</th>
+                                <th>Harga 3</th>
+                                <th>Kategori</th>
+                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -51,10 +59,25 @@
                                         <option value="">-- Pilih Bahan --</option>
                                         @foreach($bahanBakus as $bahan)
                                             @php
-                                                $satuan = $bahan->satuan ? $bahan->satuan->nama : 'Satuan';
-                                                $harga = $bahan->harga_satuan ?? 0; // gunakan harga_satuan aktual
+                                                $satuanNama = 'Satuan';
+                                                $harga = $bahan->harga_satuan ?? 0;
+                                                $namaBahan = $bahan->nama ?? $bahan->nama_bahan ?? 'Bahan Tanpa Nama';
+                                                
+                                                // Cek apakah relasi satuan ada dan valid
+                                                if (isset($bahan->satuan) && is_object($bahan->satuan) && property_exists($bahan->satuan, 'nama')) {
+                                                    $satuanNama = $bahan->satuan->nama;
+                                                    $namaBahan .= ' (' . $bahan->satuan->nama . ')';
+                                                }
                                             @endphp
-                                            <option value="{{ $bahan->id }}" data-satuan="{{ $satuan }}" data-harga="{{ $harga }}">{{ $bahan->nama ?? $bahan->nama_bahan ?? 'Bahan' }}</option>
+                                            <option value="{{ $bahan->id }}" 
+                                                data-satuan="{{ $satuanNama }}"
+                                                data-harga-kg="{{ $bahan->harga_satuan }}"
+                                                data-harga-hg="{{ $bahan->harga_satuan * 0.1 }}"
+                                                data-harga-dag="{{ $bahan->harga_satuan * 0.01 }}"
+                                                data-harga-gr="{{ $bahan->harga_satuan / 1000 }}"
+                                                data-satuan-utama="{{ $satuanNama }}">
+                                                {{ $namaBahan }}
+                                            </option>
                                         @endforeach
                                     </select>
                                 </td>
@@ -63,10 +86,21 @@
                                 </td>
                                 <td>
                                     <select name="satuan[]" class="form-select form-select-sm satuanSelect">
-                                        <option value="">(ikuti satuan bahan)</option>
-                                        @foreach(($satuans ?? []) as $sat)
-                                            <option value="{{ $sat->kode }}">{{ $sat->kode }} ({{ $sat->nama }})</option>
+                                        @foreach($satuans as $satuan)
+                                            <option value="{{ $satuan->kode }}" data-nama="{{ $satuan->nama }}">
+                                                {{ $satuan->nama }} ({{ $satuan->kode }})
+                                            </option>
                                         @endforeach
+                                    </select>
+                                </td>
+                                <td class="text-center harga-utama">-</td>
+                                <td class="text-center harga-1">-</td>
+                                <td class="text-center harga-2">-</td>
+                                <td class="text-center harga-3">-</td>
+                                <td>
+                                    <select name="kategori[]" class="form-select form-select-sm">
+                                        <option value="BOP">BOP</option>
+                                        <option value="BTKL">BTKL</option>
                                     </select>
                                 </td>
                                 <td class="text-center">
@@ -80,13 +114,26 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-between">
-            <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Kembali
-            </a>
-            <button type="submit" class="btn btn-success">Simpan BOM & Hitung Harga Jual</button>
+
+        <div class="mb-3">
+            <button type="submit" class="btn btn-primary">Simpan BOM</button>
+            <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary">Batal</a>
+        </form>
+        
+        <!-- Debug Form -->
+        <div class="mt-5">
+            <h4>Debug Info:</h4>
+            <div class="card">
+                <div class="card-body">
+                    <h5>Form Data:</h5>
+                    <pre id="formDataDebug"></pre>
+                    
+                    <h5 class="mt-3">Response:</h5>
+                    <pre id="responseDebug">Belum ada respon</pre>
+                </div>
+            </div>
         </div>
-    </form>
+    </div>
 </div>
 
 @include('master-data.bom.js')
@@ -275,7 +322,138 @@
 
     // Format angka ke format rupiah
     function formatRupiah(angka) {
-        return new Intl.NumberFormat('id-ID').format(angka);
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(angka);
+    }
+
+    // Fungsi untuk mendapatkan konversi satuan ke KG
+    function getKonversiKeKg(satuanKode) {
+        const konversi = {
+            'KG': 1,
+            'HG': 0.1,
+            'DAG': 0.01,
+            'G': 0.001,
+            'GR': 0.001,
+            'ONS': 0.1,
+            'KW': 100,
+            'TON': 1000,
+            // Tambahkan konversi satuan lainnya di sini
+        };
+        
+        // Cari satuan yang cocok (case insensitive)
+        const satuanUpper = satuanKode.toUpperCase();
+        return konversi[satuanUpper] || 1; // Default 1 jika tidak ditemukan
+    }
+    
+    // Update harga saat bahan baku dipilih
+    function updateHarga(selectElement) {
+        const row = selectElement.closest('tr');
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        
+        if (selectedOption.value) {
+            const hargaSatuan = parseFloat(selectedOption.getAttribute('data-harga-satuan')) || 0;
+            const satuanAsal = selectedOption.getAttribute('data-satuan-utama') || 'KG';
+            
+            // Simpan data harga dan satuan di row untuk perhitungan
+            row.dataset.hargaSatuan = hargaSatuan;
+            row.dataset.satuanAsal = satuanAsal;
+            
+            // Dapatkan semua satuan yang tersedia
+            const satuanSelect = row.querySelector('.satuanSelect');
+            const satuanOptions = Array.from(satuanSelect.options).map(opt => ({
+                kode: opt.value,
+                nama: opt.text.split('(')[0].trim()
+            }));
+            
+            // Update harga untuk setiap kolom harga
+            satuanOptions.forEach((satuan, index) => {
+                if (index < 4) { // Hanya tampilkan 4 harga (utama + 3 lainnya)
+                    const hargaElement = row.querySelector(`.harga-${index === 0 ? 'utama' : index}`);
+                    if (hargaElement) {
+                        const konversiKeKg = getKonversiKeKg(satuan.kode);
+                        const hargaDalamSatuan = (hargaSatuan / konversiKeKg).toFixed(2);
+                        hargaElement.textContent = `${formatRupiah(hargaDalamSatuan)}/${satuan.kode}`;
+                        hargaElement.dataset.harga = hargaDalamSatuan;
+                    }
+                }
+            });
+            
+            // Set satuan default jika belum dipilih
+            if (!satuanSelect.value) {
+                satuanSelect.value = satuanAsal;
+            }
+            
+            // Hitung ulang subtotal
+            hitungSubtotal(selectElement);
+        } else {
+            // Reset harga jika tidak ada yang dipilih
+            row.querySelectorAll('.harga-utama, .harga-1, .harga-2, .harga-3').forEach(el => {
+                el.textContent = '-';
+            });
+        }
+    }
+    
+    // Hitung subtotal saat jumlah atau satuan berubah
+    function hitungSubtotal(inputElement) {
+        const row = inputElement.closest('tr');
+        const selectBahan = row.querySelector('.bahanSelect');
+        const selectedOption = selectBahan.options[selectBahan.selectedIndex];
+        
+        if (!selectedOption || !selectedOption.value) return;
+        
+        const jumlah = parseFloat(inputElement.value) || 0;
+        const satuanSelect = row.querySelector('.satuanSelect');
+        const satuanKode = satuanSelect.value;
+        const satuanNama = satuanSelect.options[satuanSelect.selectedIndex].getAttribute('data-nama') || satuanKode;
+        
+        // Dapatkan harga satuan dan satuan asal dari bahan baku
+        const hargaSatuan = parseFloat(row.dataset.hargaSatuan) || 0;
+        const satuanAsal = row.dataset.satuanAsal || 'KG';
+        
+        // Dapatkan konversi ke KG untuk satuan asal dan satuan yang dipilih
+        const konversiSatuanAsal = getKonversiKeKg(satuanAsal);
+        const konversiSatuanDipilih = getKonversiKeKg(satuanKode);
+        
+        // Hitung harga dalam satuan yang dipilih
+        const hargaDalamSatuanDipilih = (hargaSatuan * konversiSatuanAsal) / konversiSatuanDipilih;
+        
+        // Hitung subtotal
+        const subtotal = jumlah * hargaDalamSatuanDipilih;
+        
+        // Update tampilan subtotal
+        if (row.querySelector('.subtotal')) {
+            row.querySelector('.subtotal').textContent = formatRupiah(subtotal);
+        }
+        
+        // Update nilai input hidden untuk perhitungan di server
+        const hargaInput = row.querySelector('input[name^="harga_satuan"]') || document.createElement('input');
+        hargaInput.type = 'hidden';
+        hargaInput.name = 'harga_satuan[]';
+        hargaInput.value = hargaDalamSatuanDipilih;
+        if (!row.contains(hargaInput)) {
+            row.appendChild(hargaInput);
+        }
+        
+        // Update total biaya
+        hitungTotalBiaya();
+    }
+    function formatRupiah(angka) {
+        if (!angka) return 'Rp 0';
+        
+        let number_string = angka.toString().replace(/[^\d]/g, '');
+        let reverse = number_string.split('').reverse().join('');
+        let ribuan = reverse.match(/\d{1,3}/g);
+        
+        if (ribuan) {
+            let separator = ribuan.join('.').split('').reverse().join('');
+            return 'Rp ' + separator;
+        }
+        
+        return 'Rp ' + number_string;
     }
 
     // Hitung total biaya
@@ -284,60 +462,53 @@
         
         document.querySelectorAll('#bomTable tbody tr').forEach(row => {
             const kuantitas = parseFloat(row.querySelector('.kuantitas').value) || 0;
-            const hargaSatuan = parseFloat(row.querySelector('.bahan-select option:checked').dataset.harga) || 0;
-            total += kuantitas * hargaSatuan;
-        });
         
-        document.getElementById('totalBiaya').textContent = 'Rp ' + formatRupiah(total.toFixed(0));
-        document.getElementById('totalBiayaField').value = 'Rp ' + formatRupiah(total.toFixed(0));
-        
-        // Hitung harga jual
-        hitungHargaJual(total);
-        
-        return total;
+        // Kode ini akan dihapus karena sudah ada di atas
     }
-    
-    // Hitung harga jual berdasarkan total biaya dan persentase keuntungan
-    function hitungHargaJual(totalBiaya) {
-        const persentase = parseFloat(document.getElementById('persentase_keuntungan').value) || 0;
-        const keuntungan = totalBiaya * (persentase / 100);
-        const hargaJual = totalBiaya + keuntungan;
+
+    // Format input number dengan pemisah ribuan
+    function formatNumberInput(input) {
+        // Hapus karakter selain angka
+        let value = input.value.replace(/\D/g, '');
         
-        document.getElementById('hargaJual').value = 'Rp ' + formatRupiah(hargaJual.toFixed(0));
+        // Format dengan pemisah ribuan
+        value = new Intl.NumberFormat('id-ID').format(value);
+        
+        // Set nilai input
+        input.value = value;
     }
 
     // Fungsi untuk menambah baris bahan baku
     document.getElementById('addRow').addEventListener('click', function() {
+        rowCount++;
         const tbody = document.querySelector('#bomTable tbody');
         const newRow = document.createElement('tr');
         
         newRow.innerHTML = `
             <td>
-                <select name="details[${rowCount}][bahan_baku_id]" class="form-select bahan-select" required>
-                    <option value="">-- Pilih Bahan Baku --</option>
+                <select name="bahan_baku_id[]" class="form-select bahan-select" required>
+                    <option value="">-- Pilih Bahan --</option>
                     @foreach($bahanBakus as $bahan)
-                        <option value="{{ $bahan->id }}" data-harga="{{ $bahan->harga_satuan }}">
-                            {{ $bahan->nama_bahan }} ({{ $bahan->satuan->nama_satuan ?? '-' }})
+                        @php
+                            $namaBahan = $bahan->nama ?? $bahan->nama_bahan ?? 'Bahan Tanpa Nama';
+                            $satuanNama = 'pcs';
+                            if (isset($bahan->satuan) && is_object($bahan->satuan) && property_exists($bahan->satuan, 'nama')) {
+                                $satuanNama = $bahan->satuan->nama;
+                                $namaBahan .= ' (' . $satuanNama . ')';
+                            }
+                        @endphp
+                        <option value="{{ $bahan->id }}" data-satuan="{{ $satuanNama }}" data-harga="{{ $bahan->harga_satuan ?? 0 }}">
+                            {{ $namaBahan }}
                         </option>
                     @endforeach
                 </select>
             </td>
             <td>
-                <input type="number" name="details[${rowCount}][kuantitas]" class="form-control kuantitas" 
+                <input type="number" name="jumlah[]" class="form-control kuantitas" 
                        min="0.01" step="0.0001" value="1" required>
             </td>
             <td>
-                <input type="text" class="form-control satuan" 
-                       value="{{ $bahanBakus->first() && $bahanBakus->first()->satuan ? $bahanBakus->first()->satuan->nama_satuan : '' }}" 
-                       readonly>
-            </td>
-            <td>
-                <div class="input-group">
-                    <span class="input-group-text">Rp</span>
-                    <input type="text" class="form-control harga-satuan" 
-                           value="{{ $bahanBakus->first() ? number_format($bahanBakus->first()->harga_satuan, 0, ',', '.') : '0' }}" 
-                           readonly>
-                </div>
+                <input type="text" name="satuan[]" class="form-control satuan" value="" readonly>
             </td>
             <td class="text-center">
                 <button type="button" class="btn btn-danger btn-sm removeRow">
@@ -347,63 +518,206 @@
         `;
         
         tbody.appendChild(newRow);
-        rowCount++;
-        
-        // Inisialisasi event listener untuk baris baru
         initRowEvents(newRow);
     });
 
-    // Fungsi untuk menghapus baris bahan baku
+    // Inisialisasi event untuk baris pertama
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstRow = document.querySelector('#bomTable tbody tr');
+        if (firstRow) {
+            initRowEvents(firstRow);
+        }
+    });
+
+    // Fungsi untuk inisialisasi event pada setiap baris
     function initRowEvents(row) {
         // Hapus baris
         const removeBtn = row.querySelector('.removeRow');
         if (removeBtn) {
             removeBtn.addEventListener('click', function() {
-                if (document.querySelectorAll('#bomTable tbody tr').length > 1) {
-                    row.remove();
-                    hitungTotalBiaya();
+                const tbody = this.closest('tbody');
+                const rows = tbody.querySelectorAll('tr');
+                
+                // Pastikan setidaknya ada satu baris
+                if (rows.length > 1) {
+                    this.closest('tr').remove();
                 } else {
                     alert('Minimal harus ada satu bahan baku');
                 }
             });
         }
-        
-        // Update satuan dan harga saat bahan baku dipilih
+
+        // Update satuan saat bahan baku dipilih
         const select = row.querySelector('.bahan-select');
         if (select) {
             select.addEventListener('change', function() {
                 const selectedOption = this.options[this.selectedIndex];
-                const satuan = selectedOption.textContent.match(/\(([^)]+)\)/);
-                const harga = parseFloat(selectedOption.dataset.harga) || 0;
+                const row = this.closest('tr');
+                const satuanInput = row.querySelector('.satuan');
                 
-                const satuanField = row.querySelector('.satuan');
-                const hargaField = row.querySelector('.harga-satuan');
-                
-                if (satuan && satuan[1]) {
-                    satuanField.value = satuan[1].trim();
+                if (selectedOption && satuanInput) {
+                    satuanInput.value = selectedOption.dataset.satuan || 'pcs';
                 }
-                
-                hargaField.value = formatRupiah(harga);
-                hitungTotalBiaya();
             });
-        }
-        
-        // Update perhitungan saat kuantitas berubah
-        const kuantitasField = row.querySelector('.kuantitas');
-        if (kuantitasField) {
-            kuantitasField.addEventListener('input', function() {
-                hitungTotalBiaya();
-            });
+            
+            // Trigger change event untuk mengisi satuan awal jika sudah ada nilai
+            if (select.value) {
+                select.dispatchEvent(new Event('change'));
+            }
         }
     }
 
-    // Inisialisasi event listener untuk baris pertama
-    document.querySelectorAll('#bomTable tbody tr').forEach(row => {
-        initRowEvents(row);
+    // Event listener untuk perubahan bahan baku
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('bahanSelect')) {
+            updateHarga(e.target);
+        } else if (e.target.classList.contains('jumlahInput') || e.target.classList.contains('satuanSelect')) {
+            hitungSubtotal(e.target);
+        }
     });
 
-    // Update perhitungan saat persentase keuntungan berubah
-    document.getElementById('persentase_keuntungan').addEventListener('input', function() {
+    // Inisialisasi harga untuk baris yang sudah ada
+    document.querySelectorAll('.bahanSelect').forEach(select => {
+        if (select.value) {
+            updateHarga(select);
+        }
+    });
+
+    // Fungsi untuk mengecek validasi form
+    function validateForm() {
+        const bahanBakuInputs = document.querySelectorAll('select[name="bahan_baku_id[]"]');
+        let isValid = false;
+        let hasEmptyBahanBaku = false;
+        
+        // Cek apakah ada bahan baku yang dipilih
+        bahanBakuInputs.forEach(input => {
+            if (input.value) {
+                isValid = true;
+            } else {
+                hasEmptyBahanBaku = true;
+            }
+        });
+        
+        if (!isValid) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Minimal harus memilih satu bahan baku',
+                confirmButtonColor: '#3085d6',
+            });
+            return { valid: false };
+        }
+        
+        return { 
+            valid: true,
+            hasEmptyBahanBaku: hasEmptyBahanBaku 
+        };
+    }
+    
+    // Fungsi untuk menampilkan konfirmasi
+    function showConfirmation(callback) {
+        Swal.fire({
+            title: 'Konfirmasi',
+            text: 'Apakah Anda yakin ingin menyimpan BOM ini?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, simpan',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                callback();
+            }
+        });
+    }
+    
+    // Fungsi untuk submit form
+    function submitForm() {
+        const form = document.getElementById('bomForm');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        
+        // Tampilkan loading
+            }
+        });
+
+        // Fungsi untuk inisialisasi event pada setiap baris
+        function initRowEvents(row) {
+            // Hapus baris
+            const removeBtn = row.querySelector('.removeRow');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function() {
+                    const tbody = this.closest('tbody');
+                    const rows = tbody.querySelectorAll('tr');
+                    
+                    // Pastikan setidaknya ada satu baris
+                    if (rows.length > 1) {
+                        this.closest('tr').remove();
+                    } else {
+                        alert('Minimal harus ada satu bahan baku');
+                    }
+                });
+            }
+        })
+        .finally(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
+        });
+    }
+    
+    // Event listener untuk form submission
+    document.getElementById('bomForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validasi form
+        const validation = validateForm();
+        if (!validation.valid) return false;
+        
+        // Tampilkan konfirmasi
+        showConfirmation(submitForm);
+        
+        return false;
+    });
+    
+    // Fungsi untuk menghitung total biaya
+    function hitungTotalBiaya() {
+        let total = 0;
+        
+        document.querySelectorAll('#bomTable tbody tr').forEach(row => {
+            const kuantitas = parseFloat(row.querySelector('.kuantitas').value) || 0;
+            const hargaSatuan = parseFloat(row.querySelector('.harga-satuan').value) || 0;
+            const subtotal = kuantitas * hargaSatuan;
+            
+            row.querySelector('.subtotal').textContent = formatRupiah(subtotal);
+            total += subtotal;
+        });
+        
+        // Hitung BTKL (30% dari total bahan baku)
+        const btkl = total * 0.3;
+        
+        // Hitung BOP (20% dari total bahan baku)
+        const bop = total * 0.2;
+        
+        // Hitung total biaya produksi
+        const totalBiayaProduksi = total + btkl + bop;
+        
+        // Update tampilan
+        document.querySelector('.total-bahan-baku').textContent = formatRupiah(total);
+        document.querySelector('.total-btkl').textContent = formatRupiah(btkl);
+        document.querySelector('.total-bop').textContent = formatRupiah(bop);
+        document.querySelector('.total-biaya').textContent = formatRupiah(totalBiayaProduksi);
+    }
+    
+    // Event listener untuk perubahan kuantitas dan harga satuan
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('kuantitas') || e.target.classList.contains('harga-satuan')) {
+            hitungTotalBiaya();
+        }
+    });
+    
+    // Panggil fungsi hitungTotalBiaya saat halaman dimuat
+    document.addEventListener('DOMContentLoaded', function() {
         hitungTotalBiaya();
     });
 

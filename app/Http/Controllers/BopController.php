@@ -4,110 +4,145 @@ namespace App\Http\Controllers;
 
 use App\Models\Bop;
 use App\Models\Coa;
-use App\Models\Pegawai;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class BopController extends Controller
 {
-    // Tampilkan semua data BOP
+    /**
+     * Menampilkan daftar BOP dengan budget
+     */
     public function index()
     {
-        // Ambil data BOP dan relasi COA
-        $bop = Bop::with('coa')->get();
-
-        // Jika ada COA yang belum punya BOP, tambahkan otomatis
-        // Kriteria: tipe_akun beban/expense/biaya ATAU kode_akun dimulai dengan '5'
-        $coaTanpaBop = Coa::where(function($q){
-                                $q->whereIn('tipe_akun', ['Expense', 'Beban', 'Biaya'])
+        // Ambil semua akun beban (COA dengan tipe beban atau kode 5)
+        $akunBeban = Coa::where(function($query) {
+                            $query->whereIn('tipe_akun', ['Expense', 'Beban', 'Biaya'])
                                   ->orWhere('kode_akun', 'like', '5%');
-                            })
-                            ->whereDoesntHave('bop')
-                            ->get();
+                         })
+                         ->orderBy('kode_akun')
+                         ->get();
 
-        foreach ($coaTanpaBop as $coa) {
-            Bop::create([
-                'coa_id' => $coa->id,
-                'keterangan' => 'Sinkron otomatis dari COA',
-            ]);
-        }
+        // Ambil data BOP yang sudah ada
+        $bops = Bop::with('coa')
+                   ->orderBy('kode_akun')
+                   ->get()
+                   ->keyBy('kode_akun');
 
-        // Ambil ulang data terbaru
-        $bop = Bop::with('coa')->get();
-
-        return view('master-data.bop.index', compact('bop'));
+        return view('master-data.bop.index', compact('akunBeban', 'bops'));
     }
 
-    // Rekalkulasi Beban Gaji (Perkiraan) untuk bulan tertentu
-    public function recalc(Request $request)
+    /**
+     * Menyimpan budget BOP baru
+     */
+    public function store(Request $request)
     {
-        $periodeInput = $request->input('periode'); // format expected: YYYY-MM
-        $periode = $periodeInput ? Carbon::createFromFormat('Y-m', $periodeInput) : Carbon::now();
-
-        // Hanya kumpulkan gaji BTKTL (tenaga kerja tidak langsung) untuk BOP
-        $perkiraan = 0.0;
-        foreach (Pegawai::all() as $p) {
-            $jenis = strtolower($p->jenis_pegawai ?? '');
-            if ($jenis !== 'btktl') { // selain BTKTL tidak masuk BOP
-                continue;
-            }
-            $base = (float) ($p->gaji_pokok ?? 0);
-            if ($base <= 0) { $base = (float) ($p->gaji ?? 0); }
-            $tunj = (float) ($p->tunjangan ?? 0);
-            $perkiraan += ($base + $tunj);
-        }
-
-        // COA sasaran: Beban Gaji BTKTL / BOP (prioritas kode 212)
-        $coaBebanGaji = Coa::where('kode_akun', 212)
-            ->orWhereRaw('LOWER(nama_akun) like ?', ['%btktl%'])
-            ->orWhereRaw('LOWER(nama_akun) like ?', ['%tenaga kerja tidak langsung%'])
-            ->first();
-
-        if ($coaBebanGaji) {
-            $tanggal = $periode->copy()->endOfMonth()->toDateString();
-            Bop::updateOrCreate(
-                [
-                    'coa_id' => $coaBebanGaji->id,
-                    'tanggal' => $tanggal,
-                ],
-                [
-                    'keterangan' => 'Beban Gaji (Perkiraan) ' . $periode->format('F Y'),
-                    'nominal' => $perkiraan,
-                ]
-            );
-        }
-
-        return redirect()->route('master-data.bop.index')
-            ->with('success', 'Rekalkulasi Beban Gaji (Perkiraan) berhasil untuk ' . $periode->format('F Y'));
-    }
-
-    // Edit data BOP
-    public function edit(Bop $bop)
-    {
-        $coa = Coa::whereIn('tipe_akun', ['Expense', 'Beban', 'Biaya'])->get();
-        return view('master-data.bop.edit', compact('bop', 'coa'));
-    }
-
-    // Update data BOP
-    public function update(Request $request, Bop $bop)
-    {
-        $request->validate([
-            'nominal' => 'nullable|numeric',
-            'tanggal' => 'nullable|date',
+        $validated = $request->validate([
+            'kode_akun' => 'required|exists:coas,kode_akun',
+            'budget' => 'required|numeric|min:0',
+            'keterangan' => 'nullable|string|max:255',
         ]);
 
-        $bop->update($request->only('nominal', 'tanggal'));
+        try {
+            DB::beginTransaction();
 
-        return redirect()->route('master-data.bop.index')
-                         ->with('success', 'Data BOP berhasil diperbarui');
+            // Cek apakah sudah ada data BOP untuk akun ini
+            $bop = Bop::firstOrNew(['kode_akun' => $validated['kode_akun']]);
+            
+            // Ambil nama akun dari COA
+            $coa = Coa::where('kode_akun', $validated['kode_akun'])->first();
+            
+            $bop->fill([
+                'nama_akun' => $coa->nama_akun ?? 'Beban Lainnya',
+                'budget' => $validated['budget'],
+                'keterangan' => $validated['keterangan'] ?? null,
+                'is_active' => true,
+            ]);
+
+            $bop->save();
+
+            DB::commit();
+
+            return redirect()
+                ->route('master-data.bop.index')
+                ->with('success', 'Budget BOP berhasil disimpan');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()
+                ->withInput()
+                ->with('error', 'Gagal menyimpan budget BOP: ' . $e->getMessage());
+        }
     }
 
-    // Hapus data BOP
-    public function destroy(Bop $bop)
+    /**
+     * Menampilkan form edit budget BOP
+     */
+    public function edit($id)
     {
-        $bop->delete();
+        $bop = Bop::findOrFail($id);
+        return view('master-data.bop.edit', compact('bop'));
+    }
 
-        return redirect()->route('master-data.bop.index')
-                         ->with('success', 'Data BOP berhasil dihapus');
+    /**
+     * Memperbarui budget BOP
+     */
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'budget' => 'required|numeric|min:0',
+            'keterangan' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $bop = Bop::findOrFail($id);
+            $bop->update([
+                'budget' => $validated['budget'],
+                'keterangan' => $validated['keterangan'] ?? null,
+            ]);
+
+            DB::commit();
+
+            return redirect()
+                ->route('master-data.bop.index')
+                ->with('success', 'Budget BOP berhasil diperbarui');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()
+                ->withInput()
+                ->with('error', 'Gagal memperbarui budget BOP: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Menghapus budget BOP (hanya mengosongkan budget, tidak menghapus record)
+     */
+    public function destroy($id)
+    {
+        try {
+            DB::beginTransaction();
+
+            $bop = Bop::findOrFail($id);
+            
+            // Hapus budget (set ke 0) alih-alih menghapus record
+            $bop->update([
+                'budget' => 0,
+                'is_active' => false
+            ]);
+
+            DB::commit();
+
+            return redirect()
+                ->route('master-data.bop.index')
+                ->with('success', 'Budget BOP berhasil dihapus');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()
+                ->with('error', 'Gagal menghapus budget BOP: ' . $e->getMessage());
+        }
     }
 }

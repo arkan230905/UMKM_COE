@@ -25,7 +25,12 @@
             <div class="row g-3 align-items-center">
                 <div class="col-md-4">
                     <form method="GET" action="{{ route('master-data.pegawai.index') }}" class="input-group">
-                        <input type="text" name="search" class="form-control" placeholder="Cari pegawai..." value="{{ request('search') }}">
+                        <input type="text" 
+                               name="search" 
+                               class="form-control" 
+                               placeholder="Cari pegawai..." 
+                               value="{{ request('search') }}"
+                               style="color: #000; background-color: #f8f9fa;">
                         <button class="btn btn-outline-secondary" type="submit">
                             <i class="bi bi-search"></i>
                         </button>
@@ -33,7 +38,7 @@
                 </div>
                 <div class="col-md-3">
                     <form method="GET" action="{{ route('master-data.pegawai.index') }}">
-                        <select name="jenis" class="form-select" onchange="this.form.submit()">
+                        <select name="jenis" class="form-select" onchange="this.form.submit()" style="color: #000; background-color: #f8f9fa;">
                             <option value="">Semua Kategori</option>
                             <option value="btkl" {{ request('jenis') == 'btkl' ? 'selected' : '' }}>BTKL</option>
                             <option value="btktl" {{ request('jenis') == 'btktl' ? 'selected' : '' }}>BTKTL</option>
@@ -51,17 +56,14 @@
                             <th class="text-center" style="width: 50px">#</th>
                             <th>Kode</th>
                             <th>Nama</th>
-                            <th>No. Telepon</th>
                             <th>Email</th>
+                            <th>No. Telp</th>
                             <th class="col-alamat">Alamat</th>
-                            <th>Bank</th>
-                            <th>No. Rekening</th>
+                            <th>Jenis Kelamin</th>
                             <th>Jabatan</th>
                             <th class="text-center">Kategori</th>
-                            <th class="text-end">Asuransi</th>
-                            <th class="text-end">Tarif/Jam</th>
+                            <th class="text-end">Gaji Pokok</th>
                             <th class="text-end">Tunjangan</th>
-                            <th class="text-end">Gaji</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -71,19 +73,18 @@
                             <td class="text-center text-muted">{{ ($pegawais->currentPage() - 1) * $pegawais->perPage() + $loop->iteration }}</td>
                             <td>{{ $pegawai->kode_pegawai }}</td>
                             <td>{{ $pegawai->nama }}</td>
-                            <td>{{ $pegawai->no_telepon }}</td>
                             <td>{{ $pegawai->email }}</td>
-                            <td class="col-alamat"><small class="text-muted">{{ Str::limit($pegawai->alamat, 60) }}</small></td>
-                            <td>{{ $pegawai->nama_bank }}</td>
-                            <td>{{ $pegawai->no_rekening }}</td>
+                            <td>{{ $pegawai->no_telp }}</td>
+                            <td class="col-alamat"><small class="text-muted">{{ Str::limit($pegawai->alamat, 40) }}</small></td>
+                            <td>{{ $pegawai->jenis_kelamin == 'L' ? 'Laki-laki' : 'Perempuan' }}</td>
                             <td>{{ $pegawai->jabatan }}</td>
                             <td class="text-center">
-                                <span class="badge bg-{{ strtolower($pegawai->kategori) == 'btkl' ? 'primary' : 'success' }}">{{ strtoupper($pegawai->kategori) }}</span>
+                                <span class="badge bg-{{ $pegawai->jenis_pegawai == 'btkl' ? 'primary' : 'success' }}">
+                                    {{ strtoupper($pegawai->jenis_pegawai) }}
+                                </span>
                             </td>
-                            <td class="text-end">Rp {{ number_format($pegawai->asuransi, 0, ',', '.') }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->tarif, 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format($pegawai->gaji_pokok, 0, ',', '.') }}</td>
                             <td class="text-end">Rp {{ number_format($pegawai->tunjangan, 0, ',', '.') }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->gaji, 0, ',', '.') }}</td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm" role="group">
                                     <a href="{{ route('master-data.pegawai.edit', ['pegawai' => $pegawai->id]) }}" 
