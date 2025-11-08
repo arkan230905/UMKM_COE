@@ -13,13 +13,113 @@ use App\Models\Pembelian as PembelianModel;
 class LaporanController extends Controller
 {
     // === LAPORAN PEMBELIAN ===
-    public function pembelian()
+    public function pembelian(Request $request)
     {
-        $pembelian = Pembelian::with('vendor')
-            ->orderBy('tanggal', 'desc')
-            ->get();
+        $query = $this->getPembelianQuery($request);
+        $pembelian = $query->paginate(15);
+        $vendors = \App\Models\Vendor::all();
 
-        return view('laporan.pembelian.index', compact('pembelian'));
+        return view('laporan.pembelian.index', compact('pembelian', 'vendors'));
+    }
+
+    // === LAPORAN STOK ===
+    public function stok(Request $request)
+    {
+        try {
+            // Query dasar untuk produk
+            $query = Produk::query();
+            
+            // Filter berdasarkan stok minimum jika ada
+            if ($request->has('min_stock') && $request->min_stock !== '') {
+                $query->where('stok', '<=', (int)$request->min_stock);
+            }
+            
+            // Ambil data produk dengan urutan nama produk
+            $produk = $query->orderBy('nama_produk')->get();
+            
+            // Data dummy untuk kategori (karena tabel kategori_produks belum ada)
+            $kategoris = collect([
+                (object)['id' => 1, 'nama' => 'Makanan'],
+                (object)['id' => 2, 'nama' => 'Minuman'],
+                (object)['id' => 3, 'nama' => 'Snack']
+            ]);
+            
+            return view('laporan.stok.index', [
+                'produk' => $produk,
+                'kategoris' => $kategoris
+            ]);
+            
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            \Log::error('Error in stok method: ' . $e->getMessage());
+            
+            // Return a simple response with the error message
+            return response()->view('errors.500', [
+                'message' => 'Terjadi kesalahan saat memuat data stok. Silakan coba lagi nanti.'
+            ], 500);
+        }
+    }
+    
+    // === EKSPOR LAPORAN PEMBELIAN ===
+    public function exportPembelian(Request $request)
+    {
+        $query = $this->getPembelianQuery($request);
+        $pembelian = $query->get();
+        $total = $pembelian->sum('total');
+        
+        $filename = 'laporan-pembelian-' . now()->format('Y-m-d') . '.xlsx';
+        
+        return response()->streamDownload(function() use ($pembelian, $total) {
+            $handle = fopen('php://output', 'w');
+            
+            // Header
+            fputcsv($handle, [
+                'No', 'No. Transaksi', 'Tanggal', 'Vendor', 
+                'Keterangan', 'Total (Rp)'
+            ]);
+            
+            // Data
+            foreach ($pembelian as $index => $item) {
+                fputcsv($handle, [
+                    $index + 1,
+                    $item->no_pembelian,
+                    $item->tanggal->format('d/m/Y'),
+                    $item->vendor->nama_vendor ?? '-',
+                    $item->keterangan ?? '-',
+                    number_format($item->total, 0, ',', '.')
+                ]);
+            }
+            
+            // Total
+            fputcsv($handle, ['', '', '', '', 'TOTAL', number_format($total, 0, ',', '.')]);
+            
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+    
+    // Helper method untuk query pembelian
+    private function getPembelianQuery(Request $request)
+    {
+        $query = Pembelian::with(['vendor', 'details.bahanBaku'])
+            ->orderBy('tanggal', 'desc');
+            
+        // Filter berdasarkan tanggal
+        if ($request->has('start_date') && $request->has('end_date')) {
+            $query->whereBetween('tanggal', [
+                $request->start_date,
+                $request->end_date
+            ]);
+        }
+        
+        // Filter berdasarkan vendor
+        if ($request->has('vendor_id') && $request->vendor_id) {
+            $query->where('vendor_id', $request->vendor_id);
+        }
+        
+        return $query;
     }
 
     // === LAPORAN PENJUALAN ===
@@ -41,18 +141,19 @@ class LaporanController extends Controller
                 return $q->whereYear('tanggal', $bulan->year)
                        ->whereMonth('tanggal', $bulan->month);
             })
+            ->selectRaw('returs.*, (SELECT SUM(dr.jumlah * dr.harga) FROM detail_retur dr WHERE dr.retur_id = returs.id) as total_retur')
             ->latest();
 
         if ($request->has('export') && $request->export == 'pdf') {
             $returs = $query->get();
-            $total = $returs->sum('total');
+            $total = $returs->sum('total_retur');
             
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.retur.pdf', compact('returs', 'total'));
             return $pdf->download('laporan-retur-' . now()->format('Y-m-d') . '.pdf');
         }
 
         $returs = $query->paginate(15);
-        $total = $query->sum('total');
+        $total = $query->get()->sum('total_retur');
 
         return view('laporan.retur.index', compact('returs', 'total'));
     }
@@ -116,6 +217,9 @@ class LaporanController extends Controller
                 return $q->whereYear('tanggal', $bulan->year)
                        ->whereMonth('tanggal', $bulan->month);
             })
+            ->select('ap_settlements.*', 'pembelians.total_harga', 'pembelians.diskon', 'pembelians.ppn')
+            ->join('pembelians', 'pembelians.id', '=', 'ap_settlements.pembelian_id')
+            ->selectRaw('ap_settlements.*, (pembelians.total_harga + (pembelians.total_harga * pembelians.ppn / 100) - pembelians.diskon) as total_bayar')
             ->latest();
 
         if ($request->has('export') && $request->export == 'pdf') {
@@ -127,7 +231,7 @@ class LaporanController extends Controller
         }
 
         $pelunasanUtang = $query->paginate(15);
-        $total = $query->sum('total_bayar');
+        $total = $query->get()->sum('total_bayar');
 
         return view('laporan.pelunasan-utang.index', compact('pelunasanUtang', 'total'));
     }

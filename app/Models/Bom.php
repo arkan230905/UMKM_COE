@@ -41,35 +41,80 @@ class Bom extends Model
             if (empty($model->periode)) {
                 $model->periode = now()->format('Y-m');
             }
+            
+            // Hitung total biaya secara otomatis saat menyimpan
+            if ($model->isDirty(['total_biaya', 'total_btkl', 'total_bop'])) {
+                $model->hitungTotalBiaya();
+            }
+        });
+        
+        static::deleted(function ($model) {
+            // Hapus detail BOM terkait
+            $model->details()->delete();
         });
     }
 
+    /**
+     * Get the produk that owns the BOM.
+     */
     public function produk()
     {
-        return $this->belongsTo(Produk::class);
+        return $this->belongsTo(Produk::class)->withDefault();
     }
-
-    public function details()
-    {
-        return $this->hasMany(BomDetail::class, 'bom_id');
-    }
-
+    
+    /**
+     * Get the main bahan baku for the BOM.
+     */
     public function bahanBaku()
     {
-        return $this->belongsTo(BahanBaku::class, 'bahan_baku_id');
+        return $this->belongsTo(BahanBaku::class, 'bahan_baku_id')->withDefault();
     }
-
+    
+    /**
+     * Get the details for the BOM.
+     */
+    public function details()
+    {
+        return $this->hasMany(BomDetail::class)->with(['bahanBaku' => function($query) {
+            $query->with('satuan')->withDefault();
+        }]);
+    }
+    
+    /**
+     * Calculate total cost of BOM.
+     */
+    public function calculateTotalCost()
+    {
+        $total = 0;
+        
+        foreach ($this->details as $detail) {
+            $total += $detail->harga_per_satuan * $detail->jumlah;
+        }
+        
+        $this->total_biaya = $total;
+        $this->save();
+        
+        return $total;
+    }
+    
+    /**
+     * Calculate total cost including BTKL and BOP.
+     */
     public function hitungTotalBiaya()
     {
         $totalBahanBaku = $this->details->sum('total_harga');
         $this->total_biaya = $totalBahanBaku + $this->total_btkl + $this->total_bop;
         return $this->total_biaya;
     }
-
-    public function updateHargaProduk()
+    
+    /**
+     * Update related product price.
+     */
+    public function updateProductPrice()
     {
         if ($this->produk) {
-            $this->produk->update(['harga' => $this->total_biaya]);
+            $hargaJual = $this->total_biaya * (1 + ($this->produk->margin_percent / 100));
+            $this->produk->update(['harga_jual' => $hargaJual]);
         }
         return $this;
     }

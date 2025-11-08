@@ -15,9 +15,9 @@ class PegawaiController extends Controller
         
         $query = Pegawai::query();
         
-        // Filter berdasarkan jenis pegawai
-        if (in_array(strtolower((string)$jenis), ['btkl','btktl'])) {
-            $query->where('kategori', strtoupper($jenis));
+        // Filter berdasarkan jenis pegawai (opsional)
+        if ($jenis && in_array(strtolower((string)$jenis), ['btkl','btktl'])) {
+            $query->where('jenis_pegawai', strtoupper($jenis));
         }
         
         // Pencarian
@@ -53,6 +53,9 @@ class PegawaiController extends Controller
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
             'jenis_kelamin' => 'required|in:L,P',
+            'bank' => 'required|string|max:100',
+            'nomor_rekening' => 'required|string|max:50',
+            'nama_rekening' => 'required|string|max:100',
         ]);
 
         $jab = \App\Models\Jabatan::find($validated['jabatan_id']);
@@ -70,6 +73,9 @@ class PegawaiController extends Controller
             'gaji' => $jab->gaji,
             'gaji_pokok' => $jab->gaji,
             'tunjangan' => $jab->tunjangan ?? 0,
+            'bank' => $request->input('bank'),
+            'nomor_rekening' => $request->input('nomor_rekening'),
+            'nama_rekening' => $request->input('nama_rekening'),
         ];
         
         // Log the data being saved for debugging
@@ -98,6 +104,9 @@ class PegawaiController extends Controller
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
             'jenis_kelamin' => 'required|in:L,P',
+            'bank' => 'nullable|string|max:100',
+            'nomor_rekening' => 'nullable|string|max:50',
+            'nama_rekening' => 'nullable|string|max:100',
         ]);
 
         $jab = \App\Models\Jabatan::find($validated['jabatan_id']);

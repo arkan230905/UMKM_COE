@@ -1,23 +1,150 @@
 @extends('layouts.app')
 
-@section('content')
-<div class="container">
-    <h3 class="mb-3">Laporan Stok</h3>
+@section('title', 'Laporan Stok Produk')
 
-    <form method="GET" class="row g-3 align-items-end mb-3">
-        <div class="col-md-3">
-            <label class="form-label">Tipe Stok</label>
-            <select name="tipe" class="form-select" onchange="this.form.submit()">
-                <option value="material" {{ ($tipe ?? 'material') === 'material' ? 'selected' : '' }}>Bahan Baku</option>
-                <option value="product" {{ ($tipe ?? '') === 'product' ? 'selected' : '' }}>Produk</option>
-            </select>
+@push('styles')
+    <link rel="stylesheet" href="{{ asset('library/select2/dist/css/select2.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('library/datatables/media/css/jquery.dataTables.min.css') }}">
+@endpush
+
+@section('main')
+<div class="main-content">
+    <section class="section">
+        <div class="section-header">
+            <h1>Laporan Stok Produk</h1>
+            <div class="section-header-breadcrumb">
+                <div class="breadcrumb-item active"><a href="{{ route('dashboard') }}">Dashboard</a></div>
+                <div class="breadcrumb-item">Laporan Stok</div>
+            </div>
         </div>
-        <div class="col-md-4">
-            <label class="form-label">Item</label>
-            @if(($tipe ?? 'material')==='material')
-                <select name="item_id" class="form-select">
-                    <option value="">-- Semua Bahan --</option>
-                    @foreach(($materials ?? []) as $m)
+
+        <div class="section-body">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Filter Laporan</h4>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="form-inline">
+                        <div class="form-group row mb-4">
+                            <label class="col-form-label text-md-right col-12 col-md-3 col-lg-2">Kategori</label>
+                            <div class="col-sm-12 col-md-7">
+                                <select name="kategori_id" class="form-control select2">
+                                    <option value="">Semua Kategori</option>
+                                    @foreach($kategoris as $kategori)
+                                        <option value="{{ $kategori->id }}" {{ request('kategori_id') == $kategori->id ? 'selected' : '' }}>
+                                            {{ $kategori->nama }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group row mb-4">
+                            <label class="col-form-label text-md-right col-12 col-md-3 col-lg-2">Minimum Stok</label>
+                            <div class="col-sm-12 col-md-7">
+                                <input type="number" name="min_stock" class="form-control" value="{{ request('min_stock') }}" placeholder="Kosongkan untuk menampilkan semua">
+                            </div>
+                        </div>
+                        <div class="form-group row mb-4">
+                            <label class="col-form-label text-md-right col-12 col-md-3 col-lg-2"></label>
+                            <div class="col-sm-12 col-md-7">
+                                <button type="submit" class="btn btn-primary">Filter</button>
+                                <a href="{{ route('laporan.stok') }}" class="btn btn-secondary ml-2">Reset</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h4>Data Stok Produk</h4>
+                    <div class="card-header-action">
+                        <a href="{{ route('laporan.stok') }}?{{ http_build_query(array_merge(request()->all(), ['export' => 'pdf'])) }}" 
+                           class="btn btn-danger" target="_blank">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </a>
+                        <a href="{{ route('laporan.stok') }}?{{ http_build_query(array_merge(request()->all(), ['export' => 'excel'])) }}" 
+                           class="btn btn-success ml-2">
+                            <i class="fas fa-file-excel"></i> Export Excel
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="table-1">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Kode Produk</th>
+                                    <th>Nama Produk</th>
+                                    <th>Kategori</th>
+                                    <th>Stok</th>
+                                    <th>Satuan</th>
+                                    <th>Harga Beli</th>
+                                    <th>Harga Jual</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($produk as $item)
+                                <tr>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td>{{ $item->kode_produk ?? '-' }}</td>
+                                    <td>{{ $item->nama }}</td>
+                                    <td>{{ $item->kategori->nama ?? '-' }}</td>
+                                    <td class="text-right">{{ number_format($item->stok, 0, ',', '.') }}</td>
+                                    <td>{{ $item->satuan->nama ?? '-' }}</td>
+                                    <td class="text-right">Rp {{ number_format($item->harga_beli, 0, ',', '.') }}</td>
+                                    <td class="text-right">Rp {{ number_format($item->harga_jual, 0, ',', '.') }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="8" class="text-center">Tidak ada data stok produk</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+@endsection
+
+@push('scripts')
+    <script src="{{ asset('library/select2/dist/js/select2.full.min.js') }}"></script>
+    <script src="{{ asset('library/datatables/media/js/jquery.dataTables.min.js') }}"></script>
+    <script>
+        $(document).ready(function() {
+            // Inisialisasi DataTable
+            $('#table-1').DataTable({
+                "paging": true,
+                "lengthChange": true,
+                "searching": true,
+                "ordering": true,
+                "info": true,
+                "autoWidth": false,
+                "responsive": true,
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Indonesian.json"
+                },
+                "columnDefs": [
+                    { "orderable": false, "targets": [0] },
+                    { "searchable": false, "targets": [0] },
+                    { "className": "text-right", "targets": [4, 6, 7] }
+                ],
+                "order": [[2, 'asc']] // Urutkan berdasarkan nama produk
+            });
+
+            // Inisialisasi select2
+            $('.select2').select2({
+                theme: 'bootstrap4',
+                placeholder: 'Pilih kategori',
+                allowClear: true
+            });
+        });
+    </script>
+@endpush
                         <option value="{{ $m->id }}" {{ ($itemId ?? '')==$m->id ? 'selected' : '' }}>{{ $m->nama_bahan }}</option>
                     @endforeach
                 </select>

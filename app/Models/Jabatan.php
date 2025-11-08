@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Jabatan extends Model
 {
-    protected $fillable = ['nama','kategori','tunjangan','asuransi','tarif','gaji'];
+    protected $fillable = ['kode_jabatan', 'nama', 'kategori', 'tunjangan', 'asuransi', 'tarif', 'gaji'];
 
     public function pegawais(): HasMany
     {

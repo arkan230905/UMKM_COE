@@ -36,9 +36,12 @@ class BomDetail extends Model
         });
     }
 
+    /**
+     * Get the bahan baku that owns the BOM detail.
+     */
     public function bahanBaku()
     {
-        return $this->belongsTo(BahanBaku::class);
+        return $this->belongsTo(BahanBaku::class)->withDefault();
     }
 
     public function bom()

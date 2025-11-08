@@ -116,15 +116,43 @@ Route::middleware('auth')->group(function () {
         Route::resource('aset', AsetController::class);
         Route::resource('jabatan', JabatanController::class);
         Route::resource('pegawai', PegawaiController::class);
+        // Presensi routes
         Route::resource('presensi', PresensiController::class);
         Route::resource('vendor', VendorController::class);
         Route::resource('satuan', SatuanController::class);
-        Route::resource('produk', ProdukController::class);
-        Route::resource('bop', BopController::class);
-        Route::post('bop/recalc', [BopController::class, 'recalc'])->name('bop.recalc');
-        Route::resource('bop-budget', BopBudgetController::class)->names('bop-budget');
+        
+        // Produk routes with proper naming
+        Route::prefix('produk')->name('produk.')->group(function () {
+            Route::get('/', [ProdukController::class, 'index'])->name('index');
+            Route::get('/create', [ProdukController::class, 'create'])->name('create');
+            Route::post('/', [ProdukController::class, 'store'])->name('store');
+            Route::get('/{produk}', [ProdukController::class, 'show'])->name('show');
+            Route::get('/{produk}/edit', [ProdukController::class, 'edit'])->name('edit');
+            Route::put('/{produk}', [ProdukController::class, 'update'])->name('update');
+            Route::delete('/{produk}', [ProdukController::class, 'destroy'])->name('destroy');
+        });
+        
+        // BOP Routes
+        Route::prefix('bop')->name('bop.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\MasterData\BopController::class, 'index'])->name('index');
+            Route::get('/{id}/edit', [\App\Http\Controllers\MasterData\BopController::class, 'edit'])->name('edit');
+            Route::post('/', [\App\Http\Controllers\MasterData\BopController::class, 'store'])->name('store');
+            Route::put('/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroy'])->name('destroy');
+        });
+        
+        // BOP Budget Routes
+        Route::prefix('bop-budget')->name('bop-budget.')->group(function () {
+            Route::get('/', [BopBudgetController::class, 'index'])->name('index');
+            Route::get('/create', [BopBudgetController::class, 'create'])->name('create');
+            Route::post('/', [BopBudgetController::class, 'store'])->name('store');
+            Route::get('/{bopBudget}/edit', [BopBudgetController::class, 'edit'])->name('edit');
+            Route::put('/{bopBudget}', [BopBudgetController::class, 'update'])->name('update');
+            Route::delete('/{bopBudget}', [BopBudgetController::class, 'destroy'])->name('destroy');
+        });
         // BOM Routes
         Route::prefix('bom')->name('bom.')->group(function () {
+            Route::get('calculate/{produkId}', [BomController::class, 'calculateBomCost'])->name('calculate');
             Route::get('by-produk/{id}', [BomController::class, 'view'])->name('view-by-produk');
             Route::post('by-produk/{id}', [BomController::class, 'updateByProduk'])->name('update-by-produk');
             Route::get('generate-kode', [BomController::class, 'generateKodeBom'])->name('generate-kode');
@@ -146,11 +174,53 @@ Route::middleware('auth')->group(function () {
     // TRANSAKSI
     // ================================================================
     Route::prefix('transaksi')->name('transaksi.')->group(function () {
+        // ============================================================
+        // ✅ PEMBAYARAN BEBAN
+        // ============================================================
+        Route::prefix('pembayaran-beban')->name('pembayaran-beban.')->group(function() {
+            Route::get('/', [App\Http\Controllers\Transaksi\PembayaranBebanController::class, 'index'])->name('index');
+            Route::get('/create', [App\Http\Controllers\Transaksi\PembayaranBebanController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Transaksi\PembayaranBebanController::class, 'store'])->name('store');
+            Route::get('/{id}', [App\Http\Controllers\Transaksi\PembayaranBebanController::class, 'show'])->name('show');
+            Route::get('/print/{id}', [App\Http\Controllers\Transaksi\PembayaranBebanController::class, 'print'])->name('print');
+        });
+
+        // ============================================================
+        // ✅ PELUNASAN UTANG
+        // ============================================================
+        Route::prefix('pelunasan-utang')->name('pelunasan-utang.')->group(function() {
+            Route::get('/', [App\Http\Controllers\Transaksi\PelunasanUtangController::class, 'index'])->name('index');
+            Route::get('/create', [App\Http\Controllers\Transaksi\PelunasanUtangController::class, 'create'])->name('create');
+            Route::post('/', [App\Http\Controllers\Transaksi\PelunasanUtangController::class, 'store'])->name('store');
+            Route::get('/{id}', [App\Http\Controllers\Transaksi\PelunasanUtangController::class, 'show'])->name('show');
+            Route::get('/print/{id}', [App\Http\Controllers\Transaksi\PelunasanUtangController::class, 'print'])->name('print');
+            Route::delete('/{id}', [App\Http\Controllers\Transaksi\PelunasanUtangController::class, 'destroy'])->name('destroy');
+            Route::get('/get-pembelian/{id}', [App\Http\Controllers\Transaksi\PelunasanUtangController::class, 'getPembelian'])->name('get-pembelian');
+        });
+
+        // ============================================================
+        // ✅ PENGGAJIAN
+        // ============================================================
+        Route::prefix('penggajian')->name('penggajian.')->group(function() {
+            Route::get('/', [PenggajianController::class, 'index'])->name('index');
+            Route::get('/create', [PenggajianController::class, 'create'])->name('create');
+            Route::post('/', [PenggajianController::class, 'store'])->name('store');
+            Route::get('/{id}', [PenggajianController::class, 'show'])->name('show');
+            Route::get('/print/{id}', [PenggajianController::class, 'print'])->name('print');
+        });
 
         // ============================================================
         // ✅ PEMBELIAN
         // ============================================================
-        Route::resource('pembelian', PembelianController::class);
+        Route::prefix('pembelian')->name('pembelian.')->group(function() {
+            Route::get('/', [PembelianController::class, 'index'])->name('index');
+            Route::get('/create', [PembelianController::class, 'create'])->name('create');
+            Route::post('/', [PembelianController::class, 'store'])->name('store');
+            Route::get('/{pembelian}', [PembelianController::class, 'show'])->name('show');
+            Route::get('/{pembelian}/edit', [PembelianController::class, 'edit'])->name('edit');
+            Route::put('/{pembelian}', [PembelianController::class, 'update'])->name('update');
+            Route::delete('/{pembelian}', [PembelianController::class, 'destroy'])->name('destroy');
+        });
 
         // ============================================================
         // ✅ PENJUALAN
@@ -163,6 +233,25 @@ Route::middleware('auth')->group(function () {
         Route::resource('retur', ReturController::class);
         Route::post('retur/{id}/approve', [ReturController::class, 'approve'])->name('retur.approve');
         Route::post('retur/{id}/post', [ReturController::class, 'post'])->name('retur.post');
+
+        // ============================================================
+        // ✅ PELUNASAN UTANG
+        // ============================================================
+        Route::prefix('pelunasan-utang')->name('pelunasan-utang.')->group(function() {
+            Route::get('/', [PelunasanUtangController::class, 'index'])->name('index');
+            Route::post('/', [PelunasanUtangController::class, 'store'])->name('store');
+            Route::get('/{id}', [PelunasanUtangController::class, 'show'])->name('show');
+        });
+
+        // ============================================================
+        // ✅ PEMBAYARAN BEBAN
+        // ============================================================
+        Route::prefix('pembayaran-beban')->name('pembayaran-beban.')->group(function() {
+            Route::get('/', [PembayaranBebanController::class, 'index'])->name('index');
+            Route::get('/create', [PembayaranBebanController::class, 'create'])->name('create');
+            Route::post('/', [PembayaranBebanController::class, 'store'])->name('store');
+            Route::get('/{id}', [PembayaranBebanController::class, 'show'])->name('show');
+        });
 
         // ============================================================
         // ✅ PENGGAJIAN
@@ -214,22 +303,21 @@ Route::middleware('auth')->group(function () {
     // ================================================================
     // LAPORAN
     // ================================================================
-    Route::prefix('laporan')->name('laporan.')->group(function () {
-        // Laporan Utama
-        Route::get('/stok', [LaporanController::class, 'laporanStok'])->name('stok');
+    Route::prefix('laporan')->name('laporan.')->group(function() {
+        // Laporan Stok
+        Route::get('/stok', [LaporanController::class, 'stok'])->name('stok');
         
-        // Laporan Produksi
-        Route::get('/produksi', [LaporanController::class, 'produksi'])->name('produksi');
-        
-        // Laporan Transaksi
-        Route::get('/penjualan', [LaporanController::class, 'penjualan'])->name('penjualan');
-        Route::get('/penjualan/{id}/invoice', [LaporanController::class, 'invoicePenjualan'])->name('penjualan.invoice');
-        
+        // Laporan Pembelian
         Route::get('/pembelian', [LaporanController::class, 'pembelian'])->name('pembelian');
-        Route::get('/pembelian/{id}/invoice', [LaporanController::class, 'invoicePembelian'])->name('pembelian.invoice');
+        Route::get('/export/pembelian', [LaporanController::class, 'exportPembelian'])->name('export.pembelian');
         
-        // Laporan Baru
+        // Laporan Penjualan
+        Route::get('/penjualan', [LaporanController::class, 'penjualan'])->name('penjualan');
+        
+        // Laporan Retur
         Route::get('/retur', [LaporanController::class, 'laporanRetur'])->name('retur');
+        
+        // Laporan Penggajian
         Route::get('/penggajian', [LaporanController::class, 'laporanPenggajian'])->name('penggajian');
         Route::get('/pembayaran-beban', [LaporanController::class, 'laporanPembayaranBeban'])->name('pembayaran-beban');
         Route::get('/pelunasan-utang', [LaporanController::class, 'laporanPelunasanUtang'])->name('pelunasan-utang');
@@ -238,6 +326,23 @@ Route::middleware('auth')->group(function () {
         Route::get('/penyusutan-aset', [\App\Http\Controllers\AsetDepreciationController::class, 'index'])->name('penyusutan.aset');
         Route::get('/penyusutan-aset/{id}', [\App\Http\Controllers\AsetDepreciationController::class, 'show'])->name('penyusutan.aset.show');
         Route::post('/penyusutan-aset/post-monthly', [\App\Http\Controllers\AsetDepreciationController::class, 'postMonthly'])->name('penyusutan.aset.post');
+        
+        // Ekspor Laporan
+        Route::get('/export/retur', function() {
+            return app()->call('App\Http\Controllers\LaporanController@laporanRetur', ['export' => 'pdf']);
+        })->name('export.retur');
+        
+        Route::get('/export/penggajian', function() {
+            return app()->call('App\Http\Controllers\LaporanController@laporanPenggajian', ['export' => 'pdf']);
+        })->name('export.penggajian');
+        
+        Route::get('/export/pembayaran-beban', function() {
+            return app()->call('App\Http\Controllers\LaporanController@laporanPembayaranBeban', ['export' => 'pdf']);
+        })->name('export.pembayaran-beban');
+        
+        Route::get('/export/pelunasan-utang', function() {
+            return app()->call('App\Http\Controllers\LaporanController@laporanPelunasanUtang', ['export' => 'pdf']);
+        })->name('export.pelunasan-utang');
     });
 
     // ================================================================

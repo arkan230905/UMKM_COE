@@ -24,6 +24,9 @@ class Pegawai extends Model
         'gaji_pokok',
         'tunjangan',
         'jenis_pegawai',
+        'bank',
+        'nomor_rekening',
+        'nama_rekening',
     ];
     
     protected static function boot()

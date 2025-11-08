@@ -113,19 +113,19 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link <?php echo e(request()->is('transaksi/pembayaran-beban*') ? 'active' : ''); ?>" href="<?php echo e(route('transaksi.pembayaran-beban.index')); ?>">
                     <i class="fas fa-fw fa-money-bill-wave"></i>
                     <span>Pembayaran Beban</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link <?php echo e(request()->is('transaksi/pelunasan-utang*') ? 'active' : ''); ?>" href="<?php echo e(route('transaksi.pelunasan-utang.index')); ?>">
                     <i class="fas fa-fw fa-hand-holding-usd"></i>
                     <span>Pelunasan Utang</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link <?php echo e(request()->is('transaksi/penggajian*') ? 'active' : ''); ?>" href="<?php echo e(route('transaksi.penggajian.index')); ?>">
                     <i class="fas fa-fw fa-money-bill"></i>
                     <span>Penggajian</span>
                 </a>
@@ -134,6 +134,12 @@
             <!-- Laporan -->
             <li class="nav-item mt-2">
                 <div class="text-uppercase text-white-50 small px-3 mb-1">Laporan</div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link <?php echo e(request()->is('laporan/pembelian*') ? 'active' : ''); ?>" href="<?php echo e(route('laporan.pembelian')); ?>">
+                    <i class="fas fa-fw fa-shopping-cart"></i>
+                    <span>Laporan Pembelian</span>
+                </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link <?php echo e(request()->is('laporan/stok*') ? 'active' : ''); ?>" href="<?php echo e(route('laporan.stok')); ?>">
@@ -148,49 +154,49 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link <?php echo e(request()->is('laporan/retur*') ? 'active' : ''); ?>" href="<?php echo e(route('laporan.retur')); ?>">
                     <i class="fas fa-fw fa-undo"></i>
                     <span>Laporan Retur</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link <?php echo e(request()->is('laporan/penggajian*') ? 'active' : ''); ?>" href="<?php echo e(route('laporan.penggajian')); ?>">
                     <i class="fas fa-fw fa-money-bill"></i>
                     <span>Laporan Penggajian</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link <?php echo e(request()->is('laporan/pembayaran-beban*') ? 'active' : ''); ?>" href="<?php echo e(route('laporan.pembayaran-beban')); ?>">
                     <i class="fas fa-fw fa-money-bill-wave"></i>
                     <span>Laporan Pembayaran Beban</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link <?php echo e(request()->is('laporan/pelunasan-utang*') ? 'active' : ''); ?>" href="<?php echo e(route('laporan.pelunasan-utang')); ?>">
                     <i class="fas fa-fw fa-hand-holding-usd"></i>
                     <span>Laporan Pelunasan Utang</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link <?php echo e(request()->is('akuntansi/jurnal-umum*') ? 'active' : ''); ?>" href="<?php echo e(route('akuntansi.jurnal-umum')); ?>">
                     <i class="fas fa-fw fa-book"></i>
                     <span>Jurnal Umum</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link <?php echo e(request()->is('akuntansi/buku-besar*') ? 'active' : ''); ?>" href="<?php echo e(route('akuntansi.buku-besar')); ?>">
                     <i class="fas fa-fw fa-book-open"></i>
                     <span>Buku Besar</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link <?php echo e(request()->is('akuntansi/neraca-saldo*') ? 'active' : ''); ?>" href="<?php echo e(route('akuntansi.neraca-saldo')); ?>">
                     <i class="fas fa-fw fa-balance-scale"></i>
                     <span>Neraca Saldo</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link <?php echo e(request()->is('akuntansi/laba-rugi*') ? 'active' : ''); ?>" href="<?php echo e(route('akuntansi.laba-rugi')); ?>">
                     <i class="fas fa-fw fa-chart-line"></i>
                     <span>Laba Rugi</span>
                 </a>
@@ -199,5 +205,4 @@
     </div>
 
     <!-- User Profile Section Removed -->
-</div>
-<?php /**PATH C:\UMKM_COE\resources\views/layouts/sidebar.blade.php ENDPATH**/ ?>
+</div><?php /**PATH C:\UMKM_COE\resources\views/layouts/sidebar.blade.php ENDPATH**/ ?>

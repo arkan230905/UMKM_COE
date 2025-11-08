@@ -113,19 +113,19 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ request()->is('transaksi/pembayaran-beban*') ? 'active' : '' }}" href="{{ route('transaksi.pembayaran-beban.index') }}">
                     <i class="fas fa-fw fa-money-bill-wave"></i>
                     <span>Pembayaran Beban</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ request()->is('transaksi/pelunasan-utang*') ? 'active' : '' }}" href="{{ route('transaksi.pelunasan-utang.index') }}">
                     <i class="fas fa-fw fa-hand-holding-usd"></i>
                     <span>Pelunasan Utang</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ request()->is('transaksi/penggajian*') ? 'active' : '' }}" href="{{ route('transaksi.penggajian.index') }}">
                     <i class="fas fa-fw fa-money-bill"></i>
                     <span>Penggajian</span>
                 </a>
@@ -134,6 +134,12 @@
             <!-- Laporan -->
             <li class="nav-item mt-2">
                 <div class="text-uppercase text-white-50 small px-3 mb-1">Laporan</div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('laporan/pembelian*') ? 'active' : '' }}" href="{{ route('laporan.pembelian') }}">
+                    <i class="fas fa-fw fa-shopping-cart"></i>
+                    <span>Laporan Pembelian</span>
+                </a>
             </li>
             <li class="nav-item">
                 <a class="nav-link {{ request()->is('laporan/stok*') ? 'active' : '' }}" href="{{ route('laporan.stok') }}">
@@ -148,49 +154,49 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ request()->is('laporan/retur*') ? 'active' : '' }}" href="{{ route('laporan.retur') }}">
                     <i class="fas fa-fw fa-undo"></i>
                     <span>Laporan Retur</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ request()->is('laporan/penggajian*') ? 'active' : '' }}" href="{{ route('laporan.penggajian') }}">
                     <i class="fas fa-fw fa-money-bill"></i>
                     <span>Laporan Penggajian</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ request()->is('laporan/pembayaran-beban*') ? 'active' : '' }}" href="{{ route('laporan.pembayaran-beban') }}">
                     <i class="fas fa-fw fa-money-bill-wave"></i>
                     <span>Laporan Pembayaran Beban</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ request()->is('laporan/pelunasan-utang*') ? 'active' : '' }}" href="{{ route('laporan.pelunasan-utang') }}">
                     <i class="fas fa-fw fa-hand-holding-usd"></i>
                     <span>Laporan Pelunasan Utang</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ request()->is('akuntansi/jurnal-umum*') ? 'active' : '' }}" href="{{ route('akuntansi.jurnal-umum') }}">
                     <i class="fas fa-fw fa-book"></i>
                     <span>Jurnal Umum</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ request()->is('akuntansi/buku-besar*') ? 'active' : '' }}" href="{{ route('akuntansi.buku-besar') }}">
                     <i class="fas fa-fw fa-book-open"></i>
                     <span>Buku Besar</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ request()->is('akuntansi/neraca-saldo*') ? 'active' : '' }}" href="{{ route('akuntansi.neraca-saldo') }}">
                     <i class="fas fa-fw fa-balance-scale"></i>
                     <span>Neraca Saldo</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="#">
+                <a class="nav-link {{ request()->is('akuntansi/laba-rugi*') ? 'active' : '' }}" href="{{ route('akuntansi.laba-rugi') }}">
                     <i class="fas fa-fw fa-chart-line"></i>
                     <span>Laba Rugi</span>
                 </a>

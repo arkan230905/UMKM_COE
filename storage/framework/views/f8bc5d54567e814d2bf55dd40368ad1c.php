@@ -22,80 +22,55 @@
                             <th style="width: 5%;">#</th>
                             <th>Kode Akun</th>
                             <th>Nama Akun</th>
-                            <th class="text-end" style="width: 15%;">Budget</th>
-                            <th class="text-end" style="width: 15%;">Aktual</th>
-                            <th class="text-end" style="width: 15%;">Sisa Budget</th>
-                            <th class="text-center" style="width: 15%;">Status</th>
-                            <th class="text-center" style="width: 20%;">Aksi</th>
+                            <th class="text-end">Budget</th>
+                            <th class="text-end">Aktual</th>
+                            <th class="text-end">Sisa</th>
+                            <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php $__empty_1 = true; $__currentLoopData = $akunBeban; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $akun): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                             <?php
                                 $bop = $bops[$akun->kode_akun] ?? null;
-                                $hasBudget = $bop && $bop->hasBudget();
+                                $hasBudget = $bop && $bop->budget > 0;
+                                $sisa = $hasBudget ? ($bop->budget - ($bop->aktual ?? 0)) : 0;
+                                $textClass = $sisa < 0 ? 'text-danger' : 'text-success';
                             ?>
                             <tr>
                                 <td><?php echo e($loop->iteration); ?></td>
                                 <td><?php echo e($akun->kode_akun); ?></td>
                                 <td><?php echo e($akun->nama_akun); ?></td>
-                                <td class="text-end">
-                                    <?php if($hasBudget): ?>
-                                        <span class="text-nowrap">Rp <?php echo e(number_format($bop->budget, 0, ',', '.')); ?></span>
-                                    <?php else: ?>
-                                        <span class="text-muted">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-end">
-                                    <?php if($hasBudget): ?>
-                                        <span class="text-nowrap">Rp <?php echo e(number_format($bop->aktual ?? 0, 0, ',', '.')); ?></span>
-                                    <?php else: ?>
-                                        <span class="text-muted">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-end">
-                                    <?php if($hasBudget): ?>
-                                        <?php
-                                            $sisa = $bop->budget - ($bop->aktual ?? 0);
-                                            $textClass = $sisa < 0 ? 'text-danger' : 'text-success';
-                                        ?>
-                                        <span class="text-nowrap <?php echo e($textClass); ?>">
-                                            Rp <?php echo e(number_format($sisa, 0, ',', '.')); ?>
+                                <td class="text-end"><?php echo e($hasBudget ? number_format($bop->budget, 0, ',', '.') : '-'); ?></td>
+                                <td class="text-end"><?php echo e($hasBudget ? number_format($bop->aktual ?? 0, 0, ',', '.') : '-'); ?></td>
+                                <td class="text-end <?php echo e($textClass); ?>">
+                                    <?php echo e($hasBudget ? number_format($sisa, 0, ',', '.') : '-'); ?>
 
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="text-muted">-</span>
-                                    <?php endif; ?>
                                 </td>
                                 <td class="text-center">
                                     <?php if($hasBudget): ?>
-                                        <span class="badge bg-success">Aktif</span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary">Belum Ada Budget</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-center">
-                                    <?php if($hasBudget): ?>
-                                        <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" 
-                                                data-bs-target="#editBopModal" 
-                                                data-id="<?php echo e($bop->id); ?>"
-                                                data-budget="<?php echo e($bop->budget); ?>"
-                                                data-keterangan="<?php echo e($bop->keterangan); ?>">
-                                            <i class="fas fa-edit"></i> Edit
-                                        </button>
-                                        <form action="<?php echo e(route('master-data.bop.destroy', $bop->id)); ?>" method="POST" class="d-inline"
-                                              onsubmit="return confirm('Yakin ingin menghapus budget ini?')">
+                                        <a href="<?php echo e(route('master-data.bop.edit', $bop->id)); ?>" class="btn btn-sm btn-warning">
+                                            <i class="fas fa-edit me-1"></i> Edit
+                                        </a>
+                                        <form action="<?php echo e(route('master-data.bop.destroy', $bop->id)); ?>" 
+                                              method="POST" 
+                                              class="d-inline delete-bop-form"
+                                              data-bop-id="<?php echo e($bop->id); ?>">
                                             <?php echo csrf_field(); ?>
                                             <?php echo method_field('DELETE'); ?>
-                                            <button type="submit" class="btn btn-sm btn-danger">
-                                                <i class="fas fa-trash"></i> Hapus
+                                            <button type="button" class="btn btn-sm btn-danger delete-bop-btn" 
+                                                    data-bs-toggle="tooltip" 
+                                                    title="Hapus Budget">
+                                                <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
                                     <?php else: ?>
-                                        <button type="button" class="btn btn-sm btn-primary" 
+                                        <button type="button" 
+                                                class="btn btn-sm btn-primary" 
                                                 data-bs-toggle="modal" 
-                                                data-bs-target="#addBopModal">
-                                            <i class="fas fa-plus me-1"></i> Tambah Budget
+                                                data-bs-target="#addBopModal"
+                                                data-kode-akun="<?php echo e($akun->kode_akun); ?>"
+                                                data-nama-akun="<?php echo e($akun->nama_akun); ?>">
+                                            <i class="fas fa-plus"></i> Input
                                         </button>
                                     <?php endif; ?>
                                 </td>
@@ -119,25 +94,18 @@
             <form id="addBopForm" action="<?php echo e(route('master-data.bop.store')); ?>" method="POST">
                 <?php echo csrf_field(); ?>
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addBopModalLabel">Tambah Budget BOP</h5>
+                    <h5 class="modal-title" id="addBopModalLabel">Input Budget</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body text-dark">
                     <div class="mb-3">
-                        <label for="akun_beban" class="form-label">Pilih Akun Beban <span class="text-danger">*</span></label>
-                        <select class="form-select" id="akun_beban" name="kode_akun" required>
-                            <option value="" selected disabled>-- Pilih Akun Beban --</option>
-                            <?php $__currentLoopData = $akunBeban; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $akun): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                <option value="<?php echo e($akun->kode_akun); ?>" data-nama="<?php echo e($akun->nama_akun); ?>">
-                                    <?php echo e($akun->kode_akun); ?> - <?php echo e($akun->nama_akun); ?>
-
-                                </option>
-                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                        </select>
+                        <label class="form-label">Akun Beban</label>
+                        <input type="text" class="form-control" id="selected_akun_nama" readonly>
+                        <input type="hidden" name="kode_akun" id="selected_akun_kode">
                     </div>
                     
                     <div class="mb-3">
-                        <label for="budget" class="form-label">Nominal Budget <span class="text-danger">*</span></label>
+                        <label for="budget" class="form-label">Nominal <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text">Rp</span>
                             <input type="text" class="form-control" id="budget" name="budget" required
@@ -149,7 +117,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                     <button type="submit" class="btn btn-primary">Simpan</button>
                 </div>
             </form>
@@ -157,119 +125,130 @@
     </div>
 </div>
 
-<!-- Modal Edit Budget -->
-<div class="modal fade" id="editBopModal" tabindex="-1" aria-labelledby="editBopModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="editBopForm" method="POST" action="">
-                <?php echo csrf_field(); ?>
-                <?php echo method_field('PUT'); ?>
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editBopModalLabel">Edit Budget BOP</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body text-dark">
-                    <div class="mb-3">
-                        <label for="edit_nama_akun" class="form-label text-dark">Nama Akun</label>
-                        <input type="text" class="form-control text-dark" id="edit_nama_akun" readonly style="background-color: #f8f9fa;">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="edit_budget" class="form-label text-dark">Nominal Budget <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text text-dark">Rp</span>
-                            <input type="number" class="form-control text-dark" id="edit_budget" name="budget" required min="0" step="0.01">
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="edit_keterangan" class="form-label text-dark">Keterangan</label>
-                        <textarea class="form-control text-dark" id="edit_keterangan" name="keterangan" rows="2"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 <?php $__env->stopSection(); ?>
 
 <?php $__env->startPush('scripts'); ?>
 <script>
-    // Fungsi untuk memformat angka dengan titik
+    // Validasi form sebelum submit
+    function validateForm(form) {
+        const budgetInput = form.querySelector('input[name="budget"]');
+        const budgetValue = budgetInput.value.replace(/\./g, '');
+        
+        if (!budgetValue || parseFloat(budgetValue) <= 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Nominal budget harus lebih dari 0',
+                confirmButtonColor: '#3085d6',
+            });
+            return false;
+        }
+        
+        // Tampilkan loading
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...';
+        }
+        
+        return true;
+    }
+
+    // Inisialisasi modal tambah
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // Handle modal tambah
+        var addBopModal = document.getElementById('addBopModal');
+        if (addBopModal) {
+            addBopModal.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget;
+                var kodeAkun = button.getAttribute('data-kode-akun');
+                var namaAkun = button.getAttribute('data-nama-akun');
+                
+                // Set nilai form
+                document.getElementById('selected_akun_kode').value = kodeAkun;
+                document.getElementById('selected_akun_nama').value = kodeAkun + ' - ' + namaAkun;
+                
+                // Reset form
+                var form = document.getElementById('addBopForm');
+                form.reset();
+                document.getElementById('budget_value').value = '0';
+                
+                // Fokus ke input budget
+                setTimeout(function() {
+                    document.getElementById('budget').focus();
+                }, 500);
+            });
+        }
+        
+        // Handle submit form
+        var forms = document.querySelectorAll('form');
+        forms.forEach(function(form) {
+            form.addEventListener('submit', function(e) {
+                // Pastikan nilai budget yang dikirim adalah angka tanpa format
+                var budgetInput = this.querySelector('input[name="budget"]');
+                if (budgetInput) {
+                    var budgetValue = budgetInput.value.replace(/\./g, '');
+                    budgetInput.value = budgetValue;
+                }
+                
+                // Validasi minimal 1
+                var budgetValueInput = this.querySelector('input[name="budget_value"]');
+                if (budgetValueInput && parseFloat(budgetValueInput.value) <= 0) {
+                    e.preventDefault();
+                    alert('Nominal budget harus lebih dari 0');
+                    return false;
+                }
+                
+                // Tampilkan loading
+                var submitBtn = this.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+                }
+                
+                return true;
+            });
+        });
+    });
+    
+    // Format angka untuk input budget
     function formatAngka(input, eventType = '') {
         // Jika sedang fokus, tampilkan angka biasa
         if (eventType === 'focus') {
-            input.value = input.value.replace(/\./g, '');
+            let value = input.value.replace(/\./g, '');
+            // Simpan nilai asli ke hidden input
+            if (input.id === 'budget') {
+                document.getElementById('budget_value').value = value || '0';
+            } else if (input.id === 'edit_budget') {
+                document.getElementById('edit_budget_value').value = value || '0';
+            }
+            input.value = value;
             return;
         }
         
-        // Ambil nilai input
-        let value = input.value.replace(/\D/g, '');
+        // Jika blur atau keyup, format angkanya
+        let value = input.value.replace(/\./g, '');
         
-        // Format dengan titik ribuan
-        if (value.length > 0) {
-            value = parseInt(value).toLocaleString('id-ID');
-        } else {
-            value = '';
+        // Pastikan value adalah angka
+        if (isNaN(value) || value === '') {
+            value = '0';
         }
         
-        // Update nilai input
-        input.value = value;
-    }
-    
-    // Format angka saat form disubmit
-    const addBopForm = document.getElementById('addBopForm');
-    if (addBopForm) {
-        addBopForm.addEventListener('submit', function(e) {
-            const budgetInput = document.getElementById('budget');
-            if (budgetInput) {
-                budgetInput.value = budgetInput.value.replace(/\./g, '');
-            }
-            
-            // Pastikan kode_akun terisi
-            const kodeAkunInput = document.getElementById('kode_akun');
-            if (!kodeAkunInput || !kodeAkunInput.value) {
-                e.preventDefault();
-                alert('Kode akun tidak valid. Silakan coba lagi.');
-                return false;
-            }
-            
-            return true;
-        });
-    }
-    // Format number with thousand separators
-    function formatNumber(input) {
-        // Get the raw input value
-        let value = input.value.replace(/\D/g, '');
-        
-        // Store the raw value in a hidden field
-        document.getElementById('budget_value').value = value;
-        
-        // Format with thousand separators
-        if (value.length > 0) {
-            value = parseInt(value).toLocaleString('id-ID');
+        // Simpan nilai asli ke hidden input
+        if (input.id === 'budget') {
+            document.getElementById('budget_value').value = value;
+        } else if (input.id === 'edit_budget') {
+            document.getElementById('edit_budget_value').value = value;
         }
         
-        // Update the display value
-        input.value = value;
-    }
-    }
-    
-    // Handle form submission
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('addBopForm');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                // Get the raw value from the hidden field
-                const budgetInput = document.getElementById('budget');
-                const budgetValue = document.getElementById('budget_value');
-                
-                // Update the form value with the raw number before submission
-                budgetInput.value = budgetValue.value;
+        // Format angka dengan pemisah ribuan
+        if (eventType !== 'focus') {
+            input.value = parseFloat(value).toLocaleString('id-ID');
+        }
+        
+        // Jika blur atau keyup, format angkanya
+        let value = input.value.replace(/\./g, '');
             });
         }
     // Inisialisasi format angka

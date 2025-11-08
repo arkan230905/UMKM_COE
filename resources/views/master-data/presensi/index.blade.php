@@ -41,17 +41,20 @@
                     </h5>
                 </div>
                 <div class="col-md-6">
-                    <form action="{{ route('master-data.presensi.index') }}" method="GET" class="d-flex">
-                        <input type="text" name="search" class="form-control bg-dark text-white border-dark" 
-                               placeholder="Cari nama pegawai atau NIP..." value="{{ request('search') }}">
-                        <button type="submit" class="btn btn-primary ms-2">
-                            <i class="bi bi-search"></i>
-                        </button>
-                        @if(request('search'))
-                            <a href="{{ route('master-data.presensi.index') }}" class="btn btn-outline-light ms-2">
-                                <i class="bi bi-arrow-counterclockwise"></i>
-                            </a>
-                        @endif
+                    <form action="{{ route('master-data.presensi.index') }}" method="GET" class="d-flex w-100">
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control bg-white text-dark border-2 border-primary" 
+                                   placeholder="Cari nama pegawai atau NIP..." value="{{ request('search') }}"
+                                   style="border-top-left-radius: 0.375rem; border-bottom-left-radius: 0.375rem;">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i>
+                            </button>
+                            @if(request('search'))
+                                <a href="{{ route('master-data.presensi.index') }}" class="btn btn-outline-light border-start-0 border-end-0">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </a>
+                            @endif
+                        </div>
                     </form>
                 </div>
             </div>
@@ -68,6 +71,7 @@
                             <th>JAM KELUAR</th>
                             <th>STATUS</th>
                             <th>JUMLAH JAM</th>
+                            <th>KETERANGAN</th>
                             <th class="text-center">AKSI</th>
                         </tr>
                     </thead>
@@ -119,6 +123,9 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
+                            <td class="text-truncate" style="max-width: 200px;" title="{{ $presensi->keterangan ?? '-' }}">
+                                {{ $presensi->keterangan ?? '-' }}
+                            </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
                                     <a href="{{ route('master-data.presensi.edit', $presensi->id) }}" 
@@ -140,7 +147,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
+                            <td colspan="9" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                 <h5 class="mb-0">Belum ada data presensi</h5>
                                 <p class="mb-0">Klik tombol "Tambah Presensi" untuk menambahkan data baru</p>

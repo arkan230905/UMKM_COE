@@ -44,19 +44,27 @@ class CoaController extends Controller
             'posted_saldo_awal' => 'nullable|boolean',
         ]);
 
-        $coa = Coa::create([
+        // Pastikan semua nilai yang diperlukan ada
+        $coaData = [
             'kode_akun' => $validated['kode_akun'],
             'nama_akun' => $validated['nama_akun'],
             'tipe_akun' => $validated['tipe_akun'],
-            'kategori_akun' => $request->kategori_akun,
-            'is_akun_header' => $request->boolean('is_akun_header'),
+            'kategori_akun' => $request->kategori_akun ?? $validated['tipe_akun'], // Default ke tipe_akun jika kategori_akun kosong
+            'is_akun_header' => $request->boolean('is_akun_header') ? 1 : 0,
             'kode_induk' => $request->kode_induk,
-            'saldo_normal' => $request->saldo_normal,
-            'saldo_awal' => $request->saldo_awal,
-            'tanggal_saldo_awal' => $request->tanggal_saldo_awal,
+            'saldo_normal' => $request->saldo_normal ?? 'debit', // Default ke debit jika kosong
+            'saldo_awal' => $request->saldo_awal ?? 0,
             'keterangan' => $request->keterangan,
-            'posted_saldo_awal' => $request->boolean('posted_saldo_awal'),
-        ]);
+            'posted_saldo_awal' => $request->boolean('posted_saldo_awal') ? 1 : 0,
+        ];
+        
+        // Hanya tambahkan tanggal_saldo_awal jika ada nilainya
+        if ($request->has('tanggal_saldo_awal') && $request->tanggal_saldo_awal) {
+            $coaData['tanggal_saldo_awal'] = $request->tanggal_saldo_awal;
+        }
+        
+        // Buat COA dengan data yang sudah divalidasi
+        $coa = Coa::create($coaData);
 
         // Otomatis tambahkan ke BOP jika tipe akun "Beban"
         if ($coa->tipe_akun === 'Beban') {

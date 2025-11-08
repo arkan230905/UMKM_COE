@@ -89,6 +89,34 @@
                     <div><strong>Tarif / Jam (BTKL):</strong> Rp <span id="pv-tarif">0</span></div>
                 </div>
             </div>
+
+            <!-- Informasi Rekening Bank -->
+            <div class="col-12 mt-4">
+                <h5>Informasi Rekening Bank</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="bank" class="form-label">Nama Bank <span class="text-danger">*</span></label>
+                        <input type="text" name="bank" id="bank" class="form-control @error('bank') is-invalid @enderror" value="{{ old('bank') }}" required>
+                        @error('bank')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="nomor_rekening" class="form-label">Nomor Rekening <span class="text-danger">*</span></label>
+                        <input type="text" name="nomor_rekening" id="nomor_rekening" class="form-control @error('nomor_rekening') is-invalid @enderror" value="{{ old('nomor_rekening') }}" required>
+                        @error('nomor_rekening')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="nama_rekening" class="form-label">Nama Pemilik Rekening <span class="text-danger">*</span></label>
+                        <input type="text" name="nama_rekening" id="nama_rekening" class="form-control @error('nama_rekening') is-invalid @enderror" value="{{ old('nama_rekening') }}" required>
+                        @error('nama_rekening')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="mt-3">

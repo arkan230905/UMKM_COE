@@ -18,6 +18,7 @@ class Bop extends Model
         'kode_akun',
         'nama_akun',
         'budget',
+        'keterangan',
         'aktual',
         'is_active'
     ];
@@ -28,6 +29,14 @@ class Bop extends Model
         'is_active' => 'boolean'
     ];
 
+    /**
+     * Relasi ke model Coa
+     */
+    public function coa()
+    {
+        return $this->belongsTo(Coa::class, 'kode_akun', 'kode_akun');
+    }
+
     protected $appends = ['sisa_budget', 'sisa_budget_formatted'];
 
     /**
@@ -36,14 +45,6 @@ class Bop extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
-    }
-
-    /**
-     * Relasi ke COA
-     */
-    public function coa()
-    {
-        return $this->belongsTo(Coa::class, 'kode_akun', 'kode_akun');
     }
 
     /**
@@ -64,18 +65,18 @@ class Bop extends Model
     public function getSisaBudgetAttribute()
     {
         // Hitung total realisasi dari transaksi terkait
-        $totalRealisasi = 0; // Ganti dengan logika perhitungan realisasi
+        $totalRealisasi = $this->aktual ?? 0;
         
         return $this->budget - $totalRealisasi;
     }
 
     /**
-     * Cek apakah budget sudah diisi
+     * Cek apakah BOP memiliki budget yang sudah diatur
      *
      * @return bool
      */
     public function hasBudget()
     {
-        return $this->budget > 0;
+        return !is_null($this->budget) && $this->budget > 0;
     }
 }

@@ -16,8 +16,8 @@ class BopController extends Controller
     public function index()
     {
         try {
-            // Ambil semua akun beban (COA dengan tipe beban)
-            $akunBeban = Coa::where('tipe_akun', 'beban')
+            // Ambil semua akun beban (COA dengan tipe Expense)
+            $akunBeban = Coa::where('tipe_akun', 'Expense')
                 ->orderBy('kode_akun')
                 ->get();
 
@@ -27,10 +27,51 @@ class BopController extends Controller
                 ->get()
                 ->keyBy('kode_akun');
 
-            return view('master-data.bop.index', compact('akunBeban', 'bops'));
+            // Pastikan semua akun beban ada di $bops
+            foreach ($akunBeban as $akun) {
+                if (!isset($bops[$akun->kode_akun])) {
+                    $bops[$akun->kode_akun] = new Bop([
+                        'kode_akun' => $akun->kode_akun,
+                        'nama_akun' => $akun->nama_akun,
+                        'budget' => 0,
+                        'aktual' => 0
+                    ]);
+                }
+            }
+
+            // Urutkan kembali berdasarkan kode akun
+            $bops = $bops->sortBy('kode_akun');
+
+            return view('master-data.bop.index', [
+                'akunBeban' => $akunBeban,
+                'bops' => $bops
+            ]);
             
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit($id)
+    {
+        try {
+            $bop = Bop::findOrFail($id);
+            $akunBeban = Coa::where('tipe_akun', 'Expense')
+                ->orderBy('kode_akun')
+                ->get();
+                
+            return view('master-data.bop.edit', [
+                'bop' => $bop,
+                'akunBeban' => $akunBeban
+            ]);
+            
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('master-data.bop.index')
+                ->with('error', 'Data BOP tidak ditemukan: ' . $e->getMessage());
         }
     }
 
@@ -95,19 +136,59 @@ class BopController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Bop $bop)
+    public function update(Request $request, $id)
     {
+        // Debug log request data
+        \Log::info('Update BOP Request:', $request->all());
+
+        // Validasi input
         $validated = $request->validate([
-            'budget' => 'required|numeric|min:0',
+            'kode_akun' => 'required|string|exists:coas,kode_akun',
+            'budget' => 'required|string',
+            'budget_value' => 'required|numeric|min:0',
             'keterangan' => 'nullable|string|max:255',
         ]);
 
+        DB::beginTransaction();
+        
         try {
-            DB::beginTransaction();
-
-            $bop->update([
-                'budget' => $validated['budget'],
+            // Temukan data BOP yang akan diupdate
+            $bop = Bop::findOrFail($id);
+            
+            // Debug sebelum konversi
+            \Log::info('Before conversion:', [
+                'budget_value' => $validated['budget_value'],
+                'budget' => $validated['budget']
+            ]);
+            
+            // Format budget (pastikan tidak ada koma atau titik)
+            $budget = (float) str_replace(['.', ','], '', $validated['budget']);
+            
+            // Pastikan budget tidak negatif
+            $budget = max(0, $budget);
+            
+            // Dapatkan data COA untuk nama akun
+            $coa = Coa::where('kode_akun', $validated['kode_akun'])->first();
+            
+            // Update data
+            $updateData = [
+                'kode_akun' => $validated['kode_akun'],
+                'nama_akun' => $coa->nama_akun ?? 'BOP',
+                'budget' => $budget,
                 'keterangan' => $validated['keterangan'] ?? null,
+                'is_active' => true
+            ];
+            
+            $bop->update($updateData);
+            
+            // Log untuk debugging
+            \Log::info('BOP Updated', [
+                'id' => $bop->id,
+                'kode_akun' => $bop->kode_akun,
+                'budget' => $budget,
+                'update_data' => $updateData,
+                'request_data' => $request->all(),
+                'updated_at' => now()
             ]);
 
             DB::commit();
@@ -118,6 +199,9 @@ class BopController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Error updating BOP: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            
             return back()
                 ->withInput()
                 ->with('error', 'Gagal memperbarui budget BOP: ' . $e->getMessage());
@@ -127,15 +211,26 @@ class BopController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Bop $bop)
+    public function destroy($id)
     {
+        DB::beginTransaction();
+        
         try {
-            DB::beginTransaction();
-
+            // Temukan data BOP yang akan dihapus
+            $bop = Bop::findOrFail($id);
+            
             // Hapus budget (set ke 0) alih-alih menghapus record
             $bop->update([
                 'budget' => 0,
-                'is_active' => false
+                'is_active' => false,
+                'keterangan' => 'Dihapus pada ' . now()->format('d/m/Y H:i:s')
+            ]);
+            
+            // Log untuk debugging
+            \Log::info('BOP Deleted', [
+                'id' => $id,
+                'kode_akun' => $bop->kode_akun,
+                'deleted_at' => now()
             ]);
 
             DB::commit();
@@ -146,6 +241,9 @@ class BopController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Error deleting BOP: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            
             return back()
                 ->with('error', 'Gagal menghapus budget BOP: ' . $e->getMessage());
         }

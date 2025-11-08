@@ -62,6 +62,8 @@
                             <th>Jenis Kelamin</th>
                             <th>Jabatan</th>
                             <th class="text-center">Kategori</th>
+                            <th>Bank</th>
+                            <th>No. Rekening</th>
                             <th class="text-end">Gaji Pokok</th>
                             <th class="text-end">Tunjangan</th>
                             <th class="text-center">Aksi</th>
@@ -83,6 +85,8 @@
                                     {{ strtoupper($pegawai->jenis_pegawai) }}
                                 </span>
                             </td>
+                            <td>{{ $pegawai->bank ?? '-' }}</td>
+                            <td>{{ $pegawai->nomor_rekening ?? '-' }}</td>
                             <td class="text-end">Rp {{ number_format($pegawai->gaji_pokok, 0, ',', '.') }}</td>
                             <td class="text-end">Rp {{ number_format($pegawai->tunjangan, 0, ',', '.') }}</td>
                             <td class="text-center">
