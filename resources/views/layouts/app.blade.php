@@ -9,7 +9,8 @@
     <meta http-equiv="Expires" content="0">
     <title>{{ config('app.name', 'UMKM COE') }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.min.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     @vite(['resources/js/app.js'])
     <style>
@@ -52,7 +53,15 @@
         .nav-link {
             color: var(--text-color) !important;
             padding: 0.5rem 1rem;
-
+            margin: 0.2rem 0;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .text-muted {
+            color: var(--text-muted) !important;
+        }
+        
         /* Table styling */
         .table {
             color: #e2e8f0;
@@ -97,20 +106,7 @@
             color: #fff !important;
             background-color: #6c63ff;
         }
-            margin: 0.2rem 0;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-link:hover, .nav-link.active {
-            background: var(--accent-color);
-            color: white !important;
-        }
-        
-        .sidebar .text-muted {
-            color: var(--text-muted) !important;
-        }
-        
+            
         /* Table Styles */
         .table-responsive {
             border-radius: 8px;
@@ -209,6 +205,86 @@
         
         .card-body {
             padding: 1.5rem;
+        }
+        
+        /* User Profile */
+        .bg-primary-darker {
+            background-color: var(--primary-darkest) !important;
+            border-top: 1px solid var(--sidebar-divider);
+        }
+        
+        .position-absolute.bottom-0 {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-nav {
+            padding-bottom: 80px;
+        }
+        
+        .sidebar .fa-user-circle {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .sidebar .small {
+            font-size: 0.75rem !important;
+        }
+        
+        /* Custom styles for sidebar */
+        .sidebar .nav-link {
+            color: var(--text-muted) !important;
+            padding: 0.5rem 1rem;
+            margin: 0.2rem 0;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover, 
+        .sidebar .nav-link.active {
+            background: var(--accent-color);
+            color: white !important;
+        }
+        
+        .sidebar .text-uppercase {
+            color: var(--text-muted) !important;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            padding: 0 0.5rem;
+        }
+        
+        .sidebar .nav-item.mt-3 {
+            margin-top: 1.5rem !important;
+        }
+        
+        .sidebar .nav-item.mb-1 {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .sidebar .nav-link i {
+            width: 20px;
+            margin-right: 10px;
+            text-align: center;
+        }
+        
+        /* Form Controls */
+        .form-control, .form-select {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            border-color: #6c63ff;
+            box-shadow: 0 0 0 0.25rem rgba(108, 99, 255, 0.25);
         }
     </style>
 </head>

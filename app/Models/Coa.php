@@ -39,8 +39,23 @@ class Coa extends Model
         'tanggal_saldo_awal',
         'posted_saldo_awal',
     ];
+    
+    protected $appends = ['kode', 'nama'];
 
     // No casts: saldo_normal stores strings like 'debit'/'kredit'
+    
+    /**
+     * Accessor untuk backward compatibility
+     */
+    public function getKodeAttribute()
+    {
+        return $this->kode_akun;
+    }
+    
+    public function getNamaAttribute()
+    {
+        return $this->nama_akun;
+    }
 
     /**
      * Relasi ke akun induk (hierarchical)
@@ -71,12 +86,7 @@ class Coa extends Model
      */
     public function bops()
     {
-        return $this->hasMany(Bop::class, 'coa_id', 'id');
-    }
-
-    public function bop()
-    {
-        return $this->hasOne(Bop::class, 'coa_id', 'id');
+        return $this->hasMany(Bop::class, 'kode_akun', 'kode_akun');
     }
 
     /**

@@ -3,7 +3,25 @@
 @section('content')
 <div class="container">
   <h3>Tambah Pembayaran Beban</h3>
-  <form action="{{ route('transaksi.expense-payment.store') }}" method="POST">@csrf
+  
+  @if($errors->any())
+    <div class="alert alert-danger">
+      <strong>Error!</strong>
+      <ul class="mb-0">
+        @foreach($errors->all() as $error)
+          <li>{{ $error }}</li>
+        @endforeach
+      </ul>
+    </div>
+  @endif
+  
+  @if(session('success'))
+    <div class="alert alert-success">
+      {{ session('success') }}
+    </div>
+  @endif
+  
+  <form action="{{ route('transaksi.pembayaran-beban.store') }}" method="POST">@csrf
     <div class="mb-3">
       <label class="form-label">Tanggal</label>
       <input type="date" name="tanggal" class="form-control" required>
@@ -12,7 +30,7 @@
       <label class="form-label">COA Beban</label>
       <select name="coa_beban_id" class="form-select" required>
         @foreach($coas as $c)
-          <option value="{{ $c->id }}">{{ $c->kode_akun }} - {{ $c->nama_akun }}</option>
+          <option value="{{ $c->kode_akun }}">{{ $c->kode_akun }} - {{ $c->nama_akun }}</option>
         @endforeach
       </select>
     </div>
@@ -42,7 +60,7 @@
       <input type="text" name="deskripsi" class="form-control">
     </div>
     <button class="btn btn-success">Simpan</button>
-    <a href="{{ route('transaksi.expense-payment.index') }}" class="btn btn-secondary">Batal</a>
+    <a href="{{ route('transaksi.pembayaran-beban.index') }}" class="btn btn-secondary">Batal</a>
   </form>
 </div>
 @endsection

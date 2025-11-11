@@ -7,20 +7,72 @@
   <?php if(session('success')): ?><div class="alert alert-success"><?php echo e(session('success')); ?></div><?php endif; ?>
 
   <div class="card mb-4">
-    <div class="card-header">Pembelian Kredit Belum Lunas</div>
+    <div class="card-header bg-warning text-dark">
+      <strong>Pembelian Kredit Belum Lunas</strong>
+    </div>
     <div class="card-body p-0">
       <table class="table table-sm mb-0">
-        <thead><tr><th>#</th><th>Tanggal</th><th>Vendor</th><th>Total</th><th>Aksi</th></tr></thead>
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Tanggal</th>
+            <th>Vendor</th>
+            <th>Item Dibeli</th>
+            <th class="text-end">Total Utang</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
         <tbody>
-          <?php $__currentLoopData = $openPurchases; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+          <?php $__empty_1 = true; $__currentLoopData = $openPurchases; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
           <tr>
             <td><?php echo e($loop->iteration); ?></td>
-            <td><?php echo e($p->tanggal); ?></td>
+            <td><?php echo e(optional($p->tanggal)->format('d/m/Y') ?? $p->tanggal); ?></td>
             <td><?php echo e($p->vendor->nama_vendor ?? '-'); ?></td>
-            <td>Rp <?php echo e(number_format($p->total,0,',','.')); ?></td>
-            <td><a class="btn btn-primary btn-sm" href="<?php echo e(route('transaksi.ap-settlement.create', ['pembelian_id'=>$p->id])); ?>">Lunasi</a></td>
+            <td>
+              <?php if($p->details && $p->details->count() > 0): ?>
+                <small>
+                <?php $__currentLoopData = $p->details; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $detail): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                  <?php echo e($detail->bahanBaku->nama_bahan ?? '-'); ?> 
+                  (<?php echo e(number_format($detail->jumlah ?? 0, 0, ',', '.')); ?>)
+                  <?php if(!$loop->last): ?>, <?php endif; ?>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                </small>
+              <?php else: ?>
+                -
+              <?php endif; ?>
+            </td>
+            <td class="text-end">
+              <?php
+                // Ambil total_harga dari database atau hitung dari details
+                $totalHarga = $p->total_harga ?? 0;
+                
+                // Jika total_harga masih 0, hitung dari details
+                if ($totalHarga == 0 && $p->details && $p->details->count() > 0) {
+                    $totalHarga = $p->details->sum(function($detail) {
+                        return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                    });
+                }
+                
+                // Hitung sisa utang
+                $terbayar = $p->terbayar ?? 0;
+                $sisaUtang = $totalHarga - $terbayar;
+              ?>
+              <strong class="text-danger">Rp <?php echo e(number_format($sisaUtang, 0, ',', '.')); ?></strong>
+            </td>
+            <td>
+              <a class="btn btn-primary btn-sm" href="<?php echo e(route('transaksi.ap-settlement.create', ['pembelian_id'=>$p->id])); ?>">
+                <i class="fas fa-money-bill-wave"></i> Lunasi
+              </a>
+            </td>
           </tr>
-          <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+          <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+          <tr>
+            <td colspan="6" class="text-center text-muted py-3">
+              <i class="fas fa-check-circle fa-2x mb-2"></i>
+              <p class="mb-0">Tidak ada utang yang perlu dilunasi</p>
+            </td>
+          </tr>
+          <?php endif; ?>
         </tbody>
       </table>
     </div>

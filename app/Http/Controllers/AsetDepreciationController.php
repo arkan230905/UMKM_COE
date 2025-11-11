@@ -61,10 +61,10 @@ class AsetDepreciationController extends Controller
             $perMonth = $months > 0 ? ($base / $months) : 0;
             if ($perMonth <= 0) { $skipped++; continue; }
 
-            // Post jurnal: Dr 504 Beban Penyusutan; Cr 124 Akumulasi Penyusutan
+            // Post jurnal: Dr Beban Penyusutan (5103); Cr Akumulasi Penyusutan (120401)
             $journal->post($dt->toDateString(), 'depr', (int)$a->id, 'Penyusutan Aset '.$a->nama.' (SL) '.$dt->format('Y-m'), [
-                ['code' => '504', 'debit' => (float)$perMonth, 'credit' => 0],
-                ['code' => '124', 'debit' => 0, 'credit' => (float)$perMonth],
+                ['code' => '5103', 'debit' => (float)$perMonth, 'credit' => 0],  // Beban Penyusutan
+                ['code' => '120401', 'debit' => 0, 'credit' => (float)$perMonth],  // Akumulasi Penyusutan Peralatan
             ]);
             $countPosted++;
         }

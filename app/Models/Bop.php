@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Bop extends Model
 {
@@ -14,39 +15,68 @@ class Bop extends Model
     public $incrementing = true;
 
     protected $fillable = [
-        'kode',
-        'nama',
-        'kategori',
-        'jumlah',
-        'harga_satuan',
-        'total',
-        'keterangan',
-        'tanggal',
-        'coa_id',
+        'kode_akun',
+        'nama_akun',
         'budget',
-        'is_active',
-        'nominal',
+        'keterangan',
+        'aktual',
+        'is_active'
     ];
 
     protected $casts = [
-        'tanggal' => 'date'
+        'budget' => 'decimal:2',
+        'aktual' => 'decimal:2',
+        'is_active' => 'boolean'
     ];
 
-    // Relasi ke COA
+    /**
+     * Relasi ke model Coa
+     */
     public function coa()
     {
-        return $this->belongsTo(Coa::class, 'coa_id', 'id');
+        return $this->belongsTo(Coa::class, 'kode_akun', 'kode_akun');
     }
-    
-    // Scope untuk BOP aktif
+
+    protected $appends = ['sisa_budget', 'sisa_budget_formatted'];
+
+    /**
+     * Scope untuk filter akun beban aktif
+     */
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
+
+    /**
+     * Format sisa budget
+     *
+     * @return string
+     */
+    public function getSisaBudgetFormattedAttribute()
+    {
+        return number_format($this->sisa_budget, 2, ',', '.');
+    }
     
-    // Hitung sisa budget
+    /**
+     * Hitung sisa budget
+     *
+     * @return float
+     */
     public function getSisaBudgetAttribute()
     {
-        return $this->budget - $this->nominal;
+        // Hitung total realisasi dari transaksi terkait
+        $totalRealisasi = $this->aktual ?? 0;
+        
+        return $this->budget - $totalRealisasi;
+    }
+
+    /**
+     * Cek apakah BOP memiliki budget yang sudah diatur
+     *
+     * @return bool
+     */
+    public function hasBudget()
+    {
+        return !is_null($this->budget) && $this->budget > 0;
     }
 }

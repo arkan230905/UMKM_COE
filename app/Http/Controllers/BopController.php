@@ -13,29 +13,62 @@ class BopController extends Controller
     // Tampilkan semua data BOP
     public function index()
     {
-        // Ambil data BOP dan relasi COA
-        $bop = Bop::with('coa')->get();
+        // Arahkan ke halaman BOP Budget (tampilan tabel sesuai yang diinginkan)
+        $periode = request('periode', now()->format('Y-m'));
+        return redirect()->route('master-data.bop-budget.index', ['periode' => $periode]);
+    }
 
-        // Jika ada COA yang belum punya BOP, tambahkan otomatis
-        // Kriteria: tipe_akun beban/expense/biaya ATAU kode_akun dimulai dengan '5'
-        $coaTanpaBop = Coa::where(function($q){
-                                $q->whereIn('tipe_akun', ['Expense', 'Beban', 'Biaya'])
-                                  ->orWhere('kode_akun', 'like', '5%');
-                            })
-                            ->whereDoesntHave('bop')
-                            ->get();
+    // Form tambah BOP
+    public function create()
+    {
+        // Ambil semua akun beban
+        $akunBeban = Coa::where(function($q){
+                    $q->whereIn('tipe_akun', ['Expense', 'Beban', 'Biaya'])
+                      ->orWhere('kode_akun', 'like', '5%');
+                })
+                ->orderBy('kode_akun')
+                ->get(['id','kode_akun','nama_akun']);
 
-        foreach ($coaTanpaBop as $coa) {
-            Bop::create([
-                'coa_id' => $coa->id,
-                'keterangan' => 'Sinkron otomatis dari COA',
-            ]);
+        return view('master-data.bop.create', compact('akunBeban'));
+    }
+
+    // Simpan BOP baru
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'kode_akun' => 'required|string',
+            'budget' => 'required|numeric|min:0',
+            'keterangan' => 'nullable|string',
+        ]);
+
+        // Cari COA berdasarkan kode_akun
+        $coa = Coa::where('kode_akun', $validated['kode_akun'])->first();
+        
+        if (!$coa) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Akun dengan kode ' . $validated['kode_akun'] . ' tidak ditemukan');
         }
 
-        // Ambil ulang data terbaru
-        $bop = Bop::with('coa')->get();
+        // Cek apakah sudah ada budget untuk akun ini
+        $existing = Bop::where('kode_akun', $validated['kode_akun'])->first();
+        
+        if ($existing) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Budget untuk akun ' . $coa->nama_akun . ' sudah ada. Silakan edit budget yang sudah ada.');
+        }
 
-        return view('master-data.bop.index', compact('bop'));
+        Bop::create([
+            'coa_id' => $coa->id,
+            'kode_akun' => $coa->kode_akun,
+            'budget' => $validated['budget'],
+            'aktual' => 0,
+            'keterangan' => $validated['keterangan'] ?? null,
+        ]);
+
+        return redirect()->route('master-data.bop.index')
+            ->with('success', 'Budget BOP untuk ' . $coa->nama_akun . ' berhasil ditambahkan');
     }
 
     // Rekalkulasi Beban Gaji (Perkiraan) untuk bulan tertentu

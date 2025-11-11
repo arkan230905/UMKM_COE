@@ -126,7 +126,8 @@ $message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
 if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
-                            required>
+                            required
+                            onchange="toggleJamFieldsInline(this.value)">
                             <option value="">-- Pilih Status --</option>
                             <option value="Hadir" <?php echo e(old('status') == 'Hadir' ? 'selected' : ''); ?> class="text-white">
                                 Hadir
@@ -154,7 +155,7 @@ unset($__errorArgs, $__bag); ?>
                     </div>
 
                     <!-- Jam Masuk -->
-                    <div class="col-md-6 jam-field">
+                    <div class="col-md-6" id="jamMasukField">
                         <label for="jam_masuk" class="form-label text-white">
                             <i class="bi bi-clock-history me-1"></i>Jam Masuk <span class="text-danger">*</span>
                         </label>
@@ -168,7 +169,6 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
                                value="<?php echo e(old('jam_masuk', '08:00')); ?>" 
-                               required
                                pattern="[0-9]{2}:[0-9]{2}">
                         <?php $__errorArgs = ['jam_masuk'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -183,7 +183,7 @@ unset($__errorArgs, $__bag); ?>
                     </div>
 
                     <!-- Jam Keluar -->
-                    <div class="col-md-6 jam-field">
+                    <div class="col-md-6" id="jamKeluarField">
                         <label for="jam_keluar" class="form-label text-white">
                             <i class="bi bi-clock-fill me-1"></i>Jam Keluar <span class="text-danger">*</span>
                         </label>
@@ -197,7 +197,6 @@ if (isset($__messageOriginal)) { $message = $__messageOriginal; }
 endif;
 unset($__errorArgs, $__bag); ?>" 
                                value="<?php echo e(old('jam_keluar', '17:00')); ?>" 
-                               required
                                pattern="[0-9]{2}:[0-9]{2}">
                         <?php $__errorArgs = ['jam_keluar'];
 $__bag = $errors->getBag($__errorArgs[1] ?? 'default');
@@ -258,34 +257,167 @@ unset($__errorArgs, $__bag); ?>
 
 <?php $__env->startPush('scripts'); ?>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('presensiForm');
+// Fungsi inline untuk toggle jam fields (dipanggil langsung dari onchange)
+function toggleJamFieldsInline(status) {
+    console.log('🔄 toggleJamFieldsInline called with status:', status);
+    const jamMasukField = document.getElementById('jamMasukField');
+    const jamKeluarField = document.getElementById('jamKeluarField');
     const jamMasuk = document.getElementById('jam_masuk');
     const jamKeluar = document.getElementById('jam_keluar');
-    const submitBtn = document.getElementById('submitBtn');
-    const statusSelect = document.getElementById('status');
-    const jamFields = document.querySelectorAll('.jam-field');
     
-    // Sembunyikan field jam jika status bukan Hadir
-    function toggleJamFields() {
-        if (statusSelect.value !== 'Hadir') {
-            jamFields.forEach(field => {
-                field.style.display = 'none';
-                field.querySelector('input').disabled = true;
-            });
-        } else {
-            jamFields.forEach(field => {
-                field.style.display = 'block';
-                field.querySelector('input').disabled = false;
-            });
+    console.log('Elements:', {
+        jamMasukField: jamMasukField ? 'FOUND' : 'NOT FOUND',
+        jamKeluarField: jamKeluarField ? 'FOUND' : 'NOT FOUND',
+        jamMasuk: jamMasuk ? 'FOUND' : 'NOT FOUND',
+        jamKeluar: jamKeluar ? 'FOUND' : 'NOT FOUND'
+    });
+    
+    if (status === 'Hadir') {
+        console.log('✅ Status HADIR - Menampilkan field jam');
+        if (jamMasukField) {
+            jamMasukField.style.display = '';
+            jamMasukField.style.visibility = 'visible';
         }
+        if (jamKeluarField) {
+            jamKeluarField.style.display = '';
+            jamKeluarField.style.visibility = 'visible';
+        }
+        if (jamMasuk) {
+            jamMasuk.required = true;
+            jamMasuk.disabled = false;
+            if (!jamMasuk.value) jamMasuk.value = '08:00';
+        }
+        if (jamKeluar) {
+            jamKeluar.required = true;
+            jamKeluar.disabled = false;
+            if (!jamKeluar.value) jamKeluar.value = '17:00';
+        }
+        console.log('✓ Field jam DITAMPILKAN');
+    } else {
+        console.log('❌ Status ' + status + ' - Menyembunyikan field jam');
+        if (jamMasukField) {
+            jamMasukField.style.display = 'none';
+        }
+        if (jamKeluarField) {
+            jamKeluarField.style.display = 'none';
+        }
+        if (jamMasuk) {
+            jamMasuk.required = false;
+            jamMasuk.disabled = true;
+            jamMasuk.value = '';
+        }
+        if (jamKeluar) {
+            jamKeluar.required = false;
+            jamKeluar.disabled = true;
+            jamKeluar.value = '';
+        }
+        console.log('✓ Field jam DISEMBUNYIKAN');
+    }
+}
+
+(function() {
+    'use strict';
+    
+    console.log('Presensi form script loaded');
+    
+    // Tunggu DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
     
-    // Panggil fungsi saat halaman dimuat
-    toggleJamFields();
-    
-    // Panggil fungsi saat status berubah
-    statusSelect.addEventListener('change', toggleJamFields);
+    function init() {
+        console.log('Initializing presensi form');
+        
+        const statusSelect = document.getElementById('status');
+        const jamMasukField = document.getElementById('jamMasukField');
+        const jamKeluarField = document.getElementById('jamKeluarField');
+        const jamMasuk = document.getElementById('jam_masuk');
+        const jamKeluar = document.getElementById('jam_keluar');
+        
+        if (!statusSelect) {
+            console.error('Status select tidak ditemukan!');
+            return;
+        }
+        
+        console.log('Elements found:', {
+            statusSelect: !!statusSelect,
+            jamMasukField: !!jamMasukField,
+            jamKeluarField: !!jamKeluarField,
+            jamMasuk: !!jamMasuk,
+            jamKeluar: !!jamKeluar
+        });
+        
+        // Fungsi untuk toggle field jam
+        function toggleJamFields() {
+            const status = statusSelect.value;
+            console.log('toggleJamFields called, status:', status);
+            
+            if (status === 'Hadir') {
+                // Tampilkan field jam
+                if (jamMasukField) {
+                    jamMasukField.classList.remove('jam-field-hidden');
+                    jamMasukField.style.display = 'block';
+                }
+                if (jamKeluarField) {
+                    jamKeluarField.classList.remove('jam-field-hidden');
+                    jamKeluarField.style.display = 'block';
+                }
+                
+                // Set required dan default value
+                if (jamMasuk) {
+                    jamMasuk.required = true;
+                    if (!jamMasuk.value) jamMasuk.value = '08:00';
+                }
+                if (jamKeluar) {
+                    jamKeluar.required = true;
+                    if (!jamKeluar.value) jamKeluar.value = '17:00';
+                }
+                
+                console.log('✓ Field jam DITAMPILKAN');
+            } else {
+                // Sembunyikan field jam
+                if (jamMasukField) {
+                    jamMasukField.classList.add('jam-field-hidden');
+                    jamMasukField.style.display = 'none';
+                }
+                if (jamKeluarField) {
+                    jamKeluarField.classList.add('jam-field-hidden');
+                    jamKeluarField.style.display = 'none';
+                }
+                
+                // Hapus required dan kosongkan
+                if (jamMasuk) {
+                    jamMasuk.required = false;
+                    jamMasuk.value = '';
+                }
+                if (jamKeluar) {
+                    jamKeluar.required = false;
+                    jamKeluar.value = '';
+                }
+                
+                console.log('✓ Field jam DISEMBUNYIKAN');
+            }
+        }
+        
+        // Panggil saat load
+        toggleJamFields();
+        
+        // Event listener untuk perubahan status
+        statusSelect.addEventListener('change', function() {
+            console.log('Status changed to:', this.value);
+            toggleJamFields();
+        });
+        
+        console.log('Initialization complete');
+        
+        // Trigger toggle saat load untuk set initial state
+        if (statusSelect && statusSelect.value) {
+            console.log('Triggering initial toggle with status:', statusSelect.value);
+            toggleJamFieldsInline(statusSelect.value);
+        }
+    }
     
     // Set default time if empty
     if (jamMasuk && !jamMasuk.value) {
@@ -362,6 +494,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <?php $__env->startPush('styles'); ?>
 <style>
+    /* Jam fields akan di-control oleh JavaScript */
+    .jam-field-hidden {
+        display: none !important;
+    }
     /* Style untuk form */
     .form-control, .form-select, 
     .form-control:focus, .form-select:focus {

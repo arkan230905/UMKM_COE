@@ -10,8 +10,8 @@
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
-    <div class="table-responsive table-scroll-x">
-        <table class="table table-bordered table-striped align-middle table-wide table-nowrap">
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped align-middle">
             <thead class="table-dark">
                 <tr>
                     <th>ID</th>
@@ -32,7 +32,13 @@
                     <td>{{ $coa->kode_akun }}</td>
                     <td>{{ $coa->nama_akun }}</td>
                     <td>{{ $coa->kategori_akun }}</td>
-                    <td>{{ $coa->kode_induk }}</td>
+                    <td>
+                        @if($coa->kode_induk)
+                            {{ $coa->kode_induk }} - {{ \App\Models\Coa::where('kode_akun', $coa->kode_induk)->value('nama_akun') }}
+                        @else
+                            -
+                        @endif
+                    </td>
                     <td class="text-capitalize">{{ $coa->saldo_normal }}</td>
                     <td>Rp {{ number_format((float)($coa->saldo_awal ?? 0), 0, ',', '.') }}</td>
                     <td class="col-keterangan"><small class="text-muted">{{ $coa->keterangan }}</small></td>
@@ -53,10 +59,17 @@
 @endsection
 
 <style>
-    .table-scroll-x { overflow-x: auto !important; width: 100%; }
-    .table-wide { width: max-content; min-width: 1600px; }
-    .table-nowrap th, .table-nowrap td { white-space: nowrap; }
-    .table-nowrap .col-keterangan { white-space: normal; min-width: 260px; }
+    .table-responsive { overflow-x: auto; }
+    .col-keterangan { white-space: normal; min-width: 200px; max-width: 300px; }
+    .table th, .table td {
+        vertical-align: middle;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        line-height: 1.5;
+        border-radius: 0.2rem;
+    }
 </style>
 
 <!-- No custom JS: rely on native horizontal scrollbar/trackpad like tabel Pegawai -->

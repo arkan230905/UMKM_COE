@@ -29,7 +29,7 @@
         <li class="nav-item mb-2"><a href="{{ route('transaksi.produksi.index') }}" class="nav-link text-white">Produksi</a></li>
         <li class="nav-item mb-2"><a href="{{ route('transaksi.penjualan.index') }}" class="nav-link text-white">Penjualan</a></li>
         <li class="nav-item mb-2"><a href="{{ route('transaksi.retur.index') }}" class="nav-link text-white">Retur</a></li>
-        <li class="nav-item mb-2"><a href="{{ route('transaksi.expense-payment.index') }}" class="nav-link text-white">Pembayaran Beban</a></li>
+        <li class="nav-item mb-2"><a href="{{ route('transaksi.pembayaran-beban.index') }}" class="nav-link text-white">Pembayaran Beban</a></li>
         <li class="nav-item mb-2"><a href="{{ route('transaksi.ap-settlement.index') }}" class="nav-link text-white">Pelunasan Utang</a></li>
         <li class="nav-item mb-2"><a href="{{ route('transaksi.penggajian.index') }}" class="nav-link text-white">Penggajian</a></li>
     </ul>

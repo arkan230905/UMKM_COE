@@ -28,368 +28,268 @@
                 @csrf
                 
                 <div class="mb-3">
-                    <label for="kode_aset" class="form-label text-white">Kode Aset</label>
-                    <input type="text" class="form-control bg-dark text-white" id="kode_aset" name="kode_aset" value="{{ $kodeAset }}" readonly>
-                    <small class="text-muted">Kode aset akan otomatis terisi</small>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="nama_aset" class="form-label text-white">Nama Aset</label>
-                    <input type="text" class="form-control bg-dark text-white @error('nama_aset') is-invalid @enderror" id="nama_aset" name="nama_aset" value="{{ old('nama_aset') }}" required>
+                    <label for="nama_aset" class="form-label text-white">Nama Aset <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control bg-dark text-white @error('nama_aset') is-invalid @enderror" 
+                           id="nama_aset" name="nama_aset" value="{{ old('nama_aset') }}" required>
                     @error('nama_aset')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
 
                 <div class="mb-3">
-                    <label for="jenis_aset" class="form-label text-white">Jenis Aset</label>
-                    <select class="form-select bg-dark text-white @error('jenis_aset') is-invalid @enderror" id="jenis_aset" name="jenis_aset" required onchange="updateKategoriOptions()">
-                        <option value="" disabled {{ old('jenis_aset') ? '' : 'selected' }}>-- Pilih Jenis Aset --</option>
-                        <option value="Aset Tetap" {{ old('jenis_aset') == 'Aset Tetap' ? 'selected' : '' }}>Aset Tetap</option>
-                        <option value="Aset Tidak Tetap" {{ old('jenis_aset') == 'Aset Tidak Tetap' ? 'selected' : '' }}>Aset Tidak Tetap</option>
-                        <option value="Aset Tak Berwujud" {{ old('jenis_aset') == 'Aset Tak Berwujud' ? 'selected' : '' }}>Aset Tak Berwujud</option>
+                    <label for="jenis_aset_id" class="form-label text-white">Jenis Aset <span class="text-danger">*</span></label>
+                    <select class="form-select bg-dark text-white @error('jenis_aset_id') is-invalid @enderror" 
+                            id="jenis_aset_id" name="jenis_aset_id" required onchange="loadKategoriAset()">
+                        <option value="" disabled selected>-- Pilih Jenis Aset --</option>
+                        @foreach($jenisAsets as $jenis)
+                            <option value="{{ $jenis->id }}" {{ old('jenis_aset_id') == $jenis->id ? 'selected' : '' }}>
+                                {{ $jenis->nama }}
+                            </option>
+                        @endforeach
                     </select>
-                    @error('jenis_aset')
+                    @error('jenis_aset_id')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
 
                 <div class="mb-3">
-                    <label for="kategori" class="form-label text-white">Kategori</label>
-                    <select class="form-select bg-dark text-white @error('kategori') is-invalid @enderror" id="kategori" name="kategori" required>
+                    <label for="kategori_aset_id" class="form-label text-white">Kategori Aset <span class="text-danger">*</span></label>
+                    <select class="form-select bg-dark text-white @error('kategori_aset_id') is-invalid @enderror" 
+                            id="kategori_aset_id" name="kategori_aset_id" required>
                         <option value="" disabled selected>-- Pilih Jenis Aset terlebih dahulu --</option>
                     </select>
-                    @error('kategori')
+                    @error('kategori_aset_id')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
 
-                <script>
-                    const kategoriOptions = {
-                        'Aset Tetap': [
-                            'Kendaraan Operasional',
-                            'Peralatan Kantor',
-                            'Peralatan Produksi',
-                            'Peralatan Medis',
-                            'Peralatan Laboratorium',
-                            'Peralatan Konstruksi',
-                            'Peralatan IT & Elektronik',
-                            'Furniture & Perlengkapan',
-                            'Peralatan Listrik',
-                            'Peralatan Mekanik',
-                            'Alat Berat',
-                            'Mesin Pabrik',
-                            'Gedung & Bangunan',
-                            'Tanah',
-                            'Rumah Dinas',
-                            'Kapal',
-                            'Pesawat Terbang',
-                            'Kereta Api',
-                            'Peralatan Telekomunikasi',
-                            'Peralatan Keamanan',
-                            'Peralatan Dapur',
-                            'Peralatan Kebersihan',
-                            'Peralatan Olahraga',
-                            'Peralatan Musik',
-                            'Peralatan Fotografi',
-                            'Peralatan Studio',
-                            'Peralatan Bengkel',
-                            'Peralatan Pertanian',
-                            'Peralatan Perkebunan',
-                            'Peralatan Peternakan',
-                            'Peralatan Perikanan',
-                            'Peralatan Kehutanan',
-                            'Peralatan Tambang',
-                            'Peralatan Makanan & Minuman',
-                            'Peralatan Kesehatan & Keselamatan'
-                        ],
-                        'Aset Tidak Tetap': [
-                            'Persediaan Barang Dagang',
-                            'Bahan Baku',
-                            'Barang Dalam Proses',
-                            'Barang Jadi',
-                            'Konsinyasi',
-                            'Barang Promosi',
-                            'Perlengkapan Kantor',
-                            'Perlengkapan Kebersihan',
-                            'Perlengkapan Dapur',
-                            'Perlengkapan Maintenance',
-                            'Bahan Habis Pakai',
-                            'Bahan Kimia',
-                            'Suku Cadang',
-                            'Kemasan',
-                            'Barang Cetakan',
-                            'Alat Tulis Kantor',
-                            'Bahan Bakar & Pelumas',
-                            'Barang Konsinyasi',
-                            'Barang Sampel',
-                            'Barang Lain-lain'
-                        ],
-                        'Aset Tak Berwujud': [
-                            'Hak Cipta (Copyright)',
-                            'Merek Dagang (Trademark)',
-                            'Paten',
-                            'Hak Desain Industri',
-                            'Rahasia Dagang',
-                            'Lisensi',
-                            'Franchise',
-                            'Hak Guna Bangunan',
-                            'Hak Pengusahaan Hutan',
-                            'Hak Pengusahaan Pertambangan',
-                            'Hak Pengusahaan Perairan',
-                            'Hak Pengusahaan Perkebunan',
-                            'Hak Pengusahaan Perikanan',
-                            'Hak Pengusahaan Peternakan',
-                            'Hak Pengusahaan Pariwisata',
-                            'Hak Pengusahaan Jasa',
-                            'Hak Pengusahaan Lainnya',
-                            'Goodwill',
-                            'Biaya Pendirian',
-                            'Biaya Penelitian & Pengembangan',
-                            'Biaya Pengembangan Software',
-                            'Biaya Lisensi Software',
-                            'Biaya Iklan & Promosi',
-                            'Biaya Pelatihan',
-                            'Biaya Perizinan',
-                            'Biaya Operasional Yang Ditangguhkan',
-                            'Biaya Pra Operasi',
-                            'Biaya Pendahuluan',
-                            'Biaya Pengalihan Hak'
-                        ]
-                    };
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="harga_perolehan" class="form-label text-white">Harga Perolehan (Rp) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" class="form-control bg-dark text-white @error('harga_perolehan') is-invalid @enderror" 
+                               id="harga_perolehan" name="harga_perolehan" value="{{ old('harga_perolehan', 0) }}" 
+                               required oninput="hitungTotal()">
+                        @error('harga_perolehan')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
 
-                    function updateKategoriOptions() {
-                        const jenisAset = document.getElementById('jenis_aset').value;
-                        const kategoriSelect = document.getElementById('kategori');
-                        
-                        // Clear existing options
-                        kategoriSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kategori --</option>';
-                        
-                        if (jenisAset && kategoriOptions[jenisAset]) {
-                            // Add options based on selected jenis aset
-                            kategoriOptions[jenisAset].forEach(kategori => {
-                                const option = document.createElement('option');
-                                option.value = kategori;
-                                option.textContent = kategori;
-                                if (kategori === '{{ old('kategori') }}') {
-                                    option.selected = true;
-                                }
-                                kategoriSelect.appendChild(option);
-                            });
-                            
-                            // Add custom option
-                            const customOption = document.createElement('option');
-                            customOption.value = 'Lainnya';
-                            customOption.textContent = '+ Kategori Lainnya';
-                            kategoriSelect.appendChild(customOption);
-                        }
-                        
-                        // Trigger change event to show/hide custom input if needed
-                        updateCustomKategoriInput();
-                    }
-                    
-                    function updateCustomKategoriInput() {
-                        const kategoriSelect = document.getElementById('kategori');
-                        const customInputContainer = document.getElementById('customKategoriContainer');
-                        
-                        if (kategoriSelect.value === 'Lainnya') {
-                            if (!customInputContainer) {
-                                const container = document.createElement('div');
-                                container.id = 'customKategoriContainer';
-                                container.className = 'mt-2';
-                                container.innerHTML = `
-                                    <input type="text" 
-                                           class="form-control bg-dark text-white" 
-                                           id="custom_kategori" 
-                                           name="kategori" 
-                                           placeholder="Masukkan kategori baru" 
-                                           value="{{ old('kategori') }}"
-                                           required>
-                                `;
-                                kategoriSelect.parentNode.insertBefore(container, kategoriSelect.nextSibling);
-                            } else {
-                                customInputContainer.style.display = 'block';
-                            }
-                            kategoriSelect.removeAttribute('name');
-                        } else {
-                            if (customInputContainer) {
-                                customInputContainer.style.display = 'none';
-                            }
-                            kategoriSelect.setAttribute('name', 'kategori');
-                        }
-                    }
-                    
-                    // Initialize on page load
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const jenisAset = document.getElementById('jenis_aset');
-                        if ('{{ old('jenis_aset') }}') {
-                            jenisAset.value = '{{ old('jenis_aset') }}';
-                            updateKategoriOptions();
-                        }
-                        
-                        // Add event listener for kategori select
-                        document.getElementById('kategori').addEventListener('change', updateCustomKategoriInput);
-                    });
-                </script>
-
-                <div class="mb-3">
-                    <label for="harga_perolehan" class="form-label text-white">Harga Perolehan (Rp)</label>
-                    <input type="number" class="form-control bg-dark text-white @error('harga_perolehan') is-invalid @enderror" id="harga_perolehan" name="harga_perolehan" value="{{ old('harga_perolehan') }}" required oninput="hitungResidu()">
-                    @error('harga_perolehan')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                    <div class="col-md-6 mb-3">
+                        <label for="biaya_perolehan" class="form-label text-white">Biaya Perolehan (Rp) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" class="form-control bg-dark text-white @error('biaya_perolehan') is-invalid @enderror" 
+                               id="biaya_perolehan" name="biaya_perolehan" value="{{ old('biaya_perolehan', 0) }}" 
+                               required oninput="hitungTotal()">
+                        <small class="text-muted">Biaya tambahan seperti ongkir, instalasi, dll</small>
+                        @error('biaya_perolehan')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
                 </div>
 
                 <div class="mb-3">
-                    <label for="acquisition_cost" class="form-label text-white">Biaya Perolehan (Rp)</label>
-                    <input type="number" class="form-control bg-dark text-white @error('acquisition_cost') is-invalid @enderror" id="acquisition_cost" name="acquisition_cost" value="{{ old('acquisition_cost', old('harga', 0)) }}" oninput="hitungResidu()">
-                    @error('acquisition_cost')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                    <label class="form-label text-white">Total Perolehan</label>
+                    <div class="form-control bg-secondary text-white" id="total_perolehan_display">Rp 0</div>
                 </div>
 
-                <div class="mb-3">
-                    <label for="umur_manfaat" class="form-label text-white">Umur Manfaat (tahun)</label>
-                    <input type="number" class="form-control bg-dark text-white @error('umur_manfaat') is-invalid @enderror" id="umur_manfaat" name="umur_manfaat" value="{{ old('umur_manfaat', 4) }}" min="1" oninput="hitungResidu()">
-                    @error('umur_manfaat')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="metode_penyusutan" class="form-label text-white">Metode Penyusutan <span class="text-danger">*</span></label>
+                        <select class="form-select bg-dark text-white @error('metode_penyusutan') is-invalid @enderror" 
+                                id="metode_penyusutan" name="metode_penyusutan" required onchange="hitungPenyusutan()">
+                            <option value="" disabled selected>-- Pilih Metode --</option>
+                            @foreach($metodePenyusutan as $key => $value)
+                                <option value="{{ $key }}" {{ old('metode_penyusutan') == $key ? 'selected' : '' }}>
+                                    {{ $value }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('metode_penyusutan')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="umur_manfaat" class="form-label text-white">Umur Manfaat (tahun) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control bg-dark text-white @error('umur_manfaat') is-invalid @enderror" 
+                               id="umur_manfaat" name="umur_manfaat" value="{{ old('umur_manfaat', 5) }}" 
+                               min="1" max="100" required oninput="hitungPenyusutan()">
+                        @error('umur_manfaat')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="nilai_residu" class="form-label text-white">Nilai Residu (Rp) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" class="form-control bg-dark text-white @error('nilai_residu') is-invalid @enderror" 
+                               id="nilai_residu" name="nilai_residu" value="{{ old('nilai_residu', 0) }}" 
+                               required oninput="hitungPenyusutan()">
+                        <small class="text-muted">Nilai sisa di akhir umur manfaat</small>
+                        @error('nilai_residu')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
                 </div>
 
-                <script>
-                // Inisialisasi saat halaman dimuat
-                document.addEventListener('DOMContentLoaded', function() {
-                    console.log('=== Halaman dimuat ===');
-                    
-                    // Set nilai default acquisition cost sama dengan harga jika kosong
-                    const hargaInput = document.getElementById('harga');
-                    const acquisitionCostInput = document.getElementById('acquisition_cost');
-                    
-                    if (hargaInput && acquisitionCostInput && !acquisitionCostInput.value) {
-                        acquisitionCostInput.value = hargaInput.value || 0;
-                    }
-                    
-                    // Jalankan perhitungan awal
-                    hitungResidu();
-                    
-                    console.log('=== Inisialisasi selesai ===');
-                });
-
-                // Fungsi untuk menghitung nilai residu dan penyusutan
-                function hitungResidu() {
-                    try {
-                        const harga = parseFloat(document.getElementById('harga_perolehan').value) || 0;
-                        const acquisitionCost = harga;
-                        const usefulLifeYears = parseFloat(document.getElementById('umur_manfaat').value) || 1;
-                        
-                        // Hitung nilai residu (5% dari harga perolehan)
-                        const residualValue = acquisitionCost * 0.05;
-                        const nilaiDisusutkan = acquisitionCost - residualValue;
-                        const penyusutanTahunan = nilaiDisusutkan / usefulLifeYears;
-                        const penyusutanBulanan = penyusutanTahunan / 12;
-                        
-                        // Update tampilan
-                        document.getElementById('harga_perolehan_display').textContent = 'Rp ' + formatRupiah(acquisitionCost);
-                        document.getElementById('nilai_residu_display').textContent = 'Rp ' + formatRupiah(residualValue);
-                        document.getElementById('nilai_disusutkan_display').textContent = 'Rp ' + formatRupiah(nilaiDisusutkan);
-                        document.getElementById('umur_manfaat_display').textContent = usefulLifeYears;
-                        document.getElementById('penyusutan_tahunan_display').textContent = 'Rp ' + formatRupiah(penyusutanTahunan) + ' /tahun';
-                        document.getElementById('penyusutan_bulanan_display').textContent = 'Rp ' + formatRupiah(penyusutanBulanan) + ' /bulan';
-                        
-                        // Update nilai hidden field
-                        document.getElementById('residual_value').value = residualValue;
-                        
-                    } catch (error) {
-                        console.error('Error in hitungResidu:', error);
-                    }
-                }
-                
-                // Fungsi untuk format rupiah
-                function formatRupiah(angka) {
-                    return new Intl.NumberFormat('id-ID').format(angka);
-                }
-                </script>
-
-                <!-- Hidden fields for depreciation calculation -->
-                <input type="hidden" id="nilai_residu_hidden" name="residual_value" value="{{ old('residual_value', 0) }}">
-                <input type="hidden" id="acquisition_cost" name="acquisition_cost" value="{{ old('acquisition_cost', 0) }}">
-
-                <div class="mb-3">
-                    <label for="tanggal_beli" class="form-label text-light">Tanggal Pembelian</label>
-                    <input type="date" class="form-control bg-dark text-light @error('tanggal_beli') is-invalid @enderror" id="tanggal_beli" name="tanggal_beli" value="{{ old('tanggal_beli') }}" required>
-                    @error('tanggal_beli')
-                        <div class="invalid-feedback d-block">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div class="mb-3">
-                    <label for="status" class="form-label text-white">Status</label>
-                    <select class="form-select bg-dark text-white @error('status') is-invalid @enderror" id="status" name="status" required>
-                        <option value="" disabled selected>-- Pilih Status --</option>
-                        <option value="aktif" {{ old('status') == 'aktif' ? 'selected' : '' }}>Aktif</option>
-                        <option value="disewakan" {{ old('status') == 'disewakan' ? 'selected' : '' }}>Disewakan</option>
-                        <option value="dioperasikan" {{ old('status') == 'dioperasikan' ? 'selected' : '' }}>Dioperasikan</option>
-                        <option value="dihapus" {{ old('status') == 'dihapus' ? 'selected' : '' }}>Dihapus</option>
-                    </select>
-                    @error('status')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-
+                <!-- Ringkasan Penyusutan -->
                 <div class="card border-0 shadow-sm mb-4 bg-dark">
                     <div class="card-header bg-primary text-light">
-                        <h5 class="mb-0"><i class="bi bi-calculator me-2"></i>Ringkasan Penyusutan</h5>
+                        <h5 class="mb-0"><i class="bi bi-calculator me-2"></i>Hasil Perhitungan Penyusutan</h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-bordered mb-0 table-dark">
                                 <tbody>
                                     <tr>
-                                        <td class="bg-secondary text-white fw-bold" width="40%">Harga Perolehan</td>
-                                        <td class="text-end text-white" id="harga_perolehan_display">Rp 0</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="bg-secondary text-white fw-bold">Nilai Residu (5%)</td>
-                                        <td class="text-end text-info fw-bold" id="nilai_residu_display">Rp 0</td>
-                                    </tr>
-                                    <tr>
-                                        <td class="bg-secondary text-white fw-bold">Nilai yang Disusutkan</td>
+                                        <td class="bg-secondary text-white fw-bold" width="50%">Nilai yang Disusutkan</td>
                                         <td class="text-end text-white" id="nilai_disusutkan_display">Rp 0</td>
                                     </tr>
-                                    <tr>
-                                        <td class="bg-secondary text-white fw-bold">Umur Manfaat</td>
-                                        <td class="text-end text-white"><span id="umur_manfaat_display">0</span> tahun</td>
-                                    </tr>
                                     <tr class="bg-success bg-opacity-25">
-                                        <td class="fw-bold text-white">Penyusutan Tahunan</td>
-                                        <td class="text-end fw-bold text-white" id="penyusutan_tahunan_display">Rp 0 /tahun</td>
+                                        <td class="fw-bold text-white">Penyusutan Per Tahun</td>
+                                        <td class="text-end fw-bold text-success" id="penyusutan_tahunan_display">Rp 0</td>
                                     </tr>
                                     <tr class="bg-info bg-opacity-25">
-                                        <td class="fw-bold text-white">Penyusutan Bulanan</td>
-                                        <td class="text-end fw-bold text-white" id="penyusutan_bulanan_display">Rp 0 /bulan</td>
+                                        <td class="fw-bold text-white">Penyusutan Per Bulan</td>
+                                        <td class="text-end fw-bold text-info" id="penyusutan_bulanan_display">Rp 0</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
+                        <div class="alert alert-info mt-3 mb-0">
+                            <small><i class="bi bi-info-circle me-1"></i> Perhitungan ini adalah estimasi berdasarkan metode yang dipilih</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="tanggal_beli" class="form-label text-white">Tanggal Pembelian <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control bg-dark text-white @error('tanggal_beli') is-invalid @enderror" 
+                               id="tanggal_beli" name="tanggal_beli" value="{{ old('tanggal_beli', date('Y-m-d')) }}" required>
+                        @error('tanggal_beli')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="tanggal_akuisisi" class="form-label text-white">Tanggal Mulai Penyusutan</label>
+                        <input type="date" class="form-control bg-dark text-white @error('tanggal_akuisisi') is-invalid @enderror" 
+                               id="tanggal_akuisisi" name="tanggal_akuisisi" value="{{ old('tanggal_akuisisi') }}">
+                        <small class="text-muted">Kosongkan jika sama dengan tanggal pembelian</small>
+                        @error('tanggal_akuisisi')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 
                 <div class="mb-3">
-                    <label for="depr_start_date" class="form-label text-white">Mulai Penyusutan</label>
-                    <input type="date" class="form-control bg-dark text-white @error('depr_start_date') is-invalid @enderror" 
-                           id="depr_start_date" name="depr_start_date" 
-                           value="{{ old('depr_start_date', date('Y-m-d')) }}" required>
-                    @error('depr_start_date')
-                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    <label for="keterangan" class="form-label text-white">Keterangan</label>
+                    <textarea class="form-control bg-dark text-white @error('keterangan') is-invalid @enderror" 
+                              id="keterangan" name="keterangan" rows="3">{{ old('keterangan') }}</textarea>
+                    @error('keterangan')
+                        <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
 
                 <div class="mb-3">
-                    <button type="submit" class="btn btn-primary">Simpan</button>
-                    <a href="{{ route('master-data.aset.index') }}" class="btn btn-secondary">Batal</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i> Simpan Aset
+                    </button>
+                    <a href="{{ route('master-data.aset.index') }}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle me-1"></i> Batal
+                    </a>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+// Data kategori aset per jenis
+const kategoriData = @json($jenisAsets);
+
+// Load kategori aset berdasarkan jenis yang dipilih
+function loadKategoriAset() {
+    const jenisId = document.getElementById('jenis_aset_id').value;
+    const kategoriSelect = document.getElementById('kategori_aset_id');
+    
+    kategoriSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kategori Aset --</option>';
+    
+    if (jenisId) {
+        const jenis = kategoriData.find(j => j.id == jenisId);
+        if (jenis && jenis.kategories) {
+            jenis.kategories.forEach(kategori => {
+                const option = document.createElement('option');
+                option.value = kategori.id;
+                option.textContent = kategori.nama;
+                if ('{{ old("kategori_aset_id") }}' == kategori.id) {
+                    option.selected = true;
+                }
+                kategoriSelect.appendChild(option);
+            });
+        }
+    }
+}
+
+// Hitung total perolehan
+function hitungTotal() {
+    const harga = parseFloat(document.getElementById('harga_perolehan').value) || 0;
+    const biaya = parseFloat(document.getElementById('biaya_perolehan').value) || 0;
+    const total = harga + biaya;
+    
+    document.getElementById('total_perolehan_display').textContent = 'Rp ' + formatRupiah(total);
+    
+    hitungPenyusutan();
+}
+
+// Hitung penyusutan
+function hitungPenyusutan() {
+    const harga = parseFloat(document.getElementById('harga_perolehan').value) || 0;
+    const biaya = parseFloat(document.getElementById('biaya_perolehan').value) || 0;
+    const total = harga + biaya;
+    const residu = parseFloat(document.getElementById('nilai_residu').value) || 0;
+    const umur = parseFloat(document.getElementById('umur_manfaat').value) || 1;
+    const metode = document.getElementById('metode_penyusutan').value;
+    
+    const nilaiDisusutkan = total - residu;
+    let penyusutanTahunan = 0;
+    
+    if (metode === 'garis_lurus') {
+        // Metode garis lurus
+        penyusutanTahunan = nilaiDisusutkan / umur;
+    } else if (metode === 'saldo_menurun') {
+        // Metode saldo menurun (double declining)
+        const rate = 2 / umur;
+        penyusutanTahunan = total * rate;
+    } else if (metode === 'sum_of_years_digits') {
+        // Metode jumlah angka tahun (tahun pertama)
+        const sumOfYears = (umur * (umur + 1)) / 2;
+        penyusutanTahunan = (nilaiDisusutkan * umur) / sumOfYears;
+    }
+    
+    const penyusutanBulanan = penyusutanTahunan / 12;
+    
+    document.getElementById('nilai_disusutkan_display').textContent = 'Rp ' + formatRupiah(nilaiDisusutkan);
+    document.getElementById('penyusutan_tahunan_display').textContent = 'Rp ' + formatRupiah(penyusutanTahunan);
+    document.getElementById('penyusutan_bulanan_display').textContent = 'Rp ' + formatRupiah(penyusutanBulanan);
+}
+
+// Format rupiah
+function formatRupiah(angka) {
+    return new Intl.NumberFormat('id-ID', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(angka);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Load kategori if jenis already selected
+    if ('{{ old("jenis_aset_id") }}') {
+        loadKategoriAset();
+    }
+    
+    // Calculate initial values
+    hitungTotal();
+});
+</script>
 @endsection

@@ -135,19 +135,35 @@ class DashboardController extends Controller
         try {
             if (!\Schema::hasTable('coas')) { return 0; }
 
-            $ids = $this->getKasBankCoaIds();
-            if (empty($ids)) { return 0; }
+            // Ambil COA Kas dan Bank menggunakan helper
+            $coas = \App\Helpers\AccountHelper::getKasBankAccounts();
+            if ($coas->isEmpty()) { return 0; }
 
-            $saldoAwal = Coa::whereIn('id', $ids)->sum('saldo_awal');
-            if (\Schema::hasTable('jurnal_umum')) {
-                $debit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)->sum('debit');
-                $kredit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)->sum('kredit');
-            } else {
-                $debit = 0; $kredit = 0;
+            $total = 0;
+            foreach ($coas as $coa) {
+                $saldoAwal = (float)$coa->saldo_awal;
+                
+                // Cari account_id yang sesuai
+                $account = \DB::table('accounts')->where('code', $coa->kode_akun)->first();
+                if (!$account) {
+                    $total += $saldoAwal;
+                    continue;
+                }
+                
+                // Hitung dari journal_lines
+                if (\Schema::hasTable('journal_lines')) {
+                    $debit = \DB::table('journal_lines')->where('account_id', $account->id)->sum('debit');
+                    $kredit = \DB::table('journal_lines')->where('account_id', $account->id)->sum('credit');
+                    $total += $saldoAwal + (float)$debit - (float)$kredit;
+                } else {
+                    $total += $saldoAwal;
+                }
             }
-            return max(0, (float)$saldoAwal + (float)$debit - (float)$kredit);
+            
+            return max(0, $total);
         } catch (\Exception $e) {
-            return 0; // Kembalikan 0 jika ada error
+            \Log::error('Error getTotalKasBank: ' . $e->getMessage());
+            return 0;
         }
     }
 
@@ -157,25 +173,17 @@ class DashboardController extends Controller
     private function getPendapatanBulanIni()
     {
         try {
-            if (!\Schema::hasTable('coas')) {
-                return 0;
-            }
-            
+            // Hitung dari penjualan tunai bulan ini
             $startOfMonth = now()->startOfMonth();
             $endOfMonth = now()->endOfMonth();
 
-            $ids = $this->getRevenueCoaIds();
-            if (empty($ids) || !\Schema::hasTable('jurnal_umum')) { return 0; }
-
-            $kredit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)
-                ->whereBetween('tanggal', [$startOfMonth, $endOfMonth])
-                ->sum('kredit');
-            $debit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)
-                ->whereBetween('tanggal', [$startOfMonth, $endOfMonth])
-                ->sum('debit');
-            return (float)$kredit - (float)$debit;
+            $totalPenjualan = Penjualan::whereBetween('tanggal', [$startOfMonth, $endOfMonth])
+                ->sum('total');
+            
+            return (float)$totalPenjualan;
         } catch (\Exception $e) {
-            return 0; // Kembalikan 0 jika ada error
+            \Log::error('Error getPendapatanBulanIni: ' . $e->getMessage());
+            return 0;
         }
     }
 
@@ -185,21 +193,15 @@ class DashboardController extends Controller
     private function getTotalPiutang()
     {
         try {
-            if (!\Schema::hasTable('coas')) {
-                return 0;
-            }
+            // Hitung dari penjualan kredit yang belum lunas
+            $totalPiutang = Penjualan::where('payment_method', 'credit')
+                ->where('status', '!=', 'lunas')
+                ->sum('total');
             
-            $ids = $this->getReceivableCoaIds();
-            if (empty($ids)) { return 0; }
-
-            $saldoAwal = Coa::whereIn('id', $ids)->sum('saldo_awal');
-            if (\Schema::hasTable('jurnal_umum')) {
-                $debit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)->sum('debit');
-                $kredit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)->sum('kredit');
-            } else { $debit = 0; $kredit = 0; }
-            return (float)$saldoAwal + (float)$debit - (float)$kredit;
+            return (float)$totalPiutang;
         } catch (\Exception $e) {
-            return 0; // Kembalikan 0 jika ada error
+            \Log::error('Error getTotalPiutang: ' . $e->getMessage());
+            return 0;
         }
     }
 
@@ -209,21 +211,15 @@ class DashboardController extends Controller
     private function getTotalUtang()
     {
         try {
-            if (!\Schema::hasTable('coas')) {
-                return 0;
-            }
+            // Hitung dari pembelian kredit yang belum lunas
+            $totalUtang = Pembelian::where('payment_method', 'credit')
+                ->where('status', '!=', 'lunas')
+                ->sum('sisa_pembayaran');
             
-            $ids = $this->getPayableCoaIds();
-            if (empty($ids)) { return 0; }
-
-            $saldoAwal = Coa::whereIn('id', $ids)->sum('saldo_awal');
-            if (\Schema::hasTable('jurnal_umum')) {
-                $debit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)->sum('debit');
-                $kredit = \App\Models\JurnalUmum::whereIn('coa_id', $ids)->sum('kredit');
-            } else { $debit = 0; $kredit = 0; }
-            return max(0, (float)$saldoAwal + (float)$kredit - (float)$debit);
+            return (float)$totalUtang;
         } catch (\Exception $e) {
-            return 0; // Kembalikan 0 jika ada error
+            \Log::error('Error getTotalUtang: ' . $e->getMessage());
+            return 0;
         }
     }
 
@@ -300,11 +296,7 @@ class DashboardController extends Controller
     private function getKasBankCoaIds(): array
     {
         $query = Coa::query();
-        $query->where(function($q){
-            $q->whereIn('kode_akun', ['101','102','1101','1102'])
-              ->orWhere('nama_akun', 'like', '%kas%')
-              ->orWhere('nama_akun', 'like', '%bank%');
-        });
+        $query->whereIn('kode_akun', \App\Helpers\AccountHelper::KAS_BANK_CODES);
         return $query->pluck('id')->all();
     }
 

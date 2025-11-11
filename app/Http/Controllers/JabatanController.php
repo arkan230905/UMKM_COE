@@ -10,13 +10,21 @@ class JabatanController extends Controller
     public function index()
     {
         $search = request('search');
+        $kategori = request('kategori');
+        
         $q = Jabatan::query();
+        
         if ($search) {
-            $q->where('nama', 'like', "%{$search}%")
-              ->orWhere('kategori', 'like', "%{$search}%");
+            $q->where('nama', 'like', "%{$search}%");
         }
+        
+        if ($kategori) {
+            $q->where('kategori', $kategori);
+        }
+        
         $jabatans = $q->orderBy('nama')->paginate(10)->withQueryString();
-        return view('master-data.jabatan.index', compact('jabatans','search'));
+        
+        return view('master-data.jabatan.index', compact('jabatans', 'search'));
     }
 
     public function create()
@@ -47,6 +55,20 @@ class JabatanController extends Controller
         $data['asuransi'] = $data['asuransi'] ?? 0;
         $data['gaji'] = $data['gaji'] ?? 0;
         $data['tarif'] = $data['tarif'] ?? 0;
+        
+        // Generate kode_jabatan
+        $prefix = strtoupper(substr($data['kategori'], 0, 2));
+        $lastJabatan = Jabatan::where('kode_jabatan', 'like', $prefix . '%')
+            ->orderBy('kode_jabatan', 'desc')
+            ->first();
+            
+        $nextNumber = 1;
+        if ($lastJabatan) {
+            $lastNumber = (int) substr($lastJabatan->kode_jabatan, 2);
+            $nextNumber = $lastNumber + 1;
+        }
+        
+        $data['kode_jabatan'] = $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
 
         Jabatan::create($data);
         return redirect()->route('master-data.jabatan.index')->with('success','Jabatan berhasil ditambahkan');

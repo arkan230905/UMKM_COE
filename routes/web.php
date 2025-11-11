@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -78,14 +79,7 @@ Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->na
 Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// Minimal route untuk lupa password
-Route::get('/forgot-password', function () {
-    return view('auth.forgot-password');
-})->name('password.request');
-
-Route::post('/forgot-password', function (Request $request) {
-    return back()->with('status', 'Link reset password telah dikirim (simulasi).');
-})->name('password.email');
+// Route password sudah ada di auth.php, tidak perlu duplikat
 
 
 // ====================================================================
@@ -99,10 +93,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ================================================================
-    // ASSET (example-style simple module)
+    // ASSET (redirect to master-data aset)
     // ================================================================
-    Route::resource('/aset', AssetController::class)->names('aset');
-    Route::get('/aset/{asset}/depreciation', [AssetController::class, 'calculateDepreciation'])->name('aset.depreciation');
+    Route::get('/aset', function() {
+        return redirect()->route('master-data.aset.index');
+    });
+    Route::get('/aset/{id}', function($id) {
+        return redirect()->route('master-data.aset.show', $id);
+    });
 
     // ================================================================
     // MASTER DATA
@@ -115,18 +113,58 @@ Route::middleware('auth')->group(function () {
         Route::resource('aset', AsetController::class);
         Route::resource('jabatan', JabatanController::class);
         Route::resource('pegawai', PegawaiController::class);
+        // Presensi routes
         Route::resource('presensi', PresensiController::class);
         Route::resource('vendor', VendorController::class);
         Route::resource('satuan', SatuanController::class);
-        Route::resource('produk', ProdukController::class);
-        Route::resource('bop', BopController::class);
-        Route::post('bop/recalc', [BopController::class, 'recalc'])->name('bop.recalc');
-        Route::resource('bop-budget', BopBudgetController::class)->names('bop-budget');
-        // Specific view route must be defined before resource to avoid being captured by 'bom/{bom}' show
-        Route::get('bom/by-produk/{id}', [BomController::class, 'view'])->name('bom.view');
-        Route::post('bom/by-produk/{id}', [BomController::class, 'updateByProduk'])->name('bom.updateByProduk');
-        Route::get('bom/generate-kode', [BomController::class, 'generateKodeBom'])->name('bom.generate-kode');
-        Route::resource('bom', BomController::class);
+        
+        // Produk routes with proper naming
+        Route::prefix('produk')->name('produk.')->group(function () {
+            Route::get('/', [ProdukController::class, 'index'])->name('index');
+            Route::get('/create', [ProdukController::class, 'create'])->name('create');
+            Route::post('/', [ProdukController::class, 'store'])->name('store');
+            Route::get('/{produk}', [ProdukController::class, 'show'])->name('show');
+            Route::get('/{produk}/edit', [ProdukController::class, 'edit'])->name('edit');
+            Route::put('/{produk}', [ProdukController::class, 'update'])->name('update');
+            Route::delete('/{produk}', [ProdukController::class, 'destroy'])->name('destroy');
+        });
+        
+        // BOP Routes
+        Route::prefix('bop')->name('bop.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\MasterData\BopController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\MasterData\BopController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\MasterData\BopController::class, 'store'])->name('store');
+            Route::get('/{id}/edit', [\App\Http\Controllers\MasterData\BopController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'update'])->name('update');
+            Route::delete('/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroy'])->name('destroy');
+        });
+        
+        // BOP Budget Routes
+        Route::prefix('bop-budget')->name('bop-budget.')->group(function () {
+            Route::get('/', [BopBudgetController::class, 'index'])->name('index');
+            Route::get('/create', [BopBudgetController::class, 'create'])->name('create');
+            Route::post('/', [BopBudgetController::class, 'store'])->name('store');
+            Route::get('/{bopBudget}/edit', [BopBudgetController::class, 'edit'])->name('edit');
+            Route::put('/{bopBudget}', [BopBudgetController::class, 'update'])->name('update');
+            Route::delete('/{bopBudget}', [BopBudgetController::class, 'destroy'])->name('destroy');
+        });
+        // BOM Routes
+        Route::prefix('bom')->name('bom.')->group(function () {
+            Route::get('calculate/{produkId}', [BomController::class, 'calculateBomCost'])->name('calculate');
+            Route::get('by-produk/{id}', [BomController::class, 'view'])->name('view-by-produk');
+            Route::post('by-produk/{id}', [BomController::class, 'updateByProduk'])->name('update-by-produk');
+            Route::get('generate-kode', [BomController::class, 'generateKodeBom'])->name('generate-kode');
+            
+            // Resource routes with explicit names to avoid conflicts
+            Route::get('/', [BomController::class, 'index'])->name('index');
+            Route::get('/create', [BomController::class, 'create'])->name('create');
+            Route::post('/', [BomController::class, 'store'])->name('store');
+            Route::get('/{bom}', [BomController::class, 'show'])->name('show');
+            Route::get('/{bom}/print', [BomController::class, 'print'])->name('print');
+            Route::get('/{bom}/edit', [BomController::class, 'edit'])->name('edit');
+            Route::put('/{bom}', [BomController::class, 'update'])->name('update');
+            Route::delete('/{bom}', [BomController::class, 'destroy'])->name('destroy');
+        });
     });
 
 
@@ -134,11 +172,70 @@ Route::middleware('auth')->group(function () {
     // TRANSAKSI
     // ================================================================
     Route::prefix('transaksi')->name('transaksi.')->group(function () {
+        // ============================================================
+        // ✅ PEMBAYARAN BEBAN (Expense Payment)
+        // ============================================================
+        Route::prefix('pembayaran-beban')->name('pembayaran-beban.')->group(function() {
+            Route::get('/', [ExpensePaymentController::class, 'index'])->name('index');
+            Route::get('/create', [ExpensePaymentController::class, 'create'])->name('create');
+            Route::post('/', [ExpensePaymentController::class, 'store'])->name('store');
+            Route::get('/{id}', [ExpensePaymentController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [ExpensePaymentController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [ExpensePaymentController::class, 'update'])->name('update');
+            Route::delete('/{id}', [ExpensePaymentController::class, 'destroy'])->name('destroy');
+            Route::get('/print/{id}', [ExpensePaymentController::class, 'print'])->name('print');
+        });
+
+        // Alias route untuk backward compatibility - LANGSUNG KE CONTROLLER
+        Route::prefix('expense-payment')->group(function() {
+            Route::get('/', [ExpensePaymentController::class, 'index']);
+            Route::get('/create', [ExpensePaymentController::class, 'create']);
+            Route::post('/', [ExpensePaymentController::class, 'store']);
+            Route::get('/{id}', [ExpensePaymentController::class, 'show']);
+            Route::get('/{id}/edit', [ExpensePaymentController::class, 'edit']);
+            Route::put('/{id}', [ExpensePaymentController::class, 'update']);
+            Route::delete('/{id}', [ExpensePaymentController::class, 'destroy']);
+        });
+
+        // ============================================================
+        // ✅ PELUNASAN UTANG (AP Settlement)
+        // ============================================================
+        Route::prefix('pelunasan-utang')->name('pelunasan-utang.')->group(function() {
+            Route::get('/', [ApSettlementController::class, 'index'])->name('index');
+            Route::get('/create', [ApSettlementController::class, 'create'])->name('create');
+            Route::post('/', [ApSettlementController::class, 'store'])->name('store');
+            Route::get('/{id}', [ApSettlementController::class, 'show'])->name('show');
+            Route::get('/print/{id}', [ApSettlementController::class, 'print'])->name('print');
+            Route::delete('/{id}', [ApSettlementController::class, 'destroy'])->name('destroy');
+            Route::get('/get-pembelian/{id}', [ApSettlementController::class, 'getPembelian'])->name('get-pembelian');
+        });
+
+        // ============================================================
+        // ✅ PENGGAJIAN
+        // ============================================================
+        Route::prefix('penggajian')->name('penggajian.')->group(function() {
+            Route::get('/', [PenggajianController::class, 'index'])->name('index');
+            Route::get('/create', [PenggajianController::class, 'create'])->name('create');
+            Route::post('/', [PenggajianController::class, 'store'])->name('store');
+            Route::get('/{id}', [PenggajianController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [PenggajianController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [PenggajianController::class, 'update'])->name('update');
+            Route::delete('/{id}', [PenggajianController::class, 'destroy'])->name('destroy');
+            Route::get('/print/{id}', [PenggajianController::class, 'print'])->name('print');
+        });
 
         // ============================================================
         // ✅ PEMBELIAN
         // ============================================================
-        Route::resource('pembelian', PembelianController::class);
+        Route::prefix('pembelian')->name('pembelian.')->group(function() {
+            Route::get('/', [PembelianController::class, 'index'])->name('index');
+            Route::get('/create', [PembelianController::class, 'create'])->name('create');
+            Route::post('/', [PembelianController::class, 'store'])->name('store');
+            Route::get('/{pembelian}', [PembelianController::class, 'show'])->name('show');
+            Route::get('/{pembelian}/edit', [PembelianController::class, 'edit'])->name('edit');
+            Route::put('/{pembelian}', [PembelianController::class, 'update'])->name('update');
+            Route::delete('/{pembelian}', [PembelianController::class, 'destroy'])->name('destroy');
+        });
 
         // ============================================================
         // ✅ PENJUALAN
@@ -152,16 +249,7 @@ Route::middleware('auth')->group(function () {
         Route::post('retur/{id}/approve', [ReturController::class, 'approve'])->name('retur.approve');
         Route::post('retur/{id}/post', [ReturController::class, 'post'])->name('retur.post');
 
-        // ============================================================
-        // ✅ PENGGAJIAN
-        // ============================================================
-        Route::prefix('penggajian')->name('penggajian.')->group(function() {
-            Route::get('/', [PenggajianController::class, 'index'])->name('index');
-            Route::get('/create', [PenggajianController::class, 'create'])->name('create');
-            Route::post('/', [PenggajianController::class, 'store'])->name('store');
-            Route::delete('/{id}', [PenggajianController::class, 'destroy'])->name('destroy');
-            Route::get('/print/{id}', [PenggajianController::class, 'print'])->name('print');
-        });
+
 
         // ============================================================
         // ✅ PRODUKSI
@@ -171,19 +259,12 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [ProduksiController::class, 'create'])->name('create');
             Route::post('/', [ProduksiController::class, 'store'])->name('store');
             Route::get('/{id}', [ProduksiController::class, 'show'])->name('show');
+            Route::post('/{id}/complete', [ProduksiController::class, 'complete'])->name('complete');
             Route::delete('/{id}', [ProduksiController::class, 'destroy'])->name('destroy');
         });
 
-        // ============================================================
-        // ✅ PEMBAYARAN BEBAN
-        // ============================================================
-        Route::prefix('expense-payment')->name('expense-payment.')->group(function() {
-            Route::get('/', [ExpensePaymentController::class, 'index'])->name('index');
-            Route::get('/create', [ExpensePaymentController::class, 'create'])->name('create');
-            Route::post('/', [ExpensePaymentController::class, 'store'])->name('store');
-            Route::get('/{id}', [ExpensePaymentController::class, 'show'])->name('show');
-            Route::get('/print/{id}', [ExpensePaymentController::class, 'print'])->name('print');
-        });
+        // Route expense-payment sudah ada di atas dengan prefix pembayaran-beban
+        // Tidak perlu duplikat
 
         // ============================================================
         // ✅ PELUNASAN UTANG
@@ -193,6 +274,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [ApSettlementController::class, 'create'])->name('create');
             Route::post('/', [ApSettlementController::class, 'store'])->name('store');
             Route::get('/{id}', [ApSettlementController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [ApSettlementController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [ApSettlementController::class, 'update'])->name('update');
+            Route::delete('/{id}', [ApSettlementController::class, 'destroy'])->name('destroy');
             Route::get('/print/{id}', [ApSettlementController::class, 'print'])->name('print');
         });
 
@@ -202,27 +286,57 @@ Route::middleware('auth')->group(function () {
     // ================================================================
     // LAPORAN
     // ================================================================
-    Route::prefix('laporan')->name('laporan.')->group(function () {
-        // Laporan Utama
-        Route::get('/stok', [LaporanController::class, 'laporanStok'])->name('stok');
+    Route::prefix('laporan')->name('laporan.')->group(function() {
+        // Laporan Stok
+        Route::get('/stok', [LaporanController::class, 'stok'])->name('stok');
         
-        // Laporan Transaksi
-        Route::get('/penjualan', [LaporanController::class, 'penjualan'])->name('penjualan');
-        Route::get('/penjualan/{id}/invoice', [LaporanController::class, 'invoicePenjualan'])->name('penjualan.invoice');
-        
+        // Laporan Pembelian
         Route::get('/pembelian', [LaporanController::class, 'pembelian'])->name('pembelian');
         Route::get('/pembelian/{id}/invoice', [LaporanController::class, 'invoicePembelian'])->name('pembelian.invoice');
+        Route::get('/pembelian/export', [LaporanController::class, 'exportPembelian'])->name('pembelian.export');
+        Route::get('/export/pembelian', [LaporanController::class, 'exportPembelian'])->name('export.pembelian');
         
-        // Laporan Baru
+        // Laporan Penjualan
+        Route::get('/penjualan', [LaporanController::class, 'penjualan'])->name('penjualan');
+        Route::get('/penjualan/{id}/invoice', [LaporanController::class, 'invoice'])->name('penjualan.invoice');
+        
+        // Laporan Retur
         Route::get('/retur', [LaporanController::class, 'laporanRetur'])->name('retur');
+        
+        // Laporan Penggajian
         Route::get('/penggajian', [LaporanController::class, 'laporanPenggajian'])->name('penggajian');
         Route::get('/pembayaran-beban', [LaporanController::class, 'laporanPembayaranBeban'])->name('pembayaran-beban');
         Route::get('/pelunasan-utang', [LaporanController::class, 'laporanPelunasanUtang'])->name('pelunasan-utang');
+        Route::get('/aliran-kas', [LaporanController::class, 'laporanAliranKas'])->name('aliran-kas');
+        
+        // Laporan Kas & Bank
+        Route::get('/kas-bank', [\App\Http\Controllers\LaporanKasBankController::class, 'index'])->name('kas-bank');
+        Route::get('/kas-bank/export-pdf', [\App\Http\Controllers\LaporanKasBankController::class, 'exportPdf'])->name('kas-bank.export-pdf');
+        Route::get('/kas-bank/export-excel', [\App\Http\Controllers\LaporanKasBankController::class, 'exportExcel'])->name('kas-bank.export-excel');
+        Route::get('/kas-bank/{coaId}/detail-masuk', [\App\Http\Controllers\LaporanKasBankController::class, 'getDetailMasuk'])->name('kas-bank.detail-masuk');
+        Route::get('/kas-bank/{coaId}/detail-keluar', [\App\Http\Controllers\LaporanKasBankController::class, 'getDetailKeluar'])->name('kas-bank.detail-keluar');
         
         // Laporan Aset
         Route::get('/penyusutan-aset', [\App\Http\Controllers\AsetDepreciationController::class, 'index'])->name('penyusutan.aset');
         Route::get('/penyusutan-aset/{id}', [\App\Http\Controllers\AsetDepreciationController::class, 'show'])->name('penyusutan.aset.show');
         Route::post('/penyusutan-aset/post-monthly', [\App\Http\Controllers\AsetDepreciationController::class, 'postMonthly'])->name('penyusutan.aset.post');
+        
+        // Ekspor Laporan
+        Route::get('/export/retur', function() {
+            return app()->call('App\Http\Controllers\LaporanController@laporanRetur', ['export' => 'pdf']);
+        })->name('export.retur');
+        
+        Route::get('/export/penggajian', function() {
+            return app()->call('App\Http\Controllers\LaporanController@laporanPenggajian', ['export' => 'pdf']);
+        })->name('export.penggajian');
+        
+        Route::get('/export/pembayaran-beban', function() {
+            return app()->call('App\Http\Controllers\LaporanController@laporanPembayaranBeban', ['export' => 'pdf']);
+        })->name('export.pembayaran-beban');
+        
+        Route::get('/export/pelunasan-utang', function() {
+            return app()->call('App\Http\Controllers\LaporanController@laporanPelunasanUtang', ['export' => 'pdf']);
+        })->name('export.pelunasan-utang');
     });
 
     // ================================================================
@@ -230,7 +344,10 @@ Route::middleware('auth')->group(function () {
     // ================================================================
     Route::prefix('akuntansi')->name('akuntansi.')->group(function () {
         Route::get('/jurnal-umum', [\App\Http\Controllers\AkuntansiController::class, 'jurnalUmum'])->name('jurnal-umum');
+        Route::get('/jurnal-umum/export-pdf', [\App\Http\Controllers\AkuntansiController::class, 'jurnalUmumExportPdf'])->name('jurnal-umum.export-pdf');
+        Route::get('/jurnal-umum/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'jurnalUmumExportExcel'])->name('jurnal-umum.export-excel');
         Route::get('/buku-besar', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesar'])->name('buku-besar');
+        Route::get('/buku-besar/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesarExportExcel'])->name('buku-besar.export-excel');
         Route::get('/neraca-saldo', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldo'])->name('neraca-saldo');
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
     });

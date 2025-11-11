@@ -17,6 +17,7 @@
                 <th>Produk</th>
                 <th>Qty Produksi</th>
                 <th>Total Biaya</th>
+                <th>Status</th>
                 <th>Aksi</th>
             </tr>
         </thead>
@@ -29,12 +30,30 @@
                     <td><?php echo e(rtrim(rtrim(number_format($p->qty_produksi,4,',','.'),'0'),',')); ?></td>
                     <td>Rp <?php echo e(number_format($p->total_biaya,0,',','.')); ?></td>
                     <td>
-                        <a href="<?php echo e(route('transaksi.produksi.show', $p->id)); ?>" class="btn btn-info btn-sm">Detail</a>
-                        <form action="<?php echo e(route('transaksi.produksi.destroy', $p->id)); ?>" method="POST" class="d-inline" onsubmit="return confirm('Hapus transaksi produksi ini? Data jurnal terkait juga akan dihapus.')">
-                            <?php echo csrf_field(); ?>
-                            <?php echo method_field('DELETE'); ?>
-                            <button class="btn btn-danger btn-sm">Hapus</button>
-                        </form>
+                        <?php if($p->status === 'wip' || $p->status === 'pending' || !$p->status): ?>
+                            <span class="badge bg-warning text-dark">Proses</span>
+                        <?php elseif($p->status === 'completed'): ?>
+                            <span class="badge bg-success">Selesai</span>
+                        <?php else: ?>
+                            <span class="badge bg-secondary"><?php echo e($p->status); ?></span>
+                        <?php endif; ?>
+                    </td>
+                    <td>
+                        <?php if($p->status === 'wip' || $p->status === 'pending' || !$p->status): ?>
+                            <form action="<?php echo e(route('transaksi.produksi.complete', $p->id)); ?>" method="POST" class="d-inline">
+                                <?php echo csrf_field(); ?>
+                                <button class="btn btn-success btn-sm" onclick="return confirm('Tandai produksi ini sebagai selesai?')">
+                                    ✓ Selesai Produksi
+                                </button>
+                            </form>
+                        <?php else: ?>
+                            <a href="<?php echo e(route('transaksi.produksi.show', $p->id)); ?>" class="btn btn-info btn-sm">Detail</a>
+                            <form action="<?php echo e(route('transaksi.produksi.destroy', $p->id)); ?>" method="POST" class="d-inline" onsubmit="return confirm('Hapus transaksi produksi ini? Data jurnal terkait juga akan dihapus.')">
+                                <?php echo csrf_field(); ?>
+                                <?php echo method_field('DELETE'); ?>
+                                <button class="btn btn-danger btn-sm">Hapus</button>
+                            </form>
+                        <?php endif; ?>
                     </td>
                 </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>

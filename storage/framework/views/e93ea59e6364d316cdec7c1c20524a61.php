@@ -44,8 +44,13 @@
       </div>
       <div class="col-md-4">
         <label class="form-label">COA Kas/Bank</label>
-        <select name="coa_kasbank" class="form-select">
-          <option value="101">101 - Kas</option>
+        <select name="coa_kasbank" class="form-select" required>
+          <?php $__currentLoopData = $kasbank; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $kb): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <option value="<?php echo e($kb->kode_akun); ?>" <?php echo e($kb->kode_akun == '1101' ? 'selected' : ''); ?>>
+              <?php echo e($kb->kode_akun); ?> - <?php echo e($kb->nama_akun); ?>
+
+            </option>
+          <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </select>
       </div>
     </div>

@@ -24,26 +24,44 @@ class ReturController extends Controller
     public function create()
     {
         $produks = Produk::all();
+        $bahanBakus = \App\Models\BahanBaku::all();
         $pembelians = Pembelian::all();
         $penjualans = Penjualan::all();
-        return view('transaksi.retur.create', compact('produks','pembelians','penjualans'));
+        return view('transaksi.retur.create', compact('produks', 'bahanBakus', 'pembelians','penjualans'));
     }
 
     public function store(Request $request)
     {
+        // Validasi dasar
         $request->validate([
             'type' => 'required|in:sale,purchase',
-            'ref_id' => 'required|integer',
             'tanggal' => 'required|date',
             'kompensasi' => 'required|in:refund,credit',
             'details' => 'required|array|min:1',
-            'details.*.produk_id' => 'required|exists:produks,id',
+            'details.*.produk_id' => 'required|integer',
             'details.*.qty' => 'required|numeric|min:0.0001',
         ]);
 
+        // Validasi tambahan berdasarkan tipe
+        if ($request->type === 'sale') {
+            // Retur penjualan: validasi produk_id ada di tabel produks
+            foreach ($request->details as $detail) {
+                if (!Produk::find($detail['produk_id'])) {
+                    return back()->withErrors(['details' => 'Produk tidak ditemukan'])->withInput();
+                }
+            }
+        } else {
+            // Retur pembelian: validasi produk_id (sebenarnya bahan_baku_id) ada di tabel bahan_bakus
+            foreach ($request->details as $detail) {
+                if (!\App\Models\BahanBaku::find($detail['produk_id'])) {
+                    return back()->withErrors(['details' => 'Bahan baku tidak ditemukan'])->withInput();
+                }
+            }
+        }
+
         $retur = Retur::create([
             'type' => $request->type,
-            'ref_id' => $request->ref_id,
+            'ref_id' => $request->ref_id ?? 0,
             'tanggal' => $request->tanggal,
             'kompensasi' => $request->kompensasi,
             'status' => 'approved',
@@ -54,7 +72,7 @@ class ReturController extends Controller
         foreach ($request->details as $d) {
             ReturDetail::create([
                 'retur_id' => $retur->id,
-                'produk_id' => (int)$d['produk_id'],
+                'produk_id' => (int)$d['produk_id'], // Untuk retur pembelian, ini sebenarnya bahan_baku_id
                 'ref_detail_id' => $d['ref_detail_id'] ?? null,
                 'qty' => (float)$d['qty'],
                 'harga_satuan_asal' => $d['harga_satuan_asal'] ?? null,
@@ -137,17 +155,17 @@ class ReturController extends Controller
 
             if ($retur->type === 'sale') {
                 // Pembalikan penjualan
-                $cashOrReceivable = $retur->kompensasi === 'credit' ? '102' : '101';
+                $cashOrReceivable = $retur->kompensasi === 'credit' ? '1102' : '1101';  // Bank atau Kas
                 if ($totalNominal > 0) {
                     $journal->post($tanggal, 'sale_return', (int)$retur->id, 'Retur Penjualan', [
-                        ['code' => '401', 'debit' => (float)$totalNominal, 'credit' => 0],
-                        ['code' => $cashOrReceivable, 'debit' => 0, 'credit' => (float)$totalNominal],
+                        ['code' => '4101', 'debit' => (float)$totalNominal, 'credit' => 0],  // Penjualan (pembalik)
+                        ['code' => $cashOrReceivable, 'debit' => 0, 'credit' => (float)$totalNominal],  // Kas/Bank
                     ]);
                 }
                 if ($totalHpp > 0) {
                     $journal->post($tanggal, 'sale_return_cogs', (int)$retur->id, 'Retur Penjualan - Pembalik HPP', [
-                        ['code' => '123', 'debit' => (float)$totalHpp, 'credit' => 0],
-                        ['code' => '501', 'debit' => 0, 'credit' => (float)$totalHpp],
+                        ['code' => '1107', 'debit' => (float)$totalHpp, 'credit' => 0],  // Persediaan Barang Jadi
+                        ['code' => '5001', 'debit' => 0, 'credit' => (float)$totalHpp],  // HPP (pembalik)
                     ]);
                 }
             } else {
@@ -155,21 +173,21 @@ class ReturController extends Controller
                 if ($retur->kompensasi === 'refund') {
                     // Vendor mengembalikan uang ke kita: kas bertambah, hutang berkurang (atau langsung kas)
                     $journal->post($tanggal, 'purchase_return', (int)$retur->id, 'Retur Pembelian (Refund)', [
-                        ['code' => '201', 'debit' => (float)$totalNominal, 'credit' => 0],
-                        ['code' => '101', 'debit' => 0, 'credit' => (float)$totalNominal],
+                        ['code' => '2101', 'debit' => (float)$totalNominal, 'credit' => 0],  // Hutang Usaha (berkurang)
+                        ['code' => '1101', 'debit' => 0, 'credit' => (float)$totalNominal],  // Kas (berkurang karena refund)
                     ]);
                 } else {
                     // Credit note supplier: kurangi hutang usaha
                     $journal->post($tanggal, 'purchase_return', (int)$retur->id, 'Retur Pembelian (Credit)', [
-                        ['code' => '201', 'debit' => (float)$totalNominal, 'credit' => 0],
-                        ['code' => '201', 'debit' => 0, 'credit' => (float)$totalNominal],
+                        ['code' => '2101', 'debit' => (float)$totalNominal, 'credit' => 0],  // Hutang Usaha (berkurang)
+                        ['code' => '2101', 'debit' => 0, 'credit' => (float)$totalNominal],  // Credit Note (netting)
                     ]);
                 }
                 if ($totalHpp > 0) {
                     // Persediaan keluar (sisi persediaan sudah dicatat lewat consume di stock movements); jurnal balancing persediaan
                     $journal->post($tanggal, 'purchase_return_inv', (int)$retur->id, 'Retur Pembelian - Persediaan', [
-                        ['code' => '121', 'debit' => 0, 'credit' => (float)$totalHpp],
-                        ['code' => '201', 'debit' => (float)$totalHpp, 'credit' => 0],
+                        ['code' => '1104', 'debit' => 0, 'credit' => (float)$totalHpp],  // Persediaan Bahan Baku (berkurang)
+                        ['code' => '2101', 'debit' => (float)$totalHpp, 'credit' => 0],  // Hutang Usaha (berkurang)
                     ]);
                 }
             }

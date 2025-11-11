@@ -11,9 +11,15 @@ class Produk extends Model
 
     protected $table = 'produks';
     protected $fillable = [
+        'kode_produk',
         'nama_produk',
         'deskripsi',
-        'harga_jual', // nullable awalnya
+        'kategori_id',
+        'satuan_id',
+        'harga_jual',
+        'harga_beli',
+        'stok',
+        'stok_minimum',
         'btkl_default',
         'bop_default',
         'margin_percent',
@@ -22,6 +28,33 @@ class Produk extends Model
         'labor_hours_per_unit',
         'btkl_per_unit',
     ];
+    
+    /**
+     * Get the kategori that owns the Produk
+     */
+    /**
+     * Get the kategori that owns the Produk
+     */
+    public function kategori()
+    {
+        return $this->belongsTo(KategoriProduk::class, 'kategori_id')
+            ->withDefault([
+                'nama' => 'Tidak Diketahui',
+                'kode_kategori' => 'N/A'
+            ]);
+    }
+    
+    /**
+     * Get the satuan that owns the Produk
+     */
+    public function satuan()
+    {
+        return $this->belongsTo(Satuan::class, 'satuan_id')
+            ->withDefault([
+                'nama' => 'PCS',
+                'kode_satuan' => 'PCS'
+            ]);
+    }
 
     public function boms()
     {

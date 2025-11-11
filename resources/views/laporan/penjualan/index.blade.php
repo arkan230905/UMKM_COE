@@ -21,7 +21,17 @@
                 @foreach ($penjualan as $index => $p)
                     <tr>
                         <td>{{ $index + 1 }}</td>
-                        <td>{{ $p->produk->nama_produk ?? '-' }}</td>
+                        <td>
+                            @if($p->details && $p->details->count() > 0)
+                                @foreach($p->details as $detail)
+                                    {{ $detail->produk->nama_produk ?? $detail->produk->nama ?? '-' }}
+                                    ({{ $detail->jumlah ?? $detail->qty ?? 0 }} pcs)
+                                    @if(!$loop->last), @endif
+                                @endforeach
+                            @else
+                                {{ $p->produk->nama_produk ?? $p->produk->nama ?? '-' }}
+                            @endif
+                        </td>
                         <td>{{ optional($p->tanggal)->format('d-m-Y') ?? $p->tanggal }}</td>
                         <td class="text-end">Rp {{ number_format($p->total, 0, ',', '.') }}</td>
                         <td>
