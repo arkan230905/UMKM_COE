@@ -97,34 +97,57 @@
                 @csrf
 
                 <div class="mb-3">
-                    <label for="email" class="form-label">Email</label>
-                    <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus class="form-control">
-                    @error('email')
-                        <div class="text-danger small">{{ $message }}</div>
-                    @enderror
+                    <label for="login_role" class="form-label">Masuk Sebagai</label>
+                    <select id="login_role" class="form-select">
+                        <option value="" selected disabled>Pilih peran</option>
+                        <option value="owner">Owner</option>
+                        <option value="admin">Admin</option>
+                        <option value="pegawai_pembelian">Pegawai Pembelian Bahan Baku</option>
+                        <option value="pelanggan">Pelanggan</option>
+                    </select>
                 </div>
 
-                <div class="mb-3">
-                    <label for="password" class="form-label">Password</label>
-                    <input id="password" type="password" name="password" required class="form-control">
-                    @error('password')
-                        <div class="text-danger small">{{ $message }}</div>
-                    @enderror
-                </div>
+                <div id="login-fields" style="display: none;">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus class="form-control">
+                        @error('email')
+                            <div class="text-danger small">{{ $message }}</div>
+                        @enderror
+                    </div>
 
-                <div class="mb-3 form-check">
-                    <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                    <label class="form-check-label" for="remember">Remember Me</label>
-                </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input id="password" type="password" name="password" required class="form-control">
+                        @error('password')
+                            <div class="text-danger small">{{ $message }}</div>
+                        @enderror
+                    </div>
 
-                <button type="submit" class="btn btn-primary w-100">LOGIN</button>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                        <label class="form-check-label" for="remember">Remember Me</label>
+                    </div>
 
-                <div class="text-center mt-3">
-                    <a href="{{ route('password.request') }}">Forgot your password?</a>
+                    <button type="submit" class="btn btn-primary w-100">LOGIN</button>
+
+                    <div class="text-center mt-3">
+                        <a href="{{ route('password.request') }}">Forgot your password?</a>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
+
+    <script>
+        document.getElementById('login_role').addEventListener('change', function() {
+            if (this.value !== '') {
+                document.getElementById('login-fields').style.display = 'block';
+            } else {
+                document.getElementById('login-fields').style.display = 'none';
+            }
+        });
+    </script>
 
 </body>
 </html>

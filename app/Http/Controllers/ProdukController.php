@@ -15,31 +15,114 @@ class ProdukController extends Controller
 {
     public function index()
     {
-        $produks = Produk::with(['boms.bahanBaku'])->get();
-        // Hitung harga BOM per produk (LIVE): total bahan = sum(harga_satuan bahan saat ini × qty konversi) + btkl_default + bop_default
-        $hargaBom = [];
-        $converter = new UnitConverter();
-        foreach ($produks as $p) {
-            $sumBahan = 0.0;
-            foreach (($p->boms ?? []) as $it) {
-                $bahan = $it->bahanBaku;
-                if (!$bahan) { continue; }
-                $qtyResep = (float) ($it->jumlah ?? 0);
-                $satuanResep = $it->satuan_resep ?: $bahan->satuan;
-                $qtyBase = $converter->convert($qtyResep, (string)$satuanResep, (string)$bahan->satuan);
-                $hargaSatuan = (float) ($bahan->harga_satuan ?? 0);
-                $sumBahan += $hargaSatuan * $qtyBase;
+        // Get all products with necessary columns
+        $produks = Produk::select([
+            'id', 
+            'nama_produk', 
+            'deskripsi',
+            'foto',
+            'harga_bom',
+            'harga_jual', 
+            'margin_percent',
+            'stok'
+        ])->get();
+        
+        // If any product has null harga_bom, calculate it from BOM
+        if ($produks->contains('harga_bom', null)) {
+            $produksWithBom = Produk::whereNull('harga_bom')
+                ->with(['boms' => function($query) {
+                    $query->select(['id', 'produk_id', 'bahan_baku_id', 'jumlah', 'satuan_resep']);
+                }, 'boms.bahanBaku' => function($query) {
+                    $query->select(['id', 'harga_satuan', 'satuan']);
+                }])
+                ->get();
+            
+            $converter = new UnitConverter();
+            
+            foreach ($produksWithBom as $produk) {
+                $totalBiayaBahan = 0;
+                
+                // Calculate material costs from BOM
+                foreach ($produk->boms as $bom) {
+                    if (!$bom->bahanBaku) continue;
+                    
+                    $qtyResep = (float) $bom->jumlah;
+                    $satuanResep = $bom->satuan_resep ?: $bom->bahanBaku->satuan;
+                    $hargaSatuan = (float) $bom->bahanBaku->harga_satuan;
+                    
+                    try {
+                        $qtyBase = $converter->convert($qtyResep, $satuanResep, $bom->bahanBaku->satuan);
+                        $totalBiayaBahan += $hargaSatuan * $qtyBase;
+                    } catch (\Exception $e) {
+                        continue;
+                    }
+                }
+                
+                // Update the product's harga_bom
+                $produk->update([
+                    'harga_bom' => $totalBiayaBahan,
+                    'harga_jual' => $produk->harga_jual ?? $totalBiayaBahan * (1 + (($produk->margin_percent ?? 30) / 100))
+                ]);
+                
+                // Update the harga_bom in the collection
+                if ($p = $produks->where('id', $produk->id)->first()) {
+                    $p->harga_bom = $totalBiayaBahan;
+                }
             }
-            $btkl = (float) ($p->btkl_default ?? 0);
-            $bop  = (float) ($p->bop_default ?? 0);
-            $hargaBom[$p->id] = $sumBahan + $btkl + $bop;
         }
-        return view('master-data.produk.index', compact('produks','hargaBom'));
+        
+        // Prepare data for the view
+        $hargaBom = $produks->pluck('harga_bom', 'id')->toArray();
+        
+        return view('master-data.produk.index', compact('produks', 'hargaBom'));
+    }
+
+    public function katalogPelanggan()
+    {
+        $produks = Produk::select([
+            'id',
+            'nama_produk',
+            'foto',
+            'deskripsi',
+            'harga_jual',
+        ])->whereNotNull('harga_jual')->get();
+
+        return view('pelanggan.produk.index', compact('produks'));
     }
 
     public function create()
     {
         return view('master-data.produk.create');
+    }
+    
+    public function show($id)
+    {
+        $produk = Produk::with(['boms.bahanBaku'])->findOrFail($id);
+        
+        // Hitung total biaya BOM
+        $totalBiayaBom = 0;
+        $converter = new UnitConverter();
+        
+        foreach ($produk->boms as $bom) {
+            $bahanBaku = $bom->bahanBaku;
+            if ($bahanBaku) {
+                $qtyInKg = $converter->convert(
+                    $bom->jumlah, 
+                    $bom->satuan_resep ?? $bahanBaku->satuan, 
+                    'kg'
+                );
+                $totalBiayaBom += $bahanBaku->harga_satuan * $qtyInKg;
+            }
+        }
+        
+        // Hitung harga jual berdasarkan margin
+        $hargaJual = $totalBiayaBom * (1 + ($produk->margin_percent / 100));
+        
+        return view('master-data.produk.show', [
+            'produk' => $produk,
+            'totalBiayaBom' => $totalBiayaBom,
+            'hargaJual' => $hargaJual
+        ]);
     }
 
     public function store(Request $request)
@@ -47,6 +130,7 @@ class ProdukController extends Controller
         $request->validate([
             'nama_produk' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'margin_percent' => 'nullable|numeric|min:0',
             'bopb_method' => 'nullable|in:per_unit,per_hour',
             'bopb_rate' => 'nullable|numeric|min:0',
@@ -54,10 +138,16 @@ class ProdukController extends Controller
             'btkl_per_unit' => 'nullable|numeric|min:0',
         ]);
 
+        $fotoPath = null;
+        if ($request->hasFile('foto')) {
+            $fotoPath = $request->file('foto')->store('produk', 'public');
+        }
+
         // Harga jual kosong dulu; akan dihitung dari BOM
         Produk::create([
             'nama_produk' => $request->nama_produk,
             'deskripsi' => $request->deskripsi,
+            'foto' => $fotoPath,
             'harga_jual' => null,
             'margin_percent' => $request->input('margin_percent'),
             'bopb_method' => $request->input('bopb_method'),
@@ -80,6 +170,7 @@ class ProdukController extends Controller
         $request->validate([
             'nama_produk' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'margin_percent' => 'nullable|numeric|min:0',
             'bopb_method' => 'nullable|in:per_unit,per_hour',
             'bopb_rate' => 'nullable|numeric|min:0',
@@ -87,7 +178,7 @@ class ProdukController extends Controller
             'btkl_per_unit' => 'nullable|numeric|min:0',
         ]);
 
-        $produk->update([
+        $data = [
             'nama_produk' => $request->nama_produk,
             'deskripsi' => $request->deskripsi,
             'margin_percent' => $request->input('margin_percent'),
@@ -95,7 +186,13 @@ class ProdukController extends Controller
             'bopb_rate' => $request->input('bopb_rate'),
             'labor_hours_per_unit' => $request->input('labor_hours_per_unit'),
             'btkl_per_unit' => $request->input('btkl_per_unit'),
-        ]);
+        ];
+
+        if ($request->hasFile('foto')) {
+            $data['foto'] = $request->file('foto')->store('produk', 'public');
+        }
+
+        $produk->update($data);
 
         return redirect()->route('master-data.produk.index')
                          ->with('success', 'Produk berhasil diupdate.');

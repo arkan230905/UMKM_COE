@@ -96,14 +96,14 @@
                     </div>
 
                     <!-- Jam Masuk -->
-                    <div class="col-md-6 jam-field" style="{{ $presensi->status != 'Hadir' ? 'display: none;' : '' }}">
+                    <div class="col-md-6 jam-field jam-masuk-field" id="jamMasukField">
                         <label for="jam_masuk" class="form-label text-white">
                             <i class="bi bi-clock-history me-1"></i>Jam Masuk <span class="text-danger">*</span>
                         </label>
                         <input type="time" name="jam_masuk" id="jam_masuk" 
                                class="form-control bg-dark text-white border-dark @error('jam_masuk') is-invalid @enderror" 
-                               value="{{ old('jam_masuk', $presensi->status == 'Hadir' ? \Carbon\Carbon::parse($presensi->jam_masuk)->format('H:i') : '08:00') }}" 
-                               {{ $presensi->status != 'Hadir' ? 'disabled' : '' }}
+                               value="{{ old('jam_masuk', $presensi->status == 'Hadir' && $presensi->jam_masuk ? \Carbon\Carbon::parse($presensi->jam_masuk)->format('H:i') : '08:00') }}" 
+                               {{ old('status', $presensi->status) == 'Hadir' ? 'required' : '' }}
                                pattern="[0-9]{2}:[0-9]{2}">
                         @error('jam_masuk')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -111,14 +111,14 @@
                     </div>
 
                     <!-- Jam Keluar -->
-                    <div class="col-md-6 jam-field" style="{{ $presensi->status != 'Hadir' ? 'display: none;' : '' }}">
+                    <div class="col-md-6 jam-field jam-keluar-field" id="jamKeluarField">
                         <label for="jam_keluar" class="form-label text-white">
                             <i class="bi bi-clock-fill me-1"></i>Jam Keluar <span class="text-danger">*</span>
                         </label>
                         <input type="time" name="jam_keluar" id="jam_keluar" 
                                class="form-control bg-dark text-white border-dark @error('jam_keluar') is-invalid @enderror" 
-                               value="{{ old('jam_keluar', $presensi->status == 'Hadir' ? \Carbon\Carbon::parse($presensi->jam_keluar)->format('H:i') : '17:00') }}" 
-                               {{ $presensi->status != 'Hadir' ? 'disabled' : '' }}
+                               value="{{ old('jam_keluar', $presensi->status == 'Hadir' && $presensi->jam_keluar ? \Carbon\Carbon::parse($presensi->jam_keluar)->format('H:i') : '17:00') }}" 
+                               {{ old('status', $presensi->status) == 'Hadir' ? 'required' : '' }}
                                pattern="[0-9]{2}:[0-9]{2}">
                         @error('jam_keluar')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -158,34 +158,103 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('presensiForm');
-    const jamMasuk = document.getElementById('jam_masuk');
-    const jamKeluar = document.getElementById('jam_keluar');
-    const submitBtn = document.getElementById('submitBtn');
-    const statusSelect = document.getElementById('status');
-    const jamFields = document.querySelectorAll('.jam-field');
+(function() {
+    'use strict';
     
-    // Sembunyikan field jam jika status bukan Hadir
-    function toggleJamFields() {
-        if (statusSelect.value !== 'Hadir') {
-            jamFields.forEach(field => {
-                field.style.display = 'none';
-                field.querySelector('input').disabled = true;
-            });
-        } else {
-            jamFields.forEach(field => {
-                field.style.display = 'block';
-                field.querySelector('input').disabled = false;
-            });
-        }
+    console.log('Presensi edit form script loaded');
+    
+    // Tunggu DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
     
-    // Panggil fungsi saat halaman dimuat
-    toggleJamFields();
-    
-    // Panggil fungsi saat status berubah
-    statusSelect.addEventListener('change', toggleJamFields);
+    function init() {
+        console.log('Initializing presensi edit form');
+        
+        const statusSelect = document.getElementById('status');
+        const jamMasukField = document.getElementById('jamMasukField');
+        const jamKeluarField = document.getElementById('jamKeluarField');
+        const jamMasuk = document.getElementById('jam_masuk');
+        const jamKeluar = document.getElementById('jam_keluar');
+        
+        if (!statusSelect) {
+            console.error('Status select tidak ditemukan!');
+            return;
+        }
+        
+        console.log('Elements found:', {
+            statusSelect: !!statusSelect,
+            jamMasukField: !!jamMasukField,
+            jamKeluarField: !!jamKeluarField,
+            jamMasuk: !!jamMasuk,
+            jamKeluar: !!jamKeluar
+        });
+        
+        // Fungsi untuk toggle field jam
+        function toggleJamFields() {
+            const status = statusSelect.value;
+            console.log('toggleJamFields called, status:', status);
+            
+            if (status === 'Hadir') {
+                // Tampilkan field jam
+                if (jamMasukField) {
+                    jamMasukField.classList.remove('jam-field-hidden');
+                    jamMasukField.style.display = 'block';
+                }
+                if (jamKeluarField) {
+                    jamKeluarField.classList.remove('jam-field-hidden');
+                    jamKeluarField.style.display = 'block';
+                }
+                
+                // Set required dan default value
+                if (jamMasuk) {
+                    jamMasuk.required = true;
+                    if (!jamMasuk.value) jamMasuk.value = '08:00';
+                }
+                if (jamKeluar) {
+                    jamKeluar.required = true;
+                    if (!jamKeluar.value) jamKeluar.value = '17:00';
+                }
+                
+                console.log('✓ Field jam DITAMPILKAN');
+            } else {
+                // Sembunyikan field jam
+                if (jamMasukField) {
+                    jamMasukField.classList.add('jam-field-hidden');
+                    jamMasukField.style.display = 'none';
+                }
+                if (jamKeluarField) {
+                    jamKeluarField.classList.add('jam-field-hidden');
+                    jamKeluarField.style.display = 'none';
+                }
+                
+                // Hapus required dan kosongkan
+                if (jamMasuk) {
+                    jamMasuk.required = false;
+                    jamMasuk.value = '';
+                }
+                if (jamKeluar) {
+                    jamKeluar.required = false;
+                    jamKeluar.value = '';
+                }
+                
+                console.log('✓ Field jam DISEMBUNYIKAN');
+            }
+        }
+        
+        // Panggil saat load
+        toggleJamFields();
+        
+        // Event listener untuk perubahan status
+        statusSelect.addEventListener('change', function() {
+            console.log('Status changed to:', this.value);
+            toggleJamFields();
+        });
+        
+        console.log('Initialization complete');
+    }
     
     // Auto-set jam keluar when jam masuk changes
     if (jamMasuk) {
@@ -244,6 +313,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 @push('styles')
 <style>
+    /* Jam fields akan di-control oleh JavaScript */
+    .jam-field-hidden {
+        display: none !important;
+    }
     /* Style untuk form */
     .form-control, .form-select, 
     .form-control:focus, .form-select:focus {

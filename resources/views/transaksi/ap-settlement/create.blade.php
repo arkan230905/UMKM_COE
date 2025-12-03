@@ -46,8 +46,12 @@
       </div>
       <div class="col-md-4">
         <label class="form-label">COA Kas/Bank</label>
-        <select name="coa_kasbank" class="form-select">
-          <option value="101">101 - Kas</option>
+        <select name="coa_kasbank" class="form-select" required>
+          @foreach($kasbank as $kb)
+            <option value="{{ $kb->kode_akun }}" {{ $kb->kode_akun == '1101' ? 'selected' : '' }}>
+              {{ $kb->kode_akun }} - {{ $kb->nama_akun }}
+            </option>
+          @endforeach
         </select>
       </div>
     </div>

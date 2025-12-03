@@ -1,0 +1,201 @@
+<mxfile host="app.diagrams.net" modified="2025-11-14T00:00:00.000Z" agent="Kiro" version="24.0.0">
+  <diagram name="Sistem Produksi" id="sistem-produksi">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Pool: Sistem Pengelolaan Produksi -->
+        <mxCell id="pool-produksi" value="SISTEM PENGELOLAAN PRODUKSI" style="swimlane;html=1;childLayout=stackLayout;resizeParent=1;resizeParentMax=0;horizontal=1;startSize=40;horizontalStack=0;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="40" width="1080" height="720" as="geometry" />
+        </mxCell>
+        
+        <!-- Lane 1: Staff Produksi -->
+        <mxCell id="lane-staff" value="Staff Produksi" style="swimlane;html=1;startSize=30;horizontal=0;fillColor=#fff2cc;strokeColor=#d6b656;" parent="pool-produksi" vertex="1">
+          <mxGeometry y="40" width="1080" height="180" as="geometry" />
+        </mxCell>
+        
+        <!-- Start Event -->
+        <mxCell id="start" value="Mulai&#xa;Produksi" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;" parent="lane-staff" vertex="1">
+          <mxGeometry x="30" y="55" width="70" height="70" as="geometry" />
+        </mxCell>
+        
+        <!-- Task: Pilih Produk -->
+        <mxCell id="task-pilih-produk" value="Pilih Produk&#xa;yang Akan&#xa;Diproduksi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="lane-staff" vertex="1">
+          <mxGeometry x="140" y="60" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task: Input Data Produksi -->
+        <mxCell id="task-input-data" value="Input Data:&#xa;- Tanggal&#xa;- Qty Produksi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="lane-staff" vertex="1">
+          <mxGeometry x="280" y="60" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task: Lihat Detail Produksi -->
+        <mxCell id="task-lihat-detail" value="Lihat Detail&#xa;Hasil Produksi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" parent="lane-staff" vertex="1">
+          <mxGeometry x="880" y="60" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- End Event -->
+        <mxCell id="end" value="Selesai" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f8cecc;strokeColor=#b85450;" parent="lane-staff" vertex="1">
+          <mxGeometry x="1010" y="55" width="70" height="70" as="geometry" />
+        </mxCell>
+        
+        <!-- Lane 2: Sistem (Validasi & Perhitungan) -->
+        <mxCell id="lane-sistem" value="Sistem (Validasi &amp; Perhitungan)" style="swimlane;html=1;startSize=30;horizontal=0;fillColor=#f5f5f5;strokeColor=#666666;" parent="pool-produksi" vertex="1">
+          <mxGeometry y="220" width="1080" height="240" as="geometry" />
+        </mxCell>
+        
+        <!-- Gateway: Cek BOM -->
+        <mxCell id="gateway-bom" value="BOM&#xa;Tersedia?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="lane-sistem" vertex="1">
+          <mxGeometry x="420" y="50" width="80" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Task: Validasi Stok -->
+        <mxCell id="task-validasi-stok" value="Validasi Stok&#xa;Bahan Baku&#xa;(FIFO)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="lane-sistem" vertex="1">
+          <mxGeometry x="540" y="60" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Gateway: Stok Cukup? -->
+        <mxCell id="gateway-stok" value="Stok&#xa;Cukup?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="lane-sistem" vertex="1">
+          <mxGeometry x="680" y="50" width="80" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Task: Hitung Biaya -->
+        <mxCell id="task-hitung-biaya" value="Hitung Biaya:&#xa;- Bahan Baku&#xa;- BTKL (60%)&#xa;- BOP (40%)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="lane-sistem" vertex="1">
+          <mxGeometry x="540" y="160" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task: Error BOM -->
+        <mxCell id="task-error-bom" value="Tampilkan Error:&#xa;BOM Belum Ada" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="lane-sistem" vertex="1">
+          <mxGeometry x="410" y="160" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task: Error Stok -->
+        <mxCell id="task-error-stok" value="Tampilkan Error:&#xa;Stok Tidak Cukup" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="lane-sistem" vertex="1">
+          <mxGeometry x="670" y="160" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Lane 3: Database & Akuntansi -->
+        <mxCell id="lane-database" value="Database &amp; Sistem Akuntansi" style="swimlane;html=1;startSize=30;horizontal=0;fillColor=#d5e8d4;strokeColor=#82b366;" parent="pool-produksi" vertex="1">
+          <mxGeometry y="460" width="1080" height="260" as="geometry" />
+        </mxCell>
+        
+        <!-- Task: Kurangi Stok Bahan -->
+        <mxCell id="task-kurangi-stok" value="Kurangi Stok&#xa;Bahan Baku&#xa;(FIFO Consume)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="lane-database" vertex="1">
+          <mxGeometry x="410" y="40" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task: Tambah Stok Produk -->
+        <mxCell id="task-tambah-stok" value="Tambah Stok&#xa;Produk Jadi&#xa;(Add Layer)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="lane-database" vertex="1">
+          <mxGeometry x="540" y="40" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task: Jurnal 1 -->
+        <mxCell id="task-jurnal1" value="Jurnal 1:&#xa;Dr. WIP&#xa;Cr. Persediaan BB" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="lane-database" vertex="1">
+          <mxGeometry x="410" y="130" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task: Jurnal 2 -->
+        <mxCell id="task-jurnal2" value="Jurnal 2:&#xa;Dr. WIP&#xa;Cr. Hutang Gaji/BOP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="lane-database" vertex="1">
+          <mxGeometry x="540" y="130" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task: Jurnal 3 -->
+        <mxCell id="task-jurnal3" value="Jurnal 3:&#xa;Dr. Persediaan BJ&#xa;Cr. WIP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="lane-database" vertex="1">
+          <mxGeometry x="670" y="130" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task: Simpan Data -->
+        <mxCell id="task-simpan" value="Simpan Data&#xa;Produksi &amp;&#xa;Detail" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" parent="lane-database" vertex="1">
+          <mxGeometry x="800" y="85" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Arrows/Flows -->
+        <mxCell id="flow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="pool-produksi" source="start" target="task-pilih-produk" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="pool-produksi" source="task-pilih-produk" target="task-input-data" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="pool-produksi" source="task-input-data" target="gateway-bom" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow4-yes" value="Ya" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontColor=#009900;" parent="pool-produksi" source="gateway-bom" target="task-validasi-stok" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow4-no" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontColor=#CC0000;" parent="pool-produksi" source="gateway-bom" target="task-error-bom" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="pool-produksi" source="task-validasi-stok" target="gateway-stok" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow6-yes" value="Ya" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontColor=#009900;" parent="pool-produksi" source="gateway-stok" target="task-hitung-biaya" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow6-no" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontColor=#CC0000;" parent="pool-produksi" source="gateway-stok" target="task-error-stok" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="pool-produksi" source="task-hitung-biaya" target="task-kurangi-stok" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="pool-produksi" source="task-kurangi-stok" target="task-tambah-stok" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="pool-produksi" source="task-kurangi-stok" target="task-jurnal1" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="pool-produksi" source="task-tambah-stok" target="task-jurnal2" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="pool-produksi" source="task-jurnal2" target="task-jurnal3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="pool-produksi" source="task-jurnal3" target="task-simpan" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="pool-produksi" source="task-simpan" target="task-lihat-detail" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="flow14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="pool-produksi" source="task-lihat-detail" target="end" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Error flows back -->
+        <mxCell id="flow-error-bom" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#CC0000;" parent="pool-produksi" source="task-error-bom" target="task-input-data" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="330" y="400" />
+              <mxPoint x="330" y="120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="flow-error-stok" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#CC0000;" parent="pool-produksi" source="task-error-stok" target="task-input-data" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="400" />
+              <mxPoint x="330" y="400" />
+              <mxPoint x="330" y="120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

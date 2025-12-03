@@ -24,6 +24,11 @@
                 <h5>Telepon</h5>
                 <p>{{ $dataPerusahaan->telepon }}</p>
 
+                @if(!empty($dataPerusahaan->kode))
+                    <h5>Kode Perusahaan</h5>
+                    <p><span class="badge bg-info text-dark">{{ $dataPerusahaan->kode }}</span></p>
+                @endif
+
                 <div class="text-center mt-4">
                     <button id="btnEdit" class="btn btn-warning">✏️ Edit Data</button>
                     <a href="{{ route('dashboard') }}" class="btn btn-outline-light">← Kembali ke Dashboard</a>

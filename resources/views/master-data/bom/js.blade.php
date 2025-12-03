@@ -43,21 +43,34 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Client-side guard: prevent submit if any selected bahan has harga 0
+    // Client-side guard: prevent submit if any selected bahan has harga 0 di MASTER DATA
     const form = document.querySelector('form[action*="master-data/\x62\x6f\x6d"]');
     if (form) {
         form.addEventListener('submit', function (e) {
             const zeroPriced = [];
             document.querySelectorAll('#bomTable tbody tr').forEach(row => {
-                const opt = row.querySelector('.bahanSelect')?.selectedOptions[0];
+                const select = row.querySelector('.bahanSelect');
+                if (!select || !select.value) return; // Skip jika tidak ada pilihan
+                
+                const opt = select.selectedOptions[0];
                 if (!opt) return;
-                const harga = parseFloat(opt.dataset.harga || '0');
+                
+                // Ambil harga dari data-harga (harga satuan dari master data bahan baku)
+                const hargaSatuan = parseFloat(opt.getAttribute('data-harga') || '0');
                 const nama = opt.textContent?.trim() || 'Bahan';
-                if (!isNaN(harga) && harga <= 0) zeroPriced.push(nama);
+                
+                console.log('Checking:', nama, 'Harga:', hargaSatuan); // Debug
+                
+                // Hanya tampilkan warning jika harga di MASTER DATA benar-benar 0 atau null
+                // Ini adalah harga dari field harga_satuan di tabel bahan_bakus
+                if (hargaSatuan === 0 || isNaN(hargaSatuan)) {
+                    zeroPriced.push(nama);
+                }
             });
+            
             if (zeroPriced.length > 0) {
                 e.preventDefault();
-                alert('Bahan baku berikut belum pernah dibeli (harga belum ada):\n- ' + zeroPriced.join('\n- '));
+                alert('Bahan baku berikut belum memiliki harga di Master Data Bahan Baku:\n\n' + zeroPriced.join('\n') + '\n\nSilakan update harga di menu Master Data > Bahan Baku terlebih dahulu.');
             }
         });
     }

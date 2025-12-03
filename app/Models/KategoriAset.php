@@ -17,11 +17,13 @@ class KategoriAset extends Model
         'deskripsi',
         'umur_ekonomis',
         'tarif_penyusutan',
+        'disusutkan',
     ];
 
     protected $casts = [
         'umur_ekonomis' => 'integer',
         'tarif_penyusutan' => 'decimal:2',
+        'disusutkan' => 'boolean',
     ];
 
     /**

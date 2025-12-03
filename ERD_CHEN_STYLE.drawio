@@ -1,0 +1,500 @@
+<mxfile host="app.diagrams.net" modified="2024-01-15T00:00:00.000Z" agent="Kiro" version="22.1.0" type="device">
+  <diagram name="ERD Chen Notation" id="erd-chen">
+    <mxGraphModel dx="2400" dy="1600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <!-- ENTITY: pengembalian -->
+        <mxCell id="pengembalian" value="pengembalian" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="80" y="200" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- pengembalian attributes -->
+        <mxCell id="peng-id" value="id" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="20" y="120" width="60" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="peng-keterangan" value="keterangan" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="90" y="110" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="peng-id-peng" value="id_pengembalian" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="180" y="100" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="peng-id-peng2" value="tgl_pengembalian" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="20" y="260" width="100" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- pengembalian connections -->
+        <mxCell id="peng-id-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="1" source="peng-id" target="pengembalian" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="peng-ket-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="peng-keterangan" target="pengembalian" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="peng-idp-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" parent="1" source="peng-id-peng" target="pengembalian" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="peng-tgl-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" parent="1" source="peng-id-peng2" target="pengembalian" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- RELATIONSHIP: memiliki (pengembalian to konsinyasi_header) -->
+        <mxCell id="rel-peng-kons" value="memiliki" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="260" y="190" width="80" height="60" as="geometry"/>
+        </mxCell>
+        
+        <!-- pengembalian to relationship -->
+        <mxCell id="peng-to-rel" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="pengembalian" target="rel-peng-kons" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="peng-card" value="N" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="210" y="195" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITY: konsinyasi_header -->
+        <mxCell id="konsinyasi" value="konsinyasi_header" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="420" y="200" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- konsinyasi attributes -->
+        <mxCell id="kons-id" value="id" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="380" y="120" width="50" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-no-kons" value="no_konsinyasi" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="440" y="105" width="90" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-tgl-faktur" value="tgl_faktur" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="540" y="100" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-keterangan" value="keterangan" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="620" y="110" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-cashback" value="cashback" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="560" y="250" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-biaya" value="biaya_lainnya" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="640" y="250" width="90" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- konsinyasi connections -->
+        <mxCell id="kons-id-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="1" source="kons-id" target="konsinyasi" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-no-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="1" source="kons-no-kons" target="konsinyasi" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-tgl-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" parent="1" source="kons-tgl-faktur" target="konsinyasi" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-ket-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" parent="1" source="kons-keterangan" target="konsinyasi" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-cash-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" parent="1" source="kons-cashback" target="konsinyasi" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-biaya-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=1;entryDx=0;entryDy=0;" parent="1" source="kons-biaya" target="konsinyasi" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- relationship to konsinyasi -->
+        <mxCell id="rel-to-kons" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="rel-peng-kons" target="konsinyasi" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-card" value="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="390" y="195" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- RELATIONSHIP: memiliki (konsinyasi to produk) -->
+        <mxCell id="rel-kons-prod" value="memiliki" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="600" y="190" width="80" height="60" as="geometry"/>
+        </mxCell>
+        
+        <!-- konsinyasi to relationship -->
+        <mxCell id="kons-to-rel" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="konsinyasi" target="rel-kons-prod" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-card2" value="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="550" y="195" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITY: produk -->
+        <mxCell id="produk" value="produk" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="760" y="200" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- produk attributes -->
+        <mxCell id="prod-id" value="id" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="720" y="120" width="50" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-kode" value="kode_produk" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="780" y="100" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-nama" value="nama_produk" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="870" y="95" width="90" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-harga-jual" value="harga_jual" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="970" y="100" width="75" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-harga-pokok" value="harga_pokok" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="1050" y="110" width="85" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-tipe-produk" value="tipe_produk" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="900" y="250" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-status" value="status_penjualan" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="990" y="250" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-tipe-konversi" value="tipe_konversi" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="1100" y="250" width="90" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-konversi" value="konversi_penjualan" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="720" y="250" width="110" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-stok-min" value="stok_minimum" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="840" y="260" width="90" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- produk connections -->
+        <mxCell id="prod-id-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="1" source="prod-id" target="produk" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-kode-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="1" source="prod-kode" target="produk" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-nama-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="prod-nama" target="produk" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-hj-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" parent="1" source="prod-harga-jual" target="produk" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-hp-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" parent="1" source="prod-harga-pokok" target="produk" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-tp-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="prod-tipe-produk" target="produk" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-stat-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" parent="1" source="prod-status" target="produk" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-tk-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=1;entryDx=0;entryDy=0;" parent="1" source="prod-tipe-konversi" target="produk" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-konv-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" parent="1" source="prod-konversi" target="produk" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-stokmin-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.25;entryY=1;entryDx=0;entryDy=0;" parent="1" source="prod-stok-min" target="produk" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- relationship to produk -->
+        <mxCell id="rel-to-prod" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="rel-kons-prod" target="produk" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-card" value="N" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="730" y="195" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- RELATIONSHIP: memiliki (produk to satuan) -->
+        <mxCell id="rel-prod-satuan" value="memiliki" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="940" y="190" width="80" height="60" as="geometry"/>
+        </mxCell>
+        
+        <!-- produk to relationship -->
+        <mxCell id="prod-to-rel" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="produk" target="rel-prod-satuan" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="prod-card2" value="N" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="890" y="195" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITY: satuan -->
+        <mxCell id="satuan" value="satuan" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="1100" y="200" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- satuan attributes -->
+        <mxCell id="sat-id" value="id" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="1080" y="140" width="50" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="sat-nama" value="nama_satuan" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="1140" y="130" width="85" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="sat-kode" value="kode_satuan" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="1230" y="140" width="85" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="sat-active" value="is_active" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="1240" y="200" width="70" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- satuan connections -->
+        <mxCell id="sat-id-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="1" source="sat-id" target="satuan" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sat-nama-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="sat-nama" target="satuan" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sat-kode-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" parent="1" source="sat-kode" target="satuan" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sat-active-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="sat-active" target="satuan" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- relationship to satuan -->
+        <mxCell id="rel-to-sat" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="rel-prod-satuan" target="satuan" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sat-card" value="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="1070" y="195" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITY: supplier -->
+        <mxCell id="supplier" value="supplier" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="420" y="380" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- supplier attributes -->
+        <mxCell id="sup-id" value="id" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="360" y="320" width="50" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="sup-nama" value="nama_supplier" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="420" y="305" width="95" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="sup-kode" value="kode_supplier" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="525" y="305" width="95" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="sup-alamat" value="alamat_supplier" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="630" y="315" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="sup-no-telp" value="no_telp" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="560" y="430" width="65" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="sup-email" value="email" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="480" y="440" width="60" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- supplier connections -->
+        <mxCell id="sup-id-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="1" source="sup-id" target="supplier" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sup-nama-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="1" source="sup-nama" target="supplier" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sup-kode-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;" parent="1" source="sup-kode" target="supplier" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sup-alamat-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" parent="1" source="sup-alamat" target="supplier" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sup-telp-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0;exitDx=0;exitDy=0;entryX=0.75;entryY=1;entryDx=0;entryDy=0;" parent="1" source="sup-no-telp" target="supplier" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sup-email-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="sup-email" target="supplier" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- RELATIONSHIP: memiliki (supplier to konsinyasi) -->
+        <mxCell id="rel-sup-kons" value="memiliki" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="440" y="280" width="80" height="60" as="geometry"/>
+        </mxCell>
+        
+        <!-- supplier to relationship -->
+        <mxCell id="sup-to-rel" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="supplier" target="rel-sup-kons" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sup-card" value="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="460" y="350" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- relationship to konsinyasi -->
+        <mxCell id="rel-sup-to-kons" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="rel-sup-kons" target="konsinyasi" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-card3" value="N" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="460" y="250" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITY: pembayaran_konsinyasi_header -->
+        <mxCell id="pembayaran" value="pembayaran_konsinyasi_header" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="380" y="520" width="180" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- pembayaran attributes -->
+        <mxCell id="pemb-id" value="id" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="320" y="460" width="50" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="pemb-no-pemb" value="no_pembayaran" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="380" y="445" width="100" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="pemb-tgl" value="tgl_pembayaran" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="490" y="440" width="105" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="pemb-nominal" value="nominal" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="605" y="445" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="pemb-ket" value="keterangan" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="590" y="530" width="80" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- pembayaran connections -->
+        <mxCell id="pemb-id-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="1" source="pemb-id" target="pembayaran" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="pemb-no-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="1" source="pemb-no-pemb" target="pembayaran" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="pemb-tgl-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="pemb-tgl" target="pembayaran" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="pemb-nom-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" parent="1" source="pemb-nominal" target="pembayaran" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="pemb-ket-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="pemb-ket" target="pembayaran" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- RELATIONSHIP: memiliki (pembayaran to supplier) -->
+        <mxCell id="rel-pemb-sup" value="memiliki" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="430" y="450" width="80" height="60" as="geometry"/>
+        </mxCell>
+        
+        <!-- pembayaran to relationship -->
+        <mxCell id="pemb-to-rel" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="pembayaran" target="rel-pemb-sup" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="pemb-card" value="N" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="450" y="490" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- relationship to supplier -->
+        <mxCell id="rel-pemb-to-sup" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="rel-pemb-sup" target="supplier" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="sup-card2" value="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="450" y="425" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITY: akun -->
+        <mxCell id="akun" value="akun" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="80" y="380" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- akun attributes -->
+        <mxCell id="akun-id" value="id" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="20" y="320" width="50" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="akun-kode" value="kode_akun" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="80" y="305" width="75" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="akun-nama" value="nama_akun" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="165" y="305" width="80" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="akun-is-debit" value="is_akun_debing" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="20" y="440" width="95" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="akun-kredit" value="kredit" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="125" y="450" width="60" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="akun-debet" value="debet" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="195" y="450" width="60" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- akun connections -->
+        <mxCell id="akun-id-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="1" source="akun-id" target="akun" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="akun-kode-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="1" source="akun-kode" target="akun" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="akun-nama-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" parent="1" source="akun-nama" target="akun" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="akun-debing-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" parent="1" source="akun-is-debit" target="akun" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="akun-kredit-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.25;entryY=1;entryDx=0;entryDy=0;" parent="1" source="akun-kredit" target="akun" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="akun-debet-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=1;entryDx=0;entryDy=0;" parent="1" source="akun-debet" target="akun" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- RELATIONSHIP: memiliki (akun to konsinyasi) -->
+        <mxCell id="rel-akun-kons" value="memiliki" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="260" y="280" width="80" height="60" as="geometry"/>
+        </mxCell>
+        
+        <!-- akun to relationship -->
+        <mxCell id="akun-to-rel" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" parent="1" source="akun" target="rel-akun-kons" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="akun-card" value="N" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="210" y="360" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- relationship to konsinyasi -->
+        <mxCell id="rel-akun-to-kons" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" parent="1" source="rel-akun-kons" target="konsinyasi" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="kons-card4" value="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="390" y="250" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- ENTITY: jurnal_header -->
+        <mxCell id="jurnal" value="jurnal_header" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="80" y="580" width="120" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- jurnal attributes -->
+        <mxCell id="jur-id" value="id" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="20" y="520" width="50" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="jur-no" value="no_jurnal" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="80" y="505" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="jur-tgl" value="tgl_jurnal" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="160" y="505" width="70" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="jur-ket" value="keterangan" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="20" y="640" width="80" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- jurnal connections -->
+        <mxCell id="jur-id-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" parent="1" source="jur-id" target="jurnal" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="jur-no-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;" parent="1" source="jur-no" target="jurnal" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="jur-tgl-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;" parent="1" source="jur-tgl" target="jurnal" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="jur-ket-conn" value="" style="endArrow=none;html=1;rounded=0;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" parent="1" source="jur-ket" target="jurnal" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        
+        <!-- RELATIONSHIP: memiliki (jurnal to akun) -->
+        <mxCell id="rel-jur-akun" value="memiliki" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="100" y="480" width="80" height="60" as="geometry"/>
+        </mxCell>
+        
+        <!-- jurnal to relationship -->
+        <mxCell id="jur-to-rel" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="jurnal" target="rel-jur-akun" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="jur-card" value="N" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="120" y="550" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+        <!-- relationship to akun -->
+        <mxCell id="rel-jur-to-akun" value="" style="endArrow=none;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="rel-jur-akun" target="akun" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="akun-card2" value="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="120" y="430" width="20" height="20" as="geometry"/>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

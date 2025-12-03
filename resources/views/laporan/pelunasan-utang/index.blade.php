@@ -43,14 +43,18 @@
                                 @forelse($pelunasanUtang as $item)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $item->tanggal->format('d/m/Y') }}</td>
-                                    <td>{{ $item->no_pelunasan }}</td>
-                                    <td>{{ $item->vendor->nama_vendor ?? '-' }}</td>
-                                    <td>{{ $item->pembelian->no_faktur ?? '-' }}</td>
-                                    <td class="text-right">{{ format_rupiah($item->total_tagihan) }}</td>
-                                    <td class="text-right">{{ format_rupiah($item->total_bayar) }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d/m/Y') }}</td>
+                                    <td>PU-{{ $item->id }}</td>
+                                    <td>{{ $item->pembelian->vendor->nama_vendor ?? ($item->vendor->nama_vendor ?? '-') }}</td>
+                                    <td>PB-{{ $item->pembelian_id }}</td>
+                                    <td class="text-right">Rp {{ number_format($item->total_tagihan, 0, ',', '.') }}</td>
+                                    <td class="text-right">Rp {{ number_format($item->dibayar_bersih, 0, ',', '.') }}</td>
                                     <td>
-                                        @if($item->status == 'lunas')
+                                        @php
+                                            $pembelian = $item->pembelian;
+                                            $isLunas = $pembelian && $pembelian->status == 'lunas';
+                                        @endphp
+                                        @if($isLunas)
                                             <span class="badge badge-success">Lunas</span>
                                         @else
                                             <span class="badge badge-warning">Belum Lunas</span>

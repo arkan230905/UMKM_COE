@@ -20,12 +20,16 @@ class ProfileController extends Controller
         $user = Auth::user();
         $request->validate([
             'name' => 'required|string|max:255',
+            'username' => 'nullable|string|max:255|unique:users,username,' . $user->id,
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'phone' => 'required|string|max:20',
         ]);
 
         $user->update([
             'name' => $request->name,
+            'username' => $request->username,
             'email' => $request->email,
+            'phone' => $request->phone,
         ]);
 
         return redirect()->route('profil-admin')->with('success', 'Profil berhasil diperbarui.');

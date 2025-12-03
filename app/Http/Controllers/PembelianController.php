@@ -17,7 +17,7 @@ class PembelianController extends Controller
 {
     public function index()
     {
-        $pembelians = Pembelian::with(['vendor'])->latest()->get();
+        $pembelians = Pembelian::with(['vendor', 'details.bahanBaku.satuan'])->latest()->get();
         return view('transaksi.pembelian.index', compact('pembelians'));
     }
 
@@ -32,7 +32,8 @@ class PembelianController extends Controller
         $vendors = Vendor::all();
         $bahanBakus = BahanBaku::all();
         $satuans = \App\Models\Satuan::all();
-        return view('transaksi.pembelian.create', compact('vendors', 'bahanBakus', 'satuans'));
+        $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
+        return view('transaksi.pembelian.create', compact('vendors', 'bahanBakus', 'satuans', 'kasbank'));
     }
 
     public function store(Request $request, StockService $stock, JournalService $journal)
@@ -42,11 +43,13 @@ class PembelianController extends Controller
             $request->validate([
                 'vendor_id' => 'required|exists:vendors,id',
                 'tanggal' => 'required|date',
-                'payment_method' => 'required|in:cash,credit',
+                'payment_method' => 'required|in:cash,transfer,credit',
+                'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', \App\Helpers\AccountHelper::KAS_BANK_CODES),
                 'bahan_baku_id' => 'required|array',
                 'jumlah' => 'required|array',
                 'harga_satuan' => 'required|array',
                 'satuan' => 'nullable|array',
+                'faktor_konversi' => 'nullable|array',
             ]);
 
             // Hitung total terlebih dahulu untuk validasi kas
@@ -57,79 +60,138 @@ class PembelianController extends Controller
                 $computedTotal += $qtyInput * $pricePerInputUnit;
             }
 
-            // Cek saldo kas jika pembayaran tunai
-            if ($request->payment_method === 'cash') {
-                $cashCode = '101';
-                $saldoAwal = (float) (\App\Models\Coa::where('kode_akun', $cashCode)->value('saldo_awal') ?? 0);
-                $acc = \App\Models\Account::where('code', $cashCode)->first();
+            // Cek saldo kas jika pembayaran tunai atau transfer
+            if ($request->payment_method === 'cash' || $request->payment_method === 'transfer') {
+                $sumberDana = $request->sumber_dana;
+                
+                // Hitung saldo akun yang dipilih
+                $saldoAwal = (float) (\App\Models\Coa::where('kode_akun', $sumberDana)->value('saldo_awal') ?? 0);
+                $acc = \App\Models\Account::where('code', $sumberDana)->first();
                 $journalBalance = 0.0;
                 if ($acc) {
                     $journalBalance = (float) (\App\Models\JournalLine::where('account_id', $acc->id)
                         ->selectRaw('COALESCE(SUM(debit - credit),0) as bal')->value('bal') ?? 0);
                 }
-                $cashBalance = $saldoAwal + $journalBalance;
-                if ($cashBalance + 1e-6 < $computedTotal) {
+                $saldoAkun = $saldoAwal + $journalBalance;
+                
+                // Ambil nama akun untuk pesan error
+                $namaAkun = \App\Models\Coa::where('kode_akun', $sumberDana)->value('nama_akun') ?? 'Akun '.$sumberDana;
+                
+                if ($saldoAkun + 1e-6 < $computedTotal) {
                     return back()->withErrors([
-                        'kas' => 'Saldo kas tidak cukup untuk pembelian tunai. Saldo kas saat ini: Rp '.number_format($cashBalance,0,',','.').' ; Total pembelian: Rp '.number_format($computedTotal,0,',','.'),
+                        'kas' => 'Saldo '.$namaAkun.' tidak cukup untuk pembelian. Saldo saat ini: Rp '.number_format($saldoAkun,0,',','.').' ; Total pembelian: Rp '.number_format($computedTotal,0,',','.'),
                     ])->withInput();
                 }
             }
 
             return DB::transaction(function () use ($request, $stock, $journal, $computedTotal) {
-                $converter = new UnitConverter();
-                $total = $computedTotal;
+                DB::beginTransaction();
 
-                $pembelian = Pembelian::create([
-                    'vendor_id' => $request->vendor_id,
-                    'tanggal' => $request->tanggal,
-                    'payment_method' => $request->payment_method,
-                    'total' => $total,
-                ]);
+                try {
+                    // 1. Buat header pembelian
+                    $pembelian = new Pembelian([
+                        'vendor_id' => $request->vendor_id,
+                        'tanggal' => $request->tanggal,
+                        'total_harga' => $computedTotal,
+                        'terbayar' => $request->payment_method === 'cash' ? $computedTotal : 0,
+                        'sisa_pembayaran' => $request->payment_method === 'cash' ? 0 : $computedTotal,
+                        'status' => $request->payment_method === 'cash' ? 'lunas' : 'belum_lunas',
+                        'payment_method' => $request->payment_method,
+                    ]);
+                    $pembelian->save();
 
-                foreach ($request->bahan_baku_id as $i => $bbId) {
-                    $bahan = BahanBaku::findOrFail($bbId);
-                    $qtyInput = (float) ($request->jumlah[$i] ?? 0);
-                    $satuanInput = $request->satuan[$i] ?? $bahan->satuan;
-                    $pricePerInputUnit = (float) ($request->harga_satuan[$i] ?? 0);
-                    $subtotal = $qtyInput * $pricePerInputUnit;
+                    // 2. Proses setiap item
+                    foreach ($request->bahan_baku_id as $i => $bbId) {
+                        $bahanBaku = BahanBaku::findOrFail($bbId);
+                        $qtyInput = (float) ($request->jumlah[$i] ?? 0);
+                        $pricePerInputUnit = (float) ($request->harga_satuan[$i] ?? 0);
+                        $faktorKonversi = (float) ($request->faktor_konversi[$i] ?? 1);
+                        
+                        // Hitung jumlah dalam satuan dasar
+                        $qtyInBaseUnit = $qtyInput * $faktorKonversi;
+                        
+                        // Hitung harga per satuan dasar
+                        $pricePerBaseUnit = $pricePerInputUnit / $faktorKonversi;
+                        
+                        $subtotal = $qtyInput * $pricePerInputUnit;
 
-                    // Konversi qty ke satuan bahan untuk stok & average cost
-                    $qtyBase = $converter->convert($qtyInput, (string)$satuanInput, (string)$bahan->satuan);
-                    $unitCostBase = $qtyBase > 0 ? ($subtotal / $qtyBase) : $pricePerInputUnit;
+                        // Ambil data bahan baku
+                        $bahan = BahanBaku::findOrFail($bbId);
+                        
+                        // SIMPAN DETAIL PEMBELIAN KE DATABASE - CRITICAL!
+                        $detail = PembelianDetail::create([
+                            'pembelian_id' => $pembelian->id,
+                            'bahan_baku_id' => $bbId,
+                            'jumlah' => $qtyInput,
+                            'satuan' => $request->satuan[$i] ?? $bahan->satuan,
+                            'harga_satuan' => $pricePerInputUnit,
+                            'subtotal' => $subtotal,
+                            'faktor_konversi' => $faktorKonversi,
+                        ]);
+                        
+                        // Log untuk debugging
+                        \Log::info('Pembelian Detail Created', [
+                            'pembelian_id' => $pembelian->id,
+                            'detail_id' => $detail->id,
+                            'bahan_baku_id' => $bbId,
+                            'jumlah' => $qtyInput,
+                        ]);
+                        
+                        // Update moving average harga bahan & stok
+                        $stokLama = (float) ($bahan->stok ?? 0);
+                        $hargaLama = (float) ($bahan->harga_satuan ?? 0);
+                        $stokBaru = $stokLama + $qtyInBaseUnit;
+                        $hargaBaru = $stokBaru > 0 ? (($stokLama * $hargaLama) + $subtotal) / $stokBaru : $pricePerBaseUnit;
 
-                    PembelianDetail::create([
+                        $bahan->stok = $stokBaru;
+                        $bahan->harga_satuan = $hargaBaru;
+                        $bahan->save();
+
+                        // FIFO layer IN + movement
+                        $unitStr = (string)($bahan->satuan->kode ?? $bahan->satuan->nama ?? $bahan->satuan ?? 'pcs');
+                        $stock->addLayer('material', $bahan->id, $qtyInBaseUnit, $unitStr, $pricePerBaseUnit, 'purchase', $pembelian->id, $request->tanggal);
+                    }
+
+                    // Commit transaksi database
+                    DB::commit();
+                    
+                    // VALIDASI: Pastikan detail tersimpan
+                    $savedDetails = PembelianDetail::where('pembelian_id', $pembelian->id)->count();
+                    if ($savedDetails === 0) {
+                        \Log::error('CRITICAL: Pembelian detail tidak tersimpan!', [
+                            'pembelian_id' => $pembelian->id,
+                            'expected_items' => count($request->bahan_baku_id),
+                        ]);
+                        throw new \Exception('Gagal menyimpan detail pembelian. Silakan coba lagi.');
+                    }
+                    
+                    \Log::info('Pembelian berhasil dengan detail', [
                         'pembelian_id' => $pembelian->id,
-                        'bahan_baku_id' => $bahan->id,
-                        'jumlah' => $qtyInput,
-                        'harga_satuan' => $pricePerInputUnit,
-                        'subtotal' => $subtotal,
-                        // Simpan satuan input agar ditampilkan di daftar
-                        'satuan' => $satuanInput,
+                        'detail_count' => $savedDetails,
                     ]);
 
-                    // Update moving average harga bahan & stok
-                    $stokLama = (float) ($bahan->stok ?? 0);
-                    $hargaLama = (float) ($bahan->harga_satuan ?? 0);
-                    $stokBaru = $stokLama + $qtyBase;
-                    $hargaBaru = $stokBaru > 0 ? (($stokLama * $hargaLama) + $subtotal) / $stokBaru : $unitCostBase;
+                    // Jurnal: Dr Persediaan Bahan Baku (1104) ; Cr Kas/Bank/Utang Usaha
+                    // Tentukan akun kredit berdasarkan metode pembayaran
+                    if ($request->payment_method === 'cash' || $request->payment_method === 'transfer') {
+                        // Gunakan sumber dana yang dipilih user
+                        $creditAccountCode = $request->sumber_dana;
+                    } else {
+                        $creditAccountCode = '2101';  // Hutang Usaha (kredit)
+                    }
+                    
+                    $journal->post($request->tanggal, 'purchase', (int)$pembelian->id, 'Pembelian Bahan Baku', [
+                        ['code' => '1104', 'debit' => (float)$pembelian->total_harga, 'credit' => 0],  // Dr. Persediaan Bahan Baku
+                        ['code' => $creditAccountCode, 'debit' => 0, 'credit' => (float)$pembelian->total_harga],  // Cr. Kas/Bank/Hutang Usaha
+                    ]);
 
-                    $bahan->stok = $stokBaru;
-                    $bahan->harga_satuan = $hargaBaru;
-                    $bahan->save();
-
-                    // FIFO layer IN + movement
-                    $unitStr = (string)($bahan->satuan->kode ?? $bahan->satuan->nama ?? $bahan->satuan ?? 'pcs');
-                    $stock->addLayer('material', $bahan->id, $qtyBase, $unitStr, $unitCostBase, 'purchase', $pembelian->id, $request->tanggal);
+                    return redirect()->route('transaksi.pembelian.index')
+                        ->with('success', 'Data pembelian bahan baku berhasil disimpan!');
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    return back()
+                        ->withInput()
+                        ->with('error', 'Gagal menyimpan pembelian: ' . $e->getMessage());
                 }
-
-                // Jurnal: Dr Persediaan Bahan Baku (121) ; Cr Kas/Bank (101) atau Hutang Usaha (201) jika kredit
-                $creditAcc = $request->payment_method === 'credit' ? '201' : '101';
-                $journal->post($request->tanggal, 'purchase', (int)$pembelian->id, 'Pembelian Bahan Baku', [
-                    ['code' => '121', 'debit' => (float)$pembelian->total, 'credit' => 0],
-                    ['code' => $creditAcc, 'debit' => 0, 'credit' => (float)$pembelian->total],
-                ]);
-
-                return redirect()->route('transaksi.pembelian.index')->with('success', 'Data pembelian bahan baku berhasil disimpan!');
             });
         } else {
             // Fallback lama (jika masih digunakan)

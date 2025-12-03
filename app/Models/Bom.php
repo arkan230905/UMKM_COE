@@ -11,73 +11,143 @@ class Bom extends Model
 
     protected $fillable = [
         'produk_id',
-        'kode_bom',
+        'bahan_baku_id',
+        'jumlah',
+        'satuan_resep',
         'total_biaya',
-        'persentase_keuntungan',
-        'harga_jual',
-        'catatan'
+        'btkl_per_unit',
+        'bop_rate',
+        'bop_per_unit',
+        'total_btkl',
+        'total_bop',
+        'periode',
+        'created_at',
+        'updated_at'
     ];
 
     protected $casts = [
+        'jumlah' => 'decimal:4',
         'total_biaya' => 'decimal:2',
-        'persentase_keuntungan' => 'decimal:2',
-        'harga_jual' => 'decimal:2'
+        'btkl_per_unit' => 'decimal:2',
+        'bop_rate' => 'decimal:2',
+        'bop_per_unit' => 'decimal:2',
+        'total_btkl' => 'decimal:2',
+        'total_bop' => 'decimal:2'
     ];
-
-    protected $appends = ['keuntungan'];
 
     protected static function booted()
     {
         static::saving(function ($model) {
-            if (is_null($model->total_biaya)) {
-                $model->total_biaya = $model->hitungTotalBiaya();
+            if (empty($model->periode)) {
+                $model->periode = now()->format('Y-m');
             }
-            // Tidak mengubah harga_jual produk di tahap BOM
+            
+            // Hitung total biaya secara otomatis saat menyimpan
+            if ($model->isDirty(['total_biaya', 'total_btkl', 'total_bop'])) {
+                $model->hitungTotalBiaya();
+            }
+        });
+        
+        static::deleting(function ($model) {
+            // Reset harga_bom di produk sebelum BOM dihapus
+            if ($model->produk) {
+                $model->produk->update([
+                    'harga_bom' => 0,
+                ]);
+            }
+        });
+        
+        static::deleted(function ($model) {
+            // Hapus detail BOM terkait
+            $model->details()->delete();
         });
     }
 
+    /**
+     * Get the produk that owns the BOM.
+     */
     public function produk()
     {
-        return $this->belongsTo(Produk::class);
+        return $this->belongsTo(Produk::class)->withDefault();
     }
-
+    
+    /**
+     * Get the main bahan baku for the BOM.
+     */
+    public function bahanBaku()
+    {
+        return $this->belongsTo(BahanBaku::class, 'bahan_baku_id')->withDefault();
+    }
+    
+    /**
+     * Get the details for the BOM.
+     */
     public function details()
     {
-        return $this->hasMany(BomDetail::class);
+        return $this->hasMany(BomDetail::class)->with(['bahanBaku' => function($query) {
+            $query->with('satuan')->withDefault();
+        }]);
     }
-
-    public function getKeuntunganAttribute()
+    
+    /**
+     * Calculate total cost of BOM.
+     */
+    public function calculateTotalCost()
     {
-        return $this->total_biaya * ($this->persentase_keuntungan / 100);
-    }
-
-    public function hitungTotalBiaya()
-    {
-        return $this->details->sum('subtotal');
-    }
-
-    public function hitungHargaJual()
-    {
-        return $this->total_biaya + $this->keuntungan;
-    }
-
-    public function updateHargaJual()
-    {
-        $this->total_biaya = $this->hitungTotalBiaya();
-        $this->harga_jual = $this->hitungHargaJual();
-        $this->save();
-
-        // Update harga jual di produk
-        if ($this->produk) {
-            $this->produk->update(['harga_jual' => $this->harga_jual]);
+        $total = 0;
+        
+        foreach ($this->details as $detail) {
+            $total += $detail->harga_per_satuan * $detail->jumlah;
         }
         
-        return $this;
+        $this->total_biaya = $total;
+        $this->save();
+        
+        return $total;
     }
-
-    public static function calculateBopForAll($periode = null)
+    
+    /**
+     * Calculate total cost including BTKL and BOP.
+     * Returns total biaya produksi (HPP)
+     */
+    public function hitungTotalBiaya()
     {
-        $bom = new static;
-        return $bom->calculateBop($periode);
+        $totalBahanBaku = $this->details->sum('total_harga');
+        
+        // Hitung BTKL dan BOP jika belum ada
+        if (!$this->total_btkl) {
+            $this->total_btkl = $totalBahanBaku * 0.6; // 60%
+        }
+        if (!$this->total_bop) {
+            $this->total_bop = $totalBahanBaku * 0.4; // 40%
+        }
+        
+        // Total biaya = bahan baku + BTKL + BOP
+        $this->total_biaya = $totalBahanBaku + $this->total_btkl + $this->total_bop;
+        return $this->total_biaya;
+    }
+    
+    /**
+     * Update related product price.
+     * Menggunakan metode Process Costing untuk menghitung HPP
+     */
+    public function updateProductPrice()
+    {
+        if ($this->produk) {
+            // Hitung total biaya produksi (HPP) = Bahan Baku + BTKL + BOP
+            $totalBahanBaku = $this->details->sum('total_harga');
+            $hpp = $totalBahanBaku + $this->total_btkl + $this->total_bop;
+            
+            // Update harga_bom dengan HPP
+            // Update harga_jual dengan HPP + margin
+            $margin = $this->produk->margin_percent ?? 0;
+            $hargaJual = $hpp * (1 + ($margin / 100));
+            
+            $this->produk->update([
+                'harga_bom' => $hpp,  // HPP dari BOM
+                'harga_jual' => $hargaJual  // Harga jual = HPP + margin
+            ]);
+        }
+        return $this;
     }
 }

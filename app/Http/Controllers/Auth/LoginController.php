@@ -27,6 +27,27 @@ class LoginController extends Controller
      */
     protected $redirectTo = '/dashboard';
 
+    protected function redirectTo()
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return '/dashboard';
+        }
+
+        switch ($user->role) {
+            case 'owner':
+            case 'admin':
+                return '/dashboard';
+            case 'pegawai_pembelian':
+                return route('pegawai-pembelian.dashboard');
+            case 'pelanggan':
+                return route('pelanggan.dashboard');
+            default:
+                return '/dashboard';
+        }
+    }
+
     /**
      * Create a new controller instance.
      *

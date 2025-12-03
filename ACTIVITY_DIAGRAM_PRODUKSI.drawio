@@ -1,0 +1,243 @@
+<mxfile host="app.diagrams.net" modified="2025-01-12T00:00:00.000Z" agent="5.0" version="22.1.11" etag="drawio-produksi" type="device">
+  <diagram name="Activity Diagram Produksi" id="activity-produksi">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Title -->
+        <mxCell id="title" value="Activity Diagram - Pengelolaan Produksi&#xa;Sistem Informasi Akuntansi dan Manajemen Produksi UMKM" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="384.5" y="20" width="400" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Swimlane: Manager Produksi -->
+        <mxCell id="lane1" value="Manager Produksi" style="swimlane;html=1;startSize=30;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="280" height="1100" as="geometry" />
+        </mxCell>
+        
+        <!-- Start Node -->
+        <mxCell id="start" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;" vertex="1" parent="lane1">
+          <mxGeometry x="115" y="50" width="50" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 1: Buka Menu BOM -->
+        <mxCell id="act1" value="Buka Menu&#xa;Bill of Materials (BOM)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+          <mxGeometry x="60" y="130" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="lane1" source="start" target="act1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 2: Pilih Produk -->
+        <mxCell id="act2" value="Pilih Produk&#xa;yang akan diproduksi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+          <mxGeometry x="60" y="220" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="lane1" source="act1" target="act2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 3: Lihat BOM -->
+        <mxCell id="act3" value="Lihat Detail BOM&#xa;(Bahan Baku, BTKL, BOP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+          <mxGeometry x="60" y="310" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="lane1" source="act2" target="act3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Decision 1: Stok Bahan Cukup? -->
+        <mxCell id="dec1" value="Stok Bahan&#xa;Baku Cukup?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="lane1">
+          <mxGeometry x="70" y="490" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 4a: Beli Bahan Baku -->
+        <mxCell id="act4a" value="Lakukan Pembelian&#xa;Bahan Baku" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="lane1">
+          <mxGeometry x="60" y="610" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge5" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="lane1" source="dec1" target="act4a">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 5: Input Jumlah Produksi -->
+        <mxCell id="act5" value="Input Jumlah&#xa;yang akan diproduksi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+          <mxGeometry x="60" y="800" width="160" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 6: Submit Produksi -->
+        <mxCell id="act6" value="Submit&#xa;Proses Produksi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+          <mxGeometry x="60" y="890" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="lane1" source="act5" target="act6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 11: Terima Produk Jadi -->
+        <mxCell id="act11" value="Terima Produk Jadi&#xa;dan Cek Kualitas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="lane1">
+          <mxGeometry x="60" y="980" width="160" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Swimlane: Sistem -->
+        <mxCell id="lane2" value="Sistem" style="swimlane;html=1;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="320" y="100" width="280" height="1100" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 7: Tampilkan BOM -->
+        <mxCell id="act7" value="Tampilkan Data BOM&#xa;dan Kebutuhan Bahan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="lane2">
+          <mxGeometry x="60" y="310" width="160" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 8: Cek Stok -->
+        <mxCell id="act8" value="Cek Stok Bahan Baku&#xa;di Database" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="lane2">
+          <mxGeometry x="60" y="400" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="lane2" source="act7" target="act8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 9: Hitung Biaya -->
+        <mxCell id="act9" value="Hitung Total Biaya Produksi&#xa;(Bahan + BTKL + BOP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="lane2">
+          <mxGeometry x="60" y="710" width="160" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 10: Kurangi Stok -->
+        <mxCell id="act10" value="Kurangi Stok Bahan Baku&#xa;sesuai BOM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="lane2">
+          <mxGeometry x="60" y="800" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="lane2" source="act9" target="act10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 12: Catat Jurnal -->
+        <mxCell id="act12" value="Catat Jurnal Produksi&#xa;(Debit: Persediaan Produk Jadi&#xa;Kredit: Bahan Baku, BTKL, BOP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="lane2">
+          <mxGeometry x="60" y="890" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="edge10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="lane2" source="act10" target="act12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 13: Tambah Stok Produk -->
+        <mxCell id="act13" value="Tambah Stok&#xa;Produk Jadi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="lane2">
+          <mxGeometry x="60" y="990" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="lane2" source="act12" target="act13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Swimlane: Laporan -->
+        <mxCell id="lane3" value="Laporan & Akuntansi" style="swimlane;html=1;startSize=30;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="600" y="100" width="280" height="1100" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 14: Generate Laporan -->
+        <mxCell id="act14" value="Generate Laporan&#xa;Biaya Produksi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane3">
+          <mxGeometry x="60" y="890" width="160" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Act 15: Update HPP -->
+        <mxCell id="act15" value="Update HPP Produk&#xa;di Master Data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="lane3">
+          <mxGeometry x="60" y="980" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="lane3" source="act14" target="act15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- End Node -->
+        <mxCell id="end" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;" vertex="1" parent="lane3">
+          <mxGeometry x="115" y="1020" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="end-inner" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;" vertex="1" parent="lane3">
+          <mxGeometry x="125" y="1030" width="30" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Cross-lane connections -->
+        <mxCell id="cross1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="act3" target="act7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="cross2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="act8" target="dec1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="cross3" value="Ya" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="dec1" target="act9">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="740" />
+              <mxPoint x="460" y="740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="cross4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="act4a" target="act9">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="740" />
+              <mxPoint x="460" y="740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="cross5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="act6" target="act12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="cross6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="act12" target="act14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="cross7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;" edge="1" parent="1" source="act13" target="act11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="cross8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="act15" target="end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Notes -->
+        <mxCell id="note1" value="Route: /master-data/bom&#xa;Controller: BomController@index" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fffacd;strokeColor=#d6b656;size=10;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="900" y="220" width="150" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="note1-line" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="act1" target="note1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="note2" value="Cek stok di tabel:&#xa;bahan_bakus.stok" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fffacd;strokeColor=#d6b656;size=10;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="900" y="490" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="note2-line" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="act8" target="note2">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="note3" value="HPP = Bahan Baku + BTKL (60%) + BOP (40%)" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fffacd;strokeColor=#d6b656;size=10;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="900" y="710" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="note3-line" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="act9" target="note3">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="note4" value="Update:&#xa;produks.stok += jumlah_produksi&#xa;produks.harga_bom = HPP" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fffacd;strokeColor=#d6b656;size=10;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="900" y="980" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="note4-line" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="act13" target="note4">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        
+        <!-- Legend -->
+        <mxCell id="legend-box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="900" y="100" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="LEGEND" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="900" y="100" width="180" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend1" value="Manager Produksi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="910" y="130" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend2" value="Sistem" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="910" y="155" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend3" value="Laporan & Akuntansi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="910" y="180" width="160" height="20" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,117 +1,66 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid py-4" style="background-color: #1b1b28; min-height: 100vh;">
+<div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="text-white mb-0">
-            <i class="bi bi-box-seam me-2"></i>Tambah Produk
-        </h1>
-        <a href="{{ route('master-data.produk.index') }}" class="btn btn-outline-light">
+        <h1>Tambah Produk</h1>
+        <a href="{{ route('master-data.produk.index') }}" class="btn btn-secondary">
             <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
     </div>
 
     @if ($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>Terjadi Kesalahan!</strong>
-            <ul class="mb-0 mt-2">
+        <div class="alert alert-danger">
+            <ul class="mb-0">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
             </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-4">
-            <form action="{{ route('master-data.produk.store') }}" method="POST" id="produkForm">
+    <div class="card">
+        <div class="card-body">
+            <form action="{{ route('master-data.produk.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="mb-3">
-                    <label for="nama_produk" class="form-label text-white">
-                        <i class="bi bi-tag me-1"></i>Nama Produk <span class="text-danger">*</span>
-                    </label>
+                    <label for="nama_produk" class="form-label">Nama Produk</label>
                     <input type="text" name="nama_produk" id="nama_produk" 
-                           class="form-control bg-dark text-white border-dark" 
-                           value="{{ old('nama_produk') }}" required>
+                           class="form-control" value="{{ old('nama_produk') }}" required>
                 </div>
 
                 <div class="mb-3">
-                    <label for="deskripsi" class="form-label text-white">
-                        <i class="bi bi-card-text me-1"></i>Deskripsi Produk (Opsional)
-                    </label>
+                    <label for="deskripsi" class="form-label">Deskripsi</label>
                     <textarea name="deskripsi" id="deskripsi" rows="3" 
-                              class="form-control bg-dark text-white border-dark">{{ old('deskripsi') }}</textarea>
+                              class="form-control">{{ old('deskripsi') }}</textarea>
                 </div>
 
                 <div class="mb-3">
-                    <label for="harga_jual" class="form-label text-white">
-                        <i class="bi bi-currency-dollar me-1"></i>Harga Jual (Rp)
-                    </label>
-                    <input type="number" name="harga_jual" id="harga_jual" 
-                           class="form-control bg-dark text-white border-dark" value="" readonly>
-                    <small class="text-muted">Harga jual akan dihitung otomatis setelah menambahkan BOM.</small>
-                </div>
-
-                <div class="border rounded p-3 mb-3" style="background-color: #1e1e2f; border-color: #2d2d3a !important;">
-                    <h5 class="text-white mb-3">
-                        <i class="bi bi-sliders me-1"></i>Parameter Harga & Overhead
-                    </h5>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label text-white">
-                                <i class="bi bi-percent me-1"></i>Presentase Keuntungan (%)
-                            </label>
-                            <input type="number" step="0.01" name="margin_percent" 
-                                   class="form-control bg-dark text-white border-dark" 
-                                   value="{{ old('margin_percent', 30) }}">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label text-white">
-                                <i class="bi bi-gear me-1"></i>Metode BOPB
-                            </label>
-                            <select name="bopb_method" class="form-select bg-dark text-white border-dark">
-                                <option value="">- Pilih -</option>
-                                <option value="per_unit">Per Unit Produksi</option>
-                                <option value="per_hour">Per Jam Kerja</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label text-white">
-                                <i class="bi bi-currency-dollar me-1"></i>Tarif BOPB
-                            </label>
-                            <input type="number" step="0.01" name="bopb_rate" 
-                                   class="form-control bg-dark text-white border-dark" 
-                                   placeholder="Biaya per unit / per jam">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label text-white">
-                                <i class="bi bi-clock me-1"></i>Jam Tenaga Kerja/Unit
-                            </label>
-                            <input type="number" step="0.01" name="labor_hours_per_unit" 
-                                   class="form-control bg-dark text-white border-dark" 
-                                   placeholder="Wajib bila metode per jam">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label text-white">
-                                <i class="bi bi-people me-1"></i>BTKL per Unit
-                            </label>
-                            <input type="number" step="0.01" name="btkl_per_unit" 
-                                   class="form-control bg-dark text-white border-dark" 
-                                   placeholder="Jika kosong, gunakan default">
+                    <label for="foto" class="form-label">Foto Produk</label>
+                    <input type="file" name="foto" id="foto" class="form-control" accept="image/jpeg,image/png,image/jpg" onchange="previewImage(event)">
+                    <small style="color: #ffffff;">Format: JPG, JPEG, PNG. Maksimal 2MB.</small>
+                    
+                    <div id="preview-container" class="mt-3" style="display: none;">
+                        <p style="color: #ffffff;" class="small mb-2">Preview foto:</p>
+                        <div class="preview-image-wrapper">
+                            <img id="preview-image" src="" alt="Preview" class="preview-img">
+                            <button type="button" class="btn-remove-preview" onclick="removePreview()" title="Hapus foto">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
 
-                <div class="d-flex justify-content-end gap-2 mt-4">
-                    <a href="{{ route('master-data.produk.index') }}" class="btn btn-outline-light">
-                        <i class="bi bi-x-circle me-1"></i> Batal
-                    </a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save me-1"></i> Simpan
-                    </button>
+                <div class="mb-3">
+                    <label for="margin_percent" class="form-label">Presentase Keuntungan (%)</label>
+                    <input type="number" step="0.01" name="margin_percent" 
+                           class="form-control" value="{{ old('margin_percent', 30) }}">
+                    <small style="color: #ffffff;">Harga jual dihitung otomatis dari Harga BOM × (1 + Margin%).</small>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{{ route('master-data.produk.index') }}" class="btn btn-secondary">Batal</a>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
                 </div>
             </form>
         </div>
@@ -120,6 +69,48 @@
 
 @push('scripts')
 <script>
+function previewImage(event) {
+    const file = event.target.files[0];
+    const previewContainer = document.getElementById('preview-container');
+    const previewImage = document.getElementById('preview-image');
+    
+    if (file) {
+        // Validasi ukuran file (max 2MB)
+        if (file.size > 2048000) {
+            alert('Ukuran file terlalu besar! Maksimal 2MB.');
+            event.target.value = '';
+            previewContainer.style.display = 'none';
+            return;
+        }
+        
+        // Validasi tipe file
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!validTypes.includes(file.type)) {
+            alert('Format file tidak valid! Gunakan JPG, JPEG, atau PNG.');
+            event.target.value = '';
+            previewContainer.style.display = 'none';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            previewImage.src = e.target.result;
+            previewContainer.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        previewContainer.style.display = 'none';
+    }
+}
+
+function removePreview() {
+    const fileInput = document.getElementById('foto');
+    const previewContainer = document.getElementById('preview-container');
+    
+    fileInput.value = '';
+    previewContainer.style.display = 'none';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('produkForm');
     
@@ -131,6 +122,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 submitBtn.innerHTML = '<i class="bi bi-arrow-repeat fa-spin me-1"></i> Menyimpan...';
             }
         });
+    }
+    
+    const marginInput = document.querySelector('input[name="margin_percent"]');
+    
+    // Contoh fungsi untuk menghitung harga jual
+    function hitungHargaJual() {
+        // Logika perhitungan harga jual bisa ditambahkan di sini
+        // Misalnya: harga_jual = harga_bom * (1 + (margin_percent / 100))
+    }
+    
+    // Panggil fungsi saat nilai margin berubah
+    if (marginInput) {
+        marginInput.addEventListener('change', hitungHargaJual);
+        marginInput.addEventListener('keyup', hitungHargaJual);
     }
 });
 </script>
@@ -164,6 +169,52 @@ document.addEventListener('DOMContentLoaded', function() {
     
     .text-muted {
         color: #8a8a9a !important;
+    }
+    
+    /* Preview Image Styling */
+    .preview-image-wrapper {
+        position: relative;
+        display: inline-block;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    
+    .preview-img {
+        max-height: 250px;
+        max-width: 250px;
+        width: auto;
+        height: auto;
+        object-fit: cover;
+        display: block;
+        border-radius: 8px;
+    }
+    
+    .btn-remove-preview {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(220, 53, 69, 0.9);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .btn-remove-preview:hover {
+        background: rgba(220, 53, 69, 1);
+        transform: scale(1.1);
+    }
+    
+    .btn-remove-preview i {
+        font-size: 14px;
     }
 </style>
 @endsection

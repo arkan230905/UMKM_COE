@@ -14,8 +14,10 @@
     <table class="table table-bordered">
         <thead class="table-dark">
             <tr>
+                <th>Nomor Transaksi</th>
                 <th>Tanggal</th>
                 <th>Vendor</th>
+                <th>Item Dibeli</th>
                 <th>Pembayaran</th>
                 <th>Total Harga</th>
                 <th>Aksi</th>
@@ -24,12 +26,42 @@
         <tbody>
             <?php $__empty_1 = true; $__currentLoopData = $pembelians; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $pembelian): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                 <tr>
+                    <td style="color: #fff; font-weight: bold;"><?php echo e($pembelian->nomor_pembelian ?? 'KOSONG'); ?></td>
                     <td><?php echo e($pembelian->tanggal->format('d-m-Y')); ?></td>
                     <td><?php echo e($pembelian->vendor->nama_vendor ?? '-'); ?></td>
+                    <td>
+                        <?php if($pembelian->details && $pembelian->details->count() > 0): ?>
+                            <small>
+                            <?php $__currentLoopData = $pembelian->details; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $detail): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <div>
+                                    • <?php echo e($detail->bahanBaku->nama_bahan ?? '-'); ?> 
+                                    (<?php echo e(number_format($detail->jumlah ?? 0, 0, ',', '.')); ?> <?php echo e($detail->bahanBaku->satuan->nama ?? 'unit'); ?>)
+                                    - Rp <?php echo e(number_format($detail->harga_satuan ?? 0, 0, ',', '.')); ?>
+
+                                    = <strong>Rp <?php echo e(number_format(($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0), 0, ',', '.')); ?></strong>
+                                </div>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                            </small>
+                        <?php else: ?>
+                            -
+                        <?php endif; ?>
+                    </td>
                     <td><?php echo e(($pembelian->payment_method ?? 'cash') === 'credit' ? 'Kredit' : 'Tunai'); ?></td>
-                    <td>Rp <?php echo e(number_format($pembelian->total, 0, ',', '.')); ?></td>
+                    <td>
+                        <?php
+                            $totalPembelian = $pembelian->total;
+                            // Jika total = 0, hitung dari details
+                            if ($totalPembelian == 0 && $pembelian->details && $pembelian->details->count() > 0) {
+                                $totalPembelian = $pembelian->details->sum(function($detail) {
+                                    return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                                });
+                            }
+                        ?>
+                        <strong>Rp <?php echo e(number_format($totalPembelian, 0, ',', '.')); ?></strong>
+                    </td>
                     <td>
                         <a href="<?php echo e(route('transaksi.pembelian.show', $pembelian->id)); ?>" class="btn btn-info btn-sm">Detail</a>
+                        <a href="<?php echo e(route('transaksi.retur-pembelian.create', ['pembelian_id' => $pembelian->id])); ?>" class="btn btn-warning btn-sm">Retur</a>
                         <form action="<?php echo e(route('transaksi.pembelian.destroy', $pembelian->id)); ?>" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus?')">
                             <?php echo csrf_field(); ?>
                             <?php echo method_field('DELETE'); ?>
@@ -39,7 +71,7 @@
                 </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                 <tr>
-                    <td colspan="4" class="text-center">Belum ada data pembelian.</td>
+                    <td colspan="7" class="text-center">Belum ada data pembelian.</td>
                 </tr>
             <?php endif; ?>
         </tbody>

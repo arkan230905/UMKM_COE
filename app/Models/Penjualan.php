@@ -12,6 +12,7 @@ class Penjualan extends Model
     protected $table = 'penjualans';
 
     protected $fillable = [
+        'nomor_penjualan',
         'produk_id',
         'tanggal',
         'payment_method',
@@ -33,5 +34,24 @@ class Penjualan extends Model
     public function details()
     {
         return $this->hasMany(PenjualanDetail::class);
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // Auto-generate nomor penjualan saat creating
+        static::creating(function ($penjualan) {
+            if (empty($penjualan->nomor_penjualan)) {
+                $tanggal = $penjualan->tanggal ?? now();
+                $date = is_string($tanggal) ? $tanggal : $tanggal->format('Ymd');
+                
+                // Hitung jumlah penjualan hari ini
+                $count = static::whereDate('tanggal', $tanggal)->count() + 1;
+                
+                // Format: PJ-YYYYMMDD-0001
+                $penjualan->nomor_penjualan = 'PJ-' . $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+            }
+        });
     }
 }

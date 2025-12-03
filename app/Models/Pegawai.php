@@ -15,17 +15,40 @@ class Pegawai extends Model
     protected $fillable = [
         'kode_pegawai',
         'nama',
-        'no_telepon',
         'email',
+        'no_telp',
         'alamat',
-        'nama_bank',
-        'no_rekening',
+        'jenis_kelamin',
         'jabatan',
-        'kategori',
-        'asuransi',
-        'tarif',
-        'tunjangan',
         'gaji',
+        'gaji_pokok',
+        'tarif_per_jam',
+        'tunjangan',
+        'asuransi',
+        'jenis_pegawai',
+        'bank',
+        'nomor_rekening',
+        'nama_rekening',
+    ];
+    
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->kode_pegawai)) {
+                $lastId = static::max('id') ?? 0;
+                $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+            }
+        });
+    }
+    
+    protected $casts = [
+        'gaji' => 'decimal:2',
+        'gaji_pokok' => 'decimal:2',
+        'tarif_per_jam' => 'decimal:2',
+        'tunjangan' => 'decimal:2',
+        'asuransi' => 'decimal:2',
     ];
 
     protected $dates = [

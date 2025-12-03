@@ -1,0 +1,206 @@
+<mxfile host="app.diagrams.net" modified="2025-01-12T00:00:00.000Z" agent="Draw.io" version="22.0.0">
+  <diagram name="Sistem Saat Ini - Proses Produksi Manual" id="sistem-saat-ini">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Title -->
+        <mxCell id="title" value="Proses Pengelolaan Produksi Manual (Sistem Saat Ini)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="500" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Pool -->
+        <mxCell id="pool" value="UMKM" style="swimlane;html=1;childLayout=stackLayout;resizeParent=1;resizeParentMax=0;horizontal=1;startSize=40;horizontalStack=0;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="1080" height="680" as="geometry" />
+        </mxCell>
+        
+        <!-- Lane 1: Dokumen Fisik -->
+        <mxCell id="lane1" value="Dokumen Fisik" style="swimlane;html=1;startSize=40;horizontal=0;fontSize=12;fontStyle=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="pool">
+          <mxGeometry y="40" width="1080" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- Dokumen Buku Catatan -->
+        <mxCell id="doc1" value="Buku Catatan&#xa;Stok Bahan Baku" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fff2cc;strokeColor=#d6b656;size=15;fontSize=11" vertex="1" parent="lane1">
+          <mxGeometry x="120" y="30" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Dokumen Spreadsheet -->
+        <mxCell id="doc2" value="Spreadsheet&#xa;Produksi" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fff2cc;strokeColor=#d6b656;size=15;fontSize=11" vertex="1" parent="lane1">
+          <mxGeometry x="480" y="30" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Dokumen Laporan -->
+        <mxCell id="doc3" value="Buku Catatan&#xa;Laporan Manual" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fff2cc;strokeColor=#d6b656;size=15;fontSize=11" vertex="1" parent="lane1">
+          <mxGeometry x="920" y="30" width="100" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Lane 2: Admin/Pemilik UMKM -->
+        <mxCell id="lane2" value="Admin/Pemilik UMKM" style="swimlane;html=1;startSize=40;horizontal=0;fontSize=12;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="pool">
+          <mxGeometry y="160" width="1080" height="520" as="geometry" />
+        </mxCell>
+        
+        <!-- Start Event -->
+        <mxCell id="start" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=3" vertex="1" parent="lane2">
+          <mxGeometry x="40" y="200" width="50" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="startLabel" value="Mulai&#xa;Produksi" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="lane2">
+          <mxGeometry x="35" y="255" width="60" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Task 1: Cek Stok Manual -->
+        <mxCell id="task1" value="Cek Stok Bahan Baku&#xa;Secara Manual&#xa;di Buku Catatan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="130" y="195" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Gateway 1: Stok Cukup? -->
+        <mxCell id="gateway1" value="Stok&#xa;Cukup?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="290" y="185" width="80" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Task 2: Beli Bahan -->
+        <mxCell id="task2" value="Beli Bahan Baku&#xa;Catat Manual&#xa;di Buku Terpisah" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="270" y="50" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task 3: Catat Produksi -->
+        <mxCell id="task3" value="Catat Rencana&#xa;Produksi di&#xa;Spreadsheet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="420" y="195" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task 4: Hitung Manual -->
+        <mxCell id="task4" value="Hitung Kebutuhan&#xa;Bahan Manual&#xa;dengan Kalkulator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="420" y="290" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task 5: Kurangi Stok Manual -->
+        <mxCell id="task5" value="Kurangi Stok Bahan&#xa;Manual di Buku&#xa;Catatan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="580" y="195" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task 6: Hitung HPP Manual -->
+        <mxCell id="task6" value="Hitung HPP&#xa;Manual dengan&#xa;Perkiraan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="580" y="290" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task 7: Tambah Stok Produk -->
+        <mxCell id="task7" value="Tambah Stok&#xa;Produk Jadi&#xa;di Buku Lain" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="740" y="195" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Task 8: Buat Laporan Manual -->
+        <mxCell id="task8" value="Buat Laporan&#xa;Manual di Excel&#xa;Akhir Periode" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="900" y="195" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- End Event -->
+        <mxCell id="end" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=4" vertex="1" parent="lane2">
+          <mxGeometry x="1000" y="380" width="50" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="endLabel" value="Selesai" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10" vertex="1" parent="lane2">
+          <mxGeometry x="995" y="435" width="60" height="30" as="geometry" />
+        </mxCell>
+        
+        <!-- Annotation: Masalah -->
+        <mxCell id="annotation1" value="⚠️ Rawan Kesalahan&#xa;⚠️ Tidak Real-time&#xa;⚠️ Data Terpisah" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#f8cecc;strokeColor=#b85450;size=15;fontSize=10;align=left" vertex="1" parent="lane2">
+          <mxGeometry x="130" y="380" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="annotation2" value="⚠️ Memakan Waktu&#xa;⚠️ Tidak Akurat&#xa;⚠️ Sulit Tracking" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#f8cecc;strokeColor=#b85450;size=15;fontSize=10;align=left" vertex="1" parent="lane2">
+          <mxGeometry x="570" y="380" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Arrows -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2" edge="1" parent="lane2" source="start" target="task1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2" edge="1" parent="lane2" source="task1" target="gateway1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;strokeWidth=2" edge="1" parent="lane2" source="gateway1" target="task2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="label3" value="Tidak" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10" vertex="1" connectable="0" parent="arrow3">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2;dashed=1" edge="1" parent="lane2" source="task2" target="task1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="80" />
+              <mxPoint x="110" y="225" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="arrow5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2" edge="1" parent="lane2" source="gateway1" target="task3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="label5" value="Ya" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10" vertex="1" connectable="0" parent="arrow5">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="arrow6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2" edge="1" parent="lane2" source="task3" target="task4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2" edge="1" parent="lane2" source="task4" target="task5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="320" />
+              <mxPoint x="560" y="225" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="arrow8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2" edge="1" parent="lane2" source="task5" target="task6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2" edge="1" parent="lane2" source="task6" target="task7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="320" />
+              <mxPoint x="720" y="225" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="arrow10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeWidth=2" edge="1" parent="lane2" source="task7" target="task8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="arrow11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeWidth=2" edge="1" parent="lane2" source="task8" target="end">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="960" y="280" />
+              <mxPoint x="1025" y="280" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Connection to Documents -->
+        <mxCell id="docArrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;strokeWidth=1;dashed=1;strokeColor=#666666" edge="1" parent="pool" source="task1" target="doc1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="docArrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;strokeWidth=1;dashed=1;strokeColor=#666666" edge="1" parent="pool" source="task3" target="doc2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="docArrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;strokeWidth=1;dashed=1;strokeColor=#666666" edge="1" parent="pool" source="task8" target="doc3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

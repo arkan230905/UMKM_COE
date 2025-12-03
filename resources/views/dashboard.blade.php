@@ -9,7 +9,7 @@
             <small class="text-white-50">Selamat datang, {{ Auth::user()->name }}! {{ now()->format('d M Y H:i') }}</small>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('transaksi.expense-payment.create') }}" class="btn btn-primary">
+            <a href="{{ route('transaksi.pembayaran-beban.create') }}" class="btn btn-primary">
                 <i class="bi bi-cash-coin me-1"></i> Bayar Beban
             </a>
             <a href="{{ route('transaksi.ap-settlement.index') }}" class="btn btn-success">
@@ -90,7 +90,7 @@
                         <a href="{{ route('transaksi.produksi.create') }}" class="btn btn-outline-light">
                             <i class="bi bi-gear me-1"></i> Produksi Baru
                         </a>
-                        <a href="{{ route('transaksi.expense-payment.create') }}" class="btn btn-outline-light">
+                        <a href="{{ route('transaksi.pembayaran-beban.create') }}" class="btn btn-outline-light">
                             <i class="bi bi-cash-coin me-1"></i> Bayar Beban
                         </a>
                         <a href="{{ route('transaksi.ap-settlement.index') }}" class="btn btn-outline-light">
@@ -112,25 +112,33 @@
             <div class="row g-3">
                 @php
                     $masterData = [
-                        ['title'=>'Produk','count'=>$totalProduk,'icon'=>'bi-box-seam','route'=>'master-data.produk.index'],
-                        ['title'=>'Bahan Baku','count'=>$totalBahanBaku,'icon'=>'bi-droplet','route'=>'master-data.bahan-baku.index'],
-                        ['title'=>'Vendor','count'=>$totalVendor,'icon'=>'bi-shop','route'=>'master-data.vendor.index'],
-                        ['title'=>'BOM','count'=>$totalBOM,'icon'=>'bi-gear','route'=>'master-data.bom.index'],
-                        ['title'=>'Pegawai','count'=>$totalPegawai,'icon'=>'bi-people','route'=>'master-data.pegawai.index'],
-                        ['title'=>'Presensi','count'=>$totalPresensi,'icon'=>'bi-clock','route'=>'master-data.presensi.index'],
+                        ['title'=>'Pegawai','count'=>$totalPegawai,'icon'=>'bi-people-fill','route'=>'master-data.pegawai.index','color'=>'primary'],
+                        ['title'=>'Bahan Baku','count'=>$totalBahanBaku,'icon'=>'bi-droplet-fill','route'=>'master-data.bahan-baku.index','color'=>'info'],
+                        ['title'=>'Produk','count'=>$totalProduk,'icon'=>'bi-box-seam-fill','route'=>'master-data.produk.index','color'=>'success'],
+                        ['title'=>'Vendor','count'=>$totalVendor,'icon'=>'bi-shop','route'=>'master-data.vendor.index','color'=>'warning'],
+                        ['title'=>'BOM','count'=>$totalBOM,'icon'=>'bi-gear-fill','route'=>'master-data.bom.index','color'=>'danger'],
+                        ['title'=>'Presensi','count'=>$totalPresensi,'icon'=>'bi-calendar-check-fill','route'=>'master-data.presensi.index','color'=>'secondary'],
                     ];
                 @endphp
 
                 @foreach($masterData as $data)
                 <div class="col-lg-2 col-md-4 col-sm-6">
                     <a href="{{ route($data['route']) }}" class="text-decoration-none">
-                        <div class="card shadow hover-card text-white text-center" style="background-color: #2c2c3e; border-radius: 15px; min-height: 140px;">
+                        <div class="card shadow hover-card text-white text-center" style="background-color: #2c2c3e; border-radius: 15px; min-height: 140px; transition: transform 0.2s;">
                             <div class="card-body d-flex flex-column justify-content-center align-items-center">
-                                <div class="rounded-circle bg-primary bg-opacity-10 p-3 mb-2">
-                                    <i class="bi {{ $data['icon'] }} fs-3 text-primary"></i>
+                                <div class="rounded-circle mb-3" style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, 
+                                    @if($data['color'] == 'primary') #667eea 0%, #764ba2 100%
+                                    @elseif($data['color'] == 'info') #11cdef 0%, #1171ef 100%
+                                    @elseif($data['color'] == 'success') #2dce89 0%, #2dcecc 100%
+                                    @elseif($data['color'] == 'warning') #fb6340 0%, #fbb140 100%
+                                    @elseif($data['color'] == 'danger') #f5365c 0%, #f56036 100%
+                                    @else #6c757d 0%, #495057 100%
+                                    @endif
+                                );">
+                                    <i class="bi {{ $data['icon'] }} fs-2 text-white"></i>
                                 </div>
-                                <h6 class="card-title text-white-50 mb-1">{{ $data['title'] }}</h6>
-                                <h5 class="card-text fw-bold">{{ $data['count'] }}</h5>
+                                <h6 class="card-title text-white-50 mb-1 small">{{ $data['title'] }}</h6>
+                                <h4 class="card-text fw-bold text-white mb-0">{{ $data['count'] }}</h4>
                             </div>
                         </div>
                     </a>
@@ -148,7 +156,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="text-white mb-0">Pembayaran Beban Terakhir</h5>
-                        <a href="{{ route('transaksi.expense-payment.index') }}" class="btn btn-sm btn-outline-light">Lihat Semua</a>
+                        <a href="{{ route('transaksi.pembayaran-beban.index') }}" class="btn btn-sm btn-outline-light">Lihat Semua</a>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-dark table-hover table-borderless">
@@ -413,6 +421,20 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #4a5bd9;
+}
+
+/* Ensure Bootstrap Icons are loaded */
+.bi::before {
+    display: inline-block;
+    font-family: "bootstrap-icons" !important;
+    font-style: normal;
+    font-weight: normal !important;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1;
+    vertical-align: -.125em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 </style>
 

@@ -1,109 +1,183 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <h1>Tambah Retur</h1>
-
-    <form action="{{ route('transaksi.retur.store') }}" method="POST">
-        @csrf
-
-        <div class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label">Tanggal</label>
-                <input type="date" name="tanggal" class="form-control" value="{{ old('tanggal', date('Y-m-d')) }}" required>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Tipe Retur</label>
-                <select name="type" class="form-select" required>
-                    <option value="sale">Retur Penjualan</option>
-                    <option value="purchase">Retur Pembelian</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Kompensasi</label>
-                <select name="kompensasi" class="form-select" required>
-                    <option value="credit">Kredit/Nota</option>
-                    <option value="refund">Refund</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Ref. Dokumen (ID)</label>
-                <input type="number" name="ref_id" class="form-control" placeholder="ID Invoice/PO" value="{{ old('ref_id') }}" required>
-            </div>
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header bg-danger text-white">
+            <h4 class="mb-0">🔄 Tambah Retur</h4>
+            <small>Buat transaksi retur barang</small>
         </div>
+        <div class="card-body">
+            @if($errors->any())
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
-        <div class="mb-3 mt-3">
-            <label class="form-label">Alasan</label>
-            <textarea name="alasan" class="form-control" rows="2">{{ old('alasan') }}</textarea>
+            <form action="{{ route('transaksi.retur.store') }}" method="POST" id="formRetur">
+                @csrf
+
+                <!-- Form Header -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">📅 Tanggal</label>
+                        <input type="date" name="tanggal" class="form-control form-control-lg" value="{{ old('tanggal', date('Y-m-d')) }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">📦 Tipe Retur</label>
+                        <select name="type" id="typeRetur" class="form-select form-select-lg" required onchange="toggleReturType()">
+                            <option value="sale">Retur Penjualan</option>
+                            <option value="purchase">Retur Pembelian</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">📝 Kompensasi</label>
+                        <select name="kompensasi" class="form-select form-select-lg" required>
+                            <option value="credit">Kredit/Nota</option>
+                            <option value="refund">Refund</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Detail Retur Section -->
+                <div class="card bg-primary text-white mb-3">
+                    <div class="card-body py-2">
+                        <h5 class="mb-0" id="headerDetail">📋 Detail Retur - PRODUK</h5>
+                    </div>
+                </div>
+
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th width="50%" id="headerColumn">PRODUK</th>
+                                <th width="20%">QTY</th>
+                                <th width="25%">HARGA ASAL (OPTIONAL)</th>
+                                <th width="5%">
+                                    <button type="button" class="btn btn-sm btn-success" onclick="addRowRetur()">➕</button>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyRetur">
+                            <!-- Rows will be added here -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Buttons -->
+                <div class="d-flex justify-content-between">
+                    <a href="{{ route('transaksi.retur.index') }}" class="btn btn-secondary btn-lg">
+                        ✖️ Batal
+                    </a>
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        💾 Simpan Retur
+                    </button>
+                </div>
+            </form>
         </div>
-
-        <div class="card mt-3">
-            <div class="card-header">Detail Retur</div>
-            <div class="card-body p-2">
-                <table class="table align-middle" id="detailTable">
-                    <thead>
-                        <tr>
-                            <th style="width:55%">Produk</th>
-                            <th style="width:20%">Qty</th>
-                            <th style="width:20%">Harga Asal (opsional)</th>
-                            <th style="width:5%"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>
-                                <select name="details[0][produk_id]" class="form-select" required>
-                                    @foreach($produks as $produk)
-                                        <option value="{{ $produk->id }}">{{ $produk->nama_produk }}</option>
-                                    @endforeach
-                                </select>
-                            </td>
-                            <td>
-                                <input type="number" step="0.0001" min="0.0001" name="details[0][qty]" class="form-control" required>
-                            </td>
-                            <td>
-                                <input type="number" step="0.01" name="details[0][harga_satuan_asal]" class="form-control" placeholder="opsional">
-                            </td>
-                            <td>
-                                <button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">-</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="addRow()">+ Tambah Baris</button>
-            </div>
-        </div>
-
-        <button type="submit" class="btn btn-primary mt-3">Simpan</button>
-    </form>
+    </div>
 </div>
-@endsection
 
-@push('scripts')
 <script>
-let idx = 1;
-function addRow(){
-  const tbody = document.querySelector('#detailTable tbody');
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td>
-      <select name="details[${idx}][produk_id]" class="form-select" required>
-        @foreach($produks as $produk)
-          <option value="{{ $produk->id }}">{{ $produk->nama_produk }}</option>
-        @endforeach
-      </select>
-    </td>
-    <td><input type="number" step="0.0001" min="0.0001" name="details[${idx}][qty]" class="form-control" required></td>
-    <td><input type="number" step="0.01" name="details[${idx}][harga_satuan_asal]" class="form-control" placeholder="opsional"></td>
-    <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">-</button></td>
-  `;
-  tbody.appendChild(tr);
-  idx++;
+// Data dari server
+const PRODUKS = @json($produks);
+const BAHAN_BAKUS = @json($bahanBakus);
+let rowIndex = 0;
+
+// Toggle tipe retur
+function toggleReturType() {
+    const type = document.getElementById('typeRetur').value;
+    const headerDetail = document.getElementById('headerDetail');
+    const headerColumn = document.getElementById('headerColumn');
+    
+    if (type === 'sale') {
+        headerDetail.textContent = '📋 Detail Retur - PRODUK';
+        headerColumn.textContent = 'PRODUK';
+    } else {
+        headerDetail.textContent = '📋 Detail Retur - BAHAN BAKU';
+        headerColumn.textContent = 'BAHAN BAKU';
+    }
+    
+    // Rebuild all rows
+    rebuildAllRows();
 }
-function removeRow(btn){
-  const tr = btn.closest('tr');
-  const tbody = tr.parentNode;
-  if (tbody.children.length > 1) tbody.removeChild(tr);
+
+// Rebuild semua rows
+function rebuildAllRows() {
+    const tbody = document.getElementById('tbodyRetur');
+    const rowCount = tbody.children.length;
+    
+    // Clear
+    tbody.innerHTML = '';
+    rowIndex = 0;
+    
+    // Add at least one row
+    if (rowCount === 0) {
+        addRowRetur();
+    } else {
+        for (let i = 0; i < rowCount; i++) {
+            addRowRetur();
+        }
+    }
 }
+
+// Add row
+function addRowRetur() {
+    const type = document.getElementById('typeRetur').value;
+    const tbody = document.getElementById('tbodyRetur');
+    const tr = document.createElement('tr');
+    
+    let selectOptions = '';
+    if (type === 'sale') {
+        selectOptions = '<option value="">-- Pilih Produk --</option>';
+        PRODUKS.forEach(item => {
+            selectOptions += `<option value="${item.id}">${item.nama_produk}</option>`;
+        });
+    } else {
+        selectOptions = '<option value="">-- Pilih Bahan Baku --</option>';
+        BAHAN_BAKUS.forEach(item => {
+            selectOptions += `<option value="${item.id}">${item.nama_bahan}</option>`;
+        });
+    }
+    
+    tr.innerHTML = `
+        <td>
+            <select name="details[${rowIndex}][produk_id]" class="form-select" required>
+                ${selectOptions}
+            </select>
+        </td>
+        <td>
+            <input type="number" step="0.01" min="0.01" name="details[${rowIndex}][qty]" class="form-control" placeholder="0" required>
+        </td>
+        <td>
+            <input type="number" step="0.01" name="details[${rowIndex}][harga_satuan_asal]" class="form-control" placeholder="Optional">
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn btn-sm btn-danger" onclick="removeRowRetur(this)">🗑️</button>
+        </td>
+    `;
+    
+    tbody.appendChild(tr);
+    rowIndex++;
+}
+
+// Remove row
+function removeRowRetur(btn) {
+    const tbody = document.getElementById('tbodyRetur');
+    if (tbody.children.length > 1) {
+        btn.closest('tr').remove();
+    } else {
+        alert('Minimal harus ada 1 baris!');
+    }
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    addRowRetur(); // Add first row
+});
 </script>
-@endpush
+@endsection

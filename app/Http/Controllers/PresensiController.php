@@ -107,36 +107,21 @@ class PresensiController extends Controller
     public function update(Request $request, $id)
     {
         try {
+            // Validasi input
             $validated = $request->validate([
                 'pegawai_id' => 'required|exists:pegawais,id',
                 'tgl_presensi' => 'required|date',
-                'jam_masuk' => 'required_if:status,Hadir|nullable|date_format:H:i',
-                'jam_keluar' => 'required_if:status,Hadir|nullable|date_format:H:i|after:jam_masuk',
                 'status' => 'required|in:Hadir,Izin,Sakit,Absen,Alpa',
-                'keterangan' => 'nullable|string|max:255'
+                'keterangan' => 'nullable|string|max:255',
+                'jam_masuk' => 'required_if:status,Hadir|nullable|date_format:H:i',
+                'jam_keluar' => 'required_if:status,Hadir|nullable|date_format:H:i|after:jam_masuk'
             ]);
 
+            // Dapatkan data presensi
             $presensi = Presensi::findOrFail($id);
             
-            // Cek apakah ada presensi lain untuk pegawai di tanggal yang sama
-            $existingPresensi = Presensi::where('pegawai_id', $validated['pegawai_id'])
-                ->whereDate('tgl_presensi', $validated['tgl_presensi'])
-                ->where('id', '!=', $id)
-                ->first();
-
-            if ($existingPresensi) {
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', 'Pegawai sudah memiliki presensi di tanggal yang sama');
-            }
-
-            // Normalisasi status Alpa->Absen bila diperlukan
-            if (($validated['status'] ?? '') === 'Alpa') {
-                $validated['status'] = 'Absen';
-            }
-
-            // Hitung jumlah jam kerja hanya untuk status Hadir
-            if (($validated['status'] ?? '') === 'Hadir' && !empty($validated['jam_masuk']) && !empty($validated['jam_keluar'])) {
+            // Hitung jumlah jam kerja jika status Hadir
+            if ($validated['status'] === 'Hadir' && !empty($validated['jam_masuk']) && !empty($validated['jam_keluar'])) {
                 $jamMasuk = Carbon::parse($validated['jam_masuk']);
                 $jamKeluar = Carbon::parse($validated['jam_keluar']);
                 $validated['jumlah_jam'] = $jamKeluar->diffInHours($jamMasuk, true);
@@ -146,7 +131,16 @@ class PresensiController extends Controller
                 $validated['jumlah_jam'] = 0;
             }
 
-            $presensi->update($validated);
+            // Update data
+            $presensi->update([
+                'pegawai_id' => $validated['pegawai_id'],
+                'tgl_presensi' => $validated['tgl_presensi'],
+                'status' => $validated['status'],
+                'jam_masuk' => $validated['jam_masuk'],
+                'jam_keluar' => $validated['jam_keluar'],
+                'jumlah_jam' => $validated['jumlah_jam'],
+                'keterangan' => $validated['keterangan']
+            ]);
 
             return redirect()
                 ->route('master-data.presensi.index')

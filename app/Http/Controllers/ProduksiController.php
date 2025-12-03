@@ -23,7 +23,11 @@ class ProduksiController extends Controller
 
     public function create()
     {
-        $produks = Produk::all();
+        // Hanya ambil produk yang sudah memiliki BOM dengan detail
+        $produks = Produk::whereHas('boms', function($query) {
+            $query->has('details');
+        })->get();
+        
         return view('transaksi.produksi.create', compact('produks'));
     }
 
@@ -149,28 +153,28 @@ class ProduksiController extends Controller
             $produk->save();
 
             // === Posting Jurnal Produksi ===
-            // 1) Konsumsi bahan: Dr WIP (122) ; Cr Persediaan Bahan Baku (121)
+            // 1) Konsumsi bahan: Dr WIP (1105) ; Cr Persediaan Bahan Baku (1104)
             if (($fifoCostMaterials ?? 0) > 0) {
                 $journal->post($tanggal, 'production_material', (int)$produksi->id, 'Konsumsi bahan ke WIP', [
-                    ['code' => '122', 'debit' => (float)$fifoCostMaterials, 'credit' => 0],
-                    ['code' => '121', 'debit' => 0, 'credit' => (float)$fifoCostMaterials],
+                    ['code' => '1105', 'debit' => (float)$fifoCostMaterials, 'credit' => 0],  // WIP
+                    ['code' => '1104', 'debit' => 0, 'credit' => (float)$fifoCostMaterials],  // Persediaan Bahan Baku
                 ]);
             }
             // 2) BTKL & BOP ke WIP
             $totalBTKLBOP = (float)$totalBTKL + (float)$totalBOP;
             if ($totalBTKLBOP > 0) {
                 $lines = [
-                    ['code' => '122', 'debit' => $totalBTKLBOP, 'credit' => 0],
+                    ['code' => '1105', 'debit' => $totalBTKLBOP, 'credit' => 0],  // WIP
                 ];
-                if ((float)$totalBTKL > 0) { $lines[] = ['code' => '211', 'debit' => 0, 'credit' => (float)$totalBTKL]; }
-                if ((float)$totalBOP  > 0) { $lines[] = ['code' => '212', 'debit' => 0, 'credit' => (float)$totalBOP]; }
+                if ((float)$totalBTKL > 0) { $lines[] = ['code' => '2103', 'debit' => 0, 'credit' => (float)$totalBTKL]; }  // Hutang Gaji
+                if ((float)$totalBOP  > 0) { $lines[] = ['code' => '2104', 'debit' => 0, 'credit' => (float)$totalBOP]; }  // Hutang BOP
                 $journal->post($tanggal, 'production_labor_overhead', (int)$produksi->id, 'BTKL/BOP ke WIP', $lines);
             }
-            // 3) Selesai produksi: Dr Persediaan Barang Jadi (123) ; Cr WIP (122)
+            // 3) Selesai produksi: Dr Persediaan Barang Jadi (1107) ; Cr WIP (1105)
             if ((float)$totalBiaya > 0) {
                 $journal->post($tanggal, 'production_finish', (int)$produksi->id, 'Selesai produksi', [
-                    ['code' => '123', 'debit' => (float)$totalBiaya, 'credit' => 0],
-                    ['code' => '122', 'debit' => 0, 'credit' => (float)$totalBiaya],
+                    ['code' => '1107', 'debit' => (float)$totalBiaya, 'credit' => 0],  // Persediaan Barang Jadi
+                    ['code' => '1105', 'debit' => 0, 'credit' => (float)$totalBiaya],  // WIP
                 ]);
             }
 
@@ -202,5 +206,21 @@ class ProduksiController extends Controller
         });
 
         return redirect()->route('transaksi.produksi.index')->with('success', 'Data produksi telah dihapus.');
+    }
+    
+    /**
+     * Tandai produksi sebagai selesai
+     */
+    public function complete($id)
+    {
+        $produksi = Produksi::findOrFail($id);
+        
+        if ($produksi->status === 'completed') {
+            return redirect()->route('transaksi.produksi.index')->with('info', 'Produksi sudah ditandai selesai sebelumnya.');
+        }
+        
+        $produksi->update(['status' => 'completed']);
+        
+        return redirect()->route('transaksi.produksi.index')->with('success', 'Produksi berhasil ditandai selesai!');
     }
 }

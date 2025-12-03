@@ -15,9 +15,9 @@ class PegawaiController extends Controller
         
         $query = Pegawai::query();
         
-        // Filter berdasarkan jenis pegawai
-        if (in_array(strtolower((string)$jenis), ['btkl','btktl'])) {
-            $query->where('kategori', strtoupper($jenis));
+        // Filter berdasarkan jenis pegawai (opsional)
+        if ($jenis && in_array(strtolower((string)$jenis), ['btkl','btktl'])) {
+            $query->where('jenis_pegawai', strtoupper($jenis));
         }
         
         // Pencarian
@@ -51,35 +51,38 @@ class PegawaiController extends Controller
             'email' => 'required|email|unique:pegawais,email',
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
-            'nama_bank' => 'nullable|string|max:100',
-            'no_rekening' => 'nullable|string|max:50',
             'jabatan_id' => 'required|exists:jabatans,id',
+            'jenis_kelamin' => 'required|in:L,P',
+            'bank' => 'required|string|max:100',
+            'nomor_rekening' => 'required|string|max:50',
+            'nama_rekening' => 'required|string|max:100',
         ]);
-
-        // Generate kode_pegawai otomatis: PGW0001, PGW0002, ...
-        $last = Pegawai::orderByDesc('id')->value('kode_pegawai');
-        $seq = 0;
-        if ($last && preg_match('/(\d+)$/', $last, $m)) {
-            $seq = (int)$m[1];
-        }
-        $kodeBaru = 'PGW' . str_pad($seq + 1, 4, '0', STR_PAD_LEFT);
 
         $jab = \App\Models\Jabatan::find($validated['jabatan_id']);
-        Pegawai::create([
-            'kode_pegawai' => $kodeBaru,
+        $jenisPegawai = strtolower($jab->kategori ?? 'btkl');
+        
+        // Prepare data for creation
+        $pegawaiData = [
             'nama' => $validated['nama'],
             'email' => $validated['email'],
-            'no_telepon' => $validated['no_telepon'],
+            'no_telp' => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
-            'nama_bank' => $request->nama_bank,
-            'no_rekening' => $request->no_rekening,
-            'jabatan' => $jab?->nama ?? '',
-            'kategori' => strtoupper($jab?->kategori ?? ''),
-            'asuransi' => $jab?->asuransi ?? 0,
-            'tarif' => $jab?->tarif ?? 0,
-            'tunjangan' => $jab?->tunjangan ?? 0,
-            'gaji' => $jab?->gaji ?? 0,
-        ]);
+            'jenis_kelamin' => $validated['jenis_kelamin'],
+            'jabatan' => $jab->nama,
+            'jenis_pegawai' => $jenisPegawai,
+            'gaji' => $jab->gaji,
+            'gaji_pokok' => $jab->gaji,
+            'tunjangan' => $jab->tunjangan ?? 0,
+            'bank' => $request->input('bank'),
+            'nomor_rekening' => $request->input('nomor_rekening'),
+            'nama_rekening' => $request->input('nama_rekening'),
+        ];
+        
+        // Log the data being saved for debugging
+        \Log::info('Creating new Pegawai:', $pegawaiData);
+        
+        // Create the pegawai record
+        Pegawai::create($pegawaiData);
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil ditambahkan.');
     }
@@ -94,32 +97,40 @@ class PegawaiController extends Controller
     // Update data pegawai
     public function update(Request $request, Pegawai $pegawai)
     {
-
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
             'email' => 'required|email|unique:pegawais,email,'.$pegawai->id,
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
-            'nama_bank' => 'nullable|string|max:100',
-            'no_rekening' => 'nullable|string|max:50',
             'jabatan_id' => 'required|exists:jabatans,id',
+            'jenis_kelamin' => 'required|in:L,P',
+            'bank' => 'nullable|string|max:100',
+            'nomor_rekening' => 'nullable|string|max:50',
+            'nama_rekening' => 'nullable|string|max:100',
         ]);
 
         $jab = \App\Models\Jabatan::find($validated['jabatan_id']);
-        $pegawai->update([
+        $jenisPegawai = strtolower($jab->kategori ?? 'btkl');
+        
+        // Prepare data for update
+        $updateData = [
             'nama' => $validated['nama'],
             'email' => $validated['email'],
-            'no_telepon' => $validated['no_telepon'],
+            'no_telp' => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
-            'nama_bank' => $request->nama_bank,
-            'no_rekening' => $request->no_rekening,
-            'jabatan' => $jab?->nama ?? '',
-            'kategori' => strtoupper($jab?->kategori ?? ''),
-            'asuransi' => $jab?->asuransi ?? 0,
-            'tarif' => $jab?->tarif ?? 0,
-            'tunjangan' => $jab?->tunjangan ?? 0,
-            'gaji' => $jab?->gaji ?? 0,
-        ]);
+            'jenis_kelamin' => $validated['jenis_kelamin'],
+            'jabatan' => $jab->nama,
+            'jenis_pegawai' => $jenisPegawai,
+            'gaji' => $jab->gaji,
+            'gaji_pokok' => $jab->gaji,
+            'tunjangan' => $jab->tunjangan ?? 0,
+        ];
+        
+        // Log the update data for debugging
+        \Log::info('Updating Pegawai:', $updateData);
+        
+        // Update the pegawai record
+        $pegawai->update($updateData);
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil diperbarui.');
     }

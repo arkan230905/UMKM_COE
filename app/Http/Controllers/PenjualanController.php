@@ -19,8 +19,29 @@ class PenjualanController extends Controller
 
     public function create()
     {
-        $produks = Produk::all();
-        return view('transaksi.penjualan.create', compact('produks'));
+        // Ambil produk dengan stok tersedia
+        $produks = Produk::all()->map(function($p) {
+            // Hitung stok dari stock_movements
+            $stokMasuk = \DB::table('stock_movements')
+                ->where('item_type', 'product')
+                ->where('item_id', $p->id)
+                ->where('direction', 'in')
+                ->sum('qty');
+            
+            $stokKeluar = \DB::table('stock_movements')
+                ->where('item_type', 'product')
+                ->where('item_id', $p->id)
+                ->where('direction', 'out')
+                ->sum('qty');
+            
+            $p->stok_tersedia = $stokMasuk - $stokKeluar;
+            return $p;
+        });
+        
+        // Ambil akun kas/bank untuk dropdown
+        $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
+        
+        return view('transaksi.penjualan.create', compact('produks', 'kasbank'));
     }
 
     public function store(Request $request, StockService $stock, JournalService $journal)
@@ -29,7 +50,8 @@ class PenjualanController extends Controller
         if (is_array($request->produk_id)) {
             $request->validate([
                 'tanggal' => 'required|date',
-                'payment_method' => 'required|in:cash,credit',
+                'payment_method' => 'required|in:cash,transfer,credit',
+                'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', \App\Helpers\AccountHelper::KAS_BANK_CODES),
                 'produk_id' => 'required|array|min:1',
                 'produk_id.*' => 'required|exists:produks,id',
                 'jumlah' => 'required|array',
@@ -52,6 +74,31 @@ class PenjualanController extends Controller
             $diskonPctArr = $request->diskon_persen ?? [];
 
             // Validasi stok cukup per item
+            foreach ($produkIds as $i => $pid) {
+                $p = Produk::findOrFail($pid);
+                $qty = (float)($jumlahArr[$i] ?? 0);
+                
+                // Hitung stok tersedia
+                $stokMasuk = \DB::table('stock_movements')
+                    ->where('item_type', 'product')
+                    ->where('item_id', $pid)
+                    ->where('direction', 'in')
+                    ->sum('qty');
+                
+                $stokKeluar = \DB::table('stock_movements')
+                    ->where('item_type', 'product')
+                    ->where('item_id', $pid)
+                    ->where('direction', 'out')
+                    ->sum('qty');
+                
+                $stokTersedia = $stokMasuk - $stokKeluar;
+                
+                if ($qty > $stokTersedia) {
+                    return back()->withErrors([
+                        'stok' => "Stok {$p->nama_produk} tidak cukup! Stok tersedia: " . number_format($stokTersedia, 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
+                    ])->withInput();
+                }
+            }
             $errors = [];
             foreach ($produkIds as $i => $pid) {
                 $prod = Produk::findOrFail($pid);
@@ -78,9 +125,7 @@ class PenjualanController extends Controller
                 $totalDiscHeader += $discNom;
             }
 
-            $firstProdId = $produkIds[0] ?? null;
             $penjualan = Penjualan::create([
-                'produk_id' => $firstProdId, // untuk kompatibilitas tampilan lama
                 'tanggal' => $tanggal,
                 'payment_method' => $request->payment_method,
                 'jumlah' => $totalQtyHeader,
@@ -143,17 +188,24 @@ class PenjualanController extends Controller
                 return redirect()->back()->withErrors($errorsBelowCost)->withInput();
             }
 
-            // Jurnal penjualan: Dr Kas/Bank (101) ; Cr Penjualan (401)
-            // HPP: Dr HPP (501) ; Cr Persediaan Barang Jadi (123)
-            $cashOrReceivable = $request->payment_method === 'credit' ? '102' : '101';
+            // Jurnal penjualan: Dr Kas/Bank/Piutang ; Cr Penjualan (4101)
+            // HPP: Dr HPP (5001) ; Cr Persediaan Barang Jadi (1107)
+            // Tentukan akun berdasarkan metode pembayaran
+            if ($request->payment_method === 'cash' || $request->payment_method === 'transfer') {
+                // Gunakan sumber dana yang dipilih user
+                $accountCode = $request->sumber_dana;
+            } else {
+                $accountCode = '1103';  // Piutang Usaha (kredit)
+            }
+            
             $journal->post($tanggal, 'sale', (int)$penjualan->id, 'Penjualan Produk', [
-                ['code' => $cashOrReceivable, 'debit' => (float)$penjualan->total, 'credit' => 0],
-                ['code' => '401', 'debit' => 0, 'credit' => (float)$penjualan->total],
+                ['code' => $accountCode, 'debit' => (float)$penjualan->total, 'credit' => 0],
+                ['code' => '4101', 'debit' => 0, 'credit' => (float)$penjualan->total],  // Penjualan Produk
             ]);
             if (($cogsSum ?? 0) > 0) {
                 $journal->post($tanggal, 'sale_cogs', (int)$penjualan->id, 'HPP Penjualan', [
-                    ['code' => '501', 'debit' => (float)$cogsSum, 'credit' => 0],
-                    ['code' => '123', 'debit' => 0, 'credit' => (float)$cogsSum],
+                    ['code' => '5001', 'debit' => (float)$cogsSum, 'credit' => 0],  // HPP
+                    ['code' => '1107', 'debit' => 0, 'credit' => (float)$cogsSum],  // Persediaan Barang Jadi
                 ]);
             }
 
@@ -165,7 +217,7 @@ class PenjualanController extends Controller
         $request->validate([
             'produk_id' => 'required|exists:produks,id',
             'tanggal' => 'required|date',
-            'payment_method' => 'required|in:cash,credit',
+            'payment_method' => 'required|in:cash,transfer,credit',
             'jumlah' => 'required|numeric|min:0.0001',
             'harga_satuan' => 'required|numeric|min:0',
             'diskon_nominal' => 'nullable|numeric|min:0',
@@ -222,15 +274,22 @@ class PenjualanController extends Controller
         $produk->save();
 
         // Jurnal penjualan & HPP
-        $cashOrReceivable = $request->payment_method === 'credit' ? '102' : '101';
+        // Tentukan akun berdasarkan metode pembayaran
+        if ($request->payment_method === 'cash' || $request->payment_method === 'transfer') {
+            // Gunakan sumber dana yang dipilih user
+            $accountCode = $request->sumber_dana ?? '1101';
+        } else {
+            $accountCode = '1103';  // Piutang Usaha (kredit)
+        }
+        
         $journal->post($tanggal, 'sale', (int)$penjualan->id, 'Penjualan Produk', [
-            ['code' => $cashOrReceivable, 'debit' => (float)$penjualan->total, 'credit' => 0],
-            ['code' => '401', 'debit' => 0, 'credit' => (float)$penjualan->total],
+            ['code' => $accountCode, 'debit' => (float)$penjualan->total, 'credit' => 0],
+            ['code' => '4101', 'debit' => 0, 'credit' => (float)$penjualan->total],  // Penjualan Produk
         ]);
         if (($cogs ?? 0) > 0) {
             $journal->post($tanggal, 'sale_cogs', (int)$penjualan->id, 'HPP Penjualan', [
-                ['code' => '501', 'debit' => (float)$cogs, 'credit' => 0],
-                ['code' => '123', 'debit' => 0, 'credit' => (float)$cogs],
+                ['code' => '5001', 'debit' => (float)$cogs, 'credit' => 0],  // HPP
+                ['code' => '1107', 'debit' => 0, 'credit' => (float)$cogs],  // Persediaan Barang Jadi
             ]);
         }
 
@@ -241,7 +300,26 @@ class PenjualanController extends Controller
     public function edit($id)
     {
         $penjualan = Penjualan::findOrFail($id);
-        $produks = Produk::all();
+        
+        // Ambil produk dengan stok tersedia
+        $produks = Produk::all()->map(function($p) {
+            // Hitung stok dari stock_movements
+            $stokMasuk = \DB::table('stock_movements')
+                ->where('item_type', 'product')
+                ->where('item_id', $p->id)
+                ->where('direction', 'in')
+                ->sum('qty');
+            
+            $stokKeluar = \DB::table('stock_movements')
+                ->where('item_type', 'product')
+                ->where('item_id', $p->id)
+                ->where('direction', 'out')
+                ->sum('qty');
+            
+            $p->stok_tersedia = $stokMasuk - $stokKeluar;
+            return $p;
+        });
+        
         return view('transaksi.penjualan.edit', compact('penjualan', 'produks'));
     }
 

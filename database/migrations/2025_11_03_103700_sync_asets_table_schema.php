@@ -11,33 +11,44 @@ return new class extends Migration
     {
         if (!Schema::hasTable('asets')) return;
 
-        Schema::table('asets', function (Blueprint $table) {
+        // Cek kolom yang sudah ada
+        $existing = collect(DB::select("PRAGMA table_info('asets')"))
+            ->pluck('name')
+            ->all();
+
+        DB::beginTransaction();
+        try {
             // Tambah kolom yang dibutuhkan controller tapi belum ada di DB
-            if (!Schema::hasColumn('asets', 'kategori_aset_id')) {
-                $table->unsignedBigInteger('kategori_aset_id')->nullable()->after('id');
+            if (!in_array('kategori_aset_id', $existing)) {
+                DB::statement("ALTER TABLE asets ADD COLUMN kategori_aset_id INTEGER NULL");
             }
-            if (!Schema::hasColumn('asets', 'biaya_perolehan')) {
-                $table->decimal('biaya_perolehan', 15, 2)->default(0)->after('kategori_aset_id');
+            if (!in_array('biaya_perolehan', $existing)) {
+                DB::statement("ALTER TABLE asets ADD COLUMN biaya_perolehan REAL DEFAULT 0");
             }
-            if (!Schema::hasColumn('asets', 'nilai_residu')) {
-                $table->decimal('nilai_residu', 15, 2)->default(0)->after('biaya_perolehan');
+            if (!in_array('nilai_residu', $existing)) {
+                DB::statement("ALTER TABLE asets ADD COLUMN nilai_residu REAL DEFAULT 0");
             }
-            if (!Schema::hasColumn('asets', 'umur_manfaat')) {
-                $table->integer('umur_manfaat')->default(5)->after('nilai_residu');
+            if (!in_array('umur_manfaat', $existing)) {
+                DB::statement("ALTER TABLE asets ADD COLUMN umur_manfaat INTEGER DEFAULT 5");
             }
-            if (!Schema::hasColumn('asets', 'penyusutan_per_tahun')) {
-                $table->decimal('penyusutan_per_tahun', 15, 2)->default(0)->after('umur_manfaat');
+            if (!in_array('penyusutan_per_tahun', $existing)) {
+                DB::statement("ALTER TABLE asets ADD COLUMN penyusutan_per_tahun REAL DEFAULT 0");
             }
-            if (!Schema::hasColumn('asets', 'penyusutan_per_bulan')) {
-                $table->decimal('penyusutan_per_bulan', 15, 2)->default(0)->after('penyusutan_per_tahun');
+            if (!in_array('penyusutan_per_bulan', $existing)) {
+                DB::statement("ALTER TABLE asets ADD COLUMN penyusutan_per_bulan REAL DEFAULT 0");
             }
-            if (!Schema::hasColumn('asets', 'tanggal_beli')) {
-                $table->date('tanggal_beli')->nullable()->after('penyusutan_per_bulan');
+            if (!in_array('tanggal_beli', $existing)) {
+                DB::statement("ALTER TABLE asets ADD COLUMN tanggal_beli TEXT NULL");
             }
-            if (!Schema::hasColumn('asets', 'tanggal_akuisisi')) {
-                $table->date('tanggal_akuisisi')->nullable()->after('tanggal_beli');
+            if (!in_array('tanggal_akuisisi', $existing)) {
+                DB::statement("ALTER TABLE asets ADD COLUMN tanggal_akuisisi TEXT NULL");
             }
-        });
+            
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     public function down(): void

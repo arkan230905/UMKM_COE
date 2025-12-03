@@ -1,0 +1,228 @@
+<mxfile host="app.diagrams.net" modified="2024-01-15T00:00:00.000Z" agent="Kiro" version="22.1.0" etag="fixed" type="device">
+  <diagram name="Class Diagram" id="class-final">
+    <mxGraphModel dx="2400" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        
+        <!-- Title -->
+        <mxCell id="title" value="Class Diagram - Sistem Pengelolaan Biaya Produksi dan Perhitungan HPP" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="327" y="20" width="1000" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- Database Box (Top Center) -->
+        <mxCell id="db" value="Database" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="752" y="80" width="150" height="80" as="geometry"/>
+        </mxCell>
+        
+        <!-- Main Container Box -->
+        <mxCell id="container" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;strokeWidth=2;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="200" width="1574" height="880" as="geometry"/>
+        </mxCell>
+        
+        <!-- Component Label -->
+        <mxCell id="comp-label" value="Component" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="752" y="220" width="150" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="comp-methods" value="+ auth(): void&amp;#xa;+ DB(): void" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="757" y="260" width="140" height="40" as="geometry"/>
+        </mxCell>
+        
+        <!-- LEFT COLUMN: ProdukComponent -->
+        <mxCell id="produk-comp" value="ProdukComponent" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="80" y="340" width="200" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="produk-attr" value="+ id: int&amp;#xa;+ kode_produk: varchar&amp;#xa;+ nama_produk: varchar&amp;#xa;+ deskripsi: text&amp;#xa;+ kategori_id: int&amp;#xa;+ satuan_id: int&amp;#xa;+ harga_jual: decimal&amp;#xa;+ harga_bom: decimal&amp;#xa;+ harga_beli: decimal&amp;#xa;+ stok: decimal&amp;#xa;+ stok_minimum: decimal&amp;#xa;+ btkl_default: decimal&amp;#xa;+ bop_default: decimal&amp;#xa;+ margin_percent: decimal&amp;#xa;+ status_penjualan: varchar&amp;#xa;+ tipe_konversi: ENUM" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;fontSize=9;" parent="produk-comp" vertex="1">
+          <mxGeometry y="26" width="200" height="244" as="geometry"/>
+        </mxCell>
+        <mxCell id="produk-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;" parent="produk-comp" vertex="1">
+          <mxGeometry y="270" width="200" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="produk-methods" value="+ index()&amp;#xa;+ show(Request $request)&amp;#xa;+ create()&amp;#xa;+ update() (Request $request)&amp;#xa;+ edit() ($id)&amp;#xa;+ store() (Request $request)&amp;#xa;+ destroy() ($id)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;fontSize=9;" parent="produk-comp" vertex="1">
+          <mxGeometry y="278" width="200" height="102" as="geometry"/>
+        </mxCell>
+        
+        <!-- CENTER LEFT: PenjualanComponent -->
+        <mxCell id="penjualan-comp" value="PenjualanComponent" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="320" y="340" width="200" height="320" as="geometry"/>
+        </mxCell>
+        <mxCell id="penjualan-attr" value="+ id: int&amp;#xa;+ no_penjualan: varchar&amp;#xa;+ tanggal: date&amp;#xa;+ customer: varchar&amp;#xa;+ total: decimal&amp;#xa;+ diskon: decimal&amp;#xa;+ ppn: decimal&amp;#xa;+ grand_total: decimal&amp;#xa;+ status: varchar&amp;#xa;+ payment_method: ENUM&amp;#xa;+ catatan: text" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;fontSize=9;" parent="penjualan-comp" vertex="1">
+          <mxGeometry y="26" width="200" height="174" as="geometry"/>
+        </mxCell>
+        <mxCell id="penjualan-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;" parent="penjualan-comp" vertex="1">
+          <mxGeometry y="200" width="200" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="penjualan-methods" value="+ index()&amp;#xa;+ create()&amp;#xa;+ store() (Request $request)&amp;#xa;+ show() ($id)&amp;#xa;+ destroy() ($id)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;fontSize=9;" parent="penjualan-comp" vertex="1">
+          <mxGeometry y="208" width="200" height="112" as="geometry"/>
+        </mxCell>
+        
+        <!-- CENTER: KonsinyasiComponent -->
+        <mxCell id="konsinyasi-comp" value="KonsinyasiComponent" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="560" y="340" width="220" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="konsinyasi-attr" value="+ id_konsinyasi: int&amp;#xa;+ no_konsinyasi: varchar&amp;#xa;+ no_faktur: varchar&amp;#xa;+ tgl_konsinyasi: date&amp;#xa;+ tgl_jatuh_tempo: date&amp;#xa;+ cashback: varchar&amp;#xa;+ biaya_lainnya: varchar&amp;#xa;+ keterangan: text&amp;#xa;+ id_coa: int&amp;#xa;+ detail: array&amp;#xa;+ id_produk: int&amp;#xa;+ id_unit_kemasan: int&amp;#xa;+ kuantitas: int&amp;#xa;+ harga: numeric&amp;#xa;+ ppn: numeric&amp;#xa;+ barcode: int&amp;#xa;+ tgl_expired: date&amp;#xa;+ no_batch: int" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;fontSize=9;" parent="konsinyasi-comp" vertex="1">
+          <mxGeometry y="26" width="220" height="264" as="geometry"/>
+        </mxCell>
+        <mxCell id="konsinyasi-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;" parent="konsinyasi-comp" vertex="1">
+          <mxGeometry y="290" width="220" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="konsinyasi-methods" value="+ index()&amp;#xa;+ create()&amp;#xa;+ store() (Request $request)&amp;#xa;+ show() ($id)&amp;#xa;+ destroy() ($id)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;fontSize=9;" parent="konsinyasi-comp" vertex="1">
+          <mxGeometry y="298" width="220" height="82" as="geometry"/>
+        </mxCell>
+        
+        <!-- CENTER RIGHT: PembayaranKonsinyasiComponent -->
+        <mxCell id="pembayaran-comp" value="PembayaranKonsinyasiComponent" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="820" y="340" width="240" height="280" as="geometry"/>
+        </mxCell>
+        <mxCell id="pembayaran-attr" value="+ id_pembayaran_konsinyasi: int&amp;#xa;+ no_pembayaran: varchar&amp;#xa;+ no_konsinyasi: int&amp;#xa;+ tgl_pembayaran: date&amp;#xa;+ id_supplier: int&amp;#xa;+ nominal: numeric&amp;#xa;+ keterangan: text&amp;#xa;+ id_coa: int&amp;#xa;+ id_supplier: int" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;fontSize=9;" parent="pembayaran-comp" vertex="1">
+          <mxGeometry y="26" width="240" height="144" as="geometry"/>
+        </mxCell>
+        <mxCell id="pembayaran-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;" parent="pembayaran-comp" vertex="1">
+          <mxGeometry y="170" width="240" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="pembayaran-methods" value="+ index()&amp;#xa;+ create()&amp;#xa;+ store() (Request $request)&amp;#xa;+ show() ($id)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;fontSize=9;" parent="pembayaran-comp" vertex="1">
+          <mxGeometry y="178" width="240" height="102" as="geometry"/>
+        </mxCell>
+        
+        <!-- RIGHT: PengembalianKonsinyasiComponent -->
+        <mxCell id="pengembalian-comp" value="PengembalianKonsinyasiComponent" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="1100" y="340" width="240" height="280" as="geometry"/>
+        </mxCell>
+        <mxCell id="pengembalian-attr" value="+ id_pengembalian_konsinyasi: int&amp;#xa;+ no_pengembalian: varchar&amp;#xa;+ no_konsinyasi: int&amp;#xa;+ keterangan: text&amp;#xa;+ id_konsinyasi: int&amp;#xa;+ id_produk: int&amp;#xa;+ id_unit_kemasan: int&amp;#xa;+ kuantitas: int&amp;#xa;+ id_konsinyasi: int" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;fontSize=9;" parent="pengembalian-comp" vertex="1">
+          <mxGeometry y="26" width="240" height="144" as="geometry"/>
+        </mxCell>
+        <mxCell id="pengembalian-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;" parent="pengembalian-comp" vertex="1">
+          <mxGeometry y="170" width="240" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="pengembalian-methods" value="+ index()&amp;#xa;+ create()&amp;#xa;+ store() ($id)&amp;#xa;+ show() ($id)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;fontSize=9;" parent="pengembalian-comp" vertex="1">
+          <mxGeometry y="178" width="240" height="102" as="geometry"/>
+        </mxCell>
+        
+        <!-- BOTTOM: LaporanKartuStokComponent -->
+        <mxCell id="laporan-comp" value="LaporanKartuStokComponent" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=26;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="820" y="660" width="240" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="laporan-attr" value="(No specific attributes)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;fontSize=9;" parent="laporan-comp" vertex="1">
+          <mxGeometry y="26" width="240" height="44" as="geometry"/>
+        </mxCell>
+        <mxCell id="laporan-line" value="" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;" parent="laporan-comp" vertex="1">
+          <mxGeometry y="70" width="240" height="8" as="geometry"/>
+        </mxCell>
+        <mxCell id="laporan-methods" value="+ index()&amp;#xa;+ show(Request $request)" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;fontSize=9;" parent="laporan-comp" vertex="1">
+          <mxGeometry y="78" width="240" height="62" as="geometry"/>
+        </mxCell>
+        
+        <!-- Routes Box -->
+        <mxCell id="routes" value="Routes" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="560" y="760" width="120" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="routes-method" value="+ web()" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="560" y="800" width="120" height="30" as="geometry"/>
+        </mxCell>
+        
+        <!-- RELATIONSHIPS / CONNECTIONS -->
+        
+        <!-- Database to Component -->
+        <mxCell id="rel1" value="" style="endArrow=open;endFill=0;endSize=12;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="db" target="comp-label" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="400" as="sourcePoint"/>
+            <mxPoint x="850" y="350" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Component to ProdukComponent -->
+        <mxCell id="rel2" value="" style="endArrow=open;endFill=0;endSize=12;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="comp-label" target="produk-comp" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="400" as="sourcePoint"/>
+            <mxPoint x="850" y="350" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Component to PenjualanComponent -->
+        <mxCell id="rel3" value="" style="endArrow=open;endFill=0;endSize=12;html=1;rounded=0;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="comp-label" target="penjualan-comp" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="400" as="sourcePoint"/>
+            <mxPoint x="850" y="350" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Component to KonsinyasiComponent -->
+        <mxCell id="rel4" value="" style="endArrow=open;endFill=0;endSize=12;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="comp-label" target="konsinyasi-comp" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="400" as="sourcePoint"/>
+            <mxPoint x="850" y="350" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Component to PembayaranKonsinyasiComponent -->
+        <mxCell id="rel5" value="" style="endArrow=open;endFill=0;endSize=12;html=1;rounded=0;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="comp-label" target="pembayaran-comp" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="400" as="sourcePoint"/>
+            <mxPoint x="850" y="350" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Component to PengembalianKonsinyasiComponent -->
+        <mxCell id="rel6" value="" style="endArrow=open;endFill=0;endSize=12;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="comp-label" target="pengembalian-comp" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="400" as="sourcePoint"/>
+            <mxPoint x="850" y="350" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Component to LaporanKartuStokComponent -->
+        <mxCell id="rel7" value="" style="endArrow=open;endFill=0;endSize=12;html=1;rounded=0;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="comp-methods" target="laporan-comp" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="400" as="sourcePoint"/>
+            <mxPoint x="850" y="350" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Routes to Component -->
+        <mxCell id="rel8" value="" style="endArrow=open;endFill=0;endSize=12;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.25;entryY=1;entryDx=0;entryDy=0;" parent="1" source="routes" target="comp-methods" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="400" as="sourcePoint"/>
+            <mxPoint x="850" y="350" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- LEGEND BOX -->
+        <mxCell id="legend-box" value="LEGEND" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=top;fontSize=14;fontStyle=1;arcSize=5;" parent="1" vertex="1">
+          <mxGeometry x="80" y="760" width="420" height="280" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="legend-content" value="Komponen Sistem:&amp;#xa;&amp;#xa;🟡 ProdukComponent - Manajemen produk dan stok&amp;#xa;🔵 PenjualanComponent - Proses penjualan&amp;#xa;🟢 KonsinyasiComponent - Manajemen konsinyasi&amp;#xa;🟣 PembayaranKonsinyasiComponent - Pembayaran konsinyasi&amp;#xa;🔴 PengembalianKonsinyasiComponent - Retur konsinyasi&amp;#xa;🟠 LaporanKartuStokComponent - Laporan stok&amp;#xa;&amp;#xa;Relasi:&amp;#xa;→ = Association/Dependency&amp;#xa;&amp;#xa;Framework: Laravel&amp;#xa;Pattern: MVC (Model-View-Controller)&amp;#xa;Database: MySQL&amp;#xa;Routes: Web Routes (web.php)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=10;spacingRight=4;overflow=hidden;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="90" y="790" width="400" height="240" as="geometry"/>
+        </mxCell>
+        
+        <!-- System Info Box -->
+        <mxCell id="info-box" value="SISTEM INFO" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=top;fontSize=14;fontStyle=1;arcSize=5;" parent="1" vertex="1">
+          <mxGeometry x="1100" y="660" width="240" height="140" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="info-content" value="Aplikasi Web untuk&amp;#xa;Pengelolaan Biaya Produksi&amp;#xa;dan Perhitungan HPP&amp;#xa;&amp;#xa;Total Components: 6&amp;#xa;Total Methods: 30+&amp;#xa;Architecture: Component-Based" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=10;spacingRight=4;overflow=hidden;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1110" y="690" width="220" height="100" as="geometry"/>
+        </mxCell>
+        
+        <!-- HPP Formula Box -->
+        <mxCell id="hpp-box" value="FORMULA HPP" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=top;fontSize=14;fontStyle=1;arcSize=5;" parent="1" vertex="1">
+          <mxGeometry x="1380" y="340" width="234" height="200" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="hpp-content" value="HPP = Bahan Baku + BTKL + BOP&amp;#xa;&amp;#xa;Komponen:&amp;#xa;• Bahan Baku: dari BOM&amp;#xa;• BTKL: Biaya Tenaga Kerja&amp;#xa;• BOP: Biaya Overhead Pabrik&amp;#xa;&amp;#xa;Metode: Process Costing&amp;#xa;&amp;#xa;Perhitungan:&amp;#xa;1. Hitung total bahan baku&amp;#xa;2. Tambah BTKL&amp;#xa;3. Tambah BOP&amp;#xa;4. Total = HPP per unit" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=10;spacingRight=4;overflow=hidden;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1390" y="370" width="214" height="160" as="geometry"/>
+        </mxCell>
+        
+        <!-- Notes Box -->
+        <mxCell id="notes-box" value="CATATAN" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;align=left;verticalAlign=top;fontSize=14;fontStyle=1;arcSize=5;" parent="1" vertex="1">
+          <mxGeometry x="1380" y="580" width="234" height="220" as="geometry"/>
+        </mxCell>
+        
+        <mxCell id="notes-content" value="Fitur Utama:&amp;#xa;&amp;#xa;✓ Manajemen Produk&amp;#xa;✓ Penjualan &amp; Konsinyasi&amp;#xa;✓ Pembayaran Konsinyasi&amp;#xa;✓ Pengembalian/Retur&amp;#xa;✓ Laporan Kartu Stok&amp;#xa;✓ Perhitungan HPP Otomatis&amp;#xa;&amp;#xa;Teknologi:&amp;#xa;• Backend: Laravel&amp;#xa;• Frontend: Blade Template&amp;#xa;• Database: MySQL&amp;#xa;• Authentication: Laravel Auth&amp;#xa;• Routing: Web Routes" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=10;spacingRight=4;overflow=hidden;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1390" y="610" width="214" height="180" as="geometry"/>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
