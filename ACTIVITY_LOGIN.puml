@@ -1,0 +1,115 @@
+@startuml Activity_Diagram_Login_UMKM
+skinparam backgroundColor #FEFEFE
+skinparam activity {
+  BackgroundColor #FFF8DC
+  BorderColor #8B4513
+  FontSize 11
+  FontName Arial
+}
+skinparam decision {
+  BackgroundColor #FFE4B5
+  BorderColor #8B4513
+}
+skinparam note {
+  BackgroundColor #FFFACD
+  BorderColor #8B4513
+}
+
+title **Activity Diagram - Proses Login**\n**Sistem Informasi Akuntansi dan Manajemen Produksi UMKM**
+
+start
+
+:Pengguna membuka website;
+note right
+  **URL:**
+  - Development: localhost:8000
+  - Production: domain.com
+end note
+
+:Sistem menampilkan halaman login;
+note right
+  **Route:** GET /login
+  **View:** auth/login.blade.php
+end note
+
+:Pengguna mengisi form login;
+note right
+  **Input:**
+  • Email/Username
+  • Password
+  • Remember Me (opsional)
+end note
+
+:Pengguna klik tombol "Login";
+
+partition "Validasi Sistem" {
+  :Sistem validasi input;
+  note right
+    **Validasi:**
+    • Email format valid
+    • Password tidak kosong
+    • CSRF token valid
+  end note
+  
+  if (Input valid?) then (tidak)
+    :Tampilkan pesan error validasi;
+    note right
+      **Error:**
+      • "Email harus diisi"
+      • "Format email salah"
+      • "Password harus diisi"
+    end note
+    
+    :Kembali ke form login;
+    stop
+  else (ya)
+    :Sistem cek kredensial di database;
+    note right
+      **Database:** users table
+      • Cari user berdasarkan email
+      • Verify password (bcrypt)
+    end note
+    
+    if (Kredensial benar?) then (tidak)
+      :Tampilkan pesan error login;
+      note right
+        **Error:**
+        "Email atau password salah"
+      end note
+      
+      :Kembali ke form login;
+      stop
+    else (ya)
+      :Sistem buat session login;
+      note right
+        **Session:**
+        • Set user_id
+        • Set auth token
+        • Regenerate session ID
+        • Set remember token (jika dipilih)
+      end note
+      
+      :Sistem redirect ke dashboard;
+      note right
+        **Route:** GET /dashboard
+        **Middleware:** auth
+      end note
+      
+      :Pengguna masuk ke dashboard;
+      note right
+        **Dashboard menampilkan:**
+        • Menu navigasi lengkap
+        • Statistik ringkasan
+        • Akses ke semua modul:
+          - Master Data (COA, Produk, BOM, dll)
+          - Transaksi (Pembelian, Penjualan, dll)
+          - Laporan (Neraca, Laba Rugi, dll)
+          - Akuntansi (Jurnal, Buku Besar, dll)
+      end note
+      
+      stop
+    endif
+  endif
+}
+
+@enduml

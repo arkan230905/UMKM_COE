@@ -45,5 +45,8 @@ class AppServiceProvider extends ServiceProvider
                 'totalCOA'       => Coa::count(),
             ]);
         });
+
+        // View composer untuk layout pelanggan (cart count)
+        View::composer('layouts.pelanggan', \App\Http\View\Composers\CartComposer::class);
     }
 }

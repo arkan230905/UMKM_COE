@@ -29,24 +29,20 @@ class Aset extends Model
         'tanggal_akuisisi',
         'status',
         'metode_penyusutan',
-        'nilai_sisa',
         'akumulasi_penyusutan',
         'keterangan'
     ];
 
     protected $casts = [
-        'tanggal_perolehan' => 'date',
         'tanggal_beli' => 'date',
         'tanggal_akuisisi' => 'date',
         'harga_perolehan' => 'decimal:2',
         'biaya_perolehan' => 'decimal:2',
         'nilai_residu' => 'decimal:2',
-        'nilai_sisa' => 'decimal:2',
         'nilai_buku' => 'decimal:2',
         'akumulasi_penyusutan' => 'decimal:2',
-        'persentase_penyusutan' => 'decimal:2',
-        'umur_manfaat' => 'integer',
-        'umur_ekonomis_tahun' => 'integer',
+        'penyusutan_per_tahun' => 'decimal:2',
+        'penyusutan_per_bulan' => 'decimal:2',
         'umur_manfaat' => 'integer',
     ];
 
@@ -118,8 +114,8 @@ class Aset extends Model
                 $model->kode_aset = self::generateKodeAset();
             }
             $model->metode_penyusutan = $model->metode_penyusutan ?? 'garis_lurus';
-            $model->nilai_sisa = $model->nilai_sisa ?? 0;
-            $model->nilai_buku = $model->harga_perolehan ?? 0;
+            $model->nilai_residu = $model->nilai_residu ?? 0;
+            $model->nilai_buku = ($model->harga_perolehan ?? 0) + ($model->biaya_perolehan ?? 0);
             $model->akumulasi_penyusutan = $model->akumulasi_penyusutan ?? 0;
             $model->status = $model->status ?? 'aktif';
             if (Schema::hasColumn('asets', 'created_by')) {
@@ -148,7 +144,7 @@ class Aset extends Model
     public function hitungBebanPenyusutanBulanan(): float
     {
         $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
-        $nilaiTerdepresiasi = $total - (float)($this->nilai_sisa ?? 0);
+        $nilaiTerdepresiasi = $total - (float)($this->nilai_residu ?? 0);
         $umurTahun = (int)($this->umur_manfaat ?? $this->umur_ekonomis_tahun ?? 0);
         $bulanEkonomis = max($umurTahun, 0) * 12;
 
@@ -161,7 +157,7 @@ class Aset extends Model
     public function hitungBebanPenyusutanTahunan(): float
     {
         $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
-        $nilaiTerdepresiasi = $total - (float)($this->nilai_sisa ?? 0);
+        $nilaiTerdepresiasi = $total - (float)($this->nilai_residu ?? 0);
         $umurTahun = (int)($this->umur_manfaat ?? $this->umur_ekonomis_tahun ?? 0);
         return $umurTahun > 0 ? ($nilaiTerdepresiasi / $umurTahun) : 0.0;
     }
@@ -192,7 +188,7 @@ class Aset extends Model
         $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
         $umur = (int)($this->umur_manfaat ?? $this->umur_ekonomis_tahun ?? 0);
         if ($umur > 0) {
-            return ($total - (float)($this->nilai_sisa ?? $this->nilai_residu ?? 0)) / $umur;
+            return ($total - (float)($this->nilai_residu ?? 0)) / $umur;
         }
         return 0.0;
     }
@@ -204,7 +200,7 @@ class Aset extends Model
     {
         $startDate = Carbon::parse($this->tanggal_akuisisi ?? $this->tanggal_beli ?? now());
         $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
-        $residu = (float)($this->nilai_sisa ?? $this->nilai_residu ?? 0);
+        $residu = (float)($this->nilai_residu ?? 0);
         $umur = (int)($this->umur_manfaat ?? $this->umur_ekonomis_tahun ?? 0);
         if ($umur <= 0 || $total <= 0) return [];
 

@@ -41,17 +41,20 @@
                     </h5>
                 </div>
                 <div class="col-md-6">
-                    <form action="{{ route('master-data.presensi.index') }}" method="GET" class="d-flex">
-                        <input type="text" name="search" class="form-control bg-dark text-white border-dark" 
-                               placeholder="Cari nama pegawai atau NIP..." value="{{ request('search') }}">
-                        <button type="submit" class="btn btn-primary ms-2">
-                            <i class="bi bi-search"></i>
-                        </button>
-                        @if(request('search'))
-                            <a href="{{ route('master-data.presensi.index') }}" class="btn btn-outline-light ms-2">
-                                <i class="bi bi-arrow-counterclockwise"></i>
-                            </a>
-                        @endif
+                    <form action="{{ route('master-data.presensi.index') }}" method="GET" class="d-flex w-100">
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control bg-white text-dark border-2 border-primary" 
+                                   placeholder="Cari nama pegawai atau NIP..." value="{{ request('search') }}"
+                                   style="border-top-left-radius: 0.375rem; border-bottom-left-radius: 0.375rem;">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i>
+                            </button>
+                            @if(request('search'))
+                                <a href="{{ route('master-data.presensi.index') }}" class="btn btn-outline-light border-start-0 border-end-0">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </a>
+                            @endif
+                        </div>
                     </form>
                 </div>
             </div>
@@ -68,6 +71,7 @@
                             <th>JAM KELUAR</th>
                             <th>STATUS</th>
                             <th>JUMLAH JAM</th>
+                            <th>KETERANGAN</th>
                             <th class="text-center">AKSI</th>
                         </tr>
                     </thead>
@@ -119,6 +123,9 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
+                            <td class="text-truncate" style="max-width: 200px;" title="{{ $presensi->keterangan ?? '-' }}">
+                                {{ $presensi->keterangan ?? '-' }}
+                            </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
                                     <a href="{{ route('master-data.presensi.edit', $presensi->id) }}" 
@@ -140,7 +147,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">
+                            <td colspan="9" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                 <h5 class="mb-0">Belum ada data presensi</h5>
                                 <p class="mb-0">Klik tombol "Tambah Presensi" untuk menambahkan data baru</p>
@@ -152,13 +159,14 @@
             </div>
             
             @if($presensis->hasPages())
-                <div class="d-flex justify-content-between align-items-center mt-4 px-2">
-                    <div class="text-muted">
-                        Menampilkan {{ $presensis->firstItem() }} sampai {{ $presensis->lastItem() }} dari {{ $presensis->total() }} data
+                <div class="d-flex justify-content-between align-items-center mt-4 px-2 flex-wrap gap-3">
+                    <div class="text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Menampilkan <strong>{{ $presensis->firstItem() }}</strong> sampai <strong>{{ $presensis->lastItem() }}</strong> dari <strong>{{ $presensis->total() }}</strong> data
                     </div>
-                    <div>
-                        {{ $presensis->withQueryString()->links() }}
-                    </div>
+                    <nav aria-label="Pagination">
+                        {{ $presensis->withQueryString()->links('pagination::bootstrap-5') }}
+                    </nav>
                 </div>
             @endif
         </div>
@@ -179,21 +187,54 @@
         color: var(--bs-table-color-state, var(--bs-table-color-type, var(--bs-table-color)));
     }
     
+    /* Pagination Styling */
+    .pagination {
+        margin-bottom: 0;
+        gap: 0.25rem;
+    }
+    
     .pagination .page-link {
         background-color: #2d2d3a;
         border-color: #3a3a4a;
         color: #ffffff;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        border-radius: 0.375rem;
+        transition: all 0.2s ease;
     }
     
     .pagination .page-item.active .page-link {
         background-color: #6c63ff;
         border-color: #6c63ff;
+        color: #ffffff;
+        font-weight: 600;
     }
     
     .pagination .page-link:hover {
         background-color: #5a52d3;
         border-color: #5a52d3;
         color: #ffffff;
+        transform: translateY(-2px);
+    }
+    
+    .pagination .page-item.disabled .page-link {
+        background-color: #1e1e2f;
+        border-color: #2a2a3a;
+        color: #6c757d;
+    }
+    
+    /* Ukuran panah pagination lebih kecil */
+    .pagination .page-link svg {
+        width: 0.875rem;
+        height: 0.875rem;
+    }
+    
+    /* Responsive pagination */
+    @media (max-width: 576px) {
+        .pagination .page-link {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
     }
     
     .badge {

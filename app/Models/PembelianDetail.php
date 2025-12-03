@@ -9,7 +9,8 @@ class PembelianDetail extends Model
 {
     use HasFactory;
 
-    // Kolom yang boleh diisi
+    protected $table = 'pembelian_details';
+
     protected $fillable = [
         'pembelian_id',
         'bahan_baku_id',
@@ -17,23 +18,37 @@ class PembelianDetail extends Model
         'satuan',
         'harga_satuan',
         'subtotal',
+        'faktor_konversi',
+    ];
+
+    protected $casts = [
+        'jumlah' => 'decimal:2',
+        'harga_satuan' => 'decimal:2',
+        'subtotal' => 'decimal:2',
+        'faktor_konversi' => 'decimal:4',
     ];
 
     /**
-     * Relasi ke tabel pembelian
-     * Detail pembelian ini dimiliki oleh satu pembelian
+     * Relasi ke Pembelian
      */
     public function pembelian()
     {
-        return $this->belongsTo(Pembelian::class);
+        return $this->belongsTo(Pembelian::class, 'pembelian_id');
     }
 
     /**
-     * Relasi ke tabel bahan baku
-     * Setiap detail pembelian merujuk ke satu bahan baku
+     * Relasi ke BahanBaku
      */
     public function bahanBaku()
     {
-        return $this->belongsTo(BahanBaku::class);
+        return $this->belongsTo(BahanBaku::class, 'bahan_baku_id');
+    }
+
+    /**
+     * Alias untuk bahanBaku (untuk backward compatibility)
+     */
+    public function bahan_baku()
+    {
+        return $this->bahanBaku();
     }
 }

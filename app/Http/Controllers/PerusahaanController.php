@@ -19,7 +19,8 @@ class PerusahaanController extends Controller
                 'nama' => 'PT Pangalengan Sejahtera',
                 'alamat' => 'Jl. Raya Pangalengan No.123, Bandung',
                 'email' => 'info@ptps.co.id',
-                'telepon' => '022-1234567'
+                'telepon' => '022-1234567',
+                'kode' => null,
             ];
         }
 

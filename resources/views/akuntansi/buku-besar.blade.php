@@ -4,29 +4,35 @@
 <div class="container">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>Buku Besar</h3>
-    <form method="get" class="row g-2 align-items-end">
-      <div class="col-auto">
-        <label class="form-label">Akun</label>
-        <select name="account_id" class="form-select" onchange="this.form.submit()">
-          <option value="">-- Pilih Akun --</option>
-          @foreach($accounts as $a)
-            <option value="{{ $a->id }}" {{ ($accountId==$a->id)?'selected':'' }}>{{ $a->code }} - {{ $a->name }}</option>
-          @endforeach
-        </select>
-      </div>
-      <div class="col-auto">
-        <label class="form-label">Dari</label>
-        <input type="date" name="from" value="{{ $from }}" class="form-control">
-      </div>
-      <div class="col-auto">
-        <label class="form-label">Sampai</label>
-        <input type="date" name="to" value="{{ $to }}" class="form-control">
-      </div>
-      <div class="col-auto">
-        <button class="btn btn-primary">Terapkan</button>
-      </div>
-    </form>
+    <div class="d-flex gap-2">
+      <a href="{{ route('akuntansi.buku-besar.export-excel', ['from' => $from, 'to' => $to]) }}" class="btn btn-success">
+        <i class="bi bi-file-earmark-excel"></i> Export Excel (Semua Akun)
+      </a>
+    </div>
   </div>
+
+  <form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-auto">
+      <label class="form-label">Akun</label>
+      <select name="account_id" class="form-select" onchange="this.form.submit()">
+        <option value="">-- Pilih Akun --</option>
+        @foreach($accounts as $a)
+          <option value="{{ $a->id }}" {{ ($accountId==$a->id)?'selected':'' }}>{{ $a->code }} - {{ $a->name }}</option>
+        @endforeach
+      </select>
+    </div>
+    <div class="col-auto">
+      <label class="form-label">Dari</label>
+      <input type="date" name="from" value="{{ $from }}" class="form-control">
+    </div>
+    <div class="col-auto">
+      <label class="form-label">Sampai</label>
+      <input type="date" name="to" value="{{ $to }}" class="form-control">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-primary">Terapkan</button>
+    </div>
+  </form>
 
   @if($accountId)
   <div class="mb-2"><strong>Saldo Awal:</strong> Rp {{ number_format($saldoAwal,0,',','.') }}</div>

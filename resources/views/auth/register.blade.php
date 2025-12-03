@@ -64,6 +64,16 @@
             transition: all 0.3s;
         }
 
+        select.form-input {
+            background-color: #ffffff;
+            color: #000000;
+        }
+
+        select.form-input option {
+            color: #000000;
+            background-color: #ffffff;
+        }
+
         .form-input:focus {
             outline: none;
             border-color: #3b82f6;
@@ -193,6 +203,29 @@
             <form method="POST" action="{{ route('register') }}">
                 @csrf
 
+                <div class="form-group mb-4">
+                    <label class="form-label" for="role">Daftar Sebagai <span class="text-red-400">*</span></label>
+                    <select
+                        id="role"
+                        name="role"
+                        class="form-input @error('role') border-red-500 @enderror"
+                        required
+                    >
+                        <option value="" disabled {{ old('role') ? '' : 'selected' }}>Pilih peran</option>
+                        <option value="pelanggan" {{ old('role') == 'pelanggan' ? 'selected' : '' }}>Pelanggan</option>
+                        <option value="pegawai_pembelian" {{ old('role') == 'pegawai_pembelian' ? 'selected' : '' }}>Pegawai Pembelian Bahan Baku</option>
+                        <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+                        <option value="owner" {{ old('role') == 'owner' ? 'selected' : '' }}>Owner</option>
+                    </select>
+                    @error('role')
+                        <p class="error-message">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div id="after-role-section" style="display: none;">
+
+                <div id="common-fields-section">
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="form-group">
                         <label class="form-label" for="name">Nama Lengkap <span class="text-red-400">*</span></label>
@@ -244,6 +277,8 @@
                     @enderror
                 </div>
 
+                </div> <!-- end common-fields-section -->
+
                 <div class="form-group">
                     <label class="form-label" for="phone">Nomor Telepon</label>
                     <div class="relative">
@@ -253,11 +288,58 @@
                             name="phone"
                             value="{{ old('phone') }}"
                             class="form-input @error('phone') border-red-500 @enderror"
+                            required
                             placeholder="0812-3456-7890"
                         >
                         <i class="fas fa-phone absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                     </div>
                     @error('phone')
+                        <p class="error-message">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div id="company-owner-section" class="space-y-3" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label" for="company_nama">Nama Perusahaan <span class="text-red-400">*</span></label>
+                        <input id="company_nama" type="text" name="company_nama" value="{{ old('company_nama') }}" class="form-input @error('company_nama') border-red-500 @enderror" placeholder="Nama perusahaan">
+                        @error('company_nama')
+                            <p class="error-message">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="company_alamat">Alamat Perusahaan <span class="text-red-400">*</span></label>
+                        <textarea id="company_alamat" name="company_alamat" rows="2" class="form-input @error('company_alamat') border-red-500 @enderror" placeholder="Alamat perusahaan">{{ old('company_alamat') }}</textarea>
+                        @error('company_alamat')
+                            <p class="error-message">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="company_email">Email Perusahaan <span class="text-red-400">*</span></label>
+                        <input id="company_email" type="email" name="company_email" value="{{ old('company_email') }}" class="form-input @error('company_email') border-red-500 @enderror" placeholder="email@perusahaan.com">
+                        @error('company_email')
+                            <p class="error-message">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="company_telepon">Telepon Perusahaan <span class="text-red-400">*</span></label>
+                        <input id="company_telepon" type="text" name="company_telepon" value="{{ old('company_telepon') }}" class="form-input @error('company_telepon') border-red-500 @enderror" placeholder="Nomor telepon perusahaan">
+                        @error('company_telepon')
+                            <p class="error-message">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+
+                <div id="kode-perusahaan-section" class="form-group" style="display: none;">
+                    <label class="form-label" for="kode_perusahaan">Kode Perusahaan <span class="text-red-400">*</span></label>
+                    <input
+                        id="kode_perusahaan"
+                        type="text"
+                        name="kode_perusahaan"
+                        value="{{ old('kode_perusahaan') }}"
+                        class="form-input @error('kode_perusahaan') border-red-500 @enderror"
+                        placeholder="Masukkan kode perusahaan dari owner"
+                    >
+                    @error('kode_perusahaan')
                         <p class="error-message">{{ $message }}</p>
                     @enderror
                 </div>
@@ -341,6 +423,91 @@
                 icon.classList.add('fa-eye-slash');
             }
         }
+
+        function handleRoleChange() {
+            const roleSelect = document.getElementById('role');
+            const ownerSection = document.getElementById('company-owner-section');
+            const kodeSection = document.getElementById('kode-perusahaan-section');
+            const commonSection = document.getElementById('common-fields-section');
+            const afterRoleSection = document.getElementById('after-role-section');
+
+            if (!roleSelect || !ownerSection || !kodeSection || !commonSection || !afterRoleSection) return;
+
+            const role = roleSelect.value;
+
+            if (!role) {
+                afterRoleSection.style.display = 'none';
+                ownerSection.style.display = 'none';
+                kodeSection.style.display = 'none';
+                return;
+            }
+
+            afterRoleSection.style.display = 'block';
+            commonSection.style.display = 'block';
+            
+            // Handle owner section
+            if (role === 'owner') {
+                ownerSection.style.display = 'block';
+                // Enable fields
+                document.getElementById('company_nama').disabled = false;
+                document.getElementById('company_alamat').disabled = false;
+                document.getElementById('company_email').disabled = false;
+                document.getElementById('company_telepon').disabled = false;
+                // Restore name attribute and require company fields
+                document.getElementById('company_nama').setAttribute('name', 'company_nama');
+                document.getElementById('company_alamat').setAttribute('name', 'company_alamat');
+                document.getElementById('company_email').setAttribute('name', 'company_email');
+                document.getElementById('company_telepon').setAttribute('name', 'company_telepon');
+                document.getElementById('company_nama').required = true;
+                document.getElementById('company_alamat').required = true;
+                document.getElementById('company_email').required = true;
+                document.getElementById('company_telepon').required = true;
+            } else {
+                ownerSection.style.display = 'none';
+                // Disable fields to prevent submission
+                document.getElementById('company_nama').disabled = true;
+                document.getElementById('company_alamat').disabled = true;
+                document.getElementById('company_email').disabled = true;
+                document.getElementById('company_telepon').disabled = true;
+                // Remove name attribute as backup
+                document.getElementById('company_nama').removeAttribute('name');
+                document.getElementById('company_alamat').removeAttribute('name');
+                document.getElementById('company_email').removeAttribute('name');
+                document.getElementById('company_telepon').removeAttribute('name');
+                // Remove required
+                document.getElementById('company_nama').required = false;
+                document.getElementById('company_alamat').required = false;
+                document.getElementById('company_email').required = false;
+                document.getElementById('company_telepon').required = false;
+                // Clear values
+                document.getElementById('company_nama').value = '';
+                document.getElementById('company_alamat').value = '';
+                document.getElementById('company_email').value = '';
+                document.getElementById('company_telepon').value = '';
+            }
+            
+            // Handle kode perusahaan section
+            if (role === 'admin' || role === 'pegawai_pembelian') {
+                kodeSection.style.display = 'block';
+                document.getElementById('kode_perusahaan').disabled = false;
+                document.getElementById('kode_perusahaan').setAttribute('name', 'kode_perusahaan');
+                document.getElementById('kode_perusahaan').required = true;
+            } else {
+                kodeSection.style.display = 'none';
+                document.getElementById('kode_perusahaan').disabled = true;
+                document.getElementById('kode_perusahaan').removeAttribute('name');
+                document.getElementById('kode_perusahaan').required = false;
+                document.getElementById('kode_perusahaan').value = '';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const roleSelect = document.getElementById('role');
+            if (roleSelect) {
+                roleSelect.addEventListener('change', handleRoleChange);
+                handleRoleChange();
+            }
+        });
     </script>
 </body>
 </html>

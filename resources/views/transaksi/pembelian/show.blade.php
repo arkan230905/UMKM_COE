@@ -4,7 +4,14 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>Detail Pembelian</h3>
-        <a href="{{ route('transaksi.pembelian.index') }}" class="btn btn-secondary">Kembali</a>
+        <div class="d-flex gap-2">
+            @if(auth()->user() && auth()->user()->hasAnyRole(['owner','admin','pegawai_pembelian']))
+                <a href="{{ route('transaksi.purchase-returns.create', $pembelian->id) }}" class="btn btn-warning">
+                    Retur Pembelian
+                </a>
+            @endif
+            <a href="{{ route('transaksi.pembelian.index') }}" class="btn btn-secondary">Kembali</a>
+        </div>
     </div>
 
     <div class="card mb-3">

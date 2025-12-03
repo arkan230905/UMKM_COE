@@ -10,6 +10,7 @@
         <thead class="table-dark">
             <tr>
                 <th style="width:6%">ID</th>
+                <th style="width:12%">Nomor Transaksi</th>
                 <th style="width:12%">Tanggal</th>
                 <th style="width:10%">Pembayaran</th>
                 <th>Produk</th>
@@ -25,6 +26,7 @@
             @foreach($penjualans as $penjualan)
             <tr>
                 <td>{{ $penjualan->id }}</td>
+                <td><strong>{{ $penjualan->nomor_penjualan ?? '-' }}</strong></td>
                 <td>{{ optional($penjualan->tanggal)->format('d-m-Y') ?? $penjualan->tanggal }}</td>
                 <td>{{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'Kredit' : 'Tunai' }}</td>
                 @php $detailCount = $penjualan->details->count(); @endphp
@@ -95,8 +97,9 @@
                 <td class="text-end">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</td>
                 <td>
                     <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn btn-warning btn-sm">Edit</a>
+                    <a href="{{ route('transaksi.retur-penjualan.create', ['penjualan_id' => $penjualan->id]) }}" class="btn btn-info btn-sm">Retur</a>
                     <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn btn-outline-primary btn-sm">Jurnal</a>
-                    <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale_cogs', 'ref_id' => $penjualan->id]) }}" class="btn btn-outline-secondary btn-sm">Jurnal HPP</a>
+                    <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale_cogs', 'ref_id' => $penjualan->id]) }}" class="btn btn-secondary btn-sm">Jurnal HPP</a>
                     <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
                         @csrf
                         @method('DELETE')

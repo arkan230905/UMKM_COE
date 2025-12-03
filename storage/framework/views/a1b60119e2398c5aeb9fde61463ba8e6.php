@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('content'); ?>
 <div class="container">
     <h1 class="mb-4">Daftar Bahan Baku</h1>
@@ -25,7 +23,7 @@
                 <tr>
                     <td><?php echo e($bahan->id); ?></td>
                     <td><?php echo e($bahan->nama_bahan); ?></td>
-                    <td><?php echo e($bahan->satuan ? $bahan->satuan->nama . ' (' . $bahan->satuan->kode . ')' : '-'); ?></td>
+                    <td><?php echo e($bahan->satuan ?? '-'); ?></td>
                     <td>Rp <?php echo e(number_format($bahan->harga_satuan, 0, ',', '.')); ?></td>
                     <td>
                         <a href="<?php echo e(route('master-data.bahan-baku.edit', $bahan->id)); ?>" class="btn btn-sm btn-warning">Edit</a>

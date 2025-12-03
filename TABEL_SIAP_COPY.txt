@@ -1,0 +1,20 @@
+TABEL 3.2 AREA FUNGSIONAL BISNIS PADA SISTEM SAAT INI
+
+===================================================================================
+CARA PAKAI:
+1. Copy semua teks dari "No" sampai baris terakhir
+2. Paste ke Word
+3. Select semua yang di-paste
+4. Klik menu "Insert" → "Table" → "Convert Text to Table"
+5. Pilih "Tabs" sebagai separator
+6. Klik OK
+7. Selesai! Tabel otomatis terbentuk
+===================================================================================
+
+No	Area Fungsional	Deskripsi Aktivitas
+1	Pencatatan Bahan Baku	Admin mencatat data stok bahan baku pada buku catatan secara manual. Pengecekan stok dilakukan dengan membuka buku setiap kali akan produksi, memakan waktu 10-15 menit.
+2	Proses Produksi	Aktivitas produksi dicatat menggunakan lembar kerja spreadsheet terpisah tanpa keterkaitan dengan data bahan baku. Pengurangan stok bahan dilakukan manual di buku yang berbeda setelah produksi selesai.
+3	Perhitungan Biaya Produksi	Perhitungan HPP dilakukan manual dengan rumus sederhana pada spreadsheet berdasarkan perkiraan biaya bahan menggunakan kalkulator, tanpa data BTKL dan BOP yang akurat. Proses ini memakan waktu 20-30 menit.
+4	Pembuatan Laporan	Laporan biaya dan hasil produksi disusun manual di akhir periode dengan menghitung ulang semua transaksi dari berbagai buku catatan terpisah. Proses ini memakan waktu 4-6 jam dengan risiko kesalahan data tinggi.
+
+Sumber: Hasil Analisis Penulis, 2025

@@ -1,426 +1,280 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <h1 class="mb-4">Tambah BOM</h1>
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Bill of Materials (BOM)</h3>
+        <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Kembali
+        </a>
+    </div>
 
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            <ul>
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
-    <form action="{{ route('master-data.bom.store') }}" method="POST">
+    <form action="{{ route('master-data.bom.store') }}" method="POST" id="bomForm">
         @csrf
-
-        <div class="mb-3">
-            <label for="produk_id" class="form-label">Produk</label>
-            <select name="produk_id" id="produk_id" class="form-select" required>
-                <option value="">-- Pilih Produk --</option>
-                @foreach($produks as $produk)
-                    <option value="{{ $produk->id }}" {{ old('produk_id') == $produk->id ? 'selected' : '' }}>
-                        {{ $produk->nama_produk }}
-                    </option>
-                @endforeach
-            </select>
+        
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">NAMA PRODUK</label>
+                        <select name="produk_id" id="produk_id" class="form-select" required>
+                            <option value="">-- Pilih Produk --</option>
+                            @foreach($produks as $produk)
+                                <option value="{{ $produk->id }}">{{ $produk->nama_produk }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header" style="background-color: #2c3e50 !important; border-bottom: 1px solid rgba(0,0,0,.125) !important;">
-                <h5 class="mb-0" style="color: #ffffff !important; margin: 0 !important;">Bahan Baku</h5>
-            </div>
+        <div class="card shadow-sm">
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-bordered" id="bomTable">
-                        <thead class="table-light">
+                        <thead class="table-primary">
                             <tr>
-                                <th width="40%">Bahan Baku</th>
-                                <th width="15%">Jumlah</th>
-                                <th width="25%">Satuan Resep</th>
-                                <th width="10%">Aksi</th>
+                                <th width="25%">BAHAN BAKU</th>
+                                <th width="10%">JUMLAH</th>
+                                <th width="10%">SATUAN</th>
+                                <th width="20%">HARGA SATUAN (RP)</th>
+                                <th width="20%">SUBTOTAL (RP)</th>
+                                <th width="10%">AKSI</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
+                        <tbody id="bomTableBody">
+                            <tr class="bom-row">
                                 <td>
-                                    <select name="bahan_baku_id[]" class="form-select bahanSelect" required>
-                                        <option value="">-- Pilih Bahan --</option>
+                                    <select name="bahan_baku_id[]" class="form-select form-select-sm bahan-select" required>
+                                        <option value="">-- Pilih Bahan Baku --</option>
                                         @foreach($bahanBakus as $bahan)
-                                            @php
-                                                $satuan = $bahan->satuan ? $bahan->satuan->nama : 'Satuan';
-                                                $harga = $bahan->harga_satuan ?? 0; // gunakan harga_satuan aktual
-                                            @endphp
-                                            <option value="{{ $bahan->id }}" data-satuan="{{ $satuan }}" data-harga="{{ $harga }}">{{ $bahan->nama ?? $bahan->nama_bahan ?? 'Bahan' }}</option>
+                                            <option value="{{ $bahan->id }}" 
+                                                data-harga="{{ $bahan->harga_satuan ?? 0 }}" 
+                                                data-satuan="{{ is_object($bahan->satuan) ? $bahan->satuan->kode : ($bahan->satuan ?? 'KG') }}"
+                                                data-nama="{{ $bahan->nama_bahan ?? $bahan->nama }}">
+                                                {{ $bahan->nama_bahan ?? $bahan->nama }}
+                                            </option>
                                         @endforeach
                                     </select>
                                 </td>
                                 <td>
-                                    <input type="number" step="0.01" min="0.01" name="jumlah[]" class="form-control jumlahInput" value="1" required>
+                                    <input type="number" name="jumlah[]" class="form-control form-control-sm jumlah-input" 
+                                        value="1" min="0.01" step="0.01" required>
                                 </td>
                                 <td>
-                                    <select name="satuan[]" class="form-select form-select-sm satuanSelect">
-                                        <option value="">(ikuti satuan bahan)</option>
-                                        @foreach(($satuans ?? []) as $sat)
-                                            <option value="{{ $sat->kode }}">{{ $sat->kode }} ({{ $sat->nama }})</option>
+                                    <select name="satuan[]" class="form-select form-select-sm satuan-select" required>
+                                        @foreach($satuans as $satuan)
+                                            <option value="{{ $satuan->kode }}">{{ $satuan->kode }}</option>
                                         @endforeach
                                     </select>
                                 </td>
+                                <td class="harga-display text-end">Rp 0</td>
+                                <td class="subtotal-display text-end fw-bold">Rp 0</td>
                                 <td class="text-center">
-                                    <button type="button" class="btn btn-sm btn-danger removeRow">Hapus</button>
+                                    <button type="button" class="btn btn-danger btn-sm btn-hapus">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </td>
                             </tr>
                         </tbody>
+                        <tfoot>
+                            <tr class="table-warning">
+                                <td colspan="4" class="text-end fw-bold">Total Bahan Baku</td>
+                                <td class="text-end fw-bold" id="totalBahanBaku">Rp 0</td>
+                                <td></td>
+                            </tr>
+                            <tr class="table-info">
+                                <td colspan="4" class="text-end">BTKL (60%)</td>
+                                <td class="text-end" id="totalBTKL">Rp 0</td>
+                                <td></td>
+                            </tr>
+                            <tr class="table-info">
+                                <td colspan="4" class="text-end">BOP (40%)</td>
+                                <td class="text-end" id="totalBOP">Rp 0</td>
+                                <td></td>
+                            </tr>
+                            <tr class="table-success">
+                                <td colspan="4" class="text-end fw-bold">Harga Pokok Produksi</td>
+                                <td class="text-end fw-bold" id="grandTotal">Rp 0</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
-                <button type="button" class="btn btn-secondary btn-sm mt-2" id="addRow">Tambah Baris</button>
+
+                <button type="button" class="btn btn-secondary btn-sm" id="btnTambahBaris">
+                    <i class="bi bi-plus"></i> Tambah Baris
+                </button>
             </div>
         </div>
 
-        <div class="d-flex justify-content-between">
-            <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Kembali
-            </a>
-            <button type="submit" class="btn btn-success">Simpan BOM & Hitung Harga Jual</button>
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save"></i> Simpan BOM
+            </button>
+            <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary">Batal</a>
         </div>
     </form>
 </div>
 
-@include('master-data.bom.js')
-
-@push('styles')
-<style>
-    /* Reset all text colors to white */
-    body, 
-    h1, h2, h3, h4, h5, h6,
-    .card, 
-    .card-header, 
-    .card-body, 
-    .card-title,
-    .form-label,
-    label,
-    .text-muted,
-    .input-group-text,
-    .table,
-    .table th, 
-    .table td,
-    .form-control,
-    .form-select,
-    select,
-    input,
-    textarea {
-        color: #ffffff !important;
-    }
-    
-    /* Card header styles */
-    .card-header {
-        background-color: #2c3e50 !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-    }
-    
-    .card-header h5 {
-        margin: 0 !important;
-        font-weight: 600 !important;
-        color: #ffffff !important;
-    }
-
-    /* Style untuk dark mode */
-    .card {
-        background-color: #2c2c3e;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #ffffff;
-    }
-
-    .card-body {
-        background-color: #2c2c3e;
-        color: #ffffff;
-    }
-    
-    /* Form elements styling */
-    .form-control, 
-    .form-select, 
-    .input-group-text,
-    .form-select option,
-    select,
-    input,
-    textarea,
-    .select2-container--default .select2-selection--single,
-    .select2-container--default .select2-selection--multiple {
-        background-color: #3a3b4a !important;
-        border-color: #4a4b5a !important;
-        color: #ffffff !important;
-    }
-    
-    /* Style for dropdown options */
-    .form-select option {
-        background-color: #3a3b4a;
-        color: #ffffff;
-        padding: 8px 12px;
-    }
-    
-    /* Hover state for dropdown options */
-    .form-select option:hover,
-    .form-select option:focus {
-        background-color: #6c63ff !important;
-        color: #ffffff !important;
-    }
-    
-    /* Style untuk dropdown yang terbuka */
-    .form-select:focus option:checked,
-    .form-select option:checked,
-    .form-select option:hover {
-        background-color: #6c63ff !important;
-        color: #ffffff !important;
-    }
-    
-    .form-control:focus, 
-    .form-select:focus {
-        background-color: #3a3b4a !important;
-        border-color: #6c63ff !important;
-        color: #ffffff !important;
-        box-shadow: 0 0 0 0.2rem rgba(108, 99, 255, 0.25) !important;
-    }
-    
-    .form-control:disabled, 
-    .form-control[readonly] {
-        background-color: #2a2b3a !important;
-        color: #a0a0a0 !important;
-    }
-    
-    /* Style untuk teks pada form */
-    .form-text,
-    .text-muted {
-        color: #b3b3b3 !important;
-    }
-    
-    /* Style untuk card body */
-    .card-body {
-        color: #ffffff !important;
-    }
-    
-    /* Style untuk table */
-    .table {
-        color: #ffffff !important;
-    }
-    
-    /* Style untuk input group text */
-    .input-group-text {
-        background-color: #2c3e50 !important;
-        color: #ffffff !important;
-        border-color: #4a4b5a !important;
-    }
-
-    .table th, .table td {
-        vertical-align: middle;
-    }
-    .form-control:readonly {
-        background-color: #f8f9fa;
-    }
-    /* Perbaikan kontras teks pada form */
-    .form-control, .form-select, .input-group-text {
-        color: #212529; /* Warna teks lebih gelap */
-    }
-    .form-control:focus, .form-select:focus {
-        border-color: #86b7fe;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-    }
-    /* Perbaikan kontras pada dropdown */
-    .form-select option {
-        color: #212529;
-        background-color: #fff;
-    }
-    /* Perbaikan kontras pada input number */
-    input[type="number"] {
-        -moz-appearance: textfield;
-    }
-    input[type="number"]::-webkit-outer-spin-button,
-    input[type="number"]::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    /* Perbaikan kontras pada card header */
-    .card-header {
-        background-color: #2c3e50 !important; /* Warna latar lebih gelap */
-        border-bottom: 1px solid rgba(0,0,0,.125) !important;
-    }
-    .card-header h5, .card-header h5 * {
-        color: #ffffff !important; /* Warna teks putih untuk judul */
-        margin: 0 !important;
-    }
-    /* Perbaikan kontras pada tombol */
-    .btn-outline-secondary {
-        color: #6c757d;
-        border-color: #6c757d;
-    }
-    .btn-outline-secondary:hover {
-        color: #fff;
-        background-color: #6c757d;
-        border-color: #6c757d;
-    }
-    /* Perbaikan kontras pada input group */
-    .input-group-text {
-        background-color: #e9ecef;
-        border: 1px solid #ced4da;
-        color: #212529;
-    }
-</style>
-@endpush
-
-@push('scripts')
 <script>
-    let rowCount = 1;
+// Data dari backend
+const bahanBakuData = @json($bahanBakus);
+const satuanData = @json($satuans);
 
-    // Format angka ke format rupiah
-    function formatRupiah(angka) {
-        return new Intl.NumberFormat('id-ID').format(angka);
-    }
+// Konversi satuan
+const konversi = {
+    'KG': 1, 'G': 1000, 'GR': 1000, 'GRAM': 1000,
+    'HG': 10, 'DAG': 100, 'ONS': 10,
+    'L': 1, 'LITER': 1, 'ML': 1000,
+    'PCS': 1, 'BUAH': 1, 'BTL': 1, 'BOTOL': 1
+};
 
-    // Hitung total biaya
-    function hitungTotalBiaya() {
-        let total = 0;
-        
-        document.querySelectorAll('#bomTable tbody tr').forEach(row => {
-            const kuantitas = parseFloat(row.querySelector('.kuantitas').value) || 0;
-            const hargaSatuan = parseFloat(row.querySelector('.bahan-select option:checked').dataset.harga) || 0;
-            total += kuantitas * hargaSatuan;
-        });
-        
-        document.getElementById('totalBiaya').textContent = 'Rp ' + formatRupiah(total.toFixed(0));
-        document.getElementById('totalBiayaField').value = 'Rp ' + formatRupiah(total.toFixed(0));
-        
-        // Hitung harga jual
-        hitungHargaJual(total);
-        
-        return total;
+// Format rupiah
+function formatRupiah(angka) {
+    return 'Rp ' + Math.round(angka).toLocaleString('id-ID');
+}
+
+// Hitung harga dan subtotal
+function hitungBaris(row) {
+    const bahanSelect = row.querySelector('.bahan-select');
+    const jumlahInput = row.querySelector('.jumlah-input');
+    const satuanSelect = row.querySelector('.satuan-select');
+    const hargaDisplay = row.querySelector('.harga-display');
+    const subtotalDisplay = row.querySelector('.subtotal-display');
+    
+    const selectedOption = bahanSelect.options[bahanSelect.selectedIndex];
+    
+    if (!selectedOption.value) {
+        hargaDisplay.textContent = 'Rp 0';
+        subtotalDisplay.textContent = 'Rp 0';
+        hitungTotal();
+        return;
     }
     
-    // Hitung harga jual berdasarkan total biaya dan persentase keuntungan
-    function hitungHargaJual(totalBiaya) {
-        const persentase = parseFloat(document.getElementById('persentase_keuntungan').value) || 0;
-        const keuntungan = totalBiaya * (persentase / 100);
-        const hargaJual = totalBiaya + keuntungan;
+    const hargaPerSatuanUtama = parseFloat(selectedOption.dataset.harga) || 0;
+    const satuanUtama = (selectedOption.dataset.satuan || 'KG').toUpperCase();
+    const jumlah = parseFloat(jumlahInput.value) || 0;
+    const satuan = satuanSelect.value.toUpperCase();
+    
+    if (hargaPerSatuanUtama === 0) {
+        const namaBahan = selectedOption.dataset.nama || selectedOption.text;
+        alert('⚠️ PERHATIAN!\n\nBahan baku "' + namaBahan + '" belum memiliki harga.\n\nSilakan lakukan PEMBELIAN terlebih dahulu!');
         
-        document.getElementById('hargaJual').value = 'Rp ' + formatRupiah(hargaJual.toFixed(0));
+        // Reset pilihan bahan baku agar tidak bisa ditambahkan
+        bahanSelect.value = '';
+        
+        hargaDisplay.textContent = '-';
+        subtotalDisplay.textContent = 'Rp 0';
+        hitungTotal();
+        return;
     }
-
-    // Fungsi untuk menambah baris bahan baku
-    document.getElementById('addRow').addEventListener('click', function() {
-        const tbody = document.querySelector('#bomTable tbody');
-        const newRow = document.createElement('tr');
+    
+    // Hitung harga per satuan yang dipilih
+    let hargaPerSatuan;
+    if (satuan === satuanUtama) {
+        hargaPerSatuan = hargaPerSatuanUtama;
+    } else {
+        // Konversi: 1 KG = 1000 G
+        // Jika harga per KG = 46139, maka harga per G = 46139 / 1000 = 46.139
+        const faktorUtama = konversi[satuanUtama] || 1;  // KG = 1
+        const faktorPilihan = konversi[satuan] || 1;      // G = 1000
         
-        newRow.innerHTML = `
-            <td>
-                <select name="details[${rowCount}][bahan_baku_id]" class="form-select bahan-select" required>
-                    <option value="">-- Pilih Bahan Baku --</option>
-                    @foreach($bahanBakus as $bahan)
-                        <option value="{{ $bahan->id }}" data-harga="{{ $bahan->harga_satuan }}">
-                            {{ $bahan->nama_bahan }} ({{ $bahan->satuan->nama_satuan ?? '-' }})
-                        </option>
-                    @endforeach
-                </select>
-            </td>
-            <td>
-                <input type="number" name="details[${rowCount}][kuantitas]" class="form-control kuantitas" 
-                       min="0.01" step="0.0001" value="1" required>
-            </td>
-            <td>
-                <input type="text" class="form-control satuan" 
-                       value="{{ $bahanBakus->first() && $bahanBakus->first()->satuan ? $bahanBakus->first()->satuan->nama_satuan : '' }}" 
-                       readonly>
-            </td>
-            <td>
-                <div class="input-group">
-                    <span class="input-group-text">Rp</span>
-                    <input type="text" class="form-control harga-satuan" 
-                           value="{{ $bahanBakus->first() ? number_format($bahanBakus->first()->harga_satuan, 0, ',', '.') : '0' }}" 
-                           readonly>
-                </div>
-            </td>
-            <td class="text-center">
-                <button type="button" class="btn btn-danger btn-sm removeRow">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </td>
-        `;
-        
-        tbody.appendChild(newRow);
-        rowCount++;
-        
-        // Inisialisasi event listener untuk baris baru
-        initRowEvents(newRow);
-    });
-
-    // Fungsi untuk menghapus baris bahan baku
-    function initRowEvents(row) {
-        // Hapus baris
-        const removeBtn = row.querySelector('.removeRow');
-        if (removeBtn) {
-            removeBtn.addEventListener('click', function() {
-                if (document.querySelectorAll('#bomTable tbody tr').length > 1) {
-                    row.remove();
-                    hitungTotalBiaya();
-                } else {
-                    alert('Minimal harus ada satu bahan baku');
-                }
-            });
-        }
-        
-        // Update satuan dan harga saat bahan baku dipilih
-        const select = row.querySelector('.bahan-select');
-        if (select) {
-            select.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                const satuan = selectedOption.textContent.match(/\(([^)]+)\)/);
-                const harga = parseFloat(selectedOption.dataset.harga) || 0;
-                
-                const satuanField = row.querySelector('.satuan');
-                const hargaField = row.querySelector('.harga-satuan');
-                
-                if (satuan && satuan[1]) {
-                    satuanField.value = satuan[1].trim();
-                }
-                
-                hargaField.value = formatRupiah(harga);
-                hitungTotalBiaya();
-            });
-        }
-        
-        // Update perhitungan saat kuantitas berubah
-        const kuantitasField = row.querySelector('.kuantitas');
-        if (kuantitasField) {
-            kuantitasField.addEventListener('input', function() {
-                hitungTotalBiaya();
-            });
-        }
+        // Harga per satuan terpilih = Harga per satuan utama / (faktor pilihan / faktor utama)
+        // Contoh: 46139 / (1000 / 1) = 46139 / 1000 = 46.139
+        hargaPerSatuan = hargaPerSatuanUtama / (faktorPilihan / faktorUtama);
     }
+    
+    const subtotal = hargaPerSatuan * jumlah;
+    
+    hargaDisplay.textContent = formatRupiah(hargaPerSatuan);
+    subtotalDisplay.textContent = formatRupiah(subtotal);
+    
+    hitungTotal();
+}
 
-    // Inisialisasi event listener untuk baris pertama
-    document.querySelectorAll('#bomTable tbody tr').forEach(row => {
-        initRowEvents(row);
+// Hitung total
+function hitungTotal() {
+    let totalBahan = 0;
+    
+    document.querySelectorAll('.bom-row').forEach(row => {
+        const subtotalText = row.querySelector('.subtotal-display').textContent;
+        const subtotal = parseFloat(subtotalText.replace(/[^0-9]/g, '')) || 0;
+        totalBahan += subtotal;
     });
+    
+    const btkl = totalBahan * 0.6;  // 60% dari total bahan baku
+    const bop = totalBahan * 0.4;   // 40% dari total bahan baku
+    const grandTotal = totalBahan + btkl + bop;
+    
+    document.getElementById('totalBahanBaku').textContent = formatRupiah(totalBahan);
+    document.getElementById('totalBTKL').textContent = formatRupiah(btkl);
+    document.getElementById('totalBOP').textContent = formatRupiah(bop);
+    document.getElementById('grandTotal').textContent = formatRupiah(grandTotal);
+}
 
-    // Update perhitungan saat persentase keuntungan berubah
-    document.getElementById('persentase_keuntungan').addEventListener('input', function() {
-        hitungTotalBiaya();
+// Attach events ke row
+function attachEvents(row) {
+    const bahanSelect = row.querySelector('.bahan-select');
+    const jumlahInput = row.querySelector('.jumlah-input');
+    const satuanSelect = row.querySelector('.satuan-select');
+    const btnHapus = row.querySelector('.btn-hapus');
+    
+    bahanSelect.addEventListener('change', () => {
+        // Set satuan default
+        const selectedOption = bahanSelect.options[bahanSelect.selectedIndex];
+        if (selectedOption.value) {
+            const satuanUtama = selectedOption.dataset.satuan || 'KG';
+            satuanSelect.value = satuanUtama;
+        }
+        hitungBaris(row);
     });
+    
+    jumlahInput.addEventListener('input', () => hitungBaris(row));
+    satuanSelect.addEventListener('change', () => hitungBaris(row));
+    
+    btnHapus.addEventListener('click', () => {
+        if (document.querySelectorAll('.bom-row').length <= 1) {
+            alert('Minimal harus ada 1 bahan baku!');
+            return;
+        }
+        if (confirm('Hapus baris ini?')) {
+            row.remove();
+            hitungTotal();
+        }
+    });
+}
 
-    // Generate kode BOM
-    document.getElementById('generateKode').addEventListener('click', function() {
-        fetch('{{ route("master-data.bom.generate-kode") }}')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('kode_bom').value = data.kode_bom;
-            });
-    });
+// Tambah baris baru
+document.getElementById('btnTambahBaris').addEventListener('click', () => {
+    const tbody = document.getElementById('bomTableBody');
+    const firstRow = tbody.querySelector('.bom-row');
+    const newRow = firstRow.cloneNode(true);
+    
+    // Reset values
+    newRow.querySelector('.bahan-select').value = '';
+    newRow.querySelector('.jumlah-input').value = '1';
+    newRow.querySelector('.harga-display').textContent = 'Rp 0';
+    newRow.querySelector('.subtotal-display').textContent = 'Rp 0';
+    
+    tbody.appendChild(newRow);
+    attachEvents(newRow);
+});
 
-    // Hitung total biaya saat halaman dimuat
-    document.addEventListener('DOMContentLoaded', function() {
-        hitungTotalBiaya();
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('=== BOM INIT ===');
+    console.log('Bahan Baku Data:', bahanBakuData);
+    
+    const rows = document.querySelectorAll('.bom-row');
+    console.log('Found rows:', rows.length);
+    
+    rows.forEach((row, index) => {
+        console.log('Attaching events to row', index + 1);
+        attachEvents(row);
     });
+    
+    console.log('=== INIT COMPLETE ===');
+});
 </script>
-@endpush
-
 @endsection

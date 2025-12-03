@@ -38,7 +38,18 @@
                 <td>{{ $retur->kompensasi }}</td>
                 <td>
                     @foreach($retur->details as $d)
-                        <div>{{ $d->produk->nama_produk ?? '-' }} <span class="text-muted">x {{ rtrim(rtrim(number_format($d->qty,4,',','.'),'0'),',') }}</span></div>
+                        @php
+                            // Untuk retur penjualan: tampilkan produk
+                            // Untuk retur pembelian: tampilkan bahan baku
+                            if ($retur->type === 'sale') {
+                                $itemName = $d->produk->nama_produk ?? '-';
+                            } else {
+                                // produk_id di detail sebenarnya menyimpan bahan_baku_id untuk retur pembelian
+                                $bahanBaku = \App\Models\BahanBaku::find($d->produk_id);
+                                $itemName = $bahanBaku->nama_bahan ?? '-';
+                            }
+                        @endphp
+                        <div>{{ $itemName }} <span class="text-muted">x {{ rtrim(rtrim(number_format($d->qty,4,',','.'),'0'),',') }}</span></div>
                     @endforeach
                 </td>
                 <td>

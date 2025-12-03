@@ -18,8 +18,18 @@
         </div>
 
         <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" name="username" id="username" class="form-control" value="{{ $user->username }}">
+        </div>
+
+        <div class="mb-3">
             <label for="email" class="form-label">Email</label>
             <input type="email" name="email" id="email" class="form-control" value="{{ $user->email }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="phone" class="form-label">Nomor Telepon</label>
+            <input type="text" name="phone" id="phone" class="form-control" value="{{ $user->phone }}" required>
         </div>
 
         <button type="submit" class="btn btn-primary">Simpan</button>

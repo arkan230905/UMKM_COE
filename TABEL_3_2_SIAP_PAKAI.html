@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tabel 3.2 Area Fungsional Bisnis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #1976D2;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #ddd;
+        }
+        td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            vertical-align: top;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .no-column {
+            text-align: center;
+            width: 50px;
+            font-weight: bold;
+        }
+        .area-column {
+            width: 200px;
+            font-weight: 600;
+        }
+        .desc-column {
+            width: auto;
+        }
+        .caption {
+            text-align: center;
+            font-style: italic;
+            margin-top: 10px;
+            color: #666;
+        }
+        .copy-btn {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .copy-btn:hover {
+            background: #45a049;
+        }
+        .success-msg {
+            display: none;
+            background: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Tabel 3.2 Area Fungsional Bisnis pada Sistem Saat Ini</h2>
+        
+        <div class="instructions">
+            <h3>📋 Cara Menggunakan:</h3>
+            <ol>
+                <li><strong>Klik tombol "Copy Tabel"</strong> di bawah</li>
+                <li><strong>Buka Microsoft Word</strong></li>
+                <li><strong>Paste</strong> (Ctrl + V)</li>
+                <li><strong>Tabel otomatis masuk dengan rapi!</strong> ✅</li>
+            </ol>
+            <p><strong>Atau:</strong> Select tabel di bawah → Copy (Ctrl+C) → Paste ke Word</p>
+        </div>
+
+        <button class="copy-btn" onclick="copyTable()">📋 Copy Tabel ke Clipboard</button>
+        <div class="success-msg" id="successMsg">✅ Tabel berhasil di-copy! Sekarang paste ke Word (Ctrl+V)</div>
+
+        <table id="mainTable">
+            <thead>
+                <tr>
+                    <th class="no-column">No</th>
+                    <th class="area-column">Area Fungsional</th>
+                    <th class="desc-column">Deskripsi Aktivitas</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="no-column">1</td>
+                    <td class="area-column">Pencatatan Bahan Baku</td>
+                    <td class="desc-column">Admin mencatat data stok bahan baku pada buku catatan secara manual. Pengecekan stok dilakukan dengan membuka buku setiap kali akan produksi, memakan waktu 10-15 menit.</td>
+                </tr>
+                <tr>
+                    <td class="no-column">2</td>
+                    <td class="area-column">Proses Produksi</td>
+                    <td class="desc-column">Aktivitas produksi dicatat menggunakan lembar kerja spreadsheet terpisah tanpa keterkaitan dengan data bahan baku. Pengurangan stok bahan dilakukan manual di buku yang berbeda setelah produksi selesai.</td>
+                </tr>
+                <tr>
+                    <td class="no-column">3</td>
+                    <td class="area-column">Perhitungan Biaya Produksi</td>
+                    <td class="desc-column">Perhitungan HPP dilakukan manual dengan rumus sederhana pada spreadsheet berdasarkan perkiraan biaya bahan menggunakan kalkulator, tanpa data BTKL dan BOP yang akurat. Proses ini memakan waktu 20-30 menit.</td>
+                </tr>
+                <tr>
+                    <td class="no-column">4</td>
+                    <td class="area-column">Pembuatan Laporan</td>
+                    <td class="desc-column">Laporan biaya dan hasil produksi disusun manual di akhir periode dengan menghitung ulang semua transaksi dari berbagai buku catatan terpisah. Proses ini memakan waktu 4-6 jam dengan risiko kesalahan data tinggi.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p class="caption">Sumber: Hasil Analisis Penulis, 2025</p>
+
+        <div class="instructions" style="margin-top: 30px; background: #fff3cd; border-left-color: #ffc107;">
+            <h3>💡 Tips:</h3>
+            <ul>
+                <li>Setelah paste ke Word, Anda bisa ubah warna header sesuai keinginan</li>
+                <li>Adjust lebar kolom jika perlu</li>
+                <li>Tabel sudah rapi dan siap digunakan!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function copyTable() {
+            const table = document.getElementById('mainTable');
+            const range = document.createRange();
+            range.selectNode(table);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+            
+            try {
+                document.execCommand('copy');
+                const successMsg = document.getElementById('successMsg');
+                successMsg.style.display = 'block';
+                setTimeout(() => {
+                    successMsg.style.display = 'none';
+                }, 3000);
+            } catch (err) {
+                alert('Gagal copy otomatis. Silakan select tabel dan copy manual (Ctrl+C)');
+            }
+            
+            window.getSelection().removeAllRanges();
+        }
+    </script>
+</body>
+</html>

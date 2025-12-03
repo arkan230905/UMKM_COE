@@ -1,0 +1,216 @@
+<mxfile host="app.diagrams.net" modified="2024-01-15T10:00:00.000Z" agent="Mozilla/5.0" etag="fixed-version" version="22.1.11" type="device">
+  <diagram name="Activity Login" id="activity-login-fixed">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <mxCell id="title" value="Activity Diagram - Proses Login&#xa;Sistem Informasi Akuntansi dan Manajemen Produksi UMKM" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="214" y="20" width="400" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="start" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="389" y="100" width="50" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="act1" value="Pengguna Membuka Website" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="334" y="180" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="start" target="act1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="note1" value="URL:&#xa;localhost:8000&#xa;atau domain.com" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fffacd;strokeColor=#d6b656;size=10;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="530" y="175" width="120" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="note1-line" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="act1" target="note1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="act2" value="Sistem Tampilkan&#xa;Halaman Login" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="334" y="270" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="act1" target="act2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="note2" value="Route: GET /login&#xa;View: auth/login.blade.php&#xa;Controller: LoginController" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fffacd;strokeColor=#d6b656;size=10;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="530" y="260" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="note2-line" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="act2" target="note2">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="act3" value="Pengguna Isi Form Login&#xa;(Email &amp; Password)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="334" y="360" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="act2" target="act3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="note3" value="Input:&#xa;• Email/Username&#xa;• Password&#xa;• Remember Me (opsional)" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fffacd;strokeColor=#d6b656;size=10;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="530" y="350" width="150" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="note3-line" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="act3" target="note3">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="act4" value="Pengguna Klik&#xa;Tombol Login" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="334" y="450" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="act3" target="act4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="act5" value="Sistem Validasi Input" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="334" y="540" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="act4" target="act5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="note5" value="Validasi:&#xa;• Format email valid&#xa;• Password tidak kosong&#xa;• CSRF token valid" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fffacd;strokeColor=#d6b656;size=10;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="530" y="530" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="note5-line" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="act5" target="note5">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="dec1" value="Input&#xa;Valid?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="354" y="630" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="edge6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="act5" target="dec1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="act6a" value="Tampilkan&#xa;Pesan Error Validasi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="150" y="640" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge7" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="dec1" target="act6a">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="act6a" target="act3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="670" />
+              <mxPoint x="100" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="act7" value="Sistem Cek Kredensial&#xa;di Database" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="334" y="740" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge9" value="Ya" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="dec1" target="act7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="note7" value="Database: users&#xa;• Cari user by email&#xa;• Verify password (bcrypt)" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fffacd;strokeColor=#d6b656;size=10;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="530" y="730" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="note7-line" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="act7" target="note7">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="dec2" value="Kredensial&#xa;Benar?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="354" y="830" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="edge10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="act7" target="dec2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="act8a" value="Tampilkan&#xa;&quot;Email atau Password Salah&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="150" y="840" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge11" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="dec2" target="act8a">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="edge12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="act8a" target="act3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="80" y="870" />
+              <mxPoint x="80" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="act9" value="Sistem Buat Session Login" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="334" y="940" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge13" value="Ya" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="dec2" target="act9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="note9" value="Session:&#xa;• Set user_id&#xa;• Set auth token&#xa;• Regenerate session ID&#xa;• Remember token (jika dipilih)" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fffacd;strokeColor=#d6b656;size=10;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="530" y="920" width="150" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="note9-line" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="act9" target="note9">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="act10" value="Sistem Redirect&#xa;ke Dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="334" y="1030" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="act9" target="act10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="note10" value="Route: GET /dashboard&#xa;Middleware: auth" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fffacd;strokeColor=#d6b656;size=10;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="530" y="1025" width="130" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="note10-line" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="act10" target="note10">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="act11" value="Pengguna Masuk Dashboard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="334" y="1120" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="act10" target="act11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="note11" value="Akses Menu:&#xa;• Master Data (COA, Produk, BOM)&#xa;• Transaksi (Pembelian, Penjualan)&#xa;• Laporan (Neraca, Laba Rugi)&#xa;• Akuntansi (Jurnal, Buku Besar)" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;darkOpacity=0.05;fillColor=#fffacd;strokeColor=#d6b656;size=10;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="520" y="1100" width="170" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="note11-line" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1" source="act11" target="note11">
+          <mxGeometry width="50" height="50" relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="end" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="389" y="1210" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="end-inner" value="" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="399" y="1220" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="edge16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="act11" target="end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="legend-box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="180" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="LEGEND" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend1" value="Aktivitas Pengguna" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="140" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend2" value="Aktivitas Sistem" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="180" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend3" value="Decision Point" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="220" width="120" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="legend4" value="Error/Pesan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="270" width="160" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="legend5" value="Sukses" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="305" width="160" height="25" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

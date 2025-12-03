@@ -30,15 +30,26 @@
         </div>
 
         <div class="row g-3 mb-3">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label for="tanggal" class="form-label">Tanggal Pembelian</label>
                 <input type="date" name="tanggal" id="tanggal" class="form-control" value="{{ old('tanggal') }}" required>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <label class="form-label">Metode Pembayaran</label>
-                <select name="payment_method" class="form-select" required>
+                <select name="payment_method" id="payment_method" class="form-select" required>
                     <option value="cash" {{ old('payment_method','cash')==='cash' ? 'selected' : '' }}>Tunai</option>
+                    <option value="transfer" {{ old('payment_method')==='transfer' ? 'selected' : '' }}>Transfer Bank</option>
                     <option value="credit" {{ old('payment_method')==='credit' ? 'selected' : '' }}>Kredit</option>
+                </select>
+            </div>
+            <div class="col-md-4" id="sumber_dana_wrapper">
+                <label class="form-label">Sumber Dana</label>
+                <select name="sumber_dana" id="sumber_dana" class="form-select">
+                    @foreach($kasbank as $kb)
+                        <option value="{{ $kb->kode_akun }}" {{ old('sumber_dana', '1101') == $kb->kode_akun ? 'selected' : '' }}>
+                            {{ $kb->nama_akun }} ({{ $kb->kode_akun }})
+                        </option>
+                    @endforeach
                 </select>
             </div>
         </div>
@@ -102,6 +113,40 @@
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Show/hide sumber dana based on payment method
+    function toggleSumberDana() {
+        const paymentMethod = document.getElementById('payment_method').value;
+        const sumberDanaWrapper = document.getElementById('sumber_dana_wrapper');
+        const sumberDana = document.getElementById('sumber_dana');
+        
+        if (paymentMethod === 'cash' || paymentMethod === 'transfer') {
+            sumberDanaWrapper.style.display = 'block';
+            sumberDana.required = true;
+            
+            // Update options based on payment method
+            if (paymentMethod === 'cash') {
+                sumberDana.innerHTML = `
+                    <option value="1101">Kas Kecil (1101)</option>
+                    <option value="101">Kas (101)</option>
+                `;
+            } else if (paymentMethod === 'transfer') {
+                sumberDana.innerHTML = `
+                    <option value="1102">Kas di Bank (1102)</option>
+                    <option value="102">Bank (102)</option>
+                `;
+            }
+        } else {
+            sumberDanaWrapper.style.display = 'none';
+            sumberDana.required = false;
+        }
+    }
+    
+    // Initial toggle
+    toggleSumberDana();
+    
+    // Listen to payment method changes
+    document.getElementById('payment_method').addEventListener('change', toggleSumberDana);
+    
     function updateSubtotal(row) {
         const jumlah = parseFloat(row.querySelector('.jumlah').value) || 0;
         const harga = parseFloat(row.querySelector('.harga').value) || 0;

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Bop;
+use App\Models\CoaPeriodBalance;
 
 class Coa extends Model
 {
@@ -39,8 +40,23 @@ class Coa extends Model
         'tanggal_saldo_awal',
         'posted_saldo_awal',
     ];
+    
+    protected $appends = ['kode', 'nama'];
 
     // No casts: saldo_normal stores strings like 'debit'/'kredit'
+    
+    /**
+     * Accessor untuk backward compatibility
+     */
+    public function getKodeAttribute()
+    {
+        return $this->kode_akun;
+    }
+    
+    public function getNamaAttribute()
+    {
+        return $this->nama_akun;
+    }
 
     /**
      * Relasi ke akun induk (hierarchical)
@@ -71,12 +87,24 @@ class Coa extends Model
      */
     public function bops()
     {
-        return $this->hasMany(Bop::class, 'coa_id', 'id');
+        return $this->hasMany(Bop::class, 'kode_akun', 'kode_akun');
     }
 
-    public function bop()
+    /**
+     * Relasi ke saldo periode
+     */
+    public function periodBalances()
     {
-        return $this->hasOne(Bop::class, 'coa_id', 'id');
+        return $this->hasMany(CoaPeriodBalance::class, 'kode_akun', 'kode_akun');
+    }
+
+    /**
+     * Get saldo untuk periode tertentu
+     */
+    public function getSaldoPeriode($periodId)
+    {
+        $balance = $this->periodBalances()->where('period_id', $periodId)->first();
+        return $balance ? $balance->saldo_awal : ($this->saldo_awal ?? 0);
     }
 
     /**

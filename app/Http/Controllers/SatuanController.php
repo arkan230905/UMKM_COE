@@ -19,32 +19,35 @@ class SatuanController extends Controller
     }
 
     public function store(Request $request)
-{
-    $request->validate([
-        'nama' => 'required|string|max:50',
-    ]);
+    {
+        $validated = $request->validate([
+            'kode' => 'required|string|max:10|unique:satuans,kode',
+            'nama' => 'required|string|max:50|unique:satuans,nama',
+        ], [
+            'kode.required' => 'Kode satuan harus diisi',
+            'kode.max' => 'Kode maksimal 10 karakter',
+            'kode.unique' => 'Kode satuan sudah digunakan',
+            'nama.required' => 'Nama satuan harus diisi',
+            'nama.max' => 'Nama maksimal 50 karakter',
+            'nama.unique' => 'Nama satuan sudah digunakan',
+        ]);
 
-    // Ambil kode terakhir
-    $lastKode = Satuan::orderBy('id', 'desc')->first();
+        try {
+            // Simpan data
+            Satuan::create([
+                'kode' => strtoupper($validated['kode']),
+                'nama' => $validated['nama'],
+            ]);
 
-    // Tentukan kode baru
-    if (!$lastKode) {
-        $newKode = 'ST001';
-    } else {
-        // Ambil angka dari kode terakhir, misal ST005 → 5
-        $lastNumber = (int) substr($lastKode->kode, 2);
-        $newKode = 'ST' . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+            return redirect()->route('master-data.satuan.index')
+                ->with('success', 'Data satuan berhasil ditambahkan!');
+                
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal menambahkan data: ' . $e->getMessage());
+        }
     }
-
-    // Simpan data
-    Satuan::create([
-        'kode' => $newKode,
-        'nama' => $request->nama,
-    ]);
-
-    return redirect()->route('master-data.satuan.index')
-        ->with('success', 'Satuan berhasil ditambahkan!');
-}
 
 
     public function edit(Satuan $satuan)
@@ -53,18 +56,35 @@ class SatuanController extends Controller
     }
 
     public function update(Request $request, Satuan $satuan)
-{
-    $request->validate([
-        'nama' => 'required|string|max:50',
-    ]);
+    {
+        $validated = $request->validate([
+            'kode' => 'required|string|max:10|unique:satuans,kode,' . $satuan->id,
+            'nama' => 'required|string|max:50|unique:satuans,nama,' . $satuan->id,
+        ], [
+            'kode.required' => 'Kode satuan harus diisi',
+            'kode.max' => 'Kode maksimal 10 karakter',
+            'kode.unique' => 'Kode satuan sudah digunakan',
+            'nama.required' => 'Nama satuan harus diisi',
+            'nama.max' => 'Nama maksimal 50 karakter',
+            'nama.unique' => 'Nama satuan sudah digunakan',
+        ]);
 
-    $satuan->update([
-        'nama' => $request->nama,
-    ]);
+        try {
+            // Update data
+            $satuan->update([
+                'kode' => strtoupper($validated['kode']),
+                'nama' => $validated['nama'],
+            ]);
 
-    return redirect()->route('master-data.satuan.index')
-        ->with('success', 'Satuan berhasil diperbarui!');
-}
+            return redirect()->route('master-data.satuan.index')
+                ->with('success', 'Data satuan berhasil diperbarui!');
+                
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal memperbarui data: ' . $e->getMessage());
+        }
+    }
 
     public function destroy(Satuan $satuan)
     {
