@@ -69,6 +69,7 @@ class Order extends Model
             'va_bni' => 'BNI Virtual Account',
             'va_bri' => 'BRI Virtual Account',
             'va_mandiri' => 'Mandiri Virtual Account',
+            'cash' => 'Cash',
             'transfer' => 'Transfer Bank',
             default => '-',
         };

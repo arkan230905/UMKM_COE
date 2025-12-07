@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class FonnteService
 {
@@ -15,13 +16,25 @@ class FonnteService
             return false;
         }
 
-        $response = Http::withHeaders([
-            'Authorization' => $token,
-        ])->asForm()->post($url, [
-            'target'  => $phone,
-            'message' => $message,
-        ]);
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => $token,
+            ])
+                ->timeout(10)
+                ->retry(2, 200)
+                ->asForm()
+                ->post($url, [
+                    'target'  => $phone,
+                    'message' => $message,
+                ]);
 
-        return $response->successful();
+            return $response->successful();
+        } catch (\Throwable $e) {
+            Log::warning('Fonnte WhatsApp send failed', [
+                'phone' => $phone,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 }
