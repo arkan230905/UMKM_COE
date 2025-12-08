@@ -11,20 +11,15 @@ class ReturDetail extends Model
 
     protected $fillable = [
         'retur_id',
-        'item_type',
-        'item_id',
-        'item_nama',
-        'qty_retur',
-        'satuan',
-        'harga_satuan',
-        'subtotal',
-        'keterangan'
+        'produk_id',
+        'ref_detail_id',
+        'qty',
+        'harga_satuan_asal',
     ];
 
     protected $casts = [
-        'qty_retur' => 'decimal:2',
-        'harga_satuan' => 'decimal:2',
-        'subtotal' => 'decimal:2'
+        'qty' => 'decimal:2',
+        'harga_satuan_asal' => 'decimal:2',
     ];
 
     // Relasi ke retur
@@ -33,25 +28,9 @@ class ReturDetail extends Model
         return $this->belongsTo(Retur::class);
     }
 
-    // Relasi polymorphic ke produk atau bahan baku
-    public function item()
+    // Relasi ke produk
+    public function produk()
     {
-        if ($this->item_type === 'produk') {
-            return $this->belongsTo(Produk::class, 'item_id');
-        } elseif ($this->item_type === 'bahan_baku') {
-            return $this->belongsTo(BahanBaku::class, 'item_id');
-        }
-        return null;
-    }
-
-    // Accessor untuk mendapatkan item
-    public function getItemAttribute()
-    {
-        if ($this->item_type === 'produk') {
-            return Produk::find($this->item_id);
-        } elseif ($this->item_type === 'bahan_baku') {
-            return BahanBaku::find($this->item_id);
-        }
-        return null;
+        return $this->belongsTo(Produk::class, 'produk_id');
     }
 }

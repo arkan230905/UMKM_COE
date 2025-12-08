@@ -52,18 +52,21 @@
         
         .btn-cart {
             position: relative;
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            color: white;
+            background: #ffffff;
+            border: 1px solid #e6e9f0;
+            color: #1f2937;
             padding: 8px 20px;
             border-radius: 25px;
-            transition: all 0.3s;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 6px rgba(0,0,0,.08);
+            font-weight: 600;
         }
         
         .btn-cart:hover {
-            background: rgba(255,255,255,0.3);
-            color: white;
-            transform: translateY(-2px);
+            background: #f7f9fc;
+            color: #0f172a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(0,0,0,.12);
         }
         
         .dropdown-menu {
@@ -100,7 +103,7 @@
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center">
+                <ul class="navbar-nav ms-auto align-items-center justify-content-end">
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('pelanggan.dashboard') }}">
                             <i class="bi bi-house-door"></i> Beranda
@@ -113,6 +116,14 @@
                         </a>
                     </li>
                     
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('pelanggan.returns.create') }}">
+                            <i class="bi bi-arrow-counterclockwise"></i> Retur
+                        </a>
+                    </li>
+                    
+                    
+
                     <li class="nav-item mx-2">
                         <a href="{{ route('pelanggan.cart') }}" class="btn btn-cart">
                             <i class="bi bi-cart3"></i> Keranjang

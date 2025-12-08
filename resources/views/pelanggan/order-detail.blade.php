@@ -3,10 +3,15 @@
 @section('content')
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-white">Detail Pesanan #{{ $order->nomor_order }}</h2>
-        <a href="{{ route('pelanggan.orders') }}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Kembali
-        </a>
+        <h2 class="text-dark">Detail Pesanan #{{ $order->nomor_order }}</h2>
+        <div class="d-flex gap-2">
+            <a href="{{ route('pelanggan.returns.create', ['order_id' => $order->id]) }}" class="btn btn-outline-warning">
+                <i class="bi bi-arrow-counterclockwise"></i> Ajukan Retur
+            </a>
+            <a href="{{ route('pelanggan.orders') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Kembali
+            </a>
+        </div>
     </div>
 
     @if(session('success'))
@@ -18,12 +23,12 @@
 
     <div class="row">
         <div class="col-md-8">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-info-circle"></i> Informasi Pesanan</h5>
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 text-dark"><i class="bi bi-info-circle"></i> Informasi Pesanan</h5>
                 </div>
                 <div class="card-body">
-                    <table class="table table-borderless table-dark">
+                    <table class="table table-borderless">
                         <tr>
                             <td width="200"><strong>Nomor Pesanan:</strong></td>
                             <td>{{ $order->nomor_order }}</td>
@@ -77,13 +82,13 @@
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0"><i class="bi bi-box-seam"></i> Item Pesanan</h5>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 text-dark"><i class="bi bi-box-seam"></i> Item Pesanan</h5>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-dark table-hover">
+                        <table class="table table-striped table-hover align-middle">
                             <thead>
                                 <tr>
                                     <th>Produk</th>
@@ -115,47 +120,47 @@
         </div>
 
         <div class="col-md-4">
-            <div class="card mb-3">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Data Pengiriman</h5>
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 text-dark"><i class="bi bi-geo-alt"></i> Data Pengiriman</h5>
                 </div>
                 <div class="card-body">
                     <p class="mb-2">
-                        <strong class="text-white">Nama Penerima:</strong><br>
-                        <span class="text-muted">{{ $order->nama_penerima }}</span>
+                        <strong class="text-dark">Nama Penerima:</strong><br>
+                        <span class="text-dark">{{ $order->nama_penerima }}</span>
                     </p>
                     <p class="mb-2">
-                        <strong class="text-white">Alamat:</strong><br>
-                        <span class="text-muted">{{ $order->alamat_pengiriman }}</span>
+                        <strong class="text-dark">Alamat:</strong><br>
+                        <span class="text-dark">{{ $order->alamat_pengiriman }}</span>
                     </p>
                     <p class="mb-2">
-                        <strong class="text-white">Telepon:</strong><br>
-                        <span class="text-muted">{{ $order->telepon_penerima }}</span>
+                        <strong class="text-dark">Telepon:</strong><br>
+                        <span class="text-dark">{{ $order->telepon_penerima }}</span>
                     </p>
                     @if($order->catatan)
                     <p class="mb-0">
-                        <strong class="text-white">Catatan:</strong><br>
-                        <span class="text-muted">{{ $order->catatan }}</span>
+                        <strong class="text-dark">Catatan:</strong><br>
+                        <span class="text-dark">{{ $order->catatan }}</span>
                     </p>
                     @endif
                 </div>
             </div>
 
-            <div class="card">
-                <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Timeline</h5>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0 text-dark"><i class="bi bi-clock-history"></i> Timeline</h5>
                 </div>
                 <div class="card-body">
                     <div class="timeline">
                         <div class="timeline-item">
                             <i class="bi bi-check-circle text-success"></i>
-                            <span class="text-white">Pesanan Dibuat</span>
+                            <span class="text-dark">Pesanan Dibuat</span>
                             <small class="text-muted d-block">{{ $order->created_at->format('d M Y H:i') }}</small>
                         </div>
                         @if($order->paid_at)
                         <div class="timeline-item">
                             <i class="bi bi-check-circle text-success"></i>
-                            <span class="text-white">Pembayaran Berhasil</span>
+                            <span class="text-dark">Pembayaran Berhasil</span>
                             <small class="text-muted d-block">{{ $order->paid_at->format('d M Y H:i') }}</small>
                         </div>
                         @endif

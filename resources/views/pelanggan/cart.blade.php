@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container py-4">
-    <h2 class="mb-4 text-white">Keranjang Belanja</h2>
+    <h2 class="mb-4 text-dark">Keranjang Belanja</h2>
 
     @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show">
@@ -19,10 +19,10 @@
     @endif
 
     @if($carts->isEmpty())
-    <div class="card">
+    <div class="card border-0 shadow-sm">
         <div class="card-body text-center py-5">
             <i class="bi bi-cart-x" style="font-size: 4rem; color: #6c757d;"></i>
-            <h4 class="mt-3 text-white">Keranjang Kosong</h4>
+            <h4 class="mt-3 text-dark">Keranjang Kosong</h4>
             <p class="text-muted">Belum ada produk di keranjang Anda</p>
             <a href="{{ route('pelanggan.dashboard') }}" class="btn btn-primary">
                 <i class="bi bi-shop"></i> Mulai Belanja
@@ -30,10 +30,10 @@
         </div>
     </div>
     @else
-    <div class="card">
+    <div class="card border-0 shadow-sm">
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-dark table-hover">
+                <table class="table table-striped table-hover align-middle">
                     <thead>
                         <tr>
                             <th>Produk</th>
@@ -49,20 +49,37 @@
                             <td>
                                 <strong>{{ $cart->produk->nama_produk }}</strong>
                                 <br>
-                                <small class="text-muted">Stok tersedia: {{ $cart->produk->stok }}</small>
+                                <small class="text-secondary">Stok : {{ number_format($cart->produk->stok, 0, ',', '.') }}</small>
                             </td>
                             <td>Rp {{ number_format($cart->harga, 0, ',', '.') }}</td>
                             <td>
-                                <form action="{{ route('pelanggan.cart.update', $cart) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('PUT')
-                                    <div class="input-group input-group-sm">
-                                        <input type="number" name="qty" value="{{ $cart->qty }}" min="1" max="{{ $cart->produk->stok }}" class="form-control" onchange="this.form.submit()">
-                                        <button type="submit" class="btn btn-outline-primary btn-sm">
-                                            <i class="bi bi-check"></i>
+                                <div class="d-flex align-items-center gap-1">
+                                    <form action="{{ route('pelanggan.cart.update', $cart) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('PUT')
+                                        <input type="hidden" name="qty" value="{{ max(1, $cart->qty - 1) }}">
+                                        <button type="submit" class="btn btn-sm btn-primary" {{ $cart->qty <= 1 ? 'disabled' : '' }}>
+                                            <i class="bi bi-dash"></i>
                                         </button>
-                                    </div>
-                                </form>
+                                    </form>
+
+                                    <form action="{{ route('pelanggan.cart.update', $cart) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="input-group input-group-sm">
+                                            <input type="number" name="qty" value="{{ $cart->qty }}" min="1" max="{{ $cart->produk->stok }}" class="form-control" onchange="this.form.submit()">
+                                        </div>
+                                    </form>
+
+                                    <form action="{{ route('pelanggan.cart.update', $cart) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('PUT')
+                                        <input type="hidden" name="qty" value="{{ min($cart->produk->stok, $cart->qty + 1) }}">
+                                        <button type="submit" class="btn btn-sm btn-primary" {{ $cart->qty >= $cart->produk->stok ? 'disabled' : '' }}>
+                                            <i class="bi bi-plus"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                             <td class="fw-bold">Rp {{ number_format($cart->subtotal, 0, ',', '.') }}</td>
                             <td>

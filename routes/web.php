@@ -54,6 +54,7 @@ use App\Http\Controllers\Pelanggan\DashboardController as PelangganDashboardCont
 use App\Http\Controllers\Pelanggan\CartController;
 use App\Http\Controllers\Pelanggan\CheckoutController;
 use App\Http\Controllers\Pelanggan\OrderController as PelangganOrderController;
+use App\Http\Controllers\Pelanggan\FavoriteController as PelangganFavoriteController;
 use App\Http\Controllers\MidtransController;
 use App\Http\Controllers\Auth\RegisterController;
 
@@ -108,7 +109,7 @@ Route::middleware('auth')->group(function () {
     // ================================================================
     // PELANGGAN E-COMMERCE ROUTES
     // ================================================================
-    Route::prefix('pelanggan')->name('pelanggan.')->middleware('role:pelanggan')->group(function () {
+    Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
         // Dashboard - Katalog Produk
         Route::get('/dashboard', [PelangganDashboardController::class, 'index'])->name('dashboard');
         
@@ -126,6 +127,18 @@ Route::middleware('auth')->group(function () {
         // Orders
         Route::get('/orders', [PelangganOrderController::class, 'index'])->name('orders');
         Route::get('/orders/{order}', [PelangganOrderController::class, 'show'])->name('orders.show');
+
+        // Favorites
+        Route::get('/favorites', [PelangganFavoriteController::class, 'index'])->name('favorites');
+        Route::post('/favorites/toggle', [PelangganFavoriteController::class, 'toggle'])->name('favorites.toggle');
+
+        // Returns (Retur Penjualan)
+        Route::get('/returns', [\App\Http\Controllers\Pelanggan\ReturnController::class, 'index'])->name('returns.index');
+        Route::get('/returns/create', [\App\Http\Controllers\Pelanggan\ReturnController::class, 'create'])->name('returns.create');
+        Route::post('/returns', [\App\Http\Controllers\Pelanggan\ReturnController::class, 'store'])->name('returns.store');
+
+        // Reviews
+        Route::post('/reviews', [\App\Http\Controllers\Pelanggan\ReviewController::class, 'store'])->name('reviews.store');
     });
 
     // Midtrans Callback (tidak perlu auth karena dari server Midtrans)
