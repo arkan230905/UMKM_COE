@@ -85,6 +85,7 @@ class ProdukController extends Controller
             'foto',
             'deskripsi',
             'harga_jual',
+            'stok',
         ])->whereNotNull('harga_jual')->get();
 
         return view('pelanggan.produk.index', compact('produks'));

@@ -14,6 +14,17 @@ class MidtransService
         Config::$isProduction = config('midtrans.is_production');
         Config::$isSanitized = config('midtrans.is_sanitized');
         Config::$is3ds = config('midtrans.is_3ds');
+
+        // SSL CA bundle handling for local Windows/XAMPP environments
+        $caPath = env('MIDTRANS_CACERT_PATH');
+        if ($caPath && file_exists($caPath)) {
+            Config::$curlOptions[CURLOPT_CAINFO] = $caPath;
+            Config::$curlOptions[CURLOPT_SSL_VERIFYPEER] = true;
+        } elseif (app()->environment('local')) {
+            // TEMP: avoid local SSL errors; DO NOT use in production
+            Config::$curlOptions[CURLOPT_SSL_VERIFYPEER] = false;
+            Config::$curlOptions[CURLOPT_SSL_VERIFYHOST] = 0;
+        }
     }
 
     public function createTransaction($order, $items)

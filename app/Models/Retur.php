@@ -10,23 +10,18 @@ class Retur extends Model
     use HasFactory;
 
     protected $fillable = [
-        'kode_retur',
-        'tanggal',
-        'tipe_retur',
-        'referensi_id',
-        'referensi_kode',
-        'tipe_kompensasi',
-        'total_nilai_retur',
-        'nilai_kompensasi',
-        'status',
-        'keterangan',
-        'created_by'
+        'type',
+        'ref_id',
+        'kompensasi',
+        'created_by',
+        'alasan',
+        'memo',
+        'jumlah',
+        'pembelian_id',
     ];
 
     protected $casts = [
-        'tanggal' => 'date',
-        'total_nilai_retur' => 'decimal:2',
-        'nilai_kompensasi' => 'decimal:2'
+        'jumlah' => 'decimal:2',
     ];
 
     // Relasi ke detail retur
@@ -69,7 +64,7 @@ class Retur extends Model
                     ->where('tipe_retur', 'pembelian');
     }
 
-    // Generate kode retur otomatis
+    // Generate kode retur otomatis (fallback ke memo)
     public static function generateKodeRetur()
     {
         $tanggal = now()->format('Ymd');
@@ -77,7 +72,7 @@ class Retur extends Model
                          ->orderBy('id', 'desc')
                          ->first();
         
-        $nomor = $lastRetur ? (int)substr($lastRetur->kode_retur, -3) + 1 : 1;
+        $nomor = $lastRetur ? (int)substr($lastRetur->memo ?? 'RTR-' . $tanggal . '-000', -3) + 1 : 1;
         
         return 'RTR-' . $tanggal . '-' . str_pad($nomor, 3, '0', STR_PAD_LEFT);
     }
