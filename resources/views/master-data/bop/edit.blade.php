@@ -25,21 +25,18 @@
                             </div>
                             
                             <div class="col-md-6">
-                                <label for="budget" class="form-label fw-bold">Nominal Budget <span class="text-danger">*</span></label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light">Rp</span>
+                                <label for="budget_display" class="form-label fw-bold">Nominal Budget <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-success text-white fw-bold">Rp</span>
                                     <input type="text" 
-                                           class="form-control border-0 border-bottom border-2" 
-                                           id="budget" 
-                                           name="budget" 
+                                           class="form-control form-control-lg money-input" 
+                                           id="budget_display" 
                                            value="{{ number_format($bop->budget, 0, ',', '.') }}" 
-                                           required
-                                           onkeyup="formatAngka(this)" 
-                                           onblur="formatAngka(this, 'blur')"
-                                           onfocus="formatAngka(this, 'focus')"
-                                           style="font-weight: 500;">
+                                           placeholder="0"
+                                           style="font-size: 1.25rem; font-weight: 500;">
+                                    <input type="hidden" name="budget" id="budget" value="{{ $bop->budget }}">
                                 </div>
-                                <input type="hidden" name="budget_value" id="budget_value" value="{{ $bop->budget }}">
+                                <small class="text-muted money-hint"></small>
                                 @error('budget')
                                     <div class="text-danger small">{{ $message }}</div>
                                 @enderror
@@ -68,78 +65,89 @@
     </div>
 </div>
 
-@push('scripts')
+@section('scripts')
 <script>
-    // Format angka untuk input budget
-    function formatAngka(input, eventType = '') {
-        // Jika sedang fokus, tampilkan angka biasa
-        if (eventType === 'focus') {
-            let value = input.value.replace(/\./g, '');
-            document.getElementById('budget_value').value = value || '0';
-            input.value = value;
-            return;
-        }
+    document.addEventListener('DOMContentLoaded', function() {
+        // Money formatting functions
+        const formatID = (val) => {
+            if (val === null || val === undefined || val === '') return '';
+            let v = String(val).replace(/[^0-9]/g, '');
+            if (!v) return '';
+            return v.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        };
         
-        // Jika blur atau keyup, format angkanya
-        let value = input.value.replace(/\./g, '');
+        const toNumber = (formatted) => {
+            if (!formatted) return 0;
+            let s = String(formatted).replace(/\./g, '');
+            let n = parseInt(s, 10);
+            return isNaN(n) ? 0 : n;
+        };
         
-        // Pastikan value adalah angka
-        if (isNaN(value) || value === '') {
-            value = '0';
-        }
-        
-        // Pastikan nilai tidak negatif
-        value = Math.max(0, parseFloat(value));
-        
-        // Pastikan nilai tidak melebihi maksimum safe integer
-        value = Math.min(value, Number.MAX_SAFE_INTEGER || 9007199254740991);
-        
-        // Simpan nilai asli ke hidden input
-        document.getElementById('budget_value').value = value;
-        
-        // Format angka dengan pemisah ribuan
-        if (eventType !== 'focus') {
-            input.value = value.toLocaleString('id-ID');
-        }
-    }
+        const compactID = (n) => {
+            if (n === 0) return '';
+            const u = [
+                {v:1e12, s:' triliun'},
+                {v:1e9, s:' miliar'},
+                {v:1e6, s:' juta'},
+                {v:1e3, s:' ribu'},
+            ];
+            for (const it of u) {
+                if (n >= it.v) {
+                    const val = (n / it.v).toFixed(2).replace(/\.00$/,'').replace(/\.0$/,'');
+                    return '= ' + val + it.s;
+                }
+            }
+            return '= ' + n + ' rupiah';
+        };
 
-    // Validasi form sebelum submit
-    document.getElementById('editBopForm').addEventListener('submit', function(e) {
-        // Pastikan budget_value diupdate dengan nilai terbaru
-        const budgetInput = document.getElementById('budget');
-        const budgetValue = document.getElementById('budget_value');
+        // Setup money input
+        const displayInput = document.getElementById('budget_display');
+        const hiddenInput = document.getElementById('budget');
+        const hint = document.querySelector('.money-hint');
         
-        // Format ulang nilai sebelum submit
-        let value = budgetInput.value.replace(/\./g, '');
-        if (isNaN(value) || value === '') {
-            value = '0';
-        }
-        value = Math.max(0, parseFloat(value));
+        const updateHint = () => {
+            const num = toNumber(displayInput.value);
+            hint.textContent = compactID(num);
+        };
         
-        // Update nilai budget_value dengan format yang benar
-        budgetValue.value = value;
+        displayInput.addEventListener('input', function() {
+            const num = toNumber(this.value);
+            this.value = formatID(num);
+            hiddenInput.value = num;
+            updateHint();
+        });
         
-        if (!value || parseFloat(value) <= 0) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Nominal budget harus lebih dari 0',
-                confirmButtonColor: '#3085d6',
-            });
-            return false;
-        }
+        displayInput.addEventListener('blur', function() {
+            const num = toNumber(this.value);
+            this.value = formatID(num);
+            hiddenInput.value = num;
+            updateHint();
+        });
         
-        // Tampilkan loading
-        const submitBtn = this.querySelector('button[type="submit"]');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...';
-        }
-        
-        return true;
+        // Initialize
+        updateHint();
+
+        // Validasi form sebelum submit
+        document.getElementById('editBopForm').addEventListener('submit', function(e) {
+            const budget = document.getElementById('budget').value;
+            
+            if (!budget || parseFloat(budget) <= 0) {
+                e.preventDefault();
+                alert('Nominal budget harus lebih dari 0');
+                return false;
+            }
+            
+            // Tampilkan loading
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...';
+            }
+            
+            return true;
+        });
     });
 </script>
-@endpush
+@endsection
 
 @endsection

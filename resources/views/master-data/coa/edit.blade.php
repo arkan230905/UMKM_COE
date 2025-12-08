@@ -13,7 +13,7 @@
             <div class="col-md-4">
                 <label class="form-label">Tipe Akun</label>
                 <select name="tipe_akun" id="tipe_akun" class="form-select" required>
-                    @php($tipeList=['Asset','Liability','Equity','Revenue','Expense','Beban'])
+                    @php($tipeList=['Asset','Liability','Equity','Revenue','Expense'])
                     @foreach($tipeList as $t)
                         <option value="{{ $t }}" {{ $coa->tipe_akun===$t?'selected':'' }}>{{ $t }}</option>
                     @endforeach

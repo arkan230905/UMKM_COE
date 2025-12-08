@@ -17,7 +17,6 @@
                     <option value="Equity">Equity</option>
                     <option value="Revenue">Revenue</option>
                     <option value="Expense">Expense</option>
-                    <option value="Beban">Beban</option>
                 </select>
             </div>
             <div class="col-md-4">

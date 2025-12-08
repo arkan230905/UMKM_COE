@@ -1,0 +1,74 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║          PANDUAN SUPER MUDAH - SIAP SERVE DALAM 5 MENIT      ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+
+📌 YANG HARUS ANDA LAKUKAN (HANYA 2 LANGKAH!)
+═══════════════════════════════════════════════════════════════
+
+LANGKAH 1: Aktifkan PHP Extensions (2 menit)
+─────────────────────────────────────────────
+
+1. Buka file ini dengan Notepad (sebagai Administrator):
+   
+   C:\xampp\php\php.ini
+
+2. Tekan Ctrl+F, cari: ;extension=intl
+   Hapus tanda ; di depannya, jadi: extension=intl
+
+3. Tekan Ctrl+F, cari: ;extension=zip
+   Hapus tanda ; di depannya, jadi: extension=zip
+
+4. Save (Ctrl+S)
+
+5. Restart Apache di XAMPP Control Panel
+
+
+LANGKAH 2: Double-Click File Ini (3 menit)
+───────────────────────────────────────────
+
+   INSTALL_OTOMATIS.bat
+
+   File ini akan otomatis:
+   ✓ Install dependencies
+   ✓ Setup environment
+   ✓ Generate key
+   ✓ Set permissions
+   ✓ Clear cache
+   ✓ Start server
+
+
+SELESAI! 🎉
+═══════════════════════════════════════════════════════════════
+
+Aplikasi akan berjalan di: http://127.0.0.1:8000
+
+
+───────────────────────────────────────────────────────────────
+💡 TIPS:
+
+- Jika bingung cara edit php.ini, buka file:
+  AKTIFKAN_EXTENSIONS.txt (ada panduan detail)
+
+- Jika ada error, cek file:
+  TROUBLESHOOTING.md
+
+- Untuk panduan lengkap, buka:
+  PANDUAN_SIAP_SERVE.md
+───────────────────────────────────────────────────────────────
+
+
+🆘 BUTUH BANTUAN?
+
+Jika masih error setelah mengikuti 2 langkah di atas:
+1. Screenshot error yang muncul
+2. Tanya saya
+3. Saya akan bantu troubleshoot
+
+
+═══════════════════════════════════════════════════════════════
+Dibuat: 8 Desember 2025
+Status: READY TO USE
+═══════════════════════════════════════════════════════════════

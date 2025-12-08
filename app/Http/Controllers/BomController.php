@@ -114,6 +114,12 @@ class BomController extends Controller
             'jumlah' => 'required|array|min:1',
             'jumlah.*' => 'required|numeric|min:0.0001',
             'satuan' => 'required|array|min:1',
+            // Process Costing fields (optional)
+            'proses_id' => 'nullable|array',
+            'proses_id.*' => 'nullable|exists:proses_produksis,id',
+            'proses_durasi' => 'nullable|array',
+            'proses_durasi.*' => 'nullable|numeric|min:0',
+            'proses_urutan' => 'nullable|array',
         ], [
             'produk_id.unique' => 'Produk ini sudah memiliki BOM',
             'bahan_baku_id.required' => 'Minimal pilih satu bahan baku',
@@ -123,41 +129,33 @@ class BomController extends Controller
         DB::beginTransaction();
 
         try {
-            // Hitung total biaya bahan baku
+            // Hitung total biaya bahan baku (BBB)
             $totalBiayaBahan = 0;
             $details = [];
-            $bahanBakuDigunakan = [];
             $bahanBakuErrors = [];
 
-            // Hitung total biaya bahan baku
             foreach ($request->bahan_baku_id as $key => $bahanBakuId) {
                 $bahanBaku = BahanBaku::with('satuan')->findOrFail($bahanBakuId);
                 $jumlah = (float)$request->jumlah[$key];
                 $satuanDipilih = strtoupper(trim($request->satuan[$key] ?? ($bahanBaku->satuan->kode ?? 'KG')));
                 
-                // Validasi harga satuan
                 $hargaSatuan = (float)$bahanBaku->harga_satuan;
                 if ($hargaSatuan <= 0) {
-                    $bahanBakuErrors[] = "Bahan baku {$bahanBaku->nama_bahan} belum memiliki harga. Silakan lakukan pembelian terlebih dahulu.";
+                    $bahanBakuErrors[] = "Bahan baku {$bahanBaku->nama_bahan} belum memiliki harga.";
                     continue;
                 }
                 
-                // Konversi ke KG untuk perhitungan
                 $jumlahDalamKg = $bahanBaku->convertToKg($jumlah, $satuanDipilih);
                 $subtotal = $hargaSatuan * $jumlahDalamKg;
-                
-                // Hitung harga per satuan yang dipilih (untuk display)
-                // Jika user pilih G, maka harga per G = harga per KG / 1000
                 $hargaPerSatuanDipilih = $subtotal / $jumlah;
                 
-                // Simpan detail
                 $details[] = [
                     'bahan_baku_id' => $bahanBakuId,
                     'jumlah' => $jumlah,
                     'satuan' => $satuanDipilih,
-                    'harga_per_satuan' => $hargaPerSatuanDipilih, // Harga per satuan yang dipilih
+                    'harga_per_satuan' => $hargaPerSatuanDipilih,
                     'total_harga' => $subtotal,
-                    'kategori' => $request->kategori[$key] ?? 'BOP',
+                    'kategori' => 'BBB',
                     'created_at' => now(),
                     'updated_at' => now()
                 ];
@@ -165,44 +163,107 @@ class BomController extends Controller
                 $totalBiayaBahan += $subtotal;
             }
             
-            // Jika ada error validasi bahan baku
             if (!empty($bahanBakuErrors)) {
                 DB::rollBack();
-                return back()
-                    ->withInput()
-                    ->withErrors(['bahan_baku' => $bahanBakuErrors]);
+                return back()->withInput()->withErrors(['bahan_baku' => $bahanBakuErrors]);
             }
 
-            // Hitung BTKL (60% dari total biaya bahan baku)
-            $btkl = $totalBiayaBahan * 0.6;
+            // Hitung BTKL dan BOP dari proses produksi (Process Costing)
+            $totalBtkl = 0;
+            $totalBop = 0;
+            $prosesData = [];
             
-            // Hitung BOP (40% dari total biaya bahan baku)
-            $bopRate = 0.4; // 40% dalam desimal
-            $bop = $totalBiayaBahan * $bopRate;
+            $hasProses = !empty($request->proses_id) && is_array($request->proses_id);
             
-            // Hitung total biaya produksi
-            $totalBiayaProduksi = $totalBiayaBahan + $btkl + $bop;
+            if ($hasProses) {
+                foreach ($request->proses_id as $key => $prosesId) {
+                    if (empty($prosesId)) continue;
+                    
+                    $proses = \App\Models\ProsesProduksi::with('prosesBops.komponenBop')->find($prosesId);
+                    if (!$proses) continue;
+                    
+                    $durasi = (float)($request->proses_durasi[$key] ?? 0);
+                    $urutan = (int)($request->proses_urutan[$key] ?? ($key + 1));
+                    
+                    // Hitung BTKL = durasi × tarif_btkl
+                    $biayaBtkl = $durasi * $proses->tarif_btkl;
+                    
+                    // Hitung BOP dari komponen default
+                    $biayaBop = 0;
+                    $bopDetails = [];
+                    foreach ($proses->prosesBops as $pb) {
+                        $kuantitas = $pb->kuantitas_default * $durasi;
+                        $tarif = $pb->komponenBop->tarif_per_satuan ?? 0;
+                        $totalBiayaKomponen = $kuantitas * $tarif;
+                        $biayaBop += $totalBiayaKomponen;
+                        
+                        $bopDetails[] = [
+                            'komponen_bop_id' => $pb->komponen_bop_id,
+                            'kuantitas' => $kuantitas,
+                            'tarif' => $tarif,
+                            'total_biaya' => $totalBiayaKomponen
+                        ];
+                    }
+                    
+                    $prosesData[] = [
+                        'proses_produksi_id' => $prosesId,
+                        'urutan' => $urutan,
+                        'durasi' => $durasi,
+                        'satuan_durasi' => $proses->satuan_btkl,
+                        'biaya_btkl' => $biayaBtkl,
+                        'biaya_bop' => $biayaBop,
+                        'bop_details' => $bopDetails
+                    ];
+                    
+                    $totalBtkl += $biayaBtkl;
+                    $totalBop += $biayaBop;
+                }
+            }
+            
+            // Fallback ke persentase jika tidak ada proses
+            if (!$hasProses || empty($prosesData)) {
+                $totalBtkl = $totalBiayaBahan * 0.6;
+                $totalBop = $totalBiayaBahan * 0.4;
+            }
+            
+            // Hitung total HPP
+            $totalHpp = $totalBiayaBahan + $totalBtkl + $totalBop;
 
             // Simpan data BOM
             $bom = new Bom();
             $bom->produk_id = $request->produk_id;
-            $bom->bahan_baku_id = $request->bahan_baku_id[0]; // Simpan bahan baku pertama
-            $bom->jumlah = $request->jumlah[0]; // Simpan jumlah bahan baku pertama
-            $bom->satuan_resep = $request->satuan[0] ?? 'pcs'; // Simpan satuan bahan baku pertama
-            $bom->total_biaya = $totalBiayaProduksi;
-            $bom->btkl_per_unit = $btkl;
-            $bom->bop_rate = $bopRate;
-            $bom->bop_per_unit = $bop;
-            $bom->total_btkl = $btkl;
-            $bom->total_bop = $bop;
+            $bom->bahan_baku_id = $request->bahan_baku_id[0];
+            $bom->jumlah = $request->jumlah[0];
+            $bom->satuan_resep = $request->satuan[0] ?? 'pcs';
+            $bom->total_bbb = $totalBiayaBahan;
+            $bom->total_biaya = $totalHpp;
+            $bom->btkl_per_unit = $totalBtkl;
+            $bom->bop_rate = $totalBiayaBahan > 0 ? ($totalBop / $totalBiayaBahan) : 0;
+            $bom->bop_per_unit = $totalBop;
+            $bom->total_btkl = $totalBtkl;
+            $bom->total_bop = $totalBop;
+            $bom->total_hpp = $totalHpp;
             $bom->periode = now()->format('Y-m');
-            // Hitung dan simpan total biaya
-            $bom->hitungTotalBiaya();
             $bom->save();
 
-            // Simpan detail BOM
+            // Simpan detail BOM (Bahan Baku)
             foreach ($details as $detail) {
                 $bom->details()->create($detail);
+            }
+            
+            // Simpan proses produksi (Process Costing)
+            if (!empty($prosesData)) {
+                foreach ($prosesData as $pd) {
+                    $bopDetails = $pd['bop_details'];
+                    unset($pd['bop_details']);
+                    
+                    $bomProses = $bom->proses()->create($pd);
+                    
+                    // Simpan detail BOP per proses
+                    foreach ($bopDetails as $bopDetail) {
+                        $bomProses->bomProsesBops()->create($bopDetail);
+                    }
+                }
             }
 
             // Update harga produk
@@ -255,42 +316,24 @@ class BomController extends Controller
     public function show($id)
     {
         try {
-            // Ambil data BOM dengan relasi yang diperlukan
+            // Ambil data BOM dengan relasi yang diperlukan termasuk proses produksi
             $bom = Bom::with([
                 'produk',
                 'details' => function($query) {
                     $query->with(['bahanBaku' => function($q) {
                         $q->with('satuan')->withDefault();
                     }]);
+                },
+                'proses' => function($query) {
+                    $query->with(['prosesProduksi', 'bomProsesBops.komponenBop'])
+                        ->orderBy('urutan');
                 }
             ])->findOrFail($id);
 
-            // Hitung total biaya bahan baku, BTKL, dan BOP
-            $totalBiayaBahanBaku = $bom->details->sum('total_harga');
-            
-            // Gunakan nilai yang sudah tersimpan di database
-            $btkl = $bom->total_btkl;
-            $bop = $bom->total_bop;
-            $totalBiayaProduksi = $bom->total_biaya; // HPP yang sudah tersimpan
-            
-            // Hitung persentase
-            $persentaseBahan = $totalBiayaBahanBaku > 0 ? ($totalBiayaBahanBaku / $totalBiayaProduksi) * 100 : 0;
-            $persentaseBTKL = $btkl > 0 ? ($btkl / $totalBiayaProduksi) * 100 : 0;
-            $persentaseBOP = $bop > 0 ? ($bop / $totalBiayaProduksi) * 100 : 0;
-
-            return view('master-data.bom.show', [
-                'bom' => $bom,
-                'totalBiayaBahanBaku' => $totalBiayaBahanBaku,
-                'btkl' => $btkl,
-                'bop' => $bop,
-                'totalBiayaProduksi' => $totalBiayaProduksi,
-                'persentaseBahan' => $persentaseBahan,
-                'persentaseBTKL' => $persentaseBTKL,
-                'persentaseBOP' => $persentaseBOP
-            ]);
+            return view('master-data.bom.show', compact('bom'));
         } catch (\Exception $e) {
             \Log::error('Error in BomController@show: ' . $e->getMessage());
-            return redirect()->route('bom.index')
+            return redirect()->route('master-data.bom.index')
                 ->with('error', 'Terjadi kesalahan saat menampilkan detail BOM: ' . $e->getMessage());
         }
     }
@@ -303,30 +346,21 @@ class BomController extends Controller
      */
     public function print($id)
     {
-        $bom = Bom::with(['produk', 'details.bahanBaku.satuan'])->findOrFail($id);
+        $bom = Bom::with([
+            'produk', 
+            'details.bahanBaku.satuan',
+            'proses' => function($query) {
+                $query->with(['prosesProduksi', 'bomProsesBops.komponenBop'])
+                    ->orderBy('urutan');
+            }
+        ])->findOrFail($id);
         
-        // Hitung total biaya
-        $totalBiayaBahan = $bom->details->sum('total_harga');
-        $totalBiayaProduksi = $bom->total_biaya;
-        
-        // Hitung persentase
-        $persentaseBahan = $totalBiayaBahan > 0 ? ($totalBiayaBahan / $totalBiayaProduksi) * 100 : 0;
-        $persentaseBTKL = $bom->total_btkl > 0 ? ($bom->total_btkl / $totalBiayaProduksi) * 100 : 0;
-        $persentaseBOP = $bom->total_bop > 0 ? ($bom->total_bop / $totalBiayaProduksi) * 100 : 0;
-        
-        return view('master-data.bom.print', [
-            'bom' => $bom,
-            'totalBiayaBahan' => $totalBiayaBahan,
-            'totalBiayaProduksi' => $totalBiayaProduksi,
-            'persentaseBahan' => $persentaseBahan,
-            'persentaseBTKL' => $persentaseBTKL,
-            'persentaseBOP' => $persentaseBOP,
-        ]);
+        return view('master-data.bom.print', compact('bom'));
     }
 
     public function edit($id)
     {
-        $bom = Bom::with(['details.bahanBaku.satuan', 'produk'])
+        $bom = Bom::with(['details.bahanBaku.satuan', 'produk', 'proses.prosesProduksi'])
             ->findOrFail($id);
             
         $bahanBakus = BahanBaku::with('satuan')->get();
@@ -349,8 +383,12 @@ class BomController extends Controller
             'jumlah' => 'required|array|min:1',
             'jumlah.*' => 'required|numeric|min:0.0001',
             'satuan' => 'required|array|min:1',
-            'kategori' => 'sometimes|array',
-            'kategori.*' => 'sometimes|string|in:BTKL,BOP',
+            // Process Costing fields (optional)
+            'proses_id' => 'nullable|array',
+            'proses_id.*' => 'nullable|exists:proses_produksis,id',
+            'proses_durasi' => 'nullable|array',
+            'proses_durasi.*' => 'nullable|numeric|min:0',
+            'proses_urutan' => 'nullable|array',
         ], [
             'produk_id.unique' => 'Produk ini sudah memiliki BOM',
             'bahan_baku_id.required' => 'Minimal pilih satu bahan baku',
@@ -362,22 +400,8 @@ class BomController extends Controller
         try {
             // Inisialisasi variabel
             $totalBiayaBahan = 0;
-            $totalBTKL = 0;
-            $totalBOP = 0;
             $details = [];
-            $bahanBakuDigunakan = [];
             $bahanBakuErrors = [];
-            
-            // Dapatkan detail BOM yang sudah ada
-            $existingDetails = $bom->details()->get();
-            $oldQuantities = [];
-            
-            // Simpan kuantitas lama untuk perhitungan stok
-            foreach ($existingDetails as $detail) {
-                $bahanBaku = $detail->bahanBaku;
-                $oldQtyInKg = $bahanBaku->convertToKg($detail->jumlah, $detail->satuan);
-                $oldQuantities[$detail->bahan_baku_id] = $oldQtyInKg;
-            }
             
             // Proses setiap bahan baku yang dimasukkan
             foreach ($request->bahan_baku_id as $key => $bahanBakuId) {
@@ -404,9 +428,9 @@ class BomController extends Controller
                     'bahan_baku_id' => $bahanBakuId,
                     'jumlah' => $jumlah,
                     'satuan' => $satuanDipilih,
-                    'harga_per_satuan' => $hargaPerSatuanDipilih, // Harga per satuan yang dipilih
+                    'harga_per_satuan' => $hargaPerSatuanDipilih,
                     'total_harga' => $subtotal,
-                    'kategori' => $request->kategori[$key] ?? 'BOP',
+                    'kategori' => 'BBB',
                     'created_at' => now(),
                     'updated_at' => now()
                 ];
@@ -422,26 +446,79 @@ class BomController extends Controller
                     ->withErrors(['bahan_baku' => $bahanBakuErrors]);
             }
 
-            // Hitung BTKL (60% dari total biaya bahan baku)
-            $btkl = $totalBiayaBahan * 0.6;
+            // Hitung BTKL dan BOP dari proses produksi (Process Costing)
+            $totalBtkl = 0;
+            $totalBop = 0;
+            $prosesData = [];
             
-            // Hitung BOP (40% dari total biaya bahan baku)
-            $bopRate = 0.4; // 40% dalam desimal
-            $bop = $totalBiayaBahan * $bopRate;
+            $hasProses = !empty($request->proses_id) && is_array($request->proses_id);
             
-            // Hitung total biaya produksi
-            $totalBiayaProduksi = $totalBiayaBahan + $btkl + $bop;
+            if ($hasProses) {
+                foreach ($request->proses_id as $key => $prosesId) {
+                    if (empty($prosesId)) continue;
+                    
+                    $proses = \App\Models\ProsesProduksi::with('prosesBops.komponenBop')->find($prosesId);
+                    if (!$proses) continue;
+                    
+                    $durasi = (float)($request->proses_durasi[$key] ?? 0);
+                    $urutan = (int)($request->proses_urutan[$key] ?? ($key + 1));
+                    
+                    // Hitung BTKL = durasi × tarif_btkl
+                    $biayaBtkl = $durasi * $proses->tarif_btkl;
+                    
+                    // Hitung BOP dari komponen default
+                    $biayaBop = 0;
+                    $bopDetails = [];
+                    foreach ($proses->prosesBops as $pb) {
+                        $kuantitas = $pb->kuantitas_default * $durasi;
+                        $tarif = $pb->komponenBop->tarif_per_satuan ?? 0;
+                        $totalBiayaKomponen = $kuantitas * $tarif;
+                        $biayaBop += $totalBiayaKomponen;
+                        
+                        $bopDetails[] = [
+                            'komponen_bop_id' => $pb->komponen_bop_id,
+                            'kuantitas' => $kuantitas,
+                            'tarif' => $tarif,
+                            'total_biaya' => $totalBiayaKomponen
+                        ];
+                    }
+                    
+                    $prosesData[] = [
+                        'proses_produksi_id' => $prosesId,
+                        'urutan' => $urutan,
+                        'durasi' => $durasi,
+                        'satuan_durasi' => $proses->satuan_btkl,
+                        'biaya_btkl' => $biayaBtkl,
+                        'biaya_bop' => $biayaBop,
+                        'bop_details' => $bopDetails
+                    ];
+                    
+                    $totalBtkl += $biayaBtkl;
+                    $totalBop += $biayaBop;
+                }
+            }
+            
+            // Fallback ke persentase jika tidak ada proses
+            if (!$hasProses || empty($prosesData)) {
+                $totalBtkl = $totalBiayaBahan * 0.6;
+                $totalBop = $totalBiayaBahan * 0.4;
+            }
+            
+            // Hitung total HPP
+            $totalHpp = $totalBiayaBahan + $totalBtkl + $totalBop;
 
             // Update data BOM
-            $bom->bahan_baku_id = $request->bahan_baku_id[0]; // Simpan bahan baku pertama
-            $bom->jumlah = $request->jumlah[0]; // Simpan jumlah bahan baku pertama
-            $bom->satuan_resep = $request->satuan[0] ?? 'pcs'; // Simpan satuan bahan baku pertama
-            $bom->total_biaya = $totalBiayaProduksi;
-            $bom->btkl_per_unit = $btkl;
-            $bom->bop_rate = $bopRate;
-            $bom->bop_per_unit = $bop;
-            $bom->total_btkl = $btkl;
-            $bom->total_bop = $bop;
+            $bom->bahan_baku_id = $request->bahan_baku_id[0];
+            $bom->jumlah = $request->jumlah[0];
+            $bom->satuan_resep = $request->satuan[0] ?? 'pcs';
+            $bom->total_bbb = $totalBiayaBahan;
+            $bom->total_biaya = $totalHpp;
+            $bom->btkl_per_unit = $totalBtkl;
+            $bom->bop_rate = $totalBiayaBahan > 0 ? ($totalBop / $totalBiayaBahan) : 0;
+            $bom->bop_per_unit = $totalBop;
+            $bom->total_btkl = $totalBtkl;
+            $bom->total_bop = $totalBop;
+            $bom->total_hpp = $totalHpp;
             $bom->periode = now()->format('Y-m');
             $bom->save();
             
@@ -451,6 +528,27 @@ class BomController extends Controller
             // Simpan detail baru
             foreach ($details as $detail) {
                 $bom->details()->create($detail);
+            }
+            
+            // Hapus proses lama
+            foreach ($bom->proses as $oldProses) {
+                $oldProses->bomProsesBops()->delete();
+            }
+            $bom->proses()->delete();
+            
+            // Simpan proses produksi baru (Process Costing)
+            if (!empty($prosesData)) {
+                foreach ($prosesData as $pd) {
+                    $bopDetails = $pd['bop_details'];
+                    unset($pd['bop_details']);
+                    
+                    $bomProses = $bom->proses()->create($pd);
+                    
+                    // Simpan detail BOP per proses
+                    foreach ($bopDetails as $bopDetail) {
+                        $bomProses->bomProsesBops()->create($bopDetail);
+                    }
+                }
             }
 
             // Update harga produk

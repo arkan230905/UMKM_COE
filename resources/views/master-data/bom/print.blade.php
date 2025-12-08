@@ -6,193 +6,187 @@
     <title>Cetak BOM - {{ $bom->produk->nama_produk }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        @page {
-            size: A4;
-            margin: 0;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            margin: 1cm;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
-        }
-        .company-name {
-            font-size: 20px;
-            font-weight: bold;
-        }
-        .report-title {
-            font-size: 18px;
-            margin: 10px 0;
-        }
-        .table {
-            width: 100%;
-            margin-bottom: 1rem;
-            color: #212529;
-            border-coll-layout: fixed;
-        }
-        .table th, .table td {
-            padding: 0.5rem;
-            vertical-align: top;
-            border: 1px solid #dee2e6;
-        }
-        .table thead th {
-            vertical-align: bottom;
-            border-bottom: 2px solid #dee2e6;
-            background-color: #f8f9fa;
-        }
-        .text-end {
-            text-align: right;
-        }
-        .text-center {
-            text-align: center;
-        }
-        .fw-bold {
-            font-weight: bold;
-        }
-        .mt-4 {
-            margin-top: 1.5rem;
-        }
-        .mb-4 {
-            margin-bottom: 1.5rem;
-        }
+        @page { size: A4; margin: 1cm; }
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+        .company-name { font-size: 18px; font-weight: bold; }
+        .report-title { font-size: 16px; margin: 10px 0; font-weight: bold; }
+        .table { width: 100%; margin-bottom: 1rem; border-collapse: collapse; }
+        .table th, .table td { padding: 6px 8px; border: 1px solid #dee2e6; }
+        .table thead th { background-color: #f8f9fa; font-weight: bold; }
+        .text-end { text-align: right; }
+        .text-center { text-align: center; }
+        .fw-bold { font-weight: bold; }
+        .section-title { background-color: #e9ecef; padding: 8px; margin: 15px 0 10px 0; font-weight: bold; }
+        .table-warning { background-color: #fff3cd; }
+        .table-info { background-color: #cff4fc; }
+        .table-success { background-color: #d1e7dd; }
+        .small { font-size: 10px; }
+        @media print { .no-print { display: none; } }
     </style>
 </head>
 <body>
     <div class="header">
-        <div class="text-center mb-3">
-            @php
-                $logoPath = public_path('Images/logo.png');
-                $logoUrl = asset('Images/logo.png');
-            @endphp
-            @if(file_exists($logoPath))
-                <img src="{{ $logoUrl }}" alt="Logo" style="max-height: 80px;">
-            @else
-                <h1 class="company-name">Nama Perusahaan</h1>
-                <p class="text-muted">Logo tidak ditemukan di: {{ $logoPath }}</p>
-            @endif
-        </div>
-        <div class="report-title">LAPORAN BILL OF MATERIAL (BOM)</div>
-        <div>Tanggal Cetak: {{ now()->format('d F Y H:i:s') }}</div>
+        @php
+            $logoPath = public_path('Images/logo.png');
+            $logoUrl = asset('Images/logo.png');
+        @endphp
+        @if(file_exists($logoPath))
+            <img src="{{ $logoUrl }}" alt="Logo" style="max-height: 60px;">
+        @else
+            <div class="company-name">UMKM COE</div>
+        @endif
+        <div class="report-title">LAPORAN BILL OF MATERIAL (BOM) - PROCESS COSTING</div>
+        <div>Tanggal Cetak: {{ now()->format('d F Y H:i') }}</div>
     </div>
 
-    <div class="mb-4">
-        <table class="table table-bordered">
-            <tr>
-                <th width="30%">Kode BOM</th>
-                <td>{{ $bom->id }}</td>
-            </tr>
-            <tr>
-                <th>Nama Produk</th>
-                <td>{{ $bom->produk->nama_produk }}</td>
-            </tr>
-            <tr>
-                <th>Tanggal Dibuat</th>
-                <td>{{ $bom->created_at->format('d F Y H:i') }}</td>
-            </tr>
-        </table>
-    </div>
+    <!-- Info Produk -->
+    <table class="table" style="width: 50%;">
+        <tr><th width="40%">Nama Produk</th><td>{{ $bom->produk->nama_produk }}</td></tr>
+        <tr><th>Periode</th><td>{{ $bom->periode ?? '-' }}</td></tr>
+        <tr><th>Tanggal Dibuat</th><td>{{ $bom->created_at->format('d F Y') }}</td></tr>
+    </table>
 
-    <div class="mb-4">
-        <h5>Rincian Bahan Baku</h5>
-        <table class="table table-bordered">
+    <!-- Section 1: BBB -->
+    <div class="section-title">1. BIAYA BAHAN BAKU (BBB)</div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th width="5%">No</th>
+                <th width="35%">Bahan Baku</th>
+                <th width="12%" class="text-end">Jumlah</th>
+                <th width="8%" class="text-center">Satuan</th>
+                <th width="18%" class="text-end">Harga Satuan</th>
+                <th width="18%" class="text-end">Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            @php $no = 1; $totalBBB = 0; @endphp
+            @foreach($bom->details as $detail)
+                @php $totalBBB += $detail->total_harga; @endphp
+                <tr>
+                    <td class="text-center">{{ $no++ }}</td>
+                    <td>{{ $detail->bahanBaku->nama_bahan ?? '-' }}</td>
+                    <td class="text-end">{{ number_format($detail->jumlah, 2, ',', '.') }}</td>
+                    <td class="text-center">{{ $detail->satuan }}</td>
+                    <td class="text-end">Rp {{ number_format($detail->harga_per_satuan, 0, ',', '.') }}</td>
+                    <td class="text-end">Rp {{ number_format($detail->total_harga, 0, ',', '.') }}</td>
+                </tr>
+            @endforeach
+            <tr class="table-warning">
+                <td colspan="5" class="text-end fw-bold">Total BBB</td>
+                <td class="text-end fw-bold">Rp {{ number_format($totalBBB, 0, ',', '.') }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Section 2: Proses Produksi -->
+    <div class="section-title">2. PROSES PRODUKSI (BTKL + BOP)</div>
+    @if($bom->proses && $bom->proses->count() > 0)
+        <table class="table">
             <thead>
                 <tr>
-                    <th>No</th>
-                    <th>Bahan Baku</th>
-                    <th class="text-end">Kuantitas</th>
-                    <th class="text-center">Satuan</th>
-                    <th class="text-end">Harga Satuan (Rp)</th>
-                    <th class="text-end">Subtotal (Rp)</th>
+                    <th width="5%">No</th>
+                    <th width="25%">Proses</th>
+                    <th width="12%" class="text-end">Durasi</th>
+                    <th width="8%" class="text-center">Satuan</th>
+                    <th width="16%" class="text-end">BTKL</th>
+                    <th width="16%" class="text-end">BOP</th>
+                    <th width="16%" class="text-end">Total</th>
                 </tr>
             </thead>
             <tbody>
-                @php $no = 1; @endphp
-                @foreach($bom->details as $detail)
+                @php $totalBTKL = 0; $totalBOP = 0; @endphp
+                @foreach($bom->proses as $proses)
+                    @php 
+                        $totalBTKL += $proses->biaya_btkl;
+                        $totalBOP += $proses->biaya_bop;
+                    @endphp
                     <tr>
-                        <td>{{ $no++ }}</td>
-                        <td>{{ $detail->bahanBaku->nama_bahan ?? $detail->bahanBaku->nama ?? 'Bahan Tidak Ditemukan' }}</td>
-                        <td class="text-end">
-                            @if(strtoupper($detail->satuan) === 'GR')
-                                {{ number_format($detail->jumlah / 1000, 3, ',', '.') }} KG
-                            @else
-                                {{ number_format($detail->jumlah, 2, ',', '.') }} {{ $detail->satuan }}
-                            @endif
+                        <td class="text-center">{{ $proses->urutan }}</td>
+                        <td>
+                            {{ $proses->prosesProduksi->nama_proses ?? '-' }}
+                            <div class="small">(Rp {{ number_format($proses->prosesProduksi->tarif_btkl ?? 0, 0, ',', '.') }}/{{ $proses->satuan_durasi }})</div>
                         </td>
-                        <td class="text-center">{{ $detail->satuan ?? 'pcs' }}</td>
-                        <td class="text-end">
-                            @php
-                                $hargaPerKg = $detail->harga_per_satuan;
-                                $hargaSatuan = (strtoupper($detail->satuan) === 'GR') ? $hargaPerKg / 1000 : $hargaPerKg;
-                            @endphp
-                            {{ number_format($hargaSatuan, 0, ',', '.') }}
-                        </td>
-                        <td class="text-end">{{ number_format($detail->total_harga, 0, ',', '.') }}</td>
+                        <td class="text-end">{{ number_format($proses->durasi, 2, ',', '.') }}</td>
+                        <td class="text-center">{{ $proses->satuan_durasi }}</td>
+                        <td class="text-end">Rp {{ number_format($proses->biaya_btkl, 0, ',', '.') }}</td>
+                        <td class="text-end">Rp {{ number_format($proses->biaya_bop, 0, ',', '.') }}</td>
+                        <td class="text-end fw-bold">Rp {{ number_format($proses->biaya_btkl + $proses->biaya_bop, 0, ',', '.') }}</td>
                     </tr>
                 @endforeach
-                <tr class="table-light">
-                    <td colspan="5" class="text-end fw-bold">Total Biaya Bahan Baku</td>
-                    <td class="text-end fw-bold">Rp {{ number_format($bom->details->sum('total_harga'), 0, ',', '.') }}</td>
+                <tr class="table-info">
+                    <td colspan="4" class="text-end fw-bold">Total BTKL</td>
+                    <td class="text-end fw-bold">Rp {{ number_format($totalBTKL, 0, ',', '.') }}</td>
+                    <td colspan="2"></td>
+                </tr>
+                <tr class="table-info">
+                    <td colspan="5" class="text-end fw-bold">Total BOP</td>
+                    <td class="text-end fw-bold">Rp {{ number_format($totalBOP, 0, ',', '.') }}</td>
+                    <td></td>
                 </tr>
             </tbody>
         </table>
-    </div>
-
-    <div class="mb-4">
-        <h5>Perhitungan Biaya Produksi</h5>
-        <table class="table table-bordered">
-            <tr>
-                <th width="60%">1. Total Biaya Bahan Baku</th>
-                <td class="text-end">Rp {{ number_format($bom->details->sum('total_harga'), 0, ',', '.') }}</td>
-            </tr>
-            <tr>
-                <th>2. Biaya Tenaga Kerja Langsung (BTKL) - 60%</th>
-                <td class="text-end">Rp {{ number_format($bom->total_btkl, 0, ',', '.') }}</td>
-            </tr>
-            <tr>
-                <th>3. Biaya Overhead Pabrik (BOP) - 40%</th>
-                <td class="text-end">
-                    Rp {{ number_format($bom->total_bop, 0, ',', '.') }}
-                    <div class="text-muted small">
-                        BOP Rate: {{ $bom->total_btkl > 0 ? number_format(($bom->total_bop / $bom->total_btkl) * 100, 2, ',', '.') : '0' }}% dari BTKL
-                    </div>
-                </td>
-            </tr>
-            <tr class="table-active">
-                <th class="text-end">TOTAL BIAYA PRODUKSI</th>
-                <th class="text-end">Rp {{ number_format(($bom->details->sum('total_harga') + $bom->total_btkl + $bom->total_bop), 0, ',', '.') }}</th>
-            </tr>
+    @else
+        <p><em>Menggunakan perhitungan persentase: BTKL 60%, BOP 40%</em></p>
+        <table class="table" style="width: 50%;">
+            <tr><td>BTKL (60%)</td><td class="text-end">Rp {{ number_format($bom->total_btkl, 0, ',', '.') }}</td></tr>
+            <tr><td>BOP (40%)</td><td class="text-end">Rp {{ number_format($bom->total_bop, 0, ',', '.') }}</td></tr>
         </table>
-    </div>
+        @php $totalBTKL = $bom->total_btkl; $totalBOP = $bom->total_bop; @endphp
+    @endif
 
-    <div class="mt-4">
-        <div class="row">
-            <div class="col-md-6">
-                <div class="text-center">
+    <!-- Section 3: Ringkasan HPP -->
+    <div class="section-title">3. RINGKASAN HARGA POKOK PRODUKSI (HPP)</div>
+    @php
+        $hpp = $totalBBB + $totalBTKL + $totalBOP;
+        $persenBBB = $hpp > 0 ? ($totalBBB / $hpp) * 100 : 0;
+        $persenBTKL = $hpp > 0 ? ($totalBTKL / $hpp) * 100 : 0;
+        $persenBOP = $hpp > 0 ? ($totalBOP / $hpp) * 100 : 0;
+    @endphp
+    <table class="table" style="width: 70%;">
+        <tr>
+            <td width="50%">Total Biaya Bahan Baku (BBB)</td>
+            <td class="text-end">Rp {{ number_format($totalBBB, 0, ',', '.') }}</td>
+            <td class="text-end">{{ number_format($persenBBB, 1, ',', '.') }}%</td>
+        </tr>
+        <tr>
+            <td>Total Biaya Tenaga Kerja Langsung (BTKL)</td>
+            <td class="text-end">Rp {{ number_format($totalBTKL, 0, ',', '.') }}</td>
+            <td class="text-end">{{ number_format($persenBTKL, 1, ',', '.') }}%</td>
+        </tr>
+        <tr>
+            <td>Total Biaya Overhead Pabrik (BOP)</td>
+            <td class="text-end">Rp {{ number_format($totalBOP, 0, ',', '.') }}</td>
+            <td class="text-end">{{ number_format($persenBOP, 1, ',', '.') }}%</td>
+        </tr>
+        <tr class="table-success fw-bold">
+            <td>HARGA POKOK PRODUKSI (HPP)</td>
+            <td class="text-end">Rp {{ number_format($hpp, 0, ',', '.') }}</td>
+            <td class="text-end">100%</td>
+        </tr>
+    </table>
+
+    <!-- Tanda Tangan -->
+    <div style="margin-top: 40px;">
+        <table style="width: 100%;">
+            <tr>
+                <td style="width: 50%; text-align: center;">
                     <p>Mengetahui,</p>
                     <br><br><br>
                     <p>_________________________</p>
                     <p>Manager Produksi</p>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="text-center">
+                </td>
+                <td style="width: 50%; text-align: center;">
                     <p>{{ date('d F Y') }}</p>
                     <br><br><br>
                     <p>_________________________</p>
                     <p>Pembuat</p>
-                </div>
-            </div>
-        </div>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <script>
-        window.onload = function() {
-            window.print();
-        }
-    </script>
+    <script>window.onload = function() { window.print(); }</script>
 </body>
 </html>

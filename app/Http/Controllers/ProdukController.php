@@ -18,6 +18,7 @@ class ProdukController extends Controller
         // Get all products with necessary columns
         $produks = Produk::select([
             'id', 
+            'barcode',
             'nama_produk', 
             'deskripsi',
             'foto',
@@ -164,6 +165,23 @@ class ProdukController extends Controller
     public function edit(Produk $produk)
     {
         return view('master-data.produk.edit', compact('produk'));
+    }
+    
+    /**
+     * Print barcode labels for a product
+     */
+    public function printBarcode(Produk $produk)
+    {
+        return view('master-data.produk.print-barcode', compact('produk'));
+    }
+    
+    /**
+     * Print barcode labels for all products
+     */
+    public function printBarcodeAll()
+    {
+        $produks = Produk::whereNotNull('barcode')->get();
+        return view('master-data.produk.print-barcode-bulk', compact('produks'));
     }
 
     public function update(Request $request, Produk $produk)

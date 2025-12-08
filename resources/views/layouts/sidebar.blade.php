@@ -84,6 +84,18 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link {{ request()->is('master-data/proses-produksi*') ? 'active' : '' }}" href="{{ route('master-data.proses-produksi.index') }}">
+                    <i class="fas fa-fw fa-cogs"></i>
+                    <span>Proses Produksi</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ request()->is('master-data/komponen-bop*') ? 'active' : '' }}" href="{{ route('master-data.komponen-bop.index') }}">
+                    <i class="fas fa-fw fa-plug"></i>
+                    <span>Komponen BOP</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link {{ request()->is('master-data/bom*') ? 'active' : '' }}" href="{{ route('master-data.bom.index') }}">
                     <i class="fas fa-fw fa-list-alt"></i>
                     <span>BOM</span>

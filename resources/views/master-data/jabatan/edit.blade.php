@@ -39,20 +39,24 @@
                     <div class="col-md-6">
                         <label class="form-label">Tunjangan (Rp)</label>
                         <input type="text" name="tunjangan" class="form-control money-input" value="{{ old('tunjangan',$jabatan->tunjangan) }}">
+                        <small class="text-white money-hint"></small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Asuransi (Rp)</label>
                         <input type="text" name="asuransi" class="form-control money-input" value="{{ old('asuransi',$jabatan->asuransi) }}">
+                        <small class="text-white money-hint"></small>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Gaji (Rp)</label>
-                        <input type="text" name="gaji" class="form-control money-input" value="{{ old('gaji',$jabatan->gaji) }}">
-                        <small class="text-white">BTKTL: gaji per bulan. BTKL: isi 0.</small>
+                        <label class="form-label">Gaji Pokok (Rp)</label>
+                        <input type="text" name="gaji_pokok" class="form-control money-input" value="{{ old('gaji_pokok',$jabatan->gaji_pokok) }}">
+                        <small class="text-white money-hint"></small>
+                        <small class="text-white d-block">BTKTL: gaji per bulan. BTKL: isi 0.</small>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Tarif / Jam (Rp)</label>
-                        <input type="text" name="tarif" class="form-control money-input" value="{{ old('tarif',$jabatan->tarif) }}">
-                        <small class="text-white">BTKL: tarif per jam. BTKTL: isi 0.</small>
+                        <label class="form-label">Tarif Lembur / Jam (Rp)</label>
+                        <input type="text" name="tarif_lembur" class="form-control money-input" value="{{ old('tarif_lembur',$jabatan->tarif_lembur) }}">
+                        <small class="text-white money-hint"></small>
+                        <small class="text-white d-block">BTKL: tarif per jam. BTKTL: isi 0.</small>
                     </div>
                 </div>
 
@@ -69,7 +73,6 @@
                 if (val === null || val === undefined) return '';
                 let v = String(val).replace(/[^0-9,.]/g, '');
                 if (!v) return '';
-                // Treat the first comma as decimal separator, ignore dots when parsing
                 const commaIndex = v.indexOf(',');
                 let rawInt = commaIndex >= 0 ? v.slice(0, commaIndex) : v;
                 let rawDec = commaIndex >= 0 ? v.slice(commaIndex + 1) : '';
@@ -80,11 +83,43 @@
                 if (/^0{1,2}$/.test(rawDec)) return intPart;
                 return intPart + ',' + rawDec;
             };
+            const toNumber = (formatted) => {
+                if (!formatted) return 0;
+                let s = String(formatted).trim();
+                s = s.replace(/\./g,'').replace(',', '.');
+                let n = parseFloat(s);
+                return isNaN(n) ? 0 : n;
+            };
+            const compactID = (n) => {
+                const u = [
+                    {v:1e12, s:' triliun'},
+                    {v:1e9, s:' miliar'},
+                    {v:1e6, s:' juta'},
+                    {v:1e3, s:' ribu'},
+                ];
+                for (const it of u) {
+                    if (n >= it.v) {
+                        const val = (n / it.v).toFixed(2).replace(/\.00$/,'');
+                        return val + it.s;
+                    }
+                }
+                return '';
+            };
             const inputs = document.querySelectorAll('.money-input');
             inputs.forEach((inp) => {
                 inp.value = formatID(inp.value);
-                inp.addEventListener('input', () => { inp.value = formatID(inp.value); });
-                inp.addEventListener('blur', () => { inp.value = formatID(inp.value); });
+                const hint = inp.parentElement.querySelector('.money-hint');
+                const updateHint = () => {
+                    const num = toNumber(inp.value);
+                    const text = compactID(num);
+                    if (hint) hint.textContent = text ? '(' + text + ')' : '';
+                };
+                updateHint();
+                inp.addEventListener('input', () => {
+                    inp.value = formatID(inp.value);
+                    updateHint();
+                });
+                inp.addEventListener('blur', () => { inp.value = formatID(inp.value); updateHint(); });
             });
         })();
     </script>

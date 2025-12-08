@@ -12,6 +12,18 @@
             <input type="text" name="nama_produk" id="nama_produk" class="form-control" value="{{ $produk->nama_produk }}" required>
         </div>
         <div class="mb-3">
+            <label for="barcode" class="form-label">Barcode</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+                <input type="text" name="barcode" id="barcode" class="form-control barcode-input" 
+                       value="{{ $produk->barcode }}" readonly>
+                <button type="button" class="btn btn-outline-secondary" onclick="copyBarcode()" title="Salin Barcode">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <small style="color: #ffffff;">Format EAN-13. Barcode tidak dapat diubah.</small>
+        </div>
+        <div class="mb-3">
             <label for="deskripsi" class="form-label">Deskripsi</label>
             <textarea name="deskripsi" id="deskripsi" class="form-control" rows="3">{{ $produk->deskripsi }}</textarea>
         </div>
@@ -91,11 +103,40 @@ function removePreview() {
     fileInput.value = '';
     previewContainer.style.display = 'none';
 }
+
+function copyBarcode() {
+    const barcodeInput = document.getElementById('barcode');
+    if (barcodeInput && barcodeInput.value) {
+        navigator.clipboard.writeText(barcodeInput.value).then(function() {
+            // Show success feedback
+            const btn = event.target.closest('button');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i>';
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-success');
+            setTimeout(function() {
+                btn.innerHTML = originalHtml;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-outline-secondary');
+            }, 1500);
+        }).catch(function(err) {
+            alert('Gagal menyalin barcode');
+        });
+    }
+}
 </script>
 @endpush
 
 @push('styles')
 <style>
+    /* Barcode Input Styling */
+    .barcode-input {
+        font-family: 'Courier New', monospace;
+        font-size: 16px;
+        letter-spacing: 2px;
+        font-weight: bold;
+    }
+    
     /* Current Image Styling */
     .current-image-wrapper {
         display: inline-block;

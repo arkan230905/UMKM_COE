@@ -56,8 +56,8 @@
                             <th>Kategori</th>
                             <th>Tunjangan</th>
                             <th>Asuransi</th>
-                            <th>Gaji</th>
-                            <th>Tarif/Jam</th>
+                            <th>Gaji Pokok</th>
+                            <th>Tarif Lembur/Jam</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -69,8 +69,8 @@
                             <td><span class="badge bg-{{ $row->kategori==='btkl'?'primary':'success' }}">{{ strtoupper($row->kategori) }}</span></td>
                             <td>Rp {{ number_format($row->tunjangan,0,',','.') }}</td>
                             <td>Rp {{ number_format($row->asuransi,0,',','.') }}</td>
-                            <td>Rp {{ number_format($row->gaji,0,',','.') }}</td>
-                            <td>Rp {{ number_format($row->tarif,0,',','.') }}</td>
+                            <td>Rp {{ number_format($row->gaji_pokok,0,',','.') }}</td>
+                            <td>Rp {{ number_format($row->tarif_lembur,0,',','.') }}</td>
                             <td class="text-center">
                                 <a href="{{ route('master-data.jabatan.edit',$row->id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
                                 <form action="{{ route('master-data.jabatan.destroy',$row->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus jabatan ini?')">
