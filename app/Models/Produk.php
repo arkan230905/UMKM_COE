@@ -12,6 +12,7 @@ class Produk extends Model
     protected $table = 'produks';
     protected $fillable = [
         'kode_produk',
+        'barcode',
         'nama_produk',
         'foto',
         'deskripsi',
@@ -30,6 +31,22 @@ class Produk extends Model
         'labor_hours_per_unit',
         'btkl_per_unit',
     ];
+    
+    /**
+     * Generate barcode otomatis untuk produk baru
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($produk) {
+            if (empty($produk->barcode)) {
+                // Generate barcode format EAN-13: 8992XXXXXXXXX
+                $lastId = static::max('id') ?? 0;
+                $produk->barcode = '8992' . str_pad($lastId + 1, 9, '0', STR_PAD_LEFT);
+            }
+        });
+    }
     
     /**
      * Get the kategori that owns the Produk

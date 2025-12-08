@@ -110,9 +110,18 @@
         /* Table Styles */
         .table-responsive {
             border-radius: 8px;
-            overflow: hidden;
+            overflow-x: auto;
+            overflow-y: visible;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin-bottom: 2rem;
+        }
+        
+        /* Custom Scroll Wrapper for wide tables */
+        .table-scroll-wrapper {
+            width: 100%;
+            overflow-x: auto !important;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
         }
         
         .table {

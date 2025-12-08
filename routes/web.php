@@ -232,9 +232,11 @@ Route::middleware('auth')->group(function () {
         Route::prefix('produk')->name('produk.')->group(function () {
             Route::get('/', [ProdukController::class, 'index'])->name('index');
             Route::get('/create', [ProdukController::class, 'create'])->name('create');
+            Route::get('/print-barcode-all', [ProdukController::class, 'printBarcodeAll'])->name('print-barcode-all');
             Route::post('/', [ProdukController::class, 'store'])->name('store');
             Route::get('/{produk}', [ProdukController::class, 'show'])->name('show');
             Route::get('/{produk}/edit', [ProdukController::class, 'edit'])->name('edit');
+            Route::get('/{produk}/print-barcode', [ProdukController::class, 'printBarcode'])->name('print-barcode');
             Route::put('/{produk}', [ProdukController::class, 'update'])->name('update');
             Route::delete('/{produk}', [ProdukController::class, 'destroy'])->name('destroy');
         });
@@ -274,6 +276,28 @@ Route::middleware('auth')->group(function () {
             Route::get('/{bom}/edit', [BomController::class, 'edit'])->name('edit');
             Route::put('/{bom}', [BomController::class, 'update'])->name('update');
             Route::delete('/{bom}', [BomController::class, 'destroy'])->name('destroy');
+        });
+        
+        // Proses Produksi Routes (Process Costing)
+        Route::prefix('proses-produksi')->name('proses-produksi.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ProsesProduksiController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\ProsesProduksiController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\ProsesProduksiController::class, 'store'])->name('store');
+            Route::get('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'show'])->name('show');
+            Route::get('/{prosesProduksi}/edit', [\App\Http\Controllers\ProsesProduksiController::class, 'edit'])->name('edit');
+            Route::put('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'update'])->name('update');
+            Route::delete('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'destroy'])->name('destroy');
+        });
+        
+        // Komponen BOP Routes (Overhead Components)
+        Route::prefix('komponen-bop')->name('komponen-bop.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\KomponenBopController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\KomponenBopController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\KomponenBopController::class, 'store'])->name('store');
+            Route::get('/{komponenBop}', [\App\Http\Controllers\KomponenBopController::class, 'show'])->name('show');
+            Route::get('/{komponenBop}/edit', [\App\Http\Controllers\KomponenBopController::class, 'edit'])->name('edit');
+            Route::put('/{komponenBop}', [\App\Http\Controllers\KomponenBopController::class, 'update'])->name('update');
+            Route::delete('/{komponenBop}', [\App\Http\Controllers\KomponenBopController::class, 'destroy'])->name('destroy');
         });
     });
 
@@ -351,6 +375,7 @@ Route::middleware('auth')->group(function () {
         // ✅ PENJUALAN
         // ============================================================
         Route::resource('penjualan', PenjualanController::class);
+        Route::get('penjualan/barcode/{barcode}', [PenjualanController::class, 'findByBarcode'])->name('penjualan.barcode');
 
         // ============================================================
         // ✅ RETUR

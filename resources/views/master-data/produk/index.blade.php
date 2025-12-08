@@ -1,12 +1,72 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+    /* Horizontal Scroll Table - Force scroll */
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .table-scroll-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar {
+        height: 10px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-thumb {
+        background: #007bff;
+        border-radius: 4px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #0056b3;
+    }
+    
+    #dataTable {
+        min-width: 1400px !important;
+        width: 100%;
+        margin-bottom: 0;
+    }
+    
+    #dataTable th, #dataTable td {
+        white-space: nowrap;
+        vertical-align: middle;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .scroll-hint {
+        text-align: center;
+        padding: 5px;
+        background: #e9ecef;
+        color: #666;
+        font-size: 12px;
+        border-radius: 0 0 4px 4px;
+    }
+</style>
+
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Daftar Produk</h1>
-        <a href="{{ route('master-data.produk.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Tambah Produk
-        </a>
+        <div class="btn-group">
+            <a href="{{ route('master-data.produk.print-barcode-all') }}" class="btn btn-info" target="_blank">
+                <i class="fas fa-barcode"></i> Cetak Semua Barcode
+            </a>
+            <a href="{{ route('master-data.produk.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Tambah Produk
+            </a>
+        </div>
     </div>
 
     @if(session('success'))
@@ -20,19 +80,21 @@
 
     <div class="card shadow mb-4">
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+            <div class="scroll-hint">← Geser tabel ke kiri/kanan untuk melihat semua kolom →</div>
+            <div class="table-scroll-wrapper">
+                <table class="table table-bordered table-hover" id="dataTable" cellspacing="0">
                     <thead class="thead-light">
                         <tr>
                             <th width="5%">#</th>
                             <th>Foto</th>
+                            <th>Barcode</th>
                             <th>Nama Produk</th>
                             <th>Deskripsi</th>
                             <th class="text-right">Harga BOM</th>
                             <th class="text-center">Margin</th>
                             <th class="text-right">Harga Jual</th>
                             <th class="text-center">Stok</th>
-                            <th width="15%" class="text-center">Aksi</th>
+                            <th width="12%" class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -65,6 +127,16 @@
                                         </div>
                                     @endif
                                 </td>
+                                <td class="barcode-cell text-center">
+                                    @if($produk->barcode)
+                                        <div class="barcode-wrapper">
+                                            <svg class="barcode-svg" data-barcode="{{ $produk->barcode }}"></svg>
+                                            <div class="barcode-number">{{ $produk->barcode }}</div>
+                                        </div>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                                 <td>{{ $produk->nama_produk }}</td>
                                 <td>{{ $produk->deskripsi ? \Illuminate\Support\Str::limit($produk->deskripsi, 50) : '-' }}</td>
                                 <td class="text-right">Rp {{ number_format($hargaBomProduk, 0, ',', '.') }}</td>
@@ -75,6 +147,15 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group" role="group">
+                                        @if($produk->barcode)
+                                        <a href="{{ route('master-data.produk.print-barcode', $produk->id) }}" 
+                                           class="btn btn-sm btn-info" 
+                                           data-bs-toggle="tooltip" 
+                                           title="Cetak Label Barcode"
+                                           target="_blank">
+                                            <i class="fas fa-barcode"></i>
+                                        </a>
+                                        @endif
                                         <a href="{{ route('master-data.produk.edit', $produk->id) }}" 
                                            class="btn btn-sm btn-warning" 
                                            data-bs-toggle="tooltip" 
@@ -96,7 +177,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center">Tidak ada data produk</td>
+                                <td colspan="10" class="text-center">Tidak ada data produk</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -108,8 +189,39 @@
 
 @push('styles')
 <style>
+    /* Horizontal Scroll Table */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 1rem;
+    }
+    
+    .table-responsive::-webkit-scrollbar {
+        height: 8px;
+    }
+    
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+    
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    
+    #dataTable {
+        min-width: 1200px;
+        white-space: nowrap;
+    }
+    
     .table th, .table td {
         vertical-align: middle;
+        padding: 0.5rem 0.75rem;
     }
     .btn-group .btn {
         margin: 0 2px;
@@ -200,6 +312,30 @@
         line-height: 1;
     }
     
+    /* Barcode Styling - Supermarket Style */
+    .barcode-cell {
+        min-width: 120px;
+    }
+    .barcode-wrapper {
+        display: inline-block;
+        background: #fff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #e9ecef;
+        text-align: center;
+    }
+    .barcode-svg {
+        display: block;
+        margin: 0 auto;
+    }
+    .barcode-number {
+        font-family: 'Courier New', monospace;
+        font-size: 10px;
+        color: #333;
+        margin-top: 2px;
+        letter-spacing: 1px;
+    }
+    
     /* Modal Image Styling */
     #imageModal .modal-dialog {
         max-width: 90vw;
@@ -248,6 +384,42 @@
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+<!-- JsBarcode Library untuk tampilan barcode seperti supermarket -->
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+<!-- Initialize Barcodes -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Generate visual barcodes
+    document.querySelectorAll('.barcode-svg').forEach(function(svg) {
+        const barcodeValue = svg.getAttribute('data-barcode');
+        if (barcodeValue) {
+            try {
+                JsBarcode(svg, barcodeValue, {
+                    format: "EAN13",
+                    width: 1.2,
+                    height: 30,
+                    displayValue: false,
+                    margin: 0,
+                    background: "transparent"
+                });
+            } catch (e) {
+                // Fallback untuk barcode yang tidak valid EAN-13
+                JsBarcode(svg, barcodeValue, {
+                    format: "CODE128",
+                    width: 1,
+                    height: 30,
+                    displayValue: false,
+                    margin: 0,
+                    background: "transparent"
+                });
+            }
+        }
+    });
+    console.log('✅ Barcodes generated');
+});
+</script>
 
 <script>
     // Fungsi global untuk lightbox - HARUS di atas agar bisa dipanggil dari onclick
@@ -310,6 +482,12 @@
             $('#dataTable').DataTable().destroy();
         }
         
+        // Get actual column count
+        const headerCount = $('#dataTable thead th').length;
+        const lastColIndex = headerCount - 1;
+        
+        console.log('📊 DataTable initializing with ' + headerCount + ' columns');
+        
         const table = $('#dataTable').DataTable({
             "language": {
                 "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json"
@@ -317,22 +495,22 @@
             "columnDefs": [
                 { 
                     "orderable": false, 
-                    "targets": [0, 8] 
+                    "targets": [0, lastColIndex] 
                 },
                 { 
                     "searchable": false, 
-                    "targets": [0, 8] 
+                    "targets": [0, lastColIndex] 
                 },
                 {
                     "className": "text-end",
-                    "targets": [4, 6]
+                    "targets": [5, 7]
                 },
                 {
                     "className": "text-center",
-                    "targets": [1, 5, 7, 8]
+                    "targets": [1, 2, 6, 8, lastColIndex]
                 }
             ],
-            "order": [[2, 'asc']],
+            "order": [[3, 'asc']],
             "pageLength": 25
         });
         

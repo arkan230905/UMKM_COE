@@ -15,11 +15,13 @@ class Bom extends Model
         'jumlah',
         'satuan_resep',
         'total_biaya',
+        'total_bbb',
         'btkl_per_unit',
         'bop_rate',
         'bop_per_unit',
         'total_btkl',
         'total_bop',
+        'total_hpp',
         'periode',
         'created_at',
         'updated_at'
@@ -28,11 +30,13 @@ class Bom extends Model
     protected $casts = [
         'jumlah' => 'decimal:4',
         'total_biaya' => 'decimal:2',
+        'total_bbb' => 'decimal:2',
         'btkl_per_unit' => 'decimal:2',
         'bop_rate' => 'decimal:2',
         'bop_per_unit' => 'decimal:2',
         'total_btkl' => 'decimal:2',
-        'total_bop' => 'decimal:2'
+        'total_bop' => 'decimal:2',
+        'total_hpp' => 'decimal:2'
     ];
 
     protected static function booted()
@@ -80,13 +84,21 @@ class Bom extends Model
     }
     
     /**
-     * Get the details for the BOM.
+     * Get the details for the BOM (Bahan Baku / BBB).
      */
     public function details()
     {
         return $this->hasMany(BomDetail::class)->with(['bahanBaku' => function($query) {
             $query->with('satuan')->withDefault();
         }]);
+    }
+    
+    /**
+     * Get the production processes for the BOM (BTKL + BOP).
+     */
+    public function proses()
+    {
+        return $this->hasMany(BomProses::class, 'bom_id')->orderBy('urutan');
     }
     
     /**
@@ -107,24 +119,39 @@ class Bom extends Model
     }
     
     /**
-     * Calculate total cost including BTKL and BOP.
+     * Calculate total cost including BTKL and BOP using Process Costing method.
+     * HPP = Total BBB + Total BTKL + Total BOP
      * Returns total biaya produksi (HPP)
      */
     public function hitungTotalBiaya()
     {
-        $totalBahanBaku = $this->details->sum('total_harga');
+        // Total BBB (Biaya Bahan Baku) dari detail BOM
+        $totalBBB = $this->details->sum('total_harga');
+        $this->total_bbb = $totalBBB;
         
-        // Hitung BTKL dan BOP jika belum ada
-        if (!$this->total_btkl) {
-            $this->total_btkl = $totalBahanBaku * 0.6; // 60%
-        }
-        if (!$this->total_bop) {
-            $this->total_bop = $totalBahanBaku * 0.4; // 40%
+        // Cek apakah ada proses produksi yang didefinisikan
+        $hasProses = $this->proses()->exists();
+        
+        if ($hasProses) {
+            // Process Costing: Hitung dari proses produksi
+            $this->total_btkl = $this->proses->sum('biaya_btkl');
+            $this->total_bop = $this->proses->sum('biaya_bop');
+        } else {
+            // Fallback: Gunakan persentase jika belum ada proses
+            // Ini untuk backward compatibility dengan BOM lama
+            if (!$this->total_btkl) {
+                $this->total_btkl = $totalBBB * 0.6; // 60%
+            }
+            if (!$this->total_bop) {
+                $this->total_bop = $totalBBB * 0.4; // 40%
+            }
         }
         
-        // Total biaya = bahan baku + BTKL + BOP
-        $this->total_biaya = $totalBahanBaku + $this->total_btkl + $this->total_bop;
-        return $this->total_biaya;
+        // Total HPP = BBB + BTKL + BOP
+        $this->total_hpp = $totalBBB + $this->total_btkl + $this->total_bop;
+        $this->total_biaya = $this->total_hpp; // Untuk backward compatibility
+        
+        return $this->total_hpp;
     }
     
     /**

@@ -30,6 +30,15 @@
                 </div>
 
                 <div class="mb-3">
+                    <label class="form-label">Barcode</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+                        <input type="text" class="form-control" value="Auto-generate (EAN-13)" disabled readonly>
+                    </div>
+                    <small style="color: #ffffff;">Barcode akan dibuat otomatis saat produk disimpan dengan format EAN-13.</small>
+                </div>
+
+                <div class="mb-3">
                     <label for="deskripsi" class="form-label">Deskripsi</label>
                     <textarea name="deskripsi" id="deskripsi" rows="3" 
                               class="form-control">{{ old('deskripsi') }}</textarea>

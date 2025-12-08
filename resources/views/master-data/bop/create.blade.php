@@ -71,25 +71,21 @@
 
                 <!-- Nominal Budget -->
                 <div class="mb-3">
-                    <label for="budget" class="form-label fw-bold text-white">
+                    <label for="budget_display" class="form-label fw-bold text-white">
                         Nominal Budget <span class="text-danger">*</span>
                     </label>
                     <div class="input-group input-group-lg">
                         <span class="input-group-text bg-success text-white fw-bold">Rp</span>
-                        <input type="number" 
-                               class="form-control form-control-lg bg-dark text-white @error('budget') is-invalid @enderror" 
-                               id="budget" 
-                               name="budget" 
-                               value="{{ old('budget') }}"
-                               placeholder="Masukkan nominal budget..."
-                               style="color: #ffffff !important;"
-                               min="0"
-                               step="1"
+                        <input type="text" 
+                               class="form-control form-control-lg bg-dark text-white money-input @error('budget') is-invalid @enderror" 
+                               id="budget_display" 
+                               value="{{ old('budget') ? number_format(old('budget'), 0, ',', '.') : '' }}"
+                               placeholder="Ketik nominal..."
+                               style="color: #ffffff !important; font-size: 1.25rem; font-weight: 500;"
                                required>
+                        <input type="hidden" name="budget" id="budget" value="{{ old('budget', 0) }}">
                     </div>
-                    <small class="text-white">
-                        <i class="fas fa-lightbulb me-1"></i>Contoh: 10000000 untuk Rp 10.000.000
-                    </small>
+                    <small class="text-success money-hint" style="font-size: 0.95rem;"></small>
                     @error('budget')
                         <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror
@@ -126,7 +122,7 @@
 </div>
 @endsection
 
-@push('scripts')
+@section('scripts')
 <script>
     function updateSelectedAkun() {
         const select = document.getElementById('kode_akun');
@@ -143,21 +139,79 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Format angka pada input budget
-        const budgetInput = document.getElementById('budget');
+        // Money formatting functions
+        const formatID = (val) => {
+            if (val === null || val === undefined || val === '') return '';
+            let v = String(val).replace(/[^0-9]/g, '');
+            if (!v) return '';
+            return v.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        };
         
-        budgetInput.addEventListener('input', function(e) {
-            // Hapus karakter non-digit
-            this.value = this.value.replace(/[^0-9]/g, '');
+        const toNumber = (formatted) => {
+            if (!formatted) return 0;
+            let s = String(formatted).replace(/\./g, '');
+            let n = parseInt(s, 10);
+            return isNaN(n) ? 0 : n;
+        };
+        
+        const compactID = (n) => {
+            if (n === 0) return '';
+            const u = [
+                {v:1e12, s:' triliun'},
+                {v:1e9, s:' miliar'},
+                {v:1e6, s:' juta'},
+                {v:1e3, s:' ribu'},
+            ];
+            for (const it of u) {
+                if (n >= it.v) {
+                    const val = (n / it.v).toFixed(2).replace(/\.00$/,'').replace(/\.0$/,'');
+                    return '= ' + val + it.s;
+                }
+            }
+            return '= ' + n + ' rupiah';
+        };
+
+        // Setup money input
+        const displayInput = document.getElementById('budget_display');
+        const hiddenInput = document.getElementById('budget');
+        const hint = document.querySelector('.money-hint');
+        
+        const updateHint = () => {
+            const num = toNumber(displayInput.value);
+            hint.textContent = compactID(num);
+        };
+        
+        displayInput.addEventListener('input', function() {
+            const num = toNumber(this.value);
+            this.value = formatID(num);
+            hiddenInput.value = num;
+            updateHint();
         });
+        
+        displayInput.addEventListener('blur', function() {
+            const num = toNumber(this.value);
+            this.value = formatID(num);
+            hiddenInput.value = num;
+            updateHint();
+        });
+        
+        // Initialize
+        if (displayInput.value) {
+            displayInput.value = formatID(toNumber(displayInput.value));
+            updateHint();
+        }
 
         // Validasi form sebelum submit
         document.getElementById('bopForm').addEventListener('submit', function(e) {
-            const budget = document.getElementById('budget').value;
+            // Pastikan hidden input terupdate
+            const displayVal = document.getElementById('budget_display').value;
+            const num = toNumber(displayVal);
+            document.getElementById('budget').value = num;
             
-            if (!budget || parseFloat(budget) <= 0) {
+            if (!num || num <= 0) {
                 e.preventDefault();
-                alert('Nominal budget harus lebih dari 0');
+                alert('Nominal budget harus diisi dan lebih dari 0');
+                document.getElementById('budget_display').focus();
                 return false;
             }
             
@@ -168,4 +222,4 @@
         });
     });
 </script>
-@endpush
+@endsection

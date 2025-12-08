@@ -351,4 +351,46 @@ class PenjualanController extends Controller
         return redirect()->route('transaksi.penjualan.index')
                          ->with('success', 'Data penjualan dan jurnal terkait berhasil dihapus.');
     }
+    
+    /**
+     * Find product by barcode (API endpoint for barcode scanner)
+     */
+    public function findByBarcode($barcode)
+    {
+        $produk = Produk::where('barcode', $barcode)->first();
+        
+        if (!$produk) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak ditemukan'
+            ], 404);
+        }
+        
+        // Calculate available stock
+        $stokMasuk = \DB::table('stock_movements')
+            ->where('item_type', 'product')
+            ->where('item_id', $produk->id)
+            ->where('direction', 'in')
+            ->sum('qty');
+        
+        $stokKeluar = \DB::table('stock_movements')
+            ->where('item_type', 'product')
+            ->where('item_id', $produk->id)
+            ->where('direction', 'out')
+            ->sum('qty');
+        
+        $stokTersedia = $stokMasuk - $stokKeluar;
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $produk->id,
+                'barcode' => $produk->barcode,
+                'nama_produk' => $produk->nama_produk,
+                'harga_jual' => $produk->harga_jual ?? 0,
+                'stok_tersedia' => $stokTersedia,
+                'foto' => $produk->foto ? asset('storage/' . $produk->foto) : null,
+            ]
+        ]);
+    }
 }

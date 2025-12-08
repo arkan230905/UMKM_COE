@@ -8,17 +8,37 @@ return new class extends Migration
 {
     public function up()
     {
+        // Skip - kolom sudah ada atau tabel berbeda struktur
+        if (!Schema::hasTable('bops')) {
+            return;
+        }
+        
         Schema::table('bops', function (Blueprint $table) {
-            $table->decimal('budget', 15, 2)->default(0)->after('nominal');
-            $table->string('periode', 7)->nullable()->after('budget');
-            $table->boolean('is_active')->default(true)->after('periode');
+            if (!Schema::hasColumn('bops', 'budget')) {
+                $table->decimal('budget', 15, 2)->default(0)->nullable();
+            }
+            if (!Schema::hasColumn('bops', 'periode')) {
+                $table->string('periode', 7)->nullable();
+            }
+            if (!Schema::hasColumn('bops', 'is_active')) {
+                $table->boolean('is_active')->default(true);
+            }
         });
     }
 
     public function down()
     {
+        if (!Schema::hasTable('bops')) {
+            return;
+        }
+        
         Schema::table('bops', function (Blueprint $table) {
-            $table->dropColumn(['budget', 'periode', 'is_active']);
+            $columns = ['budget', 'periode', 'is_active'];
+            foreach ($columns as $col) {
+                if (Schema::hasColumn('bops', $col)) {
+                    $table->dropColumn($col);
+                }
+            }
         });
     }
 };
