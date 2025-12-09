@@ -29,13 +29,19 @@ class Aset extends Model
         'tanggal_akuisisi',
         'status',
         'metode_penyusutan',
+        'tarif_penyusutan',
+        'bulan_mulai',
+        'tanggal_perolehan',
         'akumulasi_penyusutan',
-        'keterangan'
+        'keterangan',
+        'updated_by',
+        'locked'
     ];
 
     protected $casts = [
         'tanggal_beli' => 'date',
         'tanggal_akuisisi' => 'date',
+        'tanggal_perolehan' => 'date',
         'harga_perolehan' => 'decimal:2',
         'biaya_perolehan' => 'decimal:2',
         'nilai_residu' => 'decimal:2',
@@ -143,12 +149,8 @@ class Aset extends Model
      */
     public function hitungBebanPenyusutanBulanan(): float
     {
-        $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
-        $nilaiTerdepresiasi = $total - (float)($this->nilai_residu ?? 0);
-        $umurTahun = (int)($this->umur_manfaat ?? $this->umur_ekonomis_tahun ?? 0);
-        $bulanEkonomis = max($umurTahun, 0) * 12;
-
-        return $bulanEkonomis > 0 ? ($nilaiTerdepresiasi / $bulanEkonomis) : 0.0;
+        $tahunan = $this->hitungBebanPenyusutanTahunan();
+        return $tahunan / 12;
     }
 
     /**
@@ -157,9 +159,44 @@ class Aset extends Model
     public function hitungBebanPenyusutanTahunan(): float
     {
         $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
-        $nilaiTerdepresiasi = $total - (float)($this->nilai_residu ?? 0);
-        $umurTahun = (int)($this->umur_manfaat ?? $this->umur_ekonomis_tahun ?? 0);
-        return $umurTahun > 0 ? ($nilaiTerdepresiasi / $umurTahun) : 0.0;
+        $tarif = $this->tarif_penyusutan ? ($this->tarif_penyusutan / 100) : 0;
+        return $tarif > 0 ? ($total * $tarif) : 0.0;
+    }
+
+    /**
+     * Hitung beban penyusutan tahun pertama (proporsional berdasarkan bulan perolehan)
+     */
+    public function hitungPenyusutanTahunPertama(): float
+    {
+        $tahunan = $this->hitungBebanPenyusutanTahunan();
+        
+        if ($tahunan <= 0) {
+            return 0.0;
+        }
+        
+        // Untuk metode garis lurus, tahun pertama selalu penuh
+        if ($this->metode_penyusutan === 'garis_lurus') {
+            return $tahunan;
+        }
+        
+        // Ambil tanggal perolehan (tanggal_akuisisi atau tanggal_beli)
+        $tanggalPerolehan = $this->tanggal_akuisisi ?? $this->tanggal_beli;
+        
+        // Jika ada bulan_mulai yang diset, gunakan itu
+        if ($this->bulan_mulai && $this->bulan_mulai >= 1 && $this->bulan_mulai <= 12) {
+            $bulanPerolehan = $this->bulan_mulai;
+        } elseif ($tanggalPerolehan) {
+            $tanggal = \Carbon\Carbon::parse($tanggalPerolehan);
+            $bulanPerolehan = $tanggal->month;
+        } else {
+            return $tahunan; // Jika tidak ada tanggal atau bulan_mulai, gunakan tahunan penuh
+        }
+        
+        // Hitung sisa bulan dari bulan perolehan sampai Desember
+        $sisaBulan = 12 - $bulanPerolehan + 1; // +1 karena termasuk bulan perolehan
+        
+        // Proporsional penyusutan untuk tahun pertama
+        return $tahunan * ($sisaBulan / 12);
     }
 
     /**
@@ -181,16 +218,39 @@ class Aset extends Model
     }
 
     /**
+     * Update penyusutan values based on current tarif
+     */
+    public function updatePenyusutanValues(): void
+    {
+        $this->penyusutan_per_tahun = $this->hitungBebanPenyusutanTahunan();
+        $this->penyusutan_per_bulan = $this->hitungBebanPenyusutanBulanan();
+        $this->save();
+    }
+
+    /**
      * Accessor: penyusutan per tahun (depreciation_per_year) ala contoh.
      */
     public function getDepreciationPerYearAttribute(): float
     {
         $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
-        $umur = (int)($this->umur_manfaat ?? $this->umur_ekonomis_tahun ?? 0);
-        if ($umur > 0) {
-            return ($total - (float)($this->nilai_residu ?? 0)) / $umur;
-        }
-        return 0.0;
+        $tarif = $this->tarif_penyusutan ? ($this->tarif_penyusutan / 100) : 0;
+        return $tarif > 0 ? ($total * $tarif) : 0.0;
+    }
+
+    /**
+     * Accessor untuk display penyusutan per tahun (selalu penuh)
+     */
+    public function getPenyusutanPerTahunAttribute(): float
+    {
+        return $this->getDepreciationPerYearAttribute();
+    }
+
+    /**
+     * Accessor untuk display penyusutan per bulan
+     */
+    public function getPenyusutanPerBulanAttribute(): float
+    {
+        return $this->getPenyusutanPerTahunAttribute() / 12;
     }
 
     /**

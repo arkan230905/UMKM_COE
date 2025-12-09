@@ -24,6 +24,9 @@ class Asset extends Model
         'locked',
         'expense_coa_id',
         'accum_depr_coa_id',
+        'metode_penyusutan',
+        'tarif_penyusutan',
+        'bulan_mulai',
     ];
 
     protected $casts = [

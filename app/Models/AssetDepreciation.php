@@ -26,6 +26,6 @@ class AssetDepreciation extends Model
 
     public function asset(): BelongsTo
     {
-        return $this->belongsTo(Asset::class);
+        return $this->belongsTo(Aset::class, 'asset_id');
     }
 }
