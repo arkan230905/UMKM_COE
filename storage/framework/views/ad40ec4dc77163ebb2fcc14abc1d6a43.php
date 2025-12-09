@@ -1,88 +1,157 @@
-@extends('layouts.app')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container text-light">
     <h2 class="mb-4 text-white">Tambah Aset Baru</h2>
 
-    @if ($errors->any())
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($errors->any()): ?>
         <div class="alert alert-danger">
             <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <li><?php echo e($error); ?></li>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             </ul>
         </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-    @if (session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('error')): ?>
+        <div class="alert alert-danger"><?php echo e(session('error')); ?></div>
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-    @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('success')): ?>
+        <div class="alert alert-success"><?php echo e(session('success')); ?></div>
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
     <div class="card">
         <div class="card-body">
-            <form action="{{ route('master-data.aset.store') }}" method="POST" id="asetForm">
-                @csrf
+            <form action="<?php echo e(route('master-data.aset.store')); ?>" method="POST" id="asetForm">
+                <?php echo csrf_field(); ?>
                 
                 <div class="mb-3">
                     <label for="nama_aset" class="form-label text-white">Nama Aset <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control bg-dark text-white @error('nama_aset') is-invalid @enderror" 
-                           id="nama_aset" name="nama_aset" value="{{ old('nama_aset') }}" required>
-                    @error('nama_aset')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                    <input type="text" class="form-control bg-dark text-white <?php $__errorArgs = ['nama_aset'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                           id="nama_aset" name="nama_aset" value="<?php echo e(old('nama_aset')); ?>" required>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['nama_aset'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <div class="invalid-feedback"><?php echo e($message); ?></div>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
 
                 <div class="mb-3">
                     <label for="jenis_aset_id" class="form-label text-white">Jenis Aset <span class="text-danger">*</span></label>
-                    <select class="form-select bg-dark text-white @error('jenis_aset_id') is-invalid @enderror" 
+                    <select class="form-select bg-dark text-white <?php $__errorArgs = ['jenis_aset_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
                             id="jenis_aset_id" name="jenis_aset_id" required onchange="loadKategoriAset()">
                         <option value="" disabled selected>-- Pilih Jenis Aset --</option>
-                        @foreach($jenisAsets as $jenis)
-                            <option value="{{ $jenis->id }}" {{ old('jenis_aset_id') == $jenis->id ? 'selected' : '' }}>
-                                {{ $jenis->nama }}
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $jenisAsets; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $jenis): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <option value="<?php echo e($jenis->id); ?>" <?php echo e(old('jenis_aset_id') == $jenis->id ? 'selected' : ''); ?>>
+                                <?php echo e($jenis->nama); ?>
+
                             </option>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </select>
-                    @error('jenis_aset_id')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['jenis_aset_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <div class="invalid-feedback"><?php echo e($message); ?></div>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
 
                 <div class="mb-3">
                     <label for="kategori_aset_id" class="form-label text-white">Kategori Aset <span class="text-danger">*</span></label>
-                    <select class="form-select bg-dark text-white @error('kategori_aset_id') is-invalid @enderror" 
+                    <select class="form-select bg-dark text-white <?php $__errorArgs = ['kategori_aset_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
                             id="kategori_aset_id" name="kategori_aset_id" required onchange="checkPenyusutan()">
                         <option value="" disabled selected>-- Pilih Jenis Aset terlebih dahulu --</option>
                     </select>
-                    @error('kategori_aset_id')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['kategori_aset_id'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <div class="invalid-feedback"><?php echo e($message); ?></div>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="harga_perolehan" class="form-label text-white">Harga Perolehan (Rp) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" class="form-control bg-dark text-white @error('harga_perolehan') is-invalid @enderror" 
-                               id="harga_perolehan" name="harga_perolehan" value="{{ old('harga_perolehan', 0) }}" 
+                        <input type="number" step="0.01" class="form-control bg-dark text-white <?php $__errorArgs = ['harga_perolehan'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                               id="harga_perolehan" name="harga_perolehan" value="<?php echo e(old('harga_perolehan', 0)); ?>" 
                                required oninput="hitungTotal()">
-                        @error('harga_perolehan')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['harga_perolehan'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                            <div class="invalid-feedback"><?php echo e($message); ?></div>
+                        <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label for="biaya_perolehan" class="form-label text-white">Biaya Perolehan (Rp)</label>
-                        <input type="number" step="0.01" class="form-control bg-dark text-white @error('biaya_perolehan') is-invalid @enderror" 
-                               id="biaya_perolehan" name="biaya_perolehan" value="{{ old('biaya_perolehan', 0) }}" 
+                        <input type="number" step="0.01" class="form-control bg-dark text-white <?php $__errorArgs = ['biaya_perolehan'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                               id="biaya_perolehan" name="biaya_perolehan" value="<?php echo e(old('biaya_perolehan', 0)); ?>" 
                                required oninput="hitungTotal()">
                         <small class="text-muted">Biaya tambahan seperti ongkir, instalasi, dll</small>
-                        @error('biaya_perolehan')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['biaya_perolehan'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                            <div class="invalid-feedback"><?php echo e($message); ?></div>
+                        <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </div>
                 </div>
 
@@ -101,47 +170,97 @@
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="metode_penyusutan" class="form-label text-white">Metode Penyusutan <span class="text-danger">*</span></label>
-                            <select class="form-select bg-dark text-white @error('metode_penyusutan') is-invalid @enderror" 
+                            <select class="form-select bg-dark text-white <?php $__errorArgs = ['metode_penyusutan'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
                                     id="metode_penyusutan" name="metode_penyusutan" onchange="hitungPenyusutan()">
                                 <option value="" disabled selected>-- Pilih Metode --</option>
-                                @foreach($metodePenyusutan as $key => $value)
-                                    <option value="{{ $key }}" {{ old('metode_penyusutan') == $key ? 'selected' : '' }}>
-                                        {{ $value }}
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $metodePenyusutan; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $value): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <option value="<?php echo e($key); ?>" <?php echo e(old('metode_penyusutan') == $key ? 'selected' : ''); ?>>
+                                        <?php echo e($value); ?>
+
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </select>
-                            @error('metode_penyusutan')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['metode_penyusutan'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </div>
 
                         <div class="col-md-4 mb-3">
                             <label for="umur_manfaat" class="form-label text-white">Umur Manfaat (tahun) <span class="text-danger">*</span></label>
-                            <input type="number" step="1" min="1" class="form-control bg-dark text-white @error('umur_manfaat') is-invalid @enderror" 
-                                   id="umur_manfaat" name="umur_manfaat" value="{{ old('umur_manfaat') }}" 
+                            <input type="number" step="1" min="1" class="form-control bg-dark text-white <?php $__errorArgs = ['umur_manfaat'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                                   id="umur_manfaat" name="umur_manfaat" value="<?php echo e(old('umur_manfaat')); ?>" 
                                    oninput="hitungPenyusutan()">
                             <small class="text-muted">Perkiraan umur ekonomis aset</small>
-                            @error('umur_manfaat')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['umur_manfaat'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </div>
 
                         <!-- Tarif Penyusutan Per Tahun (hanya untuk saldo menurun) -->
                         <div class="col-md-4 mb-3" id="tarif_penyusutan_container" style="display: none;">
                             <label for="tarif_penyusutan" class="form-label text-white">Tarif Penyusutan Per Tahun (%)</label>
-                            <input type="number" step="0.1" min="0" max="200" class="form-control bg-dark text-white @error('tarif_penyusutan') is-invalid @enderror" 
-                                   id="tarif_penyusutan" name="tarif_penyusutan" value="{{ old('tarif_penyusutan') }}" 
+                            <input type="number" step="0.1" min="0" max="200" class="form-control bg-dark text-white <?php $__errorArgs = ['tarif_penyusutan'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                                   id="tarif_penyusutan" name="tarif_penyusutan" value="<?php echo e(old('tarif_penyusutan')); ?>" 
                                    oninput="hitungPenyusutan()">
                             <small class="text-muted">Tarif penyusutan dalam persen (contoh: 50 untuk 50%)</small>
-                            @error('tarif_penyusutan')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['tarif_penyusutan'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </div>
 
                         <!-- Bulan Mulai (hanya untuk saldo menurun) -->
                         <div class="col-md-4 mb-3" id="bulan_mulai_container" style="display: none;">
                             <label for="bulan_mulai" class="form-label text-white">Bulan Mulai</label>
-                            <select class="form-select bg-dark text-white @error('bulan_mulai') is-invalid @enderror" 
+                            <select class="form-select bg-dark text-white <?php $__errorArgs = ['bulan_mulai'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
                                     id="bulan_mulai" name="bulan_mulai" onchange="hitungPenyusutan()">
                                 <option value="1">Januari</option>
                                 <option value="2">Februari</option>
@@ -157,32 +276,67 @@
                                 <option value="12">Desember</option>
                             </select>
                             <small class="text-muted">Bulan pembelian aset</small>
-                            @error('bulan_mulai')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['bulan_mulai'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </div>
 
                         <!-- Tanggal Perolehan (hanya untuk jumlah angka tahun) -->
                         <div class="col-md-4 mb-3" id="tanggal_perolehan_container" style="display: none;">
                             <label for="tanggal_perolehan" class="form-label text-white">Tanggal Perolehan <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control bg-dark text-white @error('tanggal_perolehan') is-invalid @enderror" 
-                                   id="tanggal_perolehan" name="tanggal_perolehan" value="{{ old('tanggal_perolehan') }}" 
+                            <input type="date" class="form-control bg-dark text-white <?php $__errorArgs = ['tanggal_perolehan'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                                   id="tanggal_perolehan" name="tanggal_perolehan" value="<?php echo e(old('tanggal_perolehan')); ?>" 
                                    onchange="hitungPenyusutan()">
                             <small class="text-muted">Tanggal pembelian aset</small>
-                            @error('tanggal_perolehan')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['tanggal_perolehan'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </div>
 
                         <div class="col-md-4 mb-3">
                             <label for="nilai_residu" class="form-label text-white">Nilai Residu (Rp)</label>
-                            <input type="number" step="0.01" class="form-control bg-dark text-white @error('nilai_residu') is-invalid @enderror" 
-                                   id="nilai_residu" name="nilai_residu" value="{{ old('nilai_residu', 0) }}" 
+                            <input type="number" step="0.01" class="form-control bg-dark text-white <?php $__errorArgs = ['nilai_residu'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                                   id="nilai_residu" name="nilai_residu" value="<?php echo e(old('nilai_residu', 0)); ?>" 
                                    oninput="hitungPenyusutan()">
                             <small class="text-muted">Nilai sisa di akhir umur manfaat</small>
-                            @error('nilai_residu')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['nilai_residu'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                                <div class="invalid-feedback"><?php echo e($message); ?></div>
+                            <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </div>
                     </div>
 
@@ -279,38 +433,80 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="tanggal_beli" class="form-label text-white">Tanggal Pembelian <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control bg-dark text-white @error('tanggal_beli') is-invalid @enderror" 
-                               id="tanggal_beli" name="tanggal_beli" value="{{ old('tanggal_beli', date('Y-m-d')) }}" required>
-                        @error('tanggal_beli')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        <input type="date" class="form-control bg-dark text-white <?php $__errorArgs = ['tanggal_beli'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                               id="tanggal_beli" name="tanggal_beli" value="<?php echo e(old('tanggal_beli', date('Y-m-d'))); ?>" required>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['tanggal_beli'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                            <div class="invalid-feedback"><?php echo e($message); ?></div>
+                        <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </div>
 
                     <div class="col-md-6 mb-3">
                         <label for="tanggal_akuisisi" class="form-label text-white">Tanggal Mulai Penyusutan</label>
-                        <input type="date" class="form-control bg-dark text-white @error('tanggal_akuisisi') is-invalid @enderror" 
-                               id="tanggal_akuisisi" name="tanggal_akuisisi" value="{{ old('tanggal_akuisisi') }}">
+                        <input type="date" class="form-control bg-dark text-white <?php $__errorArgs = ['tanggal_akuisisi'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                               id="tanggal_akuisisi" name="tanggal_akuisisi" value="<?php echo e(old('tanggal_akuisisi')); ?>">
                         <small class="text-muted">Kosongkan jika sama dengan tanggal pembelian</small>
-                        @error('tanggal_akuisisi')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['tanggal_akuisisi'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                            <div class="invalid-feedback"><?php echo e($message); ?></div>
+                        <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label for="keterangan" class="form-label text-white">Keterangan</label>
-                    <textarea class="form-control bg-dark text-white @error('keterangan') is-invalid @enderror" 
-                              id="keterangan" name="keterangan" rows="3">{{ old('keterangan') }}</textarea>
-                    @error('keterangan')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
+                    <textarea class="form-control bg-dark text-white <?php $__errorArgs = ['keterangan'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?> is-invalid <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>" 
+                              id="keterangan" name="keterangan" rows="3"><?php echo e(old('keterangan')); ?></textarea>
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__errorArgs = ['keterangan'];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                        <div class="invalid-feedback"><?php echo e($message); ?></div>
+                    <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
 
                 <div class="mb-3">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-save me-1"></i> Simpan Aset
                     </button>
-                    <a href="{{ route('master-data.aset.index') }}" class="btn btn-secondary">
+                    <a href="<?php echo e(route('master-data.aset.index')); ?>" class="btn btn-secondary">
                         <i class="bi bi-x-circle me-1"></i> Batal
                     </a>
                 </div>
@@ -321,7 +517,7 @@
 
 <script>
 // Data kategori aset per jenis
-const kategoriData = @json($jenisAsets);
+const kategoriData = <?php echo json_encode($jenisAsets, 15, 512) ?>;
 
 // Fungsi untuk format number otomatis
 function formatNumber(input) {
@@ -358,7 +554,7 @@ function loadKategoriAset() {
                 option.textContent = kategori.nama;
                 option.dataset.disusutkan = kategori.disusutkan ? '1' : '0';
                 option.dataset.jenisNama = jenis.nama;
-                if ('{{ old("kategori_aset_id") }}' == kategori.id) {
+                if ('<?php echo e(old("kategori_aset_id")); ?>' == kategori.id) {
                     option.selected = true;
                 }
                 kategoriSelect.appendChild(option);
@@ -724,7 +920,7 @@ function formatRupiah(angka) {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     // Load kategori if jenis already selected
-    if ('{{ old("jenis_aset_id") }}') {
+    if ('<?php echo e(old("jenis_aset_id")); ?>') {
         loadKategoriAset();
     }
     
@@ -732,4 +928,6 @@ document.addEventListener('DOMContentLoaded', function() {
     hitungTotal();
 });
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampppp\htdocs\UMKM_COE\resources\views/master-data/aset/create.blade.php ENDPATH**/ ?>

@@ -14,52 +14,34 @@
         <div class="col-md-3"><strong>Harga Perolehan</strong><div>Rp {{ number_format((float)$asset->harga_perolehan, 2, ',', '.') }}</div></div>
         <div class="col-md-3"><strong>Nilai Sisa</strong><div>Rp {{ number_format((float)$asset->nilai_sisa, 2, ',', '.') }}</div></div>
         <div class="col-md-3"><strong>Umur Ekonomis</strong><div>{{ $asset->umur_ekonomis }} tahun</div></div>
-        <div class="col-md-3"><strong>Tanggal Beli</strong><div>{{ optional($asset->tanggal_beli)->format('d M Y') }}</div></div>
+        <div class="col-md-3"><strong>Tanggal Perolehan</strong><div>{{ optional($asset->tanggal_perolehan)->format('d M Y') }}</div></div>
       </div>
 
-      <div class="accordion" id="accDepr">
-        @foreach($depreciation_schedule as $year)
-          <div class="accordion-item">
-            <h2 class="accordion-header" id="head-{{ $year['tahun'] }}">
-              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#col-{{ $year['tahun'] }}" aria-expanded="false" aria-controls="col-{{ $year['tahun'] }}">
-                <div class="w-100 d-flex justify-content-between">
-                  <span>Tahun {{ $year['tahun'] }} — Periode {{ $year['periode'] }}</span>
-                  <span>
-                    Beban: Rp {{ number_format((float)$year['biaya_penyusutan'], 2, ',', '.') }} ·
-                    Akumulasi: Rp {{ number_format((float)$year['akumulasi_penyusutan'], 2, ',', '.') }} ·
-                    Nilai Buku: Rp {{ number_format((float)$year['nilai_buku'], 2, ',', '.') }}
-                  </span>
-                </div>
-              </button>
-            </h2>
-            <div id="col-{{ $year['tahun'] }}" class="accordion-collapse collapse" aria-labelledby="head-{{ $year['tahun'] }}" data-bs-parent="#accDepr">
-              <div class="accordion-body">
-                <div class="table-responsive">
-                  <table class="table table-sm table-striped align-middle mb-0">
-                    <thead>
-                      <tr>
-                        <th>Bulan</th>
-                        <th class="text-end">Beban Penyusutan</th>
-                        <th class="text-end">Akumulasi Penyusutan</th>
-                        <th class="text-end">Nilai Buku</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      @foreach($year['monthly_breakdown'] as $m)
-                        <tr>
-                          <td>{{ $m['month'] }}</td>
-                          <td class="text-end">Rp {{ number_format((float)$m['biaya_penyusutan'], 2, ',', '.') }}</td>
-                          <td class="text-end">Rp {{ number_format((float)$m['akumulasi_penyusutan'], 2, ',', '.') }}</td>
-                          <td class="text-end">Rp {{ number_format((float)$m['nilai_buku'], 2, ',', '.') }}</td>
-                        </tr>
-                      @endforeach
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        @endforeach
+      <div class="table-responsive">
+        <table class="table table-striped align-middle">
+          <thead>
+            <tr>
+              <th>TAHUN</th>
+              <th class="text-end">PENYUSUTAN</th>
+              <th class="text-end">AKUMULASI PENY</th>
+              <th class="text-end">NILAI BUKU</th>
+            </tr>
+          </thead>
+          <tbody>
+            @forelse($depreciation_schedule as $year)
+              <tr>
+                <td>{{ $year->tahun }}</td>
+                <td class="text-end">Rp {{ number_format((float)$year->beban_penyusutan, 2, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format((float)$year->akumulasi_penyusutan, 2, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format((float)$year->nilai_buku_akhir, 2, ',', '.') }}</td>
+              </tr>
+            @empty
+              <tr>
+                <td colspan="4" class="text-center text-muted">Belum ada jadwal penyusutan</td>
+              </tr>
+            @endforelse
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
