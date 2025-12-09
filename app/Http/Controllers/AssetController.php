@@ -106,11 +106,14 @@ class AssetController extends Controller
             return redirect()->route('aset.index')->with('error', 'Unauthorized access to this asset.');
         }
 
-        $schedule = $asset->calculateDepreciationSchedule();
+        // Load depreciation data dari database
+        $depreciationData = \App\Models\AssetDepreciation::where('asset_id', $asset->id)
+            ->orderBy('tahun')
+            ->get();
 
         return view('aset.depreciation', [
             'asset' => $asset,
-            'depreciation_schedule' => $schedule,
+            'depreciation_schedule' => $depreciationData,
         ]);
     }
 }
