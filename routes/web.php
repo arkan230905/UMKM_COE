@@ -139,6 +139,7 @@ Route::middleware('auth')->group(function () {
 
         // Reviews
         Route::post('/reviews', [\App\Http\Controllers\Pelanggan\ReviewController::class, 'store'])->name('reviews.store');
+        Route::put('/reviews/{id}', [\App\Http\Controllers\Pelanggan\ReviewController::class, 'update'])->name('reviews.update');
     });
 
     // Midtrans Callback (tidak perlu auth karena dari server Midtrans)

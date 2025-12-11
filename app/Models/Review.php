@@ -32,6 +32,19 @@ class Review extends Model
         return $this->belongsTo(User::class);
     }
 
+    // Relasi ke produk melalui order items
+    public function produk()
+    {
+        return $this->hasOneThrough(
+            Produk::class,
+            OrderItem::class,
+            'order_id', // Foreign key di order_items
+            'id', // Foreign key di produk
+            'order_id', // Local key di reviews
+            'produk_id' // Local key di order_items
+        );
+    }
+
     // Scope untuk rating tertentu
     public function scopeRating($query, $rating)
     {

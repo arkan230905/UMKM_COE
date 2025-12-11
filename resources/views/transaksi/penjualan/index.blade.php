@@ -98,8 +98,7 @@
                 <td>
                     <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn btn-warning btn-sm">Edit</a>
                     <a href="{{ route('transaksi.retur-penjualan.create', ['penjualan_id' => $penjualan->id]) }}" class="btn btn-info btn-sm">Retur</a>
-                    <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn btn-outline-primary btn-sm">Jurnal</a>
-                    <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale_cogs', 'ref_id' => $penjualan->id]) }}" class="btn btn-secondary btn-sm">Jurnal HPP</a>
+                                        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale_cogs', 'ref_id' => $penjualan->id]) }}" class="btn btn-secondary btn-sm">Jurnal HPP</a>
                     <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
                         @csrf
                         @method('DELETE')

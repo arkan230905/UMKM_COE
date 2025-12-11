@@ -10,6 +10,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     
+    <?php echo $__env->yieldContent('styles'); ?>
+    
     <style>
         body {
             background-color: #f5f5f5;
@@ -110,20 +112,6 @@
                             <i class="bi bi-house-door"></i> Beranda
                         </a>
                     </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?php echo e(route('pelanggan.orders')); ?>">
-                            <i class="bi bi-box-seam"></i> Pesanan Saya
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?php echo e(route('pelanggan.returns.create')); ?>">
-                            <i class="bi bi-arrow-counterclockwise"></i> Retur
-                        </a>
-                    </li>
-                    
-                    
 
                     <li class="nav-item mx-2">
                         <a href="<?php echo e(route('pelanggan.cart')); ?>" class="btn btn-cart">
@@ -145,6 +133,16 @@
                                     <i class="bi bi-box-seam"></i> Pesanan Saya
                                 </a>
                             </li>
+                            <li>
+                                <a class="dropdown-item" href="<?php echo e(route('pelanggan.favorites')); ?>">
+                                    <i class="bi bi-heart"></i> Favorite
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="<?php echo e(route('pelanggan.returns.create')); ?>">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Retur
+                                </a>
+                            </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <form method="POST" action="<?php echo e(route('logout')); ?>">
@@ -164,6 +162,7 @@
     <!-- Main Content -->
     <div class="main-content">
         <?php echo $__env->yieldContent('content'); ?>
+        <?php echo $__env->yieldContent('review-section'); ?>
     </div>
 
     <!-- Footer -->

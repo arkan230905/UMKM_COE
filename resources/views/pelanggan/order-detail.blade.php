@@ -195,6 +195,210 @@ document.getElementById('pay-button').addEventListener('click', function () {
 </script>
 @endif
 
+@section('review-section')
+@if($order->status === 'completed' || $order->payment_status === 'paid')
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0 text-dark"><i class="bi bi-star"></i> Review Produk</h5>
+    </div>
+    <div class="card-body">
+        @php
+            $existingReview = App\Models\Review::where('order_id', $order->id)
+                ->where('user_id', auth()->id())
+                ->first();
+        @endphp
+        
+        @if($existingReview)
+            <div class="alert alert-info">
+                <h6>Review Anda:</h6>
+                <div class="mb-2">
+                    @for($i = 1; $i <= 5; $i++)
+                        <i class="bi bi-star-fill text-{{ $i <= $existingReview->rating ? 'warning' : 'secondary' }}"></i>
+                    @endfor
+                    <span class="ms-2">{{ $existingReview->rating }}/5</span>
+                </div>
+                @if($existingReview->comment)
+                    <p class="mb-2">{{ $existingReview->comment }}</p>
+                @endif
+                
+                <!-- Edit Review Button -->
+                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editReviewModal">
+                    <i class="bi bi-pencil"></i> Edit Review
+                </button>
+            </div>
+        @else
+            <div class="alert alert-light">
+                <p class="mb-3">Belum memberikan review? Berikan review untuk produk ini:</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reviewModal">
+                    <i class="bi bi-star"></i> Berikan Review
+                </button>
+            </div>
+        @endif
+    </div>
+</div>
+
+<!-- Review Modal -->
+@if(!$existingReview)
+<div class="modal fade" id="reviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Berikan Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('pelanggan.reviews.store') }}" method="POST">
+                @csrf
+                <input type="hidden" name="order_id" value="{{ $order->id }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Rating</label>
+                        <div class="rating-input">
+                            @for($i = 1; $i <= 5; $i++)
+                                <input type="radio" id="star{{ $i }}" name="rating" value="{{ $i }}" class="d-none" required>
+                                <label for="star{{ $i }}" class="bi bi-star rating-star" data-rating="{{ $i }}"></label>
+                            @endfor
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Komentar (opsional)</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="3" maxlength="1000"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Kirim Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- Edit Review Modal -->
+@if($existingReview)
+<div class="modal fade" id="editReviewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ route('pelanggan.reviews.update', $existingReview->id) }}" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Rating</label>
+                        <div class="rating-input">
+                            @for($i = 1; $i <= 5; $i++)
+                                <input type="radio" id="editstar{{ $i }}" name="rating" value="{{ $i }}" class="d-none" required {{ $i == $existingReview->rating ? 'checked' : '' }}>
+                                <label for="editstar{{ $i }}" class="bi bi-star rating-star" data-rating="{{ $i }}"></label>
+                            @endfor
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editcomment" class="form-label">Komentar (opsional)</label>
+                        <textarea class="form-control" id="editcomment" name="comment" rows="3" maxlength="1000">{{ $existingReview->comment }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Update Review</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+@endif
+@endif
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Rating stars functionality
+    const ratingStars = document.querySelectorAll('.rating-star');
+    const ratingInputs = document.querySelectorAll('input[name="rating"]');
+    
+    ratingStars.forEach(star => {
+        star.addEventListener('click', function() {
+            const rating = parseInt(this.dataset.rating);
+            
+            // Uncheck all inputs first
+            ratingInputs.forEach(input => input.checked = false);
+            
+            // Check the selected input
+            const selectedInput = document.querySelector(`input[name="rating"][value="${rating}"]`);
+            if (selectedInput) {
+                selectedInput.checked = true;
+            }
+            
+            // Update star colors
+            updateStarColors(rating);
+        });
+        
+        star.addEventListener('mouseenter', function() {
+            const rating = parseInt(this.dataset.rating);
+            updateStarColors(rating);
+        });
+    });
+    
+    // Reset colors when leaving rating area
+    document.querySelector('.rating-input')?.addEventListener('mouseleave', function() {
+        const checkedInput = document.querySelector('input[name="rating"]:checked');
+        const rating = checkedInput ? parseInt(checkedInput.value) : 0;
+        updateStarColors(rating);
+    });
+    
+    function updateStarColors(selectedRating) {
+        ratingStars.forEach((star, index) => {
+            const starRating = parseInt(star.dataset.rating);
+            if (starRating <= selectedRating) {
+                star.classList.remove('bi-star');
+                star.classList.add('bi-star-fill', 'text-warning');
+            } else {
+                star.classList.remove('bi-star-fill', 'text-warning');
+                star.classList.add('bi-star');
+            }
+        });
+    }
+    
+    // Initialize with checked rating
+    const checkedInput = document.querySelector('input[name="rating"]:checked');
+    if (checkedInput) {
+        updateStarColors(parseInt(checkedInput.value));
+    }
+});
+    
+    // Show success notification for review
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('review_success')) {
+        const rating = urlParams.get('rating') || '';
+        showNotification(`Berhasil me-rating produk dengan ${rating} bintang! Terima kasih atas review Anda.`, 'success');
+    }
+    
+    function showNotification(message, type = 'success') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.style.position = 'fixed';
+        alertDiv.style.top = '20px';
+        alertDiv.style.right = '20px';
+        alertDiv.style.zIndex = '9999';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+});
+</script>
+@endsection
+
 <style>
 .timeline-item {
     padding-left: 30px;
@@ -205,6 +409,36 @@ document.getElementById('pay-button').addEventListener('click', function () {
     position: absolute;
     left: 0;
     top: 0;
+}
+
+/* Rating Stars */
+.rating-input {
+    display: flex;
+    gap: 5px;
+}
+
+.rating-star {
+    font-size: 24px;
+    color: #ddd;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.rating-star:hover {
+    color: #ffc107;
+}
+
+input[type="radio"]:checked + .rating-star {
+    color: #ffc107;
+}
+
+.rating-display {
+    display: flex;
+    gap: 2px;
+}
+
+.rating-display .bi {
+    font-size: 16px;
 }
 </style>
 @endsection

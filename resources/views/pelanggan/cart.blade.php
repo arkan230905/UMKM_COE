@@ -1,8 +1,29 @@
 @extends('layouts.pelanggan')
 
 @section('content')
-<div class="container py-4">
-    <h2 class="mb-4 text-dark">Keranjang Belanja</h2>
+<!-- HERO AESTHETIC SPECIAL FOR CART -->
+<div class="hero-cart mb-5">
+
+    <!-- Bubbles -->
+    <div class="cart-bubble bubble-1"></div>
+    <div class="cart-bubble bubble-2"></div>
+
+    <div class="container py-4 text-center">
+        
+        <span class="cart-pill">Keranjang Kamu 🛒</span>
+
+        <h1 class="cart-title fw-bold">
+            Kelola & Review Pesananmu
+        </h1>
+
+        <p class="cart-subtext">
+            Cek kembali produk pilihanmu, atur jumlahnya, lalu lanjut checkout 💜
+        </p>
+
+    </div>
+</div>
+
+<div class="container">
 
     @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show">
@@ -125,3 +146,115 @@
     @endif
 </div>
 @endsection
+
+<style>
+
+/* ======================================================
+   HERO CART AESTHETIC (MATCH TEMA DASHBOARD)
+====================================================== */
+.hero-cart {
+    background: linear-gradient(135deg, #f6f8ff, #e8efff);
+    border-radius: 0 0 18px 18px;
+    padding: 28px 0 22px; /* pendek & profesional */
+    text-align: center;
+    color: #2f2f45; /* abu gelap elegan */
+    border-bottom: 1px solid #d9e2ff; /* formal separator */
+}
+
+/* Tidak ada bubble */
+.cart-bubble, .bubble-1, .bubble-2 {
+    display: none !important;
+}
+
+/* Title */
+.cart-title {
+    font-size: 1.8rem;
+    font-weight: 400;
+    color: #2c3e50; /* corporate friendly */
+}
+
+.cart-pill {
+    background: #e0e7ff;
+    color: #3f4a6b;
+    padding: 5px 14px;
+    border-radius: 30px;
+    font-size: .78rem;
+    font-weight: 600;
+}
+
+.cart-subtext {
+    font-size: .9rem;
+    color: #5c6784;
+    margin-top: 4px;
+}
+
+/* ======================================================
+   TABLE CART STYLING (CLEAN & MODERN)
+====================================================== */
+.table-hover tbody tr:hover {
+    background: #f6f1ff !important;
+}
+
+.table thead th {
+    background: #f3ecff !important;
+    color: #4b2e83;
+}
+
+.table-striped > tbody > tr:nth-child(odd) {
+    background-color: #faf7ff !important;
+}
+
+/* Qty buttons */
+.btn-primary {
+    background: linear-gradient(135deg, #7d5cff, #9c6bff) !important;
+    border: none !important;
+}
+.btn-primary:hover {
+    box-shadow: 0 4px 15px rgba(125,92,255,0.4);
+}
+
+/* Remove Button */
+.btn-danger {
+    background: #ff5e7d !important;
+    border: none !important;
+}
+.btn-danger:hover {
+    background: #e44866 !important;
+    transform: translateY(-2px);
+}
+
+/* Quantity input */
+input[type="number"] {
+    border: 1px solid #d3c7ff !important;
+    border-radius: 5px !important;
+}
+
+/* Summary Section Buttons */
+.btn-outline-danger {
+    border-radius: 25px !important;
+    border-color: #ff7d96 !important;
+    color: #ff7d96 !important;
+}
+.btn-outline-danger:hover {
+    background: #ff7d96 !important;
+    color: white !important;
+}
+
+/* Checkout Button */
+.btn-primary.ms-2 {
+    font-weight: 600;
+    border-radius: 25px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .cart-title {
+        font-size: 1.7rem;
+    }
+    .hero-cart {
+        padding: 40px 0;
+    }
+}
+
+</style>
+

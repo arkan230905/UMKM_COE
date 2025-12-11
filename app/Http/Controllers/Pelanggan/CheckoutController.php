@@ -7,6 +7,8 @@ use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Notification;
+use App\Models\Penjualan;
+use App\Models\PenjualanDetail;
 use App\Services\MidtransService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,11 +40,20 @@ class CheckoutController extends Controller
 
     public function process(Request $request)
     {
+        $allowedMethods = ['qris', 'va_bca', 'va_bni', 'va_bri', 'va_mandiri', 'cash'];
+        
+        // Debug: Log the received payment method
+        \Log::info('Payment method received: ' . $request->payment_method);
+        
+        if (!in_array($request->payment_method, $allowedMethods)) {
+            return back()->with('error', 'Metode pembayaran tidak valid! Received: ' . $request->payment_method);
+        }
+        
         $request->validate([
             'nama_penerima' => 'required|string|max:255',
             'alamat_pengiriman' => 'required|string',
             'telepon_penerima' => 'required|string|max:20',
-            'payment_method' => 'required|in:qris,va_bca,va_bni,va_bri,va_mandiri,cash',
+            'payment_method' => 'required|string',
             'catatan' => 'nullable|string',
         ]);
 
@@ -63,8 +74,8 @@ class CheckoutController extends Controller
                 }
             }
 
-            // Determine stored method and note for cash
-            $storedMethod = $request->payment_method === 'cash' ? null : $request->payment_method;
+            // Store payment method as-is
+            $storedMethod = $request->payment_method;
             $catatanInput = $request->catatan;
             if ($request->payment_method === 'cash') {
                 $prefixNote = 'Metode: Cash (Bayar di Kasir). ';
@@ -112,6 +123,9 @@ class CheckoutController extends Controller
                 $order->update(['snap_token' => $snapToken]);
             }
 
+            // Create Penjualan record for admin visibility
+            $this->createPenjualanFromOrder($order, $carts, $request);
+
             // Clear cart
             Cart::where('user_id', auth()->id())->delete();
 
@@ -138,6 +152,66 @@ class CheckoutController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Checkout gagal: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Create Penjualan record from Order for admin visibility
+     */
+    private function createPenjualanFromOrder($order, $carts, $request)
+    {
+        try {
+            // Calculate totals
+            $totalAmount = $carts->sum('subtotal');
+            $totalQty = $carts->sum('qty');
+
+            // Map payment method from pelanggan to admin format
+            $paymentMethodMap = [
+                'cash' => 'cash',
+                'qris' => 'transfer',
+                'va_bca' => 'transfer',
+                'va_bni' => 'transfer',
+                'va_bri' => 'transfer',
+                'va_mandiri' => 'transfer',
+            ];
+            
+            $adminPaymentMethod = $paymentMethodMap[$request->payment_method] ?? 'transfer';
+
+            // Create Penjualan header
+            $penjualan = Penjualan::create([
+                'tanggal' => now(),
+                'payment_method' => $adminPaymentMethod,
+                'jumlah' => $totalQty,
+                'harga_satuan' => null, // Multi-item, harga di detail
+                'diskon_nominal' => 0,
+                'total' => $totalAmount,
+                'user_id' => auth()->id(),
+                'order_id' => $order->id, // Reference to Order
+                'catatan' => "Dari Order: {$order->nomor_order} - {$request->nama_penerima} (Metode: {$request->payment_method})",
+            ]);
+
+            // Create PenjualanDetail for each item
+            foreach ($carts as $cart) {
+                PenjualanDetail::create([
+                    'penjualan_id' => $penjualan->id,
+                    'produk_id' => $cart->produk_id,
+                    'jumlah' => $cart->qty,
+                    'harga_satuan' => $cart->harga,
+                    'diskon_persen' => 0,
+                    'diskon_nominal' => 0,
+                    'subtotal' => $cart->subtotal,
+                ]);
+            }
+
+            // Update Order to reference Penjualan
+            $order->update(['penjualan_id' => $penjualan->id]);
+
+            return $penjualan;
+
+        } catch (\Exception $e) {
+            // Log error but don't fail the checkout
+            \Log::error('Failed to create Penjualan from Order: ' . $e->getMessage());
+            return null;
         }
     }
 }

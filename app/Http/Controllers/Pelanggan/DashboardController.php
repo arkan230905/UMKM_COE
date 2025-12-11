@@ -41,6 +41,22 @@ class DashboardController extends Controller
             ->orderBy('nama_produk')
             ->paginate(12)
             ->withQueryString();
+            
+        // Add rating data to all products
+        foreach ($produks as $produk) {
+            $reviewsCount = \DB::table('reviews')
+                ->join('order_items', 'reviews.order_id', '=', 'order_items.order_id')
+                ->where('order_items.produk_id', $produk->id)
+                ->count();
+                
+            $avgRating = \DB::table('reviews')
+                ->join('order_items', 'reviews.order_id', '=', 'order_items.order_id')
+                ->where('order_items.produk_id', $produk->id)
+                ->avg('reviews.rating') ?? 0;
+                
+            $produk->avg_rating = $avgRating;
+            $produk->rating_count = $reviewsCount;
+        }
 
         $cartCount = Cart::where('user_id', auth()->id())->sum('qty');
 
@@ -61,6 +77,21 @@ class DashboardController extends Controller
                     if (isset($produkMap[$row->produk_id])) {
                         $p = $produkMap[$row->produk_id];
                         $p->total_terjual = (int) $row->total_terjual;
+                        
+                        // Add rating data
+                        $reviewsCount = \DB::table('reviews')
+                            ->join('order_items', 'reviews.order_id', '=', 'order_items.order_id')
+                            ->where('order_items.produk_id', $p->id)
+                            ->count();
+                            
+                        $avgRating = \DB::table('reviews')
+                            ->join('order_items', 'reviews.order_id', '=', 'order_items.order_id')
+                            ->where('order_items.produk_id', $p->id)
+                            ->avg('reviews.rating') ?? 0;
+                            
+                        $p->avg_rating = $avgRating;
+                        $p->rating_count = $reviewsCount;
+                        
                         $result->push($p);
                     }
                 }
@@ -71,6 +102,22 @@ class DashboardController extends Controller
                     ->orderByDesc('created_at')
                     ->limit(6)
                     ->get();
+                    
+                // Add rating data to fallback products
+                foreach ($result as $p) {
+                    $reviewsCount = \DB::table('reviews')
+                        ->join('order_items', 'reviews.order_id', '=', 'order_items.order_id')
+                        ->where('order_items.produk_id', $p->id)
+                        ->count();
+                        
+                    $avgRating = \DB::table('reviews')
+                        ->join('order_items', 'reviews.order_id', '=', 'order_items.order_id')
+                        ->where('order_items.produk_id', $p->id)
+                        ->avg('reviews.rating') ?? 0;
+                        
+                    $p->avg_rating = $avgRating;
+                    $p->rating_count = $reviewsCount;
+                }
             }
             return $result;
         });

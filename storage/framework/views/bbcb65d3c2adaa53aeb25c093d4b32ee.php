@@ -1,6 +1,4 @@
-@extends('layouts.pelanggan')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="hero-cart mb-5">
     <div class="cart-bubble bubble-1"></div>
     <div class="cart-bubble bubble-2"></div>
@@ -12,41 +10,43 @@
 </div>
 
 <div class="container">
-    @if(session('success'))
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('success')): ?>
     <div class="alert alert-success alert-dismissible fade show">
-        {{ session('success') }}
+        <?php echo e(session('success')); ?>
+
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-    @if(session('error'))
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('error')): ?>
     <div class="alert alert-danger alert-dismissible fade show">
-        {{ session('error') }}
+        <?php echo e(session('error')); ?>
+
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-    <form action="{{ route('pelanggan.checkout.process') }}" method="POST" id="checkoutForm">
-    @csrf
+    <form action="<?php echo e(route('pelanggan.checkout.process')); ?>" method="POST" id="checkoutForm">
+    <?php echo csrf_field(); ?>
     <div class="row">
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body">
                     <h5 class="card-title mb-4">Detail Produk</h5>
-                    @if(isset($carts))
-                        @foreach($carts as $item)
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(isset($carts)): ?>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $carts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-                            <img src="{{ asset('storage/'.$item->produk->foto ?? 'placeholder.jpg') }}" class="rounded" style="width: 80px; height: 80px; object-fit: cover;">
+                            <img src="<?php echo e(asset('storage/'.$item->produk->foto ?? 'placeholder.jpg')); ?>" class="rounded" style="width: 80px; height: 80px; object-fit: cover;">
                             <div class="ms-3 flex-grow-1">
-                                <h6 class="mb-1">{{ $item->produk->nama_produk }}</h6>
-                                <p class="text-muted mb-1">Rp {{ number_format($item->produk->harga_jual, 0, ',', '.') }} x {{ $item->qty }}</p>
-                                <p class="mb-0 fw-bold">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</p>
+                                <h6 class="mb-1"><?php echo e($item->produk->nama_produk); ?></h6>
+                                <p class="text-muted mb-1">Rp <?php echo e(number_format($item->produk->harga_jual, 0, ',', '.')); ?> x <?php echo e($item->qty); ?></p>
+                                <p class="mb-0 fw-bold">Rp <?php echo e(number_format($item->subtotal, 0, ',', '.')); ?></p>
                             </div>
                         </div>
-                        @endforeach
-                    @else
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    <?php else: ?>
                         <p class="text-muted">Tidak ada produk di keranjang</p>
-                    @endif
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
             </div>
 
@@ -81,16 +81,16 @@
                     <h5 class="card-title mb-4">Ringkasan Pesanan</h5>
                     <div class="d-flex justify-content-between mb-2">
                         <span>Subtotal</span>
-                        <span>Rp {{ number_format($total ?? 0, 0, ',', '.') }}</span>
+                        <span>Rp <?php echo e(number_format($total ?? 0, 0, ',', '.')); ?></span>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
                         <span>Ongkos Kirim</span>
-                        <span>Rp {{ number_format(0, 0, ',', '.') }}</span>
+                        <span>Rp <?php echo e(number_format(0, 0, ',', '.')); ?></span>
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between mb-4">
                         <strong>Total</strong>
-                        <strong class="text-primary">Rp {{ number_format($total ?? 0, 0, ',', '.') }}</strong>
+                        <strong class="text-primary">Rp <?php echo e(number_format($total ?? 0, 0, ',', '.')); ?></strong>
                     </div>
 
                     <h6 class="mb-3">Metode Pembayaran</h6>
@@ -130,7 +130,7 @@
     </div>
 </form>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
 <style>
 /* Hero Cart Styles */
@@ -195,3 +195,4 @@
     50% { transform: translateY(-20px); }
 }
 </style>
+<?php echo $__env->make('layouts.pelanggan', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\UMKM_COE\resources\views/pelanggan/checkout.blade.php ENDPATH**/ ?>

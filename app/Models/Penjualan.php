@@ -20,6 +20,9 @@ class Penjualan extends Model
         'jumlah',
         'diskon_nominal',
         'total',
+        'user_id',
+        'order_id',
+        'catatan',
     ];
 
     protected $casts = [
@@ -34,6 +37,16 @@ class Penjualan extends Model
     public function details()
     {
         return $this->hasMany(PenjualanDetail::class);
+    }
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     protected static function boot()

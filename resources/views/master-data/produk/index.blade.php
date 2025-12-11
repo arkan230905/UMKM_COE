@@ -1,3 +1,7 @@
+@php
+use Illuminate\Support\Facades\DB;
+@endphp
+
 @extends('layouts.app')
 
 @section('content')
@@ -31,6 +35,7 @@
                             <th class="text-right">Harga BOM</th>
                             <th class="text-center">Margin</th>
                             <th class="text-right">Harga Jual</th>
+                            <th class="text-center">Rating</th>
                             <th class="text-center">Stok</th>
                             <th width="15%" class="text-center">Aksi</th>
                         </tr>
@@ -70,6 +75,32 @@
                                 <td class="text-right">Rp {{ number_format($hargaBomProduk, 0, ',', '.') }}</td>
                                 <td class="text-center">{{ number_format($margin, 0, ',', '.') }}%</td>
                                 <td class="text-right font-weight-bold">Rp {{ number_format($hargaJual, 0, ',', '.') }}</td>
+                                <td class="text-center">
+                                    @php
+                                        $reviewsCount = DB::table('reviews')
+                                            ->join('order_items', 'reviews.order_id', '=', 'order_items.order_id')
+                                            ->where('order_items.produk_id', $produk->id)
+                                            ->count();
+                                            
+                                        $avgRating = DB::table('reviews')
+                                            ->join('order_items', 'reviews.order_id', '=', 'order_items.order_id')
+                                            ->where('order_items.produk_id', $produk->id)
+                                            ->avg('reviews.rating') ?? 0;
+                                    @endphp
+                                    
+                                    @if($reviewsCount > 0)
+                                        <div class="rating-display">
+                                            <div class="stars">
+                                                @for($i = 1; $i <= 5; $i++)
+                                                    <i class="fas fa-star {{ $i <= round($avgRating) ? 'text-warning' : 'text-muted' }}"></i>
+                                                @endfor
+                                            </div>
+                                            <small class="text-muted d-block">{{ number_format($avgRating, 1) }} ({{ $reviewsCount }})</small>
+                                        </div>
+                                    @else
+                                        <span class="text-muted">Belum ada rating</span>
+                                    @endif
+                                </td>
                                 <td class="text-center {{ $stok <= 0 ? 'text-danger font-weight-bold' : '' }}">
                                     {{ number_format($stok, 0, ',', '.') }}
                                 </td>
