@@ -25,6 +25,27 @@ class MidtransService
             Config::$curlOptions[CURLOPT_SSL_VERIFYPEER] = false;
             Config::$curlOptions[CURLOPT_SSL_VERIFYHOST] = 0;
         }
+
+        // Ensure curlOptions is initialized and HTTP headers key exists (avoid "Undefined array key 10023")
+        if (!is_array(Config::$curlOptions ?? null)) {
+            Config::$curlOptions = [];
+        }
+        if (!isset(Config::$curlOptions[CURLOPT_HTTPHEADER]) || !is_array(Config::$curlOptions[CURLOPT_HTTPHEADER])) {
+            Config::$curlOptions[CURLOPT_HTTPHEADER] = [];
+        }
+
+        // Enforce JSON headers expected by Midtrans SDK
+        $defaultHeaders = ['Content-Type: application/json', 'Accept: application/json'];
+        foreach ($defaultHeaders as $h) {
+            if (!in_array($h, Config::$curlOptions[CURLOPT_HTTPHEADER], true)) {
+                Config::$curlOptions[CURLOPT_HTTPHEADER][] = $h;
+            }
+        }
+
+        // Force TLS 1.2 where necessary
+        if (!isset(Config::$curlOptions[CURLOPT_SSLVERSION])) {
+            Config::$curlOptions[CURLOPT_SSLVERSION] = CURL_SSLVERSION_TLSv1_2;
+        }
     }
 
     public function createTransaction($order, $items)
@@ -60,6 +81,12 @@ class MidtransService
             })->values()->toArray(),
 
             'enabled_payments' => $this->getEnabledPayments($order->payment_method),
+
+            'callbacks' => [
+                'finish' => route('pelanggan.orders.show', $order->id),
+                'error' => route('pelanggan.orders.show', $order->id),
+                'pending' => route('pelanggan.orders.show', $order->id),
+            ],
         ];
 
         try {
