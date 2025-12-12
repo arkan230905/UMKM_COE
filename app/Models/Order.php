@@ -23,6 +23,7 @@ class Order extends Model
         'telepon_penerima',
         'catatan',
         'paid_at',
+        'penjualan_id',
     ];
 
     protected $casts = [
@@ -38,6 +39,11 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function penjualan(): BelongsTo
+    {
+        return $this->belongsTo(Penjualan::class);
     }
 
     public static function generateNomorOrder(): string

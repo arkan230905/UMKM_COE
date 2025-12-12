@@ -79,4 +79,29 @@ class Produk extends Model
     {
         return $this->hasMany(Bom::class);
     }
+
+    // Relasi ke reviews melalui order items
+    public function reviews()
+    {
+        return $this->hasManyThrough(
+            Review::class,
+            OrderItem::class,
+            'produk_id', // Foreign key di order_items
+            'order_id', // Foreign key di reviews
+            'id', // Local key di produk
+            'id' // Local key di order_items
+        );
+    }
+
+    // Method untuk menghitung rating rata-rata
+    public function getAverageRatingAttribute()
+    {
+        return $this->reviews()->avg('rating') ?? 0;
+    }
+
+    // Method untuk menghitung total reviews
+    public function getTotalReviewsAttribute()
+    {
+        return $this->reviews()->count();
+    }
 }

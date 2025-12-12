@@ -86,7 +86,7 @@ class PelangganController extends Controller
                 'nama' => $produk->nama_produk,
                 'harga' => $produk->harga_jual,
                 'qty' => $request->qty,
-                'foto' => $produk->foto_produk,
+                'foto' => $produk->foto,
             ];
         }
         

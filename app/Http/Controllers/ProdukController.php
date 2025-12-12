@@ -28,6 +28,22 @@ class ProdukController extends Controller
             'stok'
         ])->get();
         
+        // Load reviews data for all products with direct query
+        foreach ($produks as $produk) {
+            $produk->reviews_count = \DB::table('reviews')
+                ->join('order_items', 'reviews.order_id', '=', 'order_items.order_id')
+                ->where('order_items.produk_id', $produk->id)
+                ->count();
+                
+            $produk->avg_rating = \DB::table('reviews')
+                ->join('order_items', 'reviews.order_id', '=', 'order_items.order_id')
+                ->where('order_items.produk_id', $produk->id)
+                ->avg('reviews.rating') ?? 0;
+                
+            // Debug log
+            \Log::info("Produk ID {$produk->id}: Reviews={$produk->reviews_count}, Avg Rating={$produk->avg_rating}");
+        }
+        
         // If any product has null harga_bom, calculate it from BOM
         if ($produks->contains('harga_bom', null)) {
             $produksWithBom = Produk::whereNull('harga_bom')
