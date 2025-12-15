@@ -1,25 +1,27 @@
 @extends('layouts.pelanggan')
 
 @section('content')
-<!-- HERO AESTHETIC SPECIAL FOR CART -->
-<div class="hero-cart mb-5">
-
-    <!-- Bubbles -->
-    <div class="cart-bubble bubble-1"></div>
-    <div class="cart-bubble bubble-2"></div>
-
-    <div class="container py-4 text-center">
-        
-        <span class="cart-pill">Keranjang Kamu 🛒</span>
-
-        <h1 class="cart-title fw-bold">
-            Kelola & Review Pesananmu
-        </h1>
-
-        <p class="cart-subtext">
-            Cek kembali produk pilihanmu, atur jumlahnya, lalu lanjut checkout 💜
-        </p>
-
+<div class="hero-checkout mb-5">
+    <div class="container py-5 text-center">
+        <div class="hero-copy mx-auto">
+            <span class="checkout-pill">Keranjang 🛒</span>
+            <h1 class="checkout-title fw-bold">Kelola & Review Pesananmu</h1>
+            <p class="checkout-subtext">Cek kembali produk pilihanmu, atur jumlahnya, lalu lanjutkan ke pembayaran.</p>
+        </div>
+        <div class="checkout-steps mt-4 justify-content-center">
+            <div class="step current">
+                <span class="step-index"><i class="bi bi-cart3"></i></span>
+                <span class="step-label">Keranjang</span>
+            </div>
+            <div class="step">
+                <span class="step-index"><i class="bi bi-truck"></i></span>
+                <span class="step-label">Checkout</span>
+            </div>
+            <div class="step">
+                <span class="step-index"><i class="bi bi-receipt"></i></span>
+                <span class="step-label">Pembayaran</span>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -58,9 +60,9 @@
                     <thead>
                         <tr>
                             <th>Produk</th>
-                            <th>Harga</th>
+                            <th class="text-end">Harga</th>
                             <th width="150">Qty</th>
-                            <th>Subtotal</th>
+                            <th class="text-end">Subtotal</th>
                             <th width="100">Aksi</th>
                         </tr>
                     </thead>
@@ -72,7 +74,7 @@
                                 <br>
                                 <small class="text-secondary">Stok : {{ number_format($cart->produk->stok, 0, ',', '.') }}</small>
                             </td>
-                            <td>Rp {{ number_format($cart->harga, 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format($cart->harga, 0, ',', '.') }}</td>
                             <td>
                                 <div class="d-flex align-items-center gap-1">
                                     <form action="{{ route('pelanggan.cart.update', $cart) }}" method="POST" class="d-inline">
@@ -102,7 +104,7 @@
                                     </form>
                                 </div>
                             </td>
-                            <td class="fw-bold">Rp {{ number_format($cart->subtotal, 0, ',', '.') }}</td>
+                            <td class="fw-bold text-end">Rp {{ number_format($cart->subtotal, 0, ',', '.') }}</td>
                             <td>
                                 <form action="{{ route('pelanggan.cart.destroy', $cart) }}" method="POST" class="d-inline">
                                     @csrf
@@ -149,43 +151,95 @@
 
 <style>
 
-/* ======================================================
-   HERO CART AESTHETIC (MATCH TEMA DASHBOARD)
-====================================================== */
-.hero-cart {
+/* Flow hero shared with checkout */
+.hero-checkout {
     background: linear-gradient(135deg, #f6f8ff, #e8efff);
-    border-radius: 0 0 18px 18px;
-    padding: 28px 0 22px; /* pendek & profesional */
-    text-align: center;
-    color: #2f2f45; /* abu gelap elegan */
-    border-bottom: 1px solid #d9e2ff; /* formal separator */
+    border-radius: 0 0 22px 22px;
+    position: relative;
+    border-bottom: 1px solid #d9e2ff;
 }
 
-/* Tidak ada bubble */
-.cart-bubble, .bubble-1, .bubble-2 {
-    display: none !important;
+.hero-copy {
+    max-width: 520px;
+    color: #2c3e50;
 }
 
-/* Title */
-.cart-title {
-    font-size: 1.8rem;
-    font-weight: 400;
-    color: #2c3e50; /* corporate friendly */
-}
-
-.cart-pill {
+.checkout-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     background: #e0e7ff;
     color: #3f4a6b;
-    padding: 5px 14px;
-    border-radius: 30px;
-    font-size: .78rem;
+    padding: 6px 18px;
+    border-radius: 999px;
     font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
-.cart-subtext {
-    font-size: .9rem;
+.checkout-title {
+    font-size: 2rem;
+    margin-top: 18px;
+    color: #2c3e50;
+}
+
+.checkout-subtext {
     color: #5c6784;
-    margin-top: 4px;
+    margin-top: 12px;
+    font-size: 0.95rem;
+}
+
+.checkout-steps {
+    display: flex;
+    gap: 20px;
+}
+
+.checkout-steps .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 24px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: #475569;
+    transition: all 0.3s ease;
+}
+
+.checkout-steps .step.completed {
+    background: linear-gradient(135deg, rgba(125, 92, 255, 0.12), rgba(125, 92, 255, 0.02));
+    border-color: rgba(125, 92, 255, 0.35);
+    color: #5b3fb5;
+}
+
+.checkout-steps .step.current {
+    background: linear-gradient(135deg, #7d5cff, #9c6bff);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 12px 30px rgba(125, 92, 255, 0.25);
+}
+
+.checkout-steps .step .step-index {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.2rem;
+    background: rgba(255, 255, 255, 0.9);
+    color: inherit;
+}
+
+.checkout-steps .step.current .step-index {
+    background: rgba(255, 255, 255, 0.85);
+    color: #7d5cff;
+}
+
+.checkout-steps .step-label {
+    font-weight: 600;
+    font-size: 0.9rem;
 }
 
 /* ======================================================
@@ -248,11 +302,14 @@ input[type="number"] {
 
 /* Responsive */
 @media (max-width: 768px) {
-    .cart-title {
-        font-size: 1.7rem;
+    .checkout-steps {
+        gap: 12px;
     }
-    .hero-cart {
-        padding: 40px 0;
+    .checkout-steps .step {
+        padding: 12px 16px;
+    }
+    .checkout-title {
+        font-size: 1.8rem;
     }
 }
 

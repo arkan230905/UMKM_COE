@@ -5,16 +5,110 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Penjualan;
 use App\Models\Produk;
+use App\Models\Order;
+use App\Models\PenjualanDetail;
 use App\Services\StockService;
 use App\Services\JournalService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PenjualanController extends Controller
 {
     public function index()
     {
+        $this->syncOrdersToPenjualan();
         // Ambil semua penjualan beserta relasi produk dan details (untuk multi-item)
-        $penjualans = Penjualan::with(['produk','details'])->orderBy('tanggal','desc')->get();
+        $penjualans = Penjualan::with(['produk','details','order'])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
         return view('transaksi.penjualan.index', compact('penjualans'));
+    }
+
+    private function syncOrdersToPenjualan(): void
+    {
+        try {
+            $orders = Order::query()
+                ->whereNotIn('status', ['cancelled'])
+                ->where(function ($q) {
+                    $q->whereNull('penjualan_id')
+                      ->orWhereNotIn('penjualan_id', function ($sub) {
+                          $sub->select('id')->from('penjualans');
+                      });
+                })
+                ->with(['items'])
+                ->orderByDesc('id')
+                ->limit(200)
+                ->get();
+
+            if ($orders->isEmpty()) {
+                return;
+            }
+
+            foreach ($orders as $order) {
+                DB::transaction(function () use ($order) {
+                    $order = Order::lockForUpdate()->with('items')->find($order->id);
+                    if (!$order) {
+                        return;
+                    }
+
+                    $existing = Penjualan::where('order_id', $order->id)->first();
+                    if ($existing) {
+                        if ((int) $order->penjualan_id !== (int) $existing->id) {
+                            $order->update(['penjualan_id' => $existing->id]);
+                        }
+                        return;
+                    }
+
+                    $items = $order->items;
+                    if (!$items || $items->isEmpty()) {
+                        return;
+                    }
+
+                    $totalAmount = (float) $items->sum('subtotal');
+                    $totalQty = (float) $items->sum('qty');
+
+                    $paymentMethodMap = [
+                        'cash' => 'cash',
+                        'transfer' => 'transfer',
+                        'va_bca' => 'transfer',
+                        'va_bni' => 'transfer',
+                        'va_bri' => 'transfer',
+                        'va_mandiri' => 'transfer',
+                    ];
+
+                    $adminPaymentMethod = $paymentMethodMap[$order->payment_method] ?? 'transfer';
+
+                    $penjualan = Penjualan::create([
+                        'tanggal' => ($order->paid_at ?? $order->created_at ?? now()),
+                        'payment_method' => $adminPaymentMethod,
+                        'jumlah' => $totalQty,
+                        'harga_satuan' => null,
+                        'diskon_nominal' => 0,
+                        'total' => $totalAmount,
+                        'user_id' => $order->user_id,
+                        'order_id' => $order->id,
+                        'catatan' => "Dari Order: {$order->nomor_order} - {$order->nama_penerima} (Metode: {$order->payment_method})",
+                    ]);
+
+                    foreach ($items as $item) {
+                        PenjualanDetail::create([
+                            'penjualan_id' => $penjualan->id,
+                            'produk_id' => $item->produk_id,
+                            'jumlah' => $item->qty,
+                            'harga_satuan' => $item->harga,
+                            'diskon_persen' => 0,
+                            'diskon_nominal' => 0,
+                            'subtotal' => $item->subtotal,
+                        ]);
+                    }
+
+                    $order->update(['penjualan_id' => $penjualan->id]);
+                });
+            }
+        } catch (\Throwable $e) {
+            Log::error('syncOrdersToPenjualan failed: ' . $e->getMessage());
+        }
     }
 
     public function create()
@@ -350,5 +444,15 @@ class PenjualanController extends Controller
 
         return redirect()->route('transaksi.penjualan.index')
                          ->with('success', 'Data penjualan dan jurnal terkait berhasil dihapus.');
+    }
+
+    public function receipt($id)
+    {
+        $penjualan = Penjualan::with(['details.produk', 'produk', 'user'])->findOrFail($id);
+        $companyName = config('app.name', 'UMKM COE');
+        $companyAddress = config('app.company_address');
+        $companyPhone = config('app.company_phone');
+
+        return view('transaksi.penjualan.receipt', compact('penjualan', 'companyName', 'companyAddress', 'companyPhone'));
     }
 }

@@ -107,7 +107,6 @@ class MidtransService
     private function getEnabledPayments($method)
     {
         $paymentMap = [
-            'qris' => ['qris'],
             'va_bca' => ['bca_va'],
             'va_bni' => ['bni_va'],
             'va_bri' => ['bri_va'],
@@ -115,7 +114,7 @@ class MidtransService
             'cash' => ['cstore', 'alfamart', 'indomaret'],
         ];
         
-        return $paymentMap[$method] ?? ['qris', 'bca_va', 'bni_va', 'bri_va', 'echannel'];
+        return $paymentMap[$method] ?? ['bca_va', 'bni_va', 'bri_va', 'echannel'];
     }
 
     public function getTransactionStatus($orderId)

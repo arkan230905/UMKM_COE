@@ -93,6 +93,9 @@ Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->na
 Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+// Midtrans server callback (must be accessible publicly)
+Route::post('/midtrans/notification', [MidtransController::class, 'notification'])->name('midtrans.notification');
+
 // Route password sudah ada di auth.php, tidak perlu duplikat
 
 
@@ -113,6 +116,8 @@ Route::middleware('auth')->group(function () {
         // Dashboard - Katalog Produk
         Route::get('/dashboard', [PelangganDashboardController::class, 'index'])->name('dashboard');
         
+        Route::get('/produk', [ProdukController::class, 'katalogPelanggan'])->name('produk.index');
+        
         // Cart
         Route::get('/cart', [CartController::class, 'index'])->name('cart');
         Route::post('/cart', [CartController::class, 'store'])->name('cart.store');
@@ -127,6 +132,7 @@ Route::middleware('auth')->group(function () {
         // Orders
         Route::get('/orders', [PelangganOrderController::class, 'index'])->name('orders');
         Route::get('/orders/{order}', [PelangganOrderController::class, 'show'])->name('orders.show');
+        Route::post('/orders/{order}/cancel', [PelangganOrderController::class, 'cancel'])->name('orders.cancel');
 
         // Favorites
         Route::get('/favorites', [PelangganFavoriteController::class, 'index'])->name('favorites');
@@ -142,8 +148,8 @@ Route::middleware('auth')->group(function () {
         Route::put('/reviews/{id}', [\App\Http\Controllers\Pelanggan\ReviewController::class, 'update'])->name('reviews.update');
     });
 
-    // Midtrans Callback (tidak perlu auth karena dari server Midtrans)
-    Route::post('/midtrans/notification', [MidtransController::class, 'notification'])->name('midtrans.notification');
+    // Midtrans client confirmation (called from Snap callbacks)
+    Route::post('/midtrans/client-complete', [MidtransController::class, 'clientComplete'])->name('midtrans.client-complete');
 
     // ================================================================
     // PEGAWAI PEMBELIAN BAHAN BAKU ROUTES
@@ -351,6 +357,7 @@ Route::middleware('auth')->group(function () {
         // ============================================================
         // ✅ PENJUALAN
         // ============================================================
+        Route::get('penjualan/{penjualan}/receipt', [PenjualanController::class, 'receipt'])->name('penjualan.receipt');
         Route::resource('penjualan', PenjualanController::class);
 
         // ============================================================
@@ -433,7 +440,8 @@ Route::middleware('auth')->group(function () {
         
         // Laporan Retur
         Route::get('/retur', [LaporanController::class, 'laporanRetur'])->name('retur');
-        
+        Route::get('/retur/{retur}/pdf', [LaporanController::class, 'returPdf'])->name('retur.pdf');
+
         // Laporan Penggajian
         Route::get('/penggajian', [LaporanController::class, 'laporanPenggajian'])->name('penggajian');
         Route::get('/pembayaran-beban', [LaporanController::class, 'laporanPembayaranBeban'])->name('pembayaran-beban');

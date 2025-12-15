@@ -21,6 +21,16 @@ class ReturController extends Controller
         return view('transaksi.retur.index', compact('returs'));
     }
 
+    public function indexPenjualan()
+    {
+        $returs = Retur::where('type', 'sale')
+            ->with(['details.produk'])
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return view('transaksi.retur.index', compact('returs'));
+    }
+
     public function create()
     {
         $produks = Produk::all();
@@ -28,6 +38,34 @@ class ReturController extends Controller
         $pembelians = Pembelian::all();
         $penjualans = Penjualan::all();
         return view('transaksi.retur.create', compact('produks', 'bahanBakus', 'pembelians','penjualans'));
+    }
+
+    public function createPenjualan(Request $request)
+    {
+        $penjualanId = $request->query('penjualan_id');
+
+        return redirect()->route('transaksi.retur.create', array_filter([
+            'type' => 'sale',
+            'ref_id' => $penjualanId,
+        ], fn ($v) => !is_null($v) && $v !== ''));
+    }
+
+    public function storePenjualan(Request $request)
+    {
+        $request->merge(['type' => 'sale']);
+        return $this->store($request);
+    }
+
+    public function showPenjualan($id)
+    {
+        return redirect()->route('transaksi.retur.index');
+    }
+
+    public function destroyPenjualan($id)
+    {
+        $retur = Retur::findOrFail($id);
+        $retur->delete();
+        return redirect()->route('transaksi.retur.index')->with('success', 'Data retur berhasil dihapus.');
     }
 
     public function createPembelian(Request $request)

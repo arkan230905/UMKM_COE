@@ -292,9 +292,11 @@ document.addEventListener("DOMContentLoaded", function () {
         @endforelse
     </div>
 
+    @if($produks instanceof \Illuminate\Contracts\Pagination\Paginator && $produks->hasPages())
     <div class="d-flex justify-content-center">
         {{ $produks->links() }}
     </div>
+    @endif
 
     <div class="mt-5">
         <div class="card border-0 shadow-sm">

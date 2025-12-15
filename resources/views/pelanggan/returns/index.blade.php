@@ -32,12 +32,12 @@
                     <tbody>
                         @forelse($returs as $r)
                         <tr>
-                            <td>{{ $r->memo }}</td>
+                            <td>{{ $r->nomor_retur }}</td>
                             <td>{{ $r->created_at->format('d M Y') }}</td>
-                            <td>#{{ optional(App\Models\Order::find($r->ref_id))->nomor_order ?? '-' }}</td>
-                            <td class="text-capitalize">{{ $r->kompensasi }}</td>
-                            <td class="text-capitalize">{{ $r->status ?? 'draft' }}</td>
-                            <td class="fw-bold">Rp {{ number_format($r->jumlah, 0, ',', '.') }}</td>
+                            <td>{{ $r->resolveReferensiNomor() }}</td>
+                            <td>{{ $r->kompensasi === 'barang' ? 'Tukar Barang' : 'Refund Uang' }}</td>
+                            <td>{{ ucfirst($r->status) }}</td>
+                            <td class="fw-bold">Rp {{ number_format($r->calculateTotalNilai(), 0, ',', '.') }}</td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#detailModal{{ $r->id }}">
                                     <i class="bi bi-eye"></i> Detail
@@ -50,7 +50,9 @@
                     </tbody>
                 </table>
             </div>
+            @if($returs instanceof \Illuminate\Contracts\Pagination\Paginator && $returs->hasPages())
             <div class="d-flex justify-content-center">{{ $returs->links() }}</div>
+            @endif
         </div>
     </div>
 </div>
