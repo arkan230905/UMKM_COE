@@ -38,11 +38,11 @@
             @forelse($returs as $retur)
             <tr>
                 <td class="text-center">{{ $loop->iteration }}</td>
-                <td>{{ $retur->tanggal->format('d/m/Y') }}</td>
-                <td>{{ $retur->no_retur }}</td>
-                <td>{{ $retur->customer->nama_customer ?? '-' }}</td>
-                <td>{{ $retur->penjualan->no_penjualan ?? '-' }}</td>
-                <td class="text-right">{{ format_rupiah($retur->total) }}</td>
+                <td>{{ optional($retur->tanggal)->format('d/m/Y') ?? '-' }}</td>
+                <td>{{ $retur->nomor_retur }}</td>
+                <td>{{ $retur->resolveCustomerName() }}</td>
+                <td>{{ $retur->resolveReferensiNomor() }}</td>
+                <td class="text-right">{{ format_rupiah($retur->calculateTotalNilai()) }}</td>
             </tr>
             @empty
             <tr>

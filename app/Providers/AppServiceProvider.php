@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\ServiceProvider;
 use App\Models\Jabatan;
 use App\Observers\JabatanObserver;
 
@@ -48,5 +50,18 @@ class AppServiceProvider extends ServiceProvider
 
         // View composer untuk layout pelanggan (cart count)
         View::composer('layouts.pelanggan', \App\Http\View\Composers\CartComposer::class);
+
+        if (! Collection::hasMacro('links')) {
+            Collection::macro('links', function (...$parameters) {
+                Log::warning('links() called on Collection without pagination.', [
+                    'collection_class' => static::class,
+                    'count' => $this->count(),
+                    'route_name' => optional(request()->route())->getName(),
+                    'request_path' => request()->path(),
+                ]);
+
+                return '';
+            });
+        }
     }
 }

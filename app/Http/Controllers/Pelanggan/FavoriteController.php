@@ -14,7 +14,8 @@ class FavoriteController extends Controller
         $favorites = Favorite::with('produk')
             ->where('user_id', auth()->id())
             ->latest()
-            ->get();
+            ->paginate(12)
+            ->withQueryString();
 
         $cartCount = \App\Models\Cart::where('user_id', auth()->id())->sum('qty');
 

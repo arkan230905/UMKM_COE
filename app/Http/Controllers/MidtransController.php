@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Notification;
 use App\Models\Penjualan;
 use App\Models\PenjualanDetail;
+use App\Services\MidtransService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -38,16 +39,28 @@ class MidtransController extends Controller
 
             if ($transactionStatus == 'capture') {
                 if ($fraudStatus == 'accept') {
-                    $this->updateOrderStatus($order, 'paid', 'paid');
+                    $this->updateOrderStatus($order, 'paid', 'paid', [
+                        'midtrans_transaction_id' => $request->transaction_id,
+                        'midtrans_order_id' => $request->order_id,
+                    ]);
                     $this->createPenjualanFromOrder($order);
                 }
             } elseif ($transactionStatus == 'settlement') {
-                $this->updateOrderStatus($order, 'paid', 'paid');
+                $this->updateOrderStatus($order, 'paid', 'paid', [
+                    'midtrans_transaction_id' => $request->transaction_id,
+                    'midtrans_order_id' => $request->order_id,
+                ]);
                 $this->createPenjualanFromOrder($order);
             } elseif ($transactionStatus == 'pending') {
-                $this->updateOrderStatus($order, 'pending', 'pending');
+                $this->updateOrderStatus($order, 'pending', 'pending', [
+                    'midtrans_transaction_id' => $request->transaction_id,
+                    'midtrans_order_id' => $request->order_id,
+                ]);
             } elseif ($transactionStatus == 'deny' || $transactionStatus == 'cancel' || $transactionStatus == 'expire') {
-                $this->updateOrderStatus($order, 'cancelled', 'failed');
+                $this->updateOrderStatus($order, 'cancelled', 'failed', [
+                    'midtrans_transaction_id' => $request->transaction_id,
+                    'midtrans_order_id' => $request->order_id,
+                ]);
                 // Kembalikan stok
                 foreach ($order->items as $item) {
                     $item->produk->increment('stok', $item->qty);
@@ -62,13 +75,125 @@ class MidtransController extends Controller
         }
     }
 
-    private function updateOrderStatus($order, $status, $paymentStatus)
+    public function clientComplete(Request $request, MidtransService $midtrans)
     {
-        $order->update([
+        $data = $request->validate([
+            'order_id' => 'required|string',
+            'result' => 'nullable|array',
+            'fallback_status' => 'nullable|string',
+            'force_check' => 'nullable|boolean',
+        ]);
+
+        $order = Order::where('nomor_order', $data['order_id'])->first();
+
+        if (!$order || $order->user_id !== auth()->id()) {
+            return response()->json(['message' => 'Order not found'], 404);
+        }
+
+        if ($order->payment_status === 'paid') {
+            return response()->json(['redirect_status' => 'success', 'status' => $order->payment_status]);
+        }
+
+        try {
+            $result = $data['result'] ?? [];
+            $fallbackStatus = $data['fallback_status'] ?? 'pending';
+            $forceCheck = (bool) ($data['force_check'] ?? false);
+
+            $transactionStatus = $result['transaction_status'] ?? null;
+            $fraudStatus = $result['fraud_status'] ?? 'accept';
+            $statusCode = $result['status_code'] ?? null;
+            $grossAmount = $result['gross_amount'] ?? null;
+            $signatureKey = $result['signature_key'] ?? null;
+            $transactionId = $result['transaction_id'] ?? null;
+            $paymentType = $result['payment_type'] ?? null;
+
+            if ($signatureKey && $statusCode && $grossAmount) {
+                $serverKey = config('midtrans.server_key');
+                $expectedSignature = hash('sha512', $data['order_id'] . $statusCode . $grossAmount . $serverKey);
+                if (!hash_equals($expectedSignature, $signatureKey)) {
+                    Log::warning('Midtrans Client Completion signature mismatch', [
+                        'order_id' => $data['order_id'],
+                        'payload' => $result,
+                    ]);
+                    return response()->json(['message' => 'Invalid signature'], 403);
+                }
+            }
+
+            if (!$transactionStatus || $forceCheck) {
+                $statusResponse = $midtrans->getTransactionStatus($order->nomor_order);
+                $transactionStatus = $statusResponse->transaction_status ?? $transactionStatus;
+                $fraudStatus = $statusResponse->fraud_status ?? $fraudStatus;
+                $transactionId = $statusResponse->transaction_id ?? $transactionId;
+                $paymentType = $statusResponse->payment_type ?? $paymentType;
+            }
+
+            Log::info('Midtrans Client Completion', [
+                'order_id' => $order->nomor_order,
+                'transaction_status' => $transactionStatus,
+                'fraud_status' => $fraudStatus,
+                'payment_type' => $paymentType,
+            ]);
+
+            $redirectStatus = $fallbackStatus;
+
+            if ($transactionStatus === 'capture') {
+                if ($fraudStatus === 'accept') {
+                    $this->updateOrderStatus($order, 'paid', 'paid', [
+                        'midtrans_transaction_id' => $transactionId,
+                        'midtrans_order_id' => $data['order_id'],
+                    ]);
+                    $this->createPenjualanFromOrder($order);
+                    $redirectStatus = 'success';
+                }
+            } elseif ($transactionStatus === 'settlement') {
+                $this->updateOrderStatus($order, 'paid', 'paid', [
+                    'midtrans_transaction_id' => $transactionId,
+                    'midtrans_order_id' => $data['order_id'],
+                ]);
+                $this->createPenjualanFromOrder($order);
+                $redirectStatus = 'success';
+            } elseif ($transactionStatus === 'pending') {
+                $this->updateOrderStatus($order, 'pending', 'pending', [
+                    'midtrans_transaction_id' => $transactionId,
+                    'midtrans_order_id' => $data['order_id'],
+                ]);
+                $redirectStatus = 'pending';
+            } elseif (in_array($transactionStatus, ['deny', 'cancel', 'expire'])) {
+                $this->updateOrderStatus($order, 'cancelled', 'failed', [
+                    'midtrans_transaction_id' => $transactionId,
+                    'midtrans_order_id' => $data['order_id'],
+                ]);
+                $order->loadMissing('items.produk');
+                foreach ($order->items as $item) {
+                    $item->produk->increment('stok', $item->qty);
+                }
+                $redirectStatus = 'error';
+            }
+
+            return response()->json([
+                'redirect_status' => $redirectStatus,
+                'transaction_status' => $transactionStatus,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Midtrans Client Completion Error: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to sync payment status'], 500);
+        }
+    }
+
+    private function updateOrderStatus($order, $status, $paymentStatus, array $extra = [])
+    {
+        $payload = [
             'status' => $status,
             'payment_status' => $paymentStatus,
             'paid_at' => $paymentStatus === 'paid' ? now() : null,
-        ]);
+        ];
+
+        if (!empty($extra)) {
+            $payload = array_merge($payload, array_filter($extra, fn ($value) => $value !== null));
+        }
+
+        $order->update($payload);
 
         // Create notification
         if ($paymentStatus === 'paid') {
@@ -111,7 +236,6 @@ class MidtransController extends Controller
             // Map payment method from pelanggan to admin format
             $paymentMethodMap = [
                 'cash' => 'cash',
-                'qris' => 'transfer',
                 'va_bca' => 'transfer',
                 'va_bni' => 'transfer',
                 'va_bri' => 'transfer',

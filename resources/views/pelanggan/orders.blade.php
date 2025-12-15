@@ -1,23 +1,16 @@
 @extends('layouts.pelanggan')
 
 @section('content')
-<!-- Hero Section -->
-<div class="hero-section mb-5">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-12">
-                <div class="hero-content text-center">
-                    <h1 class="display-4 fw-bold text-white mb-3">
-                        <i class="bi bi-box-seam me-3"></i>Pesanan Saya
-                    </h1>
-                    <p class="lead text-white-50 mb-0">Lacak dan kelola semua pesananmu</p>
-                </div>
-            </div>
-        </div>
+<!-- HERO WRAPPER -->
+<div class="orders-hero mb-5">
+    <div class="container text-center">
+        <span class="orders-pill">Pesanan Kamu 📦</span>
+        <h1 class="orders-title fw-bold">Kelola & Pantau Status Pesananmu</h1>
+        <p class="orders-subtext">Semua pembelianmu tersusun rapi dengan status terbaru secara real-time</p>
     </div>
 </div>
 
-<div class="container">
+<div class="container orders-wrapper">
 
     @if($orders->isEmpty())
     <div class="card border-0 shadow-sm">
@@ -31,52 +24,55 @@
         </div>
     </div>
     @else
-    <div class="row">
+    <div class="row g-4">
         @foreach($orders as $order)
-        <div class="col-md-12 mb-3">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-2">
-                            <small class="text-muted">Nomor Pesanan</small>
-                            <h6 class="mb-0 text-dark">{{ $order->nomor_order }}</h6>
-                            <small class="text-muted">{{ $order->created_at->format('d M Y') }}</small>
+        <div class="col-lg-6">
+            <div class="order-card h-100">
+                <div class="order-card__header">
+                    <div>
+                        <span class="order-number">{{ $order->nomor_order }}</span>
+                        <span class="order-date">{{ $order->created_at->format('d M Y') }}</span>
+                    </div>
+                    <div class="order-total text-end">
+                        <small class="text-muted d-block">Total</small>
+                        <span class="order-total__amount">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</span>
+                    </div>
+                </div>
+
+                <div class="order-card__body">
+                    <div class="order-meta">
+                        <div class="order-meta__item">
+                            <span class="order-meta__label"><i class="bi bi-clipboard-check"></i> Status Pesanan</span>
+                            <span class="order-meta__value">{!! $order->status_badge !!}</span>
                         </div>
-                        <div class="col-md-2">
-                            <small class="text-muted">Total</small>
-                            <h6 class="mb-0 text-primary">Rp {{ number_format($order->total_amount, 0, ',', '.') }}</h6>
-                        </div>
-                        <div class="col-md-2">
-                            <small class="text-muted">Status Pesanan</small>
-                            <div>{!! $order->status_badge !!}</div>
-                        </div>
-                        <div class="col-md-2">
-                            <small class="text-muted">Pembayaran</small>
-                            <div>
-                                <span class="badge bg-{{ $order->payment_status === 'paid' ? 'success' : ($order->payment_status === 'failed' ? 'danger' : 'warning') }}">
+                        <div class="order-meta__item">
+                            <span class="order-meta__label"><i class="bi bi-credit-card"></i> Status Pembayaran</span>
+                            <span class="order-meta__value">
+                                <span class="badge rounded-pill bg-{{ $order->payment_status === 'paid' ? 'success' : ($order->payment_status === 'failed' ? 'danger' : 'warning') }}">
                                     {{ ucfirst($order->payment_status) }}
                                 </span>
-                            </div>
+                            </span>
                         </div>
-                        <div class="col-md-2">
-                            <small class="text-muted">Metode</small>
-                            <div class="text-dark small">{{ $order->payment_method_label }}</div>
+                        <div class="order-meta__item">
+                            <span class="order-meta__label"><i class="bi bi-wallet2"></i> Metode Pembayaran</span>
+                            <span class="order-meta__value text-dark">{{ $order->payment_method_label }}</span>
                         </div>
-                        <div class="col-md-2 text-end">
-                            <a href="{{ route('pelanggan.orders.show', $order) }}" class="btn btn-sm btn-primary">
-                                <i class="bi bi-eye"></i> Detail
-                            </a>
-                            @if($order->payment_status === 'pending')
-                            <a href="{{ route('pelanggan.orders.show', $order) }}" class="btn btn-sm btn-success mt-1">
-                                <i class="bi bi-credit-card"></i> Bayar
-                            </a>
-                            @endif
-                            @if($order->status === 'completed' || $order->payment_status === 'paid')
-                            <a href="#" class="btn btn-sm btn-outline-warning mt-1" data-bs-toggle="modal" data-bs-target="#reviewModal{{ $order->id }}">
-                                <i class="bi bi-star"></i> Review
-                            </a>
-                            @endif
-                        </div>
+                    </div>
+
+                    <div class="order-actions">
+                        <a href="{{ route('pelanggan.orders.show', $order) }}" class="btn btn-primary">
+                            <i class="bi bi-eye"></i> Lihat Detail
+                        </a>
+                        @if($order->payment_status === 'pending')
+                        <a href="{{ route('pelanggan.orders.show', $order) }}" class="btn btn-success">
+                            <i class="bi bi-credit-card"></i> Lanjut Bayar
+                        </a>
+                        @endif
+                        @if($order->status === 'completed' || $order->payment_status === 'paid')
+                        <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#reviewModal{{ $order->id }}">
+                            <i class="bi bi-star"></i> Tulis Review
+                        </button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -84,9 +80,11 @@
         @endforeach
     </div>
 
+    @if($orders instanceof \Illuminate\Contracts\Pagination\Paginator && $orders->hasPages())
     <div class="d-flex justify-content-center">
         {{ $orders->links() }}
     </div>
+    @endif
     @endif
 </div>
 
@@ -133,235 +131,270 @@
 @endsection
 
 <style>
-/* Hero Section */
-.hero-section {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 80px 0 60px;
+.orders-hero {
+    background: linear-gradient(135deg, #f6f8ff, #e8efff);
+    border-radius: 0 0 22px 22px;
+    padding: 36px 0 28px;
+    border-bottom: 1px solid #d9e2ff;
     position: relative;
     overflow: hidden;
 }
 
-.hero-section::before {
-    content: '';
+.orders-hero::after {
+    content: "";
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,133.3C960,128,1056,96,1152,90.7C1248,85,1344,107,1392,117.3L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>') no-repeat bottom;
-    background-size: cover;
+    bottom: -40px;
+    right: -60px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle at center, rgba(118,75,162,0.18), rgba(118,75,162,0));
+    transform: rotate(12deg);
 }
 
-/* Order Cards */
+.orders-pill {
+    background: #e0e7ff;
+    color: #3f4a6b;
+    padding: 6px 16px;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.orders-title {
+    font-size: 2rem;
+    color: #2c3e50;
+    margin-top: 12px;
+}
+
+.orders-subtext {
+    color: #5c6784;
+    margin-top: 6px;
+    font-size: 0.95rem;
+}
+
+.orders-wrapper {
+    margin-top: -30px;
+    position: relative;
+    z-index: 1;
+}
+
 .order-card {
     background: white;
-    border-radius: 15px;
-    padding: 25px;
-    margin-bottom: 20px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    border-radius: 18px;
+    box-shadow: 0 18px 40px rgba(31, 41, 55, 0.08);
+    border: 1px solid #eef2ff;
     transition: all 0.3s ease;
-    border-left: 4px solid #667eea;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    position: relative;
+    overflow: hidden;
+}
+
+.order-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -30px;
+    width: 160px;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(125,92,255,0.18), rgba(125,92,255,0));
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .order-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 24px 45px rgba(31, 41, 55, 0.12);
 }
 
-.order-header {
+.order-card:hover::before {
+    opacity: 1;
+}
+
+.order-card__header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #f0f0f0;
+    gap: 16px;
 }
 
 .order-number {
-    font-size: 1.1rem;
-    font-weight: bold;
+    font-size: 1.05rem;
+    font-weight: 700;
     color: #2c3e50;
+    letter-spacing: 0.3px;
 }
 
 .order-date {
-    color: #7f8c8d;
-    font-size: 0.9rem;
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 0.82rem;
+    color: #7b88a1;
 }
 
-/* Status Badges */
-.status-badge {
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 500;
+.order-total__amount {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #7d5cff;
 }
 
-.status-pending {
-    background: #fff3cd;
-    color: #856404;
+.order-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
 }
 
-.status-confirmed {
-    background: #d1ecf1;
-    color: #0c5460;
+.order-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
 }
 
-.status-processing {
-    background: #cce5ff;
-    color: #004085;
-}
-
-.status-shipped {
-    background: #e2e3e5;
-    color: #383d41;
-}
-
-.status-completed {
-    background: #d4edda;
-    color: #155724;
-}
-
-.status-cancelled {
-    background: #f8d7da;
-    color: #721c24;
-}
-
-/* Order Items */
-.order-item {
+.order-meta__item {
     display: flex;
     align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid #f8f9fa;
-}
-
-.order-item:last-child {
-    border-bottom: none;
-}
-
-.order-item img {
-    border-radius: 8px;
-    margin-right: 15px;
-}
-
-.order-item-details {
-    flex: 1;
-}
-
-.order-item-name {
-    font-weight: 500;
-    color: #2c3e50;
-    margin-bottom: 5px;
-}
-
-.order-item-price {
-    color: #7f8c8d;
-    font-size: 0.9rem;
-}
-
-/* Order Total */
-.order-total {
-    display: flex;
     justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #f7f9ff;
+    border-radius: 14px;
+    border: 1px solid #edf1ff;
+}
+
+.order-meta__label {
+    display: flex;
     align-items: center;
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 2px solid #667eea;
+    gap: 10px;
+    font-size: 0.9rem;
+    color: #4b5563;
+    font-weight: 600;
 }
 
-.order-total-label {
-    font-weight: bold;
-    color: #2c3e50;
+.order-meta__label i {
+    color: #7d5cff;
 }
 
-.order-total-amount {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #e74c3c;
+.order-meta__value .badge {
+    padding: 6px 14px;
+    font-size: 0.8rem;
 }
 
-/* Buttons */
-.btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.order-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.order-actions .btn {
+    border-radius: 999px;
+    padding: 8px 18px;
+    font-weight: 600;
+    font-size: 0.88rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     border: none;
-    padding: 8px 20px;
-    border-radius: 20px;
-    font-weight: 500;
-    transition: all 0.3s ease;
 }
 
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+.order-actions .btn-primary {
+    background: linear-gradient(135deg, #7d5cff, #9c6bff);
+    box-shadow: 0 6px 20px rgba(125, 92, 255, 0.25);
 }
 
-.btn-secondary {
-    background: #6c757d;
-    border: none;
-    padding: 8px 20px;
-    border-radius: 20px;
-    font-weight: 500;
-    transition: all 0.3s ease;
+.order-actions .btn-success {
+    background: linear-gradient(135deg, #34d399, #10b981);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.2);
 }
 
-.btn-secondary:hover {
-    background: #5a6268;
-    transform: translateY(-2px);
+.order-actions .btn-outline-warning {
+    border: 1px solid #f59e0b;
+    color: #d97706;
+    background: linear-gradient(135deg, rgba(255, 237, 213, 0.8), rgba(255, 246, 235, 0.9));
+    box-shadow: 0 6px 18px rgba(251, 191, 36, 0.18);
 }
 
-.btn-success {
-    background: #28a745;
-    border: none;
-    padding: 8px 20px;
-    border-radius: 20px;
-    font-weight: 500;
-    transition: all 0.3s ease;
+.order-actions .btn-outline-warning:hover {
+    background: #f59e0b;
+    color: #fff;
 }
 
-.btn-success:hover {
-    background: #218838;
-    transform: translateY(-2px);
-}
-
-/* Empty State */
 .empty-state {
     text-align: center;
-    padding: 60px 20px;
+    padding: 80px 20px;
     background: white;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    border-radius: 18px;
+    box-shadow: 0 20px 45px rgba(31, 41, 55, 0.08);
+    border: 1px solid #eef2ff;
 }
 
 .empty-state i {
     font-size: 4rem;
-    color: #6c757d;
+    color: #7d5cff;
     margin-bottom: 20px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .hero-section {
-        padding: 60px 0 40px;
-    }
-    
-    .hero-section h1 {
-        font-size: 2.5rem;
-    }
-    
-    .order-header {
+.empty-state h4 {
+    color: #2c3e50;
+}
+
+.empty-state p {
+    color: #6b7280;
+}
+
+.empty-state .btn-primary {
+    border-radius: 999px;
+    padding: 10px 24px;
+    font-weight: 600;
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.25);
+}
+
+@media (max-width: 991px) {
+    .order-card__header {
         flex-direction: column;
         align-items: flex-start;
-        gap: 10px;
     }
-    
-    .order-item {
+
+    .order-total {
+        width: 100%;
+        text-align: left !important;
+    }
+
+    .orders-title {
+        font-size: 1.75rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .orders-hero {
+        padding: 40px 0 36px;
+    }
+
+    .orders-wrapper {
+        margin-top: -20px;
+    }
+
+    .order-card {
+        padding: 20px;
+    }
+
+    .order-meta__item {
         flex-direction: column;
         align-items: flex-start;
-        text-align: left;
     }
-    
-    .order-item img {
-        margin-right: 0;
-        margin-bottom: 10px;
+
+    .order-actions {
+        justify-content: flex-start;
+    }
+
+    .order-actions .btn {
+        width: 100%;
+        justify-content: center;
     }
 }
 </style>

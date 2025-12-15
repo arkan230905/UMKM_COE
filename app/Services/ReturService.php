@@ -7,6 +7,7 @@ use App\Models\ReturDetail;
 use App\Models\ReturKompensasi;
 use App\Models\Produk;
 use App\Models\BahanBaku;
+use Illuminate\Support\Facades\Schema;
 use App\Models\StockMovement;
 use App\Models\JournalEntry;
 use App\Models\JournalLine;
@@ -145,19 +146,34 @@ class ReturService
      */
     private function createRetur($data, $tipe_retur, $tipe_kompensasi)
     {
-        $retur = Retur::create([
-            'kode_retur' => Retur::generateKodeRetur(),
+        $kodeRetur = Retur::generateKodeRetur();
+        $referensiId = $data['referensi_id'] ?? null;
+        $referensiKode = $data['referensi_kode'] ?? null;
+
+        $returColumns = Schema::getColumnListing((new Retur())->getTable());
+        $returAttributes = [
+            'kode_retur' => $kodeRetur,
+            'memo' => $data['memo'] ?? $referensiKode ?? $kodeRetur,
             'tanggal' => $data['tanggal'],
             'tipe_retur' => $tipe_retur,
-            'referensi_id' => $data['referensi_id'] ?? null,
-            'referensi_kode' => $data['referensi_kode'] ?? null,
+            'type' => $this->mapLegacyTipeRetur($tipe_retur),
+            'referensi_id' => $referensiId,
+            'ref_id' => $referensiId,
+            'referensi_kode' => $referensiKode,
             'tipe_kompensasi' => $tipe_kompensasi,
+            'kompensasi' => $this->mapLegacyKompensasi($tipe_kompensasi),
             'total_nilai_retur' => 0,
+            'jumlah' => 0,
             'nilai_kompensasi' => 0,
             'status' => 'draft',
             'keterangan' => $data['keterangan'] ?? null,
-            'created_by' => auth()->id()
-        ]);
+            'alasan' => $data['alasan'] ?? null,
+            'created_by' => auth()->id(),
+            'pembelian_id' => $tipe_retur === 'pembelian' ? $referensiId : null,
+        ];
+
+        $returAttributes = array_intersect_key($returAttributes, array_flip($returColumns));
+        $retur = Retur::create($returAttributes);
 
         // Buat detail retur
         $totalNilaiRetur = 0;
@@ -165,22 +181,42 @@ class ReturService
             $subtotal = $item['qty'] * $item['harga_satuan'];
             $totalNilaiRetur += $subtotal;
 
-            ReturDetail::create([
+            $detailColumns = Schema::getColumnListing((new ReturDetail())->getTable());
+            $detailAttributes = [
                 'retur_id' => $retur->id,
+                'produk_id' => $item['item_type'] === 'produk' ? $item['item_id'] : null,
                 'item_type' => $item['item_type'],
                 'item_id' => $item['item_id'],
                 'item_nama' => $item['item_nama'],
+                'qty' => $item['qty'],
                 'qty_retur' => $item['qty'],
                 'satuan' => $item['satuan'],
+                'harga_satuan_asal' => $item['harga_satuan'],
                 'harga_satuan' => $item['harga_satuan'],
                 'subtotal' => $subtotal,
                 'keterangan' => $item['keterangan'] ?? null
-            ]);
+            ];
+            $detailAttributes = array_intersect_key($detailAttributes, array_flip($detailColumns));
+            ReturDetail::create($detailAttributes);
         }
 
-        $retur->update(['total_nilai_retur' => $totalNilaiRetur]);
+        $updateColumns = array_flip($returColumns);
+        $retur->update(array_intersect_key([
+            'total_nilai_retur' => $totalNilaiRetur,
+            'jumlah' => $totalNilaiRetur,
+        ], $updateColumns));
 
         return $retur;
+    }
+
+    private function mapLegacyTipeRetur(string $tipeRetur): string
+    {
+        return in_array(strtolower($tipeRetur), ['penjualan', 'sale', 'sales']) ? 'sale' : 'purchase';
+    }
+
+    private function mapLegacyKompensasi(string $tipeKompensasi): string
+    {
+        return strtolower($tipeKompensasi) === 'uang' ? 'refund' : 'credit';
     }
 
     /**

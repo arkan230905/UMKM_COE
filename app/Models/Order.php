@@ -70,12 +70,11 @@ class Order extends Model
     public function getPaymentMethodLabelAttribute(): string
     {
         return match($this->payment_method) {
-            'qris' => 'QRIS',
             'va_bca' => 'BCA Virtual Account',
             'va_bni' => 'BNI Virtual Account',
             'va_bri' => 'BRI Virtual Account',
             'va_mandiri' => 'Mandiri Virtual Account',
-            'cash' => 'Cash',
+            'cash' => 'Bayar di Tempat (COD)',
             'transfer' => 'Transfer Bank',
             default => '-',
         };

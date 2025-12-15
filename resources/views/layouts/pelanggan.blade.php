@@ -88,6 +88,10 @@
             padding: 20px 0;
             margin-top: 40px;
         }
+
+        .currency-cell {
+            font-variant-numeric: tabular-nums;
+        }
     </style>
     
     @stack('styles')
@@ -173,7 +177,37 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tables = document.querySelectorAll('table');
+            const currencyPattern = /^rp\s?-?\d{1,3}(\.\d{3})*(,\d+)?$/i;
+            const numericPattern = /^-?\d[\d.,]*$/;
+
+            tables.forEach(table => {
+                if (table.dataset.autoAlignCurrency === 'false') {
+                    return;
+                }
+
+                const cells = table.querySelectorAll('th, td');
+                cells.forEach(cell => {
+                    const text = cell.textContent.replace(/\s+/g, ' ').trim();
+                    if (!text) {
+                        return;
+                    }
+
+                    const normalized = text.replace(/[^0-9,.-]/g, '').trim();
+                    const isCurrency = text.toLowerCase().startsWith('rp') || currencyPattern.test(text.toLowerCase());
+                    const isNumericAmount = numericPattern.test(normalized) && (text.includes('.') || text.includes(',') || normalized.length > 3);
+
+                    if (isCurrency || isNumericAmount) {
+                        cell.classList.add('text-end', 'currency-cell');
+                    }
+                });
+            });
+        });
+    </script>
+
     @stack('scripts')
 </body>
 </html>

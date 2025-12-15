@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\PenjualanExport;
 use App\Models\Pembelian;
 use App\Models\Penjualan;
 use App\Models\Produk;
 use App\Models\StockMovement;
 use App\Models\BahanBaku;
+use App\Models\Retur;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
 use App\Models\Pembelian as PembelianModel;
+use Maatwebsite\Excel\Facades\Excel;
 
 class LaporanController extends Controller
 {
@@ -212,50 +216,10 @@ class LaporanController extends Controller
     {
         $query = $this->getPenjualanQuery($request);
         $penjualan = $query->get();
-        $total = $penjualan->sum('total');
-        
+
         $filename = 'laporan-penjualan-' . now()->format('Y-m-d') . '.xlsx';
-        
-        return response()->streamDownload(function() use ($penjualan, $total) {
-            $handle = fopen('php://output', 'w');
-            
-            // Header
-            fputcsv($handle, [
-                'No', 'No. Transaksi', 'Tanggal', 'Produk', 
-                'Pembayaran', 'Total (Rp)'
-            ]);
-            
-            // Data
-            foreach ($penjualan as $index => $item) {
-                $produk = '';
-                if ($item->details && $item->details->count() > 0) {
-                    $produk = $item->details->map(function($d) {
-                        return $d->produk->nama_produk ?? 'Produk';
-                    })->implode(', ');
-                } else {
-                    $produk = $item->produk->nama_produk ?? '-';
-                }
-                
-                $payment = $item->payment_method === 'cash' ? 'Tunai' : ($item->payment_method === 'transfer' ? 'Transfer' : 'Kredit');
-                
-                fputcsv($handle, [
-                    $index + 1,
-                    $item->nomor_penjualan ?? '-',
-                    $item->tanggal->format('d/m/Y'),
-                    $produk,
-                    $payment,
-                    number_format($item->total, 0, ',', '.')
-                ]);
-            }
-            
-            // Total
-            fputcsv($handle, ['', '', '', '', 'TOTAL', number_format($total, 0, ',', '.')]);
-            
-            fclose($handle);
-        }, $filename, [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ]);
+
+        return Excel::download(new PenjualanExport($penjualan), $filename);
     }
     
     // Helper method untuk query pembelian
@@ -319,7 +283,13 @@ class LaporanController extends Controller
     // === LAPORAN RETUR ===
     public function laporanRetur(Request $request)
     {
-        $query = \App\Models\Retur::with(['penjualan', 'details.produk'])
+        $query = \App\Models\Retur::with([
+                'penjualan.pelanggan',
+                'pembelian.vendor',
+                'order.user',
+                'details',
+                'details.produk'
+            ])
             ->when($request->bulan, function($q) use ($request) {
                 $bulan = \Carbon\Carbon::parse($request->bulan);
                 return $q->whereYear('tanggal', $bulan->year)
@@ -330,9 +300,7 @@ class LaporanController extends Controller
         if ($request->has('export') && $request->export == 'pdf') {
             $returs = $query->get();
             $total = $returs->sum(function($retur) {
-                return $retur->details->sum(function($detail) {
-                    return ($detail->jumlah ?? 0) * ($detail->harga ?? 0);
-                });
+                return $retur->calculateTotalNilai();
             });
             
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.retur.pdf', compact('returs', 'total'));
@@ -341,12 +309,37 @@ class LaporanController extends Controller
 
         $returs = $query->paginate(15);
         $total = $returs->sum(function($retur) {
-            return $retur->details->sum(function($detail) {
-                return ($detail->jumlah ?? 0) * ($detail->harga ?? 0);
-            });
+            return $retur->calculateTotalNilai();
         });
 
         return view('laporan.retur.index', compact('returs', 'total'));
+    }
+
+    public function returPdf(Retur $retur)
+    {
+        $relations = [
+            'penjualan.pelanggan',
+            'pembelian.vendor',
+            'order.user',
+            'details',
+            'details.produk'
+        ];
+
+        if (Schema::hasTable('retur_kompensasis')) {
+            $relations[] = 'kompensasis';
+        } else {
+            $retur->setRelation('kompensasis', collect());
+        }
+
+        $retur->load($relations);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.retur.single-pdf', [
+            'retur' => $retur,
+        ])->setPaper('a4');
+
+        $filename = 'retur-' . str_replace('/', '-', $retur->nomor_retur ?? $retur->id) . '.pdf';
+
+        return $pdf->download($filename);
     }
 
     // === LAPORAN PENGAJIAN ===

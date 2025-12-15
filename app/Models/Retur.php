@@ -4,6 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Schema;
+
+use App\Models\Order;
+use App\Models\Penjualan;
+use App\Models\Pembelian;
 
 class Retur extends Model
 {
@@ -20,12 +25,22 @@ class Retur extends Model
         'status',
         'keterangan',
         'created_by',
+        // Legacy columns (masih dipakai modul lama)
+        'type',
+        'tipe_retur',
+        'ref_id',
+        'kompensasi',
+        'jumlah',
+        'memo',
+        'alasan',
+        'pembelian_id',
     ];
 
     protected $casts = [
         'tanggal' => 'date',
         'total_nilai_retur' => 'decimal:2',
         'nilai_kompensasi' => 'decimal:2',
+        'jumlah' => 'decimal:2',
     ];
 
     // Relasi ke detail retur
@@ -57,15 +72,141 @@ class Retur extends Model
     // Relasi ke penjualan (jika retur penjualan)
     public function penjualan()
     {
-        return $this->belongsTo(Penjualan::class, 'referensi_id')
-                    ->where('tipe_retur', 'penjualan');
+        return $this->belongsTo(Penjualan::class, $this->penjualanForeignKey())
+                    ->withoutGlobalScopes();
     }
 
-    // Relasi ke pembelian (jika retur pembelian)
     public function pembelian()
     {
-        return $this->belongsTo(Pembelian::class, 'referensi_id')
-                    ->where('tipe_retur', 'pembelian');
+        return $this->belongsTo(Pembelian::class, $this->pembelianForeignKey())
+                    ->withoutGlobalScopes();
+    }
+
+    public function order()
+    {
+        if (!Schema::hasColumn($this->getTable(), 'ref_id')) {
+            return $this->belongsTo(Order::class, 'referensi_id');
+        }
+
+        return $this->belongsTo(Order::class, 'ref_id');
+    }
+
+    public function getJenisReturAttribute(): ?string
+    {
+        return $this->tipe_retur ?? $this->type ?? null;
+    }
+
+    public function getTanggalReturAttribute()
+    {
+        return $this->tanggal ?? $this->created_at;
+    }
+
+    public function getNomorReturAttribute(): string
+    {
+        return $this->kode_retur
+            ?? $this->referensi_kode
+            ?? $this->memo
+            ?? ('RT-' . str_pad($this->id ?? 0, 4, '0', STR_PAD_LEFT));
+    }
+
+    public function calculateTotalNilai(): float
+    {
+        $candidates = [
+            $this->total_nilai_retur,
+            $this->jumlah,
+            $this->nilai_kompensasi,
+        ];
+
+        foreach ($candidates as $value) {
+            if (!is_null($value) && (float) $value > 0) {
+                return (float) $value;
+            }
+        }
+
+        $detailTotal = $this->details->sum(function ($detail) {
+            $qty = $detail->qty ?? $detail->qty_retur ?? $detail->jumlah ?? 0;
+            $price = $detail->harga_satuan_asal ?? $detail->harga_satuan ?? $detail->harga ?? 0;
+            $subtotal = $detail->subtotal ?? null;
+            if (!is_null($subtotal)) {
+                return (float) $subtotal;
+            }
+            return (float) $qty * (float) $price;
+        });
+
+        return (float) $detailTotal;
+    }
+
+    public function resolveCustomerName(): string
+    {
+        if (($this->jenis_retur ?? '') === 'sale') {
+            $order = $this->order;
+            if ($order) {
+                return $order->user->name
+                    ?? $order->nama_penerima
+                    ?? '-';
+            }
+
+            $penjualan = $this->penjualan;
+            if ($penjualan) {
+                return $penjualan->pelanggan->nama ?? '-';
+            }
+
+            return '-';
+        }
+
+        $pembelian = $this->pembelian;
+        if ($pembelian) {
+            return $pembelian->vendor->nama_vendor ?? '-';
+        }
+
+        return '-';
+    }
+
+    public function resolveReferensiNomor(): string
+    {
+        if (($this->jenis_retur ?? '') === 'sale') {
+            $order = $this->order;
+            if ($order) {
+                return $order->nomor_order ?? '-';
+            }
+            $penjualan = $this->penjualan;
+            return $penjualan->nomor_penjualan
+                ?? $penjualan->no_penjualan
+                ?? '-';
+        }
+
+        $pembelian = $this->pembelian;
+        if ($pembelian) {
+            return $pembelian->kode_pembelian ?? $pembelian->no_faktur ?? '-';
+        }
+
+        return '-';
+    }
+
+    protected function penjualanForeignKey(): string
+    {
+        if (Schema::hasColumn($this->getTable(), 'referensi_id')) {
+            return 'referensi_id';
+        }
+
+        if (Schema::hasColumn($this->getTable(), 'penjualan_id')) {
+            return 'penjualan_id';
+        }
+
+        return 'ref_id';
+    }
+
+    protected function pembelianForeignKey(): string
+    {
+        if (Schema::hasColumn($this->getTable(), 'referensi_id')) {
+            return 'referensi_id';
+        }
+
+        if (Schema::hasColumn($this->getTable(), 'pembelian_id')) {
+            return 'pembelian_id';
+        }
+
+        return 'ref_id';
     }
 
     // Generate kode retur otomatis

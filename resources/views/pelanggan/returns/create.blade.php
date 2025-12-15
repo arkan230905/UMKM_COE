@@ -54,21 +54,42 @@
                             <tr>
                                 <th>Produk</th>
                                 <th>Harga</th>
-                                <th>Qty Dipesan</th>
+                                <th class="text-center">Qty Dipesan</th>
+                                <th class="text-center">Sudah Diretur</th>
+                                <th class="text-center">Sisa Bisa Diretur</th>
                                 <th width="160">Qty Retur</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($order->items as $it)
+                            @php
+                                $returned = (float) ($it->qty_returned ?? 0);
+                                $remaining = max(($it->qty_remaining ?? $it->qty) - 0, 0);
+                            @endphp
                             <tr>
                                 <td>{{ $it->produk->nama_produk ?? 'Produk' }}</td>
                                 <td>Rp {{ number_format($it->harga, 0, ',', '.') }}</td>
-                                <td>{{ $it->qty }}</td>
+                                <td class="text-center">{{ rtrim(rtrim(number_format($it->qty, 2, ',', '.'), '0'), ',') }}</td>
+                                <td class="text-center">
+                                    @if($returned > 0)
+                                        <span class="badge bg-warning text-dark">{{ rtrim(rtrim(number_format($returned, 2, ',', '.'), '0'), ',') }}</span>
+                                    @else
+                                        <span class="text-muted">0</span>
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    <span class="{{ $remaining <= 0 ? 'text-danger fw-semibold' : 'text-dark' }}">
+                                        {{ rtrim(rtrim(number_format($remaining, 2, ',', '.'), '0'), ',') }}
+                                    </span>
+                                </td>
                                 <td>
                                     <div class="input-group input-group-sm">
                                         <input type="hidden" name="items[{{ $loop->index }}][order_item_id]" value="{{ $it->id }}">
-                                        <input type="number" name="items[{{ $loop->index }}][qty]" value="0" min="0" max="{{ $it->qty }}" class="form-control">
+                                        <input type="number" name="items[{{ $loop->index }}][qty]" value="0" min="0" max="{{ $remaining }}" class="form-control" {{ $remaining <= 0 ? 'readonly' : '' }}>
                                     </div>
+                                    @if($remaining <= 0)
+                                        <small class="text-danger">Qty pesanan sudah habis diretur.</small>
+                                    @endif
                                 </td>
                             </tr>
                             @endforeach

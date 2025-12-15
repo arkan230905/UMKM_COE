@@ -119,7 +119,7 @@ class RegisterController extends Controller
             case 'pegawai_pembelian':
                 return route('transaksi.pembelian.index');
             case 'pelanggan':
-                return route('pelanggan.produk.index');
+                return route('pelanggan.dashboard');
             default:
                 return '/dashboard';
         }

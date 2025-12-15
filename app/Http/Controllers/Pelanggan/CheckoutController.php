@@ -40,7 +40,7 @@ class CheckoutController extends Controller
 
     public function process(Request $request)
     {
-        $allowedMethods = ['qris', 'va_bca', 'va_bni', 'va_bri', 'va_mandiri', 'cash'];
+        $allowedMethods = ['va_bca', 'va_bni', 'va_bri', 'va_mandiri', 'cash'];
         
         // Debug: Log the received payment method
         \Log::info('Payment method received: ' . $request->payment_method);
@@ -74,11 +74,16 @@ class CheckoutController extends Controller
                 }
             }
 
-            // Store payment method as-is
-            $storedMethod = $request->payment_method;
+            $inputMethod = $request->payment_method;
+            // Store payment method using allowed enum (fallback when enum hasn't been migrated yet)
+            if ($inputMethod === 'cash' && $this->ordersPaymentMethodSupportsCash()) {
+                $storedMethod = 'cash';
+            } else {
+                $storedMethod = $inputMethod === 'cash' ? 'transfer' : $inputMethod;
+            }
             $catatanInput = $request->catatan;
-            if ($request->payment_method === 'cash') {
-                $prefixNote = 'Metode: Cash (Bayar di Kasir). ';
+            if ($inputMethod === 'cash') {
+                $prefixNote = 'Metode: Bayar di Tempat (COD). ';
                 $catatanInput = $prefixNote . (string) $catatanInput;
             }
 
@@ -111,7 +116,7 @@ class CheckoutController extends Controller
             }
 
             // If payment method is cash, mark as paid and completed
-            if ($request->payment_method === 'cash') {
+            if ($inputMethod === 'cash') {
                 $order->update([
                     'payment_status' => 'paid',
                     'status' => 'completed',
@@ -134,7 +139,7 @@ class CheckoutController extends Controller
                 auth()->id(),
                 'order_created',
                 'Pesanan Dibuat',
-                $request->payment_method === 'cash'
+                $inputMethod === 'cash'
                     ? "Pesanan {$order->nomor_order} berhasil dibuat dan lunas (Cash)."
                     : "Pesanan {$order->nomor_order} berhasil dibuat. Silakan lakukan pembayaran.",
                 ['order_id' => $order->id]
@@ -142,7 +147,7 @@ class CheckoutController extends Controller
 
             DB::commit();
 
-            $msg = $request->payment_method === 'cash'
+            $msg = $inputMethod === 'cash'
                 ? 'Pesanan berhasil dibuat dan lunas (Cash)! Nomor Pesanan: ' . $order->nomor_order
                 : 'Pesanan berhasil dibuat! Silakan lakukan pembayaran. Nomor Pesanan: ' . $order->nomor_order;
 
@@ -168,7 +173,6 @@ class CheckoutController extends Controller
             // Map payment method from pelanggan to admin format
             $paymentMethodMap = [
                 'cash' => 'cash',
-                'qris' => 'transfer',
                 'va_bca' => 'transfer',
                 'va_bni' => 'transfer',
                 'va_bri' => 'transfer',
@@ -212,6 +216,26 @@ class CheckoutController extends Controller
             // Log error but don't fail the checkout
             \Log::error('Failed to create Penjualan from Order: ' . $e->getMessage());
             return null;
+        }
+    }
+
+    private function ordersPaymentMethodSupportsCash(): bool
+    {
+        static $supportsCash;
+
+        if (!is_null($supportsCash)) {
+            return $supportsCash;
+        }
+
+        try {
+            $column = DB::selectOne("SHOW COLUMNS FROM `orders` LIKE 'payment_method'");
+            if (!$column || !property_exists($column, 'Type')) {
+                return $supportsCash = false;
+            }
+
+            return $supportsCash = str_contains($column->Type, "'cash'");
+        } catch (\Throwable $e) {
+            return $supportsCash = false;
         }
     }
 }

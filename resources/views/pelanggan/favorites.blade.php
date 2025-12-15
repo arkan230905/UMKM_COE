@@ -71,5 +71,11 @@
         </div>
         @endforelse
     </div>
+
+    @if($favorites instanceof \Illuminate\Contracts\Pagination\Paginator && $favorites->hasPages())
+    <div class="d-flex justify-content-center mt-4">
+        {{ $favorites->links() }}
+    </div>
+    @endif
 </div>
 @endsection

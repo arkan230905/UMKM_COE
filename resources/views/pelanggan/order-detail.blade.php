@@ -5,6 +5,14 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="text-dark">Detail Pesanan #{{ $order->nomor_order }}</h2>
         <div class="d-flex gap-2">
+            @if($order->payment_status === 'pending' && in_array($order->status, ['pending', 'processing']))
+            <form action="{{ route('pelanggan.orders.cancel', $order->id) }}" method="POST" onsubmit="return confirm('Batalkan pesanan ini? Stok akan dikembalikan.');">
+                @csrf
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="bi bi-x-circle"></i> Batalkan Pesanan
+                </button>
+            </form>
+            @endif
             <a href="{{ route('pelanggan.returns.create', ['order_id' => $order->id]) }}" class="btn btn-outline-warning">
                 <i class="bi bi-arrow-counterclockwise"></i> Ajukan Retur
             </a>
@@ -17,6 +25,14 @@
     @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show">
         {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
+
+    @if(session('midtrans_status'))
+    @php $midtransStatus = session('midtrans_status'); @endphp
+    <div class="alert alert-{{ $midtransStatus['type'] }} alert-dismissible fade show">
+        {!! $midtransStatus['message'] !!}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     @endif
@@ -93,7 +109,9 @@
                                 <tr>
                                     <th>Produk</th>
                                     <th>Harga</th>
-                                    <th>Qty</th>
+                                    <th class="text-center">Qty Dipesan</th>
+                                    <th class="text-center">Qty Diretur</th>
+                                    <th class="text-center">Qty Sisa</th>
                                     <th>Subtotal</th>
                                 </tr>
                             </thead>
@@ -102,14 +120,27 @@
                                 <tr>
                                     <td>{{ $item->produk->nama_produk }}</td>
                                     <td>Rp {{ number_format($item->harga, 0, ',', '.') }}</td>
-                                    <td>{{ $item->qty }}</td>
+                                    <td class="text-center">{{ $item->qty }}</td>
+                                    <td class="text-center">
+                                        @if(($item->qty_returned ?? 0) > 0)
+                                            <span class="badge bg-warning text-dark">{{ rtrim(rtrim(number_format($item->qty_returned, 2, ',', '.'), '0'), ',') }}</span>
+                                        @else
+                                            <span class="text-muted">0</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        @php $remaining = $item->qty_remaining ?? $item->qty; @endphp
+                                        <span class="{{ $remaining <= 0 ? 'text-danger fw-semibold' : 'text-dark' }}">
+                                            {{ rtrim(rtrim(number_format($remaining, 2, ',', '.'), '0'), ',') }}
+                                        </span>
+                                    </td>
                                     <td>Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
                                 </tr>
                                 @endforeach
                             </tbody>
                             <tfoot>
                                 <tr class="table-primary">
-                                    <th colspan="3" class="text-end">Total:</th>
+                                    <th colspan="5" class="text-end">Total:</th>
                                     <th>Rp {{ number_format($order->total_amount, 0, ',', '.') }}</th>
                                 </tr>
                             </tfoot>
@@ -117,6 +148,60 @@
                     </div>
                 </div>
             </div>
+
+            @if(isset($orderReturns) && $orderReturns->isNotEmpty())
+            <div class="card border-0 shadow-sm mt-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-dark"><i class="bi bi-arrow-counterclockwise"></i> Riwayat Retur Pesanan Ini</h5>
+                    <span class="badge bg-secondary">{{ $orderReturns->count() }} Retur</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Kode Retur</th>
+                                    <th>Tanggal</th>
+                                    <th>Kompensasi</th>
+                                    <th>Status</th>
+                                    <th>Nilai Retur</th>
+                                    <th>Detail Item</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($orderReturns as $retur)
+                                <tr>
+                                    <td><strong>{{ $retur->nomor_retur }}</strong></td>
+                                    <td>{{ optional($retur->tanggal_retur)->format('d/m/Y') }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ $retur->kompensasi === 'uang' ? 'success' : 'info' }} text-uppercase">
+                                            {{ ucfirst($retur->kompensasi ?? $retur->tipe_kompensasi) }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ $retur->status === 'selesai' ? 'success' : ($retur->status === 'diproses' ? 'warning text-dark' : 'secondary') }} text-capitalize">
+                                            {{ $retur->status ?? 'draft' }}
+                                        </span>
+                                    </td>
+                                    <td>Rp {{ number_format($retur->calculateTotalNilai(), 0, ',', '.') }}</td>
+                                    <td>
+                                        <ul class="mb-0 ps-3">
+                                            @foreach($retur->details as $detail)
+                                                <li>
+                                                    {{ $detail->item_nama ?? $detail->produk->nama_produk ?? '-' }}
+                                                    <small class="text-muted">x {{ rtrim(rtrim(number_format($detail->qty ?? $detail->qty_retur ?? 0, 2, ',', '.'), '0'), ',') }}</small>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            @endif
         </div>
 
         <div class="col-md-4">
@@ -174,34 +259,109 @@
 @if($order->payment_status === 'pending' && $order->snap_token)
 <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}"></script>
 <script>
-document.getElementById('pay-button').addEventListener('click', function () {
-    snap.pay('{{ $order->snap_token }}', {
-        onSuccess: function(result){
-            alert('Pembayaran berhasil!');
-            window.location.reload();
+const orderId = @json($order->nomor_order);
+const orderShowUrl = @json(route('pelanggan.orders.show', $order->id));
+const clientCompleteUrl = @json(route('midtrans.client-complete'));
+const csrfToken = @json(csrf_token());
+
+function redirectWithStatus(status) {
+    const separator = orderShowUrl.includes('?') ? '&' : '?';
+    window.location.href = `${orderShowUrl}${separator}redirect_status=${status}`;
+}
+
+function requestMidtransStatus(resultPayload = null, fallbackStatus = null, forceCheck = false) {
+    return fetch(clientCompleteUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
         },
-        onPending: function(result){
-            alert('Menunggu pembayaran Anda');
-            window.location.reload();
-        },
-        onError: function(result){
-            alert('Pembayaran gagal! Silakan coba lagi.');
-        },
-        onClose: function(){
-            alert('Anda menutup popup pembayaran');
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            order_id: orderId,
+            result: resultPayload,
+            fallback_status: fallbackStatus,
+            force_check: forceCheck
+        })
+    }).then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to sync payment status');
         }
+        return response.json();
+    }).then(data => data.redirect_status || 'pending');
+}
+
+function handleStatus(status, forceRedirect = false) {
+    if (status === 'success' || status === 'error') {
+        redirectWithStatus(status);
+        return true;
+    }
+
+    if (forceRedirect) {
+        redirectWithStatus(status);
+    }
+
+    return status === 'success';
+}
+
+function pollUntilSettled(attempt = 0, maxAttempts = 12) {
+    if (attempt >= maxAttempts) {
+        return;
+    }
+
+    requestMidtransStatus(null, 'pending', attempt > 0 && attempt % 3 === 0)
+        .then(status => {
+            const settled = handleStatus(status, false);
+            if (!settled) {
+                setTimeout(() => pollUntilSettled(attempt + 1, maxAttempts), 5000);
+            }
+        })
+        .catch(() => {
+            setTimeout(() => pollUntilSettled(attempt + 1, maxAttempts), 7000);
+        });
+}
+
+const payButton = document.getElementById('pay-button');
+if (payButton) {
+    payButton.addEventListener('click', function () {
+        snap.pay('{{ $order->snap_token }}', {
+            onSuccess: function(result){
+                requestMidtransStatus(result, 'success').then(status => handleStatus(status, true)).catch(() => redirectWithStatus('pending'));
+            },
+            onPending: function(result){
+                requestMidtransStatus(result, 'pending').then(status => handleStatus(status, true)).catch(() => redirectWithStatus('pending'));
+            },
+            onError: function(result){
+                requestMidtransStatus(result, 'error', true).then(status => handleStatus(status, true)).catch(() => redirectWithStatus('error'));
+            },
+            onClose: function(){
+                window.location.href = orderShowUrl;
+            }
+        });
     });
-});
+
+    // Auto-poll while order is pending to detect payments made outside current session
+    pollUntilSettled();
+}
 </script>
 @endif
 
 @section('review-section')
 @if($order->status === 'completed' || $order->payment_status === 'paid')
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-header bg-white">
-        <h5 class="mb-0 text-dark"><i class="bi bi-star"></i> Review Produk</h5>
+<div class="card border-0 shadow-sm mb-4 review-card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <div>
+            <span class="review-pill">Berikan Penilaian</span>
+            <h5 class="mb-0 text-dark mt-2"><i class="bi bi-star"></i> Review Produk</h5>
+        </div>
+        <div class="text-end">
+            <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis review-badge">
+                <i class="bi bi-lightning-charge"></i> Bantu UMKM berkembang
+            </span>
+        </div>
     </div>
-    <div class="card-body">
+    <div class="card-body review-body">
         @php
             $existingReview = App\Models\Review::where('order_id', $order->id)
                 ->where('user_id', auth()->id())
@@ -209,29 +369,39 @@ document.getElementById('pay-button').addEventListener('click', function () {
         @endphp
         
         @if($existingReview)
-            <div class="alert alert-info">
-                <h6>Review Anda:</h6>
-                <div class="mb-2">
-                    @for($i = 1; $i <= 5; $i++)
-                        <i class="bi bi-star-fill text-{{ $i <= $existingReview->rating ? 'warning' : 'secondary' }}"></i>
-                    @endfor
-                    <span class="ms-2">{{ $existingReview->rating }}/5</span>
+            <div class="review-highlight">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="review-score">{{ number_format($existingReview->rating, 1) }}</div>
+                    <div>
+                        <h6 class="mb-1 text-dark">Terima kasih atas penilaianmu!</h6>
+                        <div class="review-stars">
+                            @for($i = 1; $i <= 5; $i++)
+                                <i class="bi bi-star-fill text-{{ $i <= $existingReview->rating ? 'warning' : 'secondary' }}"></i>
+                            @endfor
+                        </div>
+                    </div>
                 </div>
                 @if($existingReview->comment)
-                    <p class="mb-2">{{ $existingReview->comment }}</p>
+                    <p class="mb-3 text-dark">“{{ $existingReview->comment }}”</p>
+                @else
+                    <p class="mb-3 text-muted">Belum ada komentar tertulis.</p>
                 @endif
                 
-                <!-- Edit Review Button -->
-                <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editReviewModal">
-                    <i class="bi bi-pencil"></i> Edit Review
+                <button class="btn btn-warning px-3" data-bs-toggle="modal" data-bs-target="#editReviewModal">
+                    <i class="bi bi-pencil"></i> Update Review
                 </button>
             </div>
         @else
-            <div class="alert alert-light">
-                <p class="mb-3">Belum memberikan review? Berikan review untuk produk ini:</p>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reviewModal">
-                    <i class="bi bi-star"></i> Berikan Review
-                </button>
+            <div class="review-highlight review-highlight-empty">
+                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                    <div>
+                        <h6 class="text-dark mb-1">Bantu pembeli lain dengan pengalamanmu</h6>
+                        <p class="mb-0 text-muted">Bagikan kualitas produk dan layanan kami untuk mendukung pelaku UMKM.</p>
+                    </div>
+                    <button class="btn btn-primary btn-lg shadow-sm" data-bs-toggle="modal" data-bs-target="#reviewModal">
+                        <i class="bi bi-star"></i> Berikan Review Sekarang
+                    </button>
+                </div>
             </div>
         @endif
     </div>
@@ -439,6 +609,80 @@ input[type="radio"]:checked + .rating-star {
 
 .rating-display .bi {
     font-size: 16px;
+}
+
+.review-card {
+    border: none;
+    overflow: hidden;
+}
+
+.review-pill {
+    display: inline-block;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    color: #0d6efd;
+    background: rgba(13, 110, 253, 0.12);
+    border-radius: 999px;
+    padding: 0.3rem 0.8rem;
+}
+
+.review-body {
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.08), rgba(255, 193, 7, 0.08));
+    border-radius: 0 0 1rem 1rem;
+}
+
+.review-highlight {
+    background: #fff;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    border: 1px dashed rgba(13, 110, 253, 0.25);
+    box-shadow: 0 10px 20px rgba(13, 110, 253, 0.08);
+}
+
+.review-highlight-empty {
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.15), rgba(255, 193, 7, 0.15));
+    border: none;
+    box-shadow: none;
+    color: #0c2d62;
+}
+
+.review-score {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #ffc107, #ff8f0c);
+    color: #fff;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 8px 20px rgba(255, 193, 7, 0.35);
+}
+
+.review-stars i {
+    font-size: 1.15rem;
+}
+
+.review-badge {
+    background: rgba(255, 193, 7, 0.18) !important;
+    color: #b58100 !important;
+    font-weight: 600;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+    .review-body {
+        border-radius: 0 0 1rem 1rem;
+        padding: 1.25rem;
+    }
+
+    .review-highlight {
+        padding: 1.25rem;
+    }
 }
 </style>
 @endsection
