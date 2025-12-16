@@ -39,7 +39,7 @@
                 <div class="mb-3">
                     <label for="jenis_aset_id" class="form-label text-white">Jenis Aset <span class="text-danger">*</span></label>
                     <select class="form-select bg-dark text-white @error('jenis_aset_id') is-invalid @enderror" 
-                            id="jenis_aset_id" name="jenis_aset_id" required onchange="loadKategoriAset()">
+                            id="jenis_aset_id" name="jenis_aset_id" required>
                         <option value="" disabled selected>-- Pilih Jenis Aset --</option>
                         @foreach($jenisAsets as $jenis)
                             <option value="{{ $jenis->id }}" {{ old('jenis_aset_id') == $jenis->id ? 'selected' : '' }}>
@@ -55,8 +55,8 @@
                 <div class="mb-3">
                     <label for="kategori_aset_id" class="form-label text-white">Kategori Aset <span class="text-danger">*</span></label>
                     <select class="form-select bg-dark text-white @error('kategori_aset_id') is-invalid @enderror" 
-                            id="kategori_aset_id" name="kategori_aset_id" required onchange="checkPenyusutan()">
-                        <option value="" disabled selected>-- Pilih Jenis Aset terlebih dahulu --</option>
+                            id="kategori_aset_id" name="kategori_aset_id" required disabled>
+                        <option value="" disabled selected>-- Pilih jenis aset terlebih dahulu --</option>
                     </select>
                     @error('kategori_aset_id')
                         <div class="invalid-feedback">{{ $message }}</div>
@@ -140,23 +140,17 @@
 
                         <!-- Bulan Mulai (hanya untuk saldo menurun) -->
                         <div class="col-md-4 mb-3" id="bulan_mulai_container" style="display: none;">
-                            <label for="bulan_mulai" class="form-label text-white">Bulan Mulai</label>
-                            <select class="form-select bg-dark text-white @error('bulan_mulai') is-invalid @enderror" 
-                                    id="bulan_mulai" name="bulan_mulai" onchange="hitungPenyusutan()">
-                                <option value="1">Januari</option>
-                                <option value="2">Februari</option>
-                                <option value="3">Maret</option>
-                                <option value="4">April</option>
-                                <option value="5">Mei</option>
-                                <option value="6">Juni</option>
-                                <option value="7">Juli</option>
-                                <option value="8">Agustus</option>
-                                <option value="9">September</option>
-                                <option value="10">Oktober</option>
-                                <option value="11">November</option>
-                                <option value="12">Desember</option>
-                            </select>
-                            <small class="text-muted">Bulan pembelian aset</small>
+                            <label for="bulan_mulai_picker" class="form-label text-white">Tanggal Mulai </label>
+                            @php
+                                $defaultTanggalMulai = old('bulan_mulai_full', now()->format('Y-m-d'));
+                                $defaultBulanMulai = old('bulan_mulai', now()->format('n'));
+                            @endphp
+                            <input type="date" class="form-control bg-dark text-white @error('bulan_mulai') is-invalid @enderror"
+                                   id="bulan_mulai_picker" name="bulan_mulai_picker" value="{{ $defaultTanggalMulai }}"
+                                   onchange="handleBulanMulaiChange()">
+                            <input type="hidden" id="bulan_mulai_hidden" name="bulan_mulai" value="{{ $defaultBulanMulai }}">
+                            <input type="hidden" id="bulan_mulai_full" name="bulan_mulai_full" value="{{ $defaultTanggalMulai }}">
+                            <small class="text-muted">Pilih tanggal pembelian untuk menghitung bulan penyusutan pertama</small>
                             @error('bulan_mulai')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -278,7 +272,7 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="tanggal_beli" class="form-label text-white">Tanggal Pembelian <span class="text-danger">*</span></label>
+                        <label for="tanggal_beli" class="form-label text-white">Tanggal Pencatatan <span class="text-danger">*</span></label>
                         <input type="date" class="form-control bg-dark text-white @error('tanggal_beli') is-invalid @enderror" 
                                id="tanggal_beli" name="tanggal_beli" value="{{ old('tanggal_beli', date('Y-m-d')) }}" required>
                         @error('tanggal_beli')
@@ -320,8 +314,40 @@
 </div>
 
 <script>
-// Data kategori aset per jenis
-const kategoriData = @json($jenisAsets);
+const kategoriEndpoint = "{{ route('master-data.aset.kategori-by-jenis') }}";
+let jenisAsetSelect;
+let kategoriAsetSelect;
+
+document.addEventListener('DOMContentLoaded', () => {
+    jenisAsetSelect = document.getElementById('jenis_aset_id');
+    kategoriAsetSelect = document.getElementById('kategori_aset_id');
+
+    if (!jenisAsetSelect || !kategoriAsetSelect) {
+        return;
+    }
+
+    jenisAsetSelect.addEventListener('change', () => loadKategoriAset(false));
+    kategoriAsetSelect.addEventListener('change', checkPenyusutan);
+
+    if (jenisAsetSelect.value) {
+        loadKategoriAset(true);
+    } else {
+        resetKategoriSelect();
+    }
+});
+
+function resetKategoriSelect(message = '-- Pilih jenis aset terlebih dahulu --', disabled = true) {
+    if (!kategoriAsetSelect) return;
+
+    kategoriAsetSelect.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    placeholder.textContent = message;
+    kategoriAsetSelect.appendChild(placeholder);
+    kategoriAsetSelect.disabled = disabled;
+}
 
 // Fungsi untuk format number otomatis
 function formatNumber(input) {
@@ -343,31 +369,102 @@ function formatNumber(input) {
 }
 
 // Load kategori aset berdasarkan jenis yang dipilih
-function loadKategoriAset() {
-    const jenisId = document.getElementById('jenis_aset_id').value;
-    const kategoriSelect = document.getElementById('kategori_aset_id');
-    
-    kategoriSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kategori Aset --</option>';
-    
-    if (jenisId) {
-        const jenis = kategoriData.find(j => j.id == jenisId);
-        if (jenis && jenis.kategories) {
-            jenis.kategories.forEach(kategori => {
-                const option = document.createElement('option');
-                option.value = kategori.id;
-                option.textContent = kategori.nama;
-                option.dataset.disusutkan = kategori.disusutkan ? '1' : '0';
-                option.dataset.jenisNama = jenis.nama;
-                if ('{{ old("kategori_aset_id") }}' == kategori.id) {
-                    option.selected = true;
-                }
-                kategoriSelect.appendChild(option);
-            });
-        }
+async function loadKategoriAset(isInitialLoad = false) {
+    if (!jenisAsetSelect || !kategoriAsetSelect) return;
+
+    const jenisId = jenisAsetSelect.value;
+
+    if (!jenisId) {
+        resetKategoriSelect();
+        checkPenyusutan();
+        return;
     }
-    
-    // Check penyusutan after loading
-    checkPenyusutan();
+
+    resetKategoriSelect('Memuat kategori...', true);
+
+    try {
+        const response = await fetch(`${kategoriEndpoint}?jenis_aset_id=${encodeURIComponent(jenisId)}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Request gagal dengan status ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+            resetKategoriSelect('Kategori belum tersedia untuk jenis ini', true);
+            checkPenyusutan();
+            return;
+        }
+
+        const preservedValue = isInitialLoad ? '{{ old("kategori_aset_id") }}' : '';
+        const jenisNama = jenisAsetSelect.options[jenisAsetSelect.selectedIndex]?.text || '';
+
+        kategoriAsetSelect.disabled = false;
+        kategoriAsetSelect.innerHTML = '';
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.disabled = true;
+        placeholder.textContent = '-- Pilih Kategori Aset --';
+        if (!preservedValue) {
+            placeholder.selected = true;
+        }
+        kategoriAsetSelect.appendChild(placeholder);
+
+        let preservedFound = false;
+        data.forEach(kategori => {
+            const option = document.createElement('option');
+            option.value = kategori.id;
+            option.textContent = kategori.nama;
+            const isDepreciated = determineDepreciationFlag(kategori);
+            option.dataset.disusutkan = isDepreciated ? '1' : '0';
+            option.dataset.umurEkonomis = kategori.umur_ekonomis ?? '';
+            option.dataset.tarifPenyusutan = kategori.tarif_penyusutan ?? '';
+            option.dataset.jenisAsetId = kategori.jenis_aset_id ?? '';
+            option.dataset.jenisNama = jenisNama;
+            option.dataset.kategoriNama = kategori.nama;
+            if (preservedValue && String(preservedValue) === String(kategori.id)) {
+                option.selected = true;
+                preservedFound = true;
+            }
+            kategoriAsetSelect.appendChild(option);
+        });
+
+        if (preservedValue && preservedFound) {
+            checkPenyusutan();
+        } else {
+            kategoriAsetSelect.selectedIndex = 0;
+            checkPenyusutan();
+        }
+    } catch (error) {
+        console.error('Gagal memuat kategori aset:', error);
+        resetKategoriSelect('Gagal memuat kategori. Silakan coba lagi.', true);
+        checkPenyusutan();
+    }
+}
+
+function determineDepreciationFlag(kategori) {
+    if (typeof kategori.disusutkan !== 'undefined' && kategori.disusutkan !== null) {
+        return kategori.disusutkan === true || kategori.disusutkan === 1 || kategori.disusutkan === '1';
+    }
+
+    const umur = Number(kategori.umur_ekonomis ?? 0);
+    return umur > 0;
+}
+
+function buildNonDepreciationMessage(option) {
+    const kategoriNama = (option.dataset.kategoriNama || option.textContent || '').trim();
+    if (kategoriNama.toLowerCase() === 'tanah') {
+        return 'Tanah tidak mengalami penyusutan karena memiliki umur manfaat yang tidak terbatas dan nilainya cenderung meningkat.';
+    }
+
+    return 'Kategori aset ini ditandai tidak disusutkan pada master data. Silakan lanjutkan tanpa mengisi informasi penyusutan.';
 }
 
 // Check apakah kategori aset yang dipilih disusutkan atau tidak
@@ -386,9 +483,7 @@ function checkPenyusutan() {
     
     if (selectedOption && selectedOption.value) {
         const disusutkan = selectedOption.dataset.disusutkan === '1';
-        const jenisNama = selectedOption.dataset.jenisNama || '';
-        const kategoriNama = selectedOption.textContent;
-        
+
         if (disusutkan) {
             // Aset DISUSUTKAN - tampilkan form penyusutan
             sectionPenyusutan.style.display = 'block';
@@ -398,7 +493,15 @@ function checkPenyusutan() {
             metodePenyusutan.required = true;
             umurManfaat.required = true;
             nilaiResidu.required = true;
-            
+            metodePenyusutan.disabled = false;
+            umurManfaat.disabled = false;
+            nilaiResidu.disabled = false;
+
+            const umurEkonomis = selectedOption.dataset.umurEkonomis;
+            if (umurEkonomis && !umurManfaat.value) {
+                umurManfaat.value = umurEkonomis;
+            }
+
         } else {
             // Aset TIDAK DISUSUTKAN - sembunyikan form penyusutan
             sectionPenyusutan.style.display = 'none';
@@ -408,6 +511,9 @@ function checkPenyusutan() {
             metodePenyusutan.required = false;
             umurManfaat.required = false;
             nilaiResidu.required = false;
+            metodePenyusutan.disabled = true;
+            umurManfaat.disabled = true;
+            nilaiResidu.disabled = true;
             
             // Set nilai default untuk aset yang tidak disusutkan
             metodePenyusutan.value = '';
@@ -415,19 +521,7 @@ function checkPenyusutan() {
             nilaiResidu.value = 0;
             
             // Tampilkan alasan
-            let alasan = '';
-            if (jenisNama.includes('Lancar')) {
-                alasan = 'Aset lancar tidak mengalami penyusutan karena bersifat likuid dan akan dikonversi menjadi kas dalam waktu dekat.';
-            } else if (kategoriNama.includes('Tanah')) {
-                alasan = 'Tanah tidak mengalami penyusutan karena memiliki umur manfaat tidak terbatas dan cenderung meningkat nilainya.';
-            } else if (jenisNama.includes('Tak Berwujud')) {
-                alasan = 'Aset tak berwujud tidak disusutkan, tetapi diamortisasi dengan metode yang berbeda.';
-            } else if (jenisNama.includes('Investasi')) {
-                alasan = 'Investasi jangka panjang tidak disusutkan karena nilainya mengikuti nilai pasar.';
-            } else {
-                alasan = 'Aset ini tidak mengalami penyusutan sesuai standar akuntansi.';
-            }
-            alasanTidakDisusutkan.textContent = alasan;
+            alasanTidakDisusutkan.textContent = buildNonDepreciationMessage(selectedOption);
         }
     } else {
         // Belum ada kategori dipilih
@@ -494,8 +588,28 @@ function hitungPerhitunganTahunan(total, residu, umur, tarifPersen, bulanMulai) 
     
     let html = '';
     
-    // Hitung sisa bulan di tahun pertama
-    const sisaBulanTahun1 = 13 - bulanMulai; // Jika mulai Februari (2), sisa = 11 bulan
+    // Hitung sisa bulan di tahun pertama dengan 15th day cutoff rule
+    const sisaBulanTahun1 = getSisaBulanTahunPertama();
+    
+    // Get start date from picker and adjust tahun awal berdasarkan cutoff rule
+    const picker = document.getElementById('bulan_mulai_picker');
+    let tahunAwal = new Date().getFullYear(); // Default to current year
+    if (picker && picker.value) {
+        const startDate = new Date(picker.value);
+        if (!Number.isNaN(startDate.getTime())) {
+            tahunAwal = startDate.getFullYear();
+            
+            // Jika tanggal >= 15, penyusutan mulai tahun depan
+            const day = startDate.getDate();
+            if (day >= 15) {
+                // Check if depreciation starts in January next year
+                const month = startDate.getMonth() + 1;
+                if (month === 12) {
+                    tahunAwal = tahunAwal + 1; // December + 1 month = January next year
+                }
+            }
+        }
+    }
     
     for (let tahun = 1; tahun <= umur; tahun++) {
         let penyusutan = 0;
@@ -520,10 +634,12 @@ function hitungPerhitunganTahunan(total, residu, umur, tarifPersen, bulanMulai) 
         bookValue -= penyusunanActual;
         totalPenyusutan += penyusunanActual;
         
-        // Tambahkan keterangan untuk tahun pertama
-        let tahunLabel = tahun;
+        // Tampilkan tahun kalender aktual dengan keterangan bulan
+        const tahunKalender = tahunAwal + tahun - 1;
+        let tahunLabel = `${tahunKalender}`;
+        
         if (tahun === 1 && sisaBulanTahun1 < 12) {
-            tahunLabel = `${tahun} (${sisaBulanTahun1} bulan)`;
+            tahunLabel = `${tahunKalender} (${sisaBulanTahun1} bulan)`;
         }
         
         html += `
@@ -590,8 +706,7 @@ function hitungPenyusutan() {
         penyusutanTahunan = nilaiDisusutkan / umur;
         
         // Tambahkan perhitungan proporsional untuk bulan pertama
-        const bulanMulai = parseInt(document.getElementById('bulan_mulai').value) || 1;
-        const sisaBulanTahun1 = 13 - bulanMulai;
+        const sisaBulanTahun1 = getSisaBulanTahunPertama();
         const penyusutanTahunPertama = (penyusutanTahunan / 12) * sisaBulanTahun1;
         
         // Tampilkan info metode garis lurus
@@ -601,7 +716,7 @@ function hitungPenyusutan() {
             <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Detail Metode Penyusutan</h6>
             <div><strong>Rumus:</strong> (Harga Perolehan - Nilai Residu) / Umur Manfaat</div>
             <div><strong>Perhitungan:</strong> (Rp ${formatRupiah(total)} - Rp ${formatRupiah(residu)}) / ${umur} tahun = Rp ${formatRupiah(penyusutanTahunan)} per tahun</div>
-            <div><strong>Penyusutan tahun pertama (${sisaBulanTahun1} bulan):</strong> Rp ${formatRupiah(penyusutanTahunPertama)}</div>
+           
         `;
         
         document.getElementById('tabel_perhitungan_tahunan').style.display = 'none';
@@ -612,15 +727,15 @@ function hitungPenyusutan() {
     } else if (metode === 'saldo_menurun') {
         // Metode saldo menurun (double declining balance) - gunakan tarif yang diinput
         const tarifPersen = parseFloat(document.getElementById('tarif_penyusutan').value) || 0;
-        const bulanMulai = parseInt(document.getElementById('bulan_mulai').value) || 1;
+        const bulanMulai = getSelectedBulanMulai();
         const rate = tarifPersen / 100; // Konversi persen ke desimal
         
         // Sembunyikan perhitungan jumlah angka tahun
         document.getElementById('perhitungan_jumlah_angka_tahun').style.display = 'none';
         
-        // Hitung sisa bulan di tahun pertama
-        const sisaBulanTahun1 = 13 - bulanMulai;
-        
+        // Hitung sisa bulan di tahun pertama dengan 15th day cutoff rule
+        const sisaBulanTahun1 = getSisaBulanTahunPertama();
+
         // First year depreciation (sesuai rumus partial year)
         if (sisaBulanTahun1 < 12) {
             // Partial year: (Tarif% * sisa bulan) / 12 * nilai buku awal
@@ -683,8 +798,8 @@ function updateDepreciationInfo(metode, ratePersen = 0) {
         infoDiv.style.display = 'block';
         const umur = parseFloat(document.getElementById('umur_manfaat').value) || 1;
         const tarifInput = parseFloat(document.getElementById('tarif_penyusutan').value) || ratePersen;
-        const bulanMulai = parseInt(document.getElementById('bulan_mulai').value) || 1;
-        const sisaBulan = 13 - bulanMulai;
+        const bulanMulai = getSelectedBulanMulai();
+        const sisaBulan = getSisaBulanTahunPertama();
         
         infoDiv.innerHTML = `
             <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Detail Metode Penyusutan</h6>
@@ -714,11 +829,98 @@ function updateDepreciationInfo(metode, ratePersen = 0) {
         infoDiv.style.display = 'none';
     }
 }
+
 function formatRupiah(angka) {
     return new Intl.NumberFormat('id-ID', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     }).format(angka);
+}
+
+function getSelectedBulanMulai() {
+    const picker = document.getElementById('bulan_mulai_picker');
+    if (!picker || !picker.value) {
+        return 1;
+    }
+    
+    const selectedDate = new Date(picker.value);
+    if (Number.isNaN(selectedDate.getTime())) {
+        return 1;
+    }
+    
+    const day = selectedDate.getDate();
+    let month = selectedDate.getMonth() + 1;
+    
+    // Jika tanggal >= 15, mulai penyusutan bulan depan
+    if (day >= 15) {
+        month = month + 1;
+        if (month > 12) {
+            month = 1;
+        }
+    }
+    
+    return month;
+}
+
+function getSisaBulanTahunPertama() {
+    const picker = document.getElementById('bulan_mulai_picker');
+    if (!picker || !picker.value) {
+        return 12;
+    }
+    
+    const selectedDate = new Date(picker.value);
+    if (Number.isNaN(selectedDate.getTime())) {
+        return 12;
+    }
+    
+    const day = selectedDate.getDate();
+    let effectiveMonth = selectedDate.getMonth() + 1;
+    
+    // Jika tanggal >= 15, mulai penyusutan bulan depan
+    if (day >= 15) {
+        effectiveMonth = effectiveMonth + 1;
+        if (effectiveMonth > 12) {
+            return 12; // Mulai Januari tahun depan, dapat 12 bulan
+        }
+    }
+    
+    // Hitung sisa bulan dari effective month hingga Desember
+    return 13 - effectiveMonth;
+}
+
+function handleBulanMulaiChange() {
+    const picker = document.getElementById('bulan_mulai_picker');
+    const hiddenMonth = document.getElementById('bulan_mulai_hidden');
+    const fullInput = document.getElementById('bulan_mulai_full');
+
+    if (!picker || !hiddenMonth || !fullInput) {
+        return;
+    }
+
+    const selectedDate = picker.value ? new Date(picker.value) : null;
+    if (!selectedDate || Number.isNaN(selectedDate.getTime())) {
+        hiddenMonth.value = 1;
+        fullInput.value = '';
+        hitungPenyusutan();
+        return;
+    }
+
+    // Apply 15th day cutoff rule
+    const day = selectedDate.getDate();
+    let effectiveMonth = selectedDate.getMonth() + 1;
+    
+    // Jika tanggal >= 15, mulai penyusutan bulan depan
+    if (day >= 15) {
+        effectiveMonth = effectiveMonth + 1;
+        if (effectiveMonth > 12) {
+            effectiveMonth = 1;
+        }
+    }
+    
+    hiddenMonth.value = effectiveMonth;
+    fullInput.value = picker.value;
+
+    hitungPenyusutan();
 }
 
 // Initialize on page load
@@ -727,8 +929,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if ('{{ old("jenis_aset_id") }}') {
         loadKategoriAset();
     }
-    
+
     // Calculate initial values
+    handleBulanMulaiChange();
     hitungTotal();
 });
 </script>

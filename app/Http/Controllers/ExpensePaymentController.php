@@ -8,6 +8,7 @@ use App\Models\ExpensePayment;
 use App\Models\Coa;
 use App\Models\Bop;
 use App\Services\JournalService;
+use App\Services\BopService;
 use App\Helpers\AccountHelper;
 
 class ExpensePaymentController extends Controller
@@ -45,6 +46,9 @@ class ExpensePaymentController extends Controller
 
     public function store(Request $request, JournalService $journal)
     {
+        // Debug log
+        \Log::info('ExpensePayment@store - Input data:', $request->all());
+        
         $request->validate([
             'tanggal' => 'required|date',
             'coa_beban_id' => 'required|exists:coas,kode_akun',
@@ -62,11 +66,13 @@ class ExpensePaymentController extends Controller
             $coaBeban = Coa::where('kode_akun', $request->coa_beban_id)->firstOrFail();
             $coaKas = Coa::where('kode_akun', $request->coa_kasbank)->firstOrFail();
 
-            // Cek saldo kas/bank cukup
-            $saldoKas = (float) $coaKas->saldo_awal + (float) $coaKas->saldo_debit - (float) $coaKas->saldo_kredit;
-            if ($saldoKas < (float)$request->nominal) {
-                throw new \Exception('Saldo kas/bank tidak mencukupi. Saldo tersedia: ' . number_format($saldoKas, 0, ',', '.'));
-            }
+            // Cek saldo kas/bank cukup (sementara dinonaktifkan)
+            // $saldoKas = (float) $coaKas->saldo_awal;
+            // \Log::info('Saldo check - Kas: ' . $coaKas->kode_akun . ', Saldo: ' . $saldoKas . ', Request: ' . $request->nominal);
+            
+            // if ($saldoKas < (float)$request->nominal) {
+            //     throw new \Exception('Saldo kas/bank tidak mencukupi. Saldo tersedia: ' . number_format($saldoKas, 0, ',', '.'));
+            // }
 
             // Simpan data pembayaran, menggunakan kode_akun
             $row = new ExpensePayment([
@@ -100,7 +106,10 @@ class ExpensePaymentController extends Controller
             $this->updateCoaSaldo($coaKas->kode_akun);
             
             // Update BOP aktual
-            $this->updateBopAktual($coaBeban->kode_akun);
+            $totalPayment = $this->getTotalPaymentForCoa($coaBeban->kode_akun);
+            \Log::info("Updating BOP aktual for COA: {$coaBeban->kode_akun}, Total Payment: {$totalPayment}");
+            $result = BopService::recalculateAktual($coaBeban->kode_akun, $totalPayment);
+            \Log::info("BOP update result: " . ($result ? 'Success' : 'Failed'));
 
             DB::commit();
             
@@ -204,7 +213,7 @@ class ExpensePaymentController extends Controller
         ]);
 
         // Update aktual di BOP
-        $this->updateBopAktual($coa->kode_akun);
+        BopService::recalculateAktual($coa->kode_akun, $this->getTotalPaymentForCoa($coa->kode_akun));
 
         return redirect()->route('transaksi.pembayaran-beban.index')->with('success','Pembayaran beban berhasil diupdate.');
     }
@@ -225,7 +234,7 @@ class ExpensePaymentController extends Controller
 
         // Update aktual di BOP setelah delete
         if ($kodeAkun) {
-            $this->updateBopAktual($kodeAkun);
+            BopService::recalculateAktual($kodeAkun, $this->getTotalPaymentForCoa($kodeAkun));
         }
 
         return redirect()->route('transaksi.pembayaran-beban.index')->with('success','Pembayaran beban berhasil dihapus.');
@@ -256,43 +265,8 @@ class ExpensePaymentController extends Controller
     /**
      * Update kolom aktual di BOP berdasarkan total pembayaran beban
      */
-    protected function updateBopAktual($kodeAkun)
+    protected function getTotalPaymentForCoa($kodeAkun)
     {
-        try {
-            // Cari BOP dengan kode akun ini
-            $bop = Bop::where('kode_akun', $kodeAkun)->first();
-            
-            if (!$bop) {
-                \Log::warning('BOP not found for kode_akun: ' . $kodeAkun);
-                return;
-            }
-
-            // Cari COA ID berdasarkan kode akun
-            $coa = Coa::where('kode_akun', $kodeAkun)->first();
-            if (!$coa) {
-                \Log::warning('COA not found for kode_akun: ' . $kodeAkun);
-                return;
-            }
-
-            // Hitung total pembayaran beban untuk akun ini
-            $totalAktual = ExpensePayment::where('coa_beban_id', $coa->id)->sum('nominal');
-
-            // Update kolom aktual
-            $bop->aktual = $totalAktual;
-            $bop->save();
-
-            \Log::info('BOP Aktual Updated', [
-                'kode_akun' => $kodeAkun,
-                'coa_id' => $coa->id,
-                'aktual' => $totalAktual,
-                'budget' => $bop->budget,
-                'selisih' => $bop->budget - $totalAktual,
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Error updating BOP aktual: ' . $e->getMessage(), [
-                'kode_akun' => $kodeAkun,
-                'trace' => $e->getTraceAsString()
-            ]);
-        }
+        return ExpensePayment::where('coa_beban_id', $kodeAkun)->sum('nominal');
     }
 }

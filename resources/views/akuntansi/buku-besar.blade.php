@@ -54,7 +54,7 @@
           @php $saldo += ((float)$l->debit - (float)$l->credit); @endphp
           <tr>
             <td>{{ $l->entry->tanggal ?? '' }}</td>
-            <td>{{ $l->entry->ref_type ?? '' }}#{{ $l->entry->ref_id ?? '' }}</td>
+            <td>{{ $l->display_ref ?? (($l->entry->ref_type ?? '') . ($l->entry->ref_id ? '#' . $l->entry->ref_id : '')) }}</td>
             <td>{{ $l->entry->memo ?? '' }}</td>
             <td class="text-end">{{ $l->debit>0 ? 'Rp '.number_format($l->debit,0,',','.') : '-' }}</td>
             <td class="text-end">{{ $l->credit>0 ? 'Rp '.number_format($l->credit,0,',','.') : '-' }}</td>

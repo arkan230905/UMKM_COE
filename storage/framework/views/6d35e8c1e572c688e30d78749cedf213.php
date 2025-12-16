@@ -203,6 +203,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link <?php echo e(request()->is('akuntansi/neraca*') ? 'active' : ''); ?>" href="<?php echo e(route('akuntansi.neraca')); ?>">
+                    <i class="fas fa-fw fa-balance-scale"></i>
+                    <span>Neraca</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link <?php echo e(request()->is('akuntansi/laba-rugi*') ? 'active' : ''); ?>" href="<?php echo e(route('akuntansi.laba-rugi')); ?>">
                     <i class="fas fa-fw fa-chart-line"></i>
                     <span>Laba Rugi</span>

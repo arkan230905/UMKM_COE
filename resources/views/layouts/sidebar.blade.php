@@ -203,6 +203,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link {{ request()->is('akuntansi/neraca*') ? 'active' : '' }}" href="{{ route('akuntansi.neraca') }}">
+                    <i class="fas fa-fw fa-balance-scale"></i>
+                    <span>Neraca</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link {{ request()->is('akuntansi/laba-rugi*') ? 'active' : '' }}" href="{{ route('akuntansi.laba-rugi') }}">
                     <i class="fas fa-fw fa-chart-line"></i>
                     <span>Laba Rugi</span>

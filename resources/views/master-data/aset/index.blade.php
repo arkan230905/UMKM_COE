@@ -50,17 +50,7 @@
                         @endif
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <label for="status" class="form-label">Status</label>
-                    <select name="status" id="status" class="form-select" onchange="this.form.submit()">
-                        <option value="">-- Semua Status --</option>
-                        <option value="aktif" {{ request('status') == 'aktif' ? 'selected' : '' }}>Aktif</option>
-                        <option value="nonaktif" {{ request('status') == 'nonaktif' ? 'selected' : '' }}>Nonaktif</option>
-                        <option value="dijual" {{ request('status') == 'dijual' ? 'selected' : '' }}>Dijual</option>
-                        <option value="hilang" {{ request('status') == 'hilang' ? 'selected' : '' }}>Hilang</option>
-                        <option value="rusak" {{ request('status') == 'rusak' ? 'selected' : '' }}>Rusak</option>
-                    </select>
-                </div>
+                
                 <div class="col-md-12">
                     <div class="input-group">
                         <input type="text" name="search" class="form-control" placeholder="Cari aset..." value="{{ request('search') }}">
@@ -90,9 +80,8 @@
                             <th>Jenis Aset</th>
                             <th>Kategori</th>
                             <th>Harga Perolehan (Rp)</th>
-                            <th>Tanggal Beli</th>
+                            <th>Tanggal Pemasukan</th>
                             <th>Nilai Buku (Rp)</th>
-                            <th>Status</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
@@ -108,37 +97,24 @@
                                 <td>{{ is_string($aset->tanggal_beli) ? \Carbon\Carbon::parse($aset->tanggal_beli)->format('d/m/Y') : $aset->tanggal_beli->format('d/m/Y') }}</td>
                                 <td class="text-end">{{ number_format($aset->nilai_buku, 0, ',', '.') }}</td>
                                 <td>
-                                    @php
-                                        $badgeClass = [
-                                            'aktif' => 'bg-success',
-                                            'disewakan' => 'bg-info',
-                                            'dioperasikan' => 'bg-primary',
-                                            'dihapus' => 'bg-danger'
-                                        ][$aset->status] ?? 'bg-secondary';
-                                    @endphp
-                                    <span class="badge {{ $badgeClass }}">
-                                        {{ ucfirst($aset->status) }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <a href="{{ route('master-data.aset.edit', $aset->id) }}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-edit"></i>
+                                    <a href="{{ route('master-data.aset.edit', $aset->id) }}" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <a href="{{ route('master-data.aset.show', $aset->id) }}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i> Penyusutan
                                     </a>
                                     <form action="{{ route('master-data.aset.destroy', $aset->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus aset ini?')">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn btn-danger btn-sm" title="Hapus">
-                                            <i class="fas fa-trash"></i>
+                                            <i class="fas fa-trash"></i> Hapus
                                         </button>
                                     </form>
-                                    <a href="{{ route('master-data.aset.show', $aset->id) }}" class="btn btn-sm btn-info">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="text-center py-4">Tidak ada data aset</td>
+                                <td colspan="9" class="text-center py-4">Tidak ada data aset</td>
                             </tr>
                         @endforelse
                     </tbody>

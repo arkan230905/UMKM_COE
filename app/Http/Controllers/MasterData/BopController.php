@@ -27,7 +27,7 @@ class BopController extends Controller
                 ->get()
                 ->keyBy('kode_akun');
 
-            // Pastikan semua akun beban ada di $bops
+            // Pastikan semua akun beban ada di $bops dan update aktual dari payments
             foreach ($akunBeban as $akun) {
                 if (!isset($bops[$akun->kode_akun])) {
                     $bops[$akun->kode_akun] = new Bop([
@@ -37,6 +37,10 @@ class BopController extends Controller
                         'aktual' => 0
                     ]);
                 }
+                
+                // Update aktual dari total payments untuk setiap akun
+                $totalPayment = \App\Models\ExpensePayment::where('coa_beban_id', $akun->kode_akun)->sum('nominal');
+                $bops[$akun->kode_akun]->aktual = $totalPayment;
             }
 
             // Urutkan kembali berdasarkan kode akun

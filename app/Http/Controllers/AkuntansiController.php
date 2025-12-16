@@ -14,6 +14,9 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\JurnalUmumExport;
 use App\Exports\BukuBesarExport;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class AkuntansiController extends Controller
 {
@@ -71,13 +74,36 @@ class AkuntansiController extends Controller
         $to   = $request->get('to');
         $accountId = $request->get('account_id');
 
-        $accounts = Account::orderBy('code')->get();
+        $accountBaseQuery = Account::query()
+            ->join('coas', 'coas.kode_akun', '=', 'accounts.code')
+            ->select('accounts.*');
+
+        if (Schema::hasColumn('coas', 'is_active')) {
+            $accountBaseQuery->where('coas.is_active', true);
+        }
+
+        if (Schema::hasColumn('coas', 'is_akun_header')) {
+            $accountBaseQuery->where(function ($query) {
+                $query->where('coas.is_akun_header', false)
+                    ->orWhereNull('coas.is_akun_header');
+            });
+        }
+
+        $accounts = (clone $accountBaseQuery)
+            ->orderBy('accounts.code')
+            ->get();
         $lines = collect();
         $saldoAwal = 0.0;
 
         if ($accountId) {
-            $account = Account::find($accountId);
-            
+            $account = (clone $accountBaseQuery)
+                ->where('accounts.id', $accountId)
+                ->first();
+
+            if (!$account) {
+                abort(404);
+            }
+
             // Ambil saldo awal dari COA
             $coa = \App\Models\Coa::where('kode_akun', $account->code)->first();
             $saldoAwalCoa = $coa ? (float)($coa->saldo_awal ?? 0) : 0;
@@ -104,7 +130,34 @@ class AkuntansiController extends Controller
             if ($to) {
                 $q->whereHas('entry', function($qq) use ($to) { $qq->whereDate('tanggal','<=',$to); });
             }
-            $lines = $q->get();
+            $lines = $q->get()->map(function ($line) {
+                $entry = $line->entry;
+
+                if ($entry) {
+                    $type = $entry->ref_type ?? '';
+                    $refId = $entry->ref_id ?? '';
+
+                    $prefixMap = [
+                        'expense_payment' => 'PB',       // Pembayaran Beban
+                        'expense' => 'BEBAN',
+                        'asset' => 'AST',
+                        'journal' => 'JUR',
+                        'purchase' => 'PO',
+                        'sale' => 'SO',
+                    ];
+
+                    $prefix = $prefixMap[$type] ?? 'TRX';
+                    $suffix = $refId !== ''
+                        ? (is_numeric($refId) ? str_pad((string) $refId, 3, '0', STR_PAD_LEFT) : strtoupper($refId))
+                        : null;
+
+                    $line->display_ref = $suffix ? ($prefix . '-' . $suffix) : $prefix;
+                } else {
+                    $line->display_ref = '-';
+                }
+
+                return $line;
+            });
         }
 
         return view('akuntansi.buku-besar', compact('accounts','accountId','lines','from','to','saldoAwal'));
@@ -209,27 +262,75 @@ class AkuntansiController extends Controller
 
     public function labaRugi(Request $request)
     {
-        $from = $request->get('from');
-        $to   = $request->get('to');
+        $selectedPeriod = $request->input('period', now()->format('Y-m'));
 
-        $revenue = Account::where('type','revenue')->get();
-        $expense = Account::where('type','expense')->get();
-        $sum = function($accs) use ($from,$to) {
-            $total = 0.0;
-            foreach ($accs as $acc) {
-                $q = JournalLine::where('account_id',$acc->id)->with('entry');
-                if ($from) { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','>=',$from)); }
-                if ($to)   { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','<=',$to)); }
-                $row = $q->selectRaw('COALESCE(SUM(debit),0) as d, COALESCE(SUM(credit),0) as c')->first();
-                $balance = ($acc->type==='revenue') ? (float)($row->c - $row->d) : (float)($row->d - $row->c);
-                $total += $balance;
-            }
-            return $total;
-        };
-        $totalRevenue = $sum($revenue);
-        $totalExpense = $sum($expense);
-        $laba = $totalRevenue - $totalExpense;
+        try {
+            $periodDate = Carbon::createFromFormat('Y-m', $selectedPeriod)->startOfMonth();
+        } catch (\Exception $exception) {
+            $periodDate = now()->startOfMonth();
+            $selectedPeriod = $periodDate->format('Y-m');
+        }
 
-        return view('akuntansi.laba-rugi', compact('from','to','totalRevenue','totalExpense','laba','revenue','expense'));
+        $startDate = $periodDate->copy()->startOfMonth();
+        $endDate = $periodDate->copy()->endOfMonth();
+
+        $summaryLines = JournalLine::selectRaw('account_id, SUM(debit) as total_debit, SUM(credit) as total_credit')
+            ->whereHas('entry', function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('tanggal', [$startDate->toDateString(), $endDate->toDateString()]);
+            })
+            ->whereHas('account', function ($query) {
+                $query->whereIn('type', ['revenue', 'expense']);
+            })
+            ->with('account')
+            ->groupBy('account_id')
+            ->get();
+
+        $revenueAccounts = $summaryLines->filter(fn ($line) => $line->account && $line->account->type === 'revenue')
+            ->map(function ($line) {
+                $amount = (float) ($line->total_credit - $line->total_debit);
+                if (abs($amount) < 0.0001) {
+                    return null;
+                }
+
+                return [
+                    'code' => $line->account->code,
+                    'name' => $line->account->name,
+                    'amount' => $amount,
+                ];
+            })
+            ->filter()
+            ->values();
+
+        $expenseAccounts = $summaryLines->filter(fn ($line) => $line->account && $line->account->type === 'expense')
+            ->map(function ($line) {
+                $amount = (float) ($line->total_debit - $line->total_credit);
+                if (abs($amount) < 0.0001) {
+                    return null;
+                }
+
+                return [
+                    'code' => $line->account->code,
+                    'name' => $line->account->name,
+                    'amount' => $amount,
+                ];
+            })
+            ->filter()
+            ->values();
+
+        $totalRevenue = $revenueAccounts->sum('amount');
+        $totalExpense = $expenseAccounts->sum('amount');
+        $netProfit = $totalRevenue - $totalExpense;
+
+        $periodLabel = $periodDate->translatedFormat('F Y');
+
+        return view('akuntansi.laba-rugi', [
+            'period' => $selectedPeriod,
+            'periodLabel' => $periodLabel,
+            'revenueAccounts' => $revenueAccounts,
+            'expenseAccounts' => $expenseAccounts,
+            'totalRevenue' => $totalRevenue,
+            'totalExpense' => $totalExpense,
+            'netProfit' => $netProfit,
+        ]);
     }
 }

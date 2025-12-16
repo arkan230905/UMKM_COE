@@ -42,7 +42,7 @@ class AsetDepreciationController extends Controller
         $to   = $dt->toDateString();
 
         $countPosted = 0; $skipped = 0;
-        $asets = Aset::where('depr_method','SL')->get();
+        $asets = Aset::where('metode_penyusutan', 'garis_lurus')->get();
         foreach ($asets as $a) {
             $cost = (float)($a->acquisition_cost ?? $a->harga ?? 0);
             $res  = (float)($a->residual_value ?? 0);

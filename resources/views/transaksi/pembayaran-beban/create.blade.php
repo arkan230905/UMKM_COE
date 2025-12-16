@@ -13,6 +13,30 @@
         </div>
     </div>
 
+    @if ($message = Session::get('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ $message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if ($message = Session::get('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ $message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <div class="card shadow mb-4">
         <div class="card-body">
             <form action="{{ route('transaksi.pembayaran-beban.store') }}" method="POST">
@@ -33,17 +57,17 @@
                     
                     <div class="form-group col-md-6">
                         <label for="akun_kas_id">Akun Kas <span class="text-danger">*</span></label>
-                        <select class="form-control @error('akun_kas_id') is-invalid @enderror" 
-                                id="akun_kas_id" name="akun_kas_id" required>
+                        <select class="form-control @error('coa_kasbank') is-invalid @enderror" 
+                                id="coa_kasbank" name="coa_kasbank" required>
                             <option value="">Pilih Akun Kas</option>
                             @foreach($akunKas as $kas)
-                                <option value="{{ $kas->id }}" 
-                                    {{ old('akun_kas_id') == $kas->id ? 'selected' : '' }}>
+                                <option value="{{ $kas->kode_akun }}" 
+                                    {{ old('coa_kasbank') == $kas->kode_akun ? 'selected' : '' }}>
                                     {{ $kas->kode }} - {{ $kas->nama }} ({{ format_rupiah($kas->saldo) }})
                                 </option>
                             @endforeach
                         </select>
-                        @error('akun_kas_id')
+                        @error('coa_kasbank')
                             <span class="invalid-feedback" role="alert">
                                 <strong>{{ $message }}</strong>
                             </span>
@@ -54,17 +78,17 @@
                 <div class="form-row">
                     <div class="form-group col-md-6">
                         <label for="akun_beban_id">Akun Beban <span class="text-danger">*</span></label>
-                        <select class="form-control @error('akun_beban_id') is-invalid @enderror" 
-                                id="akun_beban_id" name="akun_beban_id" required>
+                        <select class="form-control @error('coa_beban_id') is-invalid @enderror" 
+                                id="coa_beban_id" name="coa_beban_id" required>
                             <option value="">Pilih Akun Beban</option>
                             @foreach($akunBeban as $beban)
-                                <option value="{{ $beban->id }}" 
-                                    {{ old('akun_beban_id') == $beban->id ? 'selected' : '' }}>
+                                <option value="{{ $beban->kode_akun }}" 
+                                    {{ old('coa_beban_id') == $beban->kode_akun ? 'selected' : '' }}>
                                     {{ $beban->kode }} - {{ $beban->nama }}
                                 </option>
                             @endforeach
                         </select>
-                        @error('akun_beban_id')
+                        @error('coa_beban_id')
                             <span class="invalid-feedback" role="alert">
                                 <strong>{{ $message }}</strong>
                             </span>
@@ -77,10 +101,10 @@
                             <div class="input-group-prepend">
                                 <span class="input-group-text">Rp</span>
                             </div>
-                            <input type="number" class="form-control @error('jumlah') is-invalid @enderror" 
-                                   id="jumlah" name="jumlah" value="{{ old('jumlah') }}" 
+                            <input type="number" class="form-control @error('nominal') is-invalid @enderror" 
+                                   id="nominal" name="nominal" value="{{ old('nominal') }}" 
                                    min="1" required>
-                            @error('jumlah')
+                            @error('nominal')
                                 <span class="invalid-feedback" role="alert">
                                     <strong>{{ $message }}</strong>
                                 </span>
@@ -91,9 +115,9 @@
 
                 <div class="form-group">
                     <label for="keterangan">Keterangan <span class="text-danger">*</span></label>
-                    <textarea class="form-control @error('keterangan') is-invalid @enderror" 
-                              id="keterangan" name="keterangan" rows="2" required>{{ old('keterangan') }}</textarea>
-                    @error('keterangan')
+                    <textarea class="form-control @error('deskripsi') is-invalid @enderror" 
+                              id="deskripsi" name="deskripsi" rows="2" required>{{ old('deskripsi') }}</textarea>
+                        @error('deskripsi')
                         <span class="invalid-feedback" role="alert">
                             <strong>{{ $message }}</strong>
                         </span>
