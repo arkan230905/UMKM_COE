@@ -73,7 +73,7 @@
                             <th>Jenis Aset</th>
                             <th>Kategori</th>
                             <th>Harga (Rp)</th>
-                            <th>Tanggal Beli</th>
+                            <th>Tanggal Pemasukan</th>
                             <th>Nilai Buku (Rp)</th>
                             <th>Status</th>
                             <th>Aksi</th>

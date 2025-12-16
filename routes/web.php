@@ -69,6 +69,7 @@ use App\Http\Controllers\PerusahaanController;
 
 // Akuntansi
 use App\Http\Controllers\AkuntansiController;
+use App\Http\Controllers\BalanceSheetController;
 
 // Produksi
 use App\Http\Controllers\ProduksiController;
@@ -221,7 +222,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('coa', CoaController::class);
         Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generate-kode');
         Route::resource('aset', AsetController::class);
-        Route::get('aset-kategori-by-jenis', [AsetController::class, 'getKategoriByJenis'])->name('aset.kategori-by-jenis');
+        Route::get('kategori-aset', [AsetController::class, 'getKategoriByJenis'])->name('aset.kategori-by-jenis');
         Route::resource('jabatan', JabatanController::class);
         Route::resource('pegawai', PegawaiController::class);
         // Presensi routes
@@ -506,6 +507,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/buku-besar/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesarExportExcel'])->name('buku-besar.export-excel');
         Route::get('/neraca-saldo', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldo'])->name('neraca-saldo');
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
+        Route::get('/neraca', [BalanceSheetController::class, 'index'])->name('neraca');
     });
 
     // ================================================================

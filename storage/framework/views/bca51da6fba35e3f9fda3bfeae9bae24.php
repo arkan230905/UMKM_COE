@@ -51,17 +51,7 @@
                         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </select>
                 </div>
-                <div class="col-md-4">
-                    <label for="status" class="form-label">Status</label>
-                    <select name="status" id="status" class="form-select" onchange="this.form.submit()">
-                        <option value="">-- Semua Status --</option>
-                        <option value="aktif" <?php echo e(request('status') == 'aktif' ? 'selected' : ''); ?>>Aktif</option>
-                        <option value="nonaktif" <?php echo e(request('status') == 'nonaktif' ? 'selected' : ''); ?>>Nonaktif</option>
-                        <option value="dijual" <?php echo e(request('status') == 'dijual' ? 'selected' : ''); ?>>Dijual</option>
-                        <option value="hilang" <?php echo e(request('status') == 'hilang' ? 'selected' : ''); ?>>Hilang</option>
-                        <option value="rusak" <?php echo e(request('status') == 'rusak' ? 'selected' : ''); ?>>Rusak</option>
-                    </select>
-                </div>
+                
                 <div class="col-md-12">
                     <div class="input-group">
                         <input type="text" name="search" class="form-control" placeholder="Cari aset..." value="<?php echo e(request('search')); ?>">
@@ -91,9 +81,8 @@
                             <th>Jenis Aset</th>
                             <th>Kategori</th>
                             <th>Harga Perolehan (Rp)</th>
-                            <th>Tanggal Beli</th>
+                            <th>Tanggal Pemasukan</th>
                             <th>Nilai Buku (Rp)</th>
-                            <th>Status</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
@@ -109,38 +98,24 @@
                                 <td><?php echo e(is_string($aset->tanggal_beli) ? \Carbon\Carbon::parse($aset->tanggal_beli)->format('d/m/Y') : $aset->tanggal_beli->format('d/m/Y')); ?></td>
                                 <td class="text-end"><?php echo e(number_format($aset->nilai_buku, 0, ',', '.')); ?></td>
                                 <td>
-                                    <?php
-                                        $badgeClass = [
-                                            'aktif' => 'bg-success',
-                                            'disewakan' => 'bg-info',
-                                            'dioperasikan' => 'bg-primary',
-                                            'dihapus' => 'bg-danger'
-                                        ][$aset->status] ?? 'bg-secondary';
-                                    ?>
-                                    <span class="badge <?php echo e($badgeClass); ?>">
-                                        <?php echo e(ucfirst($aset->status)); ?>
-
-                                    </span>
-                                </td>
-                                <td>
-                                    <a href="<?php echo e(route('master-data.aset.edit', $aset->id)); ?>" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-edit"></i>
+                                    <a href="<?php echo e(route('master-data.aset.edit', $aset->id)); ?>" class="btn btn-sm btn-warning">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
+                                    <a href="<?php echo e(route('master-data.aset.show', $aset->id)); ?>" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i> Penyusutan
                                     </a>
                                     <form action="<?php echo e(route('master-data.aset.destroy', $aset->id)); ?>" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus aset ini?')">
                                         <?php echo csrf_field(); ?>
                                         <?php echo method_field('DELETE'); ?>
                                         <button type="submit" class="btn btn-danger btn-sm" title="Hapus">
-                                            <i class="fas fa-trash"></i>
+                                            <i class="fas fa-trash"></i> Hapus
                                         </button>
                                     </form>
-                                    <a href="<?php echo e(route('master-data.aset.show', $aset->id)); ?>" class="btn btn-sm btn-info">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
                                 </td>
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                             <tr>
-                                <td colspan="10" class="text-center py-4">Tidak ada data aset</td>
+                                <td colspan="9" class="text-center py-4">Tidak ada data aset</td>
                             </tr>
                         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </tbody>

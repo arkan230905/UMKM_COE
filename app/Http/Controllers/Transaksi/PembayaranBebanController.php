@@ -57,6 +57,9 @@ class PembayaranBebanController extends Controller
 
     public function store(Request $request)
     {
+        // Debug log
+        \Log::info('PembayaranBeban@store - Input data:', $request->all());
+        
         // Validasi input
         $validated = $request->validate([
             'tanggal' => 'required|date',
@@ -70,6 +73,8 @@ class PembayaranBebanController extends Controller
             'akun_beban_id.exists' => 'Akun beban tidak valid',
             'akun_kas_id.exists' => 'Akun kas tidak valid',
         ]);
+        
+        \Log::info('PembayaranBeban@store - Validated data:', $validated);
 
         DB::beginTransaction();
         

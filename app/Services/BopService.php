@@ -63,27 +63,36 @@ class BopService
     public static function recalculateAktual($kodeAkun, $totalAmount)
     {
         try {
+            \Log::info("BopService::recalculateAktual called for COA: {$kodeAkun}, Amount: {$totalAmount}");
+            
             $bop = Bop::where('kode_akun', $kodeAkun)->first();
 
             if (!$bop) {
+                \Log::info("BOP not found for COA: {$kodeAkun}, creating new one");
                 // If BOP doesn't exist, create a new one
+                $coa = \App\Models\Coa::where('kode_akun', $kodeAkun)->first();
                 $bop = Bop::create([
                     'kode_akun' => $kodeAkun,
-                    'nama_akun' => 'Auto-created from payment',
+                    'nama_akun' => $coa ? $coa->nama_akun : 'Auto-created from payment',
                     'budget' => 0,
                     'aktual' => $totalAmount,
                     'is_active' => true
                 ]);
+                \Log::info("Created new BOP with aktual: {$totalAmount}");
                 return true;
             }
 
             // Update with the new total amount
+            $oldAktual = $bop->aktual;
             $bop->aktual = $totalAmount;
             $bop->save();
+            
+            \Log::info("Updated BOP aktual from {$oldAktual} to {$totalAmount} for COA: {$kodeAkun}");
 
             return true;
         } catch (\Exception $e) {
             \Log::error('Failed to recalculate BOP actual: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
             return false;
         }
     }

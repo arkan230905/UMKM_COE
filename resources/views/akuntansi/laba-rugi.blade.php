@@ -1,75 +1,74 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>Laba Rugi</h3>
-    <form method="get" class="row g-2 align-items-end">
-      <div class="col-auto">
-        <label class="form-label">Dari</label>
-        <input type="date" name="from" value="{{ $from }}" class="form-control">
+<div class="container-fluid py-4 text-light">
+  <div class="bg-dark rounded-3 border border-secondary-subtle p-4 mb-4">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-lg-3 col-md-4">
+        <label for="period" class="form-label small text-uppercase text-secondary mb-1">Pilih Bulan</label>
+        <input type="month" name="period" id="period" class="form-control bg-dark text-light border-secondary" value="{{ $period }}">
       </div>
       <div class="col-auto">
-        <label class="form-label">Sampai</label>
-        <input type="date" name="to" value="{{ $to }}" class="form-control">
+        <button class="btn btn-primary px-4" type="submit">Filter</button>
       </div>
-      <div class="col-auto"><button class="btn btn-primary">Terapkan</button></div>
     </form>
   </div>
 
-  <div class="row g-4">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header bg-light fw-semibold">Pendapatan</div>
-        <div class="card-body">
-          <ul class="list-group list-group-flush">
-            @php $sumRev = 0; @endphp
-            @foreach($revenue as $acc)
-              @php
-                $q = \App\Models\JournalLine::where('account_id',$acc->id)->with('entry');
-                if ($from) { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','>=',$from)); }
-                if ($to)   { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','<=',$to)); }
-                $row = $q->selectRaw('COALESCE(SUM(credit - debit),0) as bal')->first();
-                $bal = (float)($row->bal ?? 0);
-                $sumRev += $bal;
-              @endphp
-              <li class="list-group-item d-flex justify-content-between"><span>{{ $acc->code }} - {{ $acc->name }}</span><span>Rp {{ number_format($bal,0,',','.') }}</span></li>
-            @endforeach
-          </ul>
+  <div class="px-lg-3">
+    <div class="text-center mb-5">
+      <h2 class="fw-bold text-white mb-1">UMKM COE</h2>
+      <h4 class="fw-semibold text-white-50 mb-1">Laporan Laba Rugi</h4>
+      <span class="text-secondary">Periode {{ $periodLabel }}</span>
+    </div>
+
+    <div class="mb-5">
+      <div class="text-uppercase text-secondary fw-semibold mb-3">Pendapatan</div>
+      @forelse($revenueAccounts as $account)
+        <div class="d-flex justify-content-between align-items-start py-2 border-bottom border-secondary-subtle">
+          <div class="me-3">
+            <div class="small text-secondary">{{ $account['code'] }}</div>
+            <div class="fw-semibold text-white">{{ $account['name'] }}</div>
+          </div>
+          <div class="text-end fw-semibold">Rp {{ number_format($account['amount'],0,',','.') }}</div>
         </div>
-        <div class="card-footer d-flex justify-content-between"><strong>Total Pendapatan</strong><strong>Rp {{ number_format($sumRev,0,',','.') }}</strong></div>
+      @empty
+        <div class="text-secondary fst-italic">Tidak ada pendapatan pada periode ini.</div>
+      @endforelse
+      <div class="d-flex justify-content-between pt-3 mt-3 border-top border-secondary text-uppercase small fw-bold">
+        <span>Total Pendapatan</span>
+        <span>Rp {{ number_format($totalRevenue,0,',','.') }}</span>
       </div>
     </div>
 
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header bg-light fw-semibold">Beban</div>
-        <div class="card-body">
-          <ul class="list-group list-group-flush">
-            @php $sumExp = 0; @endphp
-            @foreach($expense as $acc)
-              @php
-                $q = \App\Models\JournalLine::where('account_id',$acc->id)->with('entry');
-                if ($from) { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','>=',$from)); }
-                if ($to)   { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','<=',$to)); }
-                $row = $q->selectRaw('COALESCE(SUM(debit - credit),0) as bal')->first();
-                $bal = (float)($row->bal ?? 0);
-                $sumExp += $bal;
-              @endphp
-              <li class="list-group-item d-flex justify-content-between"><span>{{ $acc->code }} - {{ $acc->name }}</span><span>Rp {{ number_format($bal,0,',','.') }}</span></li>
-            @endforeach
-          </ul>
+    <div class="mb-5">
+      <div class="text-uppercase text-secondary fw-semibold mb-3">Beban</div>
+      @forelse($expenseAccounts as $account)
+        <div class="d-flex justify-content-between align-items-start py-2 border-bottom border-secondary-subtle">
+          <div class="me-3">
+            <div class="small text-secondary">{{ $account['code'] }}</div>
+            <div class="fw-semibold text-white">{{ $account['name'] }}</div>
+          </div>
+          <div class="text-end fw-semibold">Rp {{ number_format($account['amount'],0,',','.') }}</div>
         </div>
-        <div class="card-footer d-flex justify-content-between"><strong>Total Beban</strong><strong>Rp {{ number_format($sumExp,0,',','.') }}</strong></div>
+      @empty
+        <div class="text-secondary fst-italic">Tidak ada beban pada periode ini.</div>
+      @endforelse
+      <div class="d-flex justify-content-between pt-3 mt-3 border-top border-secondary text-uppercase small fw-bold">
+        <span>Total Beban</span>
+        <span>Rp {{ number_format($totalExpense,0,',','.') }}</span>
       </div>
     </div>
-  </div>
 
-  <div class="card mt-4">
-    <div class="card-body d-flex justify-content-between">
-      <h5 class="mb-0">Laba/Rugi Bersih</h5>
-      <h5 class="mb-0">Rp {{ number_format($laba,0,',','.') }}</h5>
+    <div class="pt-4 border-top border-secondary d-flex justify-content-between align-items-center text-uppercase">
+      <span class="fw-semibold">{{ $netProfit >= 0 ? 'Laba Bersih' : 'Rugi Bersih' }}</span>
+      <span class="fw-bold fs-5 text-white">Rp {{ number_format(abs($netProfit),0,',','.') }}</span>
     </div>
+
+    @if($revenueAccounts->isEmpty() && $expenseAccounts->isEmpty())
+      <div class="mt-4 p-3 rounded-3 border border-warning text-warning small">
+        Data tidak tersedia untuk laba/rugi pada periode ini.
+      </div>
+    @endif
   </div>
 </div>
 @endsection

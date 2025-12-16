@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
+use App\Models\ExpensePayment;
 
 class BopBudget extends Model
 {
@@ -40,11 +41,13 @@ class BopBudget extends Model
         return $this->belongsTo(Coa::class);
     }
 
-    public function actualPayments()
+    public function actualPayments(): HasMany
     {
-        return $this->hasMany(ExpensePayment::class, 'coa_id', 'coa_id')
-            ->whereYear('tanggal_pembayaran', '=', substr($this->periode, 0, 4))
-            ->whereMonth('tanggal_pembayaran', '=', substr($this->periode, 5, 2));
+        $startDate = Carbon::createFromFormat('Y-m', $this->periode)->startOfMonth();
+        $endDate = Carbon::createFromFormat('Y-m', $this->periode)->endOfMonth();
+
+        return $this->hasMany(ExpensePayment::class, 'coa_beban_id', 'kode_akun')
+            ->whereBetween('tanggal', [$startDate, $endDate]);
     }
 
     public function getNamaAkunAttribute()
@@ -64,25 +67,12 @@ class BopBudget extends Model
 
     public function getActualAmountAttribute()
     {
-        // Hitung dari ExpensePayment
-        $amount = $this->actualPayments()->sum('jumlah');
-        
-        // Jika tidak ada data di ExpensePayment, coba hitung dari Expense
-        if ($amount == 0 && $this->coa_id) {
-            $startDate = Carbon::createFromFormat('Y-m', $this->periode)->startOfMonth();
-            $endDate = Carbon::createFromFormat('Y-m', $this->periode)->endOfMonth();
-            
-            $amount = \App\Models\Expense::where('coa_id', $this->coa_id)
-                ->whereBetween('tanggal', [$startDate, $endDate])
-                ->sum('jumlah');
-        }
-        
-        return $amount;
+        return (float) $this->actualPayments()->sum('nominal');
     }
 
     public function getVarianceAttribute()
     {
-        return $this->actual_amount - $this->jumlah_budget;
+        return $this->jumlah_budget - $this->actual_amount;
     }
 
     public function getVariancePercentAttribute()
