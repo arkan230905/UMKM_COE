@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('kategori_produks', function (Blueprint $table) {
-            $table->id();
-            $table->string('kode_kategori', 20)->unique();
-            $table->string('nama', 100);
-            $table->text('deskripsi')->nullable();
-            $table->timestamps();
-            $table->softDeletes();
-        });
+        if (!Schema::hasTable('kategori_produks')) {
+            Schema::create('kategori_produks', function (Blueprint $table) {
+                $table->id();
+                $table->string('kode_kategori', 20)->unique();
+                $table->string('nama', 100);
+                $table->text('deskripsi')->nullable();
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
     }
 
     /**

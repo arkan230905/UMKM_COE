@@ -11,16 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('pelunasan_utang')) {
+            return;
+        }
+
         Schema::create('pelunasan_utang', function (Blueprint $table) {
             $table->id();
             $table->string('kode_transaksi')->unique();
             $table->date('tanggal');
-            $table->foreignId('pembelian_id')->constrained('pembelians');
-            $table->foreignId('akun_kas_id')->constrained('coas');
+            $table->unsignedBigInteger('pembelian_id');
+            $table->unsignedBigInteger('akun_kas_id');
             $table->decimal('jumlah', 15, 2);
             $table->text('keterangan')->nullable();
             $table->string('status')->default('lunas');
-            $table->foreignId('user_id')->constrained('users');
+            $table->unsignedBigInteger('user_id');
             $table->text('catatan')->nullable();
             $table->timestamps();
             $table->softDeletes();

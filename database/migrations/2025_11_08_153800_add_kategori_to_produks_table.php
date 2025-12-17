@@ -12,22 +12,40 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('produks', function (Blueprint $table) {
-            // Tambahkan kolom kategori_id dengan foreign key
-            $table->foreignId('kategori_id')->nullable()->after('id')
-                  ->constrained('kategori_produks')
-                  ->onDelete('set null');
+            // Tambahkan kolom kategori_id dengan foreign key jika belum ada
+            if (!Schema::hasColumn('produks', 'kategori_id')) {
+                $table->foreignId('kategori_id')->nullable()->after('id')
+                      ->constrained('kategori_produks')
+                      ->onDelete('set null');
+            }
                   
-            // Tambahkan kolom satuan_id dengan foreign key
-            $table->foreignId('satuan_id')->nullable()->after('kategori_id')
-                  ->constrained('satuans')
-                  ->onDelete('set null');
+            // Tambahkan kolom satuan_id dengan foreign key jika belum ada
+            if (!Schema::hasColumn('produks', 'satuan_id')) {
+                $table->foreignId('satuan_id')->nullable()->after('kategori_id')
+                      ->constrained('satuans')
+                      ->onDelete('set null');
+            }
                   
-            // Tambahkan kolom lain yang diperlukan
-            $table->string('kode_produk')->unique()->nullable()->after('id');
-            $table->text('deskripsi')->nullable()->after('nama_produk');
-            $table->decimal('harga_beli', 15, 2)->default(0)->after('harga_jual');
-            $table->integer('stok')->default(0);
-            $table->integer('stok_minimum')->default(0);
+            // Tambahkan kolom lain yang diperlukan jika belum ada
+            if (!Schema::hasColumn('produks', 'kode_produk')) {
+                $table->string('kode_produk')->unique()->nullable()->after('id');
+            }
+            
+            if (!Schema::hasColumn('produks', 'deskripsi')) {
+                $table->text('deskripsi')->nullable()->after('nama_produk');
+            }
+            
+            if (!Schema::hasColumn('produks', 'harga_beli')) {
+                $table->decimal('harga_beli', 15, 2)->default(0)->after('harga_jual');
+            }
+            
+            if (!Schema::hasColumn('produks', 'stok')) {
+                $table->integer('stok')->default(0);
+            }
+            
+            if (!Schema::hasColumn('produks', 'stok_minimum')) {
+                $table->integer('stok_minimum')->default(0);
+            }
         });
     }
 

@@ -37,7 +37,7 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Tunjangan (Rp)</label>
+                        <label class="form-label">Tunjangan Jabatan (Rp)</label>
                         <input type="text" name="tunjangan" class="form-control money-input" value="{{ old('tunjangan',$jabatan->tunjangan) }}">
                     </div>
                     <div class="col-md-6">
@@ -69,7 +69,6 @@
                 if (val === null || val === undefined) return '';
                 let v = String(val).replace(/[^0-9,.]/g, '');
                 if (!v) return '';
-                // Treat the first comma as decimal separator, ignore dots when parsing
                 const commaIndex = v.indexOf(',');
                 let rawInt = commaIndex >= 0 ? v.slice(0, commaIndex) : v;
                 let rawDec = commaIndex >= 0 ? v.slice(commaIndex + 1) : '';
@@ -86,6 +85,7 @@
                 inp.addEventListener('input', () => { inp.value = formatID(inp.value); });
                 inp.addEventListener('blur', () => { inp.value = formatID(inp.value); });
             });
+
         })();
     </script>
 </div>

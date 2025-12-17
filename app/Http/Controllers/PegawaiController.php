@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Pegawai;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class PegawaiController extends Controller
 {
@@ -24,9 +25,15 @@ class PegawaiController extends Controller
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->where('nama', 'like', '%' . $search . '%')
-                  ->orWhere('email', 'like', '%' . $search . '%')
-                  ->orWhere('no_telp', 'like', '%' . $search . '%')
-                  ->orWhere('jabatan', 'like', '%' . $search . '%');
+                  ->orWhere('email', 'like', '%' . $search . '%');
+                
+                if (Schema::hasColumn('pegawais', 'no_telp')) {
+                    $q->orWhere('no_telp', 'like', '%' . $search . '%');
+                }
+                
+                if (Schema::hasColumn('pegawais', 'jabatan')) {
+                    $q->orWhere('jabatan', 'like', '%' . $search . '%');
+                }
             });
         }
         
@@ -59,24 +66,68 @@ class PegawaiController extends Controller
         ]);
 
         $jab = \App\Models\Jabatan::find($validated['jabatan_id']);
+        if (!$jab) {
+            return redirect()->back()->withErrors(['jabatan_id' => 'Jabatan tidak ditemukan']);
+        }
+        
         $jenisPegawai = strtolower($jab->kategori ?? 'btkl');
         
-        // Prepare data for creation
+        // Prepare data for creation with only mandatory columns
         $pegawaiData = [
             'nama' => $validated['nama'],
             'email' => $validated['email'],
-            'no_telp' => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
-            'jabatan' => $jab->nama,
-            'jenis_pegawai' => $jenisPegawai,
-            'gaji' => $jab->gaji,
-            'gaji_pokok' => $jab->gaji,
-            'tunjangan' => $jab->tunjangan ?? 0,
-            'bank' => $request->input('bank'),
-            'nomor_rekening' => $request->input('nomor_rekening'),
-            'nama_rekening' => $request->input('nama_rekening'),
         ];
+
+        // Tambahkan kolom opsional jika ada di tabel
+        if (Schema::hasColumn('pegawais', 'no_telp')) {
+            $pegawaiData['no_telp'] = $validated['no_telepon'];
+        }
+
+        if (Schema::hasColumn('pegawais', 'jabatan')) {
+            $pegawaiData['jabatan'] = $jab->nama;
+        }
+
+        if (Schema::hasColumn('pegawais', 'jenis_pegawai')) {
+            $pegawaiData['jenis_pegawai'] = $jenisPegawai;
+        }
+
+        if (Schema::hasColumn('pegawais', 'kategori_tenaga_kerja')) {
+            $pegawaiData['kategori_tenaga_kerja'] = strtoupper($jab->kategori ?? 'BTKL');
+        }
+
+        if (Schema::hasColumn('pegawais', 'gaji')) {
+            $pegawaiData['gaji'] = (float)($jab->gaji ?? 0);
+        }
+
+        if (Schema::hasColumn('pegawais', 'gaji_pokok')) {
+            $pegawaiData['gaji_pokok'] = (float)($jab->gaji ?? 0);
+        }
+
+        if (Schema::hasColumn('pegawais', 'tunjangan')) {
+            $pegawaiData['tunjangan'] = (float)($jab->tunjangan ?? 0);
+        }
+
+        if (Schema::hasColumn('pegawais', 'asuransi')) {
+            $pegawaiData['asuransi'] = (float)($jab->asuransi ?? 0);
+        }
+
+        if (Schema::hasColumn('pegawais', 'tarif_per_jam')) {
+            $pegawaiData['tarif_per_jam'] = (float)($jab->tarif ?? 0);
+        }
+
+        if (Schema::hasColumn('pegawais', 'bank')) {
+            $pegawaiData['bank'] = $validated['bank'] ?? null;
+        }
+
+        if (Schema::hasColumn('pegawais', 'nomor_rekening')) {
+            $pegawaiData['nomor_rekening'] = $validated['nomor_rekening'] ?? null;
+        }
+
+        if (Schema::hasColumn('pegawais', 'nama_rekening')) {
+            $pegawaiData['nama_rekening'] = $validated['nama_rekening'] ?? null;
+        }
         
         // Log the data being saved for debugging
         \Log::info('Creating new Pegawai:', $pegawaiData);
@@ -122,8 +173,13 @@ class PegawaiController extends Controller
             'jabatan' => $jab->nama,
             'jenis_pegawai' => $jenisPegawai,
             'gaji' => $jab->gaji,
-            'gaji_pokok' => $jab->gaji,
+            'gaji_pokok' => $jab->gaji_pokok ?? $jab->gaji ?? 0,
+            'tarif_per_jam' => $jab->tarif ?? 0,
             'tunjangan' => $jab->tunjangan ?? 0,
+            'asuransi' => $jab->asuransi ?? 0,
+            'bank' => $validated['bank'] ?? null,
+            'nomor_rekening' => $validated['nomor_rekening'] ?? null,
+            'nama_rekening' => $validated['nama_rekening'] ?? null,
         ];
         
         // Log the update data for debugging

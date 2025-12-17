@@ -30,7 +30,8 @@ use App\Http\Controllers\BopController;
 use App\Http\Controllers\BopBudgetController;
 use App\Http\Controllers\BomController;
 use App\Http\Controllers\AsetController;
-use App\Http\Controllers\JabatanController;
+use App\Http\Controllers\KlasifikasiTenagaKerjaController;
+use App\Http\Controllers\KlasifikasiTunjanganController;
 
 // Transaksi
 use App\Http\Controllers\PembelianController;
@@ -221,9 +222,11 @@ Route::middleware('auth')->group(function () {
         Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generate-kode');
         Route::resource('aset', AsetController::class);
         Route::get('aset-kategori-by-jenis', [AsetController::class, 'getKategoriByJenis'])->name('aset.kategori-by-jenis');
-        Route::resource('jabatan', JabatanController::class);
+        Route::resource('jabatan', KlasifikasiTenagaKerjaController::class);
+        Route::resource('klasifikasi-tunjangan', KlasifikasiTunjanganController::class)->only(['store', 'update', 'destroy']);
+        Route::post('klasifikasi-tunjangan/{jabatan}', [KlasifikasiTunjanganController::class, 'store'])->name('klasifikasi-tunjangan.store');
         Route::resource('pegawai', PegawaiController::class);
-        // Presensi routes
+        // Presensi routes - Custom routes harus didefinisikan SEBELUM resource route
         Route::resource('presensi', PresensiController::class);
         Route::resource('vendor', VendorController::class);
         Route::resource('satuan', SatuanController::class);
@@ -326,12 +329,14 @@ Route::middleware('auth')->group(function () {
         Route::prefix('penggajian')->name('penggajian.')->group(function() {
             Route::get('/', [PenggajianController::class, 'index'])->name('index');
             Route::get('/create', [PenggajianController::class, 'create'])->name('create');
+            Route::get('/test-create', [PenggajianController::class, 'testCreate'])->name('test-create');
             Route::post('/', [PenggajianController::class, 'store'])->name('store');
-            Route::get('/{id}', [PenggajianController::class, 'show'])->name('show');
+            Route::get('/print/{id}', [PenggajianController::class, 'print'])->name('print');
+            Route::get('/{id}/slip', [PenggajianController::class, 'showSlip'])->name('slip');
+            Route::get('/{id}/slip-pdf', [PenggajianController::class, 'exportSlipPdf'])->name('slip-pdf');
             Route::get('/{id}/edit', [PenggajianController::class, 'edit'])->name('edit');
             Route::put('/{id}', [PenggajianController::class, 'update'])->name('update');
             Route::delete('/{id}', [PenggajianController::class, 'destroy'])->name('destroy');
-            Route::get('/print/{id}', [PenggajianController::class, 'print'])->name('print');
         });
 
         // ============================================================

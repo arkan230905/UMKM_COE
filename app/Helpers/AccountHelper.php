@@ -21,7 +21,6 @@ class AccountHelper
     {
         return Coa::whereIn('kode_akun', self::KAS_BANK_CODES)
             ->where('tipe_akun', 'Asset')
-            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
             ->get();
     }
@@ -35,7 +34,6 @@ class AccountHelper
     {
         return Coa::whereIn('kode_akun', ['1101', '101'])
             ->where('tipe_akun', 'Asset')
-            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
             ->get();
     }
@@ -49,7 +47,6 @@ class AccountHelper
     {
         return Coa::whereIn('kode_akun', ['1102', '102'])
             ->where('tipe_akun', 'Asset')
-            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
             ->get();
     }

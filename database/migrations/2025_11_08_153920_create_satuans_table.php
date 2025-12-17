@@ -11,15 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('satuans', function (Blueprint $table) {
-            $table->id();
-            $table->string('kode_satuan', 10)->unique();
-            $table->string('nama', 50);
-            $table->string('deskripsi')->nullable();
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-            $table->softDeletes();
-        });
+        if (!Schema::hasTable('satuans')) {
+            Schema::create('satuans', function (Blueprint $table) {
+                $table->id();
+                $table->string('kode_satuan', 10)->unique();
+                $table->string('nama', 50);
+                $table->string('deskripsi')->nullable();
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
     }
 
     /**

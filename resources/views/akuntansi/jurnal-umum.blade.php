@@ -64,7 +64,7 @@
                 <td rowspan="{{ $e->lines->count() }}">{{ $e->memo }}</td>
               @endif
               <td>
-                <strong>{{ $l->account->code ?? '-' }}</strong>
+                <strong>{{ $l->account->code ?? 'N/A' }}</strong>
                 <span class="badge bg-{{ ($l->debit ?? 0) > 0 ? 'info' : 'warning' }} ms-1">{{ ($l->debit ?? 0) > 0 ? 'D' : 'K' }}</span>
               </td>
               <td>

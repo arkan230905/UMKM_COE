@@ -9,23 +9,26 @@ return new class extends Migration
 {
     public function up()
     {
-        if (!Schema::hasColumn('pegawais', 'kode_pegawai')) {
-            Schema::table('pegawais', function (Blueprint $table) {
-                $table->string('kode_pegawai', 20)->unique()->nullable()->after('id');
-            });
-
-            // Generate kode_pegawai for existing records
-            $pegawais = Pegawai::all();
-            foreach ($pegawais as $index => $pegawai) {
-                $pegawai->kode_pegawai = 'PGW' . str_pad($pegawai->id, 4, '0', STR_PAD_LEFT);
-                $pegawai->save();
-            }
-
-            // Make the column not nullable after populating
-            Schema::table('pegawais', function (Blueprint $table) {
-                $table->string('kode_pegawai', 20)->unique()->change();
-            });
+        // Skip if column already exists
+        if (Schema::hasColumn('pegawais', 'kode_pegawai')) {
+            return;
         }
+        
+        Schema::table('pegawais', function (Blueprint $table) {
+            $table->string('kode_pegawai', 20)->nullable()->after('id');
+        });
+
+        // Generate kode_pegawai for existing records
+        $pegawais = Pegawai::all();
+        foreach ($pegawais as $index => $pegawai) {
+            $pegawai->kode_pegawai = 'PGW' . str_pad($pegawai->id, 4, '0', STR_PAD_LEFT);
+            $pegawai->save();
+        }
+
+        // Add unique constraint after populating
+        Schema::table('pegawais', function (Blueprint $table) {
+            $table->unique('kode_pegawai');
+        });
     }
 
     public function down()

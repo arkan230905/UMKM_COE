@@ -99,7 +99,7 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label for="display_tunjangan" class="form-label">Tunjangan</label>
+                                <label for="display_tunjangan" class="form-label">Tunjangan Jabatan</label>
                                 <div class="input-group">
                                     <span class="input-group-text">Rp</span>
                                     <input type="text" id="display_tunjangan" class="form-control" readonly value="0">
@@ -117,33 +117,90 @@
                     </div>
                 </div>
 
-                <!-- Input Manual (Bonus & Potongan) -->
+                <!-- Bonus Tambahan -->
                 <div class="card bg-secondary mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-pencil-square"></i> Input Manual</h5>
+                        <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Bonus Tambahan</h5>
                     </div>
                     <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="bonus" class="form-label">Bonus</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">Rp</span>
-                                    <input type="number" step="0.01" min="0" name="bonus" id="bonus" 
-                                           class="form-control" value="0" onchange="hitungTotal()">
+                        <div id="bonus-tambahan-container">
+                            <div class="bonus-tambahan-row row g-3 mb-3">
+                                <div class="col-md-5">
+                                    <label class="form-label">Nama Bonus</label>
+                                    <input type="text" name="nama_bonus[]" class="form-control" placeholder="Contoh: Bonus Kinerja">
                                 </div>
-                                <small class="text-muted">Bonus kinerja, lembur, dll</small>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label for="potongan" class="form-label">Potongan</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">Rp</span>
-                                    <input type="number" step="0.01" min="0" name="potongan" id="potongan" 
-                                           class="form-control" value="0" onchange="hitungTotal()">
+                                <div class="col-md-5">
+                                    <label class="form-label">Nominal (Rp)</label>
+                                    <input type="number" step="0.01" min="0" name="nominal_bonus[]" class="form-control" placeholder="0" onchange="hitungTotal()">
                                 </div>
-                                <small class="text-muted">Keterlambatan, pinjaman, dll</small>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-outline-danger w-100 btn-remove-bonus-tambahan">
+                                        <i class="bi bi-trash"></i> Hapus
+                                    </button>
+                                </div>
                             </div>
                         </div>
+                        <button type="button" class="btn btn-outline-success" id="btn-add-bonus-tambahan">
+                            <i class="bi bi-plus-circle me-1"></i>Tambah Bonus
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tunjangan Tambahan -->
+                <div class="card bg-secondary mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Tunjangan Tambahan</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="tunjangan-tambahan-container">
+                            <div class="tunjangan-tambahan-row row g-3 mb-3">
+                                <div class="col-md-5">
+                                    <label class="form-label">Nama Tunjangan</label>
+                                    <input type="text" name="nama_tunjangan[]" class="form-control" placeholder="Contoh: Tunjangan Makan">
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label">Nominal (Rp)</label>
+                                    <input type="number" step="0.01" min="0" name="nominal_tunjangan[]" class="form-control" placeholder="0" onchange="hitungTotal()">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-outline-danger w-100 btn-remove-tunjangan-tambahan">
+                                        <i class="bi bi-trash"></i> Hapus
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-success" id="btn-add-tunjangan-tambahan">
+                            <i class="bi bi-plus-circle me-1"></i>Tambah Tunjangan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Potongan Tambahan -->
+                <div class="card bg-secondary mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-dash-circle"></i> Potongan Tambahan</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="potongan-tambahan-container">
+                            <div class="potongan-tambahan-row row g-3 mb-3">
+                                <div class="col-md-5">
+                                    <label class="form-label">Nama Potongan</label>
+                                    <input type="text" name="nama_potongan[]" class="form-control" placeholder="Contoh: Keterlambatan">
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label">Nominal (Rp)</label>
+                                    <input type="number" step="0.01" min="0" name="nominal_potongan[]" class="form-control" placeholder="0" onchange="hitungTotal()">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="button" class="btn btn-outline-danger w-100 btn-remove-potongan-tambahan">
+                                        <i class="bi bi-trash"></i> Hapus
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-success" id="btn-add-potongan-tambahan">
+                            <i class="bi bi-plus-circle me-1"></i>Tambah Potongan
+                        </button>
                     </div>
                 </div>
 
@@ -162,6 +219,10 @@
                     </div>
                 </div>
 
+                <!-- Input Hidden untuk Data Tambahan -->
+                <input type="hidden" name="bonus" id="input_bonus" value="0">
+                <input type="hidden" name="potongan" id="input_potongan" value="0">
+                
                 <!-- Buttons -->
                 <div class="d-flex justify-content-between">
                     <a href="{{ route('transaksi.penggajian.index') }}" class="btn btn-secondary btn-lg">
@@ -251,28 +312,118 @@ function loadJamKerja() {
     }
 }
 
+// Hitung total tunjangan tambahan
+function hitungTotalTunjanganTambahan() {
+    let total = 0;
+    const inputs = document.querySelectorAll('input[name="nominal_tunjangan[]"]');
+    inputs.forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+    return total;
+}
+
+// Hitung total bonus tambahan
+function hitungTotalBonusTambahan() {
+    let total = 0;
+    const inputs = document.querySelectorAll('input[name="nominal_bonus[]"]');
+    inputs.forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+    return total;
+}
+
+// Hitung total potongan tambahan
+function hitungTotalPotonganTambahan() {
+    let total = 0;
+    const inputs = document.querySelectorAll('input[name="nominal_potongan[]"]');
+    inputs.forEach(input => {
+        total += parseFloat(input.value) || 0;
+    });
+    return total;
+}
+
 // Hitung total gaji
 function hitungTotal() {
-    const bonus = parseFloat(document.getElementById('bonus').value) || 0;
-    const potongan = parseFloat(document.getElementById('potongan').value) || 0;
+    const bonusTambahan = hitungTotalBonusTambahan();
+    const tunjanganTambahan = hitungTotalTunjanganTambahan();
+    const potonganTambahan = hitungTotalPotonganTambahan();
+    
+    // Update hidden fields
+    document.getElementById('input_bonus').value = bonusTambahan;
+    document.getElementById('input_potongan').value = potonganTambahan;
     
     let total = 0;
     let formula = '';
     
     if (pegawaiData.jenis === 'btkl') {
-        // BTKL = (Tarif × Jam Kerja) + Asuransi + Tunjangan + Bonus - Potongan
+        // BTKL = (Tarif × Jam Kerja) + Asuransi + Tunjangan Jabatan + Tunjangan Tambahan + Bonus Tambahan - Potongan Tambahan
         const gajiDasar = pegawaiData.tarif * pegawaiData.jamKerja;
-        total = gajiDasar + pegawaiData.asuransi + pegawaiData.tunjangan + bonus - potongan;
-        formula = `(${pegawaiData.tarif.toLocaleString('id-ID')} × ${pegawaiData.jamKerja}) + ${pegawaiData.asuransi.toLocaleString('id-ID')} + ${pegawaiData.tunjangan.toLocaleString('id-ID')} + ${bonus.toLocaleString('id-ID')} - ${potongan.toLocaleString('id-ID')}`;
+        total = gajiDasar + pegawaiData.asuransi + pegawaiData.tunjangan + tunjanganTambahan + bonusTambahan - potonganTambahan;
+        formula = `(${pegawaiData.tarif.toLocaleString('id-ID')} × ${pegawaiData.jamKerja}) + ${pegawaiData.asuransi.toLocaleString('id-ID')} + ${pegawaiData.tunjangan.toLocaleString('id-ID')} + ${tunjanganTambahan.toLocaleString('id-ID')} + ${bonusTambahan.toLocaleString('id-ID')} - ${potonganTambahan.toLocaleString('id-ID')}`;
     } else {
-        // BTKTL = Gaji Pokok + Asuransi + Tunjangan + Bonus - Potongan
-        total = pegawaiData.gajiPokok + pegawaiData.asuransi + pegawaiData.tunjangan + bonus - potongan;
-        formula = `${pegawaiData.gajiPokok.toLocaleString('id-ID')} + ${pegawaiData.asuransi.toLocaleString('id-ID')} + ${pegawaiData.tunjangan.toLocaleString('id-ID')} + ${bonus.toLocaleString('id-ID')} - ${potongan.toLocaleString('id-ID')}`;
+        // BTKTL = Gaji Pokok + Asuransi + Tunjangan Jabatan + Tunjangan Tambahan + Bonus Tambahan - Potongan Tambahan
+        total = pegawaiData.gajiPokok + pegawaiData.asuransi + pegawaiData.tunjangan + tunjanganTambahan + bonusTambahan - potonganTambahan;
+        formula = `${pegawaiData.gajiPokok.toLocaleString('id-ID')} + ${pegawaiData.asuransi.toLocaleString('id-ID')} + ${pegawaiData.tunjangan.toLocaleString('id-ID')} + ${tunjanganTambahan.toLocaleString('id-ID')} + ${bonusTambahan.toLocaleString('id-ID')} - ${potonganTambahan.toLocaleString('id-ID')}`;
     }
     
     document.getElementById('display_total').textContent = 'Rp ' + total.toLocaleString('id-ID');
     document.getElementById('formula-display').textContent = formula;
 }
+
+// Generic repeater factory untuk menghindari duplikasi kode
+function createRepeater(containerId, buttonId, rowClass, nameFieldName, valueFieldName, removeButtonClass) {
+    const container = document.getElementById(containerId);
+    const button = document.getElementById(buttonId);
+    
+    if (!button) return;
+    
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const newRow = document.createElement('div');
+        newRow.className = `${rowClass} row g-3 mb-3`;
+        newRow.innerHTML = `
+            <div class="col-md-5">
+                <input type="text" name="${nameFieldName}[]" class="form-control" placeholder="Masukkan nama">
+            </div>
+            <div class="col-md-5">
+                <input type="number" step="0.01" min="0" name="${valueFieldName}[]" class="form-control" placeholder="0" onchange="hitungTotal()">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-danger w-100 ${removeButtonClass}">
+                    <i class="bi bi-trash"></i> Hapus
+                </button>
+            </div>
+        `;
+        container.appendChild(newRow);
+        attachRemoveListener(newRow.querySelector(`.${removeButtonClass}`), rowClass);
+    });
+}
+
+function attachRemoveListener(btn, rowClass) {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        this.closest(`.${rowClass}`).remove();
+        hitungTotal();
+    });
+}
+
+// Initialize repeaters
+createRepeater('bonus-tambahan-container', 'btn-add-bonus-tambahan', 'bonus-tambahan-row', 'nama_bonus', 'nominal_bonus', 'btn-remove-bonus-tambahan');
+createRepeater('tunjangan-tambahan-container', 'btn-add-tunjangan-tambahan', 'tunjangan-tambahan-row', 'nama_tunjangan', 'nominal_tunjangan', 'btn-remove-tunjangan-tambahan');
+createRepeater('potongan-tambahan-container', 'btn-add-potongan-tambahan', 'potongan-tambahan-row', 'nama_potongan', 'nominal_potongan', 'btn-remove-potongan-tambahan');
+
+// Attach listeners to existing remove buttons
+document.querySelectorAll('.btn-remove-bonus-tambahan').forEach(btn => {
+    attachRemoveListener(btn, 'bonus-tambahan-row');
+});
+
+document.querySelectorAll('.btn-remove-tunjangan-tambahan').forEach(btn => {
+    attachRemoveListener(btn, 'tunjangan-tambahan-row');
+});
+
+document.querySelectorAll('.btn-remove-potongan-tambahan').forEach(btn => {
+    attachRemoveListener(btn, 'potongan-tambahan-row');
+});
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {

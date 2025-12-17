@@ -20,6 +20,11 @@ Route::prefix('bop')->group(function () {
     Route::post('/update-aktual', [BopApiController::class, 'updateAktual'])->name('api.bop.update-aktual');
 });
 
+// Jabatan API Routes
+Route::prefix('jabatan')->group(function () {
+    Route::get('/{id}', [\App\Http\Controllers\Api\JabatanController::class, 'show'])->name('api.jabatan.show');
+});
+
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });

@@ -8,6 +8,8 @@ use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class RegisterController extends Controller
 {
@@ -54,7 +56,7 @@ class RegisterController extends Controller
             unset($data['kode_perusahaan']);
         }
 
-        return Validator::make($data, [
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'username' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
@@ -66,8 +68,17 @@ class RegisterController extends Controller
             'company_alamat' => ['required_if:role,owner', 'string'],
             'company_email' => ['required_if:role,owner', 'email', 'max:255'],
             'company_telepon' => ['required_if:role,owner', 'string', 'max:20'],
-            'kode_perusahaan' => ['required_if:role,pegawai_pembelian,admin', 'string', 'exists:perusahaan,kode'],
-        ]);
+        ];
+
+        // Cek apakah kolom kode ada di tabel perusahaan
+        if (Schema::hasColumn('perusahaan', 'kode')) {
+            $rules['kode_perusahaan'] = ['required_if:role,pegawai_pembelian,admin', 'string', 'exists:perusahaan,kode'];
+        } else {
+            // Jika kolom kode belum ada, gunakan validasi sederhana
+            $rules['kode_perusahaan'] = ['required_if:role,pegawai_pembelian,admin', 'string'];
+        }
+
+        return Validator::make($data, $rules);
     }
 
     /**
@@ -81,29 +92,50 @@ class RegisterController extends Controller
         $perusahaanId = null;
 
         if (($data['role'] ?? null) === 'owner') {
-            $kode = $this->generateCompanyCode();
-
-            $perusahaanId = DB::table('perusahaan')->insertGetId([
+            $insertData = [
                 'nama' => $data['company_nama'],
                 'alamat' => $data['company_alamat'],
                 'email' => $data['company_email'],
                 'telepon' => $data['company_telepon'],
-                'kode' => $kode,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]);
+            ];
+
+            // Hanya tambahkan kode jika kolom ada
+            if (Schema::hasColumn('perusahaan', 'kode')) {
+                do {
+                    $kode = 'PRS' . strtoupper(Str::random(6));
+                    $exists = DB::table('perusahaan')->where('kode', $kode)->exists();
+                } while ($exists);
+                $insertData['kode'] = $kode;
+            }
+
+            $perusahaanId = DB::table('perusahaan')->insertGetId($insertData);
         } elseif (in_array($data['role'] ?? null, ['admin', 'pegawai_pembelian'], true)) {
-            $perusahaan = DB::table('perusahaan')->where('kode', $data['kode_perusahaan'] ?? null)->first();
-            $perusahaanId = $perusahaan?->id;
+            // Cek apakah kolom kode ada sebelum query
+            if (Schema::hasColumn('perusahaan', 'kode')) {
+                $perusahaan = DB::table('perusahaan')->where('kode', $data['kode_perusahaan'] ?? null)->first();
+                $perusahaanId = $perusahaan?->id;
+            }
         }
 
-        return User::create([
+        $userData = [
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'role' => $data['role'] ?? 'pelanggan',
-            'perusahaan_id' => $perusahaanId,
-        ]);
+        ];
+
+        // Hanya tambahkan role jika kolom ada
+        if (Schema::hasColumn('users', 'role')) {
+            $userData['role'] = $data['role'] ?? 'pelanggan';
+        }
+
+        // Hanya tambahkan perusahaan_id jika kolom ada
+        if (Schema::hasColumn('users', 'perusahaan_id')) {
+            $userData['perusahaan_id'] = $perusahaanId;
+        }
+
+        return User::create($userData);
     }
 
     protected function generateCompanyCode(): string

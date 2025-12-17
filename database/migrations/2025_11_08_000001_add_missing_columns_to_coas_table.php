@@ -34,7 +34,10 @@ return new class extends Migration
     public function down()
     {
         Schema::table('coas', function (Blueprint $table) {
-            $table->dropColumn([
+            if (Schema::hasColumn('coas', 'kode_induk')) {
+                $table->dropForeign(['kode_induk']);
+            }
+            $columns = [
                 'kategori_akun',
                 'is_akun_header',
                 'kode_induk',
@@ -43,7 +46,12 @@ return new class extends Migration
                 'tanggal_saldo_awal',
                 'keterangan',
                 'posted_saldo_awal'
-            ]);
+            ];
+            foreach ($columns as $column) {
+                if (Schema::hasColumn('coas', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
         });
     }
 };

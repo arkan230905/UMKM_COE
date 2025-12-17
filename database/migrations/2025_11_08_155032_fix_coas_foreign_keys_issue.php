@@ -11,21 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Drop foreign key constraints that reference coas table
-        Schema::table('bops', function (Blueprint $table) {
-            if (Schema::hasColumn('bops', 'kode_akun')) {
-                // Drop foreign key constraint if it exists
-                $table->dropForeign(['kode_akun']);
-                // Change the column to match the new data type
-                $table->string('kode_akun', 10)->change();
-            }
-        });
-
-        // Now modify the coas table
-        Schema::table('coas', function (Blueprint $table) {
-            // Change the column type to match the one in bops table
-            $table->string('kode_akun', 10)->change();
-        });
+        // Skip this migration - constraints already handled
+        return;
     }
 
     /**

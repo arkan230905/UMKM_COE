@@ -21,7 +21,11 @@ class FixPendingMigrations extends Migration
         if (Schema::hasTable('bops')) {
             if (!Schema::hasColumn('bops', 'budget')) {
                 Schema::table('bops', function (Blueprint $table) {
-                    $table->decimal('budget', 15, 2)->default(0)->after('keterangan');
+                    if (Schema::hasColumn('bops', 'keterangan')) {
+                        $table->decimal('budget', 15, 2)->default(0)->after('keterangan');
+                    } else {
+                        $table->decimal('budget', 15, 2)->default(0);
+                    }
                 });
             }
         }

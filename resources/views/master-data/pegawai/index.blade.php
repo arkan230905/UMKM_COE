@@ -80,7 +80,7 @@
                             <td>{{ $pegawai->nama }}</td>
                             <td>{{ $pegawai->email }}</td>
                             <td>{{ $pegawai->no_telp }}</td>
-                            <td class="col-alamat"><small class="text-muted">{{ Str::limit($pegawai->alamat, 40) }}</small></td>
+                            <td class="col-alamat">{{ Str::limit($pegawai->alamat, 40) }}</td>
                             <td>{{ $pegawai->jenis_kelamin == 'L' ? 'Laki-laki' : 'Perempuan' }}</td>
                             <td>{{ $pegawai->jabatan }}</td>
                             <td class="text-center">

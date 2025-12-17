@@ -13,13 +13,13 @@ return new class extends Migration
     {
         Schema::table('pegawais', function (Blueprint $table) {
             if (!Schema::hasColumn('pegawais', 'bank')) {
-                $table->string('bank', 100)->nullable()->after('jenis_pegawai');
+                $table->string('bank', 100)->nullable();
             }
             if (!Schema::hasColumn('pegawais', 'nomor_rekening')) {
-                $table->string('nomor_rekening', 50)->nullable()->after('bank');
+                $table->string('nomor_rekening', 50)->nullable();
             }
             if (!Schema::hasColumn('pegawais', 'nama_rekening')) {
-                $table->string('nama_rekening', 100)->nullable()->after('nomor_rekening');
+                $table->string('nama_rekening', 100)->nullable();
             }
         });
     }

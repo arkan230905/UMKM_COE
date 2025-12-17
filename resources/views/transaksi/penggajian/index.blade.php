@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+.currency {
+    padding-right: 8px !important;
+    min-width: 120px;
+}
+</style>
 <div class="container py-4">
     <h3 class="mb-4"><i class="bi bi-cash-coin"></i> Data Penggajian</h3>
 
@@ -23,7 +29,7 @@
                             <th>#</th>
                             <th>Nama Pegawai</th>
                             <th>Jenis</th>
-                            <th>Tanggal</th>
+                            <th class="text-center">Tanggal</th>
                             <th>Gaji Pokok / Tarif</th>
                             <th>Jam Kerja</th>
                             <th>Tunjangan</th>
@@ -47,30 +53,30 @@
                                         {{ $jenis }}
                                     </span>
                                 </td>
-                                <td>{{ \Carbon\Carbon::parse($gaji->tanggal_penggajian)->format('d-m-Y') }}</td>
-                                <td>
+                                <td class="text-center">{{ \Carbon\Carbon::parse($gaji->tanggal_penggajian)->format('d-m-Y') }}</td>
+                                <td class="text-end currency">
                                     @if($jenis === 'BTKL')
-                                        Rp {{ number_format($gaji->tarif_per_jam ?? 0, 0, ',', '.') }}/jam
+                                        {{ number_format($gaji->tarif_per_jam ?? 0, 0, ',', '.') }}
                                     @else
-                                        Rp {{ number_format($gaji->gaji_pokok ?? 0, 0, ',', '.') }}
+                                        {{ number_format($gaji->gaji_pokok ?? 0, 0, ',', '.') }}
                                     @endif
                                 </td>
-                                <td>
+                                <td class="text-end">
                                     @if($jenis === 'BTKL')
-                                        {{ number_format($gaji->total_jam_kerja ?? 0, 2) }} jam
+                                        {{ number_format($gaji->total_jam_kerja ?? 0, 0, ',', '.') }} jam
                                     @else
                                         -
                                     @endif
                                 </td>
-                                <td>Rp {{ number_format($gaji->tunjangan ?? 0, 0, ',', '.') }}</td>
-                                <td>Rp {{ number_format($gaji->asuransi ?? 0, 0, ',', '.') }}</td>
-                                <td>Rp {{ number_format($gaji->bonus ?? 0, 0, ',', '.') }}</td>
-                                <td>Rp {{ number_format($gaji->potongan ?? 0, 0, ',', '.') }}</td>
-                                <td><strong>Rp {{ number_format($gaji->total_gaji, 0, ',', '.') }}</strong></td>
+                                <td class="text-end currency">Rp {{ number_format($gaji->tunjangan ?? 0, 0, ',', '.') }}</td>
+                                <td class="text-end currency">Rp {{ number_format($gaji->asuransi ?? 0, 0, ',', '.') }}</td>
+                                <td class="text-end currency">Rp {{ number_format($gaji->bonus ?? 0, 0, ',', '.') }}</td>
+                                <td class="text-end currency">Rp {{ number_format($gaji->potongan ?? 0, 0, ',', '.') }}</td>
+                                <td class="text-end currency"><strong>Rp {{ number_format($gaji->total_gaji, 0, ',', '.') }}</strong></td>
                                 <td>
                                     <div class="btn-group" role="group">
-                                        <a href="{{ route('transaksi.penggajian.show', $gaji->id) }}" class="btn btn-sm btn-info" title="Detail">
-                                            <i class="bi bi-eye"></i>
+                                        <a href="{{ url('transaksi/penggajian/' . $gaji->id . '/slip') }}" class="btn btn-sm btn-success" title="Cetak Slip Gaji" target="_blank">
+                                            <i class="bi bi-file-earmark-pdf"></i>
                                         </a>
                                         <form action="{{ route('transaksi.penggajian.destroy', $gaji->id) }}" method="POST" onsubmit="return confirm('Hapus data ini?')" style="display:inline;">
                                             @csrf
@@ -92,7 +98,7 @@
                         <tfoot>
                             <tr class="table-info">
                                 <th colspan="10" class="text-end">Total Keseluruhan:</th>
-                                <th>Rp {{ number_format($penggajians->sum('total_gaji'), 0, ',', '.') }}</th>
+                                <th class="text-end currency">Rp {{ number_format($penggajians->sum('total_gaji'), 0, ',', '.') }}</th>
                                 <th></th>
                             </tr>
                         </tfoot>

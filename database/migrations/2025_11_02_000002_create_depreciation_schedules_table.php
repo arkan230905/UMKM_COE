@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('depreciation_schedules', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('aset_id')->constrained('asets')->onDelete('cascade');
+            $table->unsignedBigInteger('aset_id');
             $table->date('periode_mulai');
             $table->date('periode_akhir');
             $table->integer('periode_bulan');
@@ -22,10 +22,10 @@ return new class extends Migration
             $table->decimal('akumulasi_penyusutan', 15, 2);
             $table->decimal('nilai_buku', 15, 2);
             $table->enum('status', ['draft', 'posted', 'reversed'])->default('draft');
-            $table->foreignId('jurnal_id')->nullable()->constrained('jurnals')->onDelete('set null');
-            $table->foreignId('posted_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->unsignedBigInteger('jurnal_id')->nullable();
+            $table->unsignedBigInteger('posted_by')->nullable();
             $table->timestamp('posted_at')->nullable();
-            $table->foreignId('reversed_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->unsignedBigInteger('reversed_by')->nullable();
             $table->timestamp('reversed_at')->nullable();
             $table->text('keterangan')->nullable();
             $table->timestamps();

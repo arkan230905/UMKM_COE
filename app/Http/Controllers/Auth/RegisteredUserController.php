@@ -47,7 +47,12 @@ class RegisteredUserController extends Controller
             $rules['company_email'] = ['required', 'email', 'max:255'];
             $rules['company_telepon'] = ['required', 'string', 'max:20'];
         } elseif (in_array($request->role, ['admin', 'pegawai_pembelian'])) {
-            $rules['kode_perusahaan'] = ['required', 'string', 'exists:perusahaans,kode'];
+            // Cek apakah kolom kode ada di tabel perusahaans atau perusahaan
+            if (Schema::hasColumn('perusahaans', 'kode') || Schema::hasColumn('perusahaan', 'kode')) {
+                $rules['kode_perusahaan'] = ['required', 'string', 'exists:perusahaans,kode'];
+            } else {
+                $rules['kode_perusahaan'] = ['required', 'string'];
+            }
         }
         // Pelanggan tidak perlu validasi company
 

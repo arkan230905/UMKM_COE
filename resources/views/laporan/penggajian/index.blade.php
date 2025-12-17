@@ -60,14 +60,14 @@
                                     <td>{{ $penggajian->tanggal_penggajian ? \Carbon\Carbon::parse($penggajian->tanggal_penggajian)->format('d-m-Y') : '-' }}</td>
                                     <td class="text-right">
                                         @if($jenis === 'BTKL')
-                                            Rp {{ number_format($penggajian->tarif_per_jam ?? 0, 0, ',', '.') }}/jam
+                                            {{ number_format($penggajian->tarif_per_jam ?? 0, 0, ',', '.') }}
                                         @else
-                                            Rp {{ number_format($penggajian->gaji_pokok ?? 0, 0, ',', '.') }}
+                                            {{ number_format($penggajian->gaji_pokok ?? 0, 0, ',', '.') }}
                                         @endif
                                     </td>
                                     <td class="text-right">
                                         @if($jenis === 'BTKL')
-                                            {{ number_format($penggajian->total_jam_kerja ?? 0, 2) }} jam
+                                            {{ number_format($penggajian->total_jam_kerja ?? 0, 0, ',', '.') }} jam
                                         @else
                                             -
                                         @endif

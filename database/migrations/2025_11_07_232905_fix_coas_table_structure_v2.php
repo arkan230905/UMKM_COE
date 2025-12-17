@@ -12,74 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Disable foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-        try {
-            // Drop foreign key constraints that reference the coas table
-            $this->dropForeignKeys();
-
-            // Add the missing columns to the coas table
-            if (!Schema::hasColumn('coas', 'kategori_akun')) {
-                Schema::table('coas', function (Blueprint $table) {
-                    $table->string('kategori_akun')->after('tipe_akun')->nullable();
-                });
-            }
-
-            if (!Schema::hasColumn('coas', 'kode_induk')) {
-                Schema::table('coas', function (Blueprint $table) {
-                    $table->string('kode_induk')->after('kategori_akun')->nullable();
-                });
-            }
-
-            if (!Schema::hasColumn('coas', 'saldo_normal')) {
-                Schema::table('coas', function (Blueprint $table) {
-                    $table->enum('saldo_normal', ['debit', 'kredit'])->after('kode_induk')->default('debit');
-                });
-            }
-
-            if (!Schema::hasColumn('coas', 'keterangan')) {
-                Schema::table('coas', function (Blueprint $table) {
-                    $table->text('keterangan')->after('saldo_normal')->nullable();
-                });
-            }
-
-            if (!Schema::hasColumn('coas', 'is_akun_header')) {
-                Schema::table('coas', function (Blueprint $table) {
-                    $table->boolean('is_akun_header')->default(false)->after('keterangan');
-                });
-            }
-
-            if (!Schema::hasColumn('coas', 'saldo_awal')) {
-                Schema::table('coas', function (Blueprint $table) {
-                    $table->decimal('saldo_awal', 20, 2)->default(0)->after('is_akun_header');
-                });
-            }
-
-            if (!Schema::hasColumn('coas', 'tanggal_saldo_awal')) {
-                Schema::table('coas', function (Blueprint $table) {
-                    $table->date('tanggal_saldo_awal')->after('saldo_awal')->nullable();
-                });
-            }
-
-            if (!Schema::hasColumn('coas', 'posted_saldo_awal')) {
-                Schema::table('coas', function (Blueprint $table) {
-                    $table->boolean('posted_saldo_awal')->default(false)->after('tanggal_saldo_awal');
-                });
-            }
-
-            // Re-add foreign key constraints
-            $this->addForeignKeys();
-
-        } catch (\Exception $e) {
-            // Log the error and re-enable foreign key checks
-            \Log::error('Migration error: ' . $e->getMessage());
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-            throw $e;
-        }
-
-        // Re-enable foreign key checks
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        // Skip migration - kolom sudah ditambahkan di migration sebelumnya
+        return;
     }
 
     /**

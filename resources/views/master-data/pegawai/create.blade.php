@@ -71,22 +71,17 @@
                 </select>
             </div>
 
-            <!-- Hidden fields auto-filled -->
-            <input type="hidden" name="jabatan" id="jabatan" value="{{ old('jabatan') }}">
-            <input type="hidden" name="kategori" id="kategori" value="{{ old('kategori') }}">
-            <input type="hidden" name="tunjangan" id="tunjangan" value="{{ old('tunjangan') }}">
-            <input type="hidden" name="asuransi" id="asuransi" value="{{ old('asuransi') }}">
-            <input type="hidden" name="gaji" id="gaji" value="{{ old('gaji') }}">
-            <input type="hidden" name="tarif" id="tarif" value="{{ old('tarif') }}">
-
             <!-- Preview otomatis dari Jabatan -->
             <div class="col-12">
-                <div class="alert alert-secondary small" id="preview-box" style="display:none">
-                    <div><strong>Kategori:</strong> <span id="pv-kategori">-</span></div>
-                    <div><strong>Tunjangan:</strong> Rp <span id="pv-tunjangan">0</span></div>
-                    <div><strong>Asuransi:</strong> Rp <span id="pv-asuransi">0</span></div>
-                    <div><strong>Gaji (BTKTL/bulan):</strong> Rp <span id="pv-gaji">0</span></div>
-                    <div><strong>Tarif / Jam (BTKL):</strong> Rp <span id="pv-tarif">0</span></div>
+                <div class="alert alert-info small" id="preview-box" style="display:none">
+                    <strong>Data Jabatan:</strong>
+                    <div class="mt-2">
+                        <span id="pv-kategori">-</span> | 
+                        Gaji: Rp <span id="pv-gaji">0</span> | 
+                        Tunjangan: Rp <span id="pv-tunjangan">0</span> | 
+                        Asuransi: Rp <span id="pv-asuransi">0</span> | 
+                        Tarif/Jam: Rp <span id="pv-tarif">0</span>
+                    </div>
                 </div>
             </div>
 
@@ -130,33 +125,35 @@
     (function(){
         const fmt = (n)=> new Intl.NumberFormat('id-ID').format(Number(n||0));
         const dd = document.getElementById('jabatan_id');
-        const mapFromSelect = () => {
-            const opt = dd.options[dd.selectedIndex];
-            if (!opt) { document.getElementById('preview-box').style.display='none'; return; }
-            const ds = opt.dataset;
-            const data = {
-                nama: ds.nama || '',
-                kategori: ds.kategori || '',
-                tunjangan: ds.tunjangan || 0,
-                asuransi: ds.asuransi || 0,
-                gaji: ds.gaji || 0,
-                tarif: ds.tarif || 0,
-            };
-            // set hidden
-            document.getElementById('jabatan').value = data.nama;
-            document.getElementById('kategori').value = (data.kategori||'').toUpperCase();
-            document.getElementById('tunjangan').value = data.tunjangan;
-            document.getElementById('asuransi').value = data.asuransi;
-            document.getElementById('gaji').value = data.gaji;
-            document.getElementById('tarif').value = data.tarif;
-            // preview
-            document.getElementById('pv-kategori').textContent = (data.kategori||'').toUpperCase();
-            document.getElementById('pv-tunjangan').textContent = fmt(data.tunjangan);
-            document.getElementById('pv-asuransi').textContent = fmt(data.asuransi);
-            document.getElementById('pv-gaji').textContent = fmt(data.gaji);
-            document.getElementById('pv-tarif').textContent = fmt(data.tarif);
-            document.getElementById('preview-box').style.display='block';
+        
+        const mapFromSelect = async () => {
+            const jabatanId = dd.value;
+            if (!jabatanId) { 
+                document.getElementById('preview-box').style.display='none'; 
+                return; 
+            }
+            
+            try {
+                const response = await fetch(`/api/jabatan/${jabatanId}`);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    console.error('Error:', data.error);
+                    return;
+                }
+                
+                // preview
+                document.getElementById('pv-kategori').textContent = (data.kategori||'').toUpperCase();
+                document.getElementById('pv-tunjangan').textContent = fmt(data.tunjangan);
+                document.getElementById('pv-asuransi').textContent = fmt(data.asuransi);
+                document.getElementById('pv-gaji').textContent = fmt(data.gaji_pokok);
+                document.getElementById('pv-tarif').textContent = fmt(data.tarif);
+                document.getElementById('preview-box').style.display='block';
+            } catch (error) {
+                console.error('Fetch error:', error);
+            }
         };
+        
         dd.addEventListener('change', mapFromSelect);
         if (dd.value) mapFromSelect();
     })();

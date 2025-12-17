@@ -8,25 +8,8 @@ return new class extends Migration
 {
     public function up()
     {
-        // Drop foreign key constraint if exists
-        Schema::table('bops', function (Blueprint $table) {
-            if (Schema::hasColumn('bops', 'kode_akun')) {
-                $table->dropForeign(['kode_akun']);
-            }
-        });
-
-        // Add satuan_id to bahan_bakus
-        if (!Schema::hasColumn('bahan_bakus', 'satuan_id')) {
-            Schema::table('bahan_bakus', function (Blueprint $table) {
-                $table->unsignedBigInteger('satuan_id')->nullable()->after('id');
-                
-                // Add foreign key constraint
-                $table->foreign('satuan_id')
-                      ->references('id')
-                      ->on('satuans')
-                      ->onDelete('set null');
-            });
-        }
+        // Skip this migration - already handled in other migrations
+        return;
     }
 
     public function down()

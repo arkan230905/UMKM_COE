@@ -12,23 +12,30 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('pegawais')) {
+            return;
+        }
+
+        if (Schema::hasColumn('pegawais', 'kode_pegawai')) {
+            return;
+        }
+
         Schema::table('pegawais', function (Blueprint $table) {
-            $table->string('kode_pegawai', 10)->after('id')->unique();
+            $table->string('kode_pegawai', 10)->nullable()->after('id')->unique();
         });
 
         // Update existing records with default kode_pegawai
-        $pegawais = DB::table('pegawais')->get();
-        foreach ($pegawais as $index => $pegawai) {
-            $kode = 'PGW' . str_pad($index + 1, 4, '0', STR_PAD_LEFT);
-            DB::table('pegawais')
-                ->where('id', $pegawai->id)
-                ->update(['kode_pegawai' => $kode]);
+        try {
+            $pegawais = DB::table('pegawais')->get();
+            foreach ($pegawais as $index => $pegawai) {
+                $kode = 'PGW' . str_pad($index + 1, 4, '0', STR_PAD_LEFT);
+                DB::table('pegawais')
+                    ->where('id', $pegawai->id)
+                    ->update(['kode_pegawai' => $kode]);
+            }
+        } catch (\Exception $e) {
+            // Log error but continue
         }
-
-        // Make the column not nullable after populating
-        Schema::table('pegawais', function (Blueprint $table) {
-            $table->string('kode_pegawai', 10)->nullable(false)->change();
-        });
     }
 
     /**

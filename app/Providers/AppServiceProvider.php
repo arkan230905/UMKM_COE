@@ -35,14 +35,56 @@ class AppServiceProvider extends ServiceProvider
 
         // View composer global untuk semua tampilan
         View::composer('*', function ($view) {
+            try {
+                $totalPegawai = Pegawai::count();
+            } catch (\Exception $e) {
+                $totalPegawai = 0;
+            }
+            
+            try {
+                $totalPresensi = Presensi::count();
+            } catch (\Exception $e) {
+                $totalPresensi = 0;
+            }
+            
+            try {
+                $totalProduk = Produk::count();
+            } catch (\Exception $e) {
+                $totalProduk = 0;
+            }
+            
+            try {
+                $totalVendor = Vendor::count();
+            } catch (\Exception $e) {
+                $totalVendor = 0;
+            }
+            
+            try {
+                $totalBahanBaku = BahanBaku::count();
+            } catch (\Exception $e) {
+                $totalBahanBaku = 0;
+            }
+            
+            try {
+                $totalSatuan = Satuan::count();
+            } catch (\Exception $e) {
+                $totalSatuan = 0;
+            }
+            
+            try {
+                $totalCOA = Coa::count();
+            } catch (\Exception $e) {
+                $totalCOA = 0;
+            }
+            
             $view->with([
-                'totalPegawai'   => Pegawai::count(),
-                'totalPresensi'  => Presensi::count(),
-                'totalProduk'    => Produk::count(),
-                'totalVendor'    => Vendor::count(),
-                'totalBahanBaku' => BahanBaku::count(),
-                'totalSatuan'    => Satuan::count(),
-                'totalCOA'       => Coa::count(),
+                'totalPegawai'   => $totalPegawai,
+                'totalPresensi'  => $totalPresensi,
+                'totalProduk'    => $totalProduk,
+                'totalVendor'    => $totalVendor,
+                'totalBahanBaku' => $totalBahanBaku,
+                'totalSatuan'    => $totalSatuan,
+                'totalCOA'       => $totalCOA,
             ]);
         });
 

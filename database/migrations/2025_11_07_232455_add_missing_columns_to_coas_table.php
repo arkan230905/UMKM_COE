@@ -12,27 +12,38 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('coas')) {
+            return;
+        }
+
         // Disable foreign key checks
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
         Schema::table('coas', function (Blueprint $table) {
-            $table->string('kategori_akun')->after('tipe_akun')->nullable();
-            $table->string('kode_induk')->after('kategori_akun')->nullable();
-            $table->enum('saldo_normal', ['debit', 'kredit'])->after('kode_induk');
-            $table->text('keterangan')->after('saldo_normal')->nullable();
-            $table->boolean('is_akun_header')->default(false)->after('keterangan');
-            $table->decimal('saldo_awal', 20, 2)->default(0)->after('is_akun_header');
-            $table->date('tanggal_saldo_awal')->after('saldo_awal')->nullable();
-            $table->boolean('posted_saldo_awal')->default(false)->after('tanggal_saldo_awal');
-        });
-
-        // Add foreign key for kode_induk
-        Schema::table('coas', function (Blueprint $table) {
-            $table->foreign('kode_induk')
-                  ->references('kode_akun')
-                  ->on('coas')
-                  ->onDelete('set null')
-                  ->onUpdate('cascade');
+            if (!Schema::hasColumn('coas', 'kategori_akun')) {
+                $table->string('kategori_akun')->nullable();
+            }
+            if (!Schema::hasColumn('coas', 'kode_induk')) {
+                $table->string('kode_induk')->nullable();
+            }
+            if (!Schema::hasColumn('coas', 'saldo_normal')) {
+                $table->enum('saldo_normal', ['debit', 'kredit'])->nullable();
+            }
+            if (!Schema::hasColumn('coas', 'keterangan')) {
+                $table->text('keterangan')->nullable();
+            }
+            if (!Schema::hasColumn('coas', 'is_akun_header')) {
+                $table->boolean('is_akun_header')->default(false);
+            }
+            if (!Schema::hasColumn('coas', 'saldo_awal')) {
+                $table->decimal('saldo_awal', 20, 2)->default(0);
+            }
+            if (!Schema::hasColumn('coas', 'tanggal_saldo_awal')) {
+                $table->date('tanggal_saldo_awal')->nullable();
+            }
+            if (!Schema::hasColumn('coas', 'posted_saldo_awal')) {
+                $table->boolean('posted_saldo_awal')->default(false);
+            }
         });
 
         // Re-enable foreign key checks

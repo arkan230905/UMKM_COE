@@ -38,7 +38,7 @@
             <li class="nav-item">
                 <a class="nav-link {{ request()->is('master-data/jabatan*') ? 'active' : '' }}" href="{{ route('master-data.jabatan.index') }}">
                     <i class="fas fa-fw fa-user-tie"></i>
-                    <span>Jabatan</span>
+                    <span>Klasifikasi Tenaga Kerja</span>
                 </a>
             </li>
             <li class="nav-item">

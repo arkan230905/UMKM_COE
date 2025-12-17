@@ -349,27 +349,33 @@ class LaporanController extends Controller
         return view('laporan.retur.index', compact('returs', 'total'));
     }
 
-    // === LAPORAN PENGAJIAN ===
+    // === LAPORAN PENGGAJIAN ===
     public function laporanPenggajian(Request $request)
     {
         $query = \App\Models\Penggajian::with(['pegawai'])
             ->when($request->bulan, function($q) use ($request) {
                 $bulan = \Carbon\Carbon::parse($request->bulan);
-                return $q->whereYear('periode', $bulan->year)
-                       ->whereMonth('periode', $bulan->month);
+                return $q->whereYear('tanggal_penggajian', $bulan->year)
+                       ->whereMonth('tanggal_penggajian', $bulan->month);
             })
-            ->latest();
+            ->orderBy('tanggal_penggajian', 'desc');
 
         if ($request->has('export') && $request->export == 'pdf') {
             $penggajians = $query->get();
             $total = $penggajians->sum('total_gaji');
+            $bulan = $request->bulan ? \Carbon\Carbon::parse($request->bulan)->format('F Y') : 'Semua Data';
             
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.penggajian.pdf', compact('penggajians', 'total'));
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.penggajian.pdf', compact('penggajians', 'total', 'bulan'));
             return $pdf->download('laporan-penggajian-' . now()->format('Y-m-d') . '.pdf');
         }
 
         $penggajians = $query->paginate(15);
-        $total = $query->sum('total_gaji');
+        $totalQuery = \App\Models\Penggajian::when($request->bulan, function($q) use ($request) {
+            $bulan = \Carbon\Carbon::parse($request->bulan);
+            return $q->whereYear('tanggal_penggajian', $bulan->year)
+                   ->whereMonth('tanggal_penggajian', $bulan->month);
+        });
+        $total = $totalQuery->sum('total_gaji');
 
         return view('laporan.penggajian.index', compact('penggajians', 'total'));
     }

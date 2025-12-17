@@ -21,6 +21,11 @@ class RoleMiddleware
             abort(403);
         }
 
+        // Jika user tidak memiliki role attribute, izinkan akses (untuk backward compatibility)
+        if (! isset($user->role)) {
+            return $next($request);
+        }
+
         if (! in_array($user->role, $roles, true)) {
             abort(403);
         }

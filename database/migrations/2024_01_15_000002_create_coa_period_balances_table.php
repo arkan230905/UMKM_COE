@@ -17,11 +17,8 @@ return new class extends Migration
             $table->unsignedBigInteger('period_id');
             $table->decimal('saldo_awal', 15, 2)->default(0);
             $table->decimal('saldo_akhir', 15, 2)->default(0);
-            $table->boolean('is_posted')->default(false); // Sudah diposting ke periode berikutnya atau belum
+            $table->boolean('is_posted')->default(false);
             $table->timestamps();
-            
-            $table->foreign('kode_akun')->references('kode_akun')->on('coas')->onDelete('cascade');
-            $table->foreign('period_id')->references('id')->on('coa_periods')->onDelete('cascade');
             
             $table->unique(['kode_akun', 'period_id']);
             $table->index('period_id');

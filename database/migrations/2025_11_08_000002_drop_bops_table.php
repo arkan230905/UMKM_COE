@@ -8,15 +8,8 @@ return new class extends Migration
 {
     public function up()
     {
-        // Drop foreign key constraints first
-        Schema::table('bops', function (Blueprint $table) {
-            if (Schema::hasColumn('bops', 'kode_akun')) {
-                $table->dropForeign(['kode_akun']);
-            }
-        });
-
-        // Now drop the table
-        Schema::dropIfExists('bops');
+        // Skip migration - bops table sudah ada dengan struktur yang tepat
+        return;
     }
 
     public function down()

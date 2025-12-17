@@ -29,17 +29,22 @@ return new class extends Migration
         $presensis = \DB::table('presensis')->get();
         
         foreach ($presensis as $presensi) {
-            \DB::table('presensis_new')->insert([
-                'id' => $presensi->id,
-                'pegawai_id' => $presensi->pegawai_id,
-                'tanggal' => $presensi->tanggal,
-                'jam_masuk' => $presensi->jam_masuk,
-                'jam_pulang' => $presensi->jam_pulang,
-                'jumlah_jam' => $presensi->jumlah_jam ?? 0,
-                'keterangan' => $presensi->keterangan,
-                'created_at' => $presensi->created_at,
-                'updated_at' => $presensi->updated_at,
-            ]);
+            // Gunakan tgl_presensi jika ada, atau tanggal jika ada
+            $tanggal = $presensi->tgl_presensi ?? $presensi->tanggal ?? null;
+            
+            if ($tanggal) {
+                \DB::table('presensis_new')->insert([
+                    'id' => $presensi->id,
+                    'pegawai_id' => $presensi->pegawai_id,
+                    'tanggal' => $tanggal,
+                    'jam_masuk' => $presensi->jam_masuk ?? null,
+                    'jam_pulang' => $presensi->jam_keluar ?? $presensi->jam_pulang ?? null,
+                    'jumlah_jam' => $presensi->jumlah_jam ?? 0,
+                    'keterangan' => $presensi->keterangan ?? null,
+                    'created_at' => $presensi->created_at,
+                    'updated_at' => $presensi->updated_at,
+                ]);
+            }
         }
 
         // Hapus tabel lama

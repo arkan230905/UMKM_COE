@@ -16,10 +16,6 @@ return new class extends Migration
             if (!Schema::hasColumn('bops', 'aktual')) {
                 $table->decimal('aktual', 15, 2)->default(0)->after('budget');
             }
-            
-            // Tambahkan indeks untuk pencarian yang lebih cepat
-            $table->index('kode_akun');
-            $table->index('is_active');
         });
     }
 

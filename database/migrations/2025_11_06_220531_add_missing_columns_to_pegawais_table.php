@@ -11,41 +11,39 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('pegawais')) {
+            return;
+        }
+
         Schema::table('pegawais', function (Blueprint $table) {
             // Add new columns if they don't exist
             if (!Schema::hasColumn('pegawais', 'kode_pegawai')) {
-                $table->string('kode_pegawai', 20)->nullable()->after('id');
+                if (Schema::hasColumn('pegawais', 'id')) {
+                    $table->string('kode_pegawai', 20)->nullable()->after('id');
+                } else {
+                    $table->string('kode_pegawai', 20)->nullable();
+                }
             }
             if (!Schema::hasColumn('pegawais', 'no_telepon')) {
-                $table->string('no_telepon', 20)->after('email');
+                $table->string('no_telepon', 20)->nullable();
             }
             if (!Schema::hasColumn('pegawais', 'nama_bank')) {
-                $table->string('nama_bank', 100)->nullable()->after('alamat');
+                $table->string('nama_bank', 100)->nullable();
             }
             if (!Schema::hasColumn('pegawais', 'no_rekening')) {
-                $table->string('no_rekening', 50)->nullable()->after('nama_bank');
+                $table->string('no_rekening', 50)->nullable();
             }
             if (!Schema::hasColumn('pegawais', 'kategori')) {
-                $table->enum('kategori', ['BTKL', 'BTKTL'])->default('BTKL')->after('jabatan');
+                $table->enum('kategori', ['BTKL', 'BTKTL'])->default('BTKL')->nullable();
             }
             if (!Schema::hasColumn('pegawais', 'asuransi')) {
-                $table->decimal('asuransi', 15, 2)->default(0)->after('kategori');
+                $table->decimal('asuransi', 15, 2)->default(0);
             }
             if (!Schema::hasColumn('pegawais', 'tarif')) {
-                $table->decimal('tarif', 15, 2)->default(0)->after('asuransi');
+                $table->decimal('tarif', 15, 2)->default(0);
             }
             if (!Schema::hasColumn('pegawais', 'tunjangan')) {
-                $table->decimal('tunjangan', 15, 2)->default(0)->after('tarif');
-            }
-            
-            // Update existing columns if needed
-            if (Schema::hasColumn('pegawais', 'no_telp') && !Schema::hasColumn('pegawais', 'no_telepon')) {
-                $table->renameColumn('no_telp', 'no_telepon');
-            }
-            
-            // Add index for better performance
-            if (!Schema::hasColumn('pegawais', 'kode_pegawai')) {
-                $table->unique('kode_pegawai');
+                $table->decimal('tunjangan', 15, 2)->default(0);
             }
         });
     }

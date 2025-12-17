@@ -9,14 +9,23 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->unsignedBigInteger('perusahaan_id')->nullable()->after('role');
+            if (!Schema::hasColumn('users', 'perusahaan_id')) {
+                $table->foreignId('perusahaan_id')
+                    ->nullable()
+                    ->after('id')
+                    ->constrained('perusahaan')
+                    ->nullOnDelete();
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('perusahaan_id');
+            if (Schema::hasColumn('users', 'perusahaan_id')) {
+                $table->dropForeign(['perusahaan_id']);
+                $table->dropColumn('perusahaan_id');
+            }
         });
     }
 };

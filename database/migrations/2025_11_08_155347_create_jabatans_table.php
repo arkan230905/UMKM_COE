@@ -11,18 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('jabatans', function (Blueprint $table) {
-            $table->id();
-            $table->string('kode_jabatan', 20)->unique();
-            $table->string('nama', 100);
-            $table->string('kategori', 50)->nullable();
-            $table->text('deskripsi')->nullable();
-            $table->decimal('gaji_pokok', 15, 2)->default(0);
-            $table->decimal('tunjangan', 15, 2)->default(0);
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-            $table->softDeletes();
-        });
+        if (!Schema::hasTable('jabatans')) {
+            Schema::create('jabatans', function (Blueprint $table) {
+                $table->id();
+                $table->string('kode_jabatan', 20)->unique();
+                $table->string('nama', 100);
+                $table->string('kategori', 50)->nullable();
+                $table->text('deskripsi')->nullable();
+                $table->decimal('gaji_pokok', 15, 2)->default(0);
+                $table->decimal('tunjangan', 15, 2)->default(0);
+                $table->boolean('is_active')->default(true);
+                $table->timestamps();
+                $table->softDeletes();
+            });
+        }
     }
 
     /**

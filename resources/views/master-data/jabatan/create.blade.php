@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container-fluid px-4 py-4">
-    <h2 class="mb-4"><i class="bi bi-briefcase me-2"></i>Tambah Jabatan</h2>
+    <h2 class="mb-4"><i class="bi bi-briefcase me-2"></i>Klasifikasi Tenaga Kerja</h2>
 
     @if ($errors->any())
         <div class="alert alert-danger">
@@ -15,11 +15,11 @@
     @endif
 
     <style>
-        .jabatan-form .form-label,
-        .jabatan-form small { color: #fff !important; }
+        .Klasifikasi_Tenaga_Kerja-form .form-label,
+        .Klasifikasi_Tenaga_Kerja-form small { color: #fff !important; }
     </style>
     <div class="card border-0 shadow-sm">
-        <div class="card-body jabatan-form">
+        <div class="card-body Klasifikasi_Tenaga_Kerja-form">
             <form method="POST" action="{{ route('master-data.jabatan.store') }}">
                 @csrf
 
@@ -36,7 +36,7 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Tunjangan (Rp)</label>
+                        <label class="form-label">Tunjangan Jabatan (Rp)</label>
                         <input type="text" name="tunjangan" class="form-control money-input" value="{{ old('tunjangan',0) }}">
                         <small class="money-hint"></small>
                     </div>
@@ -125,6 +125,8 @@
                 });
                 inp.addEventListener('blur', () => { inp.value = formatID(inp.value); updateHint(); });
             });
+
+
         })();
     </script>
 </div>
