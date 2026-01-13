@@ -1,222 +1,172 @@
 @extends('layouts.app')
 
-@section('title', 'Daftar Pelunasan Utang')
-
-@push('styles')
-    <link rel="stylesheet" href="{{ asset('library/select2/dist/css/select2.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('library/datatables/media/css/jquery.dataTables.min.css') }}">
-    <style>
-        .dataTables_wrapper .dataTables_paginate .paginate_button {
-            padding: 0.25rem 0.5rem;
-            margin-left: 0.25rem;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current, 
-        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
-            background: #4e73df;
-            color: white !important;
-            border: 1px solid #4e73df;
-        }
-        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-            background: #eaecf4;
-            color: #4e73df !important;
-        }
-    </style>
-@endpush
-
-@section('main')
-<div class="main-content">
-    <section class="section">
-        <div class="section-header">
-            <h1>Daftar Pelunasan Utang</h1>
-            <div class="section-header-breadcrumb">
-                <div class="breadcrumb-item active"><a href="{{ route('dashboard') }}">Dashboard</a></div>
-                <div class="breadcrumb-item">Pelunasan Utang</div>
-            </div>
-        </div>
-
-        <div class="section-body">
-            <div class="card">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between w-100">
-                        <h4>Daftar Pelunasan Utang</h4>
-                        <a href="{{ route('transaksi.pelunasan-utang.create') }}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Tambah Pelunasan
-                        </a>
-                    </div>
-                </div>
-
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped" id="table-1">
-                            <thead>
-                                <tr>
-                                    <th class="text-center">#</th>
-                                    <th>Kode Transaksi</th>
-                                    <th>Tanggal</th>
-                                    <th>Pembelian</th>
-                                    <th>Vendor</th>
-                                    <th class="text-right">Jumlah</th>
-                                    <th>Status</th>
-                                    <th class="text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($pelunasanUtang as $item)
-                                <tr>
-                                    <td class="text-center">{{ $loop->iteration }}</td>
-                                    <td>{{ $item->kode_transaksi }}</td>
-                                    <td>{{ $item->tanggal->format('d/m/Y') }}</td>
-                                    <td>{{ $item->pembelian->kode_pembelian ?? '-' }}</td>
-                                    <td>{{ $item->pembelian->vendor->nama ?? '-' }}</td>
-                                    <td class="text-right">{{ format_rupiah($item->jumlah) }}</td>
-                                    <td>{!! $item->status_badge !!}</td>
-                                    <td class="text-center">
-                                        <div class="btn-group">
-                                            <a href="{{ route('transaksi.pelunasan-utang.show', $item->id) }}" 
-                                               class="btn btn-sm btn-info" 
-                                               title="Detail">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            <a href="{{ route('transaksi.pelunasan-utang.print', $item->id) }}" 
-                                               class="btn btn-sm btn-warning" 
-                                               target="_blank"
-                                               title="Cetak">
-                                                <i class="fas fa-print"></i>
-                                            </a>
-                                            <form action="{{ route('transaksi.pelunasan-utang.destroy', $item->id) }}" 
-                                                  method="POST" 
-                                                  class="d-inline"
-                                                  onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-danger" title="Hapus">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
+@section('content')
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-hand-holding-usd me-2"></i>Pelunasan Utang
+        </h2>
+        <a href="{{ route('transaksi.pelunasan-utang.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Tambah Pelunasan
+        </a>
     </div>
-</div>
-@endsection
 
-@push('scripts')
-    <script src="{{ asset('library/select2/dist/js/select2.full.min.js') }}"></script>
-    <script src="{{ asset('library/datatables/media/js/jquery.dataTables.min.js') }}"></script>
-    <script src="{{ asset('js/pelunasan-utang.js') }}"></script>
-    <script>
-        $(document).ready(function() {
-            // Inisialisasi DataTable
-            $('#table-1').DataTable({
-                "paging": true,
-                "lengthChange": true,
-                "searching": true,
-                "ordering": true,
-                "info": true,
-                "autoWidth": false,
-                "responsive": true,
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.10.25/i18n/Indonesian.json"
-                },
-                "columnDefs": [
-                    { "orderable": false, "targets": [0, 7] },
-                    { "searchable": false, "targets": [0, 7] },
-                    { "className": "text-center", "targets": [0, 7] },
-                    { "className": "text-right", "targets": [5] }
-                ],
-                "order": [[2, 'desc']] // Urutkan berdasarkan tanggal terbaru
-            });
-
-            // Inisialisasi select2
-            $('.select2').select2({
-                theme: 'bootstrap4',
-                placeholder: 'Pilih salah satu',
-                allowClear: true
-            });
-
-            // Format mata uang
-            function formatRupiah(angka) {
-                var number_string = angka.toString().replace(/[^,\d]/g, '');
-                var split = number_string.split(',');
-                var sisa = split[0].length % 3;
-                var rupiah = split[0].substr(0, sisa);
-                var ribuan = split[0].substr(sisa).match(/\d{3}/gi);
-                
-                if (ribuan) {
-                    var separator = sisa ? '.' : '';
-                    rupiah += separator + ribuan.join('.');
-                }
-                
-                rupiah = split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
-                return rupiah ? 'Rp ' + rupiah : '';
-            }
-
-            // Format input angka
-            $('.currency').on('keyup', function() {
-                var value = $(this).val().replace(/[^\d]/g, '');
-                $(this).val(formatRupiah(value));
-            });
-        });
-    </script>
-    
-    @if(session('success'))
-    <script>
-        $(document).ready(function() {
-            toastr.success('{{ session('success') }}', 'Sukses');
-        });
-    </script>
-    @endif
-    
-    @if($errors->any())
-    <script>
-        $(document).ready(function() {
-            @foreach($errors->all() as $error)
-                toastr.error('{{ $error }}', 'Error');
-            @endforeach
-        });
-    </script>
-    @endif
-@endpush
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan Pembayaran</button>
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <i class="fas fa-filter me-2"></i>Filter Transaksi
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ route('transaksi.pelunasan-utang.index') }}">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Kode Transaksi</label>
+                        <input type="text" name="kode_transaksi" class="form-control" 
+                               value="{{ request('kode_transaksi') }}" placeholder="Cari kode transaksi...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tanggal Mulai</label>
+                        <input type="date" name="tanggal_mulai" class="form-control" 
+                               value="{{ request('tanggal_mulai') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tanggal Selesai</label>
+                        <input type="date" name="tanggal_selesai" class="form-control" 
+                               value="{{ request('tanggal_selesai') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Vendor</label>
+                        <select name="vendor_id" class="form-select">
+                            <option value="">Semua Vendor</option>
+                            @foreach($vendors ?? [] as $vendor)
+                                <option value="{{ $vendor->id }}" {{ request('vendor_id') == $vendor->id ? 'selected' : '' }}>
+                                    {{ $vendor->nama_vendor }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="">Semua Status</option>
+                            <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
+                            <option value="belum_lunas" {{ request('status') == 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Filter
+                            </button>
+                            <a href="{{ route('transaksi.pelunasan-utang.index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-redo me-2"></i>Reset
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Riwayat Pelunasan Utang
+                @if(request()->hasAny(['kode_transaksi', 'tanggal_mulai', 'tanggal_selesai', 'vendor_id', 'status']))
+                    <small class="text-muted">(Filter Aktif)</small>
+                @endif
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 50px">#</th>
+                            <th>Kode Transaksi</th>
+                            <th>Tanggal</th>
+                            <th>Pembelian</th>
+                            <th>Vendor</th>
+                            <th class="text-end">Jumlah</th>
+                            <th>Status</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($pelunasanUtang as $key => $item)
+                            <tr>
+                                <td class="text-center">{{ $key + 1 }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                                            <i class="fas fa-receipt text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold">{{ $item->kode_transaksi }}</div>
+                                            <small class="text-muted">ID: {{ $item->id }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d-m-Y') }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-success bg-opacity-10 p-2 me-2">
+                                            <i class="fas fa-shopping-cart text-success"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold">{{ $item->pembelian->kode_pembelian ?? '-' }}</div>
+                                            <small class="text-muted">Pembelian</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-info bg-opacity-10 p-2 me-2">
+                                            <i class="fas fa-truck text-info"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold">{{ $item->pembelian->vendor->nama ?? '-' }}</div>
+                                            <small class="text-muted">Vendor</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end fw-semibold">Rp {{ number_format($item->jumlah, 0, ',', '.') }}</td>
+                                <td>{!! $item->status_badge !!}</td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ route('transaksi.pelunasan-utang.show', $item->id) }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ route('transaksi.pelunasan-utang.print', $item->id) }}" class="btn btn-outline-warning" target="_blank">
+                                            <i class="fas fa-print"></i>
+                                        </a>
+                                        <form action="{{ route('transaksi.pelunasan-utang.destroy', $item->id) }}" 
+                                              method="POST" 
+                                              class="d-inline"
+                                              onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="text-center py-4">
+                                    <i class="fas fa-hand-holding-usd fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">Belum ada data pelunasan utang</p>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle bayar button click
-        const modalBayar = document.getElementById('modalBayar');
-        modalBayar.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const pembelianId = button.getAttribute('data-id');
-            const sisaUtang = parseFloat(button.getAttribute('data-sisa'));
-            const noPembelian = button.getAttribute('data-no-pembelian');
-            
-            const modal = this;
-            modal.querySelector('#pembelian_id').value = pembelianId;
-            modal.querySelector('#no_pembelian').value = noPembelian;
-            modal.querySelector('#sisa_utang').textContent = formatRupiah(sisaUtang);
-            modal.querySelector('#jumlah').max = sisaUtang;
-            modal.querySelector('#jumlah').value = sisaUtang;
-        });
-
-        // Format Rupiah
-        function formatRupiah(angka) {
-            return 'Rp ' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-        }
-    });
-</script>
-@endpush

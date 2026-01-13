@@ -20,10 +20,10 @@ use App\Http\Controllers\DashboardController;
 
 // Master Data
 use App\Http\Controllers\PegawaiController;
-use App\Http\Controllers\PresensiController;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\BahanBakuController;
+use App\Http\Controllers\BahanPendukungController;
 use App\Http\Controllers\SatuanController;
 use App\Http\Controllers\CoaController;
 use App\Http\Controllers\BopController;
@@ -39,6 +39,8 @@ use App\Http\Controllers\ReturController;
 use App\Http\Controllers\PenggajianController;
 use App\Http\Controllers\ExpensePaymentController;
 use App\Http\Controllers\ApSettlementController;
+use App\Http\Controllers\PresensiController;
+use App\Http\Controllers\PelunasanUtangController;
 
 // Laporan
 use App\Http\Controllers\LaporanController;
@@ -217,14 +219,18 @@ Route::middleware('auth')->group(function () {
         
         // Bahan Baku
         Route::resource('bahan-baku', BahanBakuController::class);
+        
+        // Bahan Pendukung
+        Route::resource('bahan-pendukung', BahanPendukungController::class);
+        
+        // Kategori Bahan Pendukung
+        Route::resource('kategori-bahan-pendukung', \App\Http\Controllers\KategoriBahanPendukungController::class);
         Route::resource('coa', CoaController::class);
         Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generate-kode');
         Route::resource('aset', AsetController::class);
         Route::get('aset-kategori-by-jenis', [AsetController::class, 'getKategoriByJenis'])->name('aset.kategori-by-jenis');
-        Route::resource('jabatan', JabatanController::class);
+        Route::resource('kualifikasi-tenaga-kerja', JabatanController::class);
         Route::resource('pegawai', PegawaiController::class);
-        // Presensi routes
-        Route::resource('presensi', PresensiController::class);
         Route::resource('vendor', VendorController::class);
         Route::resource('satuan', SatuanController::class);
         
@@ -278,8 +284,8 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{bom}', [BomController::class, 'destroy'])->name('destroy');
         });
         
-        // Proses Produksi Routes (Process Costing)
-        Route::prefix('proses-produksi')->name('proses-produksi.')->group(function () {
+        // BTKL Routes (Biaya Tenaga Kerja Langsung)
+        Route::prefix('btkl')->name('btkl.')->group(function () {
             Route::get('/', [\App\Http\Controllers\ProsesProduksiController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\ProsesProduksiController::class, 'create'])->name('create');
             Route::post('/', [\App\Http\Controllers\ProsesProduksiController::class, 'store'])->name('store');
@@ -332,16 +338,29 @@ Route::middleware('auth')->group(function () {
         });
 
         // ============================================================
+        // ✅ PRESENSI
+        // ============================================================
+        Route::prefix('presensi')->name('presensi.')->group(function() {
+            Route::get('/', [PresensiController::class, 'index'])->name('index');
+            Route::get('/create', [PresensiController::class, 'create'])->name('create');
+            Route::post('/', [PresensiController::class, 'store'])->name('store');
+            Route::get('/{id}', [PresensiController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [PresensiController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [PresensiController::class, 'update'])->name('update');
+            Route::delete('/{id}', [PresensiController::class, 'destroy'])->name('destroy');
+        });
+
+        // ============================================================
         // ✅ PELUNASAN UTANG (AP Settlement)
         // ============================================================
         Route::prefix('pelunasan-utang')->name('pelunasan-utang.')->group(function() {
-            Route::get('/', [ApSettlementController::class, 'index'])->name('index');
-            Route::get('/create', [ApSettlementController::class, 'create'])->name('create');
-            Route::post('/', [ApSettlementController::class, 'store'])->name('store');
-            Route::get('/{id}', [ApSettlementController::class, 'show'])->name('show');
-            Route::get('/print/{id}', [ApSettlementController::class, 'print'])->name('print');
-            Route::delete('/{id}', [ApSettlementController::class, 'destroy'])->name('destroy');
-            Route::get('/get-pembelian/{id}', [ApSettlementController::class, 'getPembelian'])->name('get-pembelian');
+            Route::get('/', [PelunasanUtangController::class, 'index'])->name('index');
+            Route::get('/create', [PelunasanUtangController::class, 'create'])->name('create');
+            Route::post('/', [PelunasanUtangController::class, 'store'])->name('store');
+            Route::get('/{id}', [PelunasanUtangController::class, 'show'])->name('show');
+            Route::get('/print/{id}', [PelunasanUtangController::class, 'print'])->name('print');
+            Route::delete('/{id}', [PelunasanUtangController::class, 'destroy'])->name('destroy');
+            Route::get('/get-pembelian/{id}', [PelunasanUtangController::class, 'getPembelian'])->name('get-pembelian');
         });
 
         // ============================================================
@@ -504,6 +523,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/buku-besar', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesar'])->name('buku-besar');
         Route::get('/buku-besar/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesarExportExcel'])->name('buku-besar.export-excel');
         Route::get('/neraca-saldo', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldo'])->name('neraca-saldo');
+        Route::get('/neraca', [\App\Http\Controllers\AkuntansiController::class, 'neraca'])->name('neraca');
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
     });
 

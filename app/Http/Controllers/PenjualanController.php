@@ -10,10 +10,35 @@ use App\Services\JournalService;
 
 class PenjualanController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Ambil semua penjualan beserta relasi produk dan details (untuk multi-item)
-        $penjualans = Penjualan::with(['produk','details'])->orderBy('tanggal','desc')->get();
+        $query = Penjualan::with(['produk','details']);
+        
+        // Filter by nomor transaksi
+        if ($request->filled('nomor_transaksi')) {
+            $query->where('nomor_penjualan', 'like', '%' . $request->nomor_transaksi . '%');
+        }
+        
+        // Filter by tanggal
+        if ($request->filled('tanggal_mulai')) {
+            $query->whereDate('tanggal', '>=', $request->tanggal_mulai);
+        }
+        if ($request->filled('tanggal_selesai')) {
+            $query->whereDate('tanggal', '<=', $request->tanggal_selesai);
+        }
+        
+        // Filter by payment method
+        if ($request->filled('payment_method')) {
+            $query->where('payment_method', $request->payment_method);
+        }
+        
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $penjualans = $query->orderBy('tanggal','desc')->get();
+        
         return view('transaksi.penjualan.index', compact('penjualans'));
     }
 

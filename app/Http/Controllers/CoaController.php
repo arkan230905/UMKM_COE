@@ -28,8 +28,12 @@ class CoaController extends Controller
         // Get semua periode untuk dropdown
         $periods = CoaPeriod::orderBy('periode', 'desc')->get();
         
-        // Get semua COA
-        $coas = Coa::all();
+        // Get semua COA yang valid (bukan header dan memiliki nama akun)
+        $coas = Coa::where('is_akun_header', '!=', 1)
+            ->whereNotNull('nama_akun')
+            ->where('nama_akun', '!=', '')
+            ->orderBy('kode_akun')
+            ->get();
         
         // Get saldo untuk setiap COA berdasarkan periode
         $saldoPeriode = [];

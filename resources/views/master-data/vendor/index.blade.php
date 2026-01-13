@@ -1,78 +1,86 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid py-4" style="background-color: #1b1b28; min-height: 100vh;">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4 px-3">
-        <h2 class="text-white fw-bold mb-0">
-            <i class="bi bi-truck me-2"></i> Data Vendor
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-truck me-2"></i>Vendor
         </h2>
-        <a href="{{ route('master-data.vendor.create') }}" class="btn btn-success fw-semibold shadow-sm">
-            <i class="bi bi-plus-circle me-1"></i> Tambah Vendor
+        <a href="{{ route('master-data.vendor.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Tambah Vendor
         </a>
     </div>
 
-    <!-- Notifikasi -->
     @if(session('success'))
-        <div class="alert alert-success text-dark fw-semibold shadow-sm mx-3">
-            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
 
-    <!-- Card Tabel -->
-    <div class="card shadow-lg border-0 mx-3"
-         style="background-color: #222232; border-radius: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">
-        <div class="card-body px-4 py-4">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Daftar Vendor
+            </h5>
+        </div>
+        <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-borderless align-middle mb-0 custom-table">
-                    <thead>
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <th class="ps-3 py-3">#</th>
+                            <th class="text-center" style="width: 50px">#</th>
                             <th>Nama Vendor</th>
                             <th>Kategori</th>
                             <th>Alamat</th>
                             <th>No. Telp</th>
                             <th>Email</th>
-                            <th>Dibuat</th>
-                            <th>Diperbarui</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($vendors as $vendor)
-                        <tr class="data-row">
-                            <td class="ps-3 fw-bold text-light">{{ $vendor->id }}</td>
-                            <td class="fw-bold text-white">{{ $vendor->nama_vendor }}</td>
-                            <td class="fw-semibold text-info">{{ $vendor->kategori }}</td>
-                            <td class="text-secondary">{{ $vendor->alamat }}</td>
-                            <td class="fw-semibold text-secondary">{{ $vendor->no_telp }}</td>
-                            <td class="fw-semibold text-secondary">{{ $vendor->email }}</td>
-                            <td class="text-muted">{{ $vendor->created_at ? $vendor->created_at->format('d-m-Y H:i') : '-' }}</td>
-                            <td class="text-muted">{{ $vendor->updated_at ? $vendor->updated_at->format('d-m-Y H:i') : '-' }}</td>
-
-                            <td class="text-center">
-                                <a href="{{ route('master-data.vendor.edit', $vendor->id) }}" 
-                                   class="btn btn-sm btn-warning text-dark me-1 shadow-sm fw-semibold">
-                                    <i class="bi bi-pencil-square"></i>
-                                </a>
-                                <form action="{{ route('master-data.vendor.destroy', $vendor->id) }}" 
-                                      method="POST" class="d-inline"
-                                      onsubmit="return confirm('Yakin ingin menghapus vendor ini?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button class="btn btn-sm btn-danger text-white shadow-sm fw-semibold">
-                                        <i class="bi bi-trash3"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
+                        @forelse ($vendors as $key => $vendor)
+                            <tr>
+                                <td class="text-center">{{ $key + 1 }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                                            <i class="fas fa-truck text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold">{{ $vendor->nama_vendor }}</div>
+                                            <small class="text-muted">ID: {{ $vendor->id }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ $vendor->kategori }}</span>
+                                </td>
+                                <td>{{ Str::limit($vendor->alamat, 50) ?? '-' }}</td>
+                                <td>{{ $vendor->no_telp ?? '-' }}</td>
+                                <td>{{ $vendor->email ?? '-' }}</td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ route('master-data.vendor.edit', $vendor->id) }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form action="{{ route('master-data.vendor.destroy', $vendor->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Apakah Anda yakin ingin menghapus data ini?')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
                         @empty
-                        <tr>
-                            <td colspan="9" class="text-center text-muted py-4">
-                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                                Belum ada data vendor
-                            </td>
-                        </tr>
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <i class="fas fa-truck fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">Belum ada data vendor</p>
+                                </td>
+                            </tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -80,89 +88,4 @@
         </div>
     </div>
 </div>
-
-<style>
-/* Header tabel */
-.custom-table thead th {
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-    font-size: 0.85rem;
-    color: #e0e0ee;
-    background: linear-gradient(180deg, #2a2a3a 0%, #232333 100%);
-    border: none;
-    padding: 14px 10px;
-    border-radius: 12px;
-}
-
-/* Isi tabel */
-.custom-table tbody td {
-    font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    padding: 16px 14px !important;
-    color: rgb(0, 0, 35) !important;
-}
-
-/* Baris tabel */
-.data-row {
-    background: linear-gradient(160deg, #242436, #1b1b2b) !important;
-    border-radius: 14px !important;
-    transition: all 0.25s ease !important;
-    border-bottom: 2px solid rgba(255, 255, 255, 0.05); /* garis pemisah antar baris */
-}
-
-/* Hover efek lembut */
-.data-row:hover {
-    background: linear-gradient(160deg, #2f2f45, #23233a) !important;
-    transform: translateY(-3px) !important;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.4) !important;
-}
-
-/* Card tabel */
-.card {
-    background-color: #1b1b28 !important;
-    border-radius: 18px !important;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.5) !important;
-}
-
-/* Tombol */
-.btn {
-    border-radius: 12px;
-    font-weight: 600;
-    transition: 0.2s ease;
-}
-
-.btn-warning {
-    background-color: #f6c23e;
-    border: none;
-}
-
-.btn-warning:hover {
-    background-color: #e0ae2f;
-}
-
-.btn-danger {
-    background-color: #e74a3b;
-    border: none;
-}
-
-.btn-danger:hover {
-    background-color: #c0392b;
-}
-
-.btn-success {
-    background-color: #28a745;
-    border: none;
-}
-
-.btn-success:hover {
-    background-color: #218838;
-}
-
-/* Alert */
-.alert {
-    border-radius: 12px;
-    font-size: 0.95rem;
-}
-</style>
 @endsection

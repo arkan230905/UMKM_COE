@@ -24,6 +24,24 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        // Get filter parameters
+        $month = request()->get('month', now()->month);
+        $year = request()->get('year', now()->year);
+        
+        // Create month names for display
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        
+        // Get available years (from transactions)
+        $availableYears = range(2020, now()->year);
+        $availableMonths = $monthNames;
+        
+        $selectedMonth = $monthNames[$month] ?? 'Bulan ' . $month;
+        $selectedYear = $year;
+        
         // Master Data
         $totalPegawai     = Pegawai::count();
         $totalPresensi    = Presensi::count();
@@ -91,6 +109,9 @@ class DashboardController extends Controller
         $trendRetur = $this->calculateTrend('retur');
 
         return view('dashboard', compact(
+            // Filter Data
+            'month', 'year', 'selectedMonth', 'selectedYear', 'availableMonths', 'availableYears',
+            
             // Master Data
             'totalPegawai',
             'totalPresensi',

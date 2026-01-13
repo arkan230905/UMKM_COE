@@ -96,19 +96,19 @@
                             <td class="text-end">Rp {{ number_format($pegawai->tunjangan, 0, ',', '.') }}</td>
                             <td class="text-end">Rp {{ number_format($pegawai->asuransi, 0, ',', '.') }}</td>
                             <td class="text-center">
-                                <div class="btn-group btn-group-sm" role="group">
+                                <div class="btn-group btn-group-sm">
                                     <a href="{{ route('master-data.pegawai.edit', ['pegawai' => $pegawai->id]) }}" 
                                        class="btn btn-outline-primary" 
                                        data-bs-toggle="tooltip" 
                                        title="Edit">
-                                        <i class="bi bi-pencil"></i>
+                                        <i class="fas fa-edit"></i>
                                     </a>
                                     <button type="button" 
                                             class="btn btn-outline-danger" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#deleteModal{{ $pegawai->id }}"
                                             title="Hapus">
-                                        <i class="bi bi-trash"></i>
+                                        <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                                 

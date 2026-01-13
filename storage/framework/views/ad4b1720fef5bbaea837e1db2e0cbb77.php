@@ -1,7 +1,9 @@
 <?php $__env->startSection('content'); ?>
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1>Data COA</h1>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-calculator me-2"></i>COA
+        </h2>
         <div class="d-flex gap-2">
             <form method="get" class="d-flex gap-2 align-items-end">
                 <div>
@@ -18,104 +20,107 @@
                     </select>
                 </div>
             </form>
-            <div>
-                <label class="form-label">&nbsp;</label>
-                <a href="<?php echo e(route('master-data.coa.create')); ?>" class="btn btn-primary d-block">Tambah COA</a>
-            </div>
+            <a href="<?php echo e(route('master-data.coa.create')); ?>" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Tambah COA
+            </a>
         </div>
     </div>
 
     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('success')): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <div class="alert alert-success alert-dismissible fade show">
             <?php echo e(session('success')); ?>
 
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-    
-    <div class="alert alert-info">
-        <strong><i class="bi bi-info-circle"></i> Periode: <?php echo e(\Carbon\Carbon::parse($periode->periode.'-01')->isoFormat('MMMM YYYY')); ?></strong>
-        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($periode->is_closed): ?>
-            <span class="badge bg-success ms-2">Periode Ditutup</span>
-        <?php else: ?>
-            <span class="badge bg-warning ms-2">Periode Aktif</span>
-        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-        <p class="mb-0 mt-2 small">Saldo awal yang ditampilkan adalah saldo untuk periode yang dipilih.</p>
-    </div>
 
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>ID</th>
-                    <th>Kode Akun</th>
-                    <th>Nama Akun</th>
-                    <th>Kategori Akun</th>
-                    <th>Kode Induk</th>
-                    <th>Saldo Normal</th>
-                    <th>Saldo Awal</th>
-                    <th class="col-keterangan">Keterangan</th>
-                    <th style="width:140px;">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $coas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $coa): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                <tr>
-                    <td><?php echo e($coa->id); ?></td>
-                    <td><?php echo e($coa->kode_akun); ?></td>
-                    <td><?php echo e($coa->nama_akun); ?></td>
-                    <td><?php echo e($coa->kategori_akun); ?></td>
-                    <td>
-                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($coa->kode_induk): ?>
-                            <?php echo e($coa->kode_induk); ?> - <?php echo e(\App\Models\Coa::where('kode_akun', $coa->kode_induk)->value('nama_akun')); ?>
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Daftar COA (Chart of Accounts)
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 50px">#</th>
+                            <th>Kode Akun</th>
+                            <th>Nama Akun</th>
+                            <th>Kategori Akun</th>
+                            <th>Kode Induk</th>
+                            <th>Saldo Normal</th>
+                            <th>Saldo Awal</th>
+                            <th>Keterangan</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $coas; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $coa): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <tr>
+                                <td class="text-center"><?php echo e($key + 1); ?></td>
+                                <td><code><?php echo e($coa->kode_akun); ?></code></td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                                            <i class="fas fa-calculator text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold"><?php echo e($coa->nama_akun); ?></div>
+                                            <small class="text-muted">ID: <?php echo e($coa->id); ?></small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><?php echo e($coa->kategori_akun); ?></td>
+                                <td>
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($coa->kode_induk): ?>
+                                        <span class="badge bg-secondary"><?php echo e($coa->kode_induk); ?></span>
+                                    <?php else: ?>
+                                        <span class="text-muted">-</span>
+                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                </td>
+                                <td class="text-capitalize">
+                                    <span class="badge <?php echo e($coa->saldo_normal == 'debit' ? 'bg-success' : 'bg-warning'); ?>">
+                                        <?php echo e($coa->saldo_normal); ?>
 
-                        <?php else: ?>
-                            -
-                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                    </td>
-                    <td class="text-capitalize"><?php echo e($coa->saldo_normal); ?></td>
-                    <td>
-                        <?php
-                            $saldo = $saldoPeriode[$coa->kode_akun] ?? 0;
-                        ?>
-                        <span class="<?php echo e($saldo != ($coa->saldo_awal ?? 0) ? 'text-primary fw-bold' : ''); ?>">
-                            Rp <?php echo e(number_format((float)$saldo, 0, ',', '.')); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <?php
+                                        $saldo = $saldoPeriode[$coa->kode_akun] ?? 0;
+                                    ?>
+                                    <span class="<?php echo e($saldo != ($coa->saldo_awal ?? 0) ? 'text-primary fw-bold' : ''); ?>">
+                                        Rp <?php echo e(number_format((float)$saldo, 0, ',', '.')); ?>
 
-                        </span>
-                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($saldo != ($coa->saldo_awal ?? 0)): ?>
-                            <small class="text-muted d-block">(Default: Rp <?php echo e(number_format((float)($coa->saldo_awal ?? 0), 0, ',', '.')); ?>)</small>
-                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                    </td>
-                    <td class="col-keterangan"><small class="text-muted"><?php echo e($coa->keterangan); ?></small></td>
-                    <td>
-                        <a href="<?php echo e(route('master-data.coa.edit', $coa->kode_akun)); ?>" class="btn btn-warning btn-sm">Edit</a>
-                        <form action="<?php echo e(route('master-data.coa.destroy', $coa->kode_akun)); ?>" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus COA ini?')">
-                            <?php echo csrf_field(); ?>
-                            <?php echo method_field('DELETE'); ?>
-                            <button class="btn btn-danger btn-sm">Hapus</button>
-                        </form>
-                    </td>
-                </tr>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-            </tbody>
-        </table>
+                                    </span>
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($saldo != ($coa->saldo_awal ?? 0)): ?>
+                                        <small class="text-muted d-block">(Default: Rp <?php echo e(number_format((float)($coa->saldo_awal ?? 0), 0, ',', '.')); ?>)</small>
+                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                </td>
+                                <td><small class="text-muted"><?php echo e($coa->keterangan); ?></small></td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="<?php echo e(route('master-data.coa.edit', $coa->kode_akun)); ?>" class="btn btn-outline-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form action="<?php echo e(route('master-data.coa.destroy', $coa->kode_akun)); ?>" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus COA ini?')">
+                                            <?php echo csrf_field(); ?>
+                                            <?php echo method_field('DELETE'); ?>
+                                            <button class="btn btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 <?php $__env->stopSection(); ?>
 
-<style>
-    .table-responsive { overflow-x: auto; }
-    .col-keterangan { white-space: normal; min-width: 200px; max-width: 300px; }
-    .table th, .table td {
-        vertical-align: middle;
-    }
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-        line-height: 1.5;
-        border-radius: 0.2rem;
-    }
-</style>
-
-<!-- No custom JS: rely on native horizontal scrollbar/trackpad like tabel Pegawai -->
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\UMKM_COE\resources\views/master-data/coa/index.blade.php ENDPATH**/ ?>

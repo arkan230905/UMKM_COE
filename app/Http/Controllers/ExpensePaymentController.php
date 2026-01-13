@@ -12,24 +12,51 @@ use App\Helpers\AccountHelper;
 
 class ExpensePaymentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Ambil data dengan relasi yang benar
-        $rows = ExpensePayment::with([
+        $query = ExpensePayment::with([
             'coaBeban' => function($q) {
                 $q->select('kode_akun', 'nama_akun');
             },
             'coaKasBank' => function($q) {
                 $q->select('kode_akun', 'nama_akun');
             }
-        ])
-        ->orderBy('tanggal', 'desc')
-        ->paginate(20);
+        ]);
+        
+        // Filter by tanggal
+        if ($request->filled('tanggal_mulai')) {
+            $query->whereDate('tanggal', '>=', $request->tanggal_mulai);
+        }
+        if ($request->filled('tanggal_selesai')) {
+            $query->whereDate('tanggal', '<=', $request->tanggal_selesai);
+        }
+        
+        // Filter by akun beban
+        if ($request->filled('akun_beban_id')) {
+            $query->where('coa_beban_id', $request->akun_beban_id);
+        }
+        
+        // Filter by akun kas
+        if ($request->filled('akun_kas_id')) {
+            $query->where('coa_kasbank', $request->akun_kas_id);
+        }
+        
+        $rows = $query->orderBy('tanggal', 'desc')->paginate(20);
+        
+        // Get COA for dropdowns
+        $coaBebans = Coa::where('tipe_akun', 'Expense')
+            ->where('is_akun_header', '!=', 1)
+            ->orderBy('kode_akun')
+            ->get();
+        $coaKas = Coa::whereIn('kode_akun', AccountHelper::KAS_BANK_CODES)
+            ->where('is_akun_header', '!=', 1)
+            ->orderBy('kode_akun')
+            ->get();
         
         // Debug: Cek data yang diambil
         \Log::info('Expense Payment Data:', $rows->toArray());
         
-        return view('transaksi.expense-payment.index', compact('rows'));
+        return view('transaksi.pembayaran-beban.index', compact('rows', 'coaBebans', 'coaKas'));
     }
 
     public function create()

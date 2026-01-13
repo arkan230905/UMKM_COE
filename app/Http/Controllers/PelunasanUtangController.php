@@ -12,18 +12,41 @@ class PelunasanUtangController extends Controller
     /**
      * Display a listing of unpaid purchases.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $pembelians = Pembelian::with('vendor')
-            ->where('payment_method', 'credit')
-            ->where(function($query) {
-                $query->where('status', '!=', 'lunas')
-                      ->orWhereNull('status');
-            })
-            ->orderBy('tanggal', 'desc')
-            ->paginate(15);
+        $query = PelunasanUtang::with(['pembelian.vendor']);
+        
+        // Filter by kode transaksi
+        if ($request->filled('kode_transaksi')) {
+            $query->where('kode_transaksi', 'like', '%' . $request->kode_transaksi . '%');
+        }
+        
+        // Filter by tanggal
+        if ($request->filled('tanggal_mulai')) {
+            $query->whereDate('tanggal', '>=', $request->tanggal_mulai);
+        }
+        if ($request->filled('tanggal_selesai')) {
+            $query->whereDate('tanggal', '<=', $request->tanggal_selesai);
+        }
+        
+        // Filter by vendor
+        if ($request->filled('vendor_id')) {
+            $query->whereHas('pembelian', function($q) use ($request) {
+                $q->where('vendor_id', $request->vendor_id);
+            });
+        }
+        
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $pelunasanUtang = $query->orderBy('tanggal', 'desc')->paginate(15);
+        
+        // Get vendors for dropdown
+        $vendors = \App\Models\Vendor::orderBy('nama_vendor')->get();
 
-        return view('transaksi.pelunasan-utang.index', compact('pembelians'));
+        return view('transaksi.pelunasan-utang.index', compact('pelunasanUtang', 'vendors'));
     }
 
     /**

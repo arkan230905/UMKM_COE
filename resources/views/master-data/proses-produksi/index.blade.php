@@ -3,9 +3,11 @@
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Proses Produksi</h1>
-        <a href="{{ route('master-data.proses-produksi.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Tambah Proses
+        <h2 class="mb-0">
+            <i class="fas fa-cogs me-2"></i>BTKL
+        </h2>
+        <a href="{{ route('master-data.btkl.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Tambah BTKL
         </a>
     </div>
 
@@ -23,37 +25,47 @@
         </div>
     @endif
 
-    <div class="card shadow">
+    <div class="card">
         <div class="card-header">
-            <h5 class="mb-0">Daftar Proses Produksi (BTKL)</h5>
-            <small class="text-muted">Setiap proses memiliki tarif Biaya Tenaga Kerja Langsung (BTKL) dan komponen BOP default</small>
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Daftar BTKL (Biaya Tenaga Kerja Langsung)
+            </h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead class="thead-light">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <th width="10%">Kode</th>
+                            <th class="text-center" style="width: 50px">#</th>
+                            <th>Kode</th>
                             <th>Nama Proses</th>
                             <th class="text-end">Tarif BTKL</th>
                             <th class="text-center">Satuan</th>
                             <th>Komponen BOP Default</th>
                             <th class="text-center">Status</th>
-                            <th width="15%" class="text-center">Aksi</th>
+                            <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($prosesProduksis as $proses)
+                        @forelse($prosesProduksis as $key => $proses)
                             <tr>
+                                <td class="text-center">{{ ($prosesProduksis->currentPage() - 1) * $prosesProduksis->perPage() + $key + 1 }}</td>
                                 <td><code>{{ $proses->kode_proses }}</code></td>
                                 <td>
-                                    <strong>{{ $proses->nama_proses }}</strong>
-                                    @if($proses->deskripsi)
-                                        <br><small class="text-muted">{{ Str::limit($proses->deskripsi, 50) }}</small>
-                                    @endif
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                                            <i class="fas fa-cogs text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold">{{ $proses->nama_proses }}</div>
+                                            @if($proses->deskripsi)
+                                                <small class="text-muted">{{ Str::limit($proses->deskripsi, 50) }}</small>
+                                            @endif
+                                        </div>
+                                    </div>
                                 </td>
-                                <td class="text-end">Rp {{ number_format($proses->tarif_btkl, 0, ',', '.') }}</td>
-                                <td class="text-center">{{ $proses->satuan_btkl }}</td>
+                                <td class="text-end fw-semibold">Rp {{ number_format($proses->tarif_btkl, 0, ',', '.') }}</td>
+                                <td class="text-center">{{ $proses->satuan_btkl ?? '-' }}</td>
                                 <td>
                                     @if($proses->prosesBops->count() > 0)
                                         @foreach($proses->prosesBops as $pb)
@@ -74,14 +86,14 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <div class="btn-group">
-                                        <a href="{{ route('master-data.proses-produksi.edit', $proses) }}" class="btn btn-sm btn-warning">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ route('master-data.btkl.edit', $proses) }}" class="btn btn-outline-primary">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form action="{{ route('master-data.proses-produksi.destroy', $proses) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin hapus proses ini?')">
+                                        <form action="{{ route('master-data.btkl.destroy', $proses) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin hapus proses ini?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger">
+                                            <button type="submit" class="btn btn-outline-danger">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
@@ -90,13 +102,19 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center">Belum ada data proses produksi</td>
+                                <td colspan="8" class="text-center py-4">
+                                    <i class="fas fa-cogs fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">Belum ada data BTKL</p>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-            {{ $prosesProduksis->links() }}
+            
+            <div class="card-footer">
+                {{ $prosesProduksis->links() }}
+            </div>
         </div>
     </div>
 </div>

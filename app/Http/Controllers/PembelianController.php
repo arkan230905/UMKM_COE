@@ -15,10 +15,42 @@ use Illuminate\Support\Facades\DB;
 
 class PembelianController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $pembelians = Pembelian::with(['vendor', 'details.bahanBaku.satuan'])->latest()->get();
-        return view('transaksi.pembelian.index', compact('pembelians'));
+        $query = Pembelian::with(['vendor', 'details.bahanBaku.satuan']);
+        
+        // Filter by nomor transaksi
+        if ($request->filled('nomor_transaksi')) {
+            $query->where('nomor_pembelian', 'like', '%' . $request->nomor_transaksi . '%');
+        }
+        
+        // Filter by tanggal
+        if ($request->filled('tanggal_mulai')) {
+            $query->whereDate('tanggal', '>=', $request->tanggal_mulai);
+        }
+        if ($request->filled('tanggal_selesai')) {
+            $query->whereDate('tanggal', '<=', $request->tanggal_selesai);
+        }
+        
+        // Filter by vendor
+        if ($request->filled('vendor_id')) {
+            $query->where('vendor_id', $request->vendor_id);
+        }
+        
+        // Filter by payment method
+        if ($request->filled('payment_method')) {
+            $query->where('payment_method', $request->payment_method);
+        }
+        
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $pembelians = $query->latest()->get();
+        $vendors = Vendor::orderBy('nama_vendor')->get();
+        
+        return view('transaksi.pembelian.index', compact('pembelians', 'vendors'));
     }
 
     public function show($id)

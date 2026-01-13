@@ -20,10 +20,16 @@ class ProsesProduksiController extends Controller
      */
     public function index()
     {
-        $prosesProduksis = ProsesProduksi::with('prosesBops.komponenBop')
-            ->orderBy('kode_proses')
-            ->paginate(10);
-            
+        try {
+            $prosesProduksis = ProsesProduksi::with('prosesBops.komponenBop')
+                ->orderBy('kode_proses')
+                ->paginate(10);
+        } catch (\Exception $e) {
+            // Jika tabel proses_bops tidak ada, load tanpa relasi
+            $prosesProduksis = ProsesProduksi::orderBy('kode_proses')
+                ->paginate(10);
+        }
+        
         return view('master-data.proses-produksi.index', compact('prosesProduksis'));
     }
 

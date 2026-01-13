@@ -17,7 +17,7 @@ class ApSettlementController extends Controller
         $openPurchases = Pembelian::with(['vendor', 'details.bahanBaku'])
             ->where('payment_method','credit')
             ->where(function($q) {
-                $q->where('status', '!=', 'lunas')
+                $q->where('status', 'belum_lunas')
                   ->orWhereNull('status');
             })
             ->orderBy('tanggal','desc')->get();

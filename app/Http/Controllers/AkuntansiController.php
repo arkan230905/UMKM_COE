@@ -232,4 +232,55 @@ class AkuntansiController extends Controller
 
         return view('akuntansi.laba-rugi', compact('from','to','totalRevenue','totalExpense','laba','revenue','expense'));
     }
+
+    public function neraca(Request $request)
+    {
+        $periode = $request->get('periode', now()->format('Y-m'));
+        
+        // Get COA data for neraca
+        $aset = \App\Models\Coa::where('kategori_akun', 'ASET')->orderBy('kode_akun')->get();
+        $kewajiban = \App\Models\Coa::where('kategori_akun', 'KEWAJIBAN')->orderBy('kode_akun')->get();
+        $modal = \App\Models\Coa::where('kategori_akun', 'MODAL')->orderBy('kode_akun')->get();
+        
+        // Calculate balances for each account
+        $calculateBalance = function($coa) use ($periode) {
+            $saldo = 0;
+            
+            // Get journal entries for this account up to the selected period
+            $entries = \App\Models\JurnalEntry::whereHas('details', function($q) use ($coa) {
+                $q->where('kode_akun', $coa->kode_akun);
+            })->whereDate('tanggal', '<=', $periode . '-31')->get();
+            
+            foreach ($entries as $entry) {
+                $detail = $entry->details->where('kode_akun', $coa->kode_akun)->first();
+                if ($detail) {
+                    if ($coa->saldo_normal === 'debit') {
+                        $saldo += $detail->debit - $detail->kredit;
+                    } else {
+                        $saldo += $detail->kredit - $detail->debit;
+                    }
+                }
+            }
+            
+            // Add initial balance
+            $saldo += $coa->saldo_awal ?? 0;
+            
+            return $saldo;
+        };
+        
+        // Calculate totals
+        $totalAset = $aset->sum(function($coa) use ($calculateBalance) {
+            return $calculateBalance($coa);
+        });
+        
+        $totalKewajiban = $kewajiban->sum(function($coa) use ($calculateBalance) {
+            return $calculateBalance($coa);
+        });
+        
+        $totalModal = $modal->sum(function($coa) use ($calculateBalance) {
+            return $calculateBalance($coa);
+        });
+        
+        return view('akuntansi.neraca', compact('periode', 'aset', 'kewajiban', 'modal', 'totalAset', 'totalKewajiban', 'totalModal', 'calculateBalance'));
+    }
 }

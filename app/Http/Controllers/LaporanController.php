@@ -17,20 +17,94 @@ class LaporanController extends Controller
     {
         $query = $this->getPembelianQuery($request);
         
-        // Calculate totals before pagination
-        $totalPembelian = $query->sum('total_harga');
-        $totalTransaksi = $query->count();
+        // Get all data for calculation
+        $allPembelian = $query->get();
+        
+        // Calculate totals properly
+        $totalPembelian = $allPembelian->sum(function($p) {
+            $total = $p->total_harga ?? 0;
+            // Jika total = 0, hitung dari details
+            if ($total == 0 && $p->details && $p->details->count() > 0) {
+                $total = $p->details->sum(function($detail) {
+                    return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                });
+            }
+            return $total;
+        });
+        
+        $totalTransaksi = $allPembelian->count();
+        
+        // Calculate additional statistics for the summary boxes
+        
+        // Total pembelian (sesuai filter tanggal)
+        $totalPembelianFiltered = $totalPembelian; // Sudah sesuai filter dari query utama
+        
+        // Total pembelian tunai (cash) - sesuai filter tanggal
+        $pembelianTunai = Pembelian::with(['details'])
+            ->where('payment_method', 'cash')
+            ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
+                return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
+            })
+            ->when($request->has('vendor_id') && $request->vendor_id, function($q) use ($request) {
+                return $q->where('vendor_id', $request->vendor_id);
+            })
+            ->get();
+            
+        $totalPembelianTunai = $pembelianTunai->sum(function($p) {
+            $total = $p->total_harga ?? 0;
+            if ($total == 0 && $p->details && $p->details->count() > 0) {
+                $total = $p->details->sum(function($detail) {
+                    return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                });
+            }
+            return $total;
+        });
+        
+        // Total pembelian yang belum lunas (credit dan status != lunas) - sesuai filter tanggal
+        $pembelianBelumLunas = Pembelian::with(['details'])
+            ->where('payment_method', 'credit')
+            ->where('status', '!=', 'lunas')
+            ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
+                return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
+            })
+            ->when($request->has('vendor_id') && $request->vendor_id, function($q) use ($request) {
+                return $q->where('vendor_id', $request->vendor_id);
+            })
+            ->get();
+            
+        $totalPembelianBelumLunas = $pembelianBelumLunas->sum(function($p) {
+            // Gunakan sisa_pembayaran jika ada, kalau tidak hitung dari total - terbayar
+            $sisaUtang = $p->sisa_pembayaran ?? 0;
+            if ($sisaUtang == 0) {
+                $total = $p->total_harga ?? 0;
+                if ($total == 0 && $p->details && $p->details->count() > 0) {
+                    $total = $p->details->sum(function($detail) {
+                        return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                    });
+                }
+                $sisaUtang = max(0, $total - ($p->terbayar ?? 0));
+            }
+            return $sisaUtang;
+        });
         
         $pembelian = $query->paginate(15);
         $vendors = \App\Models\Vendor::all();
 
-        return view('laporan.pembelian.index', compact('pembelian', 'vendors', 'totalPembelian', 'totalTransaksi'));
+        return view('laporan.pembelian.index', compact(
+            'pembelian', 
+            'vendors', 
+            'totalPembelian', 
+            'totalTransaksi',
+            'totalPembelianFiltered',
+            'totalPembelianTunai',
+            'totalPembelianBelumLunas'
+        ));
     }
 
     // === LAPORAN STOK ===
     public function stok(Request $request)
     {
-        $tipe = $request->get('tipe', 'material'); // material|product
+        $tipe = $request->get('tipe', 'material'); // material|product|bahan_pendukung
         $from = $request->get('from');
         $to = $request->get('to');
         $itemId = $request->get('item_id');
@@ -38,6 +112,7 @@ class LaporanController extends Controller
         // Daftar item untuk dropdown
         $materials = BahanBaku::with('satuan')->orderBy('nama_bahan', 'asc')->get();
         $products = Produk::with('satuan')->orderBy('nama_produk', 'asc')->get();
+        $bahanPendukungs = \App\Models\BahanPendukung::with('satuanRelation')->orderBy('nama_bahan', 'asc')->get();
 
         // Initialize variables
         $movements = collect();
@@ -139,9 +214,13 @@ class LaporanController extends Controller
                         foreach ($materials as $m) {
                             $saldoPerItem[$m->id] = (float)($m->stok ?? 0);
                         }
-                    } else {
+                    } elseif ($tipe == 'product') {
                         foreach ($products as $p) {
                             $saldoPerItem[$p->id] = (float)($p->stok ?? 0);
+                        }
+                    } elseif ($tipe == 'bahan_pendukung') {
+                        foreach ($bahanPendukungs as $bp) {
+                            $saldoPerItem[$bp->id] = (float)($bp->stok ?? 0);
                         }
                     }
                 }
@@ -160,6 +239,7 @@ class LaporanController extends Controller
             'movements', 
             'materials', 
             'products', 
+            'bahanPendukungs',
             'saldoPerItem', 
             'saldoAwalQty', 
             'saldoAwalNilai', 
@@ -261,12 +341,12 @@ class LaporanController extends Controller
     // Helper method untuk query pembelian
     private function getPembelianQuery(Request $request)
     {
-        $query = Pembelian::with(['vendor', 'details.bahanBaku'])
+        $query = Pembelian::with(['vendor', 'details.bahanBaku.satuan'])
             ->orderBy('tanggal', 'desc');
             
         // Filter berdasarkan tanggal
-        if ($request->has('start_date') && $request->has('end_date')) {
-            $query->whereBetween('pembelians.tanggal', [
+        if ($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date) {
+            $query->whereBetween('tanggal', [
                 $request->start_date,
                 $request->end_date
             ]);
@@ -274,7 +354,7 @@ class LaporanController extends Controller
         
         // Filter berdasarkan vendor
         if ($request->has('vendor_id') && $request->vendor_id) {
-            $query->where('pembelians.vendor_id', $request->vendor_id);
+            $query->where('vendor_id', $request->vendor_id);
         }
         
         return $query;
@@ -285,13 +365,74 @@ class LaporanController extends Controller
     {
         $query = $this->getPenjualanQuery($request);
         
-        // Calculate totals before pagination
-        $totalPenjualan = $query->sum('total');
-        $totalTransaksi = $query->count();
+        // Get all data for calculation
+        $allPenjualan = $query->get();
+        
+        // Calculate totals properly
+        $totalPenjualan = $allPenjualan->sum(function($p) {
+            $total = $p->total ?? 0;
+            // Jika total = 0, hitung dari details
+            if ($total == 0 && $p->details && $p->details->count() > 0) {
+                $total = $p->details->sum(function($detail) {
+                    return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0) - ($detail->diskon_nominal ?? 0);
+                });
+            }
+            return $total;
+        });
+        
+        $totalTransaksi = $allPenjualan->count();
+        
+        // Calculate additional statistics for the summary boxes
+        
+        // Total penjualan (sesuai filter tanggal)
+        $totalPenjualanFiltered = $totalPenjualan; // Sudah sesuai filter dari query utama
+        
+        // Total penjualan tunai (cash) - sesuai filter tanggal
+        $penjualanTunai = Penjualan::with(['details'])
+            ->where('payment_method', 'cash')
+            ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
+                return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
+            })
+            ->get();
+            
+        $totalPenjualanTunai = $penjualanTunai->sum(function($p) {
+            $total = $p->total ?? 0;
+            if ($total == 0 && $p->details && $p->details->count() > 0) {
+                $total = $p->details->sum(function($detail) {
+                    return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0) - ($detail->diskon_nominal ?? 0);
+                });
+            }
+            return $total;
+        });
+        
+        // Total penjualan kredit - sesuai filter tanggal
+        $penjualanKredit = Penjualan::with(['details'])
+            ->where('payment_method', 'credit')
+            ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
+                return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
+            })
+            ->get();
+            
+        $totalPenjualanKredit = $penjualanKredit->sum(function($p) {
+            $total = $p->total ?? 0;
+            if ($total == 0 && $p->details && $p->details->count() > 0) {
+                $total = $p->details->sum(function($detail) {
+                    return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0) - ($detail->diskon_nominal ?? 0);
+                });
+            }
+            return $total;
+        });
         
         $penjualan = $query->paginate(15);
 
-        return view('laporan.penjualan.index', compact('penjualan', 'totalPenjualan', 'totalTransaksi'));
+        return view('laporan.penjualan.index', compact(
+            'penjualan', 
+            'totalPenjualan', 
+            'totalTransaksi',
+            'totalPenjualanFiltered',
+            'totalPenjualanTunai',
+            'totalPenjualanKredit'
+        ));
     }
     
     // Helper method untuk query penjualan
@@ -301,8 +442,8 @@ class LaporanController extends Controller
             ->orderBy('tanggal', 'desc');
             
         // Filter berdasarkan tanggal
-        if ($request->has('start_date') && $request->has('end_date')) {
-            $query->whereBetween('penjualans.tanggal', [
+        if ($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date) {
+            $query->whereBetween('tanggal', [
                 $request->start_date,
                 $request->end_date
             ]);
@@ -310,7 +451,7 @@ class LaporanController extends Controller
         
         // Filter berdasarkan payment method
         if ($request->has('payment_method') && $request->payment_method) {
-            $query->where('penjualans.payment_method', $request->payment_method);
+            $query->where('payment_method', $request->payment_method);
         }
         
         return $query;
@@ -319,34 +460,34 @@ class LaporanController extends Controller
     // === LAPORAN RETUR ===
     public function laporanRetur(Request $request)
     {
-        $query = \App\Models\Retur::with(['penjualan', 'details.produk'])
-            ->when($request->bulan, function($q) use ($request) {
-                $bulan = \Carbon\Carbon::parse($request->bulan);
-                return $q->whereYear('tanggal', $bulan->year)
-                       ->whereMonth('tanggal', $bulan->month);
+        // Filter untuk Retur Penjualan
+        $salesReturnQuery = \App\Models\SalesReturn::with(['penjualan', 'items.penjualanDetail.produk'])
+            ->when($request->sales_start_date && $request->sales_end_date, function($q) use ($request) {
+                return $q->whereBetween('return_date', [$request->sales_start_date, $request->sales_end_date]);
             })
-            ->latest();
+            ->orderBy('return_date', 'desc');
 
-        if ($request->has('export') && $request->export == 'pdf') {
-            $returs = $query->get();
-            $total = $returs->sum(function($retur) {
-                return $retur->details->sum(function($detail) {
-                    return ($detail->jumlah ?? 0) * ($detail->harga ?? 0);
-                });
-            });
-            
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.retur.pdf', compact('returs', 'total'));
-            return $pdf->download('laporan-retur-' . now()->format('Y-m-d') . '.pdf');
-        }
+        // Filter untuk Retur Pembelian  
+        $purchaseReturnQuery = \App\Models\PurchaseReturn::with(['pembelian.vendor', 'items.pembelianDetail.bahanBaku'])
+            ->when($request->purchase_start_date && $request->purchase_end_date, function($q) use ($request) {
+                return $q->whereBetween('return_date', [$request->purchase_start_date, $request->purchase_end_date]);
+            })
+            ->orderBy('return_date', 'desc');
 
-        $returs = $query->paginate(15);
-        $total = $returs->sum(function($retur) {
-            return $retur->details->sum(function($detail) {
-                return ($detail->jumlah ?? 0) * ($detail->harga ?? 0);
-            });
-        });
+        // Get data
+        $salesReturns = $salesReturnQuery->paginate(10, ['*'], 'sales_page');
+        $purchaseReturns = $purchaseReturnQuery->paginate(10, ['*'], 'purchase_page');
 
-        return view('laporan.retur.index', compact('returs', 'total'));
+        // Calculate totals
+        $totalSalesReturns = $salesReturnQuery->sum('total_return_amount');
+        $totalPurchaseReturns = $purchaseReturnQuery->sum('total_return_amount');
+
+        return view('laporan.retur.index', compact(
+            'salesReturns', 
+            'purchaseReturns', 
+            'totalSalesReturns', 
+            'totalPurchaseReturns'
+        ));
     }
 
     // === LAPORAN PENGAJIAN ===

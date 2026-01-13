@@ -1,26 +1,38 @@
 @extends('layouts.app')
 
+@section('title', 'Edit Kualifikasi Tenaga Kerja')
+
 @section('content')
-<div class="container-fluid px-4 py-4">
-    <h2 class="mb-4"><i class="bi bi-briefcase me-2"></i>Edit Jabatan</h2>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-briefcase me-2"></i>Edit Kualifikasi Tenaga Kerja
+        </h2>
+        <a href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Kembali
+        </a>
+    </div>
 
     @if ($errors->any())
-        <div class="alert alert-danger">
+        <div class="alert alert-danger alert-dismissible fade show">
             <ul class="mb-0">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
             </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
 
-    <style>
-        .jabatan-form .form-label,
-        .jabatan-form small { color: #fff !important; }
-    </style>
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-edit me-2"></i>Edit Kualifikasi: {{ $jabatan->nama }}
+            </h5>
+        </div>
     <div class="card border-0 shadow-sm">
         <div class="card-body jabatan-form">
-            <form method="POST" action="{{ route('master-data.jabatan.update', $jabatan->id) }}">
+            <form method="POST" action="{{ route('master-data.kualifikasi-tenaga-kerja.update', $jabatan->id) }}">
                 @csrf
                 @method('PUT')
 
@@ -53,7 +65,7 @@
                         <small class="text-white d-block">BTKTL: gaji per bulan. BTKL: isi 0.</small>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Tarif Lembur / Jam (Rp)</label>
+                        <label class="form-label">Tarif/Jam (Rp)</label>
                         <input type="text" name="tarif_lembur" class="form-control money-input" value="{{ old('tarif_lembur',$jabatan->tarif_lembur) }}">
                         <small class="text-white money-hint"></small>
                         <small class="text-white d-block">BTKL: tarif per jam. BTKTL: isi 0.</small>
@@ -62,7 +74,7 @@
 
                 <div class="mt-4">
                     <button class="btn btn-primary">Update</button>
-                    <a href="{{ route('master-data.jabatan.index') }}" class="btn btn-secondary">Kembali</a>
+                    <a href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}" class="btn btn-secondary">Kembali</a>
                 </div>
             </form>
         </div>

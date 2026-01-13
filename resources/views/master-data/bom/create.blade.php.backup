@@ -1,0 +1,672 @@
+@extends('layouts.app')
+@section('content')
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Bill of Materials (BOM) - Process Costing</h3>
+        <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Kembali
+        </a>
+    </div>
+    <form action="{{ route('master-data.bom.store') }}" method="POST" id="bomForm">
+        @csrf
+        
+        <!-- Pilih Produk -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">NAMA PRODUK</label>
+                        <select name="produk_id" id="produk_id" class="form-select" required>
+                            <option value="">-- Pilih Produk --</option>
+                            @if(isset($allProducts))
+                                @foreach($allProducts as $p)
+                                    <option value="{{ $p->id }}">{{ $p->nama_produk }}</option>
+                                @endforeach
+                            @else
+                                @foreach($availableProducts as $p)
+                                    <option value="{{ $p->id }}">{{ $p->nama_produk }}</option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Section 1: Biaya Bahan dari Produk -->
+        @if($produk && $produk->biaya_bahan)
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-coins"></i> Biaya Bahan dari Produk</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Nama Produk</label>
+                        <p class="form-control-plaintext">{{ $produk->nama_produk }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Biaya Bahan per Unit</label>
+                        <p class="form-control-plaintext text-end fw-bold text-primary">Rp {{ number_format($produk->biaya_bahan, 0, ',', '.') }}</p>
+                        <input type="hidden" name="biaya_bahan_produk" value="{{ $produk->biaya_bahan }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Section 2: Biaya Bahan (Read-Only) -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-boxes"></i> Biaya Bahan (Dari Produk)</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">Biaya bahan sudah dihitung di halaman produk:</h6>
+                            <p class="mb-2"><strong>Biaya Bahan per Unit:</strong> Rp {{ number_format($produk->biaya_bahan, 0, ',', '.') }}</p>
+                            <small class="text-muted">Biaya bahan ini termasuk bahan baku utama dan bahan penolong yang sudah dihitung di halaman produk.</small>
+                        </div>
+                        <input type="hidden" name="biaya_bahan_produk" value="{{ $produk->biaya_bahan }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Section 3: Proses Produksi (BTKL) -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-cogs"></i> 3. Proses Produksi (BTKL)</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="prosesTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="5%">No</th>
+                                <th width="25%">PROSES</th>
+                                <th width="10%">DURASI</th>
+                                <th width="8%">SATUAN</th>
+                                <th width="12%">TARIF/JAM</th>
+                                <th width="12%">PRODUKSI/JAM</th>
+                                <th width="12%">BIAYA/PCS</th>
+                                <th width="8%">TOTAL</th>
+                                <th width="5%">AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="prosesTableBody">
+                            @if($prosesProduksis->isNotEmpty())
+                                @foreach($prosesProduksis as $index => $proses)
+                                <tr class="proses-row" data-proses-id="{{ $proses->id }}">
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>
+                                        <input type="hidden" name="proses_id[]" value="{{ $proses->id }}">
+                                        <input type="text" name="proses_nama[]" class="form-control form-control-sm" value="{{ $proses->nama_proses }}" readonly>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="proses_durasi[]" class="form-control form-control-sm durasi-input" 
+                                            value="1" min="0.01" step="0.01" data-tarif="{{ $proses->tarif_btkl }}" data-produksi="{{ $proses->jumlah_produksi_per_jam }}">
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" value="{{ $proses->satuan_btkl ?? 'jam' }}" readonly>
+                                    </td>
+                                    <td class="text-end">Rp {{ number_format($proses->tarif_btkl, 0, ',', '.') }}</td>
+                                    <td class="text-end">{{ $proses->jumlah_produksi_per_jam }}</td>
+                                    <td class="biaya-per-pcs text-end">Rp {{ number_format($proses->biaya_per_pcs, 0, ',', '.') }}</td>
+                                    <td class="total-proses text-end fw-bold">Rp {{ number_format($proses->biaya_per_pcs, 0, ',', '.') }}</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-warning btn-sm btn-hapus-proses">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            @else
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted">Belum ada data proses produksi</td>
+                                </tr>
+                            @endif
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-info">
+                                <td colspan="7" class="text-end fw-bold">Total BTKL</td>
+                                <td class="text-end fw-bold" id="totalBTKL">Rp 0</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- Section 4: BOP (Biaya Overhead Produksi) -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> 4. BOP (Biaya Overhead Produksi)</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="bopTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="5%">No</th>
+                                <th width="30%">NAMA BOP</th>
+                                <th width="15%">JUMLAH</th>
+                                <th width="15%">SATUAN</th>
+                                <th width="15%">TARIF</th>
+                                <th width="15%">SUBTOTAL</th>
+                                <th width="5%">AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bopTableBody">
+                            <tr class="bop-row">
+                                <td>1</td>
+                                <td>
+                                    <select name="bop_nama[]" class="form-select form-select-sm bop-select" required>
+                                        <option value="">-- Pilih BOP --</option>
+                                        @if(isset($bops) && $bops->isNotEmpty())
+                                            @foreach($bops as $bop)
+                                                <option value="{{ $bop->nama_bop }}" data-tarif="{{ $bop->tarif ?? 0 }}">{{ $bop->nama_bop }}</option>
+                                            @endforeach
+                                        @else
+                                            <option value="Listrik">Listrik</option>
+                                            <option value="Air">Air</option>
+                                            <option value="Maintenance">Maintenance</option>
+                                            <option value="Lain-lain">Lain-lain</option>
+                                        @endif
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="number" name="bop_jumlah[]" class="form-control form-control-sm bop-jumlah" 
+                                        value="1" min="0.01" step="0.01" required>
+                                </td>
+                                <td>
+                                    <input type="text" name="bop_satuan[]" class="form-control form-control-sm" value="unit" required>
+                                </td>
+                                <td>
+                                    <input type="number" name="bop_tarif[]" class="form-control form-control-sm bop-tarif" 
+                                        value="0" min="0" step="0.01" required>
+                                </td>
+                                <td class="bop-subtotal text-end fw-bold">Rp 0</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-danger btn-sm btn-hapus-bop">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-warning">
+                                <td colspan="5" class="text-end fw-bold">Total BOP</td>
+                                <td class="text-end fw-bold" id="totalBOP">Rp 0</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-outline-warning btn-sm" id="btnTambahBOP">
+                    <i class="bi bi-plus"></i> Tambah BOP
+                </button>
+            </div>
+        </div>
+        <!-- Section 5: Ringkasan HPP -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="fas fa-calculator"></i> 5. Ringkasan Harga Pokok Produksi (HPP)</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <tbody>
+                        @if($produk && $produk->biaya_bahan)
+                        <tr>
+                            <td width="70%">Biaya Bahan dari Produk</td>
+                            <td class="text-end fw-bold" id="biayaBahanProduk">Rp {{ number_format($produk->biaya_bahan, 0, ',', '.') }}</td>
+                        </tr>
+                        @endif
+                        <tr>
+                            <td>Biaya Bahan Baku Tambahan</td>
+                            <td class="text-end fw-bold" id="summaryBBBTambahan">Rp 0</td>
+                        </tr>
+                        <tr class="table-info">
+                            <td>Total Biaya Bahan</td>
+                            <td class="text-end fw-bold" id="totalBiayaBahan">Rp {{ $produk->biaya_bahan ?? 0 }}</td>
+                        </tr>
+                        <tr class="table-success">
+                            <td>Total BTKL (Bahan Tenaga Kerja Langsung)</td>
+                            <td class="text-end fw-bold" id="summaryBTKL">Rp 0</td>
+                        </tr>
+                        <tr class="table-warning">
+                            <td>Total BOP (Biaya Overhead Produksi)</td>
+                            <td class="text-end fw-bold" id="summaryBOP">Rp 0</td>
+                        </tr>
+                        <tr class="table-dark">
+                            <td class="fw-bold">Total HPP per Pcs</td>
+                            <td class="text-end fw-bold" id="grandTotal">Rp {{ $produk->biaya_bahan ?? 0 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-save"></i> Simpan BOM
+            </button>
+            <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary btn-lg">Batal</a>
+        </div>
+    </form>
+</div>
+<!-- Data dari Backend -->
+<script>
+const bahanBakuData = @json($bahanBakus);
+const satuanData = @json($satuans);
+const prosesProduksiData = @json(\App\Models\ProsesProduksi::active()->get());
+// Konversi satuan
+const konversi = {
+    'KG': 1, 'G': 1000, 'GR': 1000, 'GRAM': 1000,
+    'HG': 10, 'DAG': 100, 'ONS': 10,
+    'L': 1, 'LITER': 1, 'ML': 1000,
+    'PCS': 1, 'BUAH': 1, 'BTL': 1, 'BOTOL': 1
+};
+function formatRupiah(angka) {
+    return 'Rp ' + Math.round(angka).toLocaleString('id-ID');
+}
+// ========== BAHAN BAKU ==========
+function hitungBarisBahan(row) {
+    const bahanSelect = row.querySelector('.bahan-select');
+    const jumlahInput = row.querySelector('.jumlah-input');
+    const satuanSelect = row.querySelector('.satuan-select');
+    const hargaDisplay = row.querySelector('.harga-display');
+    const subtotalDisplay = row.querySelector('.subtotal-display');
+    
+    const selectedOption = bahanSelect.options[bahanSelect.selectedIndex];
+    
+    if (!selectedOption.value) {
+        hargaDisplay.textContent = 'Rp 0';
+        subtotalDisplay.textContent = 'Rp 0';
+        hitungTotalBBB();
+        return;
+    }
+    
+    const hargaPerSatuanUtama = parseFloat(selectedOption.dataset.harga) || 0;
+    const satuanUtama = (selectedOption.dataset.satuan || 'KG').toUpperCase();
+    const jumlah = parseFloat(jumlahInput.value) || 0;
+    const satuan = satuanSelect.value.toUpperCase();
+    
+    let hargaPerSatuan = hargaPerSatuanUtama;
+    if (satuan !== satuanUtama) {
+        const faktorUtama = konversi[satuanUtama] || 1;
+        const faktorPilihan = konversi[satuan] || 1;
+        hargaPerSatuan = hargaPerSatuanUtama / (faktorPilihan / faktorUtama);
+    }
+    
+    const subtotal = hargaPerSatuan * jumlah;
+    
+    hargaDisplay.textContent = formatRupiah(hargaPerSatuan);
+    subtotalDisplay.textContent = formatRupiah(subtotal);
+    
+    hitungTotalBBB();
+}
+function hitungTotalBBB() {
+    // Tidak ada biaya bahan tambahan, gunakan biaya bahan dari produk saja
+    const biayaBahanProduk = parseFloat('{{ $produk->biaya_bahan ?? 0 }}') || 0;
+    
+    document.getElementById('totalBiayaBahan').textContent = formatRupiah(biayaBahanProduk);
+    document.getElementById('biayaBahanProduk').textContent = formatRupiah(biayaBahanProduk);
+    
+    hitungHPP();
+}
+// ========== PROSES PRODUKSI (BTKL) ==========
+function hitungBarisProses(row) {
+    const durasiInput = row.querySelector('.durasi-input');
+    const tarif = parseFloat(durasiInput.dataset.tarif) || 0;
+    const produksiPerJam = parseFloat(durasiInput.dataset.produksi) || 0;
+    const durasi = parseFloat(durasiInput.value) || 0;
+    
+    // Hitung biaya per PCS
+    const biayaPerPcs = produksiPerJam > 0 ? (tarif / produksiPerJam) : 0;
+    const totalBiaya = biayaPerPcs * durasi;
+    
+    // Update display
+    row.querySelector('.biaya-per-pcs').textContent = formatRupiah(biayaPerPcs);
+    row.querySelector('.total-proses').textContent = formatRupiah(totalBiaya);
+    
+    hitungTotalBTKL();
+}
+function hitungTotalBTKL() {
+    let totalBTKL = 0;
+    document.querySelectorAll('.proses-row').forEach(row => {
+        const totalText = row.querySelector('.total-proses').textContent;
+        totalBTKL += parseFloat(totalText.replace(/[^0-9]/g, '')) || 0;
+    });
+    
+    document.getElementById('totalBTKL').textContent = formatRupiah(totalBTKL);
+    document.getElementById('summaryBTKL').textContent = formatRupiah(totalBTKL);
+    
+    hitungHPP();
+}
+// ========== BOP ==========
+function hitungBarisBOP(row) {
+    const jumlahInput = row.querySelector('.bop-jumlah');
+    const tarifInput = row.querySelector('.bop-tarif');
+    const subtotalDisplay = row.querySelector('.bop-subtotal');
+    
+    const jumlah = parseFloat(jumlahInput.value) || 0;
+    const tarif = parseFloat(tarifInput.value) || 0;
+    const subtotal = jumlah * tarif;
+    
+    subtotalDisplay.textContent = formatRupiah(subtotal);
+    
+    hitungTotalBOP();
+}
+function hitungTotalBOP() {
+    let totalBOP = 0;
+    document.querySelectorAll('.bop-row').forEach(row => {
+        const subtotalText = row.querySelector('.bop-subtotal').textContent;
+        totalBOP += parseFloat(subtotalText.replace(/[^0-9]/g, '')) || 0;
+    });
+    
+    document.getElementById('totalBOP').textContent = formatRupiah(totalBOP);
+    document.getElementById('summaryBOP').textContent = formatRupiah(totalBOP);
+    
+    hitungHPP();
+}
+// ========== TOTAL HPP ==========
+function hitungHPP() {
+    const biayaBahanProduk = parseFloat('{{ $produk->biaya_bahan ?? 0 }}') || 0;
+    const totalBTKL = parseFloat(document.getElementById('totalBTKL').textContent.replace(/[^0-9]/g, '')) || 0;
+    const totalBOP = parseFloat(document.getElementById('totalBOP').textContent.replace(/[^0-9]/g, '')) || 0;
+    
+    const grandTotal = biayaBahanProduk + totalBTKL + totalBOP;
+    
+    document.getElementById('grandTotal').textContent = formatRupiah(grandTotal);
+}
+function attachBahanEvents(row) {
+    const bahanSelect = row.querySelector('.bahan-select');
+    const jumlahInput = row.querySelector('.jumlah-input');
+    const satuanSelect = row.querySelector('.satuan-select');
+    const btnHapus = row.querySelector('.btn-hapus-bahan');
+    
+    bahanSelect.addEventListener('change', () => {
+        const selectedOption = bahanSelect.options[bahanSelect.selectedIndex];
+        if (selectedOption.value) {
+            satuanSelect.value = selectedOption.dataset.satuan || 'KG';
+        }
+        hitungBarisBahan(row);
+    });
+    
+    jumlahInput.addEventListener('input', () => hitungBarisBahan(row));
+    satuanSelect.addEventListener('change', () => hitungBarisBahan(row));
+    
+    btnHapus.addEventListener('click', () => {
+        if (document.querySelectorAll('.bom-row').length <= 1) {
+            alert('Minimal harus ada 1 bahan baku!');
+            return;
+        }
+        row.remove();
+        hitungTotalBBB();
+    });
+}
+// ========== PROSES PRODUKSI ==========
+let prosesCounter = 0;
+function tambahBarisProses(prosesId = '', durasi = 1, nominalPerJam = 0, jumlahProduksiPerJam = 0) {
+    prosesCounter++;
+    const tbody = document.getElementById('prosesTableBody');
+    
+    let prosesOptions = '<option value="">-- Pilih Proses --</option>';
+    prosesProduksiData.forEach(p => {
+        const selected = p.id == prosesId ? 'selected' : '';
+        prosesOptions += `<option value="${p.id}" 
+            data-tarif-btkl="${p.tarif_btkl}" 
+            data-satuan="${p.satuan_btkl}"
+            data-bops='${JSON.stringify(p.proses_bops || [])}'
+            ${selected}>${p.nama_proses} (Rp ${parseInt(p.tarif_btkl).toLocaleString('id-ID')}/${p.satuan_btkl})</option>`;
+    });
+    
+    const row = document.createElement('tr');
+    row.className = 'proses-row';
+    row.innerHTML = `
+        <td class="text-center">${prosesCounter}</td>
+        <td>
+            <select name="proses_id[]" class="form-select form-select-sm proses-select" required>
+                ${prosesOptions}
+            </select>
+            <input type="hidden" name="proses_urutan[]" value="${prosesCounter}">
+        </td>
+        <td>
+            <input type="number" name="proses_durasi[]" class="form-control form-control-sm durasi-input" 
+                value="${durasi}" min="0.01" step="0.01" required>
+        </td>
+        <td class="satuan-proses text-center">-</td>
+        <td>
+            <input type="number" name="nominal_per_jam[]" class="form-control form-control-sm nominal-input" 
+                value="${nominalPerJam}" min="0" step="0.01" placeholder="Nominal/jam">
+        </td>
+        <td>
+            <input type="number" name="jumlah_produksi_per_jam[]" class="form-control form-control-sm produksi-input" 
+                value="${jumlahProduksiPerJam}" min="0.01" step="0.01" placeholder="Pcs/jam">
+        </td>
+        <td class="biaya-per-pcs text-end fw-bold">Rp 0</td>
+        <td class="biaya-btkl text-end">Rp 0</td>
+        <td class="total-proses text-end fw-bold">Rp 0</td>
+        <td class="text-center">
+            <button type="button" class="btn btn-danger btn-sm btn-hapus-proses">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    `;
+    
+    tbody.appendChild(row);
+    attachProsesEvents(row);
+    
+    if (prosesId) {
+        hitungBarisProses(row);
+    }
+}
+function hitungBarisProses(row) {
+    const prosesSelect = row.querySelector('.proses-select');
+    const durasiInput = row.querySelector('.durasi-input');
+    const nominalInput = row.querySelector('.nominal-input');
+    const produksiInput = row.querySelector('.produksi-input');
+    const satuanDisplay = row.querySelector('.satuan-proses');
+    const biayaBtklDisplay = row.querySelector('.biaya-btkl');
+    const biayaPerPcsDisplay = row.querySelector('.biaya-per-pcs');
+    const totalDisplay = row.querySelector('.total-proses');
+    
+    const selectedOption = prosesSelect.options[prosesSelect.selectedIndex];
+    
+    if (!selectedOption.value) {
+        satuanDisplay.textContent = '-';
+        biayaBtklDisplay.textContent = 'Rp 0';
+        biayaPerPcsDisplay.textContent = 'Rp 0';
+        totalDisplay.textContent = 'Rp 0';
+        hitungTotalProses();
+        return;
+    }
+    
+    const tarifBtkl = parseFloat(selectedOption.dataset.tarifBtkl) || 0;
+    const satuan = selectedOption.dataset.satuan || 'jam';
+    const durasi = parseFloat(durasiInput.value) || 0;
+    const nominalPerJam = parseFloat(nominalInput.value) || 0;
+    const jumlahProduksiPerJam = parseFloat(produksiInput.value) || 0;
+    
+    // Hitung BTKL
+    const biayaBtkl = durasi * tarifBtkl;
+    
+    // Hitung biaya per pcs
+    let biayaPerPcs = 0;
+    if (jumlahProduksiPerJam > 0) {
+        biayaPerPcs = nominalPerJam / jumlahProduksiPerJam;
+    }
+    
+    satuanDisplay.textContent = satuan;
+    biayaBtklDisplay.textContent = formatRupiah(biayaBtkl);
+    biayaPerPcsDisplay.textContent = formatRupiah(biayaPerPcs);
+    totalDisplay.textContent = formatRupiah(biayaBtkl + biayaPerPcs);
+    
+    hitungTotalProses();
+}
+function hitungTotalProses() {
+    let totalBtkl = 0;
+    let totalBop = 0;
+    let totalProses = 0;
+    
+    document.querySelectorAll('.proses-row').forEach(row => {
+        const btklText = row.querySelector('.biaya-btkl').textContent;
+        const totalText = row.querySelector('.total-proses').textContent;
+        totalBtkl += parseFloat(btklText.replace(/[^0-9]/g, '')) || 0;
+        totalProses += parseFloat(totalText.replace(/[^0-9]/g, '')) || 0;
+    });
+    
+    document.getElementById('totalBTKL').textContent = formatRupiah(totalBtkl);
+    document.getElementById('totalBOP').textContent = formatRupiah(totalBop);
+    document.getElementById('totalProses').textContent = formatRupiah(totalProses);
+    document.getElementById('summaryBTKL').textContent = formatRupiah(totalBtkl);
+    document.getElementById('summaryBOP').textContent = formatRupiah(totalBop);
+    
+    hitungHPP();
+}
+function attachProsesEvents(row) {
+    const prosesSelect = row.querySelector('.proses-select');
+    const durasiInput = row.querySelector('.durasi-input');
+    const nominalInput = row.querySelector('.nominal-input');
+    const produksiInput = row.querySelector('.produksi-input');
+    const btnHapus = row.querySelector('.btn-hapus-proses');
+    
+    prosesSelect.addEventListener('change', () => hitungBarisProses(row));
+    durasiInput.addEventListener('input', () => hitungBarisProses(row));
+    nominalInput.addEventListener('input', () => hitungBarisProses(row));
+    produksiInput.addEventListener('input', () => hitungBarisProses(row));
+    
+    btnHapus.addEventListener('click', () => {
+        row.remove();
+        // Renumber
+        prosesCounter = 0;
+        document.querySelectorAll('.proses-row').forEach(r => {
+            prosesCounter++;
+            r.querySelector('td:first-child').textContent = prosesCounter;
+            r.querySelector('input[name="proses_urutan[]"]').value = prosesCounter;
+        });
+        hitungTotalProses();
+    });
+}
+// ========== HPP ==========
+function hitungHPP() {
+    const bbbText = document.getElementById('summaryBBB').textContent;
+    
+    const bbb = parseFloat(bbbText.replace(/[^0-9]/g, '')) || 0;
+    
+    // Untuk sementara, HPP hanya dari BBB saja
+    const hpp = bbb;
+    document.getElementById('grandTotal').textContent = formatRupiah(hpp);
+}
+// ========== INIT ==========
+document.addEventListener('DOMContentLoaded', () => {
+    // Init bahan baku
+    document.querySelectorAll('.bom-row').forEach(row => attachBahanEvents(row));
+    
+    // Init proses produksi (BTKL)
+    document.querySelectorAll('.proses-row').forEach(row => {
+        const durasiInput = row.querySelector('.durasi-input');
+        const btnHapus = row.querySelector('.btn-hapus-proses');
+        
+        durasiInput.addEventListener('input', () => hitungBarisProses(row));
+        btnHapus.addEventListener('click', () => {
+            row.remove();
+            hitungTotalBTKL();
+        });
+    });
+    
+    // Init BOP
+    document.querySelectorAll('.bop-row').forEach(row => {
+        const bopSelect = row.querySelector('.bop-select');
+        const jumlahInput = row.querySelector('.bop-jumlah');
+        const tarifInput = row.querySelector('.bop-tarif');
+        const btnHapus = row.querySelector('.btn-hapus-bop');
+        
+        bopSelect.addEventListener('change', () => {
+            const selectedOption = bopSelect.options[bopSelect.selectedIndex];
+            if (selectedOption.dataset.tarif) {
+                tarifInput.value = selectedOption.dataset.tarif;
+            }
+            hitungBarisBOP(row);
+        });
+        
+        jumlahInput.addEventListener('input', () => hitungBarisBOP(row));
+        tarifInput.addEventListener('input', () => hitungBarisBOP(row));
+        
+        btnHapus.addEventListener('click', () => {
+            if (document.querySelectorAll('.bop-row').length <= 1) {
+                alert('Minimal harus ada 1 BOP!');
+                return;
+            }
+            row.remove();
+            hitungTotalBOP();
+        });
+    });
+    
+    // Tambah bahan baku
+    document.getElementById('btnTambahBahan').addEventListener('click', () => {
+        const tbody = document.getElementById('bomTableBody');
+        const firstRow = tbody.querySelector('.bom-row');
+        const newRow = firstRow.cloneNode(true);
+        
+        newRow.querySelector('.bahan-select').value = '';
+        newRow.querySelector('.jumlah-input').value = '1';
+        newRow.querySelector('.harga-display').textContent = 'Rp 0';
+        newRow.querySelector('.subtotal-display').textContent = 'Rp 0';
+        
+        tbody.appendChild(newRow);
+        attachBahanEvents(newRow);
+    });
+    
+    // Tambah BOP
+    document.getElementById('btnTambahBOP').addEventListener('click', () => {
+        const tbody = document.getElementById('bopTableBody');
+        const firstRow = tbody.querySelector('.bop-row');
+        const newRow = firstRow.cloneNode(true);
+        
+        // Reset values
+        newRow.querySelector('.bop-select').value = '';
+        newRow.querySelector('.bop-jumlah').value = '1';
+        newRow.querySelector('.bop-tarif').value = '0';
+        newRow.querySelector('.bop-subtotal').textContent = 'Rp 0';
+        
+        // Update row number
+        const rowNumber = tbody.querySelectorAll('.bop-row').length + 1;
+        newRow.querySelector('td:first-child').textContent = rowNumber;
+        
+        tbody.appendChild(newRow);
+        
+        // Attach events to new row
+        const bopSelect = newRow.querySelector('.bop-select');
+        const jumlahInput = newRow.querySelector('.bop-jumlah');
+        const tarifInput = newRow.querySelector('.bop-tarif');
+        const btnHapus = newRow.querySelector('.btn-hapus-bop');
+        
+        bopSelect.addEventListener('change', () => {
+            const selectedOption = bopSelect.options[bopSelect.selectedIndex];
+            if (selectedOption.dataset.tarif) {
+                tarifInput.value = selectedOption.dataset.tarif;
+            }
+            hitungBarisBOP(newRow);
+        });
+        
+        jumlahInput.addEventListener('input', () => hitungBarisBOP(newRow));
+        tarifInput.addEventListener('input', () => hitungBarisBOP(newRow));
+        
+        btnHapus.addEventListener('click', () => {
+            if (document.querySelectorAll('.bop-row').length <= 1) {
+                alert('Minimal harus ada 1 BOP!');
+                return;
+            }
+            newRow.remove();
+            hitungTotalBOP();
+        });
+    });
+    
+    // Hitung total awal
+    hitungTotalBBB();
+    hitungTotalBTKL();
+    hitungTotalBOP();
+});
+</script>
+@endsection
+< / d i v > 
+ 
+ 

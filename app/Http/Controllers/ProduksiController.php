@@ -15,10 +15,36 @@ use Illuminate\Support\Facades\DB;
 
 class ProduksiController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $produksis = Produksi::with('produk')->orderBy('tanggal','desc')->paginate(10);
-        return view('transaksi.produksi.index', compact('produksis'));
+        $query = Produksi::with('produk');
+        
+        // Filter by tanggal
+        if ($request->filled('tanggal_mulai')) {
+            $query->whereDate('tanggal', '>=', $request->tanggal_mulai);
+        }
+        if ($request->filled('tanggal_selesai')) {
+            $query->whereDate('tanggal', '<=', $request->tanggal_selesai);
+        }
+        
+        // Filter by produk
+        if ($request->filled('produk_id')) {
+            $query->where('produk_id', $request->produk_id);
+        }
+        
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $produksis = $query->orderBy('tanggal','desc')->paginate(10);
+        
+        // Get products for dropdown
+        $produks = Produk::whereHas('boms', function($query) {
+            $query->has('details');
+        })->orderBy('nama_produk')->get();
+        
+        return view('transaksi.produksi.index', compact('produksis', 'produks'));
     }
 
     public function create()

@@ -9,30 +9,44 @@ use Carbon\Carbon;
 
 class PresensiController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $search = request('search');
-        $presensis = Presensi::with('pegawai')
-            ->when($search, function($query) use ($search) {
-                return $query->whereHas('pegawai', function($q) use ($search) {
-                    $q->where('nama', 'like', "%{$search}%")
-                      ->orWhere('kode_pegawai', 'like', "%{$search}%");
-                })
-                ->orWhere('status', 'like', "%{$search}%");
-            })
-            ->orderBy('tgl_presensi', 'desc')
+        $query = Presensi::with('pegawai');
+        
+        // Filter by nama pegawai
+        if ($request->filled('nama_pegawai')) {
+            $query->whereHas('pegawai', function($q) use ($request) {
+                $q->where('nama', 'like', '%' . $request->nama_pegawai . '%')
+                  ->orWhere('kode_pegawai', 'like', '%' . $request->nama_pegawai . '%');
+            });
+        }
+        
+        // Filter by tanggal
+        if ($request->filled('tanggal_mulai')) {
+            $query->whereDate('tgl_presensi', '>=', $request->tanggal_mulai);
+        }
+        if ($request->filled('tanggal_selesai')) {
+            $query->whereDate('tgl_presensi', '<=', $request->tanggal_selesai);
+        }
+        
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $presensi = $query->orderBy('tgl_presensi', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(10);
         
         // Force load pegawai nama untuk setiap presensi
-        $presensis->getCollection()->transform(function ($presensi) {
+        $presensi->getCollection()->transform(function ($presensi) {
             if ($presensi->pegawai) {
                 $presensi->pegawai->nama_display = $presensi->pegawai->nama ?: $presensi->pegawai->nomor_induk_pegawai;
             }
             return $presensi;
         });
-            
-        return view('master-data.presensi.index', compact('presensis', 'search'));
+        
+        return view('master-data.presensi.index', compact('presensi'));
     }
 
     public function create()

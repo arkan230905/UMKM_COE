@@ -3,15 +3,22 @@
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Tambah Proses Produksi</h1>
-        <a href="{{ route('master-data.proses-produksi.index') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left"></i> Kembali
+        <h2 class="mb-0">
+            <i class="fas fa-cogs me-2"></i>Tambah BTKL
+        </h2>
+        <a href="{{ route('master-data.btkl.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Kembali
         </a>
     </div>
 
-    <div class="card shadow">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-plus me-2"></i>Form BTKL Baru
+            </h5>
+        </div>
         <div class="card-body">
-            <form action="{{ route('master-data.proses-produksi.store') }}" method="POST">
+            <form action="{{ route('master-data.btkl.store') }}" method="POST">
                 @csrf
                 
                 <div class="row">

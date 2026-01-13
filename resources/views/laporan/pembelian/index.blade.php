@@ -46,26 +46,35 @@
     <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col-md-4">
-            <div class="card bg-primary text-white">
+            <div class="card bg-primary text-dark">
                 <div class="card-body">
-                    <h5 class="card-title">Total Transaksi</h5>
-                    <h3 class="mb-0">{{ $totalTransaksi }}</h3>
+                    <h5 class="card-title text-dark">Total Pembelian</h5>
+                    <h3 class="mb-0 text-dark">Rp {{ number_format($totalPembelianFiltered, 0, ',', '.') }}</h3>
+                    <small class="text-dark opacity-75">
+                        @if(request('start_date') && request('end_date'))
+                            {{ \Carbon\Carbon::parse(request('start_date'))->format('d/m/Y') }} - {{ \Carbon\Carbon::parse(request('end_date'))->format('d/m/Y') }}
+                        @else
+                            Semua Periode
+                        @endif
+                    </small>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card bg-success text-white">
+            <div class="card bg-success text-dark">
                 <div class="card-body">
-                    <h5 class="card-title">Total Pembelian</h5>
-                    <h3 class="mb-0">Rp {{ number_format($totalPembelian, 0, ',', '.') }}</h3>
+                    <h5 class="card-title text-dark">Total Pembelian Tunai</h5>
+                    <h3 class="mb-0 text-dark">Rp {{ number_format($totalPembelianTunai, 0, ',', '.') }}</h3>
+                    <small class="text-dark opacity-75">Pembayaran Cash</small>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card bg-info text-white">
+            <div class="card bg-warning text-dark">
                 <div class="card-body">
-                    <h5 class="card-title">Rata-rata/Transaksi</h5>
-                    <h3 class="mb-0">Rp {{ $totalTransaksi > 0 ? number_format($totalPembelian / $totalTransaksi, 0, ',', '.') : 0 }}</h3>
+                    <h5 class="card-title text-dark">Total Pembelian Belum Lunas</h5>
+                    <h3 class="mb-0 text-dark">Rp {{ number_format($totalPembelianBelumLunas, 0, ',', '.') }}</h3>
+                    <small class="text-dark opacity-75">Sisa Utang</small>
                 </div>
             </div>
         </div>
@@ -100,25 +109,37 @@
                                         <div class="small">
                                             @foreach($p->details as $detail)
                                                 <div class="mb-1">
-                                                    • {{ $detail->bahanBaku->nama_bahan ?? $detail->bahan_baku->nama_bahan ?? 'Item' }}
+                                                    • {{ $detail->bahanBaku->nama_bahan ?? 'Item' }}
                                                     <span class="text-muted">
-                                                        ({{ number_format($detail->jumlah ?? 0, 2, ',', '.') }} 
-                                                        {{ $detail->satuan ?? ($detail->bahanBaku->satuan->kode ?? 'unit') }})
+                                                        ({{ number_format($detail->jumlah ?? 0, 0, ',', '.') }} 
+                                                        {{ $detail->bahanBaku->satuan->nama ?? 'unit' }})
                                                     </span>
                                                     - Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}
+                                                    = <strong>Rp {{ number_format(($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0), 0, ',', '.') }}</strong>
                                                 </div>
                                             @endforeach
                                         </div>
                                     @else
-                                        <span class="badge bg-danger">
-                                            <i class="fas fa-exclamation-triangle"></i> Data detail hilang
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-exclamation-triangle"></i> Detail tidak tersedia
                                         </span>
                                         <div class="small text-muted mt-1">
-                                            Pembelian ini tidak memiliki detail item. Silakan hubungi admin.
+                                            Total: Rp {{ number_format($p->total_harga ?? 0, 0, ',', '.') }}
                                         </div>
                                     @endif
                                 </td>
-                                <td class="text-end">Rp {{ number_format($p->total, 0, ',', '.') }}</td>
+                                <td class="text-end">
+                                    @php
+                                        $totalPembelian = $p->total_harga ?? $p->total ?? 0;
+                                        // Jika total = 0, hitung dari details
+                                        if ($totalPembelian == 0 && $p->details && $p->details->count() > 0) {
+                                            $totalPembelian = $p->details->sum(function($detail) {
+                                                return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                                            });
+                                        }
+                                    @endphp
+                                    <strong>Rp {{ number_format($totalPembelian, 0, ',', '.') }}</strong>
+                                </td>
                                 <td class="text-center">
                                     @if($p->payment_method === 'cash' || $p->status === 'lunas')
                                         <span class="badge bg-success">Lunas</span>

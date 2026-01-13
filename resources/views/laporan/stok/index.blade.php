@@ -17,6 +17,7 @@
                     <select name="tipe" class="form-select" id="tipeSelect">
                         <option value="material" {{ request('tipe', 'material') == 'material' ? 'selected' : '' }}>Bahan Baku</option>
                         <option value="product" {{ request('tipe') == 'product' ? 'selected' : '' }}>Produk</option>
+                        <option value="bahan_pendukung" {{ request('tipe') == 'bahan_pendukung' ? 'selected' : '' }}>Bahan Pendukung</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -29,10 +30,16 @@
                                     {{ $m->nama_bahan }}
                                 </option>
                             @endforeach
-                        @else
+                        @elseif(request('tipe') == 'product')
                             @foreach($products as $p)
                                 <option value="{{ $p->id }}" {{ request('item_id') == $p->id ? 'selected' : '' }}>
                                     {{ $p->nama_produk }}
+                                </option>
+                            @endforeach
+                        @elseif(request('tipe') == 'bahan_pendukung')
+                            @foreach($bahanPendukungs as $bp)
+                                <option value="{{ $bp->id }}" {{ request('item_id') == $bp->id ? 'selected' : '' }}>
+                                    {{ $bp->nama_bahan }}
                                 </option>
                             @endforeach
                         @endif
@@ -61,8 +68,10 @@
                 <h5 class="mb-0">📋 Kartu Stok - 
                     @if($tipe == 'material')
                         {{ $materials->firstWhere('id', request('item_id'))->nama_bahan ?? 'Bahan Baku' }}
-                    @else
+                    @elseif($tipe == 'product')
                         {{ $products->firstWhere('id', request('item_id'))->nama_produk ?? 'Produk' }}
+                    @elseif($tipe == 'bahan_pendukung')
+                        {{ $bahanPendukungs->firstWhere('id', request('item_id'))->nama_bahan ?? 'Bahan Pendukung' }}
                     @endif
                 </h5>
             </div>
@@ -126,7 +135,15 @@
         <!-- Ringkasan Stok Per Item -->
         <div class="card">
             <div class="card-header bg-success text-white">
-                <h5 class="mb-0">📦 Ringkasan Stok {{ $tipe == 'material' ? 'Bahan Baku' : 'Produk' }}</h5>
+                <h5 class="mb-0">📦 Ringkasan Stok 
+                    @if($tipe == 'material')
+                        Bahan Baku
+                    @elseif($tipe == 'product')
+                        Produk
+                    @elseif($tipe == 'bahan_pendukung')
+                        Bahan Pendukung
+                    @endif
+                </h5>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
@@ -168,7 +185,7 @@
                                     </td>
                                 </tr>
                                 @endforelse
-                            @else
+                            @elseif($tipe == 'product')
                                 @forelse($products as $index => $p)
                                 <tr>
                                     <td>{{ $index + 1 }}</td>
@@ -192,6 +209,33 @@
                                 <tr>
                                     <td colspan="5" class="text-center text-muted py-4">
                                         Tidak ada data produk
+                                    </td>
+                                </tr>
+                                @endforelse
+                            @elseif($tipe == 'bahan_pendukung')
+                                @forelse($bahanPendukungs as $index => $bp)
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>{{ $bp->nama_bahan }}</td>
+                                    <td class="text-end">
+                                        @php
+                                            $stok = $saldoPerItem[$bp->id] ?? $bp->stok ?? 0;
+                                            $desimal = ($stok != floor($stok)) ? 2 : 0;
+                                        @endphp
+                                        <strong>{{ number_format($stok, $desimal, ',', '.') }}</strong>
+                                    </td>
+                                    <td>{{ $bp->satuanRelation->nama ?? 'UNIT' }}</td>
+                                    <td class="text-center">
+                                        <a href="{{ route('laporan.stok', ['tipe' => 'bahan_pendukung', 'item_id' => $bp->id, 'from' => request('from'), 'to' => request('to')]) }}" 
+                                           class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i> Lihat Kartu Stok
+                                        </a>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        Tidak ada data bahan pendukung
                                     </td>
                                 </tr>
                                 @endforelse

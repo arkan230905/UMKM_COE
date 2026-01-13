@@ -1,0 +1,749 @@
+/* Modern Dashboard CSS - CLEAN VERSION */
+:root {
+    --primary-gold: #8B735C;
+    --secondary-gold: #A68D73;
+    --accent-gold: #BFB0A0;
+    --light-gold: #D9CBBF;
+    --pale-gold: #F2EDE9;
+    --white: #FFFFFF;
+    --gray: #6c757d;
+    --dark: #343a40;
+    --shadow: rgba(0, 0, 0, 0.1);
+}
+
+/* Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--pale-gold) !important;
+    font-family: 'Poppins', sans-serif !important;
+    color: var(--dark) !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Layout Structure */
+.layout {
+    display: flex !important;
+    min-height: 100vh !important;
+}
+
+/* SIDEBAR STYLING - CLEAN & PROFESSIONAL */
+.sidebar, aside.sidebar, div.sidebar {
+    background: #8B7355 !important;
+    width: 250px !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    overflow-y: auto !important;
+    z-index: 1000 !important;
+    padding: 0 !important;
+    box-shadow: 3px 0 20px rgba(0,0,0,0.15) !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+    border-right: 1px solid rgba(255,255,255,0.1) !important;
+}
+
+/* Custom Scrollbar */
+.sidebar::-webkit-scrollbar {
+    width: 4px !important;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.1) !important;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3) !important;
+    border-radius: 2px !important;
+}
+
+/* USER PROFILE CARD - LIKE IN IMAGE */
+.user-profile-card {
+    background: rgba(0,0,0,0.2) !important;
+    border-radius: 20px !important;
+    margin: 20px 15px 25px 15px !important;
+    padding: 25px 20px !important;
+    text-align: center !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+}
+
+.user-avatar {
+    width: 80px !important;
+    height: 80px !important;
+    border-radius: 50% !important;
+    background: rgba(0,0,0,0.3) !important;
+    margin: 0 auto 15px auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow: hidden !important;
+}
+
+.user-avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 50% !important;
+}
+
+.user-avatar i {
+    font-size: 35px !important;
+    color: rgba(255,255,255,0.8) !important;
+}
+
+.user-info h4 {
+    color: white !important;
+    font-size: 18px !important;
+    font-weight: 600 !important;
+    margin: 0 0 5px 0 !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3) !important;
+}
+
+.user-info small {
+    color: rgba(255,255,255,0.7) !important;
+    font-size: 12px !important;
+    text-transform: capitalize !important;
+}
+
+/* ROUNDED NAVIGATION LINKS - LIKE IN IMAGE */
+.nav-link-rounded,
+.sidebar a.nav-link-rounded,
+a.nav-link-rounded,
+.sidebar button.nav-link-rounded {
+    color: rgba(255,255,255,0.9) !important;
+    background: rgba(0,0,0,0.15) !important;
+    border-radius: 25px !important;
+    margin: 4px 15px !important;
+    padding: 12px 20px !important;
+    transition: all 0.3s ease !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    display: flex !important;
+    align-items: center !important;
+    border: 1px solid rgba(0,0,0,0.1) !important;
+    text-decoration: none !important;
+    position: relative !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    max-height: 50px !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+    width: calc(100% - 30px) !important;
+    cursor: pointer !important;
+    clear: both !important;
+    float: none !important;
+}
+
+.nav-link-rounded i,
+.sidebar a.nav-link-rounded i,
+a.nav-link-rounded i,
+.sidebar button.nav-link-rounded i {
+    margin-right: 12px !important;
+    font-size: 16px !important;
+    width: 20px !important;
+    text-align: center !important;
+    color: rgba(255,255,255,0.9) !important;
+    transition: all 0.3s ease !important;
+    flex-shrink: 0 !important;
+}
+
+.nav-link-rounded span,
+.sidebar a.nav-link-rounded span,
+a.nav-link-rounded span,
+.sidebar button.nav-link-rounded span {
+    flex: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
+}
+
+.nav-link-rounded:hover,
+.sidebar a.nav-link-rounded:hover,
+a.nav-link-rounded:hover,
+.sidebar button.nav-link-rounded:hover {
+    background: linear-gradient(135deg, #C9B59C 0%, #B8A082 100%) !important;
+    color: #4A4A4A !important;
+    text-decoration: none !important;
+    transform: translateX(3px) !important;
+    border-color: #C9B59C !important;
+    box-shadow: 0 4px 20px rgba(201, 181, 156, 0.4) !important;
+}
+
+.nav-link-rounded:hover i,
+.sidebar a.nav-link-rounded:hover i,
+a.nav-link-rounded:hover i,
+.sidebar button.nav-link-rounded:hover i {
+    color: #4A4A4A !important;
+    transform: scale(1.1) !important;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.2) !important;
+}
+
+.nav-link-rounded.active,
+.sidebar a.nav-link-rounded.active,
+a.nav-link-rounded.active {
+    background: linear-gradient(135deg, #C9B59C 0%, #B8A082 100%) !important;
+    color: #4A4A4A !important;
+    font-weight: 600 !important;
+    border-color: #C9B59C !important;
+    box-shadow: 0 4px 20px rgba(201, 181, 156, 0.4) !important;
+    transform: translateX(2px) !important;
+}
+
+.nav-link-rounded.active i,
+.sidebar a.nav-link-rounded.active i,
+a.nav-link-rounded.active i {
+    color: #4A4A4A !important;
+    text-shadow: 0 1px 2px rgba(255,255,255,0.2) !important;
+}
+
+/* SECTION SPACING - CLEAR SEPARATION */
+.nav-section-header-rounded {
+    color: white !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 2px !important;
+    padding: 18px 25px !important;
+    margin: 30px 15px 12px 15px !important;
+    display: flex !important;
+    align-items: center !important;
+    background: linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.3) 100%) !important;
+    border-radius: 30px !important;
+    position: relative !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.25) !important;
+    height: 55px !important;
+    min-height: 55px !important;
+    box-sizing: border-box !important;
+    border: 2px solid rgba(255,255,255,0.15) !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+}
+
+/* First section header gets normal margin */
+.sidebar-nav .nav .nav-item:first-child .nav-section-header-rounded {
+    margin-top: 15px !important;
+}
+
+.nav-section-header-rounded i {
+    margin-right: 15px !important;
+    font-size: 16px !important;
+    color: white !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+    background: rgba(255,255,255,0.1) !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.nav-section-header-rounded span {
+    flex: 1 !important;
+    font-weight: 800 !important;
+}
+
+/* Add visual separator line above section headers (except first) */
+.nav-section-header-rounded::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -15px !important;
+    left: 25px !important;
+    right: 25px !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%) !important;
+}
+
+/* Remove separator from first section */
+.sidebar-nav .nav .nav-item:first-child .nav-section-header-rounded::before {
+    display: none !important;
+}
+
+/* LOGOUT BUTTON STYLING - SAME ALIGNMENT AS OTHER LINKS */
+.sidebar .logout-btn,
+.sidebar button.logout-btn,
+button.logout-btn.nav-link-rounded {
+    background: #FF937E !important;
+    background-image: linear-gradient(135deg, #FF937E 0%, #FF8A73 100%) !important;
+    border-color: #FF937E !important;
+    color: white !important;
+    /* Ensure same alignment as other nav links */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding: 12px 20px !important;
+    margin: 4px 15px !important;
+    width: calc(100% - 30px) !important;
+    height: 50px !important;
+    min-height: 50px !important;
+    max-height: 50px !important;
+    border-radius: 25px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+}
+
+.sidebar .logout-btn i,
+.sidebar button.logout-btn i,
+button.logout-btn.nav-link-rounded i {
+    color: white !important;
+    margin-right: 12px !important;
+    font-size: 16px !important;
+    width: 20px !important;
+    text-align: center !important;
+    flex-shrink: 0 !important;
+}
+
+.sidebar .logout-btn span,
+.sidebar button.logout-btn span,
+button.logout-btn.nav-link-rounded span {
+    flex: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    line-height: 1.2 !important;
+    text-align: left !important;
+}
+
+.sidebar .logout-btn:hover,
+.sidebar button.logout-btn:hover,
+button.logout-btn.nav-link-rounded:hover {
+    background: #BF1A1A !important;
+    background-image: linear-gradient(135deg, #BF1A1A 0%, #A01515 100%) !important;
+    border-color: #BF1A1A !important;
+    color: white !important;
+    box-shadow: 0 4px 20px rgba(191, 26, 26, 0.4) !important;
+    transform: translateX(3px) !important;
+}
+
+.sidebar .logout-btn:hover i,
+.sidebar button.logout-btn:hover i,
+button.logout-btn.nav-link-rounded:hover i {
+    color: white !important;
+    transform: scale(1.1) !important;
+}
+
+/* OLD NAVIGATION STYLES - REMOVED */
+
+/* NAVIGATION LIST - VERTICAL STACKING */
+.sidebar .nav, 
+.sidebar ul.nav,
+ul.nav {
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    padding-bottom: 30px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+}
+
+.sidebar .nav-item,
+.nav-item {
+    list-style: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    flex-shrink: 0 !important;
+}
+
+/* FORCE WHITE TEXT FOR SIDEBAR */
+.sidebar *,
+.sidebar *::before, 
+.sidebar *::after {
+    color: rgba(255,255,255,0.9) !important;
+}
+
+/* MAIN CONTENT AREA */
+.content, main.content {
+    margin-left: 250px !important;
+    width: calc(100% - 250px) !important;
+    min-height: 100vh !important;
+    padding: 2rem !important;
+    box-sizing: border-box !important;
+    background: transparent !important;
+    flex-grow: 1 !important;
+    overflow-x: hidden !important;
+}
+
+/* CONTAINER FLUID */
+.container-fluid {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Modern Cards - SEUKURAN DAN KONSISTEN */
+.card {
+    background: var(--white) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 20px var(--shadow) !important;
+    border: 1px solid rgba(139, 115, 92, 0.1) !important;
+    transition: all 0.3s ease !important;
+    min-height: 200px !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.card:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 12px 40px var(--shadow) !important;
+}
+
+.card-header {
+    background-color: var(--primary-gold) !important;
+    color: var(--white) !important;
+    border-radius: 16px 16px 0 0 !important;
+    border: none !important;
+    font-weight: 600 !important;
+    padding: 1.25rem !important;
+    min-height: 60px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.card-body {
+    padding: 1.5rem !important;
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* KPI Cards - SEUKURAN */
+.row.g-4 .col-lg-3 .card,
+.row.g-4 .col-md-6 .card {
+    min-height: 140px !important;
+    max-height: 140px !important;
+}
+
+.row.g-4 .col-lg-3 .card .card-body,
+.row.g-4 .col-md-6 .card .card-body {
+    padding: 1.25rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Master Data Cards - SEUKURAN */
+.row.g-3 .col-lg-2 > div,
+.row.g-3 .col-md-4 > div,
+.row.g-3 .col-sm-6 > div {
+    min-height: 120px !important;
+    max-height: 120px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 1rem !important;
+}
+
+.row.g-3 .col-lg-2 .rounded-circle,
+.row.g-3 .col-md-4 .rounded-circle,
+.row.g-3 .col-sm-6 .rounded-circle {
+    width: 50px !important;
+    height: 50px !important;
+    margin-bottom: 0.75rem !important;
+}
+
+/* Quick Actions - SEUKURAN */
+.row.g-3 .col-lg-3 .btn,
+.row.g-3 .col-md-6 .btn {
+    min-height: 50px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.75rem 1rem !important;
+}
+
+/* Table Cards - KONSISTEN */
+.table-responsive {
+    min-height: 300px !important;
+}
+
+.table {
+    margin-bottom: 0 !important;
+}
+
+/* Dashboard Grid Consistency */
+.container-fluid .row {
+    margin-bottom: 2rem !important;
+}
+
+.container-fluid .row:last-child {
+    margin-bottom: 0 !important;
+}
+
+/* Consistent spacing for all sections */
+.mb-5 {
+    margin-bottom: 2.5rem !important;
+}
+
+.mb-4 {
+    margin-bottom: 2rem !important;
+}
+
+.mb-3 {
+    margin-bottom: 1.5rem !important;
+}
+
+/* Modern Tables */
+.table {
+    background: var(--white) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 20px var(--shadow) !important;
+}
+
+.table thead {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--secondary-gold) 100%) !important;
+    color: var(--white) !important;
+}
+
+.table thead th {
+    border: none !important;
+    padding: 1rem !important;
+    font-weight: 600 !important;
+}
+
+.table tbody tr {
+    transition: all 0.2s ease !important;
+}
+
+.table tbody tr:hover {
+    background: var(--pale-gold) !important;
+}
+
+.table tbody td {
+    padding: 1rem !important;
+    border-bottom: 1px solid rgba(139, 115, 85, 0.1) !important;
+    vertical-align: middle !important;
+}
+
+/* Modern Buttons - CONSISTENT 44PX HEIGHT */
+.btn-primary {
+    background-color: var(--primary-gold) !important;
+    border: none !important;
+    color: var(--white) !important;
+    border-radius: 12px !important;
+    padding: 12px 24px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 4px 15px var(--shadow) !important;
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--secondary-gold) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px var(--shadow) !important;
+    color: var(--white) !important;
+}
+
+.btn-outline-primary {
+    background: transparent !important;
+    border: 2px solid var(--primary-gold) !important;
+    color: var(--primary-gold) !important;
+    border-radius: 12px !important;
+    padding: 10px 20px !important;
+    font-weight: 600 !important;
+    transition: all 0.3s ease !important;
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-gold) !important;
+    color: var(--white) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 15px var(--shadow) !important;
+}
+
+/* Button Groups - CONSISTENT SIZING */
+.btn-group .btn,
+.btn-group-sm .btn {
+    min-height: 36px !important;
+    padding: 8px 12px !important;
+}
+
+/* All buttons consistent sizing */
+.btn {
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: 500 !important;
+}
+
+/* Form Styles - CONSISTENT 44PX HEIGHT */
+.form-control {
+    border: 2px solid rgba(139, 115, 85, 0.2) !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+    transition: all 0.3s ease !important;
+    background: var(--white) !important;
+    font-size: 0.875rem !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    box-sizing: border-box !important;
+}
+
+.form-control:focus {
+    border-color: var(--primary-gold) !important;
+    box-shadow: 0 0 0 0.2rem rgba(139, 115, 85, 0.25) !important;
+    outline: none !important;
+}
+
+.form-select {
+    border: 2px solid rgba(139, 115, 85, 0.2) !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+    transition: all 0.3s ease !important;
+    background: var(--white) !important;
+    font-size: 0.875rem !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    box-sizing: border-box !important;
+}
+
+.form-select:focus {
+    border-color: var(--primary-gold) !important;
+    box-shadow: 0 0 0 0.2rem rgba(139, 115, 85, 0.25) !important;
+    outline: none !important;
+}
+
+/* Form label consistency */
+.form-label {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: var(--dark) !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* Form group alignment */
+.d-flex.gap-2 {
+    gap: 0.75rem !important;
+    align-items: flex-end !important;
+}
+
+.d-flex.gap-2 .form-select {
+    min-width: 180px !important;
+}
+
+/* Header form alignment */
+.d-flex.justify-content-between .d-flex.gap-2 {
+    align-items: flex-end !important;
+}
+
+.d-flex.justify-content-between .d-flex.gap-2 > div {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+/* Consistent height for all form elements in same row */
+.d-flex.align-items-end > *,
+.d-flex.gap-2 > * {
+    min-height: 44px !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+/* Input group consistency */
+.input-group .form-control,
+.input-group .form-select,
+.input-group .btn {
+    min-height: 44px !important;
+    height: 44px !important;
+}
+
+/* Badge Styles */
+.badge {
+    background: var(--primary-gold) !important;
+    color: var(--white) !important;
+    border-radius: 20px !important;
+    padding: 6px 12px !important;
+    font-weight: 600 !important;
+}
+
+/* Alert Styles */
+.alert {
+    border-radius: 12px !important;
+    border: none !important;
+    box-shadow: 0 4px 20px var(--shadow) !important;
+}
+
+.alert-success {
+    background: linear-gradient(135deg, #D4EDDA 0%, #C3E6CB 100%) !important;
+    color: #0F5132 !important;
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #F8D7DA 0%, #F5C6CB 100%) !important;
+    color: #721C24 !important;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #FFF3CD 0%, #FFEAA7 100%) !important;
+    color: #856404 !important;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #D1ECF1 0%, #BEE5EB 100%) !important;
+    color: #0C5460 !important;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 100% !important;
+        height: auto !important;
+        position: relative !important;
+        transform: translateX(-100%) !important;
+        transition: transform 0.3s ease !important;
+    }
+
+    .sidebar.show {
+        transform: translateX(0) !important;
+    }
+
+    .layout {
+        flex-direction: column !important;
+    }
+
+    .content, main.content {
+        margin-left: 0 !important;
+        width: 100% !important;
+        padding: 16px !important;
+    }
+    
+    /* Mobile form adjustments */
+    .d-flex.gap-2 {
+        flex-direction: column !important;
+        gap: 1rem !important;
+    }
+    
+    .d-flex.justify-content-between {
+        flex-direction: column !important;
+        gap: 1rem !important;
+        align-items: stretch !important;
+    }
+    
+    .d-flex.gap-2 .form-select {
+        min-width: 100% !important;
+    }
+}

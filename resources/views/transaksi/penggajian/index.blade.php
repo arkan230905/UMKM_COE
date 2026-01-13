@@ -1,26 +1,94 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container py-4">
-    <h3 class="mb-4"><i class="bi bi-cash-coin"></i> Data Penggajian</h3>
-
-    @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    <div class="mb-3">
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-money-check-alt me-2"></i>Data Penggajian
+        </h2>
         <a href="{{ route('transaksi.penggajian.create') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Tambah Penggajian
+            <i class="fas fa-plus me-2"></i>Tambah Penggajian
         </a>
     </div>
 
-    <div class="card bg-dark text-white border-0">
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <!-- Filter Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <i class="fas fa-filter me-2"></i>Filter Transaksi
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ route('transaksi.penggajian.index') }}">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Nama Pegawai</label>
+                        <input type="text" name="nama_pegawai" class="form-control" 
+                               value="{{ request('nama_pegawai') }}" placeholder="Cari nama pegawai...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tanggal Mulai</label>
+                        <input type="date" name="tanggal_mulai" class="form-control" 
+                               value="{{ request('tanggal_mulai') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tanggal Selesai</label>
+                        <input type="date" name="tanggal_selesai" class="form-control" 
+                               value="{{ request('tanggal_selesai') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Jenis Pegawai</label>
+                        <select name="jenis_pegawai" class="form-select">
+                            <option value="">Semua Jenis</option>
+                            <option value="btkl" {{ request('jenis_pegawai') == 'btkl' ? 'selected' : '' }}>BTKL</option>
+                            <option value="btktl" {{ request('jenis_pegawai') == 'btktl' ? 'selected' : '' }}>BTKTL</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status Pembayaran</label>
+                        <select name="status_pembayaran" class="form-select">
+                            <option value="">Semua Status</option>
+                            <option value="lunas" {{ request('status_pembayaran') == 'lunas' ? 'selected' : '' }}>Lunas</option>
+                            <option value="belum_lunas" {{ request('status_pembayaran') == 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Filter
+                            </button>
+                            <a href="{{ route('transaksi.penggajian.index') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-redo me-2"></i>Reset
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Riwayat Penggajian
+                @if(request()->hasAny(['nama_pegawai', 'tanggal_mulai', 'tanggal_selesai', 'jenis_pegawai', 'status_pembayaran']))
+                    <small class="text-muted">(Filter Aktif)</small>
+                @endif
+            </h5>
+        </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-dark table-hover table-bordered align-middle">
-                    <thead>
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <th>#</th>
+                            <th class="text-center" style="width: 50px">#</th>
                             <th>Nama Pegawai</th>
                             <th>Jenis</th>
                             <th>Tanggal</th>
@@ -28,10 +96,8 @@
                             <th>Jam Kerja</th>
                             <th>Tunjangan</th>
                             <th>Asuransi</th>
-                            <th>Bonus</th>
-                            <th>Potongan</th>
-                            <th>Total Gaji</th>
-                            <th>Aksi</th>
+                            <th>Total Terbayar</th>
+                            <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -68,15 +134,18 @@
                                 <td>Rp {{ number_format($gaji->potongan ?? 0, 0, ',', '.') }}</td>
                                 <td><strong>Rp {{ number_format($gaji->total_gaji, 0, ',', '.') }}</strong></td>
                                 <td>
-                                    <div class="btn-group" role="group">
-                                        <a href="{{ route('transaksi.penggajian.show', $gaji->id) }}" class="btn btn-sm btn-info" title="Detail">
-                                            <i class="bi bi-eye"></i>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ route('transaksi.penggajian.edit', $gaji->id) }}" class="btn btn-outline-warning">
+                                            <i class="fas fa-edit"></i>
                                         </a>
-                                        <form action="{{ route('transaksi.penggajian.destroy', $gaji->id) }}" method="POST" onsubmit="return confirm('Hapus data ini?')" style="display:inline;">
+                                        <a href="{{ route('transaksi.penggajian.show', $gaji->id) }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <form action="{{ route('transaksi.penggajian.destroy', $gaji->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus data ini?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger" title="Hapus">
-                                                <i class="bi bi-trash"></i>
+                                            <button class="btn btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
                                     </div>
@@ -84,19 +153,13 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="12" class="text-center">Belum ada data penggajian.</td>
+                                <td colspan="10" class="text-center py-4">
+                                    <i class="fas fa-money-check-alt fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">Belum ada data penggajian</p>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
-                    @if($penggajians->count() > 0)
-                        <tfoot>
-                            <tr class="table-info">
-                                <th colspan="10" class="text-end">Total Keseluruhan:</th>
-                                <th>Rp {{ number_format($penggajians->sum('total_gaji'), 0, ',', '.') }}</th>
-                                <th></th>
-                            </tr>
-                        </tfoot>
-                    @endif
                 </table>
             </div>
         </div>

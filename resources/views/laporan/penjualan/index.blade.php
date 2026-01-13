@@ -44,26 +44,35 @@
     <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col-md-4">
-            <div class="card bg-primary text-white">
+            <div class="card bg-primary text-dark">
                 <div class="card-body">
-                    <h5 class="card-title">Total Transaksi</h5>
-                    <h3 class="mb-0">{{ $totalTransaksi }}</h3>
+                    <h5 class="card-title text-dark">Total Penjualan</h5>
+                    <h3 class="mb-0 text-dark">Rp {{ number_format($totalPenjualanFiltered, 0, ',', '.') }}</h3>
+                    <small class="text-dark opacity-75">
+                        @if(request('start_date') && request('end_date'))
+                            {{ \Carbon\Carbon::parse(request('start_date'))->format('d/m/Y') }} - {{ \Carbon\Carbon::parse(request('end_date'))->format('d/m/Y') }}
+                        @else
+                            Semua Periode
+                        @endif
+                    </small>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card bg-success text-white">
+            <div class="card bg-success text-dark">
                 <div class="card-body">
-                    <h5 class="card-title">Total Penjualan</h5>
-                    <h3 class="mb-0">Rp {{ number_format($totalPenjualan, 0, ',', '.') }}</h3>
+                    <h5 class="card-title text-dark">Total Penjualan Tunai</h5>
+                    <h3 class="mb-0 text-dark">Rp {{ number_format($totalPenjualanTunai, 0, ',', '.') }}</h3>
+                    <small class="text-dark opacity-75">Pembayaran Cash</small>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card bg-info text-white">
+            <div class="card bg-warning text-dark">
                 <div class="card-body">
-                    <h5 class="card-title">Rata-rata/Transaksi</h5>
-                    <h3 class="mb-0">Rp {{ $totalTransaksi > 0 ? number_format($totalPenjualan / $totalTransaksi, 0, ',', '.') : 0 }}</h3>
+                    <h5 class="card-title text-dark">Total Penjualan Kredit</h5>
+                    <h3 class="mb-0 text-dark">Rp {{ number_format($totalPenjualanKredit, 0, ',', '.') }}</h3>
+                    <small class="text-dark opacity-75">Pembayaran Kredit</small>
                 </div>
             </div>
         </div>
@@ -98,7 +107,7 @@
                                                 <div class="mb-1">
                                                     • {{ $detail->produk->nama_produk ?? 'Produk' }}
                                                     <span class="text-muted">
-                                                        ({{ number_format($detail->jumlah ?? 0, 2, ',', '.') }} pcs)
+                                                        ({{ number_format($detail->jumlah ?? 0, 0, ',', '.') }} pcs)
                                                     </span>
                                                     - Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}
                                                     @if(($detail->diskon_nominal ?? 0) > 0)
@@ -106,13 +115,14 @@
                                                             Diskon: Rp {{ number_format($detail->diskon_nominal, 0, ',', '.') }}
                                                         </span>
                                                     @endif
+                                                    = <strong>Rp {{ number_format(($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0) - ($detail->diskon_nominal ?? 0), 0, ',', '.') }}</strong>
                                                 </div>
                                             @endforeach
                                         </div>
                                     @else
                                         {{ $p->produk->nama_produk ?? '-' }}
                                         <span class="text-muted">
-                                            ({{ number_format($p->jumlah ?? 0, 2, ',', '.') }} pcs)
+                                            ({{ number_format($p->jumlah ?? 0, 0, ',', '.') }} pcs)
                                         </span>
                                     @endif
                                 </td>
@@ -125,7 +135,18 @@
                                         <span class="badge bg-warning">Kredit</span>
                                     @endif
                                 </td>
-                                <td class="text-end">Rp {{ number_format($p->total, 0, ',', '.') }}</td>
+                                <td class="text-end">
+                                    @php
+                                        $totalPenjualanItem = $p->total ?? 0;
+                                        // Jika total = 0, hitung dari details
+                                        if ($totalPenjualanItem == 0 && $p->details && $p->details->count() > 0) {
+                                            $totalPenjualanItem = $p->details->sum(function($detail) {
+                                                return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0) - ($detail->diskon_nominal ?? 0);
+                                            });
+                                        }
+                                    @endphp
+                                    <strong>Rp {{ number_format($totalPenjualanItem, 0, ',', '.') }}</strong>
+                                </td>
                                 <td class="text-center">
                                     <div class="btn-group">
                                         <a href="{{ route('laporan.penjualan.invoice', $p->id) }}" target="_blank" class="btn btn-sm btn-primary" title="Cetak Invoice">
