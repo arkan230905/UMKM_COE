@@ -21,6 +21,7 @@ class BahanBaku extends Model
         'faktor_konversi',
         'harga_satuan',
         'harga_per_satuan_dasar',
+        'harga_rata_rata',
         'stok',
         'stok_minimum',
         'keterangan',
@@ -29,6 +30,8 @@ class BahanBaku extends Model
 
     protected $casts = [
         'harga_satuan' => 'float',
+        'harga_per_satuan_dasar' => 'float',
+        'harga_rata_rata' => 'float',
         'stok' => 'float',
         'stok_minimum' => 'float',
     ];
@@ -59,6 +62,297 @@ class BahanBaku extends Model
         
         // Hitung berdasarkan konversi
         return (float) $this->harga_per_satuan_dasar / (float) $this->faktor_konversi;
+    }
+
+    /**
+     * Konversi harga dari satuan apapun ke satuan utama
+     * 
+     * @param float $harga Harga dalam satuan yang dibeli
+     * @param string $fromUnit Satuan pembelian
+     * @param float $quantity Jumlah yang dibeli
+     * @return array [convertedQuantity, hargaPerSatuanUtama]
+     */
+    public function konversiKeSatuanUtama($harga, $fromUnit, $quantity)
+    {
+        // Default values jika tidak ada
+        $satuanUtama = $this->satuan ?? 'KG';
+        
+        // Normalisasi satuan
+        $fromUnit = strtoupper(trim($fromUnit));
+        $satuanUtama = strtoupper(trim($satuanUtama));
+        
+        // Jika satuan sama, tidak perlu konversi
+        if ($fromUnit === $satuanUtama) {
+            return [
+                'quantity' => $quantity,
+                'harga_per_satuan_utama' => $harga
+            ];
+        }
+        
+        // Konversi faktor ke KG (satuan utama default)
+        $konversiFaktor = 1;
+        
+        switch($fromUnit) {
+            case 'KG':
+            case 'KILOGRAM':
+            case 'K':
+                $konversiFaktor = 1;
+                break;
+            case 'G':
+            case 'GRAM':
+            case 'GR':
+                $konversiFaktor = 0.001; // 1 gram = 0.001 kg
+                break;
+            case 'L':
+            case 'LITER':
+            case 'LTR':
+                $konversiFaktor = 1; // Asumi 1L = 1kg
+                break;
+            case 'ML':
+            case 'MILILITER':
+                $konversiFaktor = 0.001; // 1ml = 0.001L = 0.001kg
+                break;
+            case 'PCS':
+            case 'PC':
+            case 'BUAH':
+            case 'PIECE':
+            case 'PACK':
+            case 'PAK':
+            case 'BUNGKUS':
+            case 'BOX':
+            case 'BOTOL':
+            case 'DUS':
+                $konversiFaktor = 1; // Tidak bisa konversi, asumsikan 1 pcs = 1 kg
+                break;
+            default:
+                $konversiFaktor = 1;
+        }
+        
+        // Hitung jumlah dalam satuan utama (kg)
+        $quantityUtama = $quantity * $konversiFaktor;
+        
+        // Hitung harga per satuan utama
+        // Jika beli 200g @ Rp 2.000, maka 200g = 0.2kg
+        // Harga per kg = Rp 2.000 / 0.2kg = Rp 10.000/kg
+        if ($quantityUtama > 0) {
+            $hargaPerSatuanUtama = $harga / $quantityUtama;
+        } else {
+            $hargaPerSatuanUtama = $harga;
+        }
+        
+        return [
+            'quantity' => $quantityUtama,
+            'harga_per_satuan_utama' => $hargaPerSatuanUtama
+        ];
+    }
+    
+    /**
+     * Convert quantity to satuan dasar
+     * 
+     * @param float $quantity Jumlah yang akan dikonversi
+     * @param string $fromUnit Satuan asal
+     * @return float Jumlah dalam satuan dasar
+     */
+    public function convertToSatuanDasar($quantity, $fromUnit)
+    {
+        $fromUnit = strtoupper(trim($fromUnit));
+        
+        // Daftar konversi ke gram (asumsikan satuan dasar adalah gram)
+        $konversi = [
+            'KG' => 1000,
+            'KILOGRAM' => 1000,
+            'K' => 1000,
+            'G' => 1,
+            'GRAM' => 1,
+            'GR' => 1,
+            'LITER' => 1000, // Asumi 1L = 1000g untuk air
+            'L' => 1000,
+            'ML' => 1,
+            'PCS' => 1, // Tidak bisa dikonversi ke gram, asumsikan 1 pcs = 1 satuan dasar
+            'PC' => 1,
+            'BUAH' => 1,
+            'PIECE' => 1,
+            'PACK' => 1,
+            'PAK' => 1,
+            'BUNGKUS' => 1,
+            'KALENG' => 1,
+            'BOX' => 1,
+            'BOTOL' => 1,
+            'DUS' => 1,
+            'KODI' => 1,
+            'LUSIN' => 1,
+            'GROSS' => 1,
+        ];
+        
+        // Cek alias
+        $unitAliases = [
+            'KILO' => 'KG',
+            'K' => 'KG',
+            'GRAM' => 'G',
+            'GRM' => 'G',
+            'MILILITER' => 'ML',
+            'LITER' => 'L',
+            'ONS' => 'HG',
+            'KUINTAL' => 'KW',
+        ];
+        
+        if (isset($unitAliases[$fromUnit])) {
+            $fromUnit = $unitAliases[$fromUnit];
+        }
+        
+        // Pastikan satuan ada dalam daftar konversi
+        if (!array_key_exists($fromUnit, $konversi)) {
+            // Log warning untuk satuan tidak dikenali
+            \Log::warning("Satuan tidak dikenali: $fromUnit, menggunakan konversi 1:1 untuk bahan baku ID: " . $this->id);
+            return $quantity;
+        }
+        
+        $faktorKonversi = $konversi[$fromUnit] ?? 1;
+        return $quantity * $faktorKonversi;
+    }
+    
+    /**
+     * Convert quantity from satuan dasar
+     * 
+     * @param float $quantity Jumlah dalam satuan dasar
+     * @param string $toUnit Satuan tujuan
+     * @return float Jumlah dalam satuan yang diinginkan
+     */
+    public function convertFromSatuanDasar($quantity, $toUnit)
+    {
+        $toUnit = strtoupper(trim($toUnit));
+        
+        // Daftar konversi dari gram ke satuan lain
+        $konversi = [
+            'KG' => 0.001,
+            'KILOGRAM' => 0.001,
+            'K' => 0.001,
+            'G' => 1,
+            'GRAM' => 1,
+            'GR' => 1,
+            'LITER' => 0.001,
+            'L' => 0.001,
+            'ML' => 0.001,
+            'PCS' => 1,
+            'PC' => 1,
+            'BUAH' => 1,
+            'PIECE' => 1,
+            'PACK' => 1,
+            'PAK' => 1,
+            'BUNGKUS' => 1,
+            'KALENG' => 1,
+            'BOX' => 1,
+            'BOTOL' => 1,
+            'DUS' => 1,
+            'KODI' => 1,
+            'LUSIN' => 1,
+            'GROSS' => 1,
+        ];
+        
+        // Validasi satuan
+        if (!array_key_exists($toUnit, $konversi)) {
+            \Log::warning("Satuan '{$toUnit}' tidak dikenali, menggunakan konversi 1:1", [
+                'bahan_baku_id' => $this->id,
+                'satuan' => $toUnit
+            ]);
+        }
+        
+        $faktorKonversi = $konversi[$toUnit] ?? 1;
+        return $quantity * $faktorKonversi;
+    }
+    
+    /**
+     * Update harga rata-rata berdasarkan pembelian baru
+     * 
+     * @param float $hargaBaru Harga per satuan pembelian yang baru
+     * @param float $jumlahBaru Jumlah yang dibeli (dalam satuan utama)
+     * @return void
+     */
+    public function updateHargaRataRata($hargaBaru, $jumlahBaru)
+    {
+        $hargaRataRataLama = $this->harga_rata_rata ?? $this->harga_satuan ?? 0;
+        $totalStokLama = $this->stok ?? 0;
+        
+        // Hitung total stok setelah pembelian
+        $totalStokBaru = $totalStokLama + $jumlahBaru;
+        
+        if ($totalStokBaru > 0) {
+            // Weighted average: (harga_lama * stok_lama + harga_baru * jumlah_baru) / total_stok_baru
+            $totalHargaLama = $hargaRataRataLama * $totalStokLama;
+            $totalHargaBaru = $hargaBaru * $jumlahBaru;
+            $hargaRataRataBaru = ($totalHargaLama + $totalHargaBaru) / $totalStokBaru;
+            
+            $this->update([
+                'harga_rata_rata' => $hargaRataRataBaru,
+                'harga_satuan' => $hargaRataRataBaru, // Update harga_satuan juga
+                'stok' => $totalStokBaru // Update stok juga
+            ]);
+        }
+    }
+    
+    /**
+     * Update harga dan trigger biaya bahan update
+     */
+    public function updateHarga($hargaBaru)
+    {
+        $this->update([
+            'harga_satuan' => $hargaBaru,
+            'harga_rata_rata' => $hargaBaru
+        ]);
+        
+        // Trigger observer untuk update biaya bahan dan BOM
+        $this->refresh();
+    }
+    
+    /**
+     * Update harga ke harga pembelian terakhir (bukan weighted average)
+     * 
+     * @param float $hargaBaru Harga per satuan pembelian yang baru
+     * @return void
+     */
+    public function updateHargaTerakhir($hargaBaru)
+    {
+        $this->update([
+            'harga_satuan' => $hargaBaru,
+            'harga_rata_rata' => $hargaBaru // Juga update rata-rata ke harga terakhir
+        ]);
+    }
+    
+    /**
+     * Get harga rata-rata saat ini
+     * 
+     * @return float
+     */
+    public function getHargaRataRataSaatIni()
+    {
+        return $this->harga_rata_rata ?? $this->harga_satuan ?? 0;
+    }
+    
+    /**
+     * Recalculate harga rata-rata dari semua pembelian
+     */
+    public function recalculateHargaRataRataDariPembelian()
+    {
+        $hargaService = new \App\Services\HargaService();
+        return $hargaService->recalculateHargaRataRata($this->id);
+    }
+    
+    /**
+     * Validate dan dapatkan laporan harga rata-rata
+     */
+    public function validateHargaRataRata()
+    {
+        $hargaService = new \App\Services\HargaService();
+        return $hargaService->validateHargaRataRata($this->id);
+    }
+    
+    /**
+     * Get riwayat pembelian detail
+     */
+    public function getRiwayatPembelian($limit = 10)
+    {
+        $hargaService = new \App\Services\HargaService();
+        return $hargaService->getPurchaseHistory($this->id, $limit);
     }
 
     /**
@@ -140,7 +434,11 @@ class BahanBaku extends Model
      */
     public function satuan()
     {
-        return $this->belongsTo(Satuan::class);
+        return $this->belongsTo(Satuan::class, 'satuan_id')
+            ->withDefault([
+                'nama' => 'Tidak Diketahui',
+                'kode_satuan' => 'N/A'
+            ]);
     }
 
     /**

@@ -66,7 +66,12 @@
                                             <i class="fas fa-calculator text-primary"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-semibold">{{ $coa->nama_akun }}</div>
+                                            <div class="fw-semibold">
+                                                {{ $coa->nama_akun }}
+                                                @if($coa->is_akun_header)
+                                                    <span class="badge bg-secondary ms-1">Header</span>
+                                                @endif
+                                            </div>
                                             <small class="text-muted">ID: {{ $coa->id }}</small>
                                         </div>
                                     </div>

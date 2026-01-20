@@ -17,12 +17,12 @@ class ProsesProduksi extends Model
         'deskripsi',
         'tarif_btkl',
         'satuan_btkl',
-        'is_active'
+        'kapasitas_per_jam',
     ];
 
     protected $casts = [
         'tarif_btkl' => 'decimal:2',
-        'is_active' => 'boolean'
+        'kapasitas_per_jam' => 'integer',
     ];
 
     /**
@@ -49,8 +49,19 @@ class ProsesProduksi extends Model
      */
     public static function generateKode(): string
     {
-        $lastProses = self::orderBy('id', 'desc')->first();
-        $nextNumber = $lastProses ? ((int) substr($lastProses->kode_proses, 4)) + 1 : 1;
+        // Get the last kode_proses with PRO- prefix, ordered by the numeric part
+        $lastProses = self::where('kode_proses', 'LIKE', 'PRO-%')
+            ->orderByRaw('CAST(SUBSTRING(kode_proses, 5) AS UNSIGNED) DESC')
+            ->first();
+        
+        if ($lastProses && $lastProses->kode_proses) {
+            // Extract number from PRO-XXX format
+            $lastNumber = (int) substr($lastProses->kode_proses, 4);
+            $nextNumber = $lastNumber + 1;
+        } else {
+            $nextNumber = 1;
+        }
+        
         return 'PRO-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
     }
 
@@ -79,6 +90,14 @@ class ProsesProduksi extends Model
             ->withPivot('kuantitas_default')
             ->withTimestamps();
     }
+    
+    /**
+     * Get BTKL terkait
+     */
+    public function btkl()
+    {
+        return $this->belongsTo(Btkl::class, 'btkl_id');
+    }
 
     /**
      * Hitung total BOP default untuk proses ini
@@ -95,6 +114,74 @@ class ProsesProduksi extends Model
      */
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->where('tarif_btkl', '>', 0);
+    }
+
+    /**
+     * Hitung biaya BTKL per unit produk
+     * Formula: Tarif per Jam ÷ Kapasitas per Jam
+     *
+     * @return float
+     */
+    public function getBiayaPerProdukAttribute(): float
+    {
+        if ($this->kapasitas_per_jam > 0) {
+            return $this->tarif_btkl / $this->kapasitas_per_jam;
+        }
+        return 0;
+    }
+
+    /**
+     * Format biaya per produk untuk tampilan
+     *
+     * @return string
+     */
+    public function getBiayaPerProdukFormattedAttribute(): string
+    {
+        $biaya = $this->getBiayaPerProdukAttribute();
+        if ($biaya > 0) {
+            return 'Rp ' . number_format($biaya, 2, ',', '.');
+        }
+        return '-';
+    }
+
+    /**
+     * Get efisiensi produksi (unit per rupiah)
+     *
+     * @return float
+     */
+    public function getEfisiensiProduksiAttribute(): float
+    {
+        if ($this->tarif_btkl > 0) {
+            return $this->kapasitas_per_jam / $this->tarif_btkl;
+        }
+        return 0;
+    }
+
+    /**
+     * Relasi ke BOP Proses
+     */
+    public function bopProses()
+    {
+        return $this->hasOne(BopProses::class, 'proses_produksi_id');
+    }
+
+    /**
+     * Check if this process has BOP configured
+     */
+    public function hasBop(): bool
+    {
+        return $this->bopProses !== null;
+    }
+
+    /**
+     * Get total cost per unit (BTKL + BOP)
+     */
+    public function getTotalCostPerUnitAttribute(): float
+    {
+        $btklCost = $this->biaya_per_produk;
+        $bopCost = $this->bopProses ? $this->bopProses->bop_per_unit : 0;
+        
+        return $btklCost + $bopCost;
     }
 }

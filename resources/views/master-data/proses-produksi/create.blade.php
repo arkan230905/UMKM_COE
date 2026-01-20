@@ -18,7 +18,26 @@
             </h5>
         </div>
         <div class="card-body">
-            <form action="{{ route('master-data.btkl.store') }}" method="POST">
+            @if($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <strong>Terjadi kesalahan:</strong>
+                    <ul class="mb-0">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show">
+                    {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            <form action="{{ route('master-data.btkl.store') }}" method="POST" id="createBtklForm">
                 @csrf
                 
                 <div class="row">
@@ -62,52 +81,32 @@
                     </div>
                 </div>
 
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Kapasitas per Jam <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" name="kapasitas_per_jam" class="form-control @error('kapasitas_per_jam') is-invalid @enderror" 
+                                       value="{{ old('kapasitas_per_jam', 50) }}" min="1" step="1" placeholder="50" required>
+                                <span class="input-group-text">unit/jam</span>
+                            </div>
+                            @error('kapasitas_per_jam')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="text-muted">Jumlah unit yang dapat diproduksi per jam</small>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label">Deskripsi</label>
                     <textarea name="deskripsi" class="form-control" rows="2" placeholder="Deskripsi proses produksi">{{ old('deskripsi') }}</textarea>
                 </div>
 
                 <hr>
-                <h5 class="mb-3"><i class="fas fa-cogs"></i> Komponen BOP Default</h5>
-                <p class="text-muted small">Komponen Biaya Overhead Pabrik yang digunakan dalam proses ini (opsional)</p>
-
-                <div id="bop-container">
-                    <div class="row bop-row mb-2">
-                        <div class="col-md-5">
-                            <select name="komponen_bop_id[]" class="form-select">
-                                <option value="">-- Pilih Komponen BOP --</option>
-                                @foreach($komponenBops as $komponen)
-                                    <option value="{{ $komponen->id }}" data-satuan="{{ $komponen->satuan }}" data-tarif="{{ $komponen->tarif_per_satuan }}">
-                                        {{ $komponen->nama_komponen }} ({{ $komponen->satuan }} @ Rp {{ number_format($komponen->tarif_per_satuan, 0, ',', '.') }})
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="input-group">
-                                <input type="number" name="kuantitas_default[]" class="form-control" placeholder="Kuantitas" min="0" step="0.01" value="0">
-                                <span class="input-group-text satuan-label">-</span>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <input type="text" class="form-control biaya-preview" readonly placeholder="Biaya">
-                        </div>
-                        <div class="col-md-1">
-                            <button type="button" class="btn btn-danger btn-remove-bop" disabled>
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <button type="button" class="btn btn-outline-primary btn-sm mb-3" id="btn-add-bop">
-                    <i class="fas fa-plus"></i> Tambah Komponen BOP
-                </button>
-
-                <hr>
                 <div class="d-flex justify-content-end gap-2">
-                    <a href="{{ route('master-data.proses-produksi.index') }}" class="btn btn-secondary">Batal</a>
-                    <button type="submit" class="btn btn-primary">
+                    <a href="{{ route('master-data.btkl.index') }}" class="btn btn-secondary">Batal</a>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
                         <i class="fas fa-save"></i> Simpan
                     </button>
                 </div>
@@ -118,69 +117,18 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const container = document.getElementById('bop-container');
-    const btnAdd = document.getElementById('btn-add-bop');
+    const form = document.getElementById('createBtklForm');
+    const submitBtn = document.getElementById('submitBtn');
     
-    // Template untuk row baru
-    const rowTemplate = container.querySelector('.bop-row').cloneNode(true);
-    
-    // Add new row
-    btnAdd.addEventListener('click', function() {
-        const newRow = rowTemplate.cloneNode(true);
-        newRow.querySelector('select').value = '';
-        newRow.querySelector('input[type="number"]').value = '0';
-        newRow.querySelector('.biaya-preview').value = '';
-        newRow.querySelector('.satuan-label').textContent = '-';
-        newRow.querySelector('.btn-remove-bop').disabled = false;
-        container.appendChild(newRow);
-        updateRemoveButtons();
+    form.addEventListener('submit', function(e) {
+        console.log('Form is being submitted...');
+        console.log('Form action:', form.action);
+        console.log('Form method:', form.method);
+        
+        // Disable submit button to prevent double submission
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
     });
-    
-    // Remove row
-    container.addEventListener('click', function(e) {
-        if (e.target.closest('.btn-remove-bop')) {
-            const rows = container.querySelectorAll('.bop-row');
-            if (rows.length > 1) {
-                e.target.closest('.bop-row').remove();
-            }
-            updateRemoveButtons();
-        }
-    });
-    
-    // Update satuan dan biaya preview
-    container.addEventListener('change', function(e) {
-        if (e.target.tagName === 'SELECT') {
-            const row = e.target.closest('.bop-row');
-            const option = e.target.selectedOptions[0];
-            const satuan = option.dataset.satuan || '-';
-            const tarif = parseFloat(option.dataset.tarif) || 0;
-            row.querySelector('.satuan-label').textContent = satuan;
-            updateBiayaPreview(row, tarif);
-        }
-    });
-    
-    container.addEventListener('input', function(e) {
-        if (e.target.name === 'kuantitas_default[]') {
-            const row = e.target.closest('.bop-row');
-            const select = row.querySelector('select');
-            const option = select.selectedOptions[0];
-            const tarif = parseFloat(option?.dataset?.tarif) || 0;
-            updateBiayaPreview(row, tarif);
-        }
-    });
-    
-    function updateBiayaPreview(row, tarif) {
-        const qty = parseFloat(row.querySelector('input[type="number"]').value) || 0;
-        const biaya = qty * tarif;
-        row.querySelector('.biaya-preview').value = 'Rp ' + biaya.toLocaleString('id-ID');
-    }
-    
-    function updateRemoveButtons() {
-        const rows = container.querySelectorAll('.bop-row');
-        rows.forEach((row, index) => {
-            row.querySelector('.btn-remove-bop').disabled = rows.length === 1;
-        });
-    }
 });
 </script>
 @endsection

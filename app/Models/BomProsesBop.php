@@ -58,10 +58,36 @@ class BomProsesBop extends Model
     }
 
     /**
-     * Relasi ke Komponen BOP
+     * Relasi ke Komponen BOP (sistem baru)
      */
     public function komponenBop()
     {
         return $this->belongsTo(KomponenBop::class, 'komponen_bop_id');
+    }
+    
+    /**
+     * Relasi ke BOP (sistem lama - backward compatibility)
+     */
+    public function bop()
+    {
+        return $this->belongsTo(Bop::class, 'bop_id');
+    }
+    
+    /**
+     * Get nama komponen BOP (support sistem lama dan baru)
+     */
+    public function getNamaBopAttribute()
+    {
+        // Cek sistem baru dulu (komponen_bop_id)
+        if ($this->komponenBop) {
+            return $this->komponenBop->nama_komponen;
+        }
+        
+        // Fallback ke sistem lama (bop_id)
+        if ($this->bop) {
+            return $this->bop->nama_akun;
+        }
+        
+        return 'BOP';
     }
 }

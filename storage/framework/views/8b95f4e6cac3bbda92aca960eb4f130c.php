@@ -12,35 +12,6 @@
         </div>
     </div>
 
-    <!-- Filter Section -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <select class="form-select" id="monthFilter" onchange="applyFilter()">
-                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $availableMonths; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $month): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <option value="<?php echo e($key); ?>" <?php echo e($month == $key ? 'selected' : ''); ?>>
-                        <?php echo e($month); ?>
-
-                    </option>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-            </select>
-        </div>
-        <div class="col-md-4">
-            <select class="form-select" id="yearFilter" onchange="applyFilter()">
-                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $availableYears; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $availableYear): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <option value="<?php echo e($availableYear); ?>" <?php echo e($year == $availableYear ? 'selected' : ''); ?>>
-                        <?php echo e($availableYear); ?>
-
-                    </option>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-            </select>
-        </div>
-        <div class="col-md-4">
-            <button class="btn btn-primary w-100" onclick="applyFilter()">
-                <i class="fas fa-filter"></i> Terapkan Filter
-            </button>
-        </div>
-    </div>
-
     <!-- KPI Cards -->
     <div class="row g-4 mb-5">
         <div class="col-lg-3 col-md-6">
@@ -222,6 +193,69 @@
         </div>
     </div>
 
+    <!-- ✅ TAMBAHAN: Kas & Bank Details dan Sales Chart -->
+    <div class="row g-4 mb-5">
+        <!-- Kas & Bank Details -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-wallet me-2"></i>Detail Kas & Bank</h5>
+                </div>
+                <div class="card-body">
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($kasBankDetails->count() > 0): ?>
+                        <div class="list-group list-group-flush">
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $kasBankDetails; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $detail): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0"><?php echo e($detail['nama_akun']); ?></h6>
+                                        <small class="text-muted"><?php echo e($detail['kode_akun']); ?></small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge <?php echo e($detail['saldo'] >= 0 ? 'bg-success' : 'bg-danger'); ?> fs-6">
+                                            Rp <?php echo e(number_format($detail['saldo'], 0, ',', '.')); ?>
+
+                                        </span>
+                                    </div>
+                                </div>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                        </div>
+                        <div class="mt-3 pt-3 border-top">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 fw-bold">Total Kas & Bank</h6>
+                                <h5 class="mb-0 fw-bold <?php echo e($totalKasBank >= 0 ? 'text-primary' : 'text-danger'); ?>">
+                                    Rp <?php echo e(number_format($totalKasBank, 0, ',', '.')); ?>
+
+                                </h5>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <a href="<?php echo e(route('laporan.kas-bank')); ?>" class="btn btn-outline-primary btn-sm w-100">
+                                <i class="fas fa-eye me-2"></i>Lihat Laporan Lengkap
+                            </a>
+                        </div>
+                    <?php else: ?>
+                        <div class="text-center py-4">
+                            <i class="fas fa-wallet text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
+                            <p class="text-muted mt-3">Belum ada data Kas & Bank</p>
+                        </div>
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales Chart -->
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Grafik Penjualan (12 Bulan Terakhir)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="salesChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Recent Transactions -->
     <div class="row g-4">
         <div class="col-lg-6">
@@ -254,12 +288,117 @@
 
 </div>
 
+<!-- ✅ TAMBAHAN: Chart.js untuk Sales Chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-function applyFilter() {
-    const month = document.getElementById('monthFilter').value;
-    const year = document.getElementById('yearFilter').value;
-    window.location.href = `<?php echo e(route('dashboard')); ?>?month=${month}&year=${year}`;
-}
+// ✅ Sales Chart
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('salesChart');
+    if (ctx) {
+        const salesChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: <?php echo json_encode($salesChartData['labels']); ?>,
+                datasets: [{
+                    label: 'Penjualan (Rp)',
+                    data: <?php echo json_encode($salesChartData['data']); ?>,
+                    borderColor: '#28A745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: '#28A745',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: '#28A745',
+                    pointHoverBorderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 12,
+                                weight: 'bold'
+                            },
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        enabled: true,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        padding: 12,
+                        cornerRadius: 8,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += 'Rp ' + new Intl.NumberFormat('id-ID').format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'Rp ' + new Intl.NumberFormat('id-ID', {
+                                    notation: 'compact',
+                                    compactDisplay: 'short'
+                                }).format(value);
+                            },
+                            font: {
+                                size: 11
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            drawBorder: false
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            font: {
+                                size: 11
+                            }
+                        },
+                        grid: {
+                            display: false,
+                            drawBorder: false
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                }
+            }
+        });
+    }
+});
 </script>
 <?php $__env->stopSection(); ?>
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\UMKM_COE\resources\views/dashboard.blade.php ENDPATH**/ ?>

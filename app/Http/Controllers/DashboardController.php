@@ -24,24 +24,6 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Get filter parameters
-        $month = request()->get('month', now()->month);
-        $year = request()->get('year', now()->year);
-        
-        // Create month names for display
-        $monthNames = [
-            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
-        ];
-        
-        // Get available years (from transactions)
-        $availableYears = range(2020, now()->year);
-        $availableMonths = $monthNames;
-        
-        $selectedMonth = $monthNames[$month] ?? 'Bulan ' . $month;
-        $selectedYear = $year;
-        
         // Master Data
         $totalPegawai     = Pegawai::count();
         $totalPresensi    = Presensi::count();
@@ -108,10 +90,13 @@ class DashboardController extends Controller
         $trendProduksi = $this->calculateTrend('produksi');
         $trendRetur = $this->calculateTrend('retur');
 
+        // ✅ TAMBAHAN: Data Kas & Bank Detail
+        $kasBankDetails = $this->getKasBankDetails();
+        
+        // ✅ TAMBAHAN: Data Penjualan untuk Chart (12 bulan terakhir)
+        $salesChartData = $this->getSalesChartData();
+
         return view('dashboard', compact(
-            // Filter Data
-            'month', 'year', 'selectedMonth', 'selectedYear', 'availableMonths', 'availableYears',
-            
             // Master Data
             'totalPegawai',
             'totalPresensi',
@@ -144,7 +129,11 @@ class DashboardController extends Controller
             'trendPenjualan',
             'trendPembelian',
             'trendProduksi',
-            'trendRetur'
+            'trendRetur',
+            
+            // ✅ TAMBAHAN: Kas & Bank Details dan Sales Chart
+            'kasBankDetails',
+            'salesChartData'
         ));
     }
 
@@ -175,13 +164,14 @@ class DashboardController extends Controller
                 if (\Schema::hasTable('journal_lines')) {
                     $debit = \DB::table('journal_lines')->where('account_id', $account->id)->sum('debit');
                     $kredit = \DB::table('journal_lines')->where('account_id', $account->id)->sum('credit');
-                    $total += $saldoAwal + (float)$debit - (float)$kredit;
+                    $saldo = $saldoAwal + (float)$debit - (float)$kredit;
+                    $total += $saldo;  // ✅ Tidak pakai max(0, ...) agar saldo negatif tetap dihitung
                 } else {
                     $total += $saldoAwal;
                 }
             }
             
-            return max(0, $total);
+            return $total;  // ✅ Return total apa adanya (bisa negatif)
         } catch (\Exception $e) {
             \Log::error('Error getTotalKasBank: ' . $e->getMessage());
             return 0;
@@ -216,8 +206,8 @@ class DashboardController extends Controller
         try {
             // Hitung dari penjualan kredit yang belum lunas
             $totalPiutang = Penjualan::where('payment_method', 'credit')
-                ->where('status', '!=', 'lunas')
-                ->sum('total');
+                ->whereIn('status', ['pending', 'partial'])
+                ->sum('sisa_pembayaran');
             
             return (float)$totalPiutang;
         } catch (\Exception $e) {
@@ -343,5 +333,81 @@ class DashboardController extends Controller
         $q->where('nama_akun', 'like', '%utang%')
           ->orWhere('kode_akun', 'like', '21%');
         return $q->pluck('id')->all();
+    }
+
+    /**
+     * ✅ TAMBAHAN: Get Kas & Bank details per account
+     */
+    private function getKasBankDetails()
+    {
+        try {
+            if (!\Schema::hasTable('coas')) { return collect(); }
+
+            $coas = \App\Helpers\AccountHelper::getKasBankAccounts();
+            if ($coas->isEmpty()) { return collect(); }
+
+            $details = [];
+            foreach ($coas as $coa) {
+                $saldoAwal = (float)$coa->saldo_awal;
+                
+                // Cari account_id yang sesuai
+                $account = \DB::table('accounts')->where('code', $coa->kode_akun)->first();
+                $saldo = $saldoAwal;
+                
+                if ($account && \Schema::hasTable('journal_lines')) {
+                    $debit = \DB::table('journal_lines')->where('account_id', $account->id)->sum('debit');
+                    $kredit = \DB::table('journal_lines')->where('account_id', $account->id)->sum('credit');
+                    $saldo = $saldoAwal + (float)$debit - (float)$kredit;
+                }
+                
+                $details[] = [
+                    'nama_akun' => $coa->nama_akun,
+                    'kode_akun' => $coa->kode_akun,
+                    'saldo' => $saldo  // ✅ Tidak pakai max(0, ...) agar saldo negatif tetap ditampilkan
+                ];
+            }
+            
+            return collect($details);
+        } catch (\Exception $e) {
+            \Log::error('Error getKasBankDetails: ' . $e->getMessage());
+            return collect();
+        }
+    }
+
+    /**
+     * ✅ TAMBAHAN: Get sales data for chart (last 12 months)
+     */
+    private function getSalesChartData()
+    {
+        try {
+            $data = [];
+            $labels = [];
+            
+            // Get last 12 months
+            for ($i = 11; $i >= 0; $i--) {
+                $date = now()->subMonths($i);
+                $month = $date->month;
+                $year = $date->year;
+                
+                // Get total sales for this month
+                $total = Penjualan::whereMonth('tanggal', $month)
+                    ->whereYear('tanggal', $year)
+                    ->sum('total');
+                
+                $labels[] = $date->format('M Y');
+                $data[] = (float)$total;
+            }
+            
+            return [
+                'labels' => $labels,
+                'data' => $data
+            ];
+        } catch (\Exception $e) {
+            \Log::error('Error getSalesChartData: ' . $e->getMessage());
+            return [
+                'labels' => [],
+                'data' => []
+            ];
+        }
     }
 }

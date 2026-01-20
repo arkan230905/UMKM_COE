@@ -36,6 +36,9 @@ class LaporanKasBankController extends Controller
         // Hitung saldo untuk setiap akun
         $dataKasBank = [];
         $totalKeseluruhan = 0;
+        $totalSaldoAwal = 0;
+        $totalTransaksiMasuk = 0;
+        $totalTransaksiKeluar = 0;
         
         foreach ($akunKasBank as $akun) {
             $saldoAwal = $this->getSaldoAwal($akun, $startDate);
@@ -47,7 +50,7 @@ class LaporanKasBankController extends Controller
             $saldoAkhir = $saldoAwal + $transaksiMasuk - $transaksiKeluar;
             
             $dataKasBank[] = [
-                'id' => $akun->id,
+                'id' => $akun->kode_akun, // Use kode_akun as ID for API calls
                 'kode_akun' => $akun->kode_akun,
                 'nama_akun' => $akun->nama_akun,
                 'saldo_awal' => $saldoAwal,
@@ -57,51 +60,56 @@ class LaporanKasBankController extends Controller
             ];
             
             $totalKeseluruhan += $saldoAkhir;
+            $totalSaldoAwal += $saldoAwal;
+            $totalTransaksiMasuk += $transaksiMasuk;
+            $totalTransaksiKeluar += $transaksiKeluar;
         }
         
         return view('laporan.kas-bank.index', compact(
             'dataKasBank',
             'totalKeseluruhan',
+            'totalSaldoAwal',
+            'totalTransaksiMasuk',
+            'totalTransaksiKeluar',
             'startDate',
             'endDate'
         ));
     }
     
     /**
-     * Get saldo awal sebelum periode
-     * Saldo Awal = Saldo Awal dari COA + Mutasi sebelum periode
+     * Get saldo awal sebelum periode - sama dengan logic COA
+     * Saldo Awal = Saldo dari CoaPeriodBalance atau saldo awal COA
      */
     private function getSaldoAwal($akun, $startDate)
     {
-        // 1. Ambil saldo awal dari COA (neraca saldo)
-        $saldoAwalCoa = $akun->saldo_awal ?? 0;
+        // 1. Cari periode yang sesuai dengan start date
+        $periode = \App\Models\CoaPeriod::where('periode', date('Y-m', strtotime($startDate)))->first();
         
-        // 2. Cari account_id yang sesuai dengan kode_akun ini
-        $account = DB::table('accounts')
-            ->where('code', $akun->kode_akun)
-            ->first();
-        
-        if (!$account) {
-            // Jika tidak ada di accounts, return saldo awal COA saja
-            return $saldoAwalCoa;
+        if ($periode) {
+            // 2. Cek apakah ada saldo periode
+            $periodBalance = \App\Models\CoaPeriodBalance::where('kode_akun', $akun->kode_akun)
+                ->where('period_id', $periode->id)
+                ->first();
+            
+            if ($periodBalance) {
+                return is_numeric($periodBalance->saldo_awal) ? (float) $periodBalance->saldo_awal : 0;
+            }
+            
+            // 3. Jika tidak ada, cek periode sebelumnya
+            $previousPeriod = $periode->getPreviousPeriod();
+            if ($previousPeriod) {
+                $previousBalance = \App\Models\CoaPeriodBalance::where('kode_akun', $akun->kode_akun)
+                    ->where('period_id', $previousPeriod->id)
+                    ->first();
+                
+                if ($previousBalance) {
+                    return is_numeric($previousBalance->saldo_akhir) ? (float) $previousBalance->saldo_akhir : 0;
+                }
+            }
         }
         
-        // 3. Hitung mutasi dari journal lines sebelum start date
-        $mutasiSebelumPeriode = JournalLine::where('account_id', $account->id)
-            ->whereHas('entry', function($query) use ($startDate) {
-                $query->where('tanggal', '<', $startDate);
-            })
-            ->selectRaw('SUM(debit) as total_debit, SUM(credit) as total_credit')
-            ->first();
-        
-        $totalDebit = $mutasiSebelumPeriode->total_debit ?? 0;
-        $totalCredit = $mutasiSebelumPeriode->total_credit ?? 0;
-        
-        // 4. Untuk akun Kas & Bank (Aset), saldo normal adalah Debit
-        // Saldo = Saldo Awal + Total Debit - Total Credit
-        $saldoAwal = $saldoAwalCoa + $totalDebit - $totalCredit;
-        
-        return $saldoAwal;
+        // 4. Jika tidak ada periode atau saldo, gunakan saldo awal dari COA
+        return is_numeric($akun->saldo_awal) ? (float) ($akun->saldo_awal ?? 0) : 0;
     }
     
     /**
@@ -119,13 +127,13 @@ class LaporanKasBankController extends Controller
         }
         
         // Hitung debit (transaksi masuk) dalam periode
-        $masuk = JournalLine::where('account_id', $account->id)
-            ->whereHas('entry', function($query) use ($startDate, $endDate) {
-                $query->whereBetween('tanggal', [$startDate, $endDate]);
-            })
+        $masuk = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+            ->where('journal_lines.account_id', $account->id)
+            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
             ->sum('debit');
             
-        return $masuk ?? 0;
+        return is_numeric($masuk) ? (float) $masuk : 0;
     }
     
     /**
@@ -143,13 +151,13 @@ class LaporanKasBankController extends Controller
         }
         
         // Hitung credit (transaksi keluar) dalam periode
-        $keluar = JournalLine::where('account_id', $account->id)
-            ->whereHas('entry', function($query) use ($startDate, $endDate) {
-                $query->whereBetween('tanggal', [$startDate, $endDate]);
-            })
+        $keluar = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+            ->where('journal_lines.account_id', $account->id)
+            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
             ->sum('credit');
             
-        return $keluar ?? 0;
+        return is_numeric($keluar) ? (float) $keluar : 0;
     }
     
     /**
@@ -175,30 +183,26 @@ class LaporanKasBankController extends Controller
             return response()->json([]);
         }
         
-        $transaksi = JournalLine::where('account_id', $account->id)
-            ->where('debit', '>', 0)
-            ->whereHas('entry', function($query) use ($startDate, $endDate) {
-                $query->whereBetween('tanggal', [$startDate, $endDate]);
-            })
-            ->with('entry')
-            ->orderBy('created_at', 'desc')
+        $transaksi = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+            ->where('journal_lines.account_id', $account->id)
+            ->where('journal_lines.debit', '>', 0)
+            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+            ->orderBy('journal_entries.tanggal', 'desc')
             ->get()
             ->map(function($line) {
-                $entry = $line->entry;
-                if (!$entry) {
-                    return null;
-                }
-                
                 return [
-                    'tanggal' => $entry->tanggal instanceof \Carbon\Carbon ? $entry->tanggal->format('d/m/Y') : date('d/m/Y', strtotime($entry->tanggal)),
-                    'nomor_transaksi' => $this->getNomorTransaksi($entry),
-                    'jenis' => $this->getJenisTransaksi($entry),
-                    'keterangan' => $entry->memo ?? '-',
+                    'tanggal' => date('d/m/Y', strtotime($line->tanggal)),
+                    'nomor_transaksi' => $this->getNomorTransaksiFromData($line),
+                    'jenis' => $this->getJenisTransaksiFromData($line),
+                    'keterangan' => $line->memo ?? '-',
                     'nominal' => (float)$line->debit
                 ];
             })
-            ->filter() // Remove null values
-            ->values(); // Re-index array
+            ->filter(function($item) {
+                return !is_null($item['nomor_transaksi']);
+            })
+            ->values();
         
         return response()->json($transaksi);
     }
@@ -226,32 +230,111 @@ class LaporanKasBankController extends Controller
             return response()->json([]);
         }
         
-        $transaksi = JournalLine::where('account_id', $account->id)
-            ->where('credit', '>', 0)
-            ->whereHas('entry', function($query) use ($startDate, $endDate) {
-                $query->whereBetween('tanggal', [$startDate, $endDate]);
-            })
-            ->with('entry')
-            ->orderBy('created_at', 'desc')
+        $transaksi = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+            ->where('journal_lines.account_id', $account->id)
+            ->where('journal_lines.credit', '>', 0)
+            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+            ->orderBy('journal_entries.tanggal', 'desc')
             ->get()
             ->map(function($line) {
-                $entry = $line->entry;
-                if (!$entry) {
-                    return null;
-                }
-                
                 return [
-                    'tanggal' => $entry->tanggal instanceof \Carbon\Carbon ? $entry->tanggal->format('d/m/Y') : date('d/m/Y', strtotime($entry->tanggal)),
-                    'nomor_transaksi' => $this->getNomorTransaksi($entry),
-                    'jenis' => $this->getJenisTransaksi($entry),
-                    'keterangan' => $entry->memo ?? '-',
+                    'tanggal' => date('d/m/Y', strtotime($line->tanggal)),
+                    'nomor_transaksi' => $this->getNomorTransaksiFromData($line),
+                    'jenis' => $this->getJenisTransaksiFromData($line),
+                    'keterangan' => $line->memo ?? '-',
                     'nominal' => (float)$line->credit
                 ];
             })
-            ->filter() // Remove null values
-            ->values(); // Re-index array
+            ->filter(function($item) {
+                return !is_null($item['nomor_transaksi']);
+            })
+            ->values();
         
         return response()->json($transaksi);
+    }
+    
+    /**
+     * Get nomor transaksi dari data langsung
+     */
+    private function getNomorTransaksiFromData($line)
+    {
+        if (!$line) return '-';
+        
+        $referenceType = $line->ref_type ?? '';
+        $referenceId = $line->ref_id ?? null;
+        
+        if (!$referenceId) {
+            return 'JU-' . $line->journal_entry_id;
+        }
+        
+        // Ambil nomor transaksi dari tabel asli
+        try {
+            switch ($referenceType) {
+                case 'sale':
+                case 'sale_cogs':
+                case 'penjualan':
+                    return 'PJ-' . $referenceId;
+                    
+                case 'purchase':
+                case 'pembelian':
+                    return 'PB-' . $referenceId;
+                    
+                case 'expense_payment':
+                case 'expense':
+                    return 'BP-' . $referenceId;
+                    
+                case 'pelunasan_utang':
+                    return 'PU-' . $referenceId;
+                    
+                case 'penggajian':
+                    return 'GJ-' . $referenceId;
+                    
+                case 'retur':
+                    return 'RTR-' . $referenceId;
+                    
+                case 'produksi':
+                    return 'PRD-' . $referenceId;
+                    
+                case 'saldo_awal':
+                    return 'SA-' . $referenceId;
+                    
+                default:
+                    return 'JU-' . $line->journal_entry_id;
+            }
+        } catch (\Exception $e) {
+            return 'TRX-' . $referenceId;
+        }
+    }
+    
+    /**
+     * Get jenis transaksi dari data langsung
+     */
+    private function getJenisTransaksiFromData($line)
+    {
+        if (!$line) return 'Jurnal Umum';
+        
+        $referenceType = $line->ref_type ?? '';
+        
+        $jenisMap = [
+            'sale' => 'Penjualan',
+            'sale_cogs' => 'HPP Penjualan',
+            'penjualan' => 'Penjualan',
+            'purchase' => 'Pembelian',
+            'pembelian' => 'Pembelian',
+            'expense_payment' => 'Pembayaran Beban',
+            'expense' => 'Pembayaran Beban',
+            'pelunasan_utang' => 'Pelunasan Utang',
+            'ap_settlement' => 'Pelunasan Utang',
+            'penggajian' => 'Penggajian',
+            'payroll' => 'Penggajian',
+            'retur' => 'Retur',
+            'produksi' => 'Produksi',
+            'production' => 'Produksi',
+            'saldo_awal' => 'Saldo Awal',
+        ];
+        
+        return $jenisMap[$referenceType] ?? 'Jurnal Umum';
     }
     
     /**
@@ -355,6 +438,9 @@ class LaporanKasBankController extends Controller
         
         $dataKasBank = [];
         $totalKeseluruhan = 0;
+        $totalSaldoAwal = 0;
+        $totalTransaksiMasuk = 0;
+        $totalTransaksiKeluar = 0;
         
         foreach ($akunKasBank as $akun) {
             $saldoAwal = $this->getSaldoAwal($akun, $startDate);
@@ -372,9 +458,12 @@ class LaporanKasBankController extends Controller
             ];
             
             $totalKeseluruhan += $saldoAkhir;
+            $totalSaldoAwal += $saldoAwal;
+            $totalTransaksiMasuk += $transaksiMasuk;
+            $totalTransaksiKeluar += $transaksiKeluar;
         }
         
-        $pdf = Pdf::loadView('laporan.kas-bank.pdf', compact('dataKasBank', 'totalKeseluruhan', 'startDate', 'endDate'))
+        $pdf = Pdf::loadView('laporan.kas-bank.pdf', compact('dataKasBank', 'totalKeseluruhan', 'totalSaldoAwal', 'totalTransaksiMasuk', 'totalTransaksiKeluar', 'startDate', 'endDate'))
             ->setPaper('a4', 'portrait');
         
         return $pdf->download('laporan-kas-bank-'.date('Y-m-d').'.pdf');

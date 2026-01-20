@@ -11,7 +11,7 @@ class BahanBakuController extends Controller
     // Menampilkan semua data bahan baku
     public function index()
     {
-        $bahanBaku = BahanBaku::all();
+        $bahanBaku = BahanBaku::with('satuan')->get();
         return view('master-data.bahan-baku.index', compact('bahanBaku'));
     }
 

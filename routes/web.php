@@ -31,6 +31,8 @@ use App\Http\Controllers\BopBudgetController;
 use App\Http\Controllers\BomController;
 use App\Http\Controllers\AsetController;
 use App\Http\Controllers\JabatanController;
+use App\Http\Controllers\BiayaBahanController;
+use App\Http\Controllers\HargaController;
 
 // Transaksi
 use App\Http\Controllers\PembelianController;
@@ -247,31 +249,65 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{produk}', [ProdukController::class, 'destroy'])->name('destroy');
         });
         
-        // BOP Routes
-        Route::prefix('bop')->name('bop.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\MasterData\BopController::class, 'index'])->name('index');
-            Route::get('/create', [\App\Http\Controllers\MasterData\BopController::class, 'create'])->name('create');
-            Route::post('/', [\App\Http\Controllers\MasterData\BopController::class, 'store'])->name('store');
-            Route::get('/{id}/edit', [\App\Http\Controllers\MasterData\BopController::class, 'edit'])->name('edit');
-            Route::put('/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'update'])->name('update');
-            Route::delete('/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroy'])->name('destroy');
+        // Biaya Bahan routes
+        Route::prefix('biaya-bahan')->name('biaya-bahan.')->group(function () {
+            Route::get('/', [BiayaBahanController::class, 'index'])->name('index');
+            Route::get('/create/{id}', [BiayaBahanController::class, 'create'])->name('create');
+            Route::post('/store/{id}', [BiayaBahanController::class, 'store'])->name('store');
+            Route::get('/show/{id}', [BiayaBahanController::class, 'show'])->name('show');
+            Route::get('/edit/{id}', [BiayaBahanController::class, 'edit'])->name('edit');
+            Route::put('/update/{id}', [BiayaBahanController::class, 'update'])->name('update');
+            Route::delete('/{id}', [BiayaBahanController::class, 'destroy'])->name('destroy');
+            Route::post('/recalculate', [BiayaBahanController::class, 'recalculate'])->name('recalculate');
+            
+            // New routes for price change handling
+            Route::post('/update-on-price-change', [BiayaBahanController::class, 'updateOnPriceChange'])->name('update-on-price-change');
+            Route::get('/harga-change-report/{bahanBakuId}', [BiayaBahanController::class, 'getHargaChangeReport'])->name('harga-change-report');
+            Route::post('/manual-update-all', [BiayaBahanController::class, 'manualUpdateAll'])->name('manual-update-all');
         });
         
-        // BOP Budget Routes
-        Route::prefix('bop-budget')->name('bop-budget.')->group(function () {
-            Route::get('/', [BopBudgetController::class, 'index'])->name('index');
-            Route::get('/create', [BopBudgetController::class, 'create'])->name('create');
-            Route::post('/', [BopBudgetController::class, 'store'])->name('store');
-            Route::get('/{bopBudget}/edit', [BopBudgetController::class, 'edit'])->name('edit');
-            Route::put('/{bopBudget}', [BopBudgetController::class, 'update'])->name('update');
-            Route::delete('/{bopBudget}', [BopBudgetController::class, 'destroy'])->name('destroy');
+        // Harga Management routes
+        Route::prefix('harga')->name('harga.')->middleware('role:admin,owner')->group(function () {
+            Route::get('/', [HargaController::class, 'index'])->name('index');
+            Route::post('/recalculate-all', [HargaController::class, 'recalculateAll'])->name('recalculate-all');
+            Route::post('/validate-all', [HargaController::class, 'validateAll'])->name('validate-all');
+            Route::get('/purchase-history/{bahanBakuId}', [HargaController::class, 'purchaseHistory'])->name('purchase-history');
         });
+        
+        // BOP Routes (Unified)
+        Route::prefix('bop')->name('bop.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\MasterData\BopController::class, 'index'])->name('index');
+            
+            // BOP Lainnya
+            Route::post('/store-lainnya', [\App\Http\Controllers\MasterData\BopController::class, 'storeLainnya'])->name('store-lainnya');
+            Route::delete('/destroy-lainnya/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroyLainnya'])->name('destroy-lainnya');
+            
+            // BOP Proses Management
+            Route::get('/create-proses', [\App\Http\Controllers\MasterData\BopController::class, 'createProses'])->name('create-proses');
+            Route::post('/store-proses', [\App\Http\Controllers\MasterData\BopController::class, 'storeProses'])->name('store-proses');
+            Route::get('/edit-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'editProses'])->name('edit-proses');
+            Route::put('/update-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProses'])->name('update-proses');
+            Route::get('/show-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'showProses'])->name('show-proses');
+            Route::delete('/destroy-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroyProses'])->name('destroy-proses');
+            
+            // Utilities
+            Route::get('/sync-kapasitas', [\App\Http\Controllers\MasterData\BopController::class, 'syncKapasitas'])->name('sync-kapasitas');
+            Route::post('/set-budget-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'setBudgetProses'])->name('set-budget-proses');
+            Route::get('/analysis-data', [\App\Http\Controllers\MasterData\BopController::class, 'getAnalysisData'])->name('analysis-data');
+        });
+
         // BOM Routes
         Route::prefix('bom')->name('bom.')->group(function () {
             Route::get('calculate/{produkId}', [BomController::class, 'calculateBomCost'])->name('calculate');
             Route::get('by-produk/{id}', [BomController::class, 'view'])->name('view-by-produk');
             Route::post('by-produk/{id}', [BomController::class, 'updateByProduk'])->name('update-by-produk');
             Route::get('generate-kode', [BomController::class, 'generateKodeBom'])->name('generate-kode');
+            
+            // API routes for AJAX calls
+            Route::get('/get-bom-details/{produkId}', [BomController::class, 'getBomDetails'])->name('getBomDetails');
+            Route::get('/get-available-materials/{produkId}', [BomController::class, 'getAvailableMaterials'])->name('getAvailableMaterials');
+            Route::get('/get-product-info/{produkId}', [BomController::class, 'getProductInfo'])->name('getProductInfo');
+            Route::post('/update-costs', [BomController::class, 'updateBomCosts'])->name('updateCosts');
             
             // Resource routes with explicit names to avoid conflicts
             Route::get('/', [BomController::class, 'index'])->name('index');
@@ -292,6 +328,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'show'])->name('show');
             Route::get('/{prosesProduksi}/edit', [\App\Http\Controllers\ProsesProduksiController::class, 'edit'])->name('edit');
             Route::put('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'update'])->name('update');
+            Route::patch('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'update']);
             Route::delete('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'destroy'])->name('destroy');
         });
         
@@ -305,6 +342,8 @@ Route::middleware('auth')->group(function () {
             Route::put('/{komponenBop}', [\App\Http\Controllers\KomponenBopController::class, 'update'])->name('update');
             Route::delete('/{komponenBop}', [\App\Http\Controllers\KomponenBopController::class, 'destroy'])->name('destroy');
         });
+
+
     });
 
 

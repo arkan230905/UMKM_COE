@@ -38,7 +38,7 @@
 
                 <div class="mb-3">
                     <label for="jenis_aset_id" class="form-label text-white">Jenis Aset <span class="text-danger">*</span></label>
-                    <select class="form-select bg-dark text-white @error('jenis_aset_id') is-invalid @enderror" 
+                    <select class="form-select bg-dark text-dark @error('jenis_aset_id') is-invalid @enderror" 
                             id="jenis_aset_id" name="jenis_aset_id" required onchange="loadKategoriAset()">
                         <option value="" disabled selected>-- Pilih Jenis Aset --</option>
                         @foreach($jenisAsets as $jenis)
@@ -54,7 +54,7 @@
 
                 <div class="mb-3">
                     <label for="kategori_aset_id" class="form-label text-white">Kategori Aset <span class="text-danger">*</span></label>
-                    <select class="form-select bg-dark text-white @error('kategori_aset_id') is-invalid @enderror" 
+                    <select class="form-select bg-dark text-dark @error('kategori_aset_id') is-invalid @enderror" 
                             id="kategori_aset_id" name="kategori_aset_id" required onchange="checkPenyusutan()">
                         <option value="" disabled selected>-- Pilih Jenis Aset terlebih dahulu --</option>
                     </select>

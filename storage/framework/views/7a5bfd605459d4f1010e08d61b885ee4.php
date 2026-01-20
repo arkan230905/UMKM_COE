@@ -18,6 +18,7 @@
     <link href="<?php echo e(asset('css/modern-dashboard.css')); ?>?v=<?php echo e(time()); ?>" rel="stylesheet">
 
     <?php echo $__env->yieldContent('head'); ?>
+    <?php echo $__env->yieldPushContent('styles'); ?>
 </head>
 <body>
 
@@ -36,6 +37,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<?php echo $__env->yieldPushContent('scripts'); ?>
 </body>
 </html>
 <?php /**PATH C:\UMKM_COE\resources\views/layouts/app.blade.php ENDPATH**/ ?>

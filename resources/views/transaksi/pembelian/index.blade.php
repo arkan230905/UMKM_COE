@@ -135,10 +135,17 @@
                                         <small>
                                         @foreach($pembelian->details as $detail)
                                             <div>
-                                                • {{ $detail->bahanBaku->nama_bahan ?? '-' }} 
-                                                ({{ number_format($detail->jumlah ?? 0, 0, ',', '.') }} {{ $detail->bahanBaku->satuan->nama ?? 'unit' }})
-                                                - Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}
-                                                = <strong>Rp {{ number_format(($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0), 0, ',', '.') }}</strong>
+                                                @if($detail->bahan_baku_id && $detail->bahanBaku)
+                                                    • <span class="badge bg-primary">BB</span> {{ $detail->bahanBaku->nama_bahan }} 
+                                                    ({{ number_format($detail->jumlah ?? 0, 2, ',', '.') }} {{ $detail->satuan ?? ($detail->bahanBaku->satuan->nama ?? 'unit') }})
+                                                @elseif($detail->bahan_pendukung_id && $detail->bahanPendukung)
+                                                    • <span class="badge bg-info">BP</span> {{ $detail->bahanPendukung->nama_bahan }} 
+                                                    ({{ number_format($detail->jumlah ?? 0, 2, ',', '.') }} {{ $detail->satuan ?? ($detail->bahanPendukung->satuan->nama ?? 'unit') }})
+                                                @else
+                                                    • -
+                                                @endif
+                                                @ Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}
+                                                = <strong>Rp {{ number_format($detail->subtotal ?? (($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0)), 0, ',', '.') }}</strong>
                                             </div>
                                         @endforeach
                                         </small>

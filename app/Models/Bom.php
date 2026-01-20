@@ -11,47 +11,23 @@ class Bom extends Model
 
     protected $fillable = [
         'produk_id',
-        'bahan_baku_id',
-        'jumlah',
-        'satuan_resep',
+        'kode_bom',
         'total_biaya',
         'total_bbb',
-        'btkl_per_unit',
-        'bop_rate',
-        'bop_per_unit',
-        'total_btkl',
-        'total_bop',
         'total_hpp',
-        'periode',
+        'catatan',
         'created_at',
         'updated_at'
     ];
 
     protected $casts = [
-        'jumlah' => 'decimal:4',
         'total_biaya' => 'decimal:2',
         'total_bbb' => 'decimal:2',
-        'btkl_per_unit' => 'decimal:2',
-        'bop_rate' => 'decimal:2',
-        'bop_per_unit' => 'decimal:2',
-        'total_btkl' => 'decimal:2',
-        'total_bop' => 'decimal:2',
         'total_hpp' => 'decimal:2'
     ];
 
     protected static function booted()
     {
-        static::saving(function ($model) {
-            if (empty($model->periode)) {
-                $model->periode = now()->format('Y-m');
-            }
-            
-            // Hitung total biaya secara otomatis saat menyimpan
-            if ($model->isDirty(['total_biaya', 'total_btkl', 'total_bop'])) {
-                $model->hitungTotalBiaya();
-            }
-        });
-        
         static::deleting(function ($model) {
             // Reset harga_bom di produk sebelum BOM dihapus
             if ($model->produk) {
@@ -73,14 +49,6 @@ class Bom extends Model
     public function produk()
     {
         return $this->belongsTo(Produk::class)->withDefault();
-    }
-    
-    /**
-     * Get the main bahan baku for the BOM.
-     */
-    public function bahanBaku()
-    {
-        return $this->belongsTo(BahanBaku::class, 'bahan_baku_id')->withDefault();
     }
     
     /**
@@ -126,29 +94,28 @@ class Bom extends Model
     public function hitungTotalBiaya()
     {
         // Total BBB (Biaya Bahan Baku) dari detail BOM
-        $totalBBB = $this->details->sum('total_harga');
+        $totalBBB = $this->details->sum('subtotal');
         $this->total_bbb = $totalBBB;
         
         // Cek apakah ada proses produksi yang didefinisikan
         $hasProses = $this->proses()->exists();
         
+        $totalBTKL = 0;
+        $totalBOP = 0;
+        
         if ($hasProses) {
             // Process Costing: Hitung dari proses produksi
-            $this->total_btkl = $this->proses->sum('biaya_btkl');
-            $this->total_bop = $this->proses->sum('biaya_bop');
+            $totalBTKL = $this->proses->sum('biaya_btkl');
+            $totalBOP = $this->proses->sum('biaya_bop');
         } else {
             // Fallback: Gunakan persentase jika belum ada proses
             // Ini untuk backward compatibility dengan BOM lama
-            if (!$this->total_btkl) {
-                $this->total_btkl = $totalBBB * 0.6; // 60%
-            }
-            if (!$this->total_bop) {
-                $this->total_bop = $totalBBB * 0.4; // 40%
-            }
+            $totalBTKL = $totalBBB * 0.6; // 60%
+            $totalBOP = $totalBBB * 0.4; // 40%
         }
         
         // Total HPP = BBB + BTKL + BOP
-        $this->total_hpp = $totalBBB + $this->total_btkl + $this->total_bop;
+        $this->total_hpp = $totalBBB + $totalBTKL + $totalBOP;
         $this->total_biaya = $this->total_hpp; // Untuk backward compatibility
         
         return $this->total_hpp;
@@ -161,9 +128,8 @@ class Bom extends Model
     public function updateProductPrice()
     {
         if ($this->produk) {
-            // Hitung total biaya produksi (HPP) = Bahan Baku + BTKL + BOP
-            $totalBahanBaku = $this->details->sum('total_harga');
-            $hpp = $totalBahanBaku + $this->total_btkl + $this->total_bop;
+            // Hitung total biaya produksi (HPP) dari total_hpp
+            $hpp = $this->total_hpp ?? 0;
             
             // Update harga_bom dengan HPP
             // Update harga_jual dengan HPP + margin

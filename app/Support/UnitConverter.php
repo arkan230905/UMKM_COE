@@ -74,7 +74,8 @@ class UnitConverter
             return $amount * ($this->count[$from] / $this->count[$to]);
         }
 
-        // Cross conversion using assumed density between volume and mass
+        // Cross conversion between volume and mass using assumed density
+        // WARNING: This is approximate and should be avoided when possible
         if ($this->inVolume($from) && $this->inMass($to)) {
             $ml = $amount * $this->volume[$from];
             $g  = $ml * $this->assumedDensity; // g = ml * density
@@ -86,7 +87,8 @@ class UnitConverter
             return $ml / $this->volume[$to];
         }
 
-        // Fallback: unsupported conversion, return as-is
+        // Fallback: unsupported conversion, return as-is without modification
+        // This prevents incorrect calculations for incompatible units
         return $amount;
     }
 

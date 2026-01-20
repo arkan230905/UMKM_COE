@@ -291,7 +291,7 @@ class ProcessCostingDataSeeder extends Seeder
     private function calculateHPP($bom, $produk)
     {
         // 1. Hitung Total Biaya Bahan Baku Langsung (BBL)
-        $totalBBL = $bom->details->sum('total_harga');
+        $totalBBL = $bom->details->sum('subtotal');
         
         // 2. Hitung Biaya Tenaga Kerja Langsung (BTKL)
         // Asumsi: 20 jam kerja @ Rp 15,000/jam untuk 100 porsi
