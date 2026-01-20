@@ -52,7 +52,7 @@ class RecalculateBomPrices extends Command
                 DB::beginTransaction();
 
                 // Hitung ulang total bahan baku dari details
-                $totalBahanBaku = $bom->details->sum('total_harga');
+                $totalBahanBaku = $bom->details->sum('subtotal');
 
                 // Hitung BTKL (60% dari total bahan baku)
                 $btkl = $totalBahanBaku * 0.6;

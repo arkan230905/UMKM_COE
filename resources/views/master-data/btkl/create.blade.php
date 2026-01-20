@@ -26,18 +26,24 @@
             <style>
                 .card-body input, .card-body select, .card-body textarea {
                     color: white !important;
-                    background-color: rgba(255,255,255,0.1) !important;
+                    background-color: rgba(0,0,0,0.8) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
                 }
                 .card-body input::placeholder, .card-body textarea::placeholder {
                     color: rgba(255,255,255,0.7) !important;
                 }
                 .card-body .input-group-text {
                     color: white !important;
-                    background-color: rgba(255,255,255,0.2) !important;
+                    background-color: rgba(0,0,0,0.6) !important;
                     border-color: rgba(255,255,255,0.3) !important;
                 }
                 .card-body .form-control, .card-body .form-select {
                     border-color: rgba(255,255,255,0.3) !important;
+                }
+                .card-body .form-control:focus {
+                    background-color: rgba(0,0,0,0.9) !important;
+                    border-color: #007bff !important;
+                    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25) !important;
                 }
             </style>
             <form action="{{ route('master-data.btkl.store') }}" method="POST">
@@ -94,21 +100,6 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label for="satuan" class="form-label text-white">Satuan <span class="text-danger">*</span></label>
-                        <select name="satuan" id="satuan" class="form-select @error('satuan') is-invalid @enderror" required>
-                            <option value="">-- Pilih Satuan --</option>
-                            @foreach($satuanOptions as $satuan)
-                                <option value="{{ $satuan }}" {{ old('satuan') == $satuan ? 'selected' : '' }}>
-                                    {{ $satuan }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('satuan')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-md-12">
                         <label for="kapasitas_per_jam" class="form-label text-white">Kapasitas per Jam <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <input type="number" 
@@ -119,9 +110,24 @@
                                    min="0" 
                                    placeholder="100"
                                    required>
-                            <span class="input-group-text">pcs bisa diproduksi per jam</span>
+                            <span class="input-group-text">pcs/jam</span>
                         </div>
                         @error('kapasitas_per_jam')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="satuan" class="form-label text-white">Satuan <span class="text-danger">*</span></label>
+                        <select name="satuan" id="satuan" class="form-select @error('satuan') is-invalid @enderror" required>
+                            <option value="">-- Pilih Satuan --</option>
+                            @foreach($satuanOptions as $satuan)
+                                <option value="{{ $satuan }}" {{ old('satuan') == $satuan ? 'selected' : '' }}>
+                                    {{ $satuan }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('satuan')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>

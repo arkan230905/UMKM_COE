@@ -28,36 +28,17 @@ class ProdukController extends Controller
             'stok'
         ])->get();
         
-        // If any product has null harga_bom, calculate it from BOM
+        // If any product has null harga_bom, calculate it from BOM details
         if ($produks->contains('harga_bom', null)) {
             $produksWithBom = Produk::whereNull('harga_bom')
-                ->with(['boms' => function($query) {
-                    $query->select(['id', 'produk_id', 'bahan_baku_id', 'jumlah', 'satuan_resep']);
-                }, 'boms.bahanBaku' => function($query) {
-                    $query->select(['id', 'harga_satuan', 'satuan']);
-                }])
+                ->with(['boms.details.bahanBaku'])
                 ->get();
             
-            $converter = new UnitConverter();
-            
             foreach ($produksWithBom as $produk) {
-                $totalBiayaBahan = 0;
+                $bom = $produk->boms->first();
+                if (!$bom) continue;
                 
-                // Calculate material costs from BOM
-                foreach ($produk->boms as $bom) {
-                    if (!$bom->bahanBaku) continue;
-                    
-                    $qtyResep = (float) $bom->jumlah;
-                    $satuanResep = $bom->satuan_resep ?: $bom->bahanBaku->satuan;
-                    $hargaSatuan = (float) $bom->bahanBaku->harga_satuan;
-                    
-                    try {
-                        $qtyBase = $converter->convert($qtyResep, $satuanResep, $bom->bahanBaku->satuan);
-                        $totalBiayaBahan += $hargaSatuan * $qtyBase;
-                    } catch (\Exception $e) {
-                        continue;
-                    }
-                }
+                $totalBiayaBahan = $bom->details->sum('subtotal') ?? 0;
                 
                 // Update the product's harga_bom
                 $produk->update([
@@ -99,26 +80,17 @@ class ProdukController extends Controller
     
     public function show($id)
     {
-        $produk = Produk::with(['boms.bahanBaku'])->findOrFail($id);
+        $produk = Produk::with(['boms.details.bahanBaku'])->findOrFail($id);
         
-        // Hitung total biaya BOM
+        // Hitung total biaya BOM dari details
         $totalBiayaBom = 0;
-        $converter = new UnitConverter();
-        
-        foreach ($produk->boms as $bom) {
-            $bahanBaku = $bom->bahanBaku;
-            if ($bahanBaku) {
-                $qtyInKg = $converter->convert(
-                    $bom->jumlah, 
-                    $bom->satuan_resep ?? $bahanBaku->satuan, 
-                    'kg'
-                );
-                $totalBiayaBom += $bahanBaku->harga_satuan * $qtyInKg;
-            }
+        $bom = $produk->boms->first();
+        if ($bom && $bom->details) {
+            $totalBiayaBom = $bom->details->sum('subtotal') ?? 0;
         }
         
         // Hitung harga jual berdasarkan margin
-        $hargaJual = $totalBiayaBom * (1 + ($produk->margin_percent / 100));
+        $hargaJual = $totalBiayaBom * (1 + (($produk->margin_percent ?? 30) / 100));
         
         return view('master-data.produk.show', [
             'produk' => $produk,

@@ -58,6 +58,18 @@ class BahanPendukung extends Model
     /**
      * Relasi ke Satuan
      */
+    public function satuan()
+    {
+        return $this->belongsTo(Satuan::class, 'satuan_id')
+            ->withDefault([
+                'nama' => 'Tidak Diketahui',
+                'kode_satuan' => 'N/A'
+            ]);
+    }
+
+    /**
+     * Relasi ke Satuan (alias untuk backward compatibility)
+     */
     public function satuanRelation()
     {
         return $this->belongsTo(Satuan::class, 'satuan_id');

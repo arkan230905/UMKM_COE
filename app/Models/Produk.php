@@ -79,4 +79,12 @@ class Produk extends Model
     {
         return $this->hasMany(Bom::class);
     }
+    
+    /**
+     * Get the BomJobCosting for the Produk
+     */
+    public function bomJobCosting()
+    {
+        return $this->hasOne(BomJobCosting::class);
+    }
 }

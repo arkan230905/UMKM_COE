@@ -272,8 +272,9 @@ a.nav-link-rounded.active i {
 button.logout-btn.nav-link-rounded {
     background: #FF937E !important;
     background-image: linear-gradient(135deg, #FF937E 0%, #FF8A73 100%) !important;
-    border-color: #FF937E !important;
+    border: none !important;
     color: white !important;
+    cursor: pointer !important;
     /* Ensure same alignment as other nav links */
     display: flex !important;
     align-items: center !important;
@@ -288,6 +289,8 @@ button.logout-btn.nav-link-rounded {
     border-radius: 25px !important;
     font-size: 14px !important;
     font-weight: 500 !important;
+    box-shadow: 0 2px 8px rgba(255, 147, 126, 0.3) !important;
+    transition: all 0.3s ease !important;
 }
 
 .sidebar .logout-btn i,

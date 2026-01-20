@@ -17,6 +17,7 @@
             <label for="kategori" class="form-label">Kategori Vendor</label>
             <select name="kategori" class="form-control" required>
                 <option value="Bahan Baku" {{ old('kategori', $vendor->kategori) == 'Bahan Baku' ? 'selected' : '' }}>Bahan Baku</option>
+                <option value="Bahan Pendukung" {{ old('kategori', $vendor->kategori) == 'Bahan Pendukung' ? 'selected' : '' }}>Bahan Pendukung</option>
                 <option value="Aset" {{ old('kategori', $vendor->kategori) == 'Aset' ? 'selected' : '' }}>Aset</option>
             </select>
         </div>

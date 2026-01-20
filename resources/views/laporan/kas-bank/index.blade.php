@@ -41,11 +41,39 @@
         </div>
     </div>
 
-    <!-- Total Keseluruhan -->
-    <div class="card shadow-sm mb-3 bg-primary text-white">
-        <div class="card-body">
-            <h5 class="mb-0">Total Kas dan Bank</h5>
-            <h2 class="mb-0">Rp {{ number_format($totalKeseluruhan, 0, ',', '.') }}</h2>
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-muted small mb-2">Total Saldo Awal</div>
+                    <div class="h5 mb-0 text-primary">Rp {{ number_format($totalSaldoAwal, 0, ',', '.') }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-muted small mb-2">Total Transaksi Masuk</div>
+                    <div class="h5 mb-0 text-success">Rp {{ number_format($totalTransaksiMasuk, 0, ',', '.') }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-muted small mb-2">Total Transaksi Keluar</div>
+                    <div class="h5 mb-0 text-danger">Rp {{ number_format($totalTransaksiKeluar, 0, ',', '.') }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <div class="text-muted small mb-2">Total Saldo Akhir</div>
+                    <div class="h5 mb-0 text-primary fw-bold">Rp {{ number_format($totalKeseluruhan, 0, ',', '.') }}</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -93,7 +121,6 @@
             </div>
         </div>
     </div>
-</div>
 
 <!-- Modal Detail Transaksi Masuk -->
 <div class="modal fade" id="modalDetailMasuk" tabindex="-1">
@@ -200,13 +227,15 @@ function showDetailMasuk(coaId, namaAkun) {
     const startDate = document.querySelector('input[name="start_date"]').value;
     const endDate = document.querySelector('input[name="end_date"]').value;
     
-    const url = `{{ url('laporan/kas-bank') }}/${coaId}/detail-masuk?start_date=${startDate}&end_date=${endDate}`;
+    const url = `/laporan/kas-bank/${coaId}/detail-masuk?start_date=${startDate}&end_date=${endDate}`;
     console.log('Fetching URL:', url);
     
     fetch(url)
         .then(response => {
             console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             return response.json();
         })
         .then(data => {
@@ -256,13 +285,15 @@ function showDetailKeluar(coaId, namaAkun) {
     const startDate = document.querySelector('input[name="start_date"]').value;
     const endDate = document.querySelector('input[name="end_date"]').value;
     
-    const url = `{{ url('laporan/kas-bank') }}/${coaId}/detail-keluar?start_date=${startDate}&end_date=${endDate}`;
+    const url = `/laporan/kas-bank/${coaId}/detail-keluar?start_date=${startDate}&end_date=${endDate}`;
     console.log('Fetching URL:', url);
     
     fetch(url)
         .then(response => {
             console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             return response.json();
         })
         .then(data => {

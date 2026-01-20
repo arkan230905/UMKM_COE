@@ -3,6 +3,10 @@
 namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use App\Models\BahanBaku;
+use App\Models\BahanPendukung;
+use App\Observers\BahanBakuObserver;
+use App\Observers\BahanPendukungObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -22,6 +26,8 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register observers
+        BahanBaku::observe(BahanBakuObserver::class);
+        BahanPendukung::observe(BahanPendukungObserver::class);
     }
 }

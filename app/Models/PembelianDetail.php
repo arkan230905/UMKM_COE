@@ -13,7 +13,9 @@ class PembelianDetail extends Model
 
     protected $fillable = [
         'pembelian_id',
+        'tipe_item',
         'bahan_baku_id',
+        'bahan_pendukung_id',
         'jumlah',
         'satuan',
         'harga_satuan',
@@ -45,10 +47,46 @@ class PembelianDetail extends Model
     }
 
     /**
+     * Relasi ke BahanPendukung
+     */
+    public function bahanPendukung()
+    {
+        return $this->belongsTo(BahanPendukung::class, 'bahan_pendukung_id');
+    }
+
+    /**
      * Alias untuk bahanBaku (untuk backward compatibility)
      */
     public function bahan_baku()
     {
         return $this->bahanBaku();
+    }
+    
+    /**
+     * Get nama bahan (bahan baku atau bahan pendukung)
+     */
+    public function getNamaBahanAttribute()
+    {
+        if ($this->bahan_baku_id && $this->bahanBaku) {
+            return $this->bahanBaku->nama_bahan;
+        }
+        if ($this->bahan_pendukung_id && $this->bahanPendukung) {
+            return $this->bahanPendukung->nama_bahan;
+        }
+        return '-';
+    }
+    
+    /**
+     * Get tipe bahan
+     */
+    public function getTipeBahanAttribute()
+    {
+        if ($this->bahan_baku_id) {
+            return 'Bahan Baku';
+        }
+        if ($this->bahan_pendukung_id) {
+            return 'Bahan Pendukung';
+        }
+        return '-';
     }
 }

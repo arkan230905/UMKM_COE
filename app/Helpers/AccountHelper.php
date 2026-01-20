@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Models\Coa;
+use Illuminate\Support\Facades\DB;
 
 class AccountHelper
 {
@@ -81,5 +82,51 @@ class AccountHelper
             return 'Kas Lainnya';
         }
         return 'Lainnya';
+    }
+    
+    /**
+     * Get saldo saat ini untuk akun Kas/Bank
+     * 
+     * @param string $kodeAkun
+     * @return float
+     */
+    public static function getCurrentBalance($kodeAkun)
+    {
+        // Cari account_id yang sesuai dengan kode_akun ini
+        $account = DB::table('accounts')->where('code', $kodeAkun)->first();
+        if (!$account) {
+            // Jika tidak ada di accounts, gunakan saldo awal COA
+            $coa = Coa::find($kodeAkun);
+            return is_numeric($coa->saldo_awal ?? 0) ? (float) ($coa->saldo_awal ?? 0) : 0;
+        }
+        
+        // Hitung saldo dari journal lines
+        $saldo = DB::table('journal_lines')
+            ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+            ->where('journal_lines.account_id', $account->id)
+            ->selectRaw('SUM(debit) - SUM(credit) as saldo')
+            ->value('saldo') ?? 0;
+            
+        // Tambahkan saldo awal dari COA jika ada
+        $coa = Coa::find($kodeAkun);
+        $saldoAwal = is_numeric($coa->saldo_awal ?? 0) ? (float) ($coa->saldo_awal ?? 0) : 0;
+        
+        return $saldo + $saldoAwal;
+    }
+    
+    /**
+     * Get semua akun Kas & Bank dengan saldo
+     * 
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public static function getKasBankAccountsWithBalance()
+    {
+        $accounts = self::getKasBankAccounts();
+        
+        foreach ($accounts as $account) {
+            $account->saldo = self::getCurrentBalance($account->kode_akun);
+        }
+        
+        return $accounts;
     }
 }

@@ -2,15 +2,15 @@
     <!-- User Profile Card -->
     <div class="user-profile-card">
         <div class="user-avatar">
-            @if(Auth::user()->profile_photo)
+            @if(Auth::check() && Auth::user()->profile_photo)
                 <img src="{{ asset('storage/' . Auth::user()->profile_photo) }}" alt="Profile Photo">
             @else
                 <i class="fas fa-user"></i>
             @endif
         </div>
         <div class="user-info">
-            <h4>{{ Auth::user()->name }}</h4>
-            <small>{{ ucfirst(Auth::user()->role) }}</small>
+            <h4>{{ Auth::check() ? Auth::user()->name : 'Guest' }}</h4>
+            <small>{{ Auth::check() ? ucfirst(Auth::user()->role) : '' }}</small>
         </div>
     </div>
     
@@ -77,6 +77,38 @@
                 <a class="nav-link-rounded {{ request()->is('master-data/bahan-pendukung*') ? 'active' : '' }}" href="{{ route('master-data.bahan-pendukung.index') }}">
                     <i class="fas fa-flask"></i>
                     <span>Bahan Pendukung</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded {{ request()->is('master-data/produk*') ? 'active' : '' }}" href="{{ route('master-data.produk.index') }}">
+                    <i class="fas fa-box"></i>
+                    <span>Produk</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded {{ request()->is('master-data/biaya-bahan*') ? 'active' : '' }}" href="{{ route('master-data.biaya-bahan.index') }}">
+                    <i class="fas fa-calculator"></i>
+                    <span>Biaya Bahan</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded {{ request()->is('master-data/btkl*') ? 'active' : '' }}" href="{{ route('master-data.btkl.index') }}">
+                    <i class="fas fa-industry"></i>
+                    <span>BTKL (Proses Produksi)</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded {{ request()->is('master-data/bop*') ? 'active' : '' }}" href="{{ route('master-data.bop.index') }}">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>BOP (Biaya Overhead Pabrik)</span>
+                </a>
+            </li>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded {{ request()->is('master-data/bom*') ? 'active' : '' }}" href="{{ route('master-data.bom.index') }}">
+                    <i class="fas fa-sitemap"></i>
+                    <span>BOM (Bill of Materials)</span>
                 </a>
             </li>
             
@@ -230,9 +262,9 @@
                 </a>
             </li>
             <li class="nav-item">
-                <form method="POST" action="{{ route('logout') }}" style="margin: 0;">
+                <form method="POST" action="{{ route('logout') }}" style="margin: 0; padding: 0; display: block;">
                     @csrf
-                    <button type="submit" class="nav-link-rounded logout-btn">
+                    <button type="submit" class="nav-link-rounded logout-btn" style="width: 100%; border: none; cursor: pointer;">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Logout</span>
                     </button>

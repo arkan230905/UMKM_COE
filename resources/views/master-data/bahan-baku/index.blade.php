@@ -51,7 +51,7 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>{{ $bahan->satuan ?? '-' }}</td>
+                                <td>{{ is_string($bahan->satuan) ? $bahan->satuan : (optional($bahan->satuan)->nama ?? '-') }}</td>
                                 <td class="fw-semibold">Rp {{ number_format($bahan->harga_satuan, 0, ',', '.') }}</td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">

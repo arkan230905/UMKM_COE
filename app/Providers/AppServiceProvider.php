@@ -6,13 +6,17 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use App\Models\Jabatan;
 use App\Observers\JabatanObserver;
+use App\Models\BahanBaku;
+use App\Observers\BahanBakuObserver;
+use App\Models\BahanPendukung;
+use App\Observers\BahanPendukungObserver;
+use App\Services\BiayaBahanService;
 
 // Import semua model yang digunakan untuk sidebar
 use App\Models\Pegawai;
 use App\Models\Presensi;
 use App\Models\Produk;
 use App\Models\Vendor;
-use App\Models\BahanBaku;
 use App\Models\Satuan;
 use App\Models\Coa;
 
@@ -23,7 +27,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(BiayaBahanService::class, function ($app) {
+            return new BiayaBahanService();
+        });
     }
 
     /**
@@ -32,6 +38,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Jabatan::observe(JabatanObserver::class);
+        BahanBaku::observe(BahanBakuObserver::class);
+        BahanPendukung::observe(BahanPendukungObserver::class);
 
         // View composer global untuk semua tampilan
         View::composer('*', function ($view) {

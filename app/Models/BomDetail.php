@@ -15,12 +15,11 @@ class BomDetail extends Model
         'jumlah',
         'satuan',
         'harga_per_satuan',
-        'total_harga',
-        'keterangan'
+        'total_harga'
     ];
 
     protected $casts = [
-        'jumlah' => 'decimal:4',
+        'jumlah' => 'decimal:2',
         'harga_per_satuan' => 'decimal:2',
         'total_harga' => 'decimal:2'
     ];
@@ -42,6 +41,14 @@ class BomDetail extends Model
     public function bahanBaku()
     {
         return $this->belongsTo(BahanBaku::class)->withDefault();
+    }
+
+    /**
+     * Get the bahan pendukung that owns the BOM detail.
+     */
+    public function bahanPendukung()
+    {
+        return $this->belongsTo(BahanPendukung::class)->withDefault();
     }
 
     public function bom()

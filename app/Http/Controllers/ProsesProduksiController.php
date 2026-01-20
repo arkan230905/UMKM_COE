@@ -47,44 +47,39 @@ class ProsesProduksiController extends Controller
      */
     public function store(Request $request)
     {
+        \Log::info('BTKL Store Request', [
+            'request_data' => $request->all()
+        ]);
+
         $validated = $request->validate([
             'nama_proses' => 'required|string|max:100',
             'deskripsi' => 'nullable|string',
             'tarif_btkl' => 'required|numeric|min:0',
             'satuan_btkl' => 'required|string|max:20',
-            'komponen_bop_id' => 'nullable|array',
-            'komponen_bop_id.*' => 'exists:komponen_bops,id',
-            'kuantitas_default' => 'nullable|array',
-            'kuantitas_default.*' => 'numeric|min:0',
+            'kapasitas_per_jam' => 'required|integer|min:1',
         ]);
 
-        DB::beginTransaction();
         try {
-            $proses = ProsesProduksi::create([
+            $createData = [
                 'nama_proses' => $validated['nama_proses'],
                 'deskripsi' => $validated['deskripsi'] ?? null,
                 'tarif_btkl' => $validated['tarif_btkl'],
                 'satuan_btkl' => $validated['satuan_btkl'],
-            ]);
+                'kapasitas_per_jam' => $validated['kapasitas_per_jam'],
+            ];
 
-            // Simpan default BOP
-            if (!empty($validated['komponen_bop_id'])) {
-                foreach ($validated['komponen_bop_id'] as $key => $komponenId) {
-                    if ($komponenId && isset($validated['kuantitas_default'][$key])) {
-                        ProsesBop::create([
-                            'proses_produksi_id' => $proses->id,
-                            'komponen_bop_id' => $komponenId,
-                            'kuantitas_default' => $validated['kuantitas_default'][$key],
-                        ]);
-                    }
-                }
-            }
+            \Log::info('BTKL Create Data', $createData);
 
-            DB::commit();
-            return redirect()->route('master-data.proses-produksi.index')
-                ->with('success', 'Proses produksi berhasil ditambahkan');
+            $btkl = ProsesProduksi::create($createData);
+
+            \Log::info('BTKL Created Successfully', ['id' => $btkl->id, 'kode' => $btkl->kode_proses]);
+
+            return redirect()->route('master-data.btkl.index')
+                ->with('success', 'BTKL berhasil ditambahkan');
         } catch (\Exception $e) {
-            DB::rollBack();
+            \Log::error('Error creating BTKL: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return back()->withInput()->with('error', 'Gagal menyimpan: ' . $e->getMessage());
         }
     }
@@ -94,7 +89,7 @@ class ProsesProduksiController extends Controller
      */
     public function show(ProsesProduksi $prosesProduksi)
     {
-        $prosesProduksi->load('prosesBops.komponenBop');
+        $prosesProduksi->load('bomProses.bom.produk');
         return view('master-data.proses-produksi.show', compact('prosesProduksi'));
     }
 
@@ -113,48 +108,40 @@ class ProsesProduksiController extends Controller
      */
     public function update(Request $request, ProsesProduksi $prosesProduksi)
     {
+        \Log::info('BTKL Update Request', [
+            'id' => $prosesProduksi->id,
+            'request_data' => $request->all()
+        ]);
+
         $validated = $request->validate([
             'nama_proses' => 'required|string|max:100',
             'deskripsi' => 'nullable|string',
             'tarif_btkl' => 'required|numeric|min:0',
             'satuan_btkl' => 'required|string|max:20',
-            'is_active' => 'boolean',
-            'komponen_bop_id' => 'nullable|array',
-            'komponen_bop_id.*' => 'exists:komponen_bops,id',
-            'kuantitas_default' => 'nullable|array',
-            'kuantitas_default.*' => 'numeric|min:0',
+            'kapasitas_per_jam' => 'required|integer|min:1',
         ]);
 
-        DB::beginTransaction();
         try {
-            $prosesProduksi->update([
+            $updateData = [
                 'nama_proses' => $validated['nama_proses'],
                 'deskripsi' => $validated['deskripsi'] ?? null,
                 'tarif_btkl' => $validated['tarif_btkl'],
                 'satuan_btkl' => $validated['satuan_btkl'],
-                'is_active' => $request->has('is_active'),
-            ]);
+                'kapasitas_per_jam' => $validated['kapasitas_per_jam'],
+            ];
 
-            // Update default BOP - hapus yang lama, buat yang baru
-            $prosesProduksi->prosesBops()->delete();
-            
-            if (!empty($validated['komponen_bop_id'])) {
-                foreach ($validated['komponen_bop_id'] as $key => $komponenId) {
-                    if ($komponenId && isset($validated['kuantitas_default'][$key]) && $validated['kuantitas_default'][$key] > 0) {
-                        ProsesBop::create([
-                            'proses_produksi_id' => $prosesProduksi->id,
-                            'komponen_bop_id' => $komponenId,
-                            'kuantitas_default' => $validated['kuantitas_default'][$key],
-                        ]);
-                    }
-                }
-            }
+            \Log::info('BTKL Update Data', $updateData);
 
-            DB::commit();
-            return redirect()->route('master-data.proses-produksi.index')
-                ->with('success', 'Proses produksi berhasil diperbarui');
+            $prosesProduksi->update($updateData);
+
+            \Log::info('BTKL Updated Successfully', ['id' => $prosesProduksi->id]);
+
+            return redirect()->route('master-data.btkl.index')
+                ->with('success', 'BTKL berhasil diperbarui');
         } catch (\Exception $e) {
-            DB::rollBack();
+            \Log::error('Error updating BTKL: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             return back()->withInput()->with('error', 'Gagal memperbarui: ' . $e->getMessage());
         }
     }
@@ -166,8 +153,8 @@ class ProsesProduksiController extends Controller
     {
         try {
             $prosesProduksi->delete();
-            return redirect()->route('master-data.proses-produksi.index')
-                ->with('success', 'Proses produksi berhasil dihapus');
+            return redirect()->route('master-data.btkl.index')
+                ->with('success', 'BTKL berhasil dihapus');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }

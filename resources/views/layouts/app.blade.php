@@ -18,6 +18,7 @@
     <link href="{{ asset('css/modern-dashboard.css') }}?v={{ time() }}" rel="stylesheet">
 
     @yield('head')
+    @stack('styles')
 </head>
 <body>
 
@@ -36,5 +37,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+@stack('scripts')
 </body>
 </html>

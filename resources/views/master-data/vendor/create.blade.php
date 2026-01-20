@@ -17,6 +17,7 @@
             <select name="kategori" class="form-control" required>
                 <option value="">-- Pilih Kategori --</option>
                 <option value="Bahan Baku" {{ old('kategori') == 'Bahan Baku' ? 'selected' : '' }}>Bahan Baku</option>
+                <option value="Bahan Pendukung" {{ old('kategori') == 'Bahan Pendukung' ? 'selected' : '' }}>Bahan Pendukung</option>
                 <option value="Aset" {{ old('kategori') == 'Aset' ? 'selected' : '' }}>Aset</option>
             </select>
         </div>

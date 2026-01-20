@@ -2,15 +2,15 @@
     <!-- User Profile Card -->
     <div class="user-profile-card">
         <div class="user-avatar">
-            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(Auth::user()->profile_photo): ?>
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(Auth::check() && Auth::user()->profile_photo): ?>
                 <img src="<?php echo e(asset('storage/' . Auth::user()->profile_photo)); ?>" alt="Profile Photo">
             <?php else: ?>
                 <i class="fas fa-user"></i>
             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
         </div>
         <div class="user-info">
-            <h4><?php echo e(Auth::user()->name); ?></h4>
-            <small><?php echo e(ucfirst(Auth::user()->role)); ?></small>
+            <h4><?php echo e(Auth::check() ? Auth::user()->name : 'Guest'); ?></h4>
+            <small><?php echo e(Auth::check() ? ucfirst(Auth::user()->role) : ''); ?></small>
         </div>
     </div>
     
@@ -77,6 +77,38 @@
                 <a class="nav-link-rounded <?php echo e(request()->is('master-data/bahan-pendukung*') ? 'active' : ''); ?>" href="<?php echo e(route('master-data.bahan-pendukung.index')); ?>">
                     <i class="fas fa-flask"></i>
                     <span>Bahan Pendukung</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded <?php echo e(request()->is('master-data/produk*') ? 'active' : ''); ?>" href="<?php echo e(route('master-data.produk.index')); ?>">
+                    <i class="fas fa-box"></i>
+                    <span>Produk</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded <?php echo e(request()->is('master-data/biaya-bahan*') ? 'active' : ''); ?>" href="<?php echo e(route('master-data.biaya-bahan.index')); ?>">
+                    <i class="fas fa-calculator"></i>
+                    <span>Biaya Bahan</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded <?php echo e(request()->is('master-data/btkl*') ? 'active' : ''); ?>" href="<?php echo e(route('master-data.btkl.index')); ?>">
+                    <i class="fas fa-industry"></i>
+                    <span>BTKL (Proses Produksi)</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded <?php echo e(request()->is('master-data/bop*') ? 'active' : ''); ?>" href="<?php echo e(route('master-data.bop.index')); ?>">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>BOP (Biaya Overhead Pabrik)</span>
+                </a>
+            </li>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded <?php echo e(request()->is('master-data/bom*') ? 'active' : ''); ?>" href="<?php echo e(route('master-data.bom.index')); ?>">
+                    <i class="fas fa-sitemap"></i>
+                    <span>BOM (Bill of Materials)</span>
                 </a>
             </li>
             
@@ -230,9 +262,9 @@
                 </a>
             </li>
             <li class="nav-item">
-                <form method="POST" action="<?php echo e(route('logout')); ?>" style="margin: 0;">
+                <form method="POST" action="<?php echo e(route('logout')); ?>" style="margin: 0; padding: 0; display: block;">
                     <?php echo csrf_field(); ?>
-                    <button type="submit" class="nav-link-rounded logout-btn">
+                    <button type="submit" class="nav-link-rounded logout-btn" style="width: 100%; border: none; cursor: pointer;">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Logout</span>
                     </button>

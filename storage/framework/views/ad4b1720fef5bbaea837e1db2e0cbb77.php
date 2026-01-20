@@ -67,7 +67,13 @@
                                             <i class="fas fa-calculator text-primary"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-semibold"><?php echo e($coa->nama_akun); ?></div>
+                                            <div class="fw-semibold">
+                                                <?php echo e($coa->nama_akun); ?>
+
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($coa->is_akun_header): ?>
+                                                    <span class="badge bg-secondary ms-1">Header</span>
+                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                            </div>
                                             <small class="text-muted">ID: <?php echo e($coa->id); ?></small>
                                         </div>
                                     </div>

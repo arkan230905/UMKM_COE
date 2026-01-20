@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Support\UnitConverter;
 
 class BomJobCosting extends Model
 {
@@ -38,15 +39,18 @@ class BomJobCosting extends Model
 
     /**
      * Hitung ulang semua total dan update HPP di produk
+     * Total HPP = BBB + Bahan Pendukung + BTKL + BOP
      */
     public function recalculate()
     {
+        // Langsung sum dari subtotal yang sudah dihitung (jumlah x harga_satuan)
         $this->total_bbb = $this->detailBBB()->sum('subtotal');
         $this->total_btkl = $this->detailBTKL()->sum('subtotal');
         $this->total_bahan_pendukung = $this->detailBahanPendukung()->sum('subtotal');
         $this->total_bop = $this->detailBOP()->sum('subtotal');
         
-        $this->total_hpp = $this->total_bbb + $this->total_btkl + $this->total_bahan_pendukung + $this->total_bop;
+        // Total HPP = BBB + Bahan Pendukung + BTKL + BOP
+        $this->total_hpp = $this->total_bbb + $this->total_bahan_pendukung + $this->total_btkl + $this->total_bop;
         $this->hpp_per_unit = $this->jumlah_produk > 0 ? $this->total_hpp / $this->jumlah_produk : 0;
         
         $this->save();
@@ -57,21 +61,15 @@ class BomJobCosting extends Model
             $totalBiayaBahan = $this->total_bbb + $this->total_bahan_pendukung;
             $biayaBahanPerUnit = $this->jumlah_produk > 0 ? $totalBiayaBahan / $this->jumlah_produk : 0;
             
-            // Debug logging
-            \Log::info('=== BOM RECALCULATE DEBUG ===');
-            \Log::info('Produk ID: ' . $this->produk->id);
-            \Log::info('Total BBB: ' . $this->total_bbb);
-            \Log::info('Total Bahan Pendukung: ' . $this->total_bahan_pendukung);
-            \Log::info('Total Biaya Bahan: ' . $totalBiayaBahan);
-            \Log::info('Jumlah Produk: ' . $this->jumlah_produk);
-            \Log::info('Biaya Bahan Per Unit: ' . $biayaBahanPerUnit);
-            \Log::info('HPP Per Unit: ' . $this->hpp_per_unit);
+            // Update harga_bom dengan total HPP dan harga_jual dengan margin
+            $margin = $this->produk->margin_percent ?? 30;
+            $hargaJual = $this->hpp_per_unit * (1 + ($margin / 100));
             
             $this->produk->update([
-                'biaya_bahan' => $biayaBahanPerUnit  // Total biaya bahan per unit
+                'biaya_bahan' => $biayaBahanPerUnit,
+                'harga_bom' => $this->hpp_per_unit,  // HPP per unit dari BOM Job Costing
+                'harga_jual' => $hargaJual
             ]);
-            
-            \Log::info('Update successful - Biaya Bahan: ' . $this->produk->fresh()->biaya_bahan);
         }
         
         return $this;
