@@ -75,10 +75,12 @@
                 <table class="table table-hover align-middle">
                     <thead class="table-dark">
                         <tr>
-                            <th style="width: 3%;" class="text-center">#</th>
-                            <th style="width: 30%;">Produk</th>
+                            <th style="width: 5%;" class="text-center">#</th>
+                            <th style="width: 20%;">Nama Produk</th>
                             <th style="width: 15%;" class="text-center">Jumlah Bahan</th>
-                            <th style="width: 17%;" class="text-end">Total Biaya BOM</th>
+                            <th style="width: 12%;" class="text-end">Biaya Bahan</th>
+                            <th style="width: 12%;" class="text-end">Biaya BTKL</th>
+                            <th style="width: 15%;" class="text-end">Total Biaya BOM</th>
                             <th style="width: 15%;" class="text-center">Status</th>
                             <th style="width: 20%;" class="text-center">Aksi</th>
                         </tr>
@@ -149,9 +151,28 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    @if($bom && $totalBiaya > 0)
+                                    @if($produk->total_biaya_bahan > 0)
+                                        <div class="fw-bold text-info">
+                                            Rp {{ number_format($produk->total_biaya_bahan, 0, ',', '.') }}
+                                        </div>
+                                    @else
+                                        <span class="text-muted">Rp 0</span>
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    @if($produk->has_btkl && $produk->total_btkl > 0)
+                                        <div class="fw-bold text-warning">
+                                            Rp {{ number_format($produk->total_btkl, 0, ',', '.') }}
+                                        </div>
+                                        <small class="text-muted d-block">{{ $produk->btkl_count }} proses</small>
+                                    @else
+                                        <span class="text-muted">Rp 0</span>
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    @if(($produk->total_biaya_bahan > 0) || ($produk->has_btkl && $produk->total_btkl > 0))
                                         <div class="fw-bold text-success fs-5">
-                                            Rp {{ number_format($totalBiaya, 0, ',', '.') }}
+                                            Rp {{ number_format($produk->total_biaya_bahan + $produk->total_btkl, 0, ',', '.') }}
                                         </div>
                                     @else
                                         <span class="text-muted">Rp 0</span>
@@ -171,6 +192,11 @@
                                     @if(!$hasBiayaBahan)
                                         <small class="badge bg-warning text-dark mt-1">
                                             <i class="fas fa-exclamation-triangle"></i> Belum ada biaya bahan
+                                        </small>
+                                    @endif
+                                    @if(!$produk->has_btkl)
+                                        <small class="badge bg-warning text-dark mt-1">
+                                            <i class="fas fa-exclamation-triangle"></i> Belum ada BTKL
                                         </small>
                                     @endif
                                     @if($bomJobCosting && !$bom)

@@ -14,7 +14,7 @@
         </div>
     @endif
 
-    <form action="{{ route('master-data.pegawai.update', $pegawai->id) }}" method="POST" id="pegawai-edit-form">
+    <form action="{{ route('master-data.pegawai.update', $pegawai->nomor_induk_pegawai) }}" method="POST" id="pegawai-edit-form">
         @csrf
         @method('PUT')
         

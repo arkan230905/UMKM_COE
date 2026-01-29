@@ -5,6 +5,7 @@ namespace App\Http\Controllers\MasterData;
 use App\Http\Controllers\Controller;
 use App\Models\Btkl;
 use App\Models\Jabatan;
+use App\Services\BomSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -134,6 +135,9 @@ class BtklController extends Controller
         try {
             $btkl = Btkl::findOrFail($id);
             $btkl->update($validated);
+
+            // Sync BOM when BTKL data changes
+            BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);
 
             DB::commit();
 

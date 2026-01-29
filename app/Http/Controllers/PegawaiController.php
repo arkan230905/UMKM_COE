@@ -30,8 +30,10 @@ class PegawaiController extends Controller
             });
         }
         
-        // Paginasi dengan 10 item per halaman
-        $pegawais = $query->orderBy('nama')->paginate(10);
+        // Paginasi dengan 10 item per halaman - use direct DB query to avoid model cache
+        $pegawais = \Illuminate\Support\Facades\DB::table('pegawais')
+            ->orderBy('nama')
+            ->paginate(10);
         
         return view('master-data.pegawai.index', compact('pegawais', 'jenis', 'search'));
     }
@@ -78,6 +80,13 @@ class PegawaiController extends Controller
             'nomor_rekening' => $request->input('nomor_rekening'),
             'nama_rekening' => $request->input('nama_rekening'),
         ];
+        
+        // Generate kode pegawai
+        $lastId = Pegawai::max('id') ?? 0;
+        $pegawaiData['kode_pegawai'] = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        
+        // Generate nomor induk pegawai (NIP) - use timestamp to ensure uniqueness
+        $pegawaiData['nomor_induk_pegawai'] = 'EMP' . date('ymdHis') . str_pad($lastId + 1, 3, '0', STR_PAD_LEFT);
         
         // Log the data being saved for debugging
         \Log::info('Creating new Pegawai:', $pegawaiData);

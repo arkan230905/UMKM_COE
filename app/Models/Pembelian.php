@@ -21,18 +21,19 @@ class Pembelian extends Model
         'sisa_pembayaran',
         'status',
         'payment_method',
-        'keterangan'
+        'keterangan',
+        'bank_id'
     ];
     
     protected $dates = ['tanggal'];
     
-    protected $appends = ['sisa_utang', 'status_pembayaran', 'total'];
+    protected $appends = ['sisa_utang', 'status_pembayaran'];
 
     protected $casts = [
         'tanggal' => 'date',
-        'total_harga' => 'decimal:2',
-        'terbayar' => 'decimal:2',
-        'sisa_pembayaran' => 'decimal:2'
+        'total_harga' => 'float',
+        'terbayar' => 'float',
+        'sisa_pembayaran' => 'float'
     ];
     
     /**
@@ -65,14 +66,6 @@ class Pembelian extends Model
     public function apSettlements()
     {
         return $this->hasMany(ApSettlement::class, 'pembelian_id');
-    }
-    
-    /**
-     * Get the total attribute (alias for total_harga).
-     */
-    public function getTotalAttribute()
-    {
-        return $this->attributes['total_harga'] ?? 0;
     }
     
     /**

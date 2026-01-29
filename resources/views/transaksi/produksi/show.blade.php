@@ -34,8 +34,35 @@
                     <td>{{ $loop->iteration }}</td>
                     <td>{{ $d->bahanBaku->nama_bahan }}</td>
                     <td>{{ rtrim(rtrim(number_format($d->qty_resep,4,',','.'),'0'),',') }} {{ $d->satuan_resep }}</td>
-                    <td>{{ rtrim(rtrim(number_format($d->qty_konversi,4,',','.'),'0'),',') }} {{ $d->bahanBaku->satuan }}</td>
-                    <td>Rp {{ number_format($d->harga_satuan,0,',','.') }} / {{ $d->bahanBaku->satuan }}</td>
+                    <td>{{ rtrim(rtrim(number_format($d->qty_konversi,4,',','.'),'0'),',') }} 
+                    @php
+                        // Logic satuan yang sama dengan pegawai-pembelian
+                        $satuanItem = 'unit';
+                        
+                        // Jika item diinput sebagai bahan baku (berdasarkan relation yang ada)
+                        if ($d->bahan_baku_id && $d->bahanBaku) {
+                            // Prioritas: detail->satuan, lalu relation->satuan
+                            $satuanItem = $d->satuan ?: ($d->bahanBaku->satuan ?? 'unit');
+                        }
+                        // Fallback jika relation tidak ada
+                        elseif ($d->bahan_baku_id) {
+                            $satuanItem = $d->satuan ?: 'unit';
+                        }
+                    @endphp
+                    {{ $satuanItem }}</td>
+                    <td>Rp {{ number_format($d->harga_satuan,0,',','.') }} / 
+                    @php
+                        // Logic satuan yang sama untuk harga satuan
+                        $satuanHarga = 'unit';
+                        
+                        if ($d->bahan_baku_id && $d->bahanBaku) {
+                            $satuanHarga = $d->satuan ?: ($d->bahanBaku->satuan ?? 'unit');
+                        }
+                        elseif ($d->bahan_baku_id) {
+                            $satuanHarga = $d->satuan ?: 'unit';
+                        }
+                    @endphp
+                    {{ $satuanHarga }}</td>
                     <td>Rp {{ number_format($d->subtotal,0,',','.') }}</td>
                 </tr>
             @endforeach

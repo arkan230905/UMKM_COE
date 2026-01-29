@@ -71,7 +71,7 @@ class JabatanController extends Controller
         $data['kode_jabatan'] = $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
 
         Jabatan::create($data);
-        return redirect()->route('master-data.jabatan.index')->with('success','Jabatan berhasil ditambahkan');
+        return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')->with('success','Jabatan berhasil ditambahkan');
     }
 
     public function edit(Jabatan $jabatan)
@@ -103,13 +103,53 @@ class JabatanController extends Controller
         $data['tarif_lembur'] = $data['tarif_lembur'] ?? 0;
 
         $jabatan->update($data);
-        return redirect()->route('master-data.jabatan.index')->with('success','Jabatan berhasil diperbarui');
+        return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')->with('success','Jabatan berhasil diperbarui');
     }
 
     public function destroy(Jabatan $jabatan)
     {
-        $jabatan->delete();
-        return redirect()->route('master-data.jabatan.index')->with('success','Jabatan berhasil dihapus');
+        // Log untuk debugging
+        \Log::info('Attempting to delete jabatan', [
+            'jabatan_id' => $jabatan->id,
+            'jabatan_nama' => $jabatan->nama,
+            'jabatan_kategori' => $jabatan->kategori,
+            'request_ip' => request()->ip(),
+            'user_agent' => request()->userAgent()
+        ]);
+
+        try {
+            // Cek apakah jabatan digunakan di tabel pegawai
+            $pegawaiCount = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
+            if ($pegawaiCount > 0) {
+                \Log::warning('Jabatan cannot be deleted - used in pegawai table', [
+                    'jabatan_id' => $jabatan->id,
+                    'pegawai_count' => $pegawaiCount
+                ]);
+                
+                return back()->with('error', "Jabatan '{$jabatan->nama}' tidak dapat dihapus karena digunakan oleh {$pegawaiCount} pegawai.");
+            }
+
+            $jabatanName = $jabatan->nama;
+            $jabatanId = $jabatan->id;
+            
+            $jabatan->delete();
+            
+            \Log::info('Jabatan deleted successfully', [
+                'deleted_jabatan_id' => $jabatanId,
+                'deleted_jabatan_nama' => $jabatanName
+            ]);
+            
+            return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')
+                ->with('success', "Jabatan '{$jabatanName}' berhasil dihapus");
+                
+        } catch (\Exception $e) {
+            \Log::error('Error deleting jabatan', [
+                'jabatan_id' => $jabatan->id,
+                'error' => $e->getMessage()
+            ]);
+            
+            return back()->with('error', 'Terjadi kesalahan saat menghapus jabatan: ' . $e->getMessage());
+        }
     }
 
     private function normalizeMoney($value): ?string

@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container text-light">
-    <h2 class="mb-4 text-white">Tambah Aset Baru</h2>
+<div class="container text-dark">
+    <h2 class="mb-4 text-dark">Tambah Aset Baru</h2>
 
     @if ($errors->any())
         <div class="alert alert-danger">
@@ -28,8 +28,8 @@
                 @csrf
                 
                 <div class="mb-3">
-                    <label for="nama_aset" class="form-label text-white">Nama Aset <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control bg-dark text-white @error('nama_aset') is-invalid @enderror" 
+                    <label for="nama_aset" class="form-label text-dark">Nama Aset <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control bg-white text-dark @error('nama_aset') is-invalid @enderror" 
                            id="nama_aset" name="nama_aset" value="{{ old('nama_aset') }}" required>
                     @error('nama_aset')
                         <div class="invalid-feedback">{{ $message }}</div>
@@ -37,8 +37,8 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="jenis_aset_id" class="form-label text-white">Jenis Aset <span class="text-danger">*</span></label>
-                    <select class="form-select bg-dark text-dark @error('jenis_aset_id') is-invalid @enderror" 
+                    <label for="jenis_aset_id" class="form-label text-dark">Jenis Aset <span class="text-danger">*</span></label>
+                    <select class="form-select bg-white text-dark @error('jenis_aset_id') is-invalid @enderror" 
                             id="jenis_aset_id" name="jenis_aset_id" required onchange="loadKategoriAset()">
                         <option value="" disabled selected>-- Pilih Jenis Aset --</option>
                         @foreach($jenisAsets as $jenis)
@@ -53,8 +53,8 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="kategori_aset_id" class="form-label text-white">Kategori Aset <span class="text-danger">*</span></label>
-                    <select class="form-select bg-dark text-dark @error('kategori_aset_id') is-invalid @enderror" 
+                    <label for="kategori_aset_id" class="form-label text-dark">Kategori Aset <span class="text-danger">*</span></label>
+                    <select class="form-select bg-white text-dark @error('kategori_aset_id') is-invalid @enderror" 
                             id="kategori_aset_id" name="kategori_aset_id" required onchange="checkPenyusutan()">
                         <option value="" disabled selected>-- Pilih Jenis Aset terlebih dahulu --</option>
                     </select>
@@ -65,8 +65,8 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="harga_perolehan" class="form-label text-white">Harga Perolehan (Rp) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" class="form-control bg-dark text-white @error('harga_perolehan') is-invalid @enderror" 
+                        <label for="harga_perolehan" class="form-label text-dark">Harga Perolehan (Rp) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" class="form-control bg-white text-dark @error('harga_perolehan') is-invalid @enderror" 
                                id="harga_perolehan" name="harga_perolehan" value="{{ old('harga_perolehan', 0) }}" 
                                required oninput="hitungTotal()">
                         @error('harga_perolehan')
@@ -75,8 +75,8 @@
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label for="biaya_perolehan" class="form-label text-white">Biaya Perolehan (Rp)</label>
-                        <input type="number" step="0.01" class="form-control bg-dark text-white @error('biaya_perolehan') is-invalid @enderror" 
+                        <label for="biaya_perolehan" class="form-label text-dark">Biaya Perolehan (Rp)</label>
+                        <input type="number" step="0.01" class="form-control bg-white text-dark @error('biaya_perolehan') is-invalid @enderror" 
                                id="biaya_perolehan" name="biaya_perolehan" value="{{ old('biaya_perolehan', 0) }}" 
                                required oninput="hitungTotal()">
                         <small class="text-muted">Biaya tambahan seperti ongkir, instalasi, dll</small>
@@ -87,8 +87,8 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label text-white">Total Perolehan</label>
-                    <div class="form-control bg-secondary text-white" id="total_perolehan_display">Rp 0</div>
+                    <label class="form-label text-dark">Total Perolehan</label>
+                    <div class="form-control bg-light text-dark" id="total_perolehan_display">Rp 0</div>
                 </div>
 
                 <!-- Section Penyusutan - Hanya muncul untuk aset yang disusutkan -->
@@ -100,8 +100,8 @@
 
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            <label for="metode_penyusutan" class="form-label text-white">Metode Penyusutan <span class="text-danger">*</span></label>
-                            <select class="form-select bg-dark text-white @error('metode_penyusutan') is-invalid @enderror" 
+                            <label for="metode_penyusutan" class="form-label text-dark">Metode Penyusutan <span class="text-danger">*</span></label>
+                            <select class="form-select bg-white text-dark @error('metode_penyusutan') is-invalid @enderror" 
                                     id="metode_penyusutan" name="metode_penyusutan" onchange="hitungPenyusutan()">
                                 <option value="" disabled selected>-- Pilih Metode --</option>
                                 @foreach($metodePenyusutan as $key => $value)
@@ -116,8 +116,8 @@
                         </div>
 
                         <div class="col-md-4 mb-3">
-                            <label for="umur_manfaat" class="form-label text-white">Umur Manfaat (tahun) <span class="text-danger">*</span></label>
-                            <input type="number" step="1" min="1" class="form-control bg-dark text-white @error('umur_manfaat') is-invalid @enderror" 
+                            <label for="umur_manfaat" class="form-label text-dark">Umur Manfaat (tahun) <span class="text-danger">*</span></label>
+                            <input type="number" step="1" min="1" class="form-control bg-white text-dark @error('umur_manfaat') is-invalid @enderror" 
                                    id="umur_manfaat" name="umur_manfaat" value="{{ old('umur_manfaat') }}" 
                                    oninput="hitungPenyusutan()">
                             <small class="text-muted">Perkiraan umur ekonomis aset</small>
@@ -128,8 +128,8 @@
 
                         <!-- Tarif Penyusutan Per Tahun (hanya untuk saldo menurun) -->
                         <div class="col-md-4 mb-3" id="tarif_penyusutan_container" style="display: none;">
-                            <label for="tarif_penyusutan" class="form-label text-white">Tarif Penyusutan Per Tahun (%)</label>
-                            <input type="number" step="0.1" min="0" max="200" class="form-control bg-dark text-white @error('tarif_penyusutan') is-invalid @enderror" 
+                            <label for="tarif_penyusutan" class="form-label text-dark">Tarif Penyusutan Per Tahun (%)</label>
+                            <input type="number" step="0.1" min="0" max="200" class="form-control bg-white text-dark @error('tarif_penyusutan') is-invalid @enderror" 
                                    id="tarif_penyusutan" name="tarif_penyusutan" value="{{ old('tarif_penyusutan') }}" 
                                    oninput="hitungPenyusutan()">
                             <small class="text-muted">Tarif penyusutan dalam persen (contoh: 50 untuk 50%)</small>
@@ -140,8 +140,8 @@
 
                         <!-- Bulan Mulai (hanya untuk saldo menurun) -->
                         <div class="col-md-4 mb-3" id="bulan_mulai_container" style="display: none;">
-                            <label for="bulan_mulai" class="form-label text-white">Bulan Mulai</label>
-                            <select class="form-select bg-dark text-white @error('bulan_mulai') is-invalid @enderror" 
+                            <label for="bulan_mulai" class="form-label text-dark">Bulan Mulai</label>
+                            <select class="form-select bg-white text-dark @error('bulan_mulai') is-invalid @enderror" 
                                     id="bulan_mulai" name="bulan_mulai" onchange="hitungPenyusutan()">
                                 <option value="1">Januari</option>
                                 <option value="2">Februari</option>
@@ -164,8 +164,8 @@
 
                         <!-- Tanggal Perolehan (hanya untuk jumlah angka tahun) -->
                         <div class="col-md-4 mb-3" id="tanggal_perolehan_container" style="display: none;">
-                            <label for="tanggal_perolehan" class="form-label text-white">Tanggal Perolehan <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control bg-dark text-white @error('tanggal_perolehan') is-invalid @enderror" 
+                            <label for="tanggal_perolehan" class="form-label text-dark">Tanggal Perolehan <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control bg-white text-dark @error('tanggal_perolehan') is-invalid @enderror" 
                                    id="tanggal_perolehan" name="tanggal_perolehan" value="{{ old('tanggal_perolehan') }}" 
                                    onchange="hitungPenyusutan()">
                             <small class="text-muted">Tanggal pembelian aset</small>
@@ -175,8 +175,8 @@
                         </div>
 
                         <div class="col-md-4 mb-3">
-                            <label for="nilai_residu" class="form-label text-white">Nilai Residu (Rp)</label>
-                            <input type="number" step="0.01" class="form-control bg-dark text-white @error('nilai_residu') is-invalid @enderror" 
+                            <label for="nilai_residu" class="form-label text-dark">Nilai Residu (Rp)</label>
+                            <input type="number" step="0.01" class="form-control bg-white text-dark @error('nilai_residu') is-invalid @enderror" 
                                    id="nilai_residu" name="nilai_residu" value="{{ old('nilai_residu', 0) }}" 
                                    oninput="hitungPenyusutan()">
                             <small class="text-muted">Nilai sisa di akhir umur manfaat</small>
@@ -187,14 +187,14 @@
                     </div>
 
                     <!-- Ringkasan Penyusutan -->
-                    <div class="card border-0 shadow-sm mb-4 bg-dark">
-                        <div class="card-header bg-primary text-light">
+                    <div class="card border-0 shadow-sm mb-4 bg-white">
+                        <div class="card-header bg-light text-dark">
                             <h5 class="mb-0"><i class="bi bi-calculator me-2"></i>Informasi Penyusutan</h5>
                         </div>
                         <div class="card-body">
                             <!-- Informasi Metode Penyusutan -->
                             <div id="info_metode_penyusutan" class="mb-3" style="display: none;">
-                                <div class="alert alert-info bg-dark border-info">
+                                <div class="alert alert-info bg-light border-info">
                                     <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Detail Metode Penyusutan</h6>
                                     <div id="rumus_penyusutan"></div>
                                     <div id="tarif_penyusutan"></div>
@@ -204,20 +204,20 @@
                             
                                                         
                             <!-- Hasil Perhitungan -->
-                            <h6 class="text-light mb-3" id="hasil_perhitungan_header"><i class="bi bi-calculator me-2"></i>Hasil Perhitungan Penyusutan</h6>
+                            <h6 class="text-dark mb-3" id="hasil_perhitungan_header"><i class="bi bi-calculator me-2"></i>Hasil Perhitungan Penyusutan</h6>
                             <div class="table-responsive" id="hasil_perhitungan_container">
-                                <table class="table table-bordered mb-0 table-dark">
+                                <table class="table table-bordered mb-0 table-light">
                                     <tbody>
                                         <tr>
-                                            <td class="bg-secondary text-white fw-bold" width="50%">Nilai yang Disusutkan</td>
-                                            <td class="text-end text-white" id="nilai_disusutkan_display">Rp 0</td>
+                                            <td class="bg-light text-dark fw-bold" width="50%">Nilai yang Disusutkan</td>
+                                            <td class="text-end text-dark" id="nilai_disusutkan_display">Rp 0</td>
                                         </tr>
                                         <tr class="bg-success bg-opacity-25">
-                                            <td class="fw-bold text-white">Penyusutan Per Tahun</td>
+                                            <td class="fw-bold text-dark">Penyusutan Per Tahun</td>
                                             <td class="text-end fw-bold text-success" id="penyusutan_tahunan_display">Rp 0</td>
                                         </tr>
                                         <tr class="bg-info bg-opacity-25">
-                                            <td class="fw-bold text-white">Penyusutan Per Bulan</td>
+                                            <td class="fw-bold text-dark">Penyusutan Per Bulan</td>
                                             <td class="text-end fw-bold text-info" id="penyusutan_bulanan_display">Rp 0</td>
                                         </tr>
                                     </tbody>
@@ -226,9 +226,9 @@
                             
                             <!-- Tabel Perhitungan Per Tahun (hanya untuk saldo menurun) -->
                             <div id="tabel_perhitungan_tahunan" class="mt-4" style="display: none;">
-                                <h6 class="text-light mb-3"><i class="bi bi-table me-2"></i>Perhitungan Penyusutan Per Tahun</h6>
+                                <h6 class="text-dark mb-3"><i class="bi bi-table me-2"></i>Perhitungan Penyusutan Per Tahun</h6>
                                 <div class="table-responsive">
-                                    <table class="table table-bordered table-dark table-sm">
+                                    <table class="table table-bordered table-light table-sm">
                                         <thead class="table-light">
                                             <tr>
                                                 <th class="text-center">TAHUN</th>
@@ -246,16 +246,16 @@
                             
                             <!-- Perhitungan Jumlah Angka Tahun (hanya untuk metode jumlah angka tahun) -->
                             <div id="perhitungan_jumlah_angka_tahun" class="mt-4" style="display: none;">
-                                <h6 class="text-light mb-3"><i class="bi bi-calculator me-2"></i>Perhitungan Jumlah Angka Tahun</h6>
-                                <div class="card bg-dark">
+                                <h6 class="text-dark mb-3"><i class="bi bi-calculator me-2"></i>Perhitungan Jumlah Angka Tahun</h6>
+                                <div class="card bg-white">
                                     <div class="card-body">
                                         <div class="row">
                                             <div class="col-md-6">
-                                                <p class="text-white mb-2"><strong>Umur Manfaat:</strong> <span id="umur_manfaat_display">-</span> tahun</p>
-                                                <p class="text-white mb-2"><strong>Rumus:</strong> <span id="rumus_jumlah_angka">-</span></p>
+                                                <p class="text-dark mb-2"><strong>Umur Manfaat:</strong> <span id="umur_manfaat_display">-</span> tahun</p>
+                                                <p class="text-dark mb-2"><strong>Rumus:</strong> <span id="rumus_jumlah_angka">-</span></p>
                                             </div>
                                             <div class="col-md-6">
-                                                <p class="text-white mb-2"><strong>Hasil Perhitungan:</strong></p>
+                                                <p class="text-dark mb-2"><strong>Hasil Perhitungan:</strong></p>
                                                 <h4 class="text-success" id="hasil_jumlah_angka">-</h4>
                                             </div>
                                         </div>
@@ -278,8 +278,8 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="tanggal_beli" class="form-label text-white">Tanggal Pembelian <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control bg-dark text-white @error('tanggal_beli') is-invalid @enderror" 
+                        <label for="tanggal_beli" class="form-label text-dark">Tanggal Pembelian <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control bg-white text-dark @error('tanggal_beli') is-invalid @enderror" 
                                id="tanggal_beli" name="tanggal_beli" value="{{ old('tanggal_beli', date('Y-m-d')) }}" required>
                         @error('tanggal_beli')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -287,8 +287,8 @@
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label for="tanggal_akuisisi" class="form-label text-white">Tanggal Mulai Penyusutan</label>
-                        <input type="date" class="form-control bg-dark text-white @error('tanggal_akuisisi') is-invalid @enderror" 
+                        <label for="tanggal_akuisisi" class="form-label text-dark">Tanggal Mulai Penyusutan</label>
+                        <input type="date" class="form-control bg-white text-dark @error('tanggal_akuisisi') is-invalid @enderror" 
                                id="tanggal_akuisisi" name="tanggal_akuisisi" value="{{ old('tanggal_akuisisi') }}">
                         <small class="text-muted">Kosongkan jika sama dengan tanggal pembelian</small>
                         @error('tanggal_akuisisi')
@@ -298,8 +298,8 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="keterangan" class="form-label text-white">Keterangan</label>
-                    <textarea class="form-control bg-dark text-white @error('keterangan') is-invalid @enderror" 
+                    <label for="keterangan" class="form-label text-dark">Keterangan</label>
+                    <textarea class="form-control bg-white text-dark @error('keterangan') is-invalid @enderror" 
                               id="keterangan" name="keterangan" rows="3">{{ old('keterangan') }}</textarea>
                     @error('keterangan')
                         <div class="invalid-feedback">{{ $message }}</div>
@@ -691,11 +691,11 @@ function updateDepreciationInfo(metode, ratePersen = 0) {
             <div class="mb-3">
                 <div class="d-flex align-items-center mb-2">
                     <span class="badge bg-primary me-2">Rumus</span>
-                    <span class="text-white">(100% / UMUR MANFAAT) × 2 = (100% / ${umur}) × 2 = ${((100 / umur) * 2).toFixed(1)}%</span>
+                    <span class="text-dark">(100% / UMUR MANFAAT) × 2 = (100% / ${umur}) × 2 = ${((100 / umur) * 2).toFixed(1)}%</span>
                 </div>
                 <div class="d-flex align-items-center">
                     <span class="badge bg-success me-2">Tarif</span>
-                    <span class="text-white">${tarifInput.toFixed(1)}% per tahun</span>
+                    <span class="text-dark">${tarifInput.toFixed(1)}% per tahun</span>
                 </div>
             </div>
             ${sisaBulan < 12 ? 

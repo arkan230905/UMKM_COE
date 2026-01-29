@@ -479,6 +479,71 @@ document.addEventListener('DOMContentLoaded', function() {
             calculateTotals();
         }
     }, 500);
+    
+    // Define global functions for add row functionality
+    window.addBahanBakuRow = function() {
+        console.log('=== addBahanBakuRow called ===');
+        const newRow = document.getElementById('newBahanBakuRow');
+        if (!newRow) {
+            console.error('ERROR: newBahanBakuRow not found!');
+            alert('Error: Template row tidak ditemukan!');
+            return false;
+        }
+        
+        const tbody = newRow.parentElement;
+        const clone = newRow.cloneNode(true);
+        clone.classList.remove('d-none');
+        clone.id = 'bahanBaku_' + Date.now();
+        
+        const timestamp = Date.now();
+        clone.querySelectorAll('[name^="bahan_baku[new]"]').forEach(input => {
+            const fieldName = input.name.match(/\[new\]\[(\w+)\]/)[1];
+            input.name = `bahan_baku[${timestamp}][${fieldName}]`;
+            input.value = '';
+        });
+        
+        tbody.insertBefore(clone, newRow);
+        console.log('Bahan Baku row inserted! ID:', clone.id);
+        
+        // Re-attach event listeners if needed
+        if (typeof attachEventListeners === 'function') {
+            attachEventListeners(clone);
+        }
+        
+        return false;
+    };
+    
+    window.addBahanPendukungRow = function() {
+        console.log('=== addBahanPendukungRow called ===');
+        const newRow = document.getElementById('newBahanPendukungRow');
+        if (!newRow) {
+            console.error('ERROR: newBahanPendukungRow not found!');
+            alert('Error: Template row tidak ditemukan!');
+            return false;
+        }
+        
+        const tbody = newRow.parentElement;
+        const clone = newRow.cloneNode(true);
+        clone.classList.remove('d-none');
+        clone.id = 'bahanPendukung_' + Date.now();
+        
+        const timestamp = Date.now();
+        clone.querySelectorAll('[name^="bahan_pendukung[new]"]').forEach(input => {
+            const fieldName = input.name.match(/\[new\]\[(\w+)\]/)[1];
+            input.name = `bahan_pendukung[${timestamp}][${fieldName}]`;
+            input.value = '';
+        });
+        
+        tbody.insertBefore(clone, newRow);
+        console.log('Bahan Pendukung row inserted! ID:', clone.id);
+        
+        // Re-attach event listeners if needed
+        if (typeof attachEventListeners === 'function') {
+            attachEventListeners(clone);
+        }
+        
+        return false;
+    };
 });
 </script>
 @endpush

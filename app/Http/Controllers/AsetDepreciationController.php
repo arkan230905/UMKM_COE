@@ -42,12 +42,15 @@ class AsetDepreciationController extends Controller
         $to   = $dt->toDateString();
 
         $countPosted = 0; $skipped = 0;
-        $asets = Aset::where('depr_method','SL')->get();
+        $asets = Aset::whereNotNull('metode_penyusutan')
+                    ->whereNotNull('tanggal_akuisisi')
+                    ->where('tanggal_akuisisi', '<=', $to)
+                    ->get();
         foreach ($asets as $a) {
-            $cost = (float)($a->acquisition_cost ?? $a->harga ?? 0);
-            $res  = (float)($a->residual_value ?? 0);
-            $life = (int)($a->useful_life_years ?? 0);
-            $start= $a->depr_start_date ?? $a->tanggal_beli;
+            $cost = (float)($a->harga_perolehan ?? 0);
+            $res  = (float)($a->nilai_residu ?? 0);
+            $life = (int)($a->umur_manfaat ?? 0);
+            $start= $a->tanggal_akuisisi ?? $a->tanggal_beli;
             if ($life <= 0 || !$start || $cost <= 0) { $skipped++; continue; }
             // Cek sudah dipost bulan ini?
             $exists = JournalEntry::where('ref_type','depr')
@@ -62,7 +65,13 @@ class AsetDepreciationController extends Controller
             if ($perMonth <= 0) { $skipped++; continue; }
 
             // Post jurnal: Dr Beban Penyusutan (5103); Cr Akumulasi Penyusutan (120401)
-            $journal->post($dt->toDateString(), 'depr', (int)$a->id, 'Penyusutan Aset '.$a->nama.' (SL) '.$dt->format('Y-m'), [
+            $methodLabel = match($a->metode_penyusutan) {
+                'garis_lurus' => 'GL',
+                'saldo_menurun' => 'SM',
+                'sum_of_years_digits' => 'SYD',
+                default => $a->metode_penyusutan
+            };
+            $journal->post($dt->toDateString(), 'depr', (int)$a->id, 'Penyusutan Aset '.$a->nama_aset.' ('.$methodLabel.') '.$dt->format('Y-m'), [
                 ['code' => '5103', 'debit' => (float)$perMonth, 'credit' => 0],  // Beban Penyusutan
                 ['code' => '120401', 'debit' => 0, 'credit' => (float)$perMonth],  // Akumulasi Penyusutan Peralatan
             ]);

@@ -52,7 +52,15 @@
                                     </div>
                                 </td>
                                 <td>{{ is_string($bahan->satuan) ? $bahan->satuan : (optional($bahan->satuan)->nama ?? '-') }}</td>
-                                <td class="fw-semibold">Rp {{ number_format($bahan->harga_satuan, 0, ',', '.') }}</td>
+                                <td class="fw-semibold">
+                                    Rp {{ number_format($bahan->harga_satuan_display, 0, ',', '.') }}
+                                    @if($bahan->harga_satuan_display != $bahan->harga_satuan)
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-chart-line me-1"></i>
+                                            Rata-rata dari pembelian
+                                        </small>
+                                    @endif
+                                </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
                                         <a href="{{ route('master-data.bahan-baku.edit', $bahan->id) }}" class="btn btn-outline-primary">

@@ -23,15 +23,23 @@ class AkuntansiController extends Controller
         $to   = $request->get('to');
         $refType = $request->get('ref_type');
         $refId   = $request->get('ref_id');
+        $accountCode = $request->get('account_code');
 
         $query = JournalEntry::with(['lines.account'])->orderBy('tanggal','asc')->orderBy('id','asc');
         if ($from) { $query->whereDate('tanggal','>=',$from); }
         if ($to)   { $query->whereDate('tanggal','<=',$to); }
         if ($refType) { $query->where('ref_type', $refType); }
         if ($refId)   { $query->where('ref_id', $refId); }
+        if ($accountCode) { 
+            $query->whereHas('lines', function($q) use ($accountCode) {
+                $q->whereHas('account', function($subQ) use ($accountCode) {
+                    $subQ->where('code', $accountCode);
+                });
+            });
+        }
         $entries = $query->get();
 
-        return view('akuntansi.jurnal-umum', compact('entries','from','to','refType','refId'));
+        return view('akuntansi.jurnal-umum', compact('entries','from','to','refType','refId','accountCode'));
     }
 
     public function jurnalUmumExportPdf(Request $request)
@@ -67,47 +75,59 @@ class AkuntansiController extends Controller
 
     public function bukuBesar(Request $request)
     {
-        $from = $request->get('from');
-        $to   = $request->get('to');
+        $month = $request->get('month');
+        $year = $request->get('year');
         $accountId = $request->get('account_id');
 
-        $accounts = Account::orderBy('code')->get();
+        // Ambil semua COA yang ada di sistem
+        $coas = \App\Models\Coa::where('is_akun_header', 0)->orderBy('kode_akun')->get();
         $lines = collect();
         $saldoAwal = 0.0;
+        $from = null;
+        $to = null;
 
         if ($accountId) {
-            $account = Account::find($accountId);
-            
-            // Ambil saldo awal dari COA
-            $coa = \App\Models\Coa::where('kode_akun', $account->code)->first();
-            $saldoAwalCoa = $coa ? (float)($coa->saldo_awal ?? 0) : 0;
-            
-            // Hitung mutasi sebelum periode
-            $mutasiSebelumPeriode = 0.0;
-            if ($from) {
-                $mutasiSebelumPeriode = JournalLine::where('account_id',$accountId)
-                    ->whereHas('entry', function($qq) use ($from) { $qq->whereDate('tanggal','<',$from); })
-                    ->selectRaw('COALESCE(SUM(debit - credit),0) as sal')->value('sal') ?? 0;
+            // Debug: Coba cari COA dengan cara berbeda
+            $coa = null;
+            foreach($coas as $c) {
+                if ($c->id == $accountId) {
+                    $coa = $c;
+                    break;
+                }
             }
             
-            // Saldo awal = saldo awal COA + mutasi sebelum periode
-            $saldoAwal = $saldoAwalCoa + $mutasiSebelumPeriode;
-            
-            // Ambil transaksi dalam periode
-            $q = JournalLine::with(['entry'])
-                ->where('account_id', $accountId)
-                ->orderBy(JournalLine::query()->getModel()->getTable().'.id','asc');
-            
-            if ($from) {
-                $q->whereHas('entry', function($qq) use ($from) { $qq->whereDate('tanggal','>=',$from); });
+            if (!$coa) {
+                return view('akuntansi.buku-besar', compact('coas','accountId','lines','from','to','saldoAwal','month','year'));
             }
-            if ($to) {
-                $q->whereHas('entry', function($qq) use ($to) { $qq->whereDate('tanggal','<=',$to); });
+            
+            // Cari Account yang sesuai dengan COA
+            $account = \App\Models\Account::where('code', $coa->kode_akun)->first();
+            
+            if (!$account) {
+                return view('akuntansi.buku-besar', compact('coas','accountId','lines','from','to','saldoAwal','month','year'));
             }
-            $lines = $q->get();
+            
+            // Jika bulan dan tahun dipilih, buat rentang tanggal
+            if ($month && $year) {
+                $from = $year . '-' . $month . '-01';
+                $to = $year . '-' . $month . '-' . date('t', mktime(0, 0, 0, $month, 1, $year));
+                
+                // Get saldo awal dari COA table (proper accounting method)
+                $saldoAwal = $coa->saldo_awal ?? 0;
+                
+                // Ambil transaksi dalam periode
+                $query = \App\Models\JournalLine::with(['entry'])
+                    ->where('account_id', $account->id)
+                    ->whereHas('entry', function($q) use ($from, $to) {
+                        $q->whereDate('tanggal', '>=', $from)
+                          ->whereDate('tanggal', '<=', $to);
+                    });
+                
+                $lines = $query->orderBy('journal_entry_id', 'asc')->get();
+            }
         }
 
-        return view('akuntansi.buku-besar', compact('accounts','accountId','lines','from','to','saldoAwal'));
+        return view('akuntansi.buku-besar', compact('coas','accountId','lines','from','to','saldoAwal','month','year'));
     }
 
     public function bukuBesarExportExcel(Request $request)
@@ -147,34 +167,37 @@ class AkuntansiController extends Controller
         
         $totals = [];
         foreach ($coas as $coa) {
-            // Get saldo awal dari periode
-            $saldoAwal = $this->getSaldoAwalPeriode($coa, $periode);
+            // Get saldo awal dari COA table (proper accounting method)
+            $saldoAwal = $coa->saldo_awal ?? 0;
             
-            // Hitung mutasi dalam periode menggunakan coa_id
-            $debit = JurnalUmum::where('coa_id', $coa->id)
-                ->whereBetween('tanggal', [$from, $to])
+            // Hitung mutasi dalam periode menggunakan JournalEntry dan JournalLine (data baru)
+            $journalEntryIds = JournalEntry::whereBetween('tanggal', [$from, $to])->pluck('id');
+            
+            $debit = JournalLine::whereIn('journal_entry_id', $journalEntryIds)
+                ->whereHas('account', function($query) use ($coa) {
+                    $query->where('code', $coa->kode_akun);
+                })
                 ->sum('debit');
+                
+            $credit = JournalLine::whereIn('journal_entry_id', $journalEntryIds)
+                ->whereHas('account', function($query) use ($coa) {
+                    $query->where('code', $coa->kode_akun);
+                })
+                ->sum('credit');
             
-            $kredit = JurnalUmum::where('coa_id', $coa->id)
-                ->whereBetween('tanggal', [$from, $to])
-                ->sum('kredit');
-            
-            // Hitung saldo akhir
-            if ($coa->saldo_normal === 'debit') {
-                $saldoAkhir = $saldoAwal + $debit - $kredit;
-            } else {
-                $saldoAkhir = $saldoAwal + $kredit - $debit;
-            }
+            // Hitung saldo akhir dengan metode yang sama seperti buku besar
+            // (selalu: saldo_akhir = saldo_awal + debit - credit)
+            $saldoAkhir = $saldoAwal + $debit - $credit;
             
             $totals[$coa->kode_akun] = [
                 'saldo_awal' => $saldoAwal,
-                'debit' => (float)$debit,
-                'kredit' => (float)$kredit,
-                'saldo_akhir' => $saldoAkhir,
+                'debit' => $debit,
+                'kredit' => $credit,
+                'saldo_akhir' => $saldoAkhir
             ];
         }
 
-        return view('akuntansi.neraca-saldo', compact('coas','totals','from','to','periode','periods'));
+        return view('akuntansi.neraca-saldo', compact('periode','periods','coas','totals'));
     }
 
     /**

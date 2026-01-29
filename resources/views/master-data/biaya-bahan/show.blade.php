@@ -83,9 +83,9 @@
             </h6>
         </div>
         <div class="card-body">
-            @if(count($detailBahan) > 0)
+            @if($allDetails && count($allDetails) > 0)
                 <!-- Bahan Baku Section -->
-                @if(count($detailBahanBaku) > 0)
+                @if($detailBahanBaku && count($detailBahanBaku) > 0)
                     <div class="mb-4">
                         <h6 class="text-info mb-3">
                             <i class="fas fa-cube me-2"></i>Bahan Baku ({{ count($detailBahanBaku) }} item)
@@ -109,14 +109,14 @@
                                             <td>
                                                 <div>
                                                     <div class="fw-semibold">{{ $bahan['nama_bahan'] }}</div>
-                                                    <small class="text-muted">{{ $bahan['satuan_base'] }}</small>
+                                                    <small class="text-muted">{{ $bahan['satuan'] }}</small>
                                                 </div>
                                             </td>
                                             <td class="text-center">
                                                 {{ number_format($bahan['qty'], 2, ',', '.') }} {{ $bahan['satuan'] }}
                                             </td>
                                             <td class="text-center">
-                                                {{ $bahan['satuan_base'] }}
+                                                {{ $bahan['satuan'] }}
                                             </td>
                                             <td class="text-end">
                                                 Rp {{ number_format($bahan['harga_satuan'], 0, ',', '.') }}
@@ -141,7 +141,7 @@
                 @endif
                 
                 <!-- Bahan Pendukung Section -->
-                @if(count($detailBahanPendukung) > 0)
+                @if($detailBahanPendukung && count($detailBahanPendukung) > 0)
                     <div class="mb-4">
                         <h6 class="text-warning mb-3">
                             <i class="fas fa-flask me-2"></i>Bahan Pendukung ({{ count($detailBahanPendukung) }} item)
@@ -165,14 +165,14 @@
                                             <td>
                                                 <div>
                                                     <div class="fw-semibold">{{ $bahan['nama_bahan'] }}</div>
-                                                    <small class="text-muted">{{ $bahan['satuan_base'] }}</small>
+                                                    <small class="text-muted">{{ $bahan['satuan'] }}</small>
                                                 </div>
                                             </td>
                                             <td class="text-center">
                                                 {{ number_format($bahan['qty'], 2, ',', '.') }} {{ $bahan['satuan'] }}
                                             </td>
                                             <td class="text-center">
-                                                {{ $bahan['satuan_base'] }}
+                                                {{ $bahan['satuan'] }}
                                             </td>
                                             <td class="text-end">
                                                 Rp {{ number_format($bahan['harga_satuan'], 0, ',', '.') }}
@@ -207,21 +207,21 @@
                                     <p class="mb-2">
                                         <strong>Total Bahan Baku:</strong><br>
                                         <span class="text-info fs-5">Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}</span>
-                                        <br><small class="text-muted">{{ count($detailBahanBaku) }} item</small>
+                                        <br><small class="text-muted">{{ $detailBahanBaku ? count($detailBahanBaku) : 0 }} item</small>
                                     </p>
                                 </div>
                                 <div class="col-md-4">
                                     <p class="mb-2">
                                         <strong>Total Bahan Pendukung:</strong><br>
                                         <span class="text-warning fs-5">Rp {{ number_format($totalBiayaBahanPendukung, 0, ',', '.') }}</span>
-                                        <br><small class="text-muted">{{ count($detailBahanPendukung) }} item</small>
+                                        <br><small class="text-muted">{{ $detailBahanPendukung ? count($detailBahanPendukung) : 0 }} item</small>
                                     </p>
                                 </div>
                                 <div class="col-md-4">
                                     <p class="mb-2">
                                         <strong>Total Biaya Bahan:</strong><br>
                                         <span class="text-success fs-5">Rp {{ number_format($totalBiayaBahan, 0, ',', '.') }}</span>
-                                        <br><small class="text-muted">{{ count($detailBahan) }} item total</small>
+                                        <br><small class="text-muted">{{ $allDetails ? count($allDetails) : 0 }} item total</small>
                                     </p>
                                 </div>
                             </div>

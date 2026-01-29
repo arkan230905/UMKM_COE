@@ -85,8 +85,11 @@
                                     @endif
                                 </td>
                                 <td class="text-capitalize">
-                                    <span class="badge {{ $coa->saldo_normal == 'debit' ? 'bg-success' : 'bg-warning' }}">
-                                        {{ $coa->saldo_normal }}
+                                    @php
+                                        $saldoNormal = strtolower($coa->saldo_normal);
+                                    @endphp
+                                    <span class="badge {{ $saldoNormal == 'debit' ? 'bg-success' : 'bg-warning' }}">
+                                        {{ $saldoNormal == 'debit' ? 'debit' : 'credit' }}
                                     </span>
                                 </td>
                                 <td>

@@ -5,8 +5,12 @@ namespace App\Providers;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use App\Models\BahanBaku;
 use App\Models\BahanPendukung;
+use App\Models\Pembelian;
+use App\Models\Penjualan;
 use App\Observers\BahanBakuObserver;
 use App\Observers\BahanPendukungObserver;
+use App\Observers\PembelianObserver;
+use App\Observers\PenjualanObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -29,5 +33,7 @@ class EventServiceProvider extends ServiceProvider
         // Register observers
         BahanBaku::observe(BahanBakuObserver::class);
         BahanPendukung::observe(BahanPendukungObserver::class);
+        Pembelian::observe(PembelianObserver::class);
+        Penjualan::observe(PenjualanObserver::class);
     }
 }

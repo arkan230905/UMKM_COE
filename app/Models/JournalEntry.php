@@ -15,4 +15,9 @@ class JournalEntry extends Model
     {
         return $this->hasMany(JournalLine::class);
     }
+    
+    public function linesWithAccount()
+    {
+        return $this->hasMany(JournalLine::class)->with('account');
+    }
 }

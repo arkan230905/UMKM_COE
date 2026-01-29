@@ -15,12 +15,14 @@ class User extends Authenticatable
     const ROLE_OWNER = 'owner';
     const ROLE_PELANGGAN = 'pelanggan';
     const ROLE_PEGAWAI_PEMBELIAN = 'pegawai_pembelian';
+    const ROLE_KASIR = 'kasir';
     
     const VALID_ROLES = [
         self::ROLE_ADMIN,
         self::ROLE_OWNER,
         self::ROLE_PELANGGAN,
         self::ROLE_PEGAWAI_PEMBELIAN,
+        self::ROLE_KASIR,
     ];
 
     protected $fillable = [
@@ -31,6 +33,7 @@ class User extends Authenticatable
         'password',
         'role',
         'perusahaan_id',
+        'profile_photo',
     ];
 
     protected $hidden = [
@@ -72,6 +75,14 @@ class User extends Authenticatable
     public function isPegawaiPembelian(): bool
     {
         return $this->role === self::ROLE_PEGAWAI_PEMBELIAN;
+    }
+
+    /**
+     * Check if user is a kasir (cashier)
+     */
+    public function isKasir(): bool
+    {
+        return $this->role === self::ROLE_KASIR;
     }
 
     /**

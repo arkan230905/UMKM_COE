@@ -26,6 +26,9 @@ class JournalService
                 'name' => (string)($coa->nama_akun ?? $code),
                 'type' => $type,
             ]);
+            
+            // Log the auto-creation for debugging
+            \Log::info("Auto-created Account from COA: {$code} - {$coa->nama_akun}");
             return (int)$acc->id;
         }
 
@@ -34,9 +37,12 @@ class JournalService
         $inferred = $this->inferTypeFromCode((string)$code);
         $acc = Account::create([
             'code' => (string)$code,
-            'name' => (string)$code,
+            'name' => 'Akun ' . (string)$code, // More descriptive name
             'type' => $inferred,
         ]);
+        
+        // Log the auto-creation for debugging
+        \Log::info("Auto-created Account from code inference: {$code} - Akun {$code}");
         return (int)$acc->id;
     }
 
@@ -112,5 +118,66 @@ class JournalService
                 $e->delete(); // journal_lines will cascade
             }
         });
+    }
+
+    /**
+     * Sync all COA accounts to Account table
+     */
+    public function syncCoaToAccounts(): array
+    {
+        $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0];
+        
+        $coas = Coa::all();
+        foreach ($coas as $coa) {
+            $account = Account::where('code', $coa->kode_akun)->first();
+            
+            if (!$account) {
+                // Create new account from COA
+                $type = $this->mapCoaTypeToAccountType((string)($coa->tipe_akun ?? ''));
+                Account::create([
+                    'code' => (string)$coa->kode_akun,
+                    'name' => (string)($coa->nama_akun ?? $coa->kode_akun),
+                    'type' => $type,
+                ]);
+                $stats['created']++;
+            } elseif ($account->name === (string)$coa->kode_akun || $account->name === $coa->kode_akun) {
+                // Update account with proper name from COA
+                $account->update([
+                    'name' => (string)($coa->nama_akun ?? $coa->kode_akun),
+                    'type' => $this->mapCoaTypeToAccountType((string)($coa->tipe_akun ?? '')),
+                ]);
+                $stats['updated']++;
+            } else {
+                $stats['skipped']++;
+            }
+        }
+        
+        return $stats;
+    }
+
+    /**
+     * Ensure all accounts used in journal lines have proper names
+     */
+    public function ensureAccountNames(): array
+    {
+        $stats = ['updated' => 0];
+        
+        // Get all accounts used in journal lines that might have generic names
+        $accounts = Account::where(function($query) {
+            $query->where('name', 'like', 'Akun %')
+                  ->orWhere('name', '=', 'code')
+                  ->orWhereRaw('name = code');
+        })->get();
+        
+        foreach ($accounts as $account) {
+            // Try to get name from COA
+            $coa = Coa::where('kode_akun', $account->code)->first();
+            if ($coa && !empty($coa->nama_akun)) {
+                $account->update(['name' => $coa->nama_akun]);
+                $stats['updated']++;
+            }
+        }
+        
+        return $stats;
     }
 }

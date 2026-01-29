@@ -26,9 +26,10 @@ class BomDetail extends Model
 
     protected static function booted()
     {
-        static::saving(function ($model) {
-            $model->total_harga = (float)($model->jumlah ?? 0) * (float)($model->harga_per_satuan ?? 0);
-        });
+        // Remove automatic calculation since controller handles conversion correctly
+        // static::saving(function ($model) {
+        //     $model->total_harga = (float)($model->jumlah ?? 0) * (float)($model->harga_per_satuan ?? 0);
+        // });
 
         static::deleted(function ($model) {
             // no-op

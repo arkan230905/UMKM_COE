@@ -187,7 +187,21 @@
                                     <div class="col-8 info-value">
                                         <h5 class="text-success mb-0">
                                             <i class="fas fa-money-bill-wave me-2"></i>
-                                            Rp {{ number_format($pembelian->total, 0, ',', '.') }}
+                                            @php
+                                                // Gunakan total yang sama dengan laporan/pembelian
+                                                $totalHarga = 0;
+                                                if ($pembelian->details && $pembelian->details->count() > 0) {
+                                                    $totalHarga = $pembelian->details->sum(function($detail) {
+                                                        return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                                                    });
+                                                }
+                                                
+                                                // Jika ada total_harga di database, gunakan yang lebih besar (sama seperti admin)
+                                                if ($pembelian->total_harga > $totalHarga) {
+                                                    $totalHarga = $pembelian->total_harga;
+                                                }
+                                            @endphp
+                                            Rp {{ number_format($totalHarga, 0, ',', '.') }}
                                         </h5>
                                     </div>
                                 </div>
@@ -196,9 +210,23 @@
                                 <div class="row">
                                     <div class="col-4 info-label">Status:</div>
                                     <div class="col-8 info-value">
-                                        <span class="status-badge bg-success text-white">
-                                            <i class="fas fa-check-circle me-1"></i>
-                                            Selesai
+                                        @php
+                                            // Logic status sama dengan laporan/pembelian - cek apakah ada retur
+                                            $hasRetur = \App\Models\PurchaseReturn::where('pembelian_id', $pembelian->id)->exists();
+                                            
+                                            if ($hasRetur) {
+                                                $statusText = 'Ada Retur';
+                                                $statusBadgeClass = 'bg-warning';
+                                                $statusIcon = 'fa-undo';
+                                            } else {
+                                                $statusText = 'Tidak Ada Retur';
+                                                $statusBadgeClass = 'bg-success';
+                                                $statusIcon = 'fa-check-circle';
+                                            }
+                                        @endphp
+                                        <span class="status-badge {{ $statusBadgeClass }} text-white">
+                                            <i class="fas {{ $statusIcon }} me-1"></i>
+                                            {{ $statusText }}
                                         </span>
                                     </div>
                                 </div>
@@ -311,7 +339,21 @@
                             </div>
                             <div class="col-md-4 text-end">
                                 <h4 class="text-success mb-0">
-                                    Rp {{ number_format($pembelian->total, 0, ',', '.') }}
+                                    @php
+                                        // Gunakan total yang sama dengan laporan/pembelian
+                                        $totalHarga = 0;
+                                        if ($pembelian->details && $pembelian->details->count() > 0) {
+                                            $totalHarga = $pembelian->details->sum(function($detail) {
+                                                return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                                            });
+                                        }
+                                        
+                                        // Jika ada total_harga di database, gunakan yang lebih besar (sama seperti admin)
+                                        if ($pembelian->total_harga > $totalHarga) {
+                                            $totalHarga = $pembelian->total_harga;
+                                        }
+                                    @endphp
+                                    Rp {{ number_format($totalHarga, 0, ',', '.') }}
                                 </h4>
                             </div>
                         </div>

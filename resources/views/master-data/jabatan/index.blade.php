@@ -98,8 +98,8 @@
                                     </a>
                                     <form action="{{ route('master-data.kualifikasi-tenaga-kerja.destroy',$row->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus kualifikasi ini?')">
                                         @csrf
-                                        @method('DELETE')
-                                        <button class="btn btn-outline-danger">
+                                        <input type="hidden" name="_method" value="DELETE">
+                                        <button type="submit" class="btn btn-outline-danger">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>

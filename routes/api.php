@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\BopApiController;
+use App\Http\Controllers\PresensiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +15,9 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+// Recent Attendance API
+Route::get('/recent-attendance', [PresensiController::class, 'apiRecentAttendance'])->name('api.recent-attendance');
 
 // BOP API Routes
 Route::prefix('bop')->group(function () {
