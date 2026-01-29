@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Login Debug</title>
+</head>
+<body>
+    <h1>Test Login Form</h1>
+    
+    <form method="POST" action="/login" id="loginForm">
+        <input type="hidden" name="_token" value="test-token">
+        
+        <div>
+            <label>Role:</label>
+            <select id="login_role" name="login_role" required>
+                <option value="">Pilih halaman</option>
+                <option value="owner">Owner</option>
+                <option value="admin">Admin</option>
+                <option value="pegawai_pembelian">Pegawai Gudang</option>
+                <option value="kasir">Kasir</option>
+                <option value="pelanggan">Pelanggan</option>
+                <option value="presensi">Presensi Pegawai</option>
+            </select>
+        </div>
+
+        <div id="login-fields" style="display: none;">
+            <div id="email_field" style="display: none;">
+                <label>Email:</label>
+                <input type="email" name="email" id="email">
+            </div>
+
+            <div id="password_field" style="display: none;">
+                <label>Password:</label>
+                <input type="password" name="password" id="password">
+            </div>
+
+            <div id="kode_perusahaan_field" style="display: none;">
+                <label>Kode Perusahaan:</label>
+                <input type="text" name="kode_perusahaan" id="kode_perusahaan">
+            </div>
+
+            <button type="submit">LOGIN</button>
+        </div>
+
+        <div id="presensi_field" style="display: none;">
+            <label>Kode Perusahaan:</label>
+            <input type="text" name="kode_perusahaan" id="presensi_kode_perusahaan">
+            <button type="submit">MASUK KE PRESENSI</button>
+        </div>
+    </form>
+
+    <script>
+        console.log('Script loaded');
+        
+        document.getElementById('login_role').addEventListener('change', function() {
+            console.log('Role changed to:', this.value);
+            
+            const role = this.value;
+            const kodePerusahaanField = document.getElementById('kode_perusahaan_field');
+            const loginFields = document.getElementById('login-fields');
+            const presensiField = document.getElementById('presensi_field');
+            const emailField = document.getElementById('email_field');
+            const passwordField = document.getElementById('password_field');
+            
+            // Reset semua field
+            kodePerusahaanField.style.display = 'none';
+            loginFields.style.display = 'none';
+            presensiField.style.display = 'none';
+            emailField.style.display = 'none';
+            passwordField.style.display = 'none';
+            
+            console.log('Fields reset');
+            
+            // Tampilkan field sesuai role
+            if (role !== '') {
+                if (role === 'presensi') {
+                    console.log('Showing presensi field');
+                    presensiField.style.display = 'block';
+                } else {
+                    console.log('Showing login fields for role:', role);
+                    loginFields.style.display = 'block';
+                    emailField.style.display = 'block';
+                    
+                    if (role === 'admin' || role === 'pegawai_pembelian' || role === 'kasir' || role === 'owner') {
+                        kodePerusahaanField.style.display = 'block';
+                    }
+                    
+                    if (role === 'owner' || role === 'pelanggan') {
+                        passwordField.style.display = 'block';
+                    }
+                }
+            }
+        });
+
+        // Test form submission
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            console.log('Form submitted');
+            console.log('Form data:', new FormData(this));
+            // e.preventDefault(); // Uncomment to prevent actual submission for testing
+        });
+    </script>
+</body>
+</html>

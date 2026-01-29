@@ -289,7 +289,7 @@
                         <a class="nav-link {{ request()->routeIs('pegawai-pembelian.bahan-baku.*') ? 'active' : '' }}" 
                            href="{{ route('pegawai-pembelian.bahan-baku.index') }}">
                             <i class="bi bi-box-seam"></i>
-                            <span>Bahan Baku</span>
+                            <span>Stok</span>
                         </a>
                     </li>
                     

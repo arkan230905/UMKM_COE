@@ -1,140 +1,18 @@
 @extends('layouts.app')
 
-@push('styles')
-<style>
-    /* Force ALL text to be white on this page - ultra aggressive approach */
-    * {
-        color: #ffffff !important;
-    }
-    
-    /* Override any possible dark text with maximum specificity */
-    body * {
-        color: #ffffff !important;
-    }
-    
-    .container-fluid * {
-        color: #ffffff !important;
-    }
-    
-    /* Target every possible text element */
-    .form-label,
-    .form-control,
-    .form-select,
-    .form-control *,
-    .form-select *,
-    option,
-    option *,
-    input,
-    input *,
-    textarea,
-    textarea *,
-    select,
-    select *,
-    label,
-    label *,
-    span,
-    span *,
-    div,
-    div *,
-    p,
-    p *,
-    h1, h2, h3, h4, h5, h6,
-    .text-white,
-    .text-danger,
-    .text-muted,
-    .text-success,
-    .text-info,
-    .text-warning,
-    .text-primary,
-    .text-secondary,
-    .invalid-feedback,
-    .valid-feedback,
-    .alert,
-    .alert *,
-    .card,
-    .card *,
-    .card-body,
-    .card-body *,
-    .btn,
-    .btn *,
-    .btn-outline-light,
-    .btn-outline-light *,
-    .form-control::placeholder,
-    .form-select::placeholder,
-    input::placeholder,
-    textarea::placeholder,
-    .form-text,
-    .help-text,
-    .description,
-    .keterangan,
-    .notes {
-        color: #ffffff !important;
-    }
-    
-    /* Ensure backgrounds remain visible */
-    .form-control,
-    .form-select,
-    input,
-    textarea,
-    select {
-        background-color: rgba(0,0,0,0.5) !important;
-        border-color: rgba(255,255,255,0.3) !important;
-    }
-    
-    /* Option backgrounds */
-    option {
-        background-color: #2c2c54 !important;
-        color: #ffffff !important;
-    }
-    
-    /* Override any inline styles */
-    *[style*="color"] {
-        color: #ffffff !important;
-    }
-    
-    /* Override any Bootstrap text classes */
-    [class*="text-"] {
-        color: #ffffff !important;
-    }
-    
-    /* Target specific form elements */
-    .bg-dark,
-    .bg-dark *,
-    .border-dark,
-    .border-dark * {
-        color: #ffffff !important;
-    }
-    
-    /* Force white on all form-related elements */
-    .form-label i,
-    .form-label span,
-    .form-label *,
-    label i,
-    label span,
-    label * {
-        color: #ffffff !important;
-    }
-    
-    /* Target any remaining elements */
-    *:not([class*="btn-close"]) {
-        color: #ffffff !important;
-    }
-</style>
-@endpush
-
 @section('content')
-<div class="container-fluid py-4" style="background-color: #1b1b28; min-height: 100vh;">
-    <div class="d-flex justify-content-between align-items-center mb-4 px-3">
-        <h2 class="text-white fw-bold mb-0">
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-dark fw-bold mb-0">
             <i class="bi bi-calendar-plus me-2"></i> Tambah Presensi
         </h2>
-        <a href="{{ route('transaksi.presensi.index') }}" class="btn btn-outline-light">
+        <a href="{{ route('transaksi.presensi.index') }}" class="btn btn-secondary">
             <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
     </div>
 
     @if ($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show mx-3" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             <strong>Terjadi kesalahan!</strong>
             <ul class="mb-0 mt-2">
@@ -162,7 +40,7 @@
         </div>
     @endif
 
-    <div class="card border-0 shadow-sm mx-3" style="background-color: #222232; border-radius: 15px;">
+    <div class="card border-0 shadow-sm">
         <div class="card-body p-4">
             <form action="{{ route('transaksi.presensi.store') }}" method="POST" id="presensiForm">
                 @csrf
@@ -170,8 +48,8 @@
                 <div class="row g-3">
                     <!-- Pilih Pegawai -->
                     <div class="col-md-6">
-                        <label for="pegawai_id" class="form-label text-white" style="color: #ffffff !important;">
-                            <i class="bi bi-person-fill me-1" style="color: #ffffff !important;"></i>Pegawai <span class="text-danger" style="color: #ffffff !important;">*</span>
+                        <label for="pegawai_id" class="form-label">
+                            <i class="bi bi-person-fill me-1"></i>Pegawai <span class="text-danger">*</span>
                         </label>
                         <select name="pegawai_id" id="pegawai_id" 
                             class="form-select bg-dark text-white border-dark @error('pegawai_id') is-invalid @enderror" 
@@ -194,8 +72,8 @@
 
                     <!-- Tanggal Presensi -->
                     <div class="col-md-6">
-                        <label for="tgl_presensi" class="form-label text-white" style="color: #ffffff !important;">
-                            <i class="bi bi-calendar-event me-1" style="color: #ffffff !important;"></i>Tanggal <span class="text-danger" style="color: #ffffff !important;">*</span>
+                        <label for="tgl_presensi" class="form-label">
+                            <i class="bi bi-calendar-event me-1"></i>Tanggal <span class="text-danger">*</span>
                         </label>
                         <input type="date" name="tgl_presensi" id="tgl_presensi" 
                                class="form-control bg-dark text-white border-dark @error('tgl_presensi') is-invalid @enderror" 
@@ -210,8 +88,8 @@
 
                     <!-- Status -->
                     <div class="col-12">
-                        <label for="status" class="form-label text-white" style="color: #ffffff !important;">
-                            <i class="bi bi-info-circle me-1" style="color: #ffffff !important;"></i>Status <span class="text-danger" style="color: #ffffff !important;">*</span>
+                        <label for="status" class="form-label">
+                            <i class="bi bi-info-circle me-1"></i>Status <span class="text-danger">*</span>
                         </label>
                         <select name="status" id="status" 
                             class="form-select bg-dark text-white border-dark @error('status') is-invalid @enderror" 
@@ -243,8 +121,8 @@
 
                     <!-- Jam Masuk -->
                     <div class="col-md-6" id="jamMasukField">
-                        <label for="jam_masuk" class="form-label text-white" style="color: #ffffff !important;">
-                            <i class="bi bi-clock-history me-1" style="color: #ffffff !important;"></i>Jam Masuk <span class="text-danger" style="color: #ffffff !important;">*</span>
+                        <label for="jam_masuk" class="form-label">
+                            <i class="bi bi-clock-history me-1"></i>Jam Masuk <span class="text-danger">*</span>
                         </label>
                         <input type="time" name="jam_masuk" id="jam_masuk" 
                                class="form-control bg-dark text-white border-dark @error('jam_masuk') is-invalid @enderror" 
@@ -258,8 +136,8 @@
 
                     <!-- Jam Keluar -->
                     <div class="col-md-6" id="jamKeluarField">
-                        <label for="jam_keluar" class="form-label text-white" style="color: #ffffff !important;">
-                            <i class="bi bi-clock-fill me-1" style="color: #ffffff !important;"></i>Jam Keluar <span class="text-danger" style="color: #ffffff !important;">*</span>
+                        <label for="jam_keluar" class="form-label">
+                            <i class="bi bi-clock-fill me-1"></i>Jam Keluar <span class="text-danger">*</span>
                         </label>
                         <input type="time" name="jam_keluar" id="jam_keluar" 
                                class="form-control bg-dark text-white border-dark @error('jam_keluar') is-invalid @enderror" 
@@ -273,8 +151,8 @@
 
                     <!-- Keterangan -->
                     <div class="col-12">
-                        <label for="keterangan" class="form-label text-white" style="color: #ffffff !important;">
-                            <i class="bi bi-card-text me-1" style="color: #ffffff !important;"></i>Keterangan
+                        <label for="keterangan" class="form-label">
+                            <i class="bi bi-card-text me-1"></i>Keterangan
                         </label>
                         <textarea name="keterangan" id="keterangan" rows="2"
                             class="form-control bg-dark text-white border-dark @error('keterangan') is-invalid @enderror"
@@ -288,7 +166,7 @@
                     <!-- Tombol Aksi -->
                     <div class="col-12 mt-4">
                         <div class="d-flex justify-content-end gap-2">
-                            <button type="reset" class="btn btn-outline-light">
+                            <button type="reset" class="btn btn-secondary">
                                 <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                             </button>
                             <button type="submit" class="btn btn-primary" id="submitBtn">

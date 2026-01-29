@@ -41,7 +41,6 @@ use App\Http\Controllers\ReturController;
 use App\Http\Controllers\PenggajianController;
 use App\Http\Controllers\ExpensePaymentController;
 use App\Http\Controllers\ApSettlementController;
-use App\Http\Controllers\PresensiController;
 use App\Http\Controllers\PelunasanUtangController;
 
 // Laporan
@@ -67,6 +66,7 @@ use App\Http\Controllers\PegawaiPembelian\DashboardController as PegawaiPembelia
 use App\Http\Controllers\PegawaiPembelian\BahanBakuController as PegawaiPembelianBahanBakuController;
 use App\Http\Controllers\PegawaiPembelian\VendorController as PegawaiPembelianVendorController;
 use App\Http\Controllers\PegawaiPembelian\PembelianController as PegawaiPembelianPembelianController;
+use App\Http\Controllers\PegawaiPembelian\LaporanController as PegawaiPembelianLaporanController;
 
 // Perusahaan
 use App\Http\Controllers\PerusahaanController;
@@ -79,6 +79,9 @@ use App\Http\Controllers\ProduksiController;
 
 // Asset
 use App\Http\Controllers\AssetController;
+
+// Presensi
+use App\Http\Controllers\PresensiController;
 
 // ====================================================================
 // HALAMAN UTAMA
@@ -93,6 +96,44 @@ Route::get('/', function () {
 // ====================================================================
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
+
+// Clear session untuk debugging
+Route::get('/clear-session', function() {
+    session()->flush();
+    session()->regenerate();
+    return redirect('/login')->with('status', 'Session cleared');
+})->name('clear-session');
+
+// Login bersih tanpa error
+Route::get('/login-clean', function() {
+    session()->forget('errors');
+    return view('auth.login-clean');
+})->name('login-clean');
+
+// Debug login
+Route::get('/login-debug', function() {
+    return view('auth.login-debug');
+})->name('login-debug');
+
+// Simple login untuk testing
+Route::get('/login-simple', function() {
+    return view('auth.login-simple');
+})->name('login-simple');
+
+// Debug route untuk test login
+Route::get('/test-login', function() {
+    return view('auth.login');
+})->name('test-login');
+
+Route::post('/test-login-submit', function(\Illuminate\Http\Request $request) {
+    \Log::info('Test login submission', $request->all());
+    return response()->json([
+        'status' => 'received',
+        'data' => $request->all(),
+        'csrf_valid' => $request->hasValidSignature() || true // Skip CSRF for test
+    ]);
+})->name('test-login-submit');
+
 Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
 Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
@@ -109,6 +150,18 @@ Route::middleware('auth')->group(function () {
     // DASHBOARD (Admin & Owner Only)
     // ================================================================
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('role:admin,owner')->name('dashboard');
+
+    // ================================================================
+    // TENTANG PERUSAHAAN ROUTES
+    // ================================================================
+    Route::prefix('tentang-perusahaan')->name('tentang-perusahaan.')->middleware('auth')->group(function () {
+        Route::get('/', function() {
+            return redirect('/tentang-perusahaan/detail');
+        });
+        Route::get('/detail', [PerusahaanController::class, 'index'])->name('detail');
+        Route::get('/edit', [PerusahaanController::class, 'edit'])->name('edit')->middleware('role:owner');
+        Route::put('/', [PerusahaanController::class, 'update'])->name('update')->middleware('role:owner');
+    });
 
     // ================================================================
     // PELANGGAN E-COMMERCE ROUTES
@@ -198,8 +251,9 @@ Route::middleware('auth')->group(function () {
         });
         
         // Laporan
-        Route::get('/laporan/pembelian', [LaporanController::class, 'pembelian'])->name('laporan.pembelian');
-        Route::get('/laporan/retur', [LaporanController::class, 'laporanRetur'])->name('laporan.retur');
+        Route::get('/laporan/pembelian', [PegawaiPembelianLaporanController::class, 'pembelian'])->name('laporan.pembelian');
+        Route::get('/laporan/invoice/{id}', [PegawaiPembelianLaporanController::class, 'invoice'])->name('laporan.invoice');
+        Route::get('/laporan/retur', [PegawaiPembelianLaporanController::class, 'retur'])->name('laporan.retur');
     });
 
     // ================================================================
@@ -235,6 +289,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('pegawai', PegawaiController::class);
         Route::resource('vendor', VendorController::class);
         Route::resource('satuan', SatuanController::class);
+        // Route::resource('user', UserController::class); // Commented out to avoid error
         
         // Produk routes with proper naming
         Route::prefix('produk')->name('produk.')->group(function () {
@@ -348,6 +403,17 @@ Route::middleware('auth')->group(function () {
 
 
     // ================================================================
+    // PEGAWAI GUDANG ROUTES
+    // ================================================================
+    Route::prefix('pegawai-gudang')->name('pegawai-gudang.')->middleware('role:pegawai_gudang')->group(function () {
+        // Dashboard
+        Route::get('/dashboard', [\App\Http\Controllers\PegawaiGudang\DashboardController::class, 'index'])->name('dashboard');
+        
+        // Stok Management
+        Route::get('/stok', [\App\Http\Controllers\PegawaiGudang\StokController::class, 'index'])->name('stok.index');
+    });
+
+    // ================================================================
     // TRANSAKSI (Admin & Owner Only)
     // ================================================================
     Route::prefix('transaksi')->name('transaksi.')->middleware('role:admin,owner')->group(function () {
@@ -377,19 +443,6 @@ Route::middleware('auth')->group(function () {
         });
 
         // ============================================================
-        // ✅ PRESENSI
-        // ============================================================
-        Route::prefix('presensi')->name('presensi.')->group(function() {
-            Route::get('/', [PresensiController::class, 'index'])->name('index');
-            Route::get('/create', [PresensiController::class, 'create'])->name('create');
-            Route::post('/', [PresensiController::class, 'store'])->name('store');
-            Route::get('/{id}', [PresensiController::class, 'show'])->name('show');
-            Route::get('/{id}/edit', [PresensiController::class, 'edit'])->name('edit');
-            Route::put('/{id}', [PresensiController::class, 'update'])->name('update');
-            Route::delete('/{id}', [PresensiController::class, 'destroy'])->name('destroy');
-        });
-
-        // ============================================================
         // ✅ PELUNASAN UTANG (AP Settlement)
         // ============================================================
         Route::prefix('pelunasan-utang')->name('pelunasan-utang.')->group(function() {
@@ -400,6 +453,41 @@ Route::middleware('auth')->group(function () {
             Route::get('/print/{id}', [PelunasanUtangController::class, 'print'])->name('print');
             Route::delete('/{id}', [PelunasanUtangController::class, 'destroy'])->name('destroy');
             Route::get('/get-pembelian/{id}', [PelunasanUtangController::class, 'getPembelian'])->name('get-pembelian');
+        });
+
+        // ============================================================
+        // ✅ PRESENSI
+        // ============================================================
+        Route::prefix('presensi')->name('presensi.')->group(function() {
+            Route::get('/', [PresensiController::class, 'index'])->name('index');
+            Route::get('/create', [PresensiController::class, 'create'])->name('create');
+            Route::post('/', [PresensiController::class, 'store'])->name('store');
+            Route::get('/face-attendance', [PresensiController::class, 'faceAttendance'])->name('face-attendance');
+            
+            // Verifikasi Wajah Routes - harus diletakkan sebelum {id}
+            Route::prefix('verifikasi-wajah')->name('verifikasi-wajah.')->group(function() {
+                Route::get('/', [PresensiController::class, 'verifikasiWajahIndex'])->name('index');
+                Route::get('/create', [PresensiController::class, 'verifikasiWajahCreate'])->name('create');
+                Route::get('/face-recognition', [PresensiController::class, 'verifikasiWajahFaceRecognition'])->name('face-recognition');
+                Route::post('/', [PresensiController::class, 'verifikasiWajahStore'])->name('store');
+                Route::get('/{id}/edit', [PresensiController::class, 'verifikasiWajahEdit'])->name('edit');
+                Route::put('/{id}', [PresensiController::class, 'verifikasiWajahUpdate'])->name('update');
+                Route::delete('/{id}', [PresensiController::class, 'verifikasiWajahDestroy'])->name('destroy');
+                
+                // API untuk face recognition
+                Route::post('/api/recognize', [PresensiController::class, 'apiFaceRecognize'])->name('api.recognize');
+                Route::post('/api/compare', [PresensiController::class, 'apiFaceCompare'])->name('api.compare');
+            });
+            
+            Route::get('/{id}', [PresensiController::class, 'show'])->name('show');
+            Route::get('/{id}/detail', [PresensiController::class, 'detail'])->name('detail');
+            Route::get('/{id}/edit', [PresensiController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [PresensiController::class, 'update'])->name('update');
+            Route::delete('/{id}', [PresensiController::class, 'destroy'])->name('destroy');
+            
+            // API Route untuk mobile app
+            Route::post('/api/verifikasi-wajah', [PresensiController::class, 'apiVerifikasiWajah'])->name('api.verifikasi-wajah');
+            Route::post('/api/recognize', [PresensiController::class, 'apiFaceRecognize'])->name('api.recognize');
         });
 
         // ============================================================
@@ -426,6 +514,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{pembelian}', [PembelianController::class, 'show'])->name('show');
             Route::get('/{pembelian}/edit', [PembelianController::class, 'edit'])->name('edit');
             Route::put('/{pembelian}', [PembelianController::class, 'update'])->name('update');
+        Route::patch('/{pembelian}', [PembelianController::class, 'update'])->name('update');
             Route::delete('/{pembelian}', [PembelianController::class, 'destroy'])->name('destroy');
         });
 
@@ -578,6 +667,7 @@ Route::middleware('auth')->group(function () {
     // ================================================================
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profil-admin');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profil-admin.update');
+    Route::delete('/profile/photo', [ProfileController::class, 'removePhoto'])->name('profil-admin.remove-photo');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profil-admin.destroy');
 
 
@@ -587,3 +677,5 @@ Route::middleware('auth')->group(function () {
     Route::get('/tentang-perusahaan', [PerusahaanController::class, 'edit'])->name('tentang-perusahaan');
     Route::post('/tentang-perusahaan/update', [PerusahaanController::class, 'update'])->name('tentang-perusahaan.update');
 });
+
+// ====================================================================

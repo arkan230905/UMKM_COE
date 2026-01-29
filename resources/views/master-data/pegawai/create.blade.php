@@ -29,7 +29,9 @@
                 <label for="email" class="form-label">Email</label>
                 <input type="email" name="email" id="email" class="form-control" value="{{ old('email') }}" required>
             </div>
+        </div>
 
+        <div class="row">
             <div class="col-md-6 mb-3">
                 <label for="no_telepon" class="form-label">No. Telepon</label>
                 <input type="text" name="no_telepon" id="no_telepon" class="form-control" value="{{ old('no_telepon') }}" required>
@@ -39,7 +41,9 @@
                 <label for="alamat" class="form-label">Alamat</label>
                 <textarea name="alamat" id="alamat" class="form-control" rows="2" required>{{ old('alamat') }}</textarea>
             </div>
+        </div>
 
+        <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label">Jenis Kelamin</label>
                 <div class="form-check">

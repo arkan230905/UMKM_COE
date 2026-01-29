@@ -137,15 +137,15 @@
                                             <div>
                                                 @if($detail->bahan_baku_id && $detail->bahanBaku)
                                                     • <span class="badge bg-primary">BB</span> {{ $detail->bahanBaku->nama_bahan }} 
-                                                    ({{ number_format($detail->jumlah ?? 0, 2, ',', '.') }} {{ $detail->satuan ?? ($detail->bahanBaku->satuan->nama ?? 'unit') }})
+                                                    ({{ number_format($detail->jumlah, 0, '.', '') }} {{ $detail->bahanBaku->satuan->nama ?? 'unit' }})
                                                 @elseif($detail->bahan_pendukung_id && $detail->bahanPendukung)
                                                     • <span class="badge bg-info">BP</span> {{ $detail->bahanPendukung->nama_bahan }} 
-                                                    ({{ number_format($detail->jumlah ?? 0, 2, ',', '.') }} {{ $detail->satuan ?? ($detail->bahanPendukung->satuan->nama ?? 'unit') }})
+                                                    ({{ number_format($detail->jumlah, 0, '.', '') }} {{ $detail->bahanPendukung->satuanRelation->nama ?? 'unit' }})
                                                 @else
                                                     • -
                                                 @endif
                                                 @ Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}
-                                                = <strong>Rp {{ number_format($detail->subtotal ?? (($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0)), 0, ',', '.') }}</strong>
+                                                = <strong>Rp {{ number_format(($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0), 0, ',', '.') }}</strong>
                                             </div>
                                         @endforeach
                                         </small>
@@ -154,18 +154,36 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <span class="badge {{ ($pembelian->payment_method ?? 'cash') === 'credit' ? 'bg-warning' : 'bg-success' }}">
-                                        {{ ($pembelian->payment_method ?? 'cash') === 'credit' ? 'Kredit' : 'Tunai' }}
+                                    @php
+                                        $paymentMethod = $pembelian->payment_method ?? 'cash';
+                                        if ($paymentMethod === 'credit') {
+                                            $badgeClass = 'bg-warning';
+                                            $paymentText = 'Kredit';
+                                        } elseif ($paymentMethod === 'transfer') {
+                                            $badgeClass = 'bg-info';
+                                            $paymentText = 'Transfer';
+                                        } else {
+                                            $badgeClass = 'bg-success';
+                                            $paymentText = 'Tunai';
+                                        }
+                                    @endphp
+                                    <span class="badge {{ $badgeClass }}">
+                                        {{ $paymentText }}
                                     </span>
                                 </td>
                                 <td>
                                     @php
-                                        $totalPembelian = $pembelian->total;
-                                        // Jika total = 0, hitung dari details
-                                        if ($totalPembelian == 0 && $pembelian->details && $pembelian->details->count() > 0) {
+                                        // Hitung total dari details untuk konsistensi
+                                        $totalPembelian = 0;
+                                        if ($pembelian->details && $pembelian->details->count() > 0) {
                                             $totalPembelian = $pembelian->details->sum(function($detail) {
                                                 return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
                                             });
+                                        }
+                                        
+                                        // Jika ada total_harga di database, gunakan yang lebih besar
+                                        if ($pembelian->total_harga > $totalPembelian) {
+                                            $totalPembelian = $pembelian->total_harga;
                                         }
                                     @endphp
                                     <span class="fw-semibold">Rp {{ number_format($totalPembelian, 0, ',', '.') }}</span>

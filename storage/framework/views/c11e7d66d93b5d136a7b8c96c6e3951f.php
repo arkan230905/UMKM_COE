@@ -3,7 +3,10 @@
     <div class="user-profile-card">
         <div class="user-avatar">
             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(Auth::check() && Auth::user()->profile_photo): ?>
-                <img src="<?php echo e(asset('storage/' . Auth::user()->profile_photo)); ?>" alt="Profile Photo">
+                <img src="<?php echo e(asset('storage/profile-photos/' . Auth::user()->profile_photo)); ?>" 
+                     alt="Profile Photo" 
+                     style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;"
+                     onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\"fas fa-user\"></i>';">
             <?php else: ?>
                 <i class="fas fa-user"></i>
             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
@@ -255,6 +258,14 @@
                     <span>PENGATURAN</span>
                 </div>
             </li>
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(auth()->user()->role === 'owner'): ?>
+            <li class="nav-item">
+                <a class="nav-link-rounded <?php echo e(request()->is('tentang-perusahaan/detail') ? 'active' : ''); ?>" href="/tentang-perusahaan/detail">
+                    <i class="fas fa-building"></i>
+                    <span>Tentang Perusahaan</span>
+                </a>
+            </li>
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             <li class="nav-item">
                 <a class="nav-link-rounded <?php echo e(request()->is('profile*') ? 'active' : ''); ?>" href="<?php echo e(route('profil-admin')); ?>">
                     <i class="fas fa-user"></i>

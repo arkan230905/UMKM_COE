@@ -204,6 +204,49 @@ class BomController extends Controller
         
         $produks = $query->orderBy('nama_produk')->paginate(15);
         
+        // Add BTKL data to each product
+        foreach ($produks as $produk) {
+            $totalBiayaBahan = 0;
+            $totalBTKL = 0;
+            $btklCount = 0;
+            
+            // Calculate actual biaya bahan from BOM details
+            $bom = $produk->boms->first();
+            if ($bom) {
+                $bomDetails = \App\Models\BomDetail::where('bom_id', $bom->id)->get();
+                $totalBiayaBahan = $bomDetails->sum('total_harga');
+            }
+            
+            // Get BomJobCosting for this product
+            $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
+            if ($bomJobCosting) {
+                // Get BTKL data with biaya per produk (biaya_per_produk = tarif_per_jam ÷ kapasitas_per_jam)
+                $bomJobBtkl = \Illuminate\Support\Facades\DB::table('bom_job_btkl')
+                    ->join('proses_produksis', 'bom_job_btkl.proses_produksi_id', '=', 'proses_produksis.id')
+                    ->where('bom_job_btkl.bom_job_costing_id', $bomJobCosting->id)
+                    ->select('bom_job_btkl.*', 'proses_produksis.tarif_btkl as tarif_per_jam', 'proses_produksis.kapasitas_per_jam')
+                    ->get();
+                
+                $btklCount = $bomJobBtkl->count();
+                
+                // Calculate biaya per produk: tarif_per_jam ÷ kapasitas_per_jam
+                $totalBTKL = $bomJobBtkl->sum(function($item) {
+                    $kapasitas = $item->kapasitas_per_jam ?? 1;
+                    return ($item->tarif_per_jam / $kapasitas) * $item->durasi_jam;
+                });
+                
+                // Also add bahan pendukung to biaya bahan
+                $bahanPendukung = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->sum('subtotal');
+                $totalBiayaBahan += $bahanPendukung;
+            }
+            
+            // Add data to product
+            $produk->total_biaya_bahan = $totalBiayaBahan;
+            $produk->total_btkl = $totalBTKL;
+            $produk->btkl_count = $btklCount;
+            $produk->has_btkl = $btklCount > 0;
+        }
+        
         return view('master-data.bom.index', compact('produks'));
     }
 
@@ -445,7 +488,7 @@ class BomController extends Controller
     public function show($id)
     {
         try {
-            // Ambil data BOM dengan relasi yang diperlukan termasuk proses produksi
+            // Ambil data BOM dengan relasi yang diperlukan
             $bom = Bom::with([
                 'produk',
                 'details' => function($query) {
@@ -459,7 +502,31 @@ class BomController extends Controller
                 }
             ])->findOrFail($id);
 
-            return view('master-data.bom.show', compact('bom'));
+            // Get BomJobCosting untuk data BTKL yang benar
+            $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $bom->produk_id)
+                ->first();
+
+            // Get BTKL data dari bom_job_btkl dengan biaya per produk yang benar
+            $btklData = [];
+            if ($bomJobCosting) {
+                $btklData = \Illuminate\Support\Facades\DB::table('bom_job_btkl')
+                    ->join('proses_produksis', 'bom_job_btkl.proses_produksi_id', '=', 'proses_produksis.id')
+                    ->where('bom_job_btkl.bom_job_costing_id', $bomJobCosting->id)
+                    ->select('bom_job_btkl.*', 'proses_produksis.tarif_btkl as tarif_per_jam', 'proses_produksis.kapasitas_per_jam')
+                    ->get()
+                    ->map(function($item) {
+                        return [
+                            'nama_proses' => $item->nama_proses,
+                            'durasi_jam' => $item->durasi_jam,
+                            'tarif_per_jam' => $item->tarif_per_jam,
+                            'kapasitas_per_jam' => $item->kapasitas_per_jam,
+                            'biaya_per_produk' => ($item->tarif_per_jam / ($item->kapasitas_per_jam ?? 1)) * $item->durasi_jam,
+                            'subtotal' => $item->subtotal
+                        ];
+                    });
+            }
+
+            return view('master-data.bom.show', compact('bom', 'btklData'));
         } catch (\Exception $e) {
             \Log::error('Error in BomController@show: ' . $e->getMessage());
             return redirect()->route('master-data.bom.index')
@@ -489,18 +556,41 @@ class BomController extends Controller
 
     public function edit($id)
     {
-        $bom = Bom::with(['details.bahanBaku.satuan', 'produk', 'proses.prosesProduksi'])
+        $bom = Bom::with(['details.bahanBaku.satuan', 'produk'])
             ->findOrFail($id);
             
         // Data untuk biaya bahan (dari halaman biaya bahan)
         $biayaBahan = $this->getBiayaBahanData($bom->produk_id);
         
-        // Data BTKL (proses produksi)
+        // Get BomJobCosting untuk data BTKL yang benar
+        $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $bom->produk_id)->first();
+        
+        // Get BTKL data dari bom_job_btkl (data yang benar)
+        $btklData = [];
+        if ($bomJobCosting) {
+            $btklData = \Illuminate\Support\Facades\DB::table('bom_job_btkl')
+                ->join('proses_produksis', 'bom_job_btkl.proses_produksi_id', '=', 'proses_produksis.id')
+                ->where('bom_job_btkl.bom_job_costing_id', $bomJobCosting->id)
+                ->select('bom_job_btkl.*', 'proses_produksis.tarif_btkl as tarif_per_jam', 'proses_produksis.kapasitas_per_jam')
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'nama_proses' => $item->nama_proses,
+                        'durasi_jam' => $item->durasi_jam,
+                        'tarif_per_jam' => $item->tarif_per_jam,
+                        'kapasitas_per_jam' => $item->kapasitas_per_jam,
+                        'biaya_per_produk' => ($item->tarif_per_jam / ($item->kapasitas_per_jam ?? 1)) * $item->durasi_jam,
+                        'subtotal' => $item->subtotal
+                    ];
+                });
+        }
+        
+        // Data BOP (proses produksi) - yang bisa diedit
         $prosesProduksis = \App\Models\ProsesProduksi::with('bopProses')
             ->orderBy('kode_proses')
             ->get();
         
-        return view('master-data.bom.edit', compact('bom', 'biayaBahan', 'prosesProduksis'));
+        return view('master-data.bom.edit', compact('bom', 'biayaBahan', 'btklData', 'prosesProduksis'));
     }
 
     public function update(Request $request, $id)

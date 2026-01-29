@@ -120,25 +120,25 @@ select.form-select option {
                         <input type="date" name="tanggal" class="form-control" value="{{ date('Y-m-d') }}" required>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Metode Bayar <span class="text-danger">*</span></label>
-                        <select name="payment_method" class="form-select" required>
-                            <option value="cash">Tunai</option>
-                            <option value="transfer">Transfer Bank</option>
-                            <option value="credit">Kredit</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Sumber Dana</label>
-                        <select name="sumber_dana" class="form-select">
+                        <label class="form-label">Metode Pembayaran <span class="text-danger">*</span></label>
+                        <select name="bank_id" class="form-select" required>
+                            <option value="">-- Pilih Metode Pembayaran --</option>
                             @foreach($kasbank as $kb)
-                                <option value="{{ $kb->kode_akun }}">
-                                    {{ $kb->nama_akun }} - Saldo: Rp {{ number_format($kb->saldo ?? 0, 0, ',', '.') }}
-                                </option>
+                                @if($kb->nama_akun)
+                                    <option value="{{ $kb->id }}">
+                                        @if($kb->nama_akun)
+                                            @if(str_contains(strtolower($kb->nama_akun), 'kas'))
+                                                💵 Kas {{ $kb->nama_akun }}
+                                            @else
+                                                🏦 {{ $kb->nama_akun }}
+                                            @endif
+                                        @endif
+                                        (Saldo: Rp {{ number_format($kb->saldo_awal ?? 0, 0, ',', '.') }})
+                                    </option>
+                                @endif
                             @endforeach
+                            <option value="credit">💳 Kredit (Hutang)</option>
                         </select>
-                        @if($kasbank->isEmpty())
-                            <small class="text-danger">Tidak ada akun kas/bank yang tersedia</small>
-                        @endif
                     </div>
                 </div>
             </div>

@@ -55,9 +55,41 @@
                 @foreach(($pembelian->details ?? []) as $i => $d)
                     <tr>
                         <td>{{ $i+1 }}</td>
-                        <td>{{ $d->bahanBaku->nama_bahan ?? '-' }}</td>
+                        <td>
+                            @if($d->tipe_item === 'bahan_baku' && $d->bahanBaku)
+                                {{ $d->bahanBaku->nama_bahan }}
+                            @elseif($d->tipe_item === 'bahan_pendukung' && $d->bahanPendukung)
+                                {{ $d->bahanPendukung->nama_bahan }}
+                            @elseif($d->tipe_item === 'bahan_baku' && $d->bahan_baku_id && !$d->bahanBaku)
+                                Bahan Baku (ID: {{ $d->bahan_baku_id }})
+                            @elseif($d->tipe_item === 'bahan_pendukung' && $d->bahan_pendukung_id && !$d->bahanPendukung)
+                                Bahan Pendukung (ID: {{ $d->bahan_pendukung_id }})
+                            @elseif($d->bahan_pendukung_id && $d->bahanPendukung)
+                                {{ $d->bahanPendukung->nama_bahan }}
+                            @elseif($d->bahan_baku_id && $d->bahanBaku)
+                                {{ $d->bahanBaku->nama_bahan }}
+                            @elseif($d->bahan_pendukung_id)
+                                Bahan Pendukung (ID: {{ $d->bahan_pendukung_id }})
+                            @elseif($d->bahan_baku_id)
+                                Bahan Baku (ID: {{ $d->bahan_baku_id }})
+                            @else
+                                Item
+                            @endif
+                        </td>
                         <td class="text-end">{{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}</td>
-                        <td>{{ $d->satuan ?: ($d->bahanBaku->satuan ?? '-') }}</td>
+                        <td>
+                            @if($d->tipe_item === 'bahan_baku' && $d->bahanBaku)
+                                {{ $d->bahanBaku->satuan->nama ?? 'unit' }}
+                            @elseif($d->tipe_item === 'bahan_pendukung' && $d->bahanPendukung)
+                                {{ $d->bahanPendukung->satuanRelation->nama ?? 'unit' }}
+                            @elseif($d->bahan_pendukung_id && $d->bahanPendukung)
+                                {{ $d->bahanPendukung->satuanRelation->nama ?? 'unit' }}
+                            @elseif($d->bahan_baku_id && $d->bahanBaku)
+                                {{ $d->bahanBaku->satuan->nama ?? 'unit' }}
+                            @else
+                                {{ $d->satuan ?? 'unit' }}
+                            @endif
+                        </td>
                         <td class="text-end">Rp {{ number_format($d->harga_satuan, 0, ',', '.') }}</td>
                         <td class="text-end">Rp {{ number_format($d->subtotal, 0, ',', '.') }}</td>
                     </tr>

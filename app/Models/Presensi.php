@@ -17,14 +17,23 @@ class Presensi extends Model
         'jam_keluar',
         'status',
         'jumlah_jam',
-        'keterangan'
+        'keterangan',
+        'verifikasi_wajah',
+        'foto_wajah',
+        'waktu_verifikasi',
+        'latitude_masuk',
+        'longitude_masuk',
+        'latitude_keluar',
+        'longitude_keluar'
     ];
 
     protected $casts = [
         'tgl_presensi' => 'date',
         'jam_masuk' => 'string',
         'jam_keluar' => 'string',
-        'jumlah_jam' => 'decimal:2'
+        'jumlah_jam' => 'decimal:2',
+        'verifikasi_wajah' => 'boolean',
+        'waktu_verifikasi' => 'datetime'
     ];
 
     protected $dates = [
@@ -35,7 +44,7 @@ class Presensi extends Model
 
     public function pegawai(): BelongsTo
     {
-        return $this->belongsTo(Pegawai::class, 'pegawai_id', 'id');
+        return $this->belongsTo(Pegawai::class, 'pegawai_id', 'nomor_induk_pegawai');
     }
 
     // Scope untuk pencarian

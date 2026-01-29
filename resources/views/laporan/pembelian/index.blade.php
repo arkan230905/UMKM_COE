@@ -109,10 +109,68 @@
                                         <div class="small">
                                             @foreach($p->details as $detail)
                                                 <div class="mb-1">
-                                                    • {{ $detail->bahanBaku->nama_bahan ?? 'Item' }}
+                                                    • 
+                                                    @php
+                                                        \Log::info('Debug Laporan - Pembelian ID: ' . $p->id . ', Detail ID: ' . $detail->id);
+                                                        \Log::info('Debug Laporan - Tipe Item: ' . ($detail->tipe_item ?? 'null'));
+                                                        \Log::info('Debug Laporan - Bahan Baku ID: ' . ($detail->bahan_baku_id ?? 'null'));
+                                                        \Log::info('Debug Laporan - Bahan Pendukung ID: ' . ($detail->bahan_pendukung_id ?? 'null'));
+                                                        \Log::info('Debug Laporan - BahanBaku exists: ' . ($detail->bahanBaku ? 'yes' : 'no'));
+                                                        \Log::info('Debug Laporan - BahanPendukung exists: ' . ($detail->bahanPendukung ? 'yes' : 'no'));
+                                                    @endphp
+                                                    @if($detail->tipe_item === 'bahan_baku' && $detail->bahanBaku)
+                                                        {{ $detail->bahanBaku->nama_bahan }}
+                                                    @elseif($detail->tipe_item === 'bahan_pendukung' && $detail->bahanPendukung)
+                                                        {{ $detail->bahanPendukung->nama_bahan }}
+                                                    @elseif($detail->tipe_item === 'bahan_baku' && $detail->bahan_baku_id && !$detail->bahanBaku)
+                                                        Bahan Baku (ID: {{ $detail->bahan_baku_id }})
+                                                    @elseif($detail->tipe_item === 'bahan_pendukung' && $detail->bahan_pendukung_id && !$detail->bahanPendukung)
+                                                        Bahan Pendukung (ID: {{ $detail->bahan_pendukung_id }})
+                                                    @elseif($detail->bahan_pendukung_id && $detail->bahanPendukung)
+                                                        {{ $detail->bahanPendukung->nama_bahan }}
+                                                    @elseif($detail->bahan_baku_id && $detail->bahanBaku)
+                                                        {{ $detail->bahanBaku->nama_bahan }}
+                                                    @elseif($detail->bahan_pendukung_id)
+                                                        @php
+                                                            \Log::info('Debug Laporan - Fallback: bahan_pendukung_id=' . $detail->bahan_pendukung_id . ' but bahanPendukung null');
+                                                        @endphp
+                                                        Bahan Pendukung (ID: {{ $detail->bahan_pendukung_id }})
+                                                    @elseif($detail->bahan_baku_id)
+                                                        @php
+                                                            \Log::info('Debug Laporan - Fallback: bahan_baku_id=' . $detail->bahan_baku_id . ' but bahanBaku null');
+                                                        @endphp
+                                                        Bahan Baku (ID: {{ $detail->bahan_baku_id }})
+                                                    @else
+                                                        @php
+                                                            \Log::info('Debug Laporan - Fallback: No ID fields found for detail ID ' . $detail->id);
+                                                        @endphp
+                                                        Item
+                                                    @endif
                                                     <span class="text-muted">
                                                         ({{ number_format($detail->jumlah ?? 0, 0, ',', '.') }} 
-                                                        {{ $detail->bahanBaku->satuan->nama ?? 'unit' }})
+                                                        @php
+                                                            // Logic satuan yang sama dengan pegawai-pembelian
+                                                            $satuanItem = 'unit';
+                                                            
+                                                            // Jika item diinput sebagai bahan baku (berdasarkan relation yang ada)
+                                                            if ($detail->bahan_baku_id && $detail->bahanBaku) {
+                                                                // Prioritas: detail->satuan, lalu relation->satuanRelation->nama
+                                                                $satuanItem = $detail->satuan ?: ($detail->bahanBaku->satuan->nama ?? 'unit');
+                                                            }
+                                                            // Jika item diinput sebagai bahan pendukung (berdasarkan relation yang ada)
+                                                            elseif ($detail->bahan_pendukung_id && $detail->bahanPendukung) {
+                                                                // Prioritas: detail->satuan, lalu relation->satuanRelation->nama
+                                                                $satuanItem = $detail->satuan ?: ($detail->bahanPendukung->satuanRelation->nama ?? 'unit');
+                                                            }
+                                                            // Fallback jika relation tidak ada
+                                                            elseif ($detail->bahan_baku_id) {
+                                                                $satuanItem = $detail->satuan ?: 'unit';
+                                                            }
+                                                            elseif ($detail->bahan_pendukung_id) {
+                                                                $satuanItem = $detail->satuan ?: 'unit';
+                                                            }
+                                                        @endphp
+                                                        {{ $satuanItem }})
                                                     </span>
                                                     - Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}
                                                     = <strong>Rp {{ number_format(($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0), 0, ',', '.') }}</strong>
@@ -130,22 +188,37 @@
                                 </td>
                                 <td class="text-end">
                                     @php
-                                        $totalPembelian = $p->total_harga ?? $p->total ?? 0;
-                                        // Jika total = 0, hitung dari details
-                                        if ($totalPembelian == 0 && $p->details && $p->details->count() > 0) {
+                                        // Gunakan total yang sama dengan transaksi/pembelian
+                                        $totalPembelian = 0;
+                                        if ($p->details && $p->details->count() > 0) {
                                             $totalPembelian = $p->details->sum(function($detail) {
                                                 return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
                                             });
+                                        }
+                                        
+                                        // Jika ada total_harga di database, gunakan yang lebih besar (sama seperti admin)
+                                        if ($p->total_harga > $totalPembelian) {
+                                            $totalPembelian = $p->total_harga;
                                         }
                                     @endphp
                                     <strong>Rp {{ number_format($totalPembelian, 0, ',', '.') }}</strong>
                                 </td>
                                 <td class="text-center">
-                                    @if($p->payment_method === 'cash' || $p->status === 'lunas')
-                                        <span class="badge bg-success">Lunas</span>
-                                    @else
-                                        <span class="badge bg-warning">Belum Lunas</span>
-                                    @endif
+                                    @php
+                                        // Logic status sama dengan pegawai pembelian - cek apakah ada retur
+                                        $hasRetur = \App\Models\PurchaseReturn::where('pembelian_id', $p->id)->exists();
+                                        
+                                        if ($hasRetur) {
+                                            $statusText = 'Ada Retur';
+                                            $statusBadgeClass = 'bg-warning';
+                                        } else {
+                                            $statusText = 'Tidak Ada Retur';
+                                            $statusBadgeClass = 'bg-success';
+                                        }
+                                    @endphp
+                                    <span class="badge {{ $statusBadgeClass }}">
+                                        {{ $statusText }}
+                                    </span>
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group">

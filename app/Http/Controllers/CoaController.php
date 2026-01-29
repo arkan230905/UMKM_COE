@@ -34,10 +34,19 @@ class CoaController extends Controller
             ->orderBy('kode_akun')
             ->get();
         
-        // Get saldo untuk setiap COA berdasarkan periode
+        // Get saldo untuk setiap COA berdasarkan periode (method yang sama dengan neraca saldo)
         $saldoPeriode = [];
         foreach ($coas as $coa) {
-            $saldoPeriode[$coa->kode_akun] = $this->getSaldoAwalPeriode($coa, $periode);
+            // Skip header accounts
+            if ($coa->is_akun_header) {
+                $saldoPeriode[$coa->kode_akun] = 0;
+                continue;
+            }
+            
+            // Get saldo awal dari COA table (proper accounting method)
+            $saldoAwal = $coa->saldo_awal ?? 0;
+            
+            $saldoPeriode[$coa->kode_akun] = $saldoAwal;
         }
         
         return view('master-data.coa.index', compact('coas', 'periode', 'periods', 'saldoPeriode'));

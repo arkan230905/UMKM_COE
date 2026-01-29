@@ -1,0 +1,352 @@
+@extends('layouts.app')
+
+@section('content')
+<style>
+/* Presensi page specific - ALL WHITE text */
+.presensi-page h1, .presensi-page h2, .presensi-page h3,
+.presensi-page h4, .presensi-page h5, .presensi-page h6 {
+    color: #111 !important;
+}
+
+.presensi-page .table,
+.presensi-page .table th,
+.presensi-page .table td,
+.presensi-page .custom-table,
+.presensi-page .custom-table th,
+.presensi-page .custom-table td {
+    color: #111 !important;
+}
+
+.presensi-page .badge.bg-success,
+.presensi-page .badge.bg-danger {
+    color: #fff !important;
+}
+
+.presensi-page .btn.text-white,
+.presensi-page .btn.text-white * {
+    color: #fff !important;
+}
+
+/* Table Scroll Wrapper - Sama dengan Produk */
+.card-body {
+    padding: 1rem;
+}
+
+.table-scroll-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar {
+    height: 10px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: #007bff;
+    border-radius: 4px;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #0056b3;
+}
+
+.scroll-hint {
+    text-align: center;
+    padding: 5px;
+    background: #e9ecef;
+    color: #666;
+    font-size: 12px;
+    border-radius: 0 0 4px 4px;
+    margin-bottom: 0;
+}
+
+/* Tombol Aksi - Styling Konsisten */
+.btn-group .btn {
+    border-radius: 0 !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.2) !important;
+    transition: all 0.2s ease-in-out !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-group .btn:first-child {
+    border-top-left-radius: 0.375rem !important;
+    border-bottom-left-radius: 0.375rem !important;
+}
+
+.btn-group .btn:last-child {
+    border-top-right-radius: 0.375rem !important;
+    border-bottom-right-radius: 0.375rem !important;
+    border-right: none !important;
+}
+
+.btn-group .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    z-index: 1;
+}
+
+.btn-group .btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Icon styling */
+.btn-group .btn i {
+    font-size: 0.875rem;
+    vertical-align: middle;
+}
+
+/* Form styling untuk delete button */
+.btn-group .delete-form {
+    display: inline-block;
+}
+
+.btn-group .delete-form button {
+    margin: 0;
+    border-radius: 0 !important;
+}
+
+/* Tooltip styling */
+.btn[data-bs-toggle="tooltip"]:hover {
+    position: relative;
+}
+
+.btn[data-bs-toggle="tooltip"]:hover::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 0.375rem;
+}
+</style>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Data Presensi</h1>
+        <div class="btn-group">
+            <a href="{{ route('transaksi.presensi.face-attendance') }}" class="btn btn-success">
+                <i class="bi bi-camera-fill"></i> Absen dengan Wajah
+            </a>
+            <a href="{{ route('transaksi.presensi.verifikasi-wajah.index') }}" class="btn btn-warning">
+                <i class="bi bi-camera-fill"></i> Verifikasi Wajah
+            </a>
+            <a href="{{ route('transaksi.presensi.create') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Tambah Presensi
+            </a>
+        </div>
+    </div>
+
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    @endif
+
+    <div class="card shadow mb-4">
+        <div class="card-body">
+
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show mx-3" role="alert">
+            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show mx-3" role="alert">
+        <div class="card-body">
+            <!-- Filter Section -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <form method="GET" action="{{ route('transaksi.presensi.index') }}">
+                        <div class="input-group">
+                            <input type="date" name="tanggal" class="form-control" 
+                                   value="{{ request('tanggal') ?? now()->format('Y-m-d') }}">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="fas fa-search"></i> Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-8 text-end">
+                    <span class="text-muted">
+                        <i class="fas fa-calendar"></i> 
+                        Menampilkan: <strong>{{ request('tanggal') ?? now()->format('d F Y') }}</strong>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th class="text-center" width="5%">#</th>
+                            <th>Pegawai</th>
+                            <th class="text-center" width="10%">Tanggal</th>
+                            <th class="text-center" width="8%">Jam Masuk</th>
+                            <th class="text-center" width="8%">Jam Keluar</th>
+                            <th class="text-center" width="8%">Jumlah Jam</th>
+                            <th class="text-center" width="10%">Status</th>
+                            <th class="text-center" width="12%">Verifikasi</th>
+                            <th class="text-center" width="12%">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($presensis as $presensi)
+                        <tr>
+                            <td class="text-center">{{ $loop->iteration }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    @if($presensi->pegawai && $presensi->pegawai->foto)
+                                        <img src="{{ asset('storage/' . $presensi->pegawai->foto) }}" 
+                                             alt="Foto" class="rounded-circle me-2" 
+                                             style="width: 35px; height: 35px; object-fit: cover;">
+                                    @else
+                                        <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2" 
+                                             style="width: 35px; height: 35px;">
+                                            <i class="fas fa-user text-white"></i>
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <div class="fw-bold">
+                                            {{ optional($presensi->pegawai)->nama_display ?? optional($presensi->pegawai)->nama ?? 'Pegawai Tidak Ditemukan' }}
+                                        </div>
+                                        <small class="text-muted">NIP: {{ optional($presensi->pegawai)->nomor_induk_pegawai ?? 'N/A' }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">{{ $presensi->tgl_presensi ? $presensi->tgl_presensi->format('d/m/Y') : '-' }}</td>
+                            <td class="text-center">{{ $presensi->jam_masuk ?? '-' }}</td>
+                            <td class="text-center">{{ $presensi->jam_keluar ?? '-' }}</td>
+                            <td class="text-center fw-bold">
+                                @if($presensi->status === 'Hadir')
+                                    {{ number_format($presensi->jumlah_jam, 1) }} jam
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                @switch($presensi->status)
+                                    @case('Hadir')
+                                        <span class="badge badge-success">Hadir</span>
+                                        @break
+                                    @case('Terlambat')
+                                        <span class="badge badge-warning">Terlambat</span>
+                                        @break
+                                    @case('Izin')
+                                        <span class="badge badge-warning">Izin</span>
+                                        @break
+                                    @case('Sakit')
+                                        <span class="badge badge-warning">Sakit</span>
+                                        @break
+                                    @case('Alpha')
+                                        <span class="badge badge-danger">Alpha</span>
+                                        @break
+                                    @default
+                                        <span class="badge badge-secondary">{{ $presensi->status }}</span>
+                                @endswitch
+                            </td>
+                            <td class="text-center">
+                                @if($presensi->verifikasi_wajah)
+                                    <span class="badge badge-success">
+                                        <i class="fas fa-check-circle"></i> Terverifikasi
+                                    </span>
+                                @else
+                                    <span class="badge badge-danger" title="Pegawai harus verifikasi wajah dulu">
+                                        <i class="fas fa-times-circle"></i> Belum Verifikasi
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ route('transaksi.presensi.edit', $presensi->id) }}" 
+                                       class="btn btn-warning" 
+                                       title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form action="{{ route('transaksi.presensi.destroy', $presensi->id) }}" 
+                                          method="POST" 
+                                          class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button" class="btn btn-danger delete-btn" title="Hapus">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-3x mb-3"></i>
+                                <h5>Belum ada data presensi</h5>
+                                <p class="mb-0">Klik tombol "Tambah Presensi" untuk menambahkan data baru</p>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            @if($presensis->hasPages())
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div class="text-muted">
+                        Menampilkan <strong>{{ $presensis->firstItem() }}</strong> sampai <strong>{{ $presensis->lastItem() }}</strong> dari <strong>{{ $presensis->total() }}</strong> data
+                    </div>
+                    <div>
+                        {{ $presensis->withQueryString()->links() }}
+                    </div>
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+$(document).ready(function() {
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+    
+    // Delete confirmation
+    $('.delete-btn').on('click', function(e) {
+        e.preventDefault();
+        var form = $(this).closest('form');
+        
+        Swal.fire({
+            title: 'Apakah Anda yakin?',
+            text: "Data yang dihapus tidak dapat dikembalikan!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, hapus!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
+            }
+        });
+    });
+});
+</script>
+@endpush

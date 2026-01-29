@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BahanBaku;
 use App\Models\Satuan;
+use App\Services\BomSyncService;
 use Illuminate\Http\Request;
 
 class BahanBakuController extends Controller
@@ -12,6 +13,19 @@ class BahanBakuController extends Controller
     public function index()
     {
         $bahanBaku = BahanBaku::with('satuan')->get();
+        
+        // Hitung harga rata-rata untuk setiap bahan baku
+        foreach ($bahanBaku as $bahan) {
+            $averageHarga = $this->getAverageHargaSatuan($bahan->id);
+            
+            // Jika ada harga rata-rata, gunakan itu. Jika tidak, gunakan harga default
+            if ($averageHarga > 0) {
+                $bahan->harga_satuan_display = $averageHarga;
+            } else {
+                $bahan->harga_satuan_display = $bahan->harga_satuan;
+            }
+        }
+        
         return view('master-data.bahan-baku.index', compact('bahanBaku'));
     }
 
@@ -79,6 +93,9 @@ class BahanBakuController extends Controller
         // Save changes
         $bahanBaku->save();
 
+        // Sync BOM when bahan baku price changes
+        BomSyncService::syncBomFromMaterialChange('bahan_baku', $bahanBaku->id);
+
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil diperbarui!');
     }
 
@@ -89,5 +106,36 @@ class BahanBakuController extends Controller
         $bahanBaku->delete();
 
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil dihapus!');
+    }
+
+    /**
+     * Get average harga satuan untuk bahan baku
+     */
+    public function getAverageHargaSatuan($bahanBakuId)
+    {
+        $bahanBaku = BahanBaku::findOrFail($bahanBakuId);
+        
+        // Ambil semua pembelian detail untuk bahan baku ini
+        $details = \App\Models\PembelianDetail::where('bahan_baku_id', $bahanBakuId)
+            ->with(['pembelian'])
+            ->get();
+        
+        if ($details->isEmpty()) {
+            return 0;
+        }
+        
+        // Hitung total harga dan total quantity
+        $totalHarga = 0;
+        $totalQuantity = 0;
+        
+        foreach ($details as $detail) {
+            $totalHarga += ($detail->harga_satuan ?? 0) * ($detail->jumlah ?? 0);
+            $totalQuantity += ($detail->jumlah ?? 0);
+        }
+        
+        // Hitung harga rata-rata
+        $averageHarga = $totalQuantity > 0 ? $totalHarga / $totalQuantity : 0;
+        
+        return $averageHarga;
     }
 }

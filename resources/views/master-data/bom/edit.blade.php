@@ -144,88 +144,70 @@
             </div>
         </div>
 
-        <!-- Section 2: BTKL (Biaya Tenaga Kerja Langsung) -->
+        <!-- Section 2: BTKL (Biaya Tenaga Kerja Langsung) - READONLY -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-success text-white">
                 <h5 class="mb-0"><i class="fas fa-users me-2"></i>2. BTKL (Biaya Tenaga Kerja Langsung)</h5>
-                <small>Biaya per produk dihitung otomatis berdasarkan jam proses</small>
+                <small class="text-warning">
+                    <i class="fas fa-lock"></i> Data BTKL tidak dapat diubah (data mutlak dari master data)
+                </small>
             </div>
             <div class="card-body">
-                <div class="alert alert-success">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <strong>Informasi:</strong> Nominal biaya per produk untuk 1 jam proses sudah dihitung otomatis. 
-                    Anda hanya perlu memasukkan berapa jam yang dibutuhkan untuk setiap proses.
-                </div>
-                
-                <div class="table-responsive">
-                    <table class="table table-bordered" id="btklTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th width="5%">
-                                    <button type="button" class="btn btn-success btn-sm" onclick="addBtklRow()">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-                                </th>
-                                <th width="25%">Nama Proses</th>
-                                <th width="15%">Biaya per Jam</th>
-                                <th width="15%">Jam Dibutuhkan</th>
-                                <th width="15%">Kapasitas per Jam</th>
-                                <th width="15%">Biaya per Produk</th>
-                                <th width="10%">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody id="btklTableBody">
-                            @foreach($bom->proses as $proses)
-                            <tr>
-                                <td>
-                                    <button type="button" class="btn btn-danger btn-sm" onclick="removeBtklRow(this)">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                                <td>
-                                    <select name="proses_id[]" class="form-select proses-select" onchange="updateProsesData(this)" required>
-                                        <option value="">-- Pilih Proses --</option>
-                                        @foreach($prosesProduksis as $prosesData)
-                                            <option value="{{ $prosesData->id }}" 
-                                                data-tarif="{{ $prosesData->tarif_per_jam }}" 
-                                                data-kapasitas="{{ $prosesData->kapasitas_per_jam }}"
-                                                {{ $proses->proses_produksi_id == $prosesData->id ? 'selected' : '' }}>
-                                                {{ $prosesData->nama_proses }} ({{ $prosesData->kode_proses }})
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td>
-                                    <span class="biaya-per-jam-text">Rp {{ number_format($proses->prosesProduksi->tarif_per_jam ?? 0, 0, ',', '.') }}</span>
-                                </td>
-                                <td>
-                                    <input type="number" name="jam_dibutuhkan[]" class="form-control jam-input" 
-                                           step="0.1" min="0" value="{{ $proses->durasi }}" 
-                                           onchange="calculateBtklSubtotal(this)" required>
-                                </td>
-                                <td>
-                                    <span class="kapasitas-text">{{ $proses->kapasitas_per_jam ?? 0 }} unit/jam</span>
-                                </td>
-                                <td>
-                                    <span class="biaya-per-produk-text">Rp {{ number_format($proses->biaya_btkl, 0, ',', '.') }}</span>
-                                </td>
-                                <td>
-                                    <span class="subtotal-btkl-text">Rp {{ number_format($proses->biaya_btkl, 0, ',', '.') }}</span>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                        <tfoot>
-                            <tr class="table-success">
-                                <th colspan="6" class="text-end">Total BTKL:</th>
-                                <th>
-                                    <span id="totalBtkl">Rp {{ number_format($bom->total_btkl, 0, ',', '.') }}</span>
-                                    <input type="hidden" name="total_btkl" id="totalBtklInput" value="{{ $bom->total_btkl }}">
-                                </th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
+                @if(!empty($btklData))
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="5%">No</th>
+                                    <th width="30%">Proses</th>
+                                    <th width="15%">Tarif/Jam</th>
+                                    <th width="15%">Kapasitas/Jam</th>
+                                    <th width="15%">Biaya/Unit</th>
+                                    <th width="15%">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @php $noBtkl = 1; $totalBtkl = 0; @endphp
+                                @foreach($btklData as $btkl)
+                                    @php $totalBtkl += $btkl['subtotal']; @endphp
+                                    <tr class="table-light">
+                                        <td class="text-center">{{ $noBtkl++ }}</td>
+                                        <td>
+                                            <div class="fw-bold">{{ $btkl['nama_proses'] }}</div>
+                                            <small class="text-muted">{{ number_format($btkl['durasi_jam'], 2) }} jam</small>
+                                        </td>
+                                        <td class="text-end bg-light">
+                                            <span class="fw-bold">Rp {{ number_format($btkl['tarif_per_jam'], 0, ',', '.') }}</span>
+                                        </td>
+                                        <td class="text-end bg-light">
+                                            {{ number_format($btkl['kapasitas_per_jam'], 0, ',', '.') }}
+                                        </td>
+                                        <td class="text-end bg-warning">
+                                            <span class="fw-bold text-success">Rp {{ number_format($btkl['biaya_per_produk'], 0, ',', '.') }}</span>
+                                        </td>
+                                        <td class="text-end bg-info">
+                                            <span class="fw-bold text-primary">Rp {{ number_format($btkl['subtotal'], 0, ',', '.') }}</span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-success">
+                                    <th colspan="5" class="text-end">Total BTKL:</th>
+                                    <th class="text-end">
+                                        <span class="fw-bold">Rp {{ number_format($totalBtkl, 0, ',', '.') }}</span>
+                                        <input type="hidden" name="total_btkl" value="{{ $totalBtkl }}">
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                @else
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Data BTKL tidak tersedia untuk produk ini.
+                    </div>
+                @endif
             </div>
         </div>
 

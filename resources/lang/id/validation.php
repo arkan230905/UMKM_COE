@@ -15,6 +15,16 @@ return [
     'accepted' => 'Kolom :attribute harus disetujui.',
     'in' => ':attribute yang dipilih tidak valid.',
     'lowercase' => 'Kolom :attribute harus huruf kecil.',
+    'after' => 'Kolom :attribute harus berupa tanggal setelah :date.',
+    'after_or_equal' => 'Kolom :attribute harus berupa tanggal setelah atau sama dengan :date.',
+    'before' => 'Kolom :attribute harus berupa tanggal sebelum :date.',
+    'before_or_equal' => 'Kolom :attribute harus berupa tanggal sebelum atau sama dengan :date.',
+    'date' => 'Kolom :attribute harus berupa tanggal yang valid.',
+    'numeric' => 'Kolom :attribute harus berupa angka.',
+    'min' => [
+        'numeric' => 'Kolom :attribute harus minimal :min.',
+        'string' => 'Kolom :attribute harus minimal :min karakter.',
+    ],
 
     'attributes' => [
         'name' => 'nama',
@@ -30,5 +40,12 @@ return [
         'company_email' => 'email perusahaan',
         'company_telepon' => 'telepon perusahaan',
         'kode_perusahaan' => 'kode perusahaan',
+        'tanggal_beli' => 'tanggal pembelian',
+        'tanggal_akuisisi' => 'tanggal mulai penyusutan',
+        'nama_aset' => 'nama aset',
+        'kategori_aset_id' => 'kategori aset',
+        'harga_perolehan' => 'harga perolehan',
+        'biaya_perolehan' => 'biaya perolehan',
+        'keterangan' => 'keterangan',
     ],
 ];

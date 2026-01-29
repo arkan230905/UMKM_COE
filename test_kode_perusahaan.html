@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Kode Perusahaan Field</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .field-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        .field-group.active {
+            border-color: #28a745;
+            background: #f0fff0;
+        }
+        .field-group.inactive {
+            border-color: #dc3545;
+            background: #fff0f0;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .status.enabled {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.disabled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e7f3ff;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Kode Perusahaan Field</h1>
+    <p>Test untuk memastikan hanya satu field kode_perusahaan yang aktif</p>
+
+    <form id="testForm">
+        <div>
+            <label>Role:</label>
+            <select id="role" name="role">
+                <option value="">Pilih Role</option>
+                <option value="admin">Admin</option>
+                <option value="owner">Owner</option>
+                <option value="pelanggan">Pelanggan</option>
+                <option value="presensi">Presensi</option>
+            </select>
+        </div>
+
+        <div class="field-group" id="field1">
+            <h3>Field 1: Kode Perusahaan (Regular)</h3>
+            <input type="text" id="kode1" name="kode_perusahaan" value="UMKM-COE12" disabled>
+            <div class="status disabled" id="status1">Status: DISABLED</div>
+        </div>
+
+        <div class="field-group" id="field2">
+            <h3>Field 2: Kode Perusahaan (Presensi)</h3>
+            <input type="text" id="kode2" name="kode_perusahaan" value="UMKM-COE12" disabled>
+            <div class="status disabled" id="status2">Status: DISABLED</div>
+        </div>
+
+        <button type="submit">TEST SUBMIT</button>
+    </form>
+
+    <div id="result">
+        <strong>Result:</strong>
+        Pilih role dan klik TEST SUBMIT untuk melihat data yang akan dikirim
+    </div>
+
+    <script>
+        const roleSelect = document.getElementById('role');
+        const kode1 = document.getElementById('kode1');
+        const kode2 = document.getElementById('kode2');
+        const field1 = document.getElementById('field1');
+        const field2 = document.getElementById('field2');
+        const status1 = document.getElementById('status1');
+        const status2 = document.getElementById('status2');
+        const form = document.getElementById('testForm');
+        const result = document.getElementById('result');
+
+        function updateFieldStatus() {
+            // Update visual status
+            if (kode1.disabled) {
+                field1.className = 'field-group inactive';
+                status1.className = 'status disabled';
+                status1.textContent = 'Status: DISABLED (tidak akan dikirim)';
+            } else {
+                field1.className = 'field-group active';
+                status1.className = 'status enabled';
+                status1.textContent = 'Status: ENABLED (akan dikirim)';
+            }
+
+            if (kode2.disabled) {
+                field2.className = 'field-group inactive';
+                status2.className = 'status disabled';
+                status2.textContent = 'Status: DISABLED (tidak akan dikirim)';
+            } else {
+                field2.className = 'field-group active';
+                status2.className = 'status enabled';
+                status2.textContent = 'Status: ENABLED (akan dikirim)';
+            }
+        }
+
+        roleSelect.addEventListener('change', function() {
+            const role = this.value;
+            console.log('Role changed to:', role);
+
+            // Disable semua dulu
+            kode1.disabled = true;
+            kode2.disabled = true;
+
+            // Enable sesuai role
+            if (role === 'admin' || role === 'owner') {
+                kode1.disabled = false;
+                console.log('Enabled: Field 1 (Regular)');
+            } else if (role === 'presensi') {
+                kode2.disabled = false;
+                console.log('Enabled: Field 2 (Presensi)');
+            } else if (role === 'pelanggan') {
+                // Tidak ada yang enabled
+                console.log('No kode_perusahaan field needed');
+            }
+
+            updateFieldStatus();
+        });
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            let resultText = '<strong>Form Data yang Akan Dikirim:</strong>\n\n';
+            
+            let kodeCount = 0;
+            for (let [key, value] of formData.entries()) {
+                resultText += `${key}: ${value}\n`;
+                if (key === 'kode_perusahaan') {
+                    kodeCount++;
+                }
+            }
+
+            resultText += '\n<strong>Analisis:</strong>\n';
+            resultText += `Jumlah field kode_perusahaan: ${kodeCount}\n`;
+            
+            if (kodeCount === 0) {
+                resultText += '✅ OK - Tidak ada kode_perusahaan (untuk pelanggan)\n';
+            } else if (kodeCount === 1) {
+                resultText += '✅ OK - Hanya satu field kode_perusahaan yang dikirim\n';
+            } else {
+                resultText += '❌ ERROR - Ada ' + kodeCount + ' field kode_perusahaan!\n';
+                resultText += '   Ini akan menyebabkan masalah validasi.\n';
+            }
+
+            result.innerHTML = resultText;
+
+            console.log('=== FORM SUBMIT TEST ===');
+            console.log('Form Data:');
+            for (let [key, value] of formData.entries()) {
+                console.log(`  ${key}: ${value}`);
+            }
+            console.log('Field 1 disabled:', kode1.disabled);
+            console.log('Field 2 disabled:', kode2.disabled);
+        });
+
+        // Initial update
+        updateFieldStatus();
+    </script>
+</body>
+</html>

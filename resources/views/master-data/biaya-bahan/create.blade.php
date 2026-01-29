@@ -280,8 +280,56 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 500);
 });
 </script>
-@endpush
-        select.addEventListener('change', calculateTotals);
+
+<script>
+function attachEventListeners(row) {
+    const targetRow = row || document;
+    
+    // Attach event listeners to selects
+    targetRow.querySelectorAll('.bahan-baku-select, .bahan-pendukung-select').forEach(select => {
+        select.addEventListener('change', function() {
+            console.log('Select changed, calculating totals...');
+            
+            // Auto-fill satuan based on selected item
+            const option = select.options[select.selectedIndex];
+            if (option && option.dataset.satuan) {
+                const satuanSelect = targetRow.querySelector('.satuan-select');
+                if (satuanSelect) {
+                    satuanSelect.value = option.dataset.satuan;
+                    console.log('Auto-filled satuan:', option.dataset.satuan);
+                }
+            }
+            
+            calculateTotals();
+        });
+    });
+    
+    // Attach event listeners to quantity inputs
+    targetRow.querySelectorAll('.qty-input').forEach(input => {
+        input.addEventListener('input', function() {
+            console.log('Quantity changed, calculating totals...');
+            calculateTotals();
+        });
+        
+        // Also trigger on change for better compatibility
+        input.addEventListener('change', function() {
+            console.log('Quantity changed (change event), calculating totals...');
+            calculateTotals();
+        });
+        
+        // Also trigger on keyup for immediate response
+        input.addEventListener('keyup', function() {
+            console.log('Quantity changed (keyup event), calculating totals...');
+            calculateTotals();
+        });
+    });
+    
+    // Attach event listeners to satuan selects
+    targetRow.querySelectorAll('.satuan-select').forEach(select => {
+        select.addEventListener('change', function() {
+            console.log('Satuan changed, calculating totals...');
+            calculateTotals();
+        });
     });
 }
 

@@ -14,6 +14,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         \App\Console\Commands\StockBackfillPembelian::class,
+        \App\Console\Commands\SyncAccounts::class,
     ];
 
     /**

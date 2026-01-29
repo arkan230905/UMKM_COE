@@ -76,7 +76,7 @@
                         @forelse($pegawais as $index => $pegawai)
                         <tr>
                             <td class="text-center text-muted">{{ ($pegawais->currentPage() - 1) * $pegawais->perPage() + $loop->iteration }}</td>
-                            <td>{{ $pegawai->kode_pegawai }}</td>
+                            <td>{{ $pegawai->nomor_induk_pegawai }}</td>
                             <td>{{ $pegawai->nama }}</td>
                             <td>{{ $pegawai->email }}</td>
                             <td>{{ $pegawai->no_telp }}</td>
@@ -97,7 +97,7 @@
                             <td class="text-end">Rp {{ number_format($pegawai->asuransi, 0, ',', '.') }}</td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('master-data.pegawai.edit', ['pegawai' => $pegawai->id]) }}" 
+                                    <a href="{{ route('master-data.pegawai.edit', $pegawai->nomor_induk_pegawai) }}" 
                                        class="btn btn-outline-primary" 
                                        data-bs-toggle="tooltip" 
                                        title="Edit">
@@ -106,14 +106,14 @@
                                     <button type="button" 
                                             class="btn btn-outline-danger" 
                                             data-bs-toggle="modal" 
-                                            data-bs-target="#deleteModal{{ $pegawai->id }}"
+                                            data-bs-target="#deleteModal{{ $pegawai->nomor_induk_pegawai }}"
                                             title="Hapus">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                                 
                                 <!-- Delete Modal -->
-                                <div class="modal fade" id="deleteModal{{ $pegawai->id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal fade" id="deleteModal{{ $pegawai->nomor_induk_pegawai }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
@@ -125,7 +125,7 @@
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                <form action="{{ route('master-data.pegawai.destroy', ['pegawai' => $pegawai->id]) }}" method="POST">
+                                                <form action="{{ route('master-data.pegawai.destroy', $pegawai->nomor_induk_pegawai) }}" method="POST">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-danger">Hapus</button>

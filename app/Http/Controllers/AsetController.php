@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Aset;
 use App\Models\JenisAset;
 use App\Models\KategoriAset;
+use App\Models\Aset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
@@ -99,8 +100,12 @@ class AsetController extends Controller
             $rules['umur_manfaat'] = 'required|integer|min:1|max:100';
             $rules['metode_penyusutan'] = 'required|in:garis_lurus,saldo_menurun,sum_of_years_digits';
             $rules['tarif_penyusutan'] = 'nullable|numeric|min:0|max:200';
-            $rules['bulan_mulai'] = 'nullable|integer|min:1|max:12';
-            $rules['tanggal_perolehan'] = 'nullable|date';
+            if (Schema::hasColumn('asets', 'bulan_mulai')) {
+                $rules['bulan_mulai'] = 'nullable|integer|min:1|max:12';
+            }
+            if (Schema::hasColumn('asets', 'tanggal_perolehan')) {
+                $rules['tanggal_perolehan'] = 'nullable|date';
+            }
         }
         
         $validated = $request->validate($rules);
@@ -157,8 +162,12 @@ class AsetController extends Controller
             $aset->umur_manfaat = $umurManfaat;
             $aset->metode_penyusutan = $metodePenyusutan;
             $aset->tarif_penyusutan = $request->tarif_penyusutan;
-            $aset->bulan_mulai = $request->bulan_mulai ?? 1;
-            $aset->tanggal_perolehan = $request->tanggal_perolehan;
+            if (Schema::hasColumn('asets', 'bulan_mulai')) {
+                $aset->bulan_mulai = $request->bulan_mulai ?? 1;
+            }
+            if (Schema::hasColumn('asets', 'tanggal_perolehan')) {
+                $aset->tanggal_perolehan = $request->tanggal_perolehan;
+            }
             $aset->penyusutan_per_tahun = round($penyusutanPerTahun, 2);
             $aset->penyusutan_per_bulan = round($penyusutanPerBulan, 2);
             $aset->nilai_buku = $totalPerolehan;

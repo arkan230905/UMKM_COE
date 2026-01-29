@@ -89,6 +89,8 @@
                             <th>Produk</th>
                             <th class="text-end">Qty</th>
                             <th class="text-end">Harga/Satuan</th>
+                            <th class="text-end">HPP</th>
+                            <th class="text-end">Margin</th>
                             <th class="text-end">Diskon %</th>
                             <th class="text-end">Diskon (Rp)</th>
                             <th class="text-end">Total</th>
@@ -150,6 +152,34 @@
                                 <td class="text-end">
                                     @if($detailCount > 1)
                                         @foreach($penjualan->details as $d)
+                                            @php $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal); @endphp
+                                            <div>Rp {{ number_format($actualHPP, 0, ',', '.') }}</div>
+                                        @endforeach
+                                    @elseif($detailCount === 1)
+                                        @php $actualHPP = $penjualan->details[0]->produk->getHPPForSaleDate($penjualan->tanggal); @endphp
+                                        Rp {{ number_format($actualHPP, 0, ',', '.') }}
+                                    @else
+                                        @php $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0; @endphp
+                                        Rp {{ number_format($actualHPP, 0, ',', '.') }}
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    @if($detailCount > 1)
+                                        @foreach($penjualan->details as $d)
+                                            @php $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal); $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah; @endphp
+                                            <div class="{{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
+                                        @endforeach
+                                    @elseif($detailCount === 1)
+                                        @php $actualHPP = $penjualan->details[0]->produk->getHPPForSaleDate($penjualan->tanggal); $margin = ($penjualan->details[0]->harga_satuan - $actualHPP) * $penjualan->details[0]->jumlah; @endphp
+                                        <div class="{{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
+                                    @else
+                                        @php $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0; $margin = ($hdrHarga - $actualHPP) * ($penjualan->jumlah ?? 0); @endphp
+                                        <div class="{{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    @if($detailCount > 1)
+                                        @foreach($penjualan->details as $d)
                                             @php $sub = (float)$d->jumlah * (float)$d->harga_satuan; $disc = (float)($d->diskon_nominal ?? 0); $pct = $sub>0 ? ($disc/$sub*100) : 0; @endphp
                                             <div>{{ number_format($pct, 2, ',', '.') }}%</div>
                                         @endforeach
@@ -193,10 +223,7 @@
                                             <i class="fas fa-undo"></i>
                                         </a>
                                         <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn btn-outline-primary">
-                                            <i class="fas fa-book"></i>
-                                        </a>
-                                        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale_cogs', 'ref_id' => $penjualan->id]) }}" class="btn btn-outline-secondary">
-                                            <i class="fas fa-calculator"></i>
+                                            <i class="fas fa-book"></i> Jurnal
                                         </a>
                                         <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
                                             @csrf

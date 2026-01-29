@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BahanPendukung;
 use App\Models\KategoriBahanPendukung;
 use App\Models\Satuan;
+use App\Services\BomSyncService;
 use Illuminate\Http\Request;
 
 class BahanPendukungController extends Controller
@@ -16,6 +17,9 @@ class BahanPendukungController extends Controller
 
     public function index(Request $request)
     {
+        // Simple debug
+        \Log::info('Bahan Pendukung Index Called');
+        
         $query = BahanPendukung::with(['satuan', 'kategoriBahanPendukung']);
         
         // Filter kategori
@@ -34,23 +38,70 @@ class BahanPendukungController extends Controller
         $bahanPendukungs = $query->orderBy('nama_bahan')->paginate(15);
         $kategoris = KategoriBahanPendukung::active()->orderBy('nama')->get();
         
+        \Log::info('Bahan Pendukung loaded', [
+            'count' => $bahanPendukungs->count(),
+            'page' => $bahanPendukungs->currentPage()
+        ]);
+        
         // Calculate average prices for each bahan pendukung
         foreach ($bahanPendukungs as $bahanPendukung) {
+            // Debug logging
+            \Log::info('Processing Bahan Pendukung: ' . $bahanPendukung->nama_bahan, [
+                'id' => $bahanPendukung->id,
+                'default_harga' => $bahanPendukung->harga_satuan
+            ]);
+            
             // Get all pembelian detail records for this bahan pendukung
             $pembelianDetails = \App\Models\PembelianDetail::where('bahan_pendukung_id', $bahanPendukung->id)
                 ->orderBy('created_at', 'desc')
                 ->get();
             
+            \Log::info('Pembelian Details found: ' . $pembelianDetails->count(), [
+                'bahan_pendukung_id' => $bahanPendukung->id
+            ]);
+            
+            // Debug: Show pembelian details
+            foreach ($pembelianDetails as $detail) {
+                \Log::info('Pembelian Detail', [
+                    'id' => $detail->id,
+                    'pembelian_id' => $detail->pembelian_id,
+                    'jumlah' => $detail->jumlah,
+                    'harga_satuan' => $detail->harga_satuan,
+                    'subtotal' => ($detail->jumlah * $detail->harga_satuan)
+                ]);
+            }
+            
             if ($pembelianDetails->count() > 0) {
                 // Calculate average price from pembelian details
-                $totalHarga = $pembelianDetails->sum('subtotal');
-                $totalQty = $pembelianDetails->sum('jumlah');
+                $totalHarga = 0;
+                $totalQty = 0;
+                
+                foreach ($pembelianDetails as $detail) {
+                    $totalHarga += ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                    $totalQty += ($detail->jumlah ?? 0);
+                }
+                
                 $avgPrice = $totalQty > 0 ? $totalHarga / $totalQty : 0;
                 
-                // Update harga_satuan with average price
-                $bahanPendukung->update(['harga_satuan' => $avgPrice]);
+                \Log::info('Average Price Calculated', [
+                    'total_harga' => $totalHarga,
+                    'total_qty' => $totalQty,
+                    'avg_price' => $avgPrice
+                ]);
+                
+                // Add display property (jangan update database)
+                $bahanPendukung->harga_satuan_display = $avgPrice;
+            } else {
+                // Use default price if no pembelian details
+                $bahanPendukung->harga_satuan_display = $bahanPendukung->harga_satuan;
+                
+                \Log::info('No Pembelian Details, using default price', [
+                    'harga_satuan_display' => $bahanPendukung->harga_satuan_display
+                ]);
             }
         }
+        
+        \Log::info('Bahan Pendukung Index Completed');
         
         return view('master-data.bahan-pendukung.index', compact('bahanPendukungs', 'kategoris'));
     }
@@ -120,6 +171,9 @@ class BahanPendukungController extends Controller
         }
         
         $bahanPendukung->update($validated);
+        
+        // Sync BOM when bahan pendukung price changes
+        BomSyncService::syncBomFromMaterialChange('bahan_pendukung', $bahanPendukung->id);
         
         return redirect()->route('master-data.bahan-pendukung.index')
             ->with('success', 'Bahan pendukung berhasil diperbarui');
