@@ -19,6 +19,7 @@ class BopProses extends Model
         'maintenance_per_jam',
         'gaji_mandor_per_jam',
         'lain_lain_per_jam',
+        'komponen_bop',
         'total_bop_per_jam',
         'budget',
         'aktual',
@@ -34,6 +35,7 @@ class BopProses extends Model
         'maintenance_per_jam' => 'decimal:2',
         'gaji_mandor_per_jam' => 'decimal:2',
         'lain_lain_per_jam' => 'decimal:2',
+        'komponen_bop' => 'array',
         'total_bop_per_jam' => 'decimal:2',
         'budget' => 'decimal:2',
         'aktual' => 'decimal:2',
@@ -48,14 +50,13 @@ class BopProses extends Model
     protected static function booted()
     {
         static::saving(function ($model) {
-            // Auto-calculate total BOP per jam
-            $model->total_bop_per_jam = 
-                ($model->listrik_per_jam ?? 0) +
-                ($model->gas_bbm_per_jam ?? 0) +
-                ($model->penyusutan_mesin_per_jam ?? 0) +
-                ($model->maintenance_per_jam ?? 0) +
-                ($model->gaji_mandor_per_jam ?? 0) +
-                ($model->lain_lain_per_jam ?? 0);
+            // Calculate total BOP per jam from JSON components (new structure)
+            if ($model->komponen_bop) {
+                $komponenBop = is_array($model->komponen_bop) ? $model->komponen_bop : json_decode($model->komponen_bop, true);
+                if (is_array($komponenBop)) {
+                    $model->total_bop_per_jam = array_sum(array_column($komponenBop, 'rate_per_hour'));
+                }
+            }
 
             // Auto-sync kapasitas dari BTKL
             if ($model->prosesProduksi) {
@@ -69,10 +70,8 @@ class BopProses extends Model
                 $model->bop_per_unit = 0;
             }
 
-            // Set budget to total_bop_per_jam if not set
-            if (!$model->budget) {
-                $model->budget = $model->total_bop_per_jam;
-            }
+            // Set budget to total_bop_per_jam * 8 (8 jam per shift)
+            $model->budget = $model->total_bop_per_jam * 8;
         });
     }
 

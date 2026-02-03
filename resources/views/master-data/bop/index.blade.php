@@ -39,12 +39,10 @@
                         <table class="table table-hover align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Nama BOP</th>
-                                    <th class="text-end">Budget BOP</th>
-                                    <th class="text-center">Kuantitas/Jam</th>
-                                    <th class="text-end">Biaya/Jam</th>
-                                    <th class="text-end">Aktual</th>
-                                    <th class="text-end">Selisih</th>
+                                    <th>Nama Proses</th>
+                                    <th class="text-center">Kapasitas / Jam</th>
+                                    <th class="text-end">Biaya / Jam (Rp)</th>
+                                    <th class="text-end">Biaya / Produk (Rp/pcs)</th>
                                     <th class="text-center">Status</th>
                                     <th class="text-center">Aksi</th>
                                 </tr>
@@ -53,59 +51,62 @@
                                 @forelse($prosesProduksis as $proses)
                                     @php
                                         $bop = $proses->bopProses;
-                                        $budget = $bop->budget ?? $bop->total_bop_per_jam ?? 0;
-                                        $aktual = $bop->aktual ?? 0;
-                                        $selisih = $budget - $aktual;
-                                        $statusClass = $selisih >= 0 ? 'success' : 'danger';
-                                        $statusText = $selisih >= 0 ? 'Under Budget' : 'Over Budget';
-                                        $biayaPerJam = $bop->total_bop_per_jam ?? 0;
+                                        $btklPerJam = $proses->tarif_btkl ?? 0;
+                                        $kapasitasPerJam = $proses->kapasitas_per_jam ?? 0;
                                         $hasBop = $bop !== null;
+                                        
+                                        // Get BOP per jam from new structure (total_bop_per_jam field)
+                                        if ($hasBop) {
+                                            $bopPerJam = $bop->total_bop_per_jam ?? 0;
+                                            
+                                            // Fallback: calculate from JSON if total_bop_per_jam is null
+                                            if ($bopPerJam == 0 && !empty($bop->komponen_bop)) {
+                                                $komponenBop = is_array($bop->komponen_bop) ? $bop->komponen_bop : json_decode($bop->komponen_bop, true);
+                                                if (is_array($komponenBop)) {
+                                                    $bopPerJam = array_sum(array_column($komponenBop, 'rate_per_hour'));
+                                                }
+                                            }
+                                        } else {
+                                            $bopPerJam = 0;
+                                        }
+                                        
+                                        // Calculate process costing values
+                                        $biayaPerJam = $btklPerJam + $bopPerJam;
+                                        $biayaPerProduk = $kapasitasPerJam > 0 ? $biayaPerJam / $kapasitasPerJam : 0;
+                                        
+                                        // Define status variables
+                                        if ($hasBop) {
+                                            $statusClass = 'success';
+                                            $statusText = 'Sudah Setup';
+                                        } else {
+                                            $statusClass = 'secondary';
+                                            $statusText = 'Belum Setup';
+                                        }
                                     @endphp
                                     <tr>
                                         <td>
                                             <div class="fw-semibold">{{ $proses->nama_proses }}</div>
                                             <small class="text-muted">{{ $proses->kode_proses }}</small>
                                         </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-info">{{ $kapasitasPerJam }} unit/jam</span>
+                                        </td>
                                         <td class="text-end">
                                             @if($hasBop)
-                                                <span class="fw-semibold">Rp {{ number_format($budget, 0, ',', '.') }}</span>
+                                                <span class="fw-semibold text-primary">Rp {{ number_format($biayaPerJam, 0, ',', '.') }}</span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-end">
+                                            @if($hasBop)
+                                                <span class="fw-semibold text-success">Rp {{ number_format($biayaPerProduk, 2, ',', '.') }}</span>
                                             @else
                                                 <span class="text-muted">-</span>
                                             @endif
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge bg-info">{{ $proses->kapasitas_per_jam ?? 0 }} unit/jam</span>
-                                        </td>
-                                        <td class="text-end">
-                                            @if($hasBop)
-                                                <span class="text-warning">Rp {{ number_format($biayaPerJam, 0, ',', '.') }}</span>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-end">
-                                            @if($hasBop)
-                                                <span class="fw-semibold">Rp {{ number_format($aktual, 0, ',', '.') }}</span>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-end">
-                                            @if($hasBop)
-                                                <span class="fw-semibold text-{{ $statusClass }}">
-                                                    Rp {{ number_format(abs($selisih), 0, ',', '.') }}
-                                                    @if($selisih < 0) (Over) @endif
-                                                </span>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-center">
-                                            @if($hasBop)
-                                                <span class="badge bg-{{ $statusClass }}">{{ $statusText }}</span>
-                                            @else
-                                                <span class="badge bg-secondary">Belum Setup</span>
-                                            @endif
+                                            <span class="badge bg-{{ $statusClass }}">{{ $statusText }}</span>
                                         </td>
                                         <td class="text-center">
                                             <div class="btn-group btn-group-sm">
