@@ -457,6 +457,18 @@
         display: flex;
         align-items: stretch;
     }
+    
+    /* Custom grid for 5 columns */
+    .quick-actions-buttons .col-lg-2-4 {
+        flex: 0 0 auto;
+        width: 20%;
+    }
+    
+    @media (max-width: 992px) {
+        .quick-actions-buttons .col-lg-2-4 {
+            width: 50%;
+        }
+    }
 </style>
 @endpush
 
@@ -510,32 +522,39 @@
                 <div class="card-body quick-actions-grid">
                     <div class="quick-actions-buttons">
                         <div class="row g-3 w-100">
-                            <div class="col-lg-3 col-md-6">
+                            <div class="col-lg-2-4 col-md-6">
                                 <a href="{{ route('pegawai-gudang.bahan-baku.index') }}" class="quick-action-btn btn-primary h-100 d-flex flex-column justify-content-center">
                                     <i class="fas fa-boxes fa-2x mb-3"></i>
                                     <h6 class="mb-1">Bahan Baku</h6>
                                     <small class="text-muted">Kelola stok bahan</small>
                                 </a>
                             </div>
-                            <div class="col-lg-3 col-md-6">
+                            <div class="col-lg-2-4 col-md-6">
                                 <a href="{{ route('pegawai-gudang.bahan-pendukung.index') }}" class="quick-action-btn btn-warning h-100 d-flex flex-column justify-content-center">
                                     <i class="fas fa-tools fa-2x mb-3"></i>
                                     <h6 class="mb-1">Bahan Pendukung</h6>
                                     <small class="text-muted">Kelola bahan tambahan</small>
                                 </a>
                             </div>
-                            <div class="col-lg-3 col-md-6">
+                            <div class="col-lg-2-4 col-md-6">
                                 <a href="{{ route('pegawai-gudang.vendor.index') }}" class="quick-action-btn btn-success h-100 d-flex flex-column justify-content-center">
                                     <i class="fas fa-truck fa-2x mb-3"></i>
                                     <h6 class="mb-1">Vendor</h6>
                                     <small class="text-muted">Kelola supplier</small>
                                 </a>
                             </div>
-                            <div class="col-lg-3 col-md-6">
+                            <div class="col-lg-2-4 col-md-6">
                                 <a href="{{ route('pegawai-gudang.pembelian.index') }}" class="quick-action-btn btn-info h-100 d-flex flex-column justify-content-center">
                                     <i class="fas fa-shopping-cart fa-2x mb-3"></i>
                                     <h6 class="mb-1">Pembelian</h6>
                                     <small class="text-muted">Transaksi pembelian</small>
+                                </a>
+                            </div>
+                            <div class="col-lg-2-4 col-md-6">
+                                <a href="{{ route('pegawai-gudang.laporan-stok.index') }}" class="quick-action-btn btn-secondary h-100 d-flex flex-column justify-content-center">
+                                    <i class="fas fa-chart-line fa-2x mb-3"></i>
+                                    <h6 class="mb-1">Laporan Stok</h6>
+                                    <small class="text-muted">Analisis pergerakan stok</small>
                                 </a>
                             </div>
                         </div>
@@ -589,94 +608,20 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Modern Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card stat-card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="stat-number text-success">{{ $stats['total_bahan_baku'] }}</div>
-                            <h6 class="text-muted mb-0">Bahan Baku</h6>
-                            <small class="text-success">
-                                <i class="fas fa-arrow-up"></i> Tersedia
-                            </small>
-                        </div>
-                        <div class="stat-icon icon-primary">
-                            <i class="fas fa-boxes"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card stat-card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="stat-number text-info">{{ $stats['total_bahan_pendukung'] }}</div>
-                            <h6 class="text-muted mb-0">Bahan Pendukung</h6>
-                            <small class="text-info">
-                                <i class="fas fa-tools"></i> Siap Pakai
-                            </small>
-                        </div>
-                        <div class="stat-icon icon-warning">
-                            <i class="fas fa-tools"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card stat-card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="stat-number text-primary">{{ $stats['total_vendor'] }}</div>
-                            <h6 class="text-muted mb-0">Vendor Aktif</h6>
-                            <small class="text-primary">
-                                <i class="fas fa-handshake"></i> Kerjasama
-                            </small>
-                        </div>
-                        <div class="stat-icon icon-success">
-                            <i class="fas fa-truck"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card stat-card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="stat-number text-warning">{{ $stats['total_pembelian_bulan_ini'] }}</div>
-                            <h6 class="text-muted mb-0">Pembelian</h6>
-                            <small class="text-warning">
-                                <i class="fas fa-calendar"></i> Bulan Ini
-                            </small>
-                        </div>
-                        <div class="stat-icon icon-info">
-                            <i class="fas fa-shopping-cart"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+        .modern-card.h-100 .card-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
 
-    <!-- Modern Stock Minimum Notifications -->
-    @if($stok_minimum['bahan_baku']->count() > 0 || $stok_minimum['bahan_pendukung']->count() > 0)
-    <div class="row mb-4">
-        <div class="col-12">
+        /* Quick actions layout adjustment */
+        .quick-actions-grid {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
             <div class="card notification-card">
                 <div class="card-header" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); color: white; border-radius: 15px 15px 0 0;">
                     <div class="d-flex align-items-center">
@@ -747,17 +692,131 @@
                     @endif
                     
                     <div class="text-center">
-                        <a href="{{ route('pegawai-gudang.pembelian.create') }}" class="btn btn-lg" 
-                           style="background: linear-gradient(45deg, #ff6b6b, #ee5a52); color: white; border: none; border-radius: 25px; padding: 12px 30px; box-shadow: 0 5px 15px rgba(255,107,107,0.3);">
-                            <i class="fas fa-shopping-cart me-2"></i>
-                            Lakukan Pembelian Sekarang
-                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    @endif
+
+    <!-- Modern Stock Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="stat-number text-success">{{ number_format($stats['total_stok_bahan_baku'], 2, ',', '.') }}</div>
+                            <h6 class="text-muted mb-0">Total Stok Bahan Baku</h6>
+                            <small class="text-success">
+                                <i class="fas fa-cubes"></i> Real-time
+                            </small>
+                        </div>
+                        <div class="stat-icon icon-primary">
+                            <i class="fas fa-warehouse"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-6 mb-4">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="stat-number text-info">{{ number_format($stats['total_stok_bahan_pendukung'], 2, ',', '.') }}</div>
+                            <h6 class="text-muted mb-0">Total Stok Bahan Pendukung</h6>
+                            <small class="text-info">
+                                <i class="fas fa-tools"></i> Real-time
+                            </small>
+                        </div>
+                        <div class="stat-icon icon-warning">
+                            <i class="fas fa-box"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modern Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="stat-number text-success">{{ $stats['total_bahan_baku'] }}</div>
+                            <h6 class="text-muted mb-0">Jenis Bahan Baku</h6>
+                            <small class="text-success">
+                                <i class="fas fa-arrow-up"></i> Tersedia
+                            </small>
+                        </div>
+                        <div class="stat-icon icon-primary">
+                            <i class="fas fa-boxes"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="stat-number text-info">{{ $stats['total_bahan_pendukung'] }}</div>
+                            <h6 class="text-muted mb-0">Jenis Bahan Pendukung</h6>
+                            <small class="text-info">
+                                <i class="fas fa-tools"></i> Siap Pakai
+                            </small>
+                        </div>
+                        <div class="stat-icon icon-warning">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="stat-number text-primary">{{ $stats['total_vendor'] }}</div>
+                            <h6 class="text-muted mb-0">Vendor Aktif</h6>
+                            <small class="text-primary">
+                                <i class="fas fa-handshake"></i> Kerjasama
+                            </small>
+                        </div>
+                        <div class="stat-icon icon-success">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="stat-number text-warning">{{ $stats['total_pembelian_bulan_ini'] }}</div>
+                            <h6 class="text-muted mb-0">Pembelian</h6>
+                            <small class="text-warning">
+                                <i class="fas fa-calendar"></i> Bulan Ini
+                            </small>
+                        </div>
+                        <div class="stat-icon icon-info">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Modern Recent Purchases -->
     <div class="row mb-4">

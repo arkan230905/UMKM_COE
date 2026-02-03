@@ -82,7 +82,7 @@ class ProduksiController extends Controller
             $converter = new UnitConverter();
 
             $bomItems = Bom::with('details.bahanBaku')->where('produk_id', $produk->id)->get();
-            // Validasi stok cukup untuk setiap bahan baku (cek ke StockLayer via StockService)
+            // Validasi stok cukup untuk setiap bahan baku (gunakan stok dari database bahan baku)
             $shortages = [];
             $shortNames = [];
             foreach ($bomItems as $bom) {
@@ -93,7 +93,9 @@ class ProduksiController extends Controller
                     $satuanResep = $detail->satuan ?: ($bahan->satuan->nama ?? $bahan->satuan);
                     $qtyResepTotal = $qtyPerUnit * $qtyProd;
                     $qtyBase = $converter->convert($qtyResepTotal, (string)$satuanResep, (string)($bahan->satuan->nama ?? $bahan->satuan));
-                    $available = (float) $stock->getAvailableQty('material', (int)$bahan->id);
+                    
+                    // Gunakan stok dari database bahan baku (karena StockLayer sudah dibersihkan)
+                    $available = (float)($bahan->stok ?? 0);
                     if ($available + 1e-9 < $qtyBase) {
                         $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh $qtyBase, tersedia " . (float)($available);
                         $shortNames[] = (string)($bahan->nama_bahan ?? $bahan->nama ?? 'Bahan');
@@ -151,46 +153,82 @@ class ProduksiController extends Controller
                 }
             }
 
+            // Proses bahan pendukung dari BOM Job Costing
+            if ($bomJobCosting) {
+                $bahanPendukungDetails = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->get();
+                foreach ($bahanPendukungDetails as $detail) {
+                    $totalBahanPendukungPerUnit += $detail->subtotal;
+                    
+                    // Konsumsi stok bahan pendukung
+                    $bahanPendukung = \App\Models\BahanPendukung::find($detail->bahan_pendukung_id);
+                    if ($bahanPendukung) {
+                        $qtyKonsumsi = $detail->jumlah * $qtyProd;
+                        
+                        // Konversi ke satuan dasar jika perlu
+                        $qtyBase = $qtyKonsumsi;
+                        if ($detail->satuan !== $bahanPendukung->satuan->nama) {
+                            // Lakukan konversi ke satuan dasar
+                            $konversi = \App\Support\UnitConverter::convert(
+                                $qtyKonsumsi, 
+                                $detail->satuan, 
+                                $bahanPendukung->satuan->nama
+                            );
+                            $qtyBase = $konversi;
+                        }
+                        
+                        // Update stok master
+                        $bahanPendukung->stok = (float)$bahanPendukung->stok - $qtyBase;
+                        $bahanPendukung->save();
+                        
+                        // Konsumsi dari stock layers
+                        $stock->consume('support', $bahanPendukung->id, $qtyBase, $detail->satuan, 'production', $produksi->id, $tanggal);
+                    }
+                    
+                    // Simpan detail bahan pendukung ke ProduksiDetail
+                    ProduksiDetail::create([
+                        'produksi_id' => $produksi->id,
+                        'bahan_pendukung_id' => $detail->bahan_pendukung_id,
+                        'qty_resep' => $detail->jumlah * $qtyProd, // Total untuk semua qty produksi
+                        'satuan_resep' => $detail->satuan,
+                        'qty_konversi' => $qtyBase,
+                        'harga_satuan' => $detail->harga_satuan,
+                        'subtotal' => $detail->subtotal * $qtyProd,
+                    ]);
+                }
+            }
+
             // Ambil total biaya dari BOM yang sudah dihitung (konsisten dengan halaman BOM index)
-$bom = \App\Models\Bom::where('produk_id', $produk->id)->first();
-$bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
+            $bom = \App\Models\Bom::where('produk_id', $produk->id)->first();
+            $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
             
-// Total Biaya Bahan = Bahan Baku (Bom.details) + Bahan Pendukung (BomJobBahanPendukung)
-$totalBahanBakuPerUnit = $bom ? $bom->details->sum('total_harga') : 0;
-$totalBahanPendukungPerUnit = 0;
-if ($bomJobCosting) {
-    $bahanPendukungDetails = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->get();
-    foreach ($bahanPendukungDetails as $detail) {
-        $totalBahanPendukungPerUnit += $detail->subtotal;
-    }
-}
-$totalBahanPerUnit = $totalBahanBakuPerUnit + $totalBahanPendukungPerUnit;
-$totalBahan = $totalBahanPerUnit * $qtyProd;
+            // Total Biaya Bahan = Bahan Baku (Bom.details) + Bahan Pendukung (sudah dihitung di atas)
+            $totalBahanBakuPerUnit = $bom ? $bom->details->sum('total_harga') : 0;
+            // $totalBahanPendukungPerUnit sudah dihitung di atas
             
-// Total BTKL dan BOP dari BOM Job Costing (sama seperti di BOM index)
-$totalBTKLPerUnit = 0;
-$totalBOPPerUnit = 0;
+            $totalBahanPerUnit = $totalBahanBakuPerUnit + $totalBahanPendukungPerUnit;
+            $totalBahan = $totalBahanPerUnit * $qtyProd;
             
-if ($bomJobCosting) {
-    // Hitung total BTKL dengan logic yang sama seperti BomController index
-    $bomJobBtkl = \Illuminate\Support\Facades\DB::table('bom_job_btkl')
-        ->join('proses_produksis', 'bom_job_btkl.proses_produksi_id', '=', 'proses_produksis.id')
-        ->where('bom_job_btkl.bom_job_costing_id', $bomJobCosting->id)
-        ->select('bom_job_btkl.*', 'proses_produksis.tarif_btkl as tarif_per_jam', 'proses_produksis.kapasitas_per_jam')
-        ->get();
-    
-    // Calculate biaya per produk: tarif_per_jam ÷ kapasitas_per_jam × durasi_jam
-    $totalBTKLPerUnit = $bomJobBtkl->sum(function($item) {
-        $kapasitas = $item->kapasitas_per_jam ?? 1;
-        return ($item->tarif_per_jam / $kapasitas) * $item->durasi_jam;
-    });
-    
-    // Ambil total BOP dari BomJobCosting
-    $totalBOPPerUnit = $bomJobCosting->total_bop;
-}
+            // Total BTKL dan BOP dari BOM Job Costing (gunakan data yang sama dengan BOM)
+            $totalBTKLPerUnit = 0;
+            $totalBOPPerUnit = 0;
             
-$totalBTKL = $totalBTKLPerUnit * $qtyProd;
-$totalBOP = $totalBOPPerUnit * $qtyProd;
+            if ($bomJobCosting) {
+                // Gunakan total_btkl dari BomJobCosting (sudah dihitung di BOM)
+                $totalBTKLPerUnit = (float)($bomJobCosting->total_btkl ?? 0);
+                $totalBOPPerUnit = (float)($bomJobCosting->total_bop ?? 0);
+                
+                // Debug log
+                \Log::info('Produksi BTKL Calculation', [
+                    'produk_id' => $produk->id,
+                    'bom_job_costing_id' => $bomJobCosting->id,
+                    'total_btkl_per_unit' => $totalBTKLPerUnit,
+                    'total_bop_per_unit' => $totalBOPPerUnit,
+                    'qty_produksi' => $qtyProd
+                ]);
+            }
+            
+            $totalBTKL = $totalBTKLPerUnit * $qtyProd;
+            $totalBOP = $totalBOPPerUnit * $qtyProd;
             $totalBiaya = $totalBahan + $totalBTKL + $totalBOP;
 
             $produksi->update([

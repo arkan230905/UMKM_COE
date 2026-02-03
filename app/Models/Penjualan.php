@@ -20,6 +20,11 @@ class Penjualan extends Model
         'jumlah',
         'diskon_nominal',
         'total',
+        'biaya_ongkir',
+        'biaya_service',
+        'ppn_persen',
+        'total_ppn',
+        'subtotal_produk',
     ];
 
     protected $casts = [

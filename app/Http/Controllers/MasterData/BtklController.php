@@ -21,6 +21,20 @@ class BtklController extends Controller
                 ->orderBy('kode_proses')
                 ->get();
 
+            // Calculate real-time tarif BTKL based on jumlah pegawai × tarif per jam
+            foreach ($btkls as $btkl) {
+                $jumlahPegawai = $btkl->jabatan->pegawais->count() ?? 0;
+                $tarifPerJam = $btkl->tarif_per_jam ?? 0;
+                $tarifBtklTotal = $jumlahPegawai * $tarifPerJam;
+                
+                // Hitung biaya per produk: Tarif BTKL Total ÷ Kapasitas/Jam
+                $biayaPerProduk = $btkl->kapasitas_per_jam > 0 ? $tarifBtklTotal / $btkl->kapasitas_per_jam : 0;
+                
+                $btkl->tarif_btkl_total = $tarifBtklTotal;
+                $btkl->jumlah_pegawai_real = $jumlahPegawai;
+                $btkl->biaya_per_produk_real = $biayaPerProduk;
+            }
+
             return view('master-data.btkl.index', compact('btkls'));
             
         } catch (\Exception $e) {

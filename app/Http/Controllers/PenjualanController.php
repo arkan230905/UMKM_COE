@@ -85,16 +85,19 @@ class PenjualanController extends Controller
                 'harga_satuan.*' => 'required|numeric|min:0',
                 'diskon_persen' => 'nullable|array',
                 'diskon_persen.*' => 'nullable|numeric|min:0|max:100',
+                'biaya_angkut' => 'nullable|array',
+                'biaya_angkut.*' => 'nullable|numeric|min:0',
             ]);
 
             $tanggal = $request->tanggal;
             $produkIds = $request->produk_id;
             $jumlahArr = $request->jumlah;
-            // Override harga jual dengan harga_jual dari master produk
+            // Gunakan harga dari form (sudah di-parse dari format Rupiah)
             $hargaArr = [];
             foreach ($produkIds as $i => $pid) {
-                $p = Produk::findOrFail($pid);
-                $hargaArr[$i] = (float) ($p->harga_jual ?? 0);
+                // Parse harga dari format Rupiah (contoh: "7.527" -> 7527)
+                $hargaStr = $request->harga_satuan[$i] ?? '0';
+                $hargaArr[$i] = (float) str_replace('.', '', $hargaStr);
             }
             $diskonPctArr = $request->diskon_persen ?? [];
 
@@ -137,17 +140,21 @@ class PenjualanController extends Controller
             }
 
             // Hitung total header
-            $grand = 0; $totalQtyHeader = 0; $totalDiscHeader = 0;
+            $grand = 0; $totalQtyHeader = 0; $totalDiscHeader = 0; $totalBiayaAngkut = 0;
             foreach ($produkIds as $i => $pid) {
                 $qty = (float)($jumlahArr[$i] ?? 0);
                 $price = (float)($hargaArr[$i] ?? 0);
                 $pct = (float)($diskonPctArr[$i] ?? 0);
+                $biayaAngkut = (float)($biayaAngkutArr[$i] ?? 0);
+                
                 $sub = $qty * $price;
                 $discNom = max($sub * ($pct/100.0), 0);
                 $line = max($sub - $discNom, 0);
+                
                 $grand += $line;
                 $totalQtyHeader += $qty;
                 $totalDiscHeader += $discNom;
+                $totalBiayaAngkut += $biayaAngkut;
             }
 
             // Get additional costs
@@ -156,11 +163,11 @@ class PenjualanController extends Controller
             $ppnPersen = (float) ($request->ppn_persen ?? 0);
             
             // Calculate PPN
-            $ppnBase = $grand + $biayaOngkir + $biayaService;
+            $ppnBase = ($grand - $totalDiscHeader) + $totalBiayaAngkut + $biayaOngkir + $biayaService;
             $totalPPN = $ppnBase * ($ppnPersen / 100);
             
             // Calculate final total
-            $finalTotal = $grand + $biayaOngkir + $biayaService + $totalPPN;
+            $finalTotal = ($grand - $totalDiscHeader) + $totalBiayaAngkut + $biayaOngkir + $biayaService + $totalPPN;
 
             $penjualan = Penjualan::create([
                 'tanggal' => $tanggal,
@@ -169,6 +176,11 @@ class PenjualanController extends Controller
                 'harga_satuan' => null,
                 'diskon_nominal' => $totalDiscHeader,
                 'total' => $finalTotal,
+                'biaya_ongkir' => $biayaOngkir,
+                'biaya_service' => $biayaService,
+                'ppn_persen' => $ppnPersen,
+                'total_ppn' => $totalPPN,
+                'subtotal_produk' => $grand,
             ]);
 
             // Simpan detail & konsumsi stok per item
@@ -204,6 +216,7 @@ class PenjualanController extends Controller
                     'diskon_persen' => $pct,
                     'diskon_nominal' => $discNom,
                     'subtotal' => $line,
+                    'biaya_angkut' => (float)($biayaAngkutArr[$i] ?? 0),
                 ]);
 
                 // FIFO OUT dan pengurangan stok
@@ -223,6 +236,25 @@ class PenjualanController extends Controller
             if (!empty($errorsBelowCost)) {
                 // Rollback by throwing validation via redirect back
                 return redirect()->back()->withErrors($errorsBelowCost)->withInput();
+            }
+
+            // Konsumi stok produk untuk multi-item
+            foreach ($produkIds as $i => $pid) {
+                $prod = Produk::findOrFail($pid);
+                $qty = (float)($jumlahArr[$i] ?? 0);
+                
+                // Konsumi stok menggunakan StockService
+                $cogs = $stock->consume('product', $prod->id, $qty, 'pcs', 'sale', $penjualan->id, $tanggal);
+                if ((float)$cogs <= 0) {
+                    $sumBom = (float) \App\Models\Bom::where('produk_id', $prod->id)->sum('total_biaya');
+                    $btkl = (float) ($prod->btkl_default ?? 0);
+                    $bop  = (float) ($prod->bop_default ?? 0);
+                    $cogs = ($sumBom + $btkl + $bop) * $qty;
+                }
+                
+                // Update stok master produk
+                $prod->stok = (float)($prod->stok ?? 0) - $qty;
+                $prod->save();
             }
 
             // Jurnal penjualan: Dr Kas/Bank/Piutang ; Cr Penjualan (4101)
@@ -357,20 +389,171 @@ class PenjualanController extends Controller
             return $p;
         });
         
-        return view('transaksi.penjualan.edit', compact('penjualan', 'produks'));
+        // Ambil akun kas/bank untuk dropdown
+        $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
+        
+        return view('transaksi.penjualan.edit', compact('penjualan', 'produks', 'kasbank'));
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, $id, StockService $stock, JournalService $journal)
     {
+        // Multi-item path (sama seperti store)
+        if (is_array($request->produk_id)) {
+            $request->validate([
+                'tanggal' => 'required|date',
+                'payment_method' => 'required|in:cash,transfer,credit',
+                'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', \App\Helpers\AccountHelper::KAS_BANK_CODES),
+                'produk_id' => 'required|array|min:1',
+                'produk_id.*' => 'required|exists:produks,id',
+                'jumlah' => 'required|array',
+                'jumlah.*' => 'required|numeric|min:0.0001',
+                'harga_satuan' => 'required|array',
+                'harga_satuan.*' => 'required|numeric|min:0',
+                'diskon_persen' => 'nullable|array',
+                'diskon_persen.*' => 'nullable|numeric|min:0|max:100',
+                'biaya_angkut' => 'nullable|array',
+                'biaya_angkut.*' => 'nullable|numeric|min:0',
+            ]);
+
+            $penjualan = Penjualan::findOrFail($id);
+            $tanggal = $request->tanggal;
+            $produkIds = $request->produk_id;
+            $jumlahArr = $request->jumlah;
+            
+            // Gunakan harga dari form (sudah di-parse dari format Rupiah)
+            $hargaArr = [];
+            foreach ($produkIds as $i => $pid) {
+                $hargaStr = $request->harga_satuan[$i] ?? '0';
+                $hargaArr[$i] = (float) str_replace('.', '', $hargaStr);
+            }
+            $diskonPctArr = $request->diskon_persen ?? [];
+            $biayaAngkutArr = $request->biaya_angkut ?? [];
+            
+            // Parse biaya angkut dari format Rupiah
+            foreach ($biayaAngkutArr as $i => $biayaStr) {
+                $biayaAngkutArr[$i] = (float) str_replace('.', '', $biayaStr ?? '0');
+            }
+
+            // Hitung total header
+            $grand = 0; $totalQtyHeader = 0; $totalDiscHeader = 0; $totalBiayaAngkut = 0;
+            foreach ($produkIds as $i => $pid) {
+                $qty = (float)($jumlahArr[$i] ?? 0);
+                $price = (float)($hargaArr[$i] ?? 0);
+                $pct = (float)($diskonPctArr[$i] ?? 0);
+                $biayaAngkut = (float)($biayaAngkutArr[$i] ?? 0);
+                
+                $sub = $qty * $price;
+                $discNom = max($sub * ($pct/100.0), 0);
+                $line = max($sub - $discNom, 0);
+                
+                $grand += $line;
+                $totalQtyHeader += $qty;
+                $totalDiscHeader += $discNom;
+                $totalBiayaAngkut += $biayaAngkut;
+            }
+
+            // Get additional costs
+            $biayaOngkir = (float) ($request->biaya_ongkir ?? 0);
+            $biayaService = (float) ($request->biaya_service ?? 0);
+            $ppnPersen = (float) ($request->ppn_persen ?? 0);
+            
+            // Calculate PPN
+            $ppnBase = ($grand - $totalDiscHeader) + $totalBiayaAngkut + $biayaOngkir + $biayaService;
+            $totalPPN = $ppnBase * ($ppnPersen / 100);
+            
+            // Calculate final total
+            $finalTotal = ($grand - $totalDiscHeader) + $totalBiayaAngkut + $biayaOngkir + $biayaService + $totalPPN;
+
+            // Hapus detail lama
+            \App\Models\PenjualanDetail::where('penjualan_id', $penjualan->id)->delete();
+
+            // Update penjualan header
+            $penjualan->update([
+                'tanggal' => $tanggal,
+                'payment_method' => $request->payment_method,
+                'jumlah' => $totalQtyHeader,
+                'harga_satuan' => null,
+                'diskon_nominal' => $totalDiscHeader,
+                'total' => $finalTotal,
+                'biaya_ongkir' => $biayaOngkir,
+                'biaya_service' => $biayaService,
+                'ppn_persen' => $ppnPersen,
+                'total_ppn' => $totalPPN,
+                'subtotal_produk' => $grand,
+            ]);
+
+            // Simpan detail baru
+            foreach ($produkIds as $i => $pid) {
+                $prod = Produk::findOrFail($pid);
+                $qty = (float)($jumlahArr[$i] ?? 0);
+                $price = (float)($hargaArr[$i] ?? 0);
+                $pct = (float)($diskonPctArr[$i] ?? 0);
+                $sub = $qty * $price;
+                $discNom = max($sub * ($pct/100.0), 0);
+                $line = max($sub - $discNom, 0);
+
+                \App\Models\PenjualanDetail::create([
+                    'penjualan_id' => $penjualan->id,
+                    'produk_id' => $prod->id,
+                    'jumlah' => $qty,
+                    'harga_satuan' => $price,
+                    'diskon_persen' => $pct,
+                    'diskon_nominal' => $discNom,
+                    'subtotal' => $line,
+                    'biaya_angkut' => (float)($biayaAngkutArr[$i] ?? 0),
+                ]);
+            }
+
+            // Update jurnal (hapus lama, buat baru)
+            $journal->deleteByRef('sale', (int)$penjualan->id);
+            $journal->deleteByRef('sale_cogs', (int)$penjualan->id);
+
+            // Tentukan akun berdasarkan metode pembayaran
+            if ($request->payment_method === 'cash' || $request->payment_method === 'transfer') {
+                $accountCode = $request->sumber_dana;
+            } else {
+                $accountCode = '1103';
+            }
+            
+            $journal->post($tanggal, 'sale', (int)$penjualan->id, 'Penjualan Produk (Update)', [
+                ['code' => $accountCode, 'debit' => (float)$penjualan->total, 'credit' => 0],
+                ['code' => '4101', 'debit' => 0, 'credit' => (float)$penjualan->total],
+            ]);
+
+            return redirect()->route('transaksi.penjualan.index')
+                             ->with('success', 'Data penjualan berhasil diperbarui.');
+        }
+
+        // Single-item fallback
         $request->validate([
             'produk_id' => 'required|exists:produks,id',
-            'jumlah' => 'required|numeric|min:1',
-            'total' => 'required|numeric|min:0',
             'tanggal' => 'required|date',
+            'payment_method' => 'required|in:cash,transfer,credit',
+            'jumlah' => 'required|numeric|min:0.0001',
+            'harga_satuan' => 'required|numeric|min:0',
+            'diskon_nominal' => 'nullable|numeric|min:0',
+            'diskon_persen' => 'nullable|numeric|min:0|max:100',
         ]);
 
         $penjualan = Penjualan::findOrFail($id);
-        $penjualan->update($request->all());
+        $qty = (float)$request->jumlah;
+        $produk = Produk::findOrFail($request->produk_id);
+        $price = (float) ($produk->harga_jual ?? 0);
+        $disc = (float)($request->diskon_nominal ?? 0);
+        if ($disc <= 0 && $request->filled('diskon_persen')) {
+            $disc = max((($qty * $price) * ((float)$request->diskon_persen) / 100.0), 0);
+        }
+        $total = max(($qty * $price) - $disc, 0);
+
+        $penjualan->update([
+            'produk_id' => $request->produk_id,
+            'tanggal' => $request->tanggal,
+            'payment_method' => $request->payment_method,
+            'jumlah' => $qty,
+            'harga_satuan' => $price,
+            'diskon_nominal' => $disc,
+            'total' => $total,
+        ]);
 
         return redirect()->route('transaksi.penjualan.index')
                          ->with('success', 'Data penjualan berhasil diupdate.');

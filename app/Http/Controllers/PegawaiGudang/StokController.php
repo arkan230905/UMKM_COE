@@ -70,7 +70,18 @@ class StokController extends Controller
                 }
             }
         } else {
+            // Get products with real-time stock calculation
             $items = Produk::with('satuan')->get();
+            
+            // Calculate real-time stock for each product (sama seperti yang diupdate oleh ProduksiController)
+            foreach ($items as $item) {
+                // Use StockService to get available quantity
+                $stockService = new \App\Services\StockService();
+                $item->stok_tersedia = $stockService->getAvailableQty('product', $item->id);
+                
+                // Also display the database stok for comparison
+                $item->stok_database = $item->stok ?? 0;
+            }
         }
         
         return view('pegawai-gudang.stok.index', compact('items', 'tipe'));

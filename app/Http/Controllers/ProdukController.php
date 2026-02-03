@@ -28,45 +28,82 @@ class ProdukController extends Controller
             'stok'
         ])->get();
         
-        // Update harga_bom with real-time BOM data
+        // Update harga_bom with real-time BOM calculation (sama seperti di BomController)
         foreach ($produks as $produk) {
-            $bom = Bom::where('produk_id', $produk->id)->first();
-            if ($bom) {
-                $produk->harga_bom = $bom->total_biaya;
-                // Update database to sync
-                $produk->save();
-            }
-        }
-        
-        // If any product has null harga_bom, calculate it from BOM details
-        if ($produks->contains('harga_bom', null)) {
-            $produksWithBom = Produk::whereNull('harga_bom')
-                ->with(['boms.details.bahanBaku'])
-                ->get();
+            $totalBiayaBahan = 0;
+            $totalBTKL = 0;
             
-            foreach ($produksWithBom as $produk) {
-                $bom = $produk->boms->first();
-                if (!$bom) continue;
-                
-                $totalBiayaBahan = $bom->details->sum('subtotal') ?? 0;
-                
-                // Update the product's harga_bom
-                $produk->update([
-                    'harga_bom' => $totalBiayaBahan,
-                    'harga_jual' => $produk->harga_jual ?? $totalBiayaBahan * (1 + (($produk->margin_percent ?? 30) / 100))
-                ]);
-                
-                // Update the harga_bom in the collection
-                if ($p = $produks->where('id', $produk->id)->first()) {
-                    $p->harga_bom = $totalBiayaBahan;
-                }
+            // Calculate actual biaya bahan from BOM details
+            $bom = \App\Models\Bom::where('produk_id', $produk->id)->first();
+            if ($bom) {
+                $bomDetails = \App\Models\BomDetail::where('bom_id', $bom->id)->get();
+                $totalBiayaBahan = $bomDetails->sum('total_harga');
             }
+            
+            // Get BomJobCosting for this product
+            $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
+            if ($bomJobCosting) {
+                // Get ALL BTKL data (sama seperti di halaman detail BOM)
+                $bomJobBtkl = \Illuminate\Support\Facades\DB::table('btkls')
+                    ->join('jabatans', 'btkls.jabatan_id', '=', 'jabatans.id')
+                    ->leftJoin('pegawais', 'jabatans.nama', '=', 'pegawais.jabatan')
+                    ->select(
+                        'btkls.id',
+                        'btkls.kode_proses',
+                        'btkls.nama_btkl',
+                        'btkls.jabatan_id',
+                        'btkls.tarif_per_jam',
+                        'btkls.kapasitas_per_jam',
+                        'btkls.satuan',
+                        'btkls.deskripsi_proses',
+                        'jabatans.nama as nama_jabatan',
+                        'jabatans.kategori'
+                    )
+                    ->selectRaw('COUNT(pegawais.id) as jumlah_pegawai')
+                    ->groupBy(
+                        'btkls.id',
+                        'btkls.kode_proses',
+                        'btkls.nama_btkl',
+                        'btkls.jabatan_id',
+                        'btkls.tarif_per_jam',
+                        'btkls.kapasitas_per_jam',
+                        'btkls.satuan',
+                        'btkls.deskripsi_proses',
+                        'jabatans.nama',
+                        'jabatans.kategori'
+                    )
+                    ->get();
+                
+                // Calculate total BTKL with real-time pegawai count
+                foreach ($bomJobBtkl as $btkl) {
+                    $tarifBtklTotal = $btkl->jumlah_pegawai * $btkl->tarif_per_jam;
+                    $biayaPerProduk = $btkl->kapasitas_per_jam > 0 ? $tarifBtklTotal / $btkl->kapasitas_per_jam : 0;
+                    $totalBTKL += $biayaPerProduk;
+                }
+                
+                // Also add bahan pendukung to biaya bahan
+                $bahanPendukung = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->sum('subtotal');
+                $totalBiayaBahan += $bahanPendukung;
+            }
+            
+            // Add BOP data
+            $totalBOP = $bomJobCosting->total_bop ?? 0;
+            
+            // Calculate total BOM cost (sama seperti di BomController)
+            $totalBiayaBOM = $totalBiayaBahan + $totalBTKL + $totalBOP;
+            
+            // Update harga_bom with real-time calculation
+            $produk->harga_bom = $totalBiayaBOM;
+            
+            // Update database to sync
+            $produk->save();
+            
+            // Add real-time stock calculation (sama seperti di StokController)
+            $stockService = new \App\Services\StockService();
+            $produk->stok_realtime = $stockService->getAvailableQty('product', $produk->id);
         }
         
-        // Prepare data for the view
-        $hargaBom = $produks->pluck('harga_bom', 'id')->toArray();
-        
-        return view('master-data.produk.index', compact('produks', 'hargaBom'));
+        return view('master-data.produk.index', compact('produks'));
     }
 
     public function katalogPelanggan()
