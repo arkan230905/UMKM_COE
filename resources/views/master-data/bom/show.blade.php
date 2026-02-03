@@ -240,54 +240,64 @@
         </div>
         <div class="card-body">
             @php
-                // Get real-time data dari tabel btkls (sama seperti di halaman BTKL)
+                // Get all real-time data dari tabel btkls (sama seperti di halaman BTKL)
                 $btklData = [];
-                if ($bomJobCosting) {
-                    $btklData = \Illuminate\Support\Facades\DB::table('bom_job_btkl')
-                        ->join('btkls', 'bom_job_btkl.btkl_id', '=', 'btkls.id')
-                        ->join('jabatans', 'btkls.jabatan_id', '=', 'jabatans.id')
-                        ->where('bom_job_btkl.bom_job_costing_id', $bomJobCosting->id)
-                        ->select(
-                            'bom_job_btkl.*', 
-                            'btkls.kode_proses',
-                            'btkls.nama_btkl',
-                            'btkls.tarif_per_jam', 
-                            'btkls.kapasitas_per_jam',
-                            'btkls.satuan',
-                            'btkls.deskripsi_proses',
-                            'jabatans.nama as nama_jabatan',
-                            'jabatans.kategori'
-                        )
-                        ->get()
-                        ->map(function($item) {
-                            // Hitung jumlah pegawai real-time
-                            $jumlahPegawai = \Illuminate\Support\Facades\DB::table('pegawais')
-                                ->where('jabatan', $item->nama_jabatan)
-                                ->count();
-                            
-                            // Hitung biaya per produk real-time
-                            $biayaPerProduk = $item->kapasitas_per_jam > 0 ? $item->tarif_per_jam / $item->kapasitas_per_jam : 0;
-                            $subtotal = $biayaPerProduk * $item->durasi_jam;
-                            
-                            return [
-                                'id' => $item->id,
-                                'kode_proses' => $item->kode_proses,
-                                'nama_btkl' => $item->nama_btkl,
-                                'nama_jabatan' => $item->nama_jabatan,
-                                'kategori' => $item->kategori,
-                                'jumlah_pegawai' => $jumlahPegawai,
-                                'tarif_per_jam' => $item->tarif_per_jam,
-                                'satuan' => $item->satuan,
-                                'kapasitas_per_jam' => $item->kapasitas_per_jam,
-                                'biaya_per_produk' => $biayaPerProduk,
-                                'tarif_per_jam_formatted' => 'Rp ' . number_format($item->tarif_per_jam, 0, ',', '.'),
-                                'biaya_per_produk_formatted' => 'Rp ' . number_format($biayaPerProduk, 2, ',', '.'),
-                                'deskripsi_proses' => $item->deskripsi_proses,
-                                'durasi_jam' => $item->durasi_jam,
-                                'subtotal' => $subtotal
-                            ];
-                        });
-                }
+                $btklData = \Illuminate\Support\Facades\DB::table('btkls')
+                    ->join('jabatans', 'btkls.jabatan_id', '=', 'jabatans.id')
+                    ->leftJoin('pegawais', 'jabatans.nama', '=', 'pegawais.jabatan')
+                    ->select(
+                        'btkls.id',
+                        'btkls.kode_proses',
+                        'btkls.nama_btkl',
+                        'btkls.jabatan_id',
+                        'btkls.tarif_per_jam',
+                        'btkls.kapasitas_per_jam',
+                        'btkls.satuan',
+                        'btkls.deskripsi_proses',
+                        'jabatans.nama as nama_jabatan',
+                        'jabatans.kategori'
+                    )
+                    ->selectRaw('COUNT(pegawais.id) as jumlah_pegawai')
+                    ->groupBy(
+                        'btkls.id',
+                        'btkls.kode_proses',
+                        'btkls.nama_btkl',
+                        'btkls.jabatan_id',
+                        'btkls.tarif_per_jam',
+                        'btkls.kapasitas_per_jam',
+                        'btkls.satuan',
+                        'btkls.deskripsi_proses',
+                        'jabatans.nama',
+                        'jabatans.kategori'
+                    )
+                    ->get()
+                    ->map(function($item) {
+                        // Hitung tarif BTKL total (jumlah pegawai × tarif per jam)
+                        $tarifBtklTotal = $item->jumlah_pegawai * $item->tarif_per_jam;
+                        
+                        // Hitung biaya per produk real-time
+                        $biayaPerProduk = $item->kapasitas_per_jam > 0 ? $tarifBtklTotal / $item->kapasitas_per_jam : 0;
+                        
+                        return [
+                            'id' => $item->id,
+                            'kode_proses' => $item->kode_proses,
+                            'nama_btkl' => $item->nama_btkl,
+                            'nama_jabatan' => $item->nama_jabatan,
+                            'kategori' => $item->kategori,
+                            'jumlah_pegawai' => $item->jumlah_pegawai,
+                            'tarif_per_jam' => $item->tarif_per_jam,
+                            'tarif_btkl_total' => $tarifBtklTotal,
+                            'satuan' => $item->satuan,
+                            'kapasitas_per_jam' => $item->kapasitas_per_jam,
+                            'biaya_per_produk' => $biayaPerProduk,
+                            'tarif_per_jam_formatted' => 'Rp ' . number_format($item->tarif_per_jam, 0, ',', '.'),
+                            'tarif_btkl_total_formatted' => 'Rp ' . number_format($tarifBtklTotal, 0, ',', '.'),
+                            'biaya_per_produk_formatted' => 'Rp ' . number_format($biayaPerProduk, 2, ',', '.'),
+                            'deskripsi_proses' => $item->deskripsi_proses,
+                            'durasi_jam' => 1, // Default durasi untuk BOM
+                            'subtotal' => $biayaPerProduk
+                        ];
+                    });
                 
                 $totalBTKL = 0;
                 if (!empty($btklData)) {
@@ -347,7 +357,8 @@
                                         <div class="d-flex align-items-center">
                                             <i class="bi bi-cash-stack me-2 text-success"></i>
                                             <div>
-                                                <div class="fw-bold text-success">Rp {{ number_format($btkl['tarif_per_jam'], 0, ',', '.') }}</div>
+                                                <div class="fw-bold text-success">Rp {{ number_format($btkl['tarif_btkl_total'], 0, ',', '.') }}</div>
+                                                <small class="text-muted">{{ $btkl['jumlah_pegawai'] }} pegawai × Rp {{ number_format($btkl['tarif_per_jam'], 0, ',', '.') }}</small>
                                             </div>
                                         </div>
                                     </td>

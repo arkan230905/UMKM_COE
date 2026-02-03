@@ -8,7 +8,7 @@
         <div class="card-body">
             <div><strong>Produk:</strong> {{ $produksi->produk->nama_produk }}</div>
             <div><strong>Tanggal:</strong> {{ $produksi->tanggal }}</div>
-            <div><strong>Qty Produksi:</strong> {{ rtrim(rtrim(number_format($produksi->qty_produksi,4,',','.'),'0'),',') }}</div>
+            <div><strong>Qty Produksi:</strong> {{ number_format($produksi->qty_produksi, 0, ',', '.') }} unit</div>
             <div><strong>Total Bahan:</strong> Rp {{ number_format($produksi->total_bahan,0,',','.') }}</div>
             <div><strong>BTKL:</strong> Rp {{ number_format($produksi->total_btkl,0,',','.') }}</div>
             <div><strong>BOP:</strong> Rp {{ number_format($produksi->total_bop,0,',','.') }}</div>
@@ -32,7 +32,17 @@
             @foreach($produksi->details as $d)
                 <tr>
                     <td>{{ $loop->iteration }}</td>
-                    <td>{{ $d->bahanBaku->nama_bahan }}</td>
+                    <td>
+                        @if($d->bahan_baku_id)
+                            {{ $d->bahanBaku->nama_bahan }}
+                            <small class="text-muted">(Bahan Baku)</small>
+                        @elseif($d->bahan_pendukung_id)
+                            {{ $d->bahanPendukung->nama_bahan }}
+                            <small class="text-muted">(Bahan Pendukung)</small>
+                        @else
+                            -
+                        @endif
+                    </td>
                     <td>{{ rtrim(rtrim(number_format($d->qty_resep,4,',','.'),'0'),',') }} {{ $d->satuan_resep }}</td>
                     <td>{{ rtrim(rtrim(number_format($d->qty_konversi,4,',','.'),'0'),',') }} 
                     @php
@@ -44,8 +54,12 @@
                             // Prioritas: detail->satuan, lalu relation->satuan->nama
                             $satuanItem = $d->satuan ?: ($d->bahanBaku->satuan->nama ?? $d->bahanBaku->satuan ?? 'unit');
                         }
+                        // Jika item diinput sebagai bahan pendukung
+                        elseif ($d->bahan_pendukung_id && $d->bahanPendukung) {
+                            $satuanItem = $d->satuan ?: ($d->bahanPendukung->satuan->nama ?? $d->bahanPendukung->satuan ?? 'unit');
+                        }
                         // Fallback jika relation tidak ada
-                        elseif ($d->bahan_baku_id) {
+                        else {
                             $satuanItem = $d->satuan ?: 'unit';
                         }
                     @endphp
@@ -58,7 +72,10 @@
                         if ($d->bahan_baku_id && $d->bahanBaku) {
                             $satuanHarga = $d->satuan ?: ($d->bahanBaku->satuan->nama ?? $d->bahanBaku->satuan ?? 'unit');
                         }
-                        elseif ($d->bahan_baku_id) {
+                        elseif ($d->bahan_pendukung_id && $d->bahanPendukung) {
+                            $satuanHarga = $d->satuan ?: ($d->bahanPendukung->satuan->nama ?? $d->bahanPendukung->satuan ?? 'unit');
+                        }
+                        else {
                             $satuanHarga = $d->satuan ?: 'unit';
                         }
                     @endphp
@@ -69,7 +86,33 @@
         </tbody>
     </table>
 
-    <div class="d-flex justify-content-between">
+    <!-- Detail BTKL -->
+    <h5 class="mt-4">Total BTKL yang Bekerja</h5>
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <h6 class="text-primary">Rp {{ number_format($produksi->total_btkl, 0, ',', '.') }}</h6>
+                    <small class="text-muted">Total biaya tenaga kerja langsung untuk {{ number_format($produksi->qty_produksi, 0, ',', '.') }} unit produksi</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail BOP -->
+    <h5 class="mt-4">Total BOP yang Dijalankan</h5>
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-12">
+                    <h6 class="text-warning">Rp {{ number_format($produksi->total_bop, 0, ',', '.') }}</h6>
+                    <small class="text-muted">Total biaya overhead pabrik untuk {{ number_format($produksi->qty_produksi, 0, ',', '.') }} unit produksi</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between mt-4">
         <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'production_material', 'ref_id' => $produksi->id]) }}" class="btn btn-outline-primary btn-sm">Lihat Jurnal (Material→WIP)</a>
         <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'production_labor_overhead', 'ref_id' => $produksi->id]) }}" class="btn btn-outline-primary btn-sm">Lihat Jurnal (BTKL/BOP→WIP)</a>
         <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'production_finish', 'ref_id' => $produksi->id]) }}" class="btn btn-outline-primary btn-sm">Lihat Jurnal (WIP→Barang Jadi)</a>

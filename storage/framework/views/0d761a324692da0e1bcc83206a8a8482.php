@@ -69,7 +69,7 @@
                         <th class="text-end">Qty</th>
                         <th class="text-end">Harga/Satuan</th>
                         <th class="text-end">Diskon (%)</th>
-                        <th class="text-end">Subtotal</th>
+                        <th class="text-end">Biaya Angkut</th>
                         <th style="width:6%"><button class="btn btn-success btn-sm" type="button" id="addRowJual">+</button></th>
                     </tr>
                 </thead>
@@ -89,45 +89,60 @@
                             <small class="text-muted stok-info"></small>
                         </td>
                         <td><input type="number" step="0.0001" min="0.0001" name="jumlah[]" class="form-control jumlah" value="1" required></td>
-                        <td><input type="number" step="0.01" min="0" name="harga_satuan[]" class="form-control harga" value="0" readonly required></td>
+                        <td><input type="text" name="harga_satuan[]" class="form-control harga" value="0" readonly required></td>
                         <td><input type="number" step="0.01" min="0" max="100" name="diskon_persen[]" class="form-control diskon" value="0"></td>
-                        <td><input type="text" class="form-control subtotal" value="0" readonly></td>
+                        <td><input type="text" name="biaya_angkut[]" class="form-control biaya_angkut" value="0"></td>
                         <td><button type="button" class="btn btn-danger btn-sm removeRow">-</button></td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <div class="row g-3 mt-3">
-            <div class="col-md-3 ms-auto">
-                <label class="form-label">Subtotal Produk</label>
-                <input type="text" name="subtotal_produk" class="form-control" value="0" readonly>
+        <!-- Rincian Biaya -->
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">Perhitungan PPN dan Total</h6>
             </div>
-        </div>
+            <div class="card-body">
+                <!-- Baris 1: Total Penjualan -->
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">Total Penjualan</label>
+                        <div class="input-group">
+                            <span class="input-group-text">Rp</span>
+                            <input type="text" name="total_penjualan" class="form-control text-end fw-bold bg-light" value="0" readonly id="total_penjualan">
+                        </div>
+                    </div>
+                </div>
 
-        <div class="row g-3">
-            <div class="col-md-3">
-                <label class="form-label">Biaya Ongkir</label>
-                <input type="number" step="0.01" min="0" name="biaya_ongkir" class="form-control" value="0" id="biaya_ongkir">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Biaya Service</label>
-                <input type="number" step="0.01" min="0" name="biaya_service" class="form-control" value="0" id="biaya_service">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">PPN (%)</label>
-                <input type="number" step="0.01" min="0" max="100" name="ppn_persen" class="form-control" value="11" id="ppn_persen">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Total PPN</label>
-                <input type="text" name="total_ppn" class="form-control" value="0" readonly id="total_ppn">
-            </div>
-        </div>
+                <!-- Baris 2: PPN -->
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6">
+                        <label class="form-label">PPN (%)</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" min="0" max="100" name="ppn_persen" class="form-control text-end" value="11" id="ppn_persen">
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Total PPN</label>
+                        <div class="input-group">
+                            <span class="input-group-text">Rp</span>
+                            <input type="text" name="total_ppn" class="form-control text-end" value="0" readonly id="total_ppn">
+                        </div>
+                    </div>
+                </div>
 
-        <div class="row g-3">
-            <div class="col-md-4 ms-auto">
-                <label class="form-label">Total Final</label>
-                <input type="text" name="total" class="form-control" value="0" readonly id="total_final">
+                <!-- Baris 3: Total Dibayarkan -->
+                <div class="row g-3 mt-2">
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">Total Dibayarkan</label>
+                        <div class="input-group">
+                            <span class="input-group-text">Rp</span>
+                            <input type="text" name="total" class="form-control text-end fw-bold bg-light" value="0" readonly id="total_final">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -354,51 +369,107 @@ document.addEventListener('DOMContentLoaded', function() {
     // Listen to payment method changes
     document.getElementById('payment_method_jual').addEventListener('change', toggleSumberDana);
 
+    // Format currency function
+    function formatCurrency(value) {
+        // Remove non-numeric characters
+        let number = value.toString().replace(/[^\d]/g, '');
+        // Convert to number and format with thousand separator
+        let formatted = parseFloat(number).toLocaleString('id-ID');
+        return formatted;
+    }
+    
+    function parseCurrency(formatted) {
+        // Remove thousand separators and convert to float
+        return parseFloat(formatted.toString().replace(/\./g, '')) || 0;
+    }
+
     function recalcRow(tr) {
-        const q = parseFloat(tr.querySelector('.jumlah').value) || 0;
-        const p = parseFloat(tr.querySelector('.harga').value) || 0;
-        const dPct = Math.min(Math.max(parseFloat(tr.querySelector('.diskon').value) || 0, 0), 100);
-        const sub = q * p;
-        const dNom = sub * (dPct/100.0);
-        const line = Math.max(sub - dNom, 0);
-        tr.querySelector('.subtotal').value = line.toLocaleString();
+        const qty = parseFloat(tr.querySelector('.jumlah').value) || 0;
+        const price = parseCurrency(tr.querySelector('.harga').value) || 0;
+        const diskonPersen = parseFloat(tr.querySelector('.diskon').value) || 0;
+        const biayaAngkut = parseCurrency(tr.querySelector('.biaya_angkut').value) || 0;
+        
+        const subtotal = qty * price;
+        const diskonNominal = subtotal * (diskonPersen / 100);
+        const subtotalAfterDiskon = subtotal - diskonNominal + biayaAngkut;
+        
+        // Update subtotal field if exists
+        const subtotalField = tr.querySelector('.subtotal');
+        if (subtotalField) {
+            subtotalField.value = subtotalAfterDiskon.toLocaleString('id-ID');
+        }
     }
 
     function recalcTotal() {
+        // Debug: Check if all required elements exist
+        const totalPenjualanInput = document.getElementById('total_penjualan');
+        const totalPPNInput = document.getElementById('total_ppn');
+        const totalFinalInput = document.getElementById('total_final');
+        
+        console.log('Element check:');
+        console.log('- total_penjualan:', totalPenjualanInput ? 'found' : 'NOT FOUND');
+        console.log('- total_ppn:', totalPPNInput ? 'found' : 'NOT FOUND');
+        console.log('- total_final:', totalFinalInput ? 'found' : 'NOT FOUND');
+        
         let sum = 0;
+        let totalDiskon = 0;
+        let totalBiayaAngkut = 0;
+        
         table.querySelectorAll('tbody tr').forEach(tr => {
-            const val = (tr.querySelector('.subtotal').value || '0').replace(/,/g,'');
-            sum += parseFloat(val) || 0;
+            const qty = parseFloat(tr.querySelector('.jumlah').value) || 0;
+            const price = parseCurrency(tr.querySelector('.harga').value) || 0;
+            const diskonPersen = parseFloat(tr.querySelector('.diskon').value) || 0;
+            const biayaAngkut = parseCurrency(tr.querySelector('.biaya_angkut').value) || 0;
+            
+            const subtotal = qty * price;
+            const diskonNominal = subtotal * (diskonPersen / 100);
+            const subtotalAfterDiskon = subtotal - diskonNominal;
+            
+            sum += subtotalAfterDiskon;
+            totalDiskon += diskonNominal;
+            totalBiayaAngkut += biayaAngkut;
         });
         
-        // Update subtotal produk
-        const subtotalProdukInput = document.querySelector('input[name="subtotal_produk"]');
-        if (subtotalProdukInput) {
-            subtotalProdukInput.value = sum.toLocaleString();
+        // Calculate total penjualan (subtotal after diskon + total biaya angkut)
+        const totalPenjualan = sum + totalBiayaAngkut;
+        
+        console.log(`Calculation results:`);
+        console.log(`- Sum (after diskon): ${sum}`);
+        console.log(`- Total Biaya Angkut: ${totalBiayaAngkut}`);
+        console.log(`- Total Penjualan: ${totalPenjualan}`);
+        
+        // Update total penjualan
+        if (totalPenjualanInput) {
+            totalPenjualanInput.value = totalPenjualan.toLocaleString('id-ID');
         }
         
-        // Get additional costs
-        const biayaOngkir = parseFloat(document.getElementById('biaya_ongkir').value) || 0;
-        const biayaService = parseFloat(document.getElementById('biaya_service').value) || 0;
+        // Get PPN
         const ppnPersen = parseFloat(document.getElementById('ppn_persen').value) || 0;
+        const totalPPN = totalPenjualan * (ppnPersen / 100);
         
-        // Calculate PPN base (subtotal + ongkir + service)
-        const ppnBase = sum + biayaOngkir + biayaService;
-        const totalPPN = ppnBase * (ppnPersen / 100);
+        console.log(`PPN Calculation:`);
+        console.log(`- PPN %: ${ppnPersen}`);
+        console.log(`- Total PPN: ${totalPPN}`);
         
         // Update PPN
-        const totalPPNInput = document.getElementById('total_ppn');
         if (totalPPNInput) {
-            totalPPNInput.value = totalPPN.toLocaleString();
+            totalPPNInput.value = totalPPN.toLocaleString('id-ID');
         }
         
-        // Calculate final total
-        const finalTotal = sum + biayaOngkir + biayaService + totalPPN;
+        // Calculate total dibayarkan (total penjualan + PPN)
+        const finalTotal = totalPenjualan + totalPPN;
         
-        // Update total
-        const totalInput = document.getElementById('total_final');
-        if (totalInput) {
-            totalInput.value = finalTotal.toLocaleString();
+        console.log(`Final Total Calculation:`);
+        console.log(`- Total Penjualan: ${totalPenjualan}`);
+        console.log(`- Total PPN: ${totalPPN}`);
+        console.log(`- Final Total: ${finalTotal}`);
+        
+        // Update total final
+        if (totalFinalInput) {
+            totalFinalInput.value = finalTotal.toLocaleString('id-ID');
+            console.log(`- Updated total_final field to: ${totalFinalInput.value}`);
+        } else {
+            console.log(`ERROR: total_final field not found!`);
         }
     }
 
@@ -408,7 +479,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const price = parseFloat(opt?.getAttribute('data-price') || '0') || 0;
         const stok = parseFloat(opt?.getAttribute('data-stok') || '0') || 0;
         
-        tr.querySelector('.harga').value = price.toFixed(2);
+        tr.querySelector('.harga').value = formatCurrency(price);
         
         // Update stok info
         const stokInfo = tr.querySelector('.stok-info');
@@ -421,7 +492,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const qtyInput = tr.querySelector('.jumlah');
         qtyInput.setAttribute('data-max-stok', stok);
         
-        recalcRow(tr); recalcTotal();
+        recalcRow(tr); 
+        recalcTotal();
     }
     
     function validateStock(tr) {
@@ -445,8 +517,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const clone = tbody.rows[0].cloneNode(true);
         clone.querySelectorAll('input').forEach(inp => {
             if (inp.classList.contains('jumlah')) inp.value = 1;
-            else if (inp.classList.contains('harga')) inp.value = 0;
+            else if (inp.classList.contains('harga')) inp.value = formatCurrency(0);
             else if (inp.classList.contains('diskon')) inp.value = 0;
+            else if (inp.classList.contains('biaya_angkut')) inp.value = formatCurrency(0);
             else if (inp.classList.contains('subtotal')) inp.value = 0;
         });
         clone.querySelectorAll('select').forEach(sel => sel.selectedIndex = 0);
@@ -460,15 +533,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     table.addEventListener('input', (e) => {
-        if (e.target && (e.target.classList.contains('jumlah') || e.target.classList.contains('harga') || e.target.classList.contains('diskon'))) {
+        if (e.target && (e.target.classList.contains('jumlah') || e.target.classList.contains('harga') || e.target.classList.contains('diskon') || e.target.classList.contains('biaya_angkut'))) {
             const tr = e.target.closest('tr');
+            
+            // Format harga and biaya angkut input
+            if (e.target.classList.contains('harga') || e.target.classList.contains('biaya_angkut')) {
+                // Save cursor position
+                const start = e.target.selectionStart;
+                const end = e.target.selectionEnd;
+                const value = e.target.value;
+                
+                // Format the value
+                e.target.value = formatCurrency(value);
+                
+                // Restore cursor position (adjust for formatting)
+                const newValue = e.target.value;
+                const diff = newValue.length - value.length;
+                e.target.setSelectionRange(start + diff, end + diff);
+            }
             
             // Validate stock if qty changed
             if (e.target.classList.contains('jumlah')) {
                 validateStock(tr);
             }
             
-            recalcRow(tr); recalcTotal();
+            recalcRow(tr); 
+            recalcTotal();
         }
     });
     

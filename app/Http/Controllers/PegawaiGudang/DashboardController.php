@@ -7,6 +7,7 @@ use App\Models\BahanBaku;
 use App\Models\BahanPendukung;
 use App\Models\Vendor;
 use App\Models\Pembelian;
+use App\Services\StockService;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -25,21 +26,40 @@ class DashboardController extends Controller
     /**
      * Dashboard untuk pegawai gudang
      */
-    public function index()
+    public function index(StockService $stock)
     {
-        // Get stok minimum notifications (with fallback if column doesn't exist)
-        try {
-            $stokMinimumBahanBaku = BahanBaku::whereRaw('stok <= COALESCE(stok_minimum, 10)')->get();
-        } catch (\Exception $e) {
-            // Fallback jika kolom stok_minimum belum ada
-            $stokMinimumBahanBaku = BahanBaku::where('stok', '<=', 10)->get();
+        // Get real-time stock using StockService
+        $bahanBakus = BahanBaku::all();
+        $bahanPendukungs = BahanPendukung::all();
+        
+        // Calculate real-time stock for each item
+        $stokMinimumBahanBaku = collect();
+        $stokMinimumBahanPendukung = collect();
+        
+        foreach ($bahanBakus as $bahan) {
+            $availableStock = $stock->getAvailableStock('material', $bahan->id);
+            $stokMinimum = $bahan->stok_minimum ?? 10;
+            
+            // Update stok master dengan data realtime
+            $bahan->stok = $availableStock;
+            $bahan->save();
+            
+            if ($availableStock <= $stokMinimum) {
+                $stokMinimumBahanBaku->push($bahan);
+            }
         }
         
-        try {
-            $stokMinimumBahanPendukung = BahanPendukung::whereRaw('stok <= COALESCE(stok_minimum, 10)')->get();
-        } catch (\Exception $e) {
-            // Fallback jika kolom stok_minimum belum ada
-            $stokMinimumBahanPendukung = BahanPendukung::where('stok', '<=', 10)->get();
+        foreach ($bahanPendukungs as $bahan) {
+            $availableStock = $stock->getAvailableStock('support', $bahan->id);
+            $stokMinimum = $bahan->stok_minimum ?? 10;
+            
+            // Update stok master dengan data realtime
+            $bahan->stok = $availableStock;
+            $bahan->save();
+            
+            if ($availableStock <= $stokMinimum) {
+                $stokMinimumBahanPendukung->push($bahan);
+            }
         }
         
         // Get recent pembelians
@@ -47,6 +67,18 @@ class DashboardController extends Controller
             ->orderBy('tanggal', 'desc')
             ->take(5)
             ->get();
+        
+        // Calculate total stock values
+        $totalStokBahanBaku = 0;
+        $totalStokBahanPendukung = 0;
+        
+        foreach ($bahanBakus as $bahan) {
+            $totalStokBahanBaku += $bahan->stok;
+        }
+        
+        foreach ($bahanPendukungs as $bahan) {
+            $totalStokBahanPendukung += $bahan->stok;
+        }
         
         $data = [
             'title' => 'Dashboard Pegawai Gudang',
@@ -68,6 +100,8 @@ class DashboardController extends Controller
                 'total_pembelian_bulan_ini' => Pembelian::whereMonth('tanggal', date('m'))
                     ->whereYear('tanggal', date('Y'))
                     ->count(),
+                'total_stok_bahan_baku' => $totalStokBahanBaku,
+                'total_stok_bahan_pendukung' => $totalStokBahanPendukung,
             ],
             'stok_minimum' => [
                 'bahan_baku' => $stokMinimumBahanBaku,

@@ -57,28 +57,46 @@ class BomController extends Controller
             // Get BomJobCosting for this product
             $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
             if ($bomJobCosting) {
-                // Get BTKL data with biaya per produk (biaya_per_produk = tarif_per_jam ÷ kapasitas_per_jam)
-                $bomJobBtkl = \Illuminate\Support\Facades\DB::table('bom_job_btkl')
-                    ->join('btkls', 'bom_job_btkl.btkl_id', '=', 'btkls.id')
+                // Get ALL BTKL data (sama seperti di halaman detail BOM)
+                $bomJobBtkl = \Illuminate\Support\Facades\DB::table('btkls')
                     ->join('jabatans', 'btkls.jabatan_id', '=', 'jabatans.id')
-                    ->where('bom_job_btkl.bom_job_costing_id', $bomJobCosting->id)
+                    ->leftJoin('pegawais', 'jabatans.nama', '=', 'pegawais.jabatan')
                     ->select(
-                        'bom_job_btkl.*', 
+                        'btkls.id',
                         'btkls.kode_proses',
                         'btkls.nama_btkl',
-                        'btkls.tarif_per_jam', 
+                        'btkls.jabatan_id',
+                        'btkls.tarif_per_jam',
                         'btkls.kapasitas_per_jam',
                         'btkls.satuan',
                         'btkls.deskripsi_proses',
                         'jabatans.nama as nama_jabatan',
                         'jabatans.kategori'
                     )
+                    ->selectRaw('COUNT(pegawais.id) as jumlah_pegawai')
+                    ->groupBy(
+                        'btkls.id',
+                        'btkls.kode_proses',
+                        'btkls.nama_btkl',
+                        'btkls.jabatan_id',
+                        'btkls.tarif_per_jam',
+                        'btkls.kapasitas_per_jam',
+                        'btkls.satuan',
+                        'btkls.deskripsi_proses',
+                        'jabatans.nama',
+                        'jabatans.kategori'
+                    )
                     ->get();
                 
                 $btklCount = $bomJobBtkl->count();
                 
-                // Use subtotal yang sudah dihitung dengan benar di database
-                $totalBTKL = $bomJobBtkl->sum('subtotal');
+                // Calculate total BTKL with real-time pegawai count
+                $totalBTKL = 0;
+                foreach ($bomJobBtkl as $btkl) {
+                    $tarifBtklTotal = $btkl->jumlah_pegawai * $btkl->tarif_per_jam;
+                    $biayaPerProduk = $btkl->kapasitas_per_jam > 0 ? $tarifBtklTotal / $btkl->kapasitas_per_jam : 0;
+                    $totalBTKL += $biayaPerProduk;
+                }
                 
                 // Also add bahan pendukung to biaya bahan
                 $bahanPendukung = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->sum('subtotal');

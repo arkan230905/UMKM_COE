@@ -77,7 +77,13 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="fw-bold text-success">{{ $btkl->tarif_per_jam_formatted }}</span>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-cash-stack me-2 text-success"></i>
+                                    <div>
+                                        <div class="fw-bold text-success">Rp {{ number_format($btkl->tarif_btkl_total, 0, ",", ".") }}</div>
+                                        <small class="text-muted">{{ $btkl->jumlah_pegawai_real }} pegawai × Rp {{ number_format($btkl->tarif_per_jam, 0, ",", ".") }}</small>
+                                    </div>
+                                </div>
                             </td>
                             <td>
                                 <span class="badge bg-info">{{ $btkl->satuan }}</span>
@@ -87,10 +93,10 @@
                             </td>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <i class="bi bi-cash-stack me-2 text-warning"></i>
+                                    <i class="bi bi-calculator me-2 text-warning"></i>
                                     <div>
-                                        <div class="fw-bold text-warning">{{ $btkl->biaya_per_produk_formatted }}</div>
-                                        <small class="text-muted">Rp {{ number_format($btkl->tarif_per_jam / $btkl->kapasitas_per_jam, 2, ",", ".") }}</small>
+                                        <div class="fw-bold text-warning">Rp {{ number_format($btkl->biaya_per_produk_real, 2, ",", ".") }}</div>
+                                        <small class="text-muted">{{ number_format($btkl->tarif_btkl_total, 0, ",", ".") }} ÷ {{ number_format($btkl->kapasitas_per_jam) }} pcs</small>
                                     </div>
                                 </div>
                             </td>

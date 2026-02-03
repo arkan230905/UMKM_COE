@@ -414,6 +414,10 @@ Route::middleware('auth')->group(function () {
         
         // Stok Management
         Route::get('/stok', [\App\Http\Controllers\PegawaiGudang\StokController::class, 'index'])->name('stok.index');
+        
+        // Laporan Stok
+        Route::get('/laporan-stok', [\App\Http\Controllers\PegawaiGudang\LaporanStokController::class, 'index'])->name('laporan-stok.index');
+        Route::get('/laporan-stok/detail', [\App\Http\Controllers\PegawaiGudang\LaporanStokController::class, 'detail'])->name('laporan-stok.detail');
     });
 
     // ================================================================

@@ -210,10 +210,24 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    <span class="stock-quantity">{{ number_format($item->stok ?? 0, 2, ',', '.') }}</span>
+                                    @if($tipe == 'product')
+                                        <span class="stock-quantity">{{ number_format($item->stok_tersedia ?? 0, 2, ',', '.') }}</span>
+                                        @if($item->stok_tersedia != $item->stok_database)
+                                            <small class="text-muted d-block">
+                                                <i class="fas fa-sync me-1"></i>
+                                                DB: {{ number_format($item->stok_database, 2, ',', '.') }}
+                                            </small>
+                                        @endif
+                                    @else
+                                        <span class="stock-quantity">{{ number_format($item->stok ?? 0, 2, ',', '.') }}</span>
+                                    @endif
                                 </td>
                                 <td class="text-center">
-                                    {{ $this->getStockStatusBadge($item->stok ?? 0) }}
+                                    @if($tipe == 'product')
+                                        {{ $this->getStockStatusBadge($item->stok_tersedia ?? 0) }}
+                                    @else
+                                        {{ $this->getStockStatusBadge($item->stok ?? 0) }}
+                                    @endif
                                 </td>
                             </tr>
                         @empty

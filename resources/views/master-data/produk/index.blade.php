@@ -103,7 +103,7 @@
                                 $hargaBomProduk = $produk->harga_bom ?? 0;
                                 $margin = (float) ($produk->margin_percent ?? 30);
                                 $hargaJual = $produk->harga_jual ?? $hargaBomProduk * (1 + ($margin / 100));
-                                $stok = (float) $produk->stok;
+                                $stok = (float) ($produk->stok_realtime ?? $produk->stok ?? 0);
                             @endphp
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
