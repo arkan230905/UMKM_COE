@@ -180,12 +180,6 @@ class AsetController extends Controller
             
             $aset->save();
             
-            // Generate depreciation schedule jika aset disusutkan
-            if ($disusutkan && $metodePenyusutan) {
-                $depreciationService = new \App\Services\AssetDepreciationService();
-                $depreciationService->computeAndPost($aset);
-            }
-            
             DB::commit();
             
             $successMessage = 'Aset berhasil ditambahkan';
@@ -218,11 +212,6 @@ class AsetController extends Controller
         // Load relasi kategori dan jenis aset
         $aset->load('kategori.jenisAset');
         
-        // Load depreciation data dari database
-        $depreciationData = \App\Models\AssetDepreciation::where('asset_id', $aset->id)
-            ->orderBy('tahun')
-            ->get();
-        
         // Hitung total perolehan
         $totalPerolehan = (float)$aset->harga_perolehan + (float)($aset->biaya_perolehan ?? 0);
         
@@ -238,6 +227,9 @@ class AsetController extends Controller
         }
         
         $penyusutanPerBulan = $penyusutanPerTahun / 12;
+        
+        // Initialize empty depreciation data since depreciation functionality was removed
+        $depreciationData = [];
         
         return view('master-data.aset.show', compact('aset', 'depreciationData', 'totalPerolehan', 'penyusutanPerTahun', 'penyusutanPerBulan'));
     }
@@ -352,12 +344,6 @@ class AsetController extends Controller
             $aset->updated_by = auth()->id();
             
             $aset->save();
-            
-            // Generate depreciation schedule jika aset disusutkan
-            if ($disusutkan && $metodePenyusutan) {
-                $depreciationService = new \App\Services\AssetDepreciationService();
-                $depreciationService->computeAndPost($aset);
-            }
             
             DB::commit();
             

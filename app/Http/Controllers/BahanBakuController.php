@@ -52,7 +52,6 @@ class BahanBakuController extends Controller
         BahanBaku::create([
             'nama_bahan' => $request->nama_bahan,
             'satuan_id' => $request->satuan_id,
-            'satuan' => $satuan->nama, // Add the satuan name
             'stok' => $request->stok,
             'harga_satuan' => $request->harga_satuan,
         ]);
@@ -86,7 +85,6 @@ class BahanBakuController extends Controller
         // Update properties one by one and save
         $bahanBaku->nama_bahan = $request->nama_bahan;
         $bahanBaku->satuan_id = $request->satuan_id;
-        $bahanBaku->satuan = $satuan->nama; // Update the satuan name
         $bahanBaku->stok = $request->stok;
         $bahanBaku->harga_satuan = $request->harga_satuan;
         

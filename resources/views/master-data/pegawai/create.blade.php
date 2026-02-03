@@ -66,8 +66,8 @@
                                 data-kategori="{{ $j->kategori }}"
                                 data-tunjangan="{{ $j->tunjangan }}"
                                 data-asuransi="{{ $j->asuransi }}"
-                                data-gaji="{{ $j->gaji_pokok }}"
-                                data-tarif="{{ $j->tarif_lembur }}"
+                                data-gaji="{{ $j->gaji }}"
+                                data-tarif="{{ $j->tarif }}"
                                 {{ old('jabatan_id')==$j->id?'selected':'' }}>
                             {{ $j->nama }} ({{ strtoupper($j->kategori) }})
                         </option>

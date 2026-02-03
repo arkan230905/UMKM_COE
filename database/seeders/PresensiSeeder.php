@@ -18,7 +18,7 @@ class PresensiSeeder extends Seeder
             return;
         }
         
-        $statuses = ['Hadir', 'Izin', 'Sakit', 'Alpa'];
+        $statuses = ['Hadir', 'Absen', 'Izin', 'Sakit'];
         $today = now();
         
         foreach ($pegawais as $pegawai) {
@@ -29,7 +29,7 @@ class PresensiSeeder extends Seeder
                 
                 $jamMasuk = null;
                 $jamKeluar = null;
-                $jumlahJam = null;
+                $jumlahJam = 0; // Default to 0 for non-attendance statuses
                 
                 if ($status === 'Hadir') {
                     $jamMasuk = $date->copy()->setTime(rand(7, 9), rand(0, 59), 0);
@@ -39,7 +39,6 @@ class PresensiSeeder extends Seeder
                 
                 Presensi::create([
                     'pegawai_id' => $pegawai->id, // Using id instead of nomor_induk_pegawai
-                    'tanggal' => $date->format('Y-m-d'),
                     'tgl_presensi' => $date->format('Y-m-d'),
                     'jam_masuk' => $jamMasuk ? $jamMasuk->format('H:i:s') : '08:00:00',
                     'jam_keluar' => $jamKeluar ? $jamKeluar->format('H:i:s') : null,

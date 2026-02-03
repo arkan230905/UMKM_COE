@@ -41,7 +41,7 @@ class PegawaiController extends Controller
     // Tampilkan form create
     public function create()
     {
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif_lembur')->orderBy('nama')->get();
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji','tarif')->orderBy('nama')->get();
         return view('master-data.pegawai.create', compact('jabatans'));
     }
 
@@ -67,14 +67,14 @@ class PegawaiController extends Controller
         $pegawaiData = [
             'nama' => $validated['nama'],
             'email' => $validated['email'],
-            'no_telp' => $validated['no_telepon'],
+            'no_telepon' => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'jabatan' => $jab->nama,
             'jenis_pegawai' => $jenisPegawai,
-            'gaji' => $jab->gaji_pokok ?? 0,
-            'gaji_pokok' => $jab->gaji_pokok ?? 0,
-            'tarif_per_jam' => $jab->tarif_lembur ?? 0,
+            'gaji' => $jab->gaji ?? 0,
+            'gaji_pokok' => $jab->gaji ?? 0,
+            'tarif_per_jam' => $jab->tarif ?? 0,
             'tunjangan' => $jab->tunjangan ?? 0,
             'bank' => $request->input('bank'),
             'nomor_rekening' => $request->input('nomor_rekening'),
@@ -84,9 +84,6 @@ class PegawaiController extends Controller
         // Generate kode pegawai
         $lastId = Pegawai::max('id') ?? 0;
         $pegawaiData['kode_pegawai'] = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
-        
-        // Generate nomor induk pegawai (NIP) - use timestamp to ensure uniqueness
-        $pegawaiData['nomor_induk_pegawai'] = 'EMP' . date('ymdHis') . str_pad($lastId + 1, 3, '0', STR_PAD_LEFT);
         
         // Log the data being saved for debugging
         \Log::info('Creating new Pegawai:', $pegawaiData);
@@ -100,7 +97,7 @@ class PegawaiController extends Controller
     // Form edit pegawai
     public function edit(Pegawai $pegawai)
     {
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif_lembur')->orderBy('nama')->get();
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji','tarif')->orderBy('nama')->get();
         return view('master-data.pegawai.edit', compact('pegawai','jabatans'));
     }
 
@@ -126,14 +123,14 @@ class PegawaiController extends Controller
         $updateData = [
             'nama' => $validated['nama'],
             'email' => $validated['email'],
-            'no_telp' => $validated['no_telepon'],
+            'no_telepon' => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'jabatan' => $jab->nama,
             'jenis_pegawai' => $jenisPegawai,
-            'gaji' => $jab->gaji_pokok ?? 0,
-            'gaji_pokok' => $jab->gaji_pokok ?? 0,
-            'tarif_per_jam' => $jab->tarif_lembur ?? 0,
+            'gaji' => $jab->gaji ?? 0,
+            'gaji_pokok' => $jab->gaji ?? 0,
+            'tarif_per_jam' => $jab->tarif ?? 0,
             'tunjangan' => $jab->tunjangan ?? 0,
         ];
         

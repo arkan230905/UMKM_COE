@@ -24,11 +24,8 @@ class BopSeeder extends Seeder
                     'periode' => $periode
                 ],
                 [
-                    'keterangan' => 'Budget ' . $akun->nama_akun . ' ' . $periode,
-                    'nominal' => 0, // Diisi saat ada transaksi
-                    'tanggal' => now(),
-                    'budget' => 10000000, // Budget default 10 juta
-                    'is_active' => true
+                    'nama_biaya' => $akun->nama_akun,
+                    'jumlah' => 0, // Diisi saat ada transaksi
                 ]
             );
         }

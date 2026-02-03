@@ -38,23 +38,23 @@ class JabatanController extends Controller
         $request->merge([
             'tunjangan' => $this->normalizeMoney($request->input('tunjangan')),
             'asuransi' => $this->normalizeMoney($request->input('asuransi')),
-            'gaji_pokok' => $this->normalizeMoney($request->input('gaji') ?? $request->input('gaji_pokok')),
-            'tarif_lembur' => $this->normalizeMoney($request->input('tarif') ?? $request->input('tarif_lembur')),
+            'gaji' => $this->normalizeMoney($request->input('gaji') ?? $request->input('gaji_pokok')),
+            'tarif' => $this->normalizeMoney($request->input('tarif') ?? $request->input('tarif_lembur')),
         ]);
         $data = $request->validate([
             'nama' => 'required|string|max:255',
             'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0',
             'asuransi' => 'nullable|numeric|min:0',
-            'gaji_pokok' => 'nullable|numeric|min:0',
-            'tarif_lembur' => 'nullable|numeric|min:0',
+            'gaji' => 'nullable|numeric|min:0',
+            'tarif' => 'nullable|numeric|min:0',
         ]);
 
         // Normalisasi nilai default
         $data['tunjangan'] = $data['tunjangan'] ?? 0;
         $data['asuransi'] = $data['asuransi'] ?? 0;
-        $data['gaji_pokok'] = $data['gaji_pokok'] ?? 0;
-        $data['tarif_lembur'] = $data['tarif_lembur'] ?? 0;
+        $data['gaji'] = $data['gaji'] ?? 0;
+        $data['tarif'] = $data['tarif'] ?? 0;
         
         // Generate kode_jabatan
         $prefix = strtoupper(substr($data['kategori'], 0, 2));
@@ -85,22 +85,22 @@ class JabatanController extends Controller
         $request->merge([
             'tunjangan' => $this->normalizeMoney($request->input('tunjangan')),
             'asuransi' => $this->normalizeMoney($request->input('asuransi')),
-            'gaji_pokok' => $this->normalizeMoney($request->input('gaji') ?? $request->input('gaji_pokok')),
-            'tarif_lembur' => $this->normalizeMoney($request->input('tarif') ?? $request->input('tarif_lembur')),
+            'gaji' => $this->normalizeMoney($request->input('gaji') ?? $request->input('gaji_pokok')),
+            'tarif' => $this->normalizeMoney($request->input('tarif') ?? $request->input('tarif_lembur')),
         ]);
         $data = $request->validate([
             'nama' => 'required|string|max:255',
             'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0',
             'asuransi' => 'nullable|numeric|min:0',
-            'gaji_pokok' => 'nullable|numeric|min:0',
-            'tarif_lembur' => 'nullable|numeric|min:0',
+            'gaji' => 'nullable|numeric|min:0',
+            'tarif' => 'nullable|numeric|min:0',
         ]);
 
         $data['tunjangan'] = $data['tunjangan'] ?? 0;
         $data['asuransi'] = $data['asuransi'] ?? 0;
-        $data['gaji_pokok'] = $data['gaji_pokok'] ?? 0;
-        $data['tarif_lembur'] = $data['tarif_lembur'] ?? 0;
+        $data['gaji'] = $data['gaji'] ?? 0;
+        $data['tarif'] = $data['tarif'] ?? 0;
 
         $jabatan->update($data);
         return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')->with('success','Jabatan berhasil diperbarui');
@@ -152,7 +152,7 @@ class JabatanController extends Controller
         }
     }
 
-    private function normalizeMoney($value): ?string
+    public function normalizeMoney($value): ?string
     {
         if ($value === null || $value === '') return $value;
         // Hilangkan spasi

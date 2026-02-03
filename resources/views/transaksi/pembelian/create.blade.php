@@ -164,7 +164,7 @@ select.form-select option {
                                             data-harga="{{ $bb->harga_satuan ?? 0 }}" 
                                             data-satuan="{{ $bb->satuan->nama ?? 'Tidak Diketahui' }}"
                                             data-satuan-id="{{ $bb->satuan_id ?? '' }}"
-                                            data-satuan-utama="{{ $bb->satuan ?? 'KG' }}">
+                                            data-satuan-utama="{{ $bb->satuan->nama ?? 'KG' }}">
                                         {{ $bb->nama_bahan }} - Rp {{ number_format($bb->harga_satuan ?? 0, 0, ',', '.') }}
                                     </option>
                                 @endforeach

@@ -10,6 +10,7 @@ use App\Models\BomDetail;
 use App\Models\BomJobCosting;
 use App\Models\BomJobBahanPendukung;
 use App\Support\UnitConverter;
+use App\Services\BomSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -408,6 +409,9 @@ class BiayaBahanController extends Controller
             $bom->update(['total_biaya' => $totalBiaya]);
             $produk->update(['harga_bom' => $totalBiaya]);
             
+            // Sync all BOMs to ensure consistency
+            BomSyncService::syncAllBoms();
+            
             DB::commit();
 
             $message = "Berhasil menyimpan biaya bahan untuk \"{$produk->nama_produk}\"!";
@@ -601,6 +605,9 @@ class BiayaBahanController extends Controller
             // UPDATE TOTAL BIAYA
             $produk->update(['harga_bom' => $totalBiaya]);
             $bom->update(['total_biaya' => $totalBiaya]);
+            
+            // Sync all BOMs to ensure consistency
+            BomSyncService::syncAllBoms();
 
             if ($savedCount === 0) {
                 DB::rollBack();

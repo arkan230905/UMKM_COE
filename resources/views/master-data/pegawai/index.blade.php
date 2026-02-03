@@ -14,9 +14,22 @@
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="alert alert-success alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <div class="flex-grow-1">{{ session('success') }}</div>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <div class="flex-grow-1">{{ session('error') }}</div>
+                <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
         </div>
     @endif
 
@@ -76,10 +89,10 @@
                         @forelse($pegawais as $index => $pegawai)
                         <tr>
                             <td class="text-center text-muted">{{ ($pegawais->currentPage() - 1) * $pegawais->perPage() + $loop->iteration }}</td>
-                            <td>{{ $pegawai->nomor_induk_pegawai }}</td>
+                            <td>{{ $pegawai->kode_pegawai }}</td>
                             <td>{{ $pegawai->nama }}</td>
                             <td>{{ $pegawai->email }}</td>
-                            <td>{{ $pegawai->no_telp }}</td>
+                            <td>{{ $pegawai->no_telepon }}</td>
                             <td class="col-alamat"><small class="text-muted">{{ Str::limit($pegawai->alamat, 40) }}</small></td>
                             <td>{{ $pegawai->jenis_kelamin == 'L' ? 'Laki-laki' : 'Perempuan' }}</td>
                             <td>{{ $pegawai->jabatan }}</td>
@@ -97,7 +110,7 @@
                             <td class="text-end">Rp {{ number_format($pegawai->asuransi, 0, ',', '.') }}</td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('master-data.pegawai.edit', $pegawai->nomor_induk_pegawai) }}" 
+                                    <a href="{{ route('master-data.pegawai.edit', $pegawai->id) }}" 
                                        class="btn btn-outline-primary" 
                                        data-bs-toggle="tooltip" 
                                        title="Edit">
@@ -106,14 +119,14 @@
                                     <button type="button" 
                                             class="btn btn-outline-danger" 
                                             data-bs-toggle="modal" 
-                                            data-bs-target="#deleteModal{{ $pegawai->nomor_induk_pegawai }}"
+                                            data-bs-target="#deleteModal{{ $pegawai->id }}"
                                             title="Hapus">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                                 
                                 <!-- Delete Modal -->
-                                <div class="modal fade" id="deleteModal{{ $pegawai->nomor_induk_pegawai }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal fade" id="deleteModal{{ $pegawai->id }}" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
@@ -125,7 +138,7 @@
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                <form action="{{ route('master-data.pegawai.destroy', $pegawai->nomor_induk_pegawai) }}" method="POST">
+                                                <form action="{{ route('master-data.pegawai.destroy', $pegawai->id) }}" method="POST">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-danger">Hapus</button>

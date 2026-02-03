@@ -80,6 +80,7 @@
                             <th style="width: 15%;" class="text-center">Jumlah Bahan</th>
                             <th style="width: 12%;" class="text-end">Biaya Bahan</th>
                             <th style="width: 12%;" class="text-end">Biaya BTKL</th>
+                            <th style="width: 12%;" class="text-end">Biaya BOP</th>
                             <th style="width: 15%;" class="text-end">Total Biaya BOM</th>
                             <th style="width: 15%;" class="text-center">Status</th>
                             <th style="width: 20%;" class="text-center">Aksi</th>
@@ -104,6 +105,11 @@
                                     // Jika ada BOM aktif, hitung data dari BOM
                                     $jumlahBahanBaku = \App\Models\BomDetail::where('bom_id', $bom->id)->count();
                                     $totalBiaya = $bom->total_hpp ?? $bom->total_biaya ?? 0;
+                                }
+                                
+                                // Hitung Bahan Pendukung dari BomJobCosting
+                                if ($bomJobCosting) {
+                                    $jumlahBahanPendukung = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->count();
                                 }
                                 
                                 // BomJobCosting hanya untuk referensi, tidak mempengaruhi status BOM
@@ -170,9 +176,20 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    @if(($produk->total_biaya_bahan > 0) || ($produk->has_btkl && $produk->total_btkl > 0))
+                                    @if($produk->total_bop > 0)
+                                        <div class="fw-bold text-info">
+                                            Rp {{ number_format($produk->total_bop, 0, ',', '.') }}
+                                        </div>
+                                        <small class="text-muted d-block">Manual</small>
+                                    @else
+                                        <span class="text-muted">Rp 0</span>
+                                        <small class="text-muted d-block">Belum ada</small>
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    @if(($produk->total_biaya_bahan > 0) || ($produk->has_btkl && $produk->total_btkl > 0) || ($produk->total_bop > 0))
                                         <div class="fw-bold text-success fs-5">
-                                            Rp {{ number_format($produk->total_biaya_bahan + $produk->total_btkl, 0, ',', '.') }}
+                                            Rp {{ number_format($produk->total_biaya_bahan + $produk->total_btkl + $produk->total_bop, 0, ',', '.') }}
                                         </div>
                                     @else
                                         <span class="text-muted">Rp 0</span>
@@ -207,7 +224,7 @@
                                 </td>
                                 <td class="text-center">
                                     @if($bom)
-                                        {{-- Jika ada BOM aktif: Detail, Edit, Hapus --}}
+                                        {{-- Jika ada BOM aktif: Detail, Edit, Hapus, Hitung BOM --}}
                                         <div class="btn-group btn-group-sm" role="group">
                                             <a href="{{ route('master-data.bom.show', $bom->id) }}" 
                                                class="btn btn-outline-primary" 
@@ -221,6 +238,14 @@
                                                title="Edit BOM">
                                                 <i class="fas fa-edit"></i> Edit
                                             </a>
+                                            <button type="button" 
+                                                    class="btn btn-outline-info" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#hitungBomModal{{ $bom->id }}"
+                                                    data-bs-toggle="tooltip" 
+                                                    title="Hitung Ulang BOM">
+                                                <i class="fas fa-calculator"></i> Hitung BOM
+                                            </button>
                                             <form action="{{ route('master-data.bom.destroy', $bom->id) }}" 
                                                   method="POST" 
                                                   class="d-inline" 
@@ -313,6 +338,93 @@
             @endif
         </div>
     </div>
+    
+    <!-- Modal Hitung BOM -->
+    @foreach($produks as $produk)
+        @if($produk->boms->first())
+            <div class="modal fade" id="hitungBomModal{{ $produk->boms->first()->id }}" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-info text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-calculator"></i> Hitung Ulang BOM - {{ $produk->nama_produk }}
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form action="{{ route('master-data.bom.update-bom-costs', $produk->id) }}" method="POST">
+                            @csrf
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="text-primary">Komponen Biaya Saat Ini</h6>
+                                        <div class="mb-3">
+                                            <label class="form-label">Biaya Bahan (BBB + BP)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">Rp</span>
+                                                <input type="text" class="form-control" value="{{ number_format($produk->total_biaya_bahan, 0, ',', '.') }}" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label">Biaya BTKL (Otomatis)</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">Rp</span>
+                                                <input type="text" class="form-control" value="{{ number_format($produk->total_btkl, 0, ',', '.') }}" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="bop_input" class="form-label">Biaya BOP <small class="text-muted">(Input Manual)</small></label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">Rp</span>
+                                                <input type="number" 
+                                                       id="bop_input" 
+                                                       name="total_bop" 
+                                                       class="form-control text-end" 
+                                                       value="{{ $produk->total_bop ?? 0 }}"
+                                                       min="0" 
+                                                       step="1000"
+                                                       placeholder="0">
+                                            </div>
+                                            <small class="form-text text-muted">Masukkan nominal Biaya Overhead Pabrik</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-success">Perhitungan Total</h6>
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span>Biaya Bahan:</span>
+                                                    <strong>Rp {{ number_format($produk->total_biaya_bahan, 0, ',', '.') }}</strong>
+                                                </div>
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span>Biaya BTKL:</span>
+                                                    <strong>Rp {{ number_format($produk->total_btkl, 0, ',', '.') }}</strong>
+                                                </div>
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span>Biaya BOP:</span>
+                                                    <strong id="bop_display">Rp {{ number_format($produk->total_bop ?? 0, 0, ',', '.') }}</strong>
+                                                </div>
+                                                <hr>
+                                                <div class="d-flex justify-content-between">
+                                                    <span class="fs-5">Total HPP:</span>
+                                                    <strong class="fs-5 text-success" id="total_display">Rp {{ number_format($produk->total_biaya_bahan + $produk->total_btkl + ($produk->total_bop ?? 0), 0, ',', '.') }}</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                <button type="submit" class="btn btn-info">
+                                    <i class="fas fa-save"></i> Simpan & Hitung Ulang
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endforeach
 </div>
 
 @push('styles')
@@ -380,7 +492,39 @@
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
         });
+        
+        // Handle BOP input changes in modal
+        document.querySelectorAll('input[name="total_bop"]').forEach(function(input) {
+            input.addEventListener('input', function() {
+                updateBOPCalculation(this);
+            });
+        });
     });
+    
+    function updateBOPCalculation(input) {
+        const form = input.closest('form');
+        const bopValue = parseFloat(input.value) || 0;
+        
+        // Get base values from readonly inputs
+        const biayaBahanText = form.querySelector('input[value*=","]').value.replace(/[^\d]/g, '');
+        const biayaBahan = parseFloat(biayaBahanText) || 0;
+        
+        const biayaBTKLText = form.querySelectorAll('input[value*=","]')[1].value.replace(/[^\d]/g, '');
+        const biayaBTKL = parseFloat(biayaBTKLText) || 0;
+        
+        // Update BOP display
+        const bopDisplay = document.getElementById('bop_display');
+        if (bopDisplay) {
+            bopDisplay.textContent = 'Rp ' + bopValue.toLocaleString('id-ID');
+        }
+        
+        // Update total display
+        const totalDisplay = document.getElementById('total_display');
+        if (totalDisplay) {
+            const total = biayaBahan + biayaBTKL + bopValue;
+            totalDisplay.textContent = 'Rp ' + total.toLocaleString('id-ID');
+        }
+    }
 </script>
 @endpush
 
