@@ -1,19 +1,18 @@
-@extends('layouts.app')
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container">
     <h3 class="mb-3">Tambah Penjualan</h3>
 
-    @if ($errors->any())
-    <div class="alert alert-danger"><ul class="mb-0">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
-    @endif
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($errors->any()): ?>
+    <div class="alert alert-danger"><ul class="mb-0"><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><li><?php echo e($error); ?></li><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?></ul></div>
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
-    <form action="{{ route('transaksi.penjualan.store') }}" method="POST" id="form-penjualan">
-        @csrf
+    <form action="<?php echo e(route('transaksi.penjualan.store')); ?>" method="POST" id="form-penjualan">
+        <?php echo csrf_field(); ?>
 
         <div class="row g-3 mb-3">
             <div class="col-md-3">
                 <label class="form-label">Tanggal</label>
-                <input type="date" name="tanggal" class="form-control" value="{{ now()->toDateString() }}" required>
+                <input type="date" name="tanggal" class="form-control" value="<?php echo e(now()->toDateString()); ?>" required>
             </div>
             <div class="col-md-3">
                 <label class="form-label">Metode Pembayaran</label>
@@ -26,11 +25,11 @@
             <div class="col-md-3" id="sumber_dana_wrapper_jual">
                 <label class="form-label">Terima di</label>
                 <select name="sumber_dana" id="sumber_dana_jual" class="form-select">
-                    @foreach($kasbank as $kb)
-                        <option value="{{ $kb->kode_akun }}" {{ $kb->kode_akun == '1101' ? 'selected' : '' }}>
-                            {{ $kb->nama_akun }} ({{ $kb->kode_akun }})
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $kasbank; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $kb): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <option value="<?php echo e($kb->kode_akun); ?>" <?php echo e($kb->kode_akun == '1101' ? 'selected' : ''); ?>>
+                            <?php echo e($kb->nama_akun); ?> (<?php echo e($kb->kode_akun); ?>)
                         </option>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </select>
             </div>
         </div>
@@ -79,13 +78,13 @@
                         <td>
                             <select name="produk_id[]" class="form-select produk-select" required>
                                 <option value="">-- Pilih Produk --</option>
-                                @foreach($produks as $p)
-                                    <option value="{{ $p->id }}" 
-                                            data-price="{{ $p->harga_jual ?? 0 }}"
-                                            data-stok="{{ $p->stok_tersedia ?? 0 }}">
-                                        {{ $p->nama_produk ?? $p->nama }} (Stok: {{ number_format($p->stok_tersedia ?? 0, 0, ',', '.') }})
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $produks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                    <option value="<?php echo e($p->id); ?>" 
+                                            data-price="<?php echo e($p->harga_jual ?? 0); ?>"
+                                            data-stok="<?php echo e($p->stok_tersedia ?? 0); ?>">
+                                        <?php echo e($p->nama_produk ?? $p->nama); ?> (Stok: <?php echo e(number_format($p->stok_tersedia ?? 0, 0, ',', '.')); ?>)
                                     </option>
-                                @endforeach
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </select>
                             <small class="text-muted stok-info"></small>
                         </td>
@@ -133,7 +132,7 @@
         </div>
 
         <div class="text-end mt-4">
-            <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-secondary">Batal</a>
+            <a href="<?php echo e(route('transaksi.penjualan.index')); ?>" class="btn btn-secondary">Batal</a>
             <button class="btn btn-success">Simpan</button>
         </div>
     </form>
@@ -142,14 +141,15 @@
 <script>
 // Product data for barcode lookup
 const productData = {
-    @foreach($produks as $p)
-    '{{ $p->barcode ?? '' }}': {
-        id: {{ $p->id }},
-        nama: '{{ addslashes($p->nama_produk ?? $p->nama) }}',
-        harga: {{ $p->harga_jual ?? 0 }},
-        stok: {{ $p->stok_tersedia ?? 0 }}
+    <?php $__currentLoopData = $produks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+    '<?php echo e($p->barcode ?? ''); ?>': {
+        id: <?php echo e($p->id); ?>,
+        nama: '<?php echo e(addslashes($p->nama_produk ?? $p->nama)); ?>',
+        harga: <?php echo e($p->harga_jual ?? 0); ?>,
+        stok: <?php echo e($p->stok_tersedia ?? 0); ?>
+
     },
-    @endforeach
+    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 };
 
 // Barcode scanner functionality
@@ -508,4 +508,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\UMKM_COE\resources\views/transaksi/penjualan/create.blade.php ENDPATH**/ ?>
