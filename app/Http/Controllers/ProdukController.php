@@ -15,7 +15,7 @@ class ProdukController extends Controller
 {
     public function index()
     {
-        // Get all products with necessary columns
+        // Get all products with real-time BOM costs
         $produks = Produk::select([
             'id', 
             'barcode',
@@ -27,6 +27,16 @@ class ProdukController extends Controller
             'margin_percent',
             'stok'
         ])->get();
+        
+        // Update harga_bom with real-time BOM data
+        foreach ($produks as $produk) {
+            $bom = Bom::where('produk_id', $produk->id)->first();
+            if ($bom) {
+                $produk->harga_bom = $bom->total_biaya;
+                // Update database to sync
+                $produk->save();
+            }
+        }
         
         // If any product has null harga_bom, calculate it from BOM details
         if ($produks->contains('harga_bom', null)) {
