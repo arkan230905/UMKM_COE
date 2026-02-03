@@ -37,12 +37,10 @@
                         <table class="table table-hover align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Nama BOP</th>
-                                    <th class="text-end">Budget BOP</th>
-                                    <th class="text-center">Kuantitas/Jam</th>
-                                    <th class="text-end">Biaya/Jam</th>
-                                    <th class="text-end">Aktual</th>
-                                    <th class="text-end">Selisih</th>
+                                    <th>Nama Proses</th>
+                                    <th class="text-center">Kapasitas / Jam</th>
+                                    <th class="text-end">Biaya / Jam (Rp)</th>
+                                    <th class="text-end">Biaya / Produk (Rp/pcs)</th>
                                     <th class="text-center">Status</th>
                                     <th class="text-center">Aksi</th>
                                 </tr>
@@ -51,60 +49,62 @@
                                 <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $prosesProduksis; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $proses): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                     <?php
                                         $bop = $proses->bopProses;
-                                        $budget = $bop->budget ?? $bop->total_bop_per_jam ?? 0;
-                                        $aktual = $bop->aktual ?? 0;
-                                        $selisih = $budget - $aktual;
-                                        $statusClass = $selisih >= 0 ? 'success' : 'danger';
-                                        $statusText = $selisih >= 0 ? 'Under Budget' : 'Over Budget';
-                                        $biayaPerJam = $bop->total_bop_per_jam ?? 0;
+                                        $btklPerJam = $proses->tarif_btkl ?? 0;
+                                        $kapasitasPerJam = $proses->kapasitas_per_jam ?? 0;
                                         $hasBop = $bop !== null;
+                                        
+                                        // Get BOP per jam from new structure (total_bop_per_jam field)
+                                        if ($hasBop) {
+                                            $bopPerJam = $bop->total_bop_per_jam ?? 0;
+                                            
+                                            // Fallback: calculate from JSON if total_bop_per_jam is null
+                                            if ($bopPerJam == 0 && !empty($bop->komponen_bop)) {
+                                                $komponenBop = is_array($bop->komponen_bop) ? $bop->komponen_bop : json_decode($bop->komponen_bop, true);
+                                                if (is_array($komponenBop)) {
+                                                    $bopPerJam = array_sum(array_column($komponenBop, 'rate_per_hour'));
+                                                }
+                                            }
+                                        } else {
+                                            $bopPerJam = 0;
+                                        }
+                                        
+                                        // Calculate process costing values
+                                        $biayaPerJam = $btklPerJam + $bopPerJam;
+                                        $biayaPerProduk = $kapasitasPerJam > 0 ? $biayaPerJam / $kapasitasPerJam : 0;
+                                        
+                                        // Define status variables
+                                        if ($hasBop) {
+                                            $statusClass = 'success';
+                                            $statusText = 'Sudah Setup';
+                                        } else {
+                                            $statusClass = 'secondary';
+                                            $statusText = 'Belum Setup';
+                                        }
                                     ?>
                                     <tr>
                                         <td>
                                             <div class="fw-semibold"><?php echo e($proses->nama_proses); ?></div>
                                             <small class="text-muted"><?php echo e($proses->kode_proses); ?></small>
                                         </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-info"><?php echo e($kapasitasPerJam); ?> unit/jam</span>
+                                        </td>
                                         <td class="text-end">
                                             <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBop): ?>
-                                                <span class="fw-semibold">Rp <?php echo e(number_format($budget, 0, ',', '.')); ?></span>
+                                                <span class="fw-semibold text-primary">Rp <?php echo e(number_format($biayaPerJam, 0, ',', '.')); ?></span>
+                                            <?php else: ?>
+                                                <span class="text-muted">-</span>
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                        </td>
+                                        <td class="text-end">
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBop): ?>
+                                                <span class="fw-semibold text-success">Rp <?php echo e(number_format($biayaPerProduk, 2, ',', '.')); ?></span>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
                                             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge bg-info"><?php echo e($proses->kapasitas_per_jam ?? 0); ?> unit/jam</span>
-                                        </td>
-                                        <td class="text-end">
-                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBop): ?>
-                                                <span class="text-warning">Rp <?php echo e(number_format($biayaPerJam, 0, ',', '.')); ?></span>
-                                            <?php else: ?>
-                                                <span class="text-muted">-</span>
-                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                        </td>
-                                        <td class="text-end">
-                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBop): ?>
-                                                <span class="fw-semibold">Rp <?php echo e(number_format($aktual, 0, ',', '.')); ?></span>
-                                            <?php else: ?>
-                                                <span class="text-muted">-</span>
-                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                        </td>
-                                        <td class="text-end">
-                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBop): ?>
-                                                <span class="fw-semibold text-<?php echo e($statusClass); ?>">
-                                                    Rp <?php echo e(number_format(abs($selisih), 0, ',', '.')); ?>
-
-                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($selisih < 0): ?> (Over) <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="text-muted">-</span>
-                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                        </td>
-                                        <td class="text-center">
-                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBop): ?>
-                                                <span class="badge bg-<?php echo e($statusClass); ?>"><?php echo e($statusText); ?></span>
-                                            <?php else: ?>
-                                                <span class="badge bg-secondary">Belum Setup</span>
-                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                            <span class="badge bg-<?php echo e($statusClass); ?>"><?php echo e($statusText); ?></span>
                                         </td>
                                         <td class="text-center">
                                             <div class="btn-group btn-group-sm">
