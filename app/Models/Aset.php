@@ -85,14 +85,6 @@ class Aset extends Model
     }
 
     /**
-     * Relationship ke Depreciation Schedules
-     */
-    public function depreciationSchedules(): HasMany
-    {
-        return $this->hasMany(DepreciationSchedule::class);
-    }
-
-    /**
      * Generate kode aset otomatis
      * Format: AST-YYYYMM-XXXX
      */

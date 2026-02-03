@@ -32,9 +32,8 @@
         </div>
     <div class="card border-0 shadow-sm">
         <div class="card-body jabatan-form">
-            <form method="POST" action="{{ route('master-data.kualifikasi-tenaga-kerja.update', $jabatan->id) }}">
+            <form method="POST" action="/master-data/kualifikasi-tenaga-kerja/{{ $jabatan->id }}" name="editForm">
                 @csrf
-                @method('PUT')
 
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -60,13 +59,13 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Gaji Pokok (Rp)</label>
-                        <input type="text" name="gaji_pokok" class="form-control money-input" value="{{ old('gaji_pokok',$jabatan->gaji_pokok) }}">
+                        <input type="text" name="gaji" class="form-control money-input" value="{{ old('gaji',$jabatan->gaji) }}">
                         <small class="text-white money-hint"></small>
                         <small class="text-white d-block">BTKTL: gaji per bulan. BTKL: isi 0.</small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Tarif/Jam (Rp)</label>
-                        <input type="text" name="tarif_lembur" class="form-control money-input" value="{{ old('tarif_lembur',$jabatan->tarif_lembur) }}">
+                        <input type="text" name="tarif" class="form-control money-input" value="{{ old('tarif',$jabatan->tarif) }}">
                         <small class="text-white money-hint"></small>
                         <small class="text-white d-block">BTKL: tarif per jam. BTKTL: isi 0.</small>
                     </div>
