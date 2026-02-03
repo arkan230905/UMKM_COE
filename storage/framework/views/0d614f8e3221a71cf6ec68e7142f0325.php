@@ -1,6 +1,4 @@
-@extends('layouts.app')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
@@ -50,8 +48,8 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($prosesProduksis as $proses)
-                                    @php
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $prosesProduksis; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $proses): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                                    <?php
                                         $bop = $proses->bopProses;
                                         $budget = $bop->budget ?? $bop->total_bop_per_jam ?? 0;
                                         $aktual = $bop->aktual ?? 0;
@@ -60,81 +58,82 @@
                                         $statusText = $selisih >= 0 ? 'Under Budget' : 'Over Budget';
                                         $biayaPerJam = $bop->total_bop_per_jam ?? 0;
                                         $hasBop = $bop !== null;
-                                    @endphp
+                                    ?>
                                     <tr>
                                         <td>
-                                            <div class="fw-semibold">{{ $proses->nama_proses }}</div>
-                                            <small class="text-muted">{{ $proses->kode_proses }}</small>
+                                            <div class="fw-semibold"><?php echo e($proses->nama_proses); ?></div>
+                                            <small class="text-muted"><?php echo e($proses->kode_proses); ?></small>
                                         </td>
                                         <td class="text-end">
-                                            @if($hasBop)
-                                                <span class="fw-semibold">Rp {{ number_format($budget, 0, ',', '.') }}</span>
-                                            @else
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBop): ?>
+                                                <span class="fw-semibold">Rp <?php echo e(number_format($budget, 0, ',', '.')); ?></span>
+                                            <?php else: ?>
                                                 <span class="text-muted">-</span>
-                                            @endif
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge bg-info">{{ $proses->kapasitas_per_jam ?? 0 }} unit/jam</span>
+                                            <span class="badge bg-info"><?php echo e($proses->kapasitas_per_jam ?? 0); ?> unit/jam</span>
                                         </td>
                                         <td class="text-end">
-                                            @if($hasBop)
-                                                <span class="text-warning">Rp {{ number_format($biayaPerJam, 0, ',', '.') }}</span>
-                                            @else
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBop): ?>
+                                                <span class="text-warning">Rp <?php echo e(number_format($biayaPerJam, 0, ',', '.')); ?></span>
+                                            <?php else: ?>
                                                 <span class="text-muted">-</span>
-                                            @endif
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </td>
                                         <td class="text-end">
-                                            @if($hasBop)
-                                                <span class="fw-semibold">Rp {{ number_format($aktual, 0, ',', '.') }}</span>
-                                            @else
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBop): ?>
+                                                <span class="fw-semibold">Rp <?php echo e(number_format($aktual, 0, ',', '.')); ?></span>
+                                            <?php else: ?>
                                                 <span class="text-muted">-</span>
-                                            @endif
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </td>
                                         <td class="text-end">
-                                            @if($hasBop)
-                                                <span class="fw-semibold text-{{ $statusClass }}">
-                                                    Rp {{ number_format(abs($selisih), 0, ',', '.') }}
-                                                    @if($selisih < 0) (Over) @endif
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBop): ?>
+                                                <span class="fw-semibold text-<?php echo e($statusClass); ?>">
+                                                    Rp <?php echo e(number_format(abs($selisih), 0, ',', '.')); ?>
+
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($selisih < 0): ?> (Over) <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                 </span>
-                                            @else
+                                            <?php else: ?>
                                                 <span class="text-muted">-</span>
-                                            @endif
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </td>
                                         <td class="text-center">
-                                            @if($hasBop)
-                                                <span class="badge bg-{{ $statusClass }}">{{ $statusText }}</span>
-                                            @else
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBop): ?>
+                                                <span class="badge bg-<?php echo e($statusClass); ?>"><?php echo e($statusText); ?></span>
+                                            <?php else: ?>
                                                 <span class="badge bg-secondary">Belum Setup</span>
-                                            @endif
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </td>
                                         <td class="text-center">
                                             <div class="btn-group btn-group-sm">
-                                                @if($hasBop)
-                                                    <a href="{{ route('master-data.bop.show-proses', $bop->id) }}" class="btn btn-outline-info" title="Detail">
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBop): ?>
+                                                    <a href="<?php echo e(route('master-data.bop.show-proses', $bop->id)); ?>" class="btn btn-outline-info" title="Detail">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                    <a href="{{ route('master-data.bop.edit-proses', $bop->id) }}" class="btn btn-outline-primary" title="Edit">
+                                                    <a href="<?php echo e(route('master-data.bop.edit-proses', $bop->id)); ?>" class="btn btn-outline-primary" title="Edit">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
-                                                    <button class="btn btn-outline-success" onclick="setBudgetProses({{ $bop->id }})" title="Set Budget">
+                                                    <button class="btn btn-outline-success" onclick="setBudgetProses(<?php echo e($bop->id); ?>)" title="Set Budget">
                                                         <i class="fas fa-calculator"></i>
                                                     </button>
-                                                @else
-                                                    <a href="{{ route('master-data.bop.create-proses', ['proses_id' => $proses->id]) }}" class="btn btn-outline-success" title="Setup BOP">
+                                                <?php else: ?>
+                                                    <a href="<?php echo e(route('master-data.bop.create-proses', ['proses_id' => $proses->id])); ?>" class="btn btn-outline-success" title="Setup BOP">
                                                         <i class="fas fa-plus"></i> Setup
                                                     </a>
-                                                @endif
+                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
-                                @empty
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                     <tr>
                                         <td colspan="8" class="text-center py-4">
                                             <i class="fas fa-cogs fa-3x text-muted mb-3"></i>
                                             <p class="text-muted">Belum ada proses BTKL</p>
                                         </td>
                                     </tr>
-                                @endforelse
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -175,8 +174,8 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($bopLainnya as $bop)
-                                    @php
+                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $bopLainnya; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $bop): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                                    <?php
                                         $budget = $bop->budget ?? 0;
                                         $aktual = $bop->aktual ?? 0;
                                         $selisih = $budget - $aktual;
@@ -184,85 +183,86 @@
                                         $statusText = $selisih >= 0 ? 'Under Budget' : 'Over Budget';
                                         $biayaPerJam = $bop->kuantitas_per_jam > 0 ? $budget / $bop->kuantitas_per_jam : 0;
                                         $hasData = $bop->id !== null && $budget > 0;
-                                    @endphp
+                                    ?>
                                     <tr>
                                         <td>
-                                            <div class="fw-semibold">{{ $bop->nama_akun }}</div>
-                                            <small class="text-muted">{{ $bop->kode_akun }}</small>
+                                            <div class="fw-semibold"><?php echo e($bop->nama_akun); ?></div>
+                                            <small class="text-muted"><?php echo e($bop->kode_akun); ?></small>
                                         </td>
                                         <td class="text-end">
-                                            @if($hasData)
-                                                <span class="fw-semibold">Rp {{ number_format($budget, 0, ',', '.') }}</span>
-                                            @else
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasData): ?>
+                                                <span class="fw-semibold">Rp <?php echo e(number_format($budget, 0, ',', '.')); ?></span>
+                                            <?php else: ?>
                                                 <span class="text-muted">-</span>
-                                            @endif
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </td>
                                         <td class="text-center">
-                                            @if($hasData)
-                                                <span class="badge bg-info">{{ $bop->kuantitas_per_jam ?? 0 }} unit/jam</span>
-                                            @else
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasData): ?>
+                                                <span class="badge bg-info"><?php echo e($bop->kuantitas_per_jam ?? 0); ?> unit/jam</span>
+                                            <?php else: ?>
                                                 <span class="text-muted">-</span>
-                                            @endif
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </td>
                                         <td class="text-end">
-                                            @if($hasData)
-                                                <span class="text-warning">Rp {{ number_format($biayaPerJam, 0, ',', '.') }}</span>
-                                            @else
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasData): ?>
+                                                <span class="text-warning">Rp <?php echo e(number_format($biayaPerJam, 0, ',', '.')); ?></span>
+                                            <?php else: ?>
                                                 <span class="text-muted">-</span>
-                                            @endif
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </td>
                                         <td class="text-end">
-                                            @if($hasData)
-                                                <span class="fw-semibold">Rp {{ number_format($aktual, 0, ',', '.') }}</span>
-                                            @else
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasData): ?>
+                                                <span class="fw-semibold">Rp <?php echo e(number_format($aktual, 0, ',', '.')); ?></span>
+                                            <?php else: ?>
                                                 <span class="text-muted">-</span>
-                                            @endif
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </td>
                                         <td class="text-end">
-                                            @if($hasData)
-                                                <span class="fw-semibold text-{{ $statusClass }}">
-                                                    Rp {{ number_format(abs($selisih), 0, ',', '.') }}
-                                                    @if($selisih < 0) (Over) @endif
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasData): ?>
+                                                <span class="fw-semibold text-<?php echo e($statusClass); ?>">
+                                                    Rp <?php echo e(number_format(abs($selisih), 0, ',', '.')); ?>
+
+                                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($selisih < 0): ?> (Over) <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                                 </span>
-                                            @else
+                                            <?php else: ?>
                                                 <span class="text-muted">-</span>
-                                            @endif
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </td>
                                         <td class="text-center">
-                                            @if($hasData)
-                                                <span class="badge bg-{{ $statusClass }}">{{ $statusText }}</span>
-                                            @else
+                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasData): ?>
+                                                <span class="badge bg-<?php echo e($statusClass); ?>"><?php echo e($statusText); ?></span>
+                                            <?php else: ?>
                                                 <span class="badge bg-secondary">Belum Setup</span>
-                                            @endif
+                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                         </td>
                                         <td class="text-center">
                                             <div class="btn-group btn-group-sm">
-                                                @if($hasData)
-                                                    <button class="btn btn-outline-info" onclick="showBopLainnyaDetail({{ $bop->id }})" title="Detail">
+                                                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasData): ?>
+                                                    <button class="btn btn-outline-info" onclick="showBopLainnyaDetail(<?php echo e($bop->id); ?>)" title="Detail">
                                                         <i class="fas fa-eye"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-primary" onclick="editBopLainnya({{ $bop->id }})" title="Edit">
+                                                    <button class="btn btn-outline-primary" onclick="editBopLainnya(<?php echo e($bop->id); ?>)" title="Edit">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <button class="btn btn-outline-danger" onclick="deleteBopLainnya({{ $bop->id }})" title="Hapus">
+                                                    <button class="btn btn-outline-danger" onclick="deleteBopLainnya(<?php echo e($bop->id); ?>)" title="Hapus">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
-                                                @else
-                                                    <button class="btn btn-outline-success" onclick="setupBopLainnya('{{ $bop->kode_akun }}', '{{ $bop->nama_akun }}')" title="Setup BOP">
+                                                <?php else: ?>
+                                                    <button class="btn btn-outline-success" onclick="setupBopLainnya('<?php echo e($bop->kode_akun); ?>', '<?php echo e($bop->nama_akun); ?>')" title="Setup BOP">
                                                         <i class="fas fa-plus"></i> Setup
                                                     </button>
-                                                @endif
+                                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                             </div>
                                         </td>
                                     </tr>
-                                @empty
+                                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                     <tr>
                                         <td colspan="8" class="text-center py-4">
                                             <i class="fas fa-list fa-3x text-muted mb-3"></i>
                                             <p class="text-muted">Belum ada akun beban (kode 5) di COA</p>
                                         </td>
                                     </tr>
-                                @endforelse
+                                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -290,9 +290,9 @@
                                 <label class="form-label">Akun Beban *</label>
                                 <select class="form-select" name="kode_akun" required>
                                     <option value="">Pilih Akun Beban</option>
-                                    @foreach($akunBeban as $akun)
-                                        <option value="{{ $akun->kode_akun }}">{{ $akun->kode_akun }} - {{ $akun->nama_akun }}</option>
-                                    @endforeach
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $akunBeban; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $akun): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($akun->kode_akun); ?>"><?php echo e($akun->kode_akun); ?> - <?php echo e($akun->nama_akun); ?></option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 </select>
                             </div>
                         </div>
@@ -319,7 +319,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Periode *</label>
-                                <input type="month" class="form-control" name="periode" value="{{ date('Y-m') }}" required>
+                                <input type="month" class="form-control" name="periode" value="<?php echo e(date('Y-m')); ?>" required>
                             </div>
                         </div>
                     </div>
@@ -356,9 +356,9 @@
                                 <label class="form-label">Akun Beban *</label>
                                 <select class="form-select" name="kode_akun" id="editKodeAkun" required>
                                     <option value="">Pilih Akun Beban</option>
-                                    @foreach($akunBeban as $akun)
-                                        <option value="{{ $akun->kode_akun }}">{{ $akun->kode_akun }} - {{ $akun->nama_akun }}</option>
-                                    @endforeach
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $akunBeban; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $akun): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <option value="<?php echo e($akun->kode_akun); ?>"><?php echo e($akun->kode_akun); ?> - <?php echo e($akun->nama_akun); ?></option>
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 </select>
                             </div>
                         </div>
@@ -414,7 +414,7 @@ function saveBopLainnya() {
         method: 'POST',
         body: formData,
         headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
         }
     })
     .then(response => response.json())
@@ -448,7 +448,7 @@ function setBudgetProses(id) {
             body: JSON.stringify({ budget: parseFloat(budget) }),
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
             }
         })
         .then(response => response.json())
@@ -507,7 +507,7 @@ function updateBopLainnya() {
         method: 'PUT',
         body: formData,
         headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
         }
     })
     .then(response => response.json())
@@ -528,7 +528,7 @@ function deleteBopLainnya(id) {
         fetch('/master-data/bop/destroy-lainnya/' + id, {
             method: 'DELETE',
             headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                'X-CSRF-TOKEN': '<?php echo e(csrf_token()); ?>'
             }
         })
         .then(response => response.json())
@@ -545,4 +545,5 @@ function deleteBopLainnya(id) {
     }
 }
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampppp\htdocs\UMKM_COE\resources\views/master-data/bop/index.blade.php ENDPATH**/ ?>

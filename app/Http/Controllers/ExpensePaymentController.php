@@ -61,9 +61,14 @@ class ExpensePaymentController extends Controller
 
     public function create()
     {
-        // Hanya tampilkan COA yang ada di BOP (beban operasional)
-        $bopKodes = Bop::pluck('kode_akun');
-        $coas = Coa::whereIn('kode_akun', $bopKodes)->orderBy('kode_akun')->get();
+        // Hanya tampilkan COA yang ada budget di BOP Lainnya
+        $bopLainnyaKodes = \App\Models\BopLainnya::where('budget', '>', 0)
+            ->where('is_active', 1)
+            ->pluck('kode_akun');
+        
+        $coas = Coa::whereIn('kode_akun', $bopLainnyaKodes)
+            ->orderBy('kode_akun')
+            ->get();
         
         // Gunakan helper untuk konsistensi
         $kasbank = AccountHelper::getKasBankAccounts();
@@ -72,6 +77,8 @@ class ExpensePaymentController extends Controller
 
     public function store(Request $request, JournalService $journal)
     {
+        \Log::info('ExpensePayment@store called', $request->all());
+        
         $request->validate([
             'tanggal' => 'required|date',
             'coa_beban_id' => 'required|exists:coas,kode_akun',
@@ -82,18 +89,40 @@ class ExpensePaymentController extends Controller
             'coa_kasbank.exists' => 'Akun kas/bank tidak valid',
         ]);
 
+        \Log::info('Validation passed');
+
         DB::beginTransaction();
 
         try {
+            \Log::info('Transaction started');
+            
             // Dapatkan data COA menggunakan kode_akun
             $coaBeban = Coa::where('kode_akun', $request->coa_beban_id)->firstOrFail();
             $coaKas = Coa::where('kode_akun', $request->coa_kasbank)->firstOrFail();
+            
+            \Log::info('COA found', [
+                'beban' => $coaBeban->kode_akun . ' - ' . $coaBeban->nama_akun,
+                'kas' => $coaKas->kode_akun . ' - ' . $coaKas->nama_akun
+            ]);
 
             // Cek saldo kas/bank cukup
-            $saldoKas = (float) $coaKas->saldo_awal + (float) $coaKas->saldo_debit - (float) $coaKas->saldo_kredit;
+            $saldoKas = (float) ($coaKas->saldo_awal ?? 0) + 
+                       (float) ($coaKas->saldo_debit ?? 0) - 
+                       (float) ($coaKas->saldo_kredit ?? 0);
+                       
+            \Log::info('Saldo check', [
+                'saldo_awal' => $coaKas->saldo_awal,
+                'saldo_debit' => $coaKas->saldo_debit,
+                'saldo_kredit' => $coaKas->saldo_kredit,
+                'total_saldo' => $saldoKas,
+                'nominal_diminta' => (float)$request->nominal
+            ]);
+            
             if ($saldoKas < (float)$request->nominal) {
                 throw new \Exception('Saldo kas/bank tidak mencukupi. Saldo tersedia: ' . number_format($saldoKas, 0, ',', '.'));
             }
+            
+            \Log::info('Saldo check passed');
 
             // Simpan data pembayaran, menggunakan kode_akun
             $row = new ExpensePayment([
@@ -106,9 +135,13 @@ class ExpensePaymentController extends Controller
                 'user_id' => auth()->id(),
             ]);
 
+            \Log::info('Creating ExpensePayment', $row->toArray());
+
             if (!$row->save()) {
                 throw new \Exception('Gagal menyimpan data pembayaran beban');
             }
+            
+            \Log::info('ExpensePayment saved with ID: ' . $row->id);
 
             // Jurnal: Dr Expense ; Cr Cash/Bank
             $journal->post(
@@ -122,17 +155,25 @@ class ExpensePaymentController extends Controller
                 ]
             );
             
+            \Log::info('Journal posted');
+
             // Update saldo COA
             $this->updateCoaSaldo($coaBeban->kode_akun);
             $this->updateCoaSaldo($coaKas->kode_akun);
             
+            \Log::info('COA saldo updated');
+            
             // Update BOP aktual
             $this->updateBopAktual($coaBeban->kode_akun);
+            
+            \Log::info('BOP aktual updated');
 
             DB::commit();
             
+            \Log::info('Transaction committed');
+            
             return redirect()
-                ->route('transaksi.pembayaran-beban.index')
+                ->route('transaksi.expense-payment.index')
                 ->with('success', 'Pembayaran beban berhasil disimpan');
                 
         } catch (\Exception $e) {
@@ -286,37 +327,31 @@ class ExpensePaymentController extends Controller
     protected function updateBopAktual($kodeAkun)
     {
         try {
-            // Cari BOP dengan kode akun ini
-            $bop = Bop::where('kode_akun', $kodeAkun)->first();
+            // Cari BOP Lainnya dengan kode akun ini
+            $bopLainnya = \App\Models\BopLainnya::where('kode_akun', $kodeAkun)
+                ->where('is_active', true)
+                ->first();
             
-            if (!$bop) {
-                \Log::warning('BOP not found for kode_akun: ' . $kodeAkun);
-                return;
-            }
-
-            // Cari COA ID berdasarkan kode akun
-            $coa = Coa::where('kode_akun', $kodeAkun)->first();
-            if (!$coa) {
-                \Log::warning('COA not found for kode_akun: ' . $kodeAkun);
+            if (!$bopLainnya) {
+                \Log::warning('BOP Lainnya not found for kode_akun: ' . $kodeAkun);
                 return;
             }
 
             // Hitung total pembayaran beban untuk akun ini
-            $totalAktual = ExpensePayment::where('coa_beban_id', $coa->id)->sum('nominal');
+            $totalAktual = ExpensePayment::where('coa_beban_id', $kodeAkun)->sum('nominal');
 
             // Update kolom aktual
-            $bop->aktual = $totalAktual;
-            $bop->save();
+            $bopLainnya->aktual = $totalAktual;
+            $bopLainnya->save();
 
-            \Log::info('BOP Aktual Updated', [
+            \Log::info('BOP Lainnya Aktual Updated', [
                 'kode_akun' => $kodeAkun,
-                'coa_id' => $coa->id,
                 'aktual' => $totalAktual,
-                'budget' => $bop->budget,
-                'selisih' => $bop->budget - $totalAktual,
+                'budget' => $bopLainnya->budget,
+                'selisih' => $bopLainnya->budget - $totalAktual,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error updating BOP aktual: ' . $e->getMessage(), [
+            \Log::error('Error updating BOP Lainnya aktual: ' . $e->getMessage(), [
                 'kode_akun' => $kodeAkun,
                 'trace' => $e->getTraceAsString()
             ]);

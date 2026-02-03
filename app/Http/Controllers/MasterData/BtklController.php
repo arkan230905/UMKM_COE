@@ -5,6 +5,7 @@ namespace App\Http\Controllers\MasterData;
 use App\Http\Controllers\Controller;
 use App\Models\Btkl;
 use App\Models\Jabatan;
+use App\Models\ProsesProduksi;
 use App\Services\BomSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -97,6 +98,17 @@ class BtklController extends Controller
 
             $btkl = Btkl::create($validated);
 
+            // Create corresponding ProsesProduksi for BOP display
+            ProsesProduksi::create([
+                'kode_proses' => $btkl->kode_proses,
+                'nama_proses' => $btkl->nama_btkl,
+                'deskripsi' => $btkl->deskripsi_proses,
+                'tarif_btkl' => $tarifBtkl,
+                'satuan_btkl' => $btkl->satuan,
+                'kapasitas_per_jam' => $btkl->kapasitas_per_jam,
+                'btkl_id' => $btkl->id,
+            ]);
+
             // Sync BOM when BTKL data changes
             BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);
 
@@ -166,6 +178,19 @@ class BtklController extends Controller
 
             $btkl = Btkl::findOrFail($id);
             $btkl->update($validated);
+
+            // Update corresponding ProsesProduksi if exists
+            $prosesProduksi = ProsesProduksi::where('btkl_id', $btkl->id)->first();
+            if ($prosesProduksi) {
+                $prosesProduksi->update([
+                    'kode_proses' => $btkl->kode_proses,
+                    'nama_proses' => $btkl->nama_btkl,
+                    'deskripsi' => $btkl->deskripsi_proses,
+                    'tarif_btkl' => $tarifBtkl,
+                    'satuan_btkl' => $btkl->satuan,
+                    'kapasitas_per_jam' => $btkl->kapasitas_per_jam,
+                ]);
+            }
 
             // Sync BOM when BTKL data changes
             BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);

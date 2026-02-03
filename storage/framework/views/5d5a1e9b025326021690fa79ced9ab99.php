@@ -1,12 +1,10 @@
-@extends('layouts.app')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
             <i class="fas fa-money-check-alt me-2"></i>Pembayaran Beban
         </h2>
-        <a href="{{ route('transaksi.pembayaran-beban.create') }}" class="btn btn-primary">
+        <a href="<?php echo e(route('transaksi.pembayaran-beban.create')); ?>" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Tambah Pembayaran
         </a>
     </div>
@@ -19,38 +17,40 @@
             </h6>
         </div>
         <div class="card-body">
-            <form method="GET" action="{{ route('transaksi.pembayaran-beban.index') }}">
+            <form method="GET" action="<?php echo e(route('transaksi.pembayaran-beban.index')); ?>">
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Tanggal Mulai</label>
                         <input type="date" name="tanggal_mulai" class="form-control" 
-                               value="{{ request('tanggal_mulai') }}">
+                               value="<?php echo e(request('tanggal_mulai')); ?>">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Tanggal Selesai</label>
                         <input type="date" name="tanggal_selesai" class="form-control" 
-                               value="{{ request('tanggal_selesai') }}">
+                               value="<?php echo e(request('tanggal_selesai')); ?>">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Akun Beban</label>
                         <select name="akun_beban_id" class="form-select">
                             <option value="">Semua Akun Beban</option>
-                            @foreach($coaBebans ?? [] as $coa)
-                                <option value="{{ $coa->id }}" {{ request('akun_beban_id') == $coa->id ? 'selected' : '' }}>
-                                    {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $coaBebans ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $coa): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($coa->id); ?>" <?php echo e(request('akun_beban_id') == $coa->id ? 'selected' : ''); ?>>
+                                    <?php echo e($coa->kode_akun); ?> - <?php echo e($coa->nama_akun); ?>
+
                                 </option>
-                            @endforeach
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">Akun Kas</label>
                         <select name="akun_kas_id" class="form-select">
                             <option value="">Semua Akun Kas</option>
-                            @foreach($coaKas ?? [] as $coa)
-                                <option value="{{ $coa->id }}" {{ request('akun_kas_id') == $coa->id ? 'selected' : '' }}>
-                                    {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $coaKas ?? []; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $coa): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($coa->id); ?>" <?php echo e(request('akun_kas_id') == $coa->id ? 'selected' : ''); ?>>
+                                    <?php echo e($coa->kode_akun); ?> - <?php echo e($coa->nama_akun); ?>
+
                                 </option>
-                            @endforeach
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                         </select>
                     </div>
                     <div class="col-md-12">
@@ -58,7 +58,7 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-search me-2"></i>Filter
                             </button>
-                            <a href="{{ route('transaksi.pembayaran-beban.index') }}" class="btn btn-outline-secondary">
+                            <a href="<?php echo e(route('transaksi.pembayaran-beban.index')); ?>" class="btn btn-outline-secondary">
                                 <i class="fas fa-redo me-2"></i>Reset
                             </a>
                         </div>
@@ -72,9 +72,9 @@
         <div class="card-header">
             <h5 class="mb-0">
                 <i class="fas fa-list me-2"></i>Riwayat Pembayaran Beban
-                @if(request()->hasAny(['tanggal_mulai', 'tanggal_selesai', 'akun_beban_id', 'akun_kas_id']))
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(request()->hasAny(['tanggal_mulai', 'tanggal_selesai', 'akun_beban_id', 'akun_kas_id'])): ?>
                     <small class="text-muted">(Filter Aktif)</small>
-                @endif
+                <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             </h5>
         </div>
         <div class="card-body">
@@ -92,19 +92,19 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($rows as $key => $item)
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $rows; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                             <tr>
-                                <td class="text-center">{{ $key + 1 }}</td>
-                                <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d-m-Y') }}</td>
-                                <td>{{ $item->keterangan }}</td>
+                                <td class="text-center"><?php echo e($key + 1); ?></td>
+                                <td><?php echo e(\Carbon\Carbon::parse($item->tanggal)->format('d-m-Y')); ?></td>
+                                <td><?php echo e($item->keterangan); ?></td>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
                                             <i class="fas fa-coins text-primary"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-semibold">{{ $item->coaBeban->nama_akun ?? 'Unknown' }}</div>
-                                            <small class="text-muted">{{ $item->coaBeban->kode_akun ?? 'Unknown' }}</small>
+                                            <div class="fw-semibold"><?php echo e($item->coaBeban->nama_akun ?? 'Unknown'); ?></div>
+                                            <small class="text-muted"><?php echo e($item->coaBeban->kode_akun ?? 'Unknown'); ?></small>
                                         </div>
                                     </div>
                                 </td>
@@ -114,23 +114,23 @@
                                             <i class="fas fa-money-bill-wave text-success"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-semibold">{{ $item->coaKasBank->nama_akun ?? 'Unknown' }}</div>
-                                            <small class="text-muted">{{ $item->coaKasBank->kode_akun ?? 'Unknown' }}</small>
+                                            <div class="fw-semibold"><?php echo e($item->coaKasBank->nama_akun ?? 'Unknown'); ?></div>
+                                            <small class="text-muted"><?php echo e($item->coaKasBank->kode_akun ?? 'Unknown'); ?></small>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="text-end fw-semibold">Rp {{ number_format($item->nominal, 0, ',', '.') }}</td>
+                                <td class="text-end fw-semibold">Rp <?php echo e(number_format($item->nominal, 0, ',', '.')); ?></td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{{ route('transaksi.pembayaran-beban.show', $item->id) }}" class="btn btn-outline-primary">
+                                        <a href="<?php echo e(route('transaksi.pembayaran-beban.show', $item->id)); ?>" class="btn btn-outline-primary">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('transaksi.pembayaran-beban.print', $item->id) }}" class="btn btn-outline-secondary" target="_blank">
+                                        <a href="<?php echo e(route('transaksi.pembayaran-beban.print', $item->id)); ?>" class="btn btn-outline-secondary" target="_blank">
                                             <i class="fas fa-print"></i>
                                         </a>
-                                        <form action="{{ route('transaksi.pembayaran-beban.destroy', $item->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus data ini?')">
-                                            @csrf
-                                            @method('DELETE')
+                                        <form action="<?php echo e(route('transaksi.pembayaran-beban.destroy', $item->id)); ?>" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus data ini?')">
+                                            <?php echo csrf_field(); ?>
+                                            <?php echo method_field('DELETE'); ?>
                                             <button class="btn btn-outline-danger">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -138,33 +138,34 @@
                                     </div>
                                 </td>
                             </tr>
-                        @empty
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                             <tr>
                                 <td colspan="7" class="text-center py-4">
                                     <i class="fas fa-money-check-alt fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data pembayaran beban</p>
                                 </td>
                             </tr>
-                        @endforelse
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </tbody>
                 </table>
             </div>
             
             <div class="card-footer">
-                {{ $rows->links() }}
+                <?php echo e($rows->links()); ?>
+
             </div>
         </div>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('styles')
-<link href="{{ asset('vendor/datatables/dataTables.bootstrap4.min.css') }}" rel="stylesheet">
-@endpush
+<?php $__env->startPush('styles'); ?>
+<link href="<?php echo e(asset('vendor/datatables/dataTables.bootstrap4.min.css')); ?>" rel="stylesheet">
+<?php $__env->stopPush(); ?>
 
-@push('scripts')
-<script src="{{ asset('vendor/datatables/jquery.dataTables.min.js') }}"></script>
-<script src="{{ asset('vendor/datatables/dataTables.bootstrap4.min.js') }}"></script>
+<?php $__env->startPush('scripts'); ?>
+<script src="<?php echo e(asset('vendor/datatables/jquery.dataTables.min.js')); ?>"></script>
+<script src="<?php echo e(asset('vendor/datatables/dataTables.bootstrap4.min.js')); ?>"></script>
 <script>
     $(document).ready(function() {
         $('#dataTable').DataTable({
@@ -178,4 +179,6 @@
         });
     });
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampppp\htdocs\UMKM_COE\resources\views/transaksi/pembayaran-beban/index.blade.php ENDPATH**/ ?>
