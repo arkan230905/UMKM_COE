@@ -371,8 +371,6 @@ Route::middleware('auth')->group(function () {
             Route::post('/', [BomController::class, 'store'])->name('store');
             Route::get('/{bom}', [BomController::class, 'show'])->name('show');
             Route::get('/{bom}/print', [BomController::class, 'print'])->name('print');
-            Route::get('/{bom}/edit', [BomController::class, 'edit'])->name('edit');
-            Route::put('/{bom}', [BomController::class, 'update'])->name('update');
             Route::delete('/{bom}', [BomController::class, 'destroy'])->name('destroy');
             Route::post('/update-bop', [BomController::class, 'updateBOP'])->name('update-bop');
             Route::post('/{produk}/update-bom-costs', [BomController::class, 'updateBomCosts'])->name('update-bom-costs');
@@ -380,14 +378,14 @@ Route::middleware('auth')->group(function () {
         
         // BTKL Routes (Biaya Tenaga Kerja Langsung)
         Route::prefix('btkl')->name('btkl.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\ProsesProduksiController::class, 'index'])->name('index');
-            Route::get('/create', [\App\Http\Controllers\ProsesProduksiController::class, 'create'])->name('create');
-            Route::post('/', [\App\Http\Controllers\ProsesProduksiController::class, 'store'])->name('store');
-            Route::get('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'show'])->name('show');
-            Route::get('/{prosesProduksi}/edit', [\App\Http\Controllers\ProsesProduksiController::class, 'edit'])->name('edit');
-            Route::put('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'update'])->name('update');
-            Route::patch('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'update']);
-            Route::delete('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'destroy'])->name('destroy');
+            Route::get('/', [\App\Http\Controllers\MasterData\BtklController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\MasterData\BtklController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\MasterData\BtklController::class, 'store'])->name('store');
+            Route::get('/{btkl}', [\App\Http\Controllers\MasterData\BtklController::class, 'show'])->name('show');
+            Route::get('/{btkl}/edit', [\App\Http\Controllers\MasterData\BtklController::class, 'edit'])->name('edit');
+            Route::put('/{btkl}', [\App\Http\Controllers\MasterData\BtklController::class, 'update'])->name('update');
+            Route::patch('/{btkl}', [\App\Http\Controllers\MasterData\BtklController::class, 'update']);
+            Route::delete('/{btkl}', [\App\Http\Controllers\MasterData\BtklController::class, 'destroy'])->name('destroy');
         });
         
         // Komponen BOP Routes (Overhead Components)

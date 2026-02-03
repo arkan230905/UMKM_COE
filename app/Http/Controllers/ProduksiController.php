@@ -81,21 +81,23 @@ class ProduksiController extends Controller
             $tanggal = $request->tanggal;
             $converter = new UnitConverter();
 
-            $bomItems = Bom::with('bahanBaku')->where('produk_id', $produk->id)->get();
+            $bomItems = Bom::with('details.bahanBaku')->where('produk_id', $produk->id)->get();
             // Validasi stok cukup untuk setiap bahan baku (cek ke StockLayer via StockService)
             $shortages = [];
             $shortNames = [];
-            foreach ($bomItems as $it) {
-                $bahan = $it->bahanBaku;
-                if (!$bahan) { continue; }
-                $qtyPerUnit = (float)$it->jumlah;
-                $satuanResep = $it->satuan_resep ?: $bahan->satuan;
-                $qtyResepTotal = $qtyPerUnit * $qtyProd;
-                $qtyBase = $converter->convert($qtyResepTotal, (string)$satuanResep, (string)$bahan->satuan);
-                $available = (float) $stock->getAvailableQty('material', (int)$bahan->id);
-                if ($available + 1e-9 < $qtyBase) {
-                    $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh $qtyBase, tersedia " . (float)($available);
-                    $shortNames[] = (string)($bahan->nama_bahan ?? $bahan->nama ?? 'Bahan');
+            foreach ($bomItems as $bom) {
+                foreach ($bom->details as $detail) {
+                    $bahan = $detail->bahanBaku;
+                    if (!$bahan) { continue; }
+                    $qtyPerUnit = (float)$detail->jumlah;
+                    $satuanResep = $detail->satuan ?: ($bahan->satuan->nama ?? $bahan->satuan);
+                    $qtyResepTotal = $qtyPerUnit * $qtyProd;
+                    $qtyBase = $converter->convert($qtyResepTotal, (string)$satuanResep, (string)($bahan->satuan->nama ?? $bahan->satuan));
+                    $available = (float) $stock->getAvailableQty('material', (int)$bahan->id);
+                    if ($available + 1e-9 < $qtyBase) {
+                        $shortages[] = "Stok {$bahan->nama_bahan} tidak cukup. Butuh $qtyBase, tersedia " . (float)($available);
+                        $shortNames[] = (string)($bahan->nama_bahan ?? $bahan->nama ?? 'Bahan');
+                    }
                 }
             }
             if (!empty($shortages)) {
@@ -113,52 +115,82 @@ class ProduksiController extends Controller
                 'qty_produksi' => $qtyProd,
             ]);
 
-            foreach ($bomItems as $it) {
-                $bahan = $it->bahanBaku;
-                $qtyPerUnit = (float)$it->jumlah;
-                $satuanResep = $it->satuan_resep ?: $bahan->satuan;
-                $qtyResepTotal = $qtyPerUnit * $qtyProd;
-                $qtyBase = $converter->convert($qtyResepTotal, (string)$satuanResep, (string)$bahan->satuan);
-                $hargaSatuan = (float)($bahan->harga_satuan ?? 0);
-                $subtotal = $hargaSatuan * $qtyBase;
-                $totalBahan += $subtotal;
+            foreach ($bomItems as $bom) {
+                foreach ($bom->details as $detail) {
+                    $bahan = $detail->bahanBaku;
+                    $qtyPerUnit = (float)$detail->jumlah;
+                    $satuanResep = $detail->satuan ?: ($bahan->satuan->nama ?? $bahan->satuan);
+                    $qtyResepTotal = $qtyPerUnit * $qtyProd;
+                    $qtyBase = $converter->convert($qtyResepTotal, (string)$satuanResep, (string)($bahan->satuan->nama ?? $bahan->satuan));
+                    $hargaSatuan = (float)($bahan->harga_satuan ?? 0);
+                    $subtotal = $hargaSatuan * $qtyBase;
+                    $totalBahan += $subtotal;
 
-                // FIFO consume bahan (gunakan biaya FIFO untuk jurnal WIP)
-                try {
-                    $unitStr = (string)($bahan->satuan->kode ?? $bahan->satuan->nama ?? $bahan->satuan ?? 'pcs');
-                    $fifoCost = $stock->consume('material', $bahan->id, $qtyBase, $unitStr, 'production', $produksi->id, $tanggal);
-                } catch (\RuntimeException $e) {
-                    return back()->withErrors(["Stok {$bahan->nama_bahan} tidak mencukupi untuk produksi. ".$e->getMessage()])->withInput();
+                    // FIFO consume bahan (gunakan biaya FIFO untuk jurnal WIP)
+                    try {
+                        $unitStr = (string)($bahan->satuan->kode ?? $bahan->satuan->nama ?? $bahan->satuan ?? 'pcs');
+                        $fifoCost = $stock->consume('material', $bahan->id, $qtyBase, $unitStr, 'production', $produksi->id, $tanggal);
+                    } catch (\RuntimeException $e) {
+                        return back()->withErrors(["Stok {$bahan->nama_bahan} tidak mencukupi untuk produksi. ".$e->getMessage()])->withInput();
+                    }
+                    $fifoCostMaterials += (float)$fifoCost;
+
+                    // Update stok bahan baku master
+                    $bahan->stok = (float)$bahan->stok - $qtyBase;
+                    $bahan->save();
+
+                    ProduksiDetail::create([
+                        'produksi_id' => $produksi->id,
+                        'bahan_baku_id' => $bahan->id,
+                        'qty_resep' => $qtyResepTotal,
+                        'satuan_resep' => $satuanResep,
+                        'qty_konversi' => $qtyBase,
+                        'harga_satuan' => $hargaSatuan,
+                        'subtotal' => $subtotal,
+                    ]);
                 }
-                $fifoCostMaterials += (float)$fifoCost;
-
-                // Update stok bahan baku master
-                $bahan->stok = (float)$bahan->stok - $qtyBase;
-                $bahan->save();
-
-                ProduksiDetail::create([
-                    'produksi_id' => $produksi->id,
-                    'bahan_baku_id' => $bahan->id,
-                    'qty_resep' => $qtyResepTotal,
-                    'satuan_resep' => $satuanResep,
-                    'qty_konversi' => $qtyBase,
-                    'harga_satuan' => $hargaSatuan,
-                    'subtotal' => $subtotal,
-                ]);
             }
 
-            // BTKL & BOP: gunakan default per-unit jika ada; jika tidak, hitung total dari persentase total bahan (tanpa dikali qty dua kali)
-            $btklRate = (float) (config('app.btkl_percent') ?? 0.2);
-            $bopRate  = (float) (config('app.bop_percent') ?? 0.1);
-            if (!is_null($produk->btkl_default) || !is_null($produk->bop_default)) {
-                $btklPerUnit = (float) ($produk->btkl_default ?? 0);
-                $bopPerUnit  = (float) ($produk->bop_default ?? 0);
-                $totalBTKL = $btklPerUnit * $qtyProd;
-                $totalBOP  = $bopPerUnit  * $qtyProd;
-            } else {
-                $totalBTKL = $totalBahan * $btklRate; // total untuk seluruh batch
-                $totalBOP  = $totalBahan * $bopRate;  // total untuk seluruh batch
-            }
+            // Ambil total biaya dari BOM yang sudah dihitung (konsisten dengan halaman BOM index)
+$bom = \App\Models\Bom::where('produk_id', $produk->id)->first();
+$bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
+            
+// Total Biaya Bahan = Bahan Baku (Bom.details) + Bahan Pendukung (BomJobBahanPendukung)
+$totalBahanBakuPerUnit = $bom ? $bom->details->sum('total_harga') : 0;
+$totalBahanPendukungPerUnit = 0;
+if ($bomJobCosting) {
+    $bahanPendukungDetails = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->get();
+    foreach ($bahanPendukungDetails as $detail) {
+        $totalBahanPendukungPerUnit += $detail->subtotal;
+    }
+}
+$totalBahanPerUnit = $totalBahanBakuPerUnit + $totalBahanPendukungPerUnit;
+$totalBahan = $totalBahanPerUnit * $qtyProd;
+            
+// Total BTKL dan BOP dari BOM Job Costing (sama seperti di BOM index)
+$totalBTKLPerUnit = 0;
+$totalBOPPerUnit = 0;
+            
+if ($bomJobCosting) {
+    // Hitung total BTKL dengan logic yang sama seperti BomController index
+    $bomJobBtkl = \Illuminate\Support\Facades\DB::table('bom_job_btkl')
+        ->join('proses_produksis', 'bom_job_btkl.proses_produksi_id', '=', 'proses_produksis.id')
+        ->where('bom_job_btkl.bom_job_costing_id', $bomJobCosting->id)
+        ->select('bom_job_btkl.*', 'proses_produksis.tarif_btkl as tarif_per_jam', 'proses_produksis.kapasitas_per_jam')
+        ->get();
+    
+    // Calculate biaya per produk: tarif_per_jam ÷ kapasitas_per_jam × durasi_jam
+    $totalBTKLPerUnit = $bomJobBtkl->sum(function($item) {
+        $kapasitas = $item->kapasitas_per_jam ?? 1;
+        return ($item->tarif_per_jam / $kapasitas) * $item->durasi_jam;
+    });
+    
+    // Ambil total BOP dari BomJobCosting
+    $totalBOPPerUnit = $bomJobCosting->total_bop;
+}
+            
+$totalBTKL = $totalBTKLPerUnit * $qtyProd;
+$totalBOP = $totalBOPPerUnit * $qtyProd;
             $totalBiaya = $totalBahan + $totalBTKL + $totalBOP;
 
             $produksi->update([

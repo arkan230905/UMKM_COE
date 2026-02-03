@@ -238,20 +238,6 @@
                                                title="Lihat Detail BOM">
                                                 <i class="fas fa-eye"></i> Detail
                                             </a>
-                                            <a href="<?php echo e(route('master-data.bom.edit', $bom->id)); ?>" 
-                                               class="btn btn-outline-warning" 
-                                               data-bs-toggle="tooltip" 
-                                               title="Edit BOM">
-                                                <i class="fas fa-edit"></i> Edit
-                                            </a>
-                                            <button type="button" 
-                                                    class="btn btn-outline-info" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#hitungBomModal<?php echo e($bom->id); ?>"
-                                                    data-bs-toggle="tooltip" 
-                                                    title="Hitung Ulang BOM">
-                                                <i class="fas fa-calculator"></i> Hitung BOM
-                                            </button>
                                             <form action="<?php echo e(route('master-data.bom.destroy', $bom->id)); ?>" 
                                                   method="POST" 
                                                   class="d-inline" 
@@ -345,95 +331,6 @@
             <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
         </div>
     </div>
-    
-    <!-- Modal Hitung BOM -->
-    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $produks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $produk): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($produk->boms->first()): ?>
-            <div class="modal fade" id="hitungBomModal<?php echo e($produk->boms->first()->id); ?>" tabindex="-1">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header bg-info text-white">
-                            <h5 class="modal-title">
-                                <i class="fas fa-calculator"></i> Hitung Ulang BOM - <?php echo e($produk->nama_produk); ?>
-
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <form action="<?php echo e(route('master-data.bom.update-bom-costs', $produk->id)); ?>" method="POST">
-                            <?php echo csrf_field(); ?>
-                            <div class="modal-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <h6 class="text-primary">Komponen Biaya Saat Ini</h6>
-                                        <div class="mb-3">
-                                            <label class="form-label">Biaya Bahan (BBB + BP)</label>
-                                            <div class="input-group">
-                                                <span class="input-group-text">Rp</span>
-                                                <input type="text" class="form-control" value="<?php echo e(number_format($produk->total_biaya_bahan, 0, ',', '.')); ?>" readonly>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label">Biaya BTKL (Otomatis)</label>
-                                            <div class="input-group">
-                                                <span class="input-group-text">Rp</span>
-                                                <input type="text" class="form-control" value="<?php echo e(number_format($produk->total_btkl, 0, ',', '.')); ?>" readonly>
-                                            </div>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label for="bop_input" class="form-label">Biaya BOP <small class="text-muted">(Input Manual)</small></label>
-                                            <div class="input-group">
-                                                <span class="input-group-text">Rp</span>
-                                                <input type="number" 
-                                                       id="bop_input" 
-                                                       name="total_bop" 
-                                                       class="form-control text-end" 
-                                                       value="<?php echo e($produk->total_bop ?? 0); ?>"
-                                                       min="0" 
-                                                       step="1000"
-                                                       placeholder="0">
-                                            </div>
-                                            <small class="form-text text-muted">Masukkan nominal Biaya Overhead Pabrik</small>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <h6 class="text-success">Perhitungan Total</h6>
-                                        <div class="card bg-light">
-                                            <div class="card-body">
-                                                <div class="d-flex justify-content-between mb-2">
-                                                    <span>Biaya Bahan:</span>
-                                                    <strong>Rp <?php echo e(number_format($produk->total_biaya_bahan, 0, ',', '.')); ?></strong>
-                                                </div>
-                                                <div class="d-flex justify-content-between mb-2">
-                                                    <span>Biaya BTKL:</span>
-                                                    <strong>Rp <?php echo e(number_format($produk->total_btkl, 0, ',', '.')); ?></strong>
-                                                </div>
-                                                <div class="d-flex justify-content-between mb-2">
-                                                    <span>Biaya BOP:</span>
-                                                    <strong id="bop_display">Rp <?php echo e(number_format($produk->total_bop ?? 0, 0, ',', '.')); ?></strong>
-                                                </div>
-                                                <hr>
-                                                <div class="d-flex justify-content-between">
-                                                    <span class="fs-5">Total HPP:</span>
-                                                    <strong class="fs-5 text-success" id="total_display">Rp <?php echo e(number_format($produk->total_biaya_bahan + $produk->total_btkl + ($produk->total_bop ?? 0), 0, ',', '.')); ?></strong>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                <button type="submit" class="btn btn-info">
-                                    <i class="fas fa-save"></i> Simpan & Hitung Ulang
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-</div>
 
 <?php $__env->startPush('styles'); ?>
 <style>
@@ -500,39 +397,7 @@
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
         });
-        
-        // Handle BOP input changes in modal
-        document.querySelectorAll('input[name="total_bop"]').forEach(function(input) {
-            input.addEventListener('input', function() {
-                updateBOPCalculation(this);
-            });
-        });
     });
-    
-    function updateBOPCalculation(input) {
-        const form = input.closest('form');
-        const bopValue = parseFloat(input.value) || 0;
-        
-        // Get base values from readonly inputs
-        const biayaBahanText = form.querySelector('input[value*=","]').value.replace(/[^\d]/g, '');
-        const biayaBahan = parseFloat(biayaBahanText) || 0;
-        
-        const biayaBTKLText = form.querySelectorAll('input[value*=","]')[1].value.replace(/[^\d]/g, '');
-        const biayaBTKL = parseFloat(biayaBTKLText) || 0;
-        
-        // Update BOP display
-        const bopDisplay = document.getElementById('bop_display');
-        if (bopDisplay) {
-            bopDisplay.textContent = 'Rp ' + bopValue.toLocaleString('id-ID');
-        }
-        
-        // Update total display
-        const totalDisplay = document.getElementById('total_display');
-        if (totalDisplay) {
-            const total = biayaBahan + biayaBTKL + bopValue;
-            totalDisplay.textContent = 'Rp ' + total.toLocaleString('id-ID');
-        }
-    }
 </script>
 <?php $__env->stopPush(); ?>
 
