@@ -21,7 +21,7 @@
     </div>
   @endif
   
-  <form action="{{ route('transaksi.pembayaran-beban.store') }}" method="POST">@csrf
+  <form action="{{ route('transaksi.expense-payment.store') }}" method="POST">@csrf
     <div class="mb-3">
       <label class="form-label">Tanggal</label>
       <input type="date" name="tanggal" class="form-control" required>
@@ -29,6 +29,7 @@
     <div class="mb-3">
       <label class="form-label">COA Beban</label>
       <select name="coa_beban_id" class="form-select" required>
+        <option value="">Pilih COA Beban</option>
         @foreach($coas as $c)
           <option value="{{ $c->kode_akun }}">{{ $c->kode_akun }} - {{ $c->nama_akun }}</option>
         @endforeach
@@ -45,6 +46,7 @@
       <div class="col-md-4">
         <label class="form-label">COA Kas/Bank</label>
         <select name="coa_kasbank" class="form-select">
+          <option value="">Pilih COA Kas/Bank</option>
           @foreach($kasbank as $k)
             <option value="{{ $k->kode_akun }}">{{ $k->kode_akun }} - {{ $k->nama_akun }}</option>
           @endforeach
@@ -60,7 +62,7 @@
       <input type="text" name="deskripsi" class="form-control">
     </div>
     <button class="btn btn-success">Simpan</button>
-    <a href="{{ route('transaksi.pembayaran-beban.index') }}" class="btn btn-secondary">Batal</a>
+    <a href="{{ route('transaksi.expense-payment.index') }}" class="btn btn-secondary">Batal</a>
   </form>
 </div>
 @endsection

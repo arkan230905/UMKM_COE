@@ -18,13 +18,8 @@ class BopController extends Controller
     public function index()
     {
         try {
-            // Get only processes that have BTKL data (from bom_job_btkl table)
-            $prosesIdsWithBTKL = DB::table('bom_job_btkl')
-                ->distinct()
-                ->pluck('proses_produksi_id')
-                ->toArray();
-            
-            $prosesProduksis = ProsesProduksi::whereIn('id', $prosesIdsWithBTKL)
+            // Get all production processes with capacity
+            $prosesProduksis = ProsesProduksi::where('kapasitas_per_jam', '>', 0)
                 ->with('bopProses')
                 ->orderBy('kode_proses')
                 ->get();
@@ -37,19 +32,19 @@ class BopController extends Controller
 
             // Transform expense accounts to BOP Lainnya format for display
             $bopLainnya = $akunBeban->map(function($akun) {
-                // Check if there's existing BOP data for this account in bops table
-                $existingBop = \App\Models\Bop::where('kode_akun', $akun->kode_akun)->first();
+                // Check if there's existing BOP data for this account in bop_lainnyas table
+                $existingBop = \App\Models\BopLainnya::where('kode_akun', $akun->kode_akun)->first();
                 
                 return (object) [
                     'id' => $existingBop->id ?? null,
                     'kode_akun' => $akun->kode_akun,
                     'nama_akun' => $akun->nama_akun,
-                    'budget' => $existingBop->jumlah ?? 0, // Use 'jumlah' field
-                    'kuantitas_per_jam' => 1, // Default value
-                    'aktual' => 0, // Default value
+                    'budget' => $existingBop->budget ?? 0,
+                    'kuantitas_per_jam' => $existingBop->kuantitas_per_jam ?? 1,
+                    'aktual' => $existingBop->aktual ?? 0,
                     'periode' => $existingBop->periode ?? date('Y-m'),
-                    'keterangan' => $existingBop->nama_biaya ?? $akun->nama_akun,
-                    'is_active' => true,
+                    'keterangan' => $existingBop->keterangan ?? $akun->nama_akun,
+                    'is_active' => $existingBop->is_active ?? true,
                     'created_at' => $existingBop->created_at ?? now(),
                     'updated_at' => $existingBop->updated_at ?? now(),
                 ];
@@ -122,6 +117,72 @@ class BopController extends Controller
             DB::commit();
 
             return response()->json(['success' => true, 'message' => 'BOP Lainnya berhasil disimpan']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Get BOP Lainnya data for editing
+     */
+    public function getLainnya($id)
+    {
+        try {
+            $bopLainnya = \App\Models\BopLainnya::findOrFail($id);
+            
+            return response()->json([
+                'success' => true,
+                'bop' => $bopLainnya
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update BOP Lainnya
+     */
+    public function updateLainnya(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'kode_akun' => 'required|string|exists:coas,kode_akun',
+            'budget' => 'required|numeric|min:0',
+            'kuantitas_per_jam' => 'required|integer|min:1',
+            'periode' => 'required|string',
+            'keterangan' => 'nullable|string'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Get COA data
+            $coa = Coa::where('kode_akun', $validated['kode_akun'])->first();
+            if (!$coa) {
+                throw new \Exception('Akun tidak ditemukan');
+            }
+
+            // Check if account is expense account (kode 5)
+            if (!str_starts_with($validated['kode_akun'], '5')) {
+                throw new \Exception('Hanya akun beban (kode 5) yang dapat digunakan untuk BOP Lainnya');
+            }
+
+            $bopLainnya = \App\Models\BopLainnya::findOrFail($id);
+            
+            $validated['nama_akun'] = $coa->nama_akun;
+            $validated['metode_pembebanan'] = $bopLainnya->metode_pembebanan ?? 'jam_mesin';
+            $validated['is_active'] = true;
+
+            $bopLainnya->update($validated);
+
+            DB::commit();
+
+            return response()->json(['success' => true, 'message' => 'BOP Lainnya berhasil diperbarui']);
 
         } catch (\Exception $e) {
             DB::rollBack();

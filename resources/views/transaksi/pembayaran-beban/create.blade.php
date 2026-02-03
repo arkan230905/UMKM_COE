@@ -60,7 +60,7 @@
                             @foreach($akunBeban as $beban)
                                 <option value="{{ $beban->id }}" 
                                     {{ old('akun_beban_id') == $beban->id ? 'selected' : '' }}>
-                                    {{ $beban->kode }} - {{ $beban->nama }}
+                                    {{ $beban->kode_akun }} - {{ $beban->nama_akun }}
                                 </option>
                             @endforeach
                         </select>

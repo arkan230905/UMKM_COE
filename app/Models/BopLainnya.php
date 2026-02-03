@@ -9,7 +9,7 @@ class BopLainnya extends Model
 {
     use HasFactory;
 
-    protected $table = 'bop_lainnyas';
+    protected $table = 'bop_lainnya';
 
     protected $fillable = [
         'kode_akun',
@@ -50,9 +50,9 @@ class BopLainnya extends Model
      * Relasi ke COA
      */
     public function coa()
-    {
-        return $this->belongsTo(\App\Models\Coa::class, 'kode_akun', 'kode_akun');
-    }
+{
+    return $this->belongsTo(\App\Models\Coa::class, 'kode_akun', 'kode_akun');
+}
 
     /**
      * Scope untuk BOP aktif

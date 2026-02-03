@@ -336,6 +336,8 @@ Route::middleware('auth')->group(function () {
             
             // BOP Lainnya
             Route::post('/store-lainnya', [\App\Http\Controllers\MasterData\BopController::class, 'storeLainnya'])->name('store-lainnya');
+            Route::get('/get-lainnya/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'getLainnya'])->name('get-lainnya');
+            Route::put('/update-lainnya/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateLainnya'])->name('update-lainnya');
             Route::delete('/destroy-lainnya/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroyLainnya'])->name('destroy-lainnya');
             
             // BOP Proses Management
@@ -433,14 +435,14 @@ Route::middleware('auth')->group(function () {
         });
 
         // Alias route untuk backward compatibility - LANGSUNG KE CONTROLLER
-        Route::prefix('expense-payment')->group(function() {
-            Route::get('/', [ExpensePaymentController::class, 'index']);
-            Route::get('/create', [ExpensePaymentController::class, 'create']);
-            Route::post('/', [ExpensePaymentController::class, 'store']);
-            Route::get('/{id}', [ExpensePaymentController::class, 'show']);
-            Route::get('/{id}/edit', [ExpensePaymentController::class, 'edit']);
-            Route::put('/{id}', [ExpensePaymentController::class, 'update']);
-            Route::delete('/{id}', [ExpensePaymentController::class, 'destroy']);
+        Route::prefix('expense-payment')->name('expense-payment.')->group(function() {
+            Route::get('/', [ExpensePaymentController::class, 'index'])->name('index');
+            Route::get('/create', [ExpensePaymentController::class, 'create'])->name('create');
+            Route::post('/', [ExpensePaymentController::class, 'store'])->name('store');
+            Route::get('/{id}', [ExpensePaymentController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [ExpensePaymentController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [ExpensePaymentController::class, 'update'])->name('update');
+            Route::delete('/{id}', [ExpensePaymentController::class, 'destroy'])->name('destroy');
         });
 
         // ============================================================
