@@ -1,28 +1,26 @@
-@extends('layouts.app')
+<?php $__env->startSection('title', 'Tambah Kualifikasi Tenaga Kerja'); ?>
 
-@section('title', 'Tambah Kualifikasi Tenaga Kerja')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
             <i class="fas fa-briefcase me-2"></i>Tambah Kualifikasi Tenaga Kerja
         </h2>
-        <a href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}" class="btn btn-secondary">
+        <a href="<?php echo e(route('master-data.kualifikasi-tenaga-kerja.index')); ?>" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-2"></i>Kembali
         </a>
     </div>
 
-    @if ($errors->any())
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($errors->any()): ?>
         <div class="alert alert-danger alert-dismissible fade show">
             <ul class="mb-0">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
+                <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <li><?php echo e($error); ?></li>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
             </ul>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
     <div class="card">
         <div class="card-header">
@@ -32,40 +30,40 @@
         </div>
     <div class="card border-0 shadow-sm">
         <div class="card-body jabatan-form">
-            <form method="POST" action="{{ route('master-data.kualifikasi-tenaga-kerja.store') }}">
-                @csrf
+            <form method="POST" action="<?php echo e(route('master-data.kualifikasi-tenaga-kerja.store')); ?>">
+                <?php echo csrf_field(); ?>
 
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Nama Jabatan</label>
-                        <input type="text" name="nama" class="form-control" value="{{ old('nama') }}" placeholder="cth: Operator Produksi" required>
+                        <input type="text" name="nama" class="form-control" value="<?php echo e(old('nama')); ?>" placeholder="cth: Operator Produksi" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Kategori</label>
                         <select name="kategori" class="form-select" required>
-                            <option value="btkl" {{ old('kategori')==='btkl' ? 'selected' : '' }}>BTKL</option>
-                            <option value="btktl" {{ old('kategori')==='btktl' ? 'selected' : '' }}>BTKTL</option>
+                            <option value="btkl" <?php echo e(old('kategori')==='btkl' ? 'selected' : ''); ?>>BTKL</option>
+                            <option value="btktl" <?php echo e(old('kategori')==='btktl' ? 'selected' : ''); ?>>BTKTL</option>
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Tunjangan (Rp)</label>
-                        <input type="text" name="tunjangan" class="form-control money-input" value="{{ old('tunjangan',0) }}">
+                        <input type="text" name="tunjangan" class="form-control money-input" value="<?php echo e(old('tunjangan',0)); ?>">
                         <small class="money-hint"></small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Asuransi (Rp)</label>
-                        <input type="text" name="asuransi" class="form-control money-input" value="{{ old('asuransi',0) }}">
+                        <input type="text" name="asuransi" class="form-control money-input" value="<?php echo e(old('asuransi',0)); ?>">
                         <small class="money-hint"></small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Gaji Pokok (Rp)</label>
-                        <input type="text" name="gaji" class="form-control money-input" value="{{ old('gaji',0) }}">
+                        <input type="text" name="gaji_pokok" class="form-control money-input" value="<?php echo e(old('gaji_pokok',0)); ?>">
                         <small class="money-hint"></small>
                         <small class="d-block">BTKTL: gaji per bulan. BTKL: isi 0.</small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Tarif/Jam (Rp)</label>
-                        <input type="text" name="tarif" class="form-control money-input" value="{{ old('tarif',0) }}">
+                        <input type="text" name="tarif_lembur" class="form-control money-input" value="<?php echo e(old('tarif_lembur',0)); ?>">
                         <small class="money-hint"></small>
                         <small class="d-block">BTKL: tarif per jam. BTKTL: isi 0.</small>
                     </div>
@@ -73,7 +71,7 @@
 
                 <div class="mt-4">
                     <button class="btn btn-primary">Simpan</button>
-                    <a href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}" class="btn btn-secondary">Batal</a>
+                    <a href="<?php echo e(route('master-data.kualifikasi-tenaga-kerja.index')); ?>" class="btn btn-secondary">Batal</a>
                 </div>
             </form>
         </div>
@@ -140,4 +138,6 @@
         })();
     </script>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\UMKM_COE\resources\views/master-data/jabatan/create.blade.php ENDPATH**/ ?>

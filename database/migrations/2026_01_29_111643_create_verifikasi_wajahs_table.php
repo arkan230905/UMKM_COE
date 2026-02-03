@@ -20,7 +20,7 @@ return new class extends Migration
             $table->date('tanggal_verifikasi');
             $table->timestamps();
             
-            $table->foreign('nomor_induk_pegawai')->references('nomor_induk_pegawai')->on('pegawais')->onDelete('cascade');
+            $table->foreign('nomor_induk_pegawai')->references('kode_pegawai')->on('pegawais')->onDelete('cascade');
         });
     }
 

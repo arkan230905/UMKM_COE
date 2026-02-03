@@ -1,35 +1,34 @@
-@extends('layouts.app')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container-fluid px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
             <i class="bi bi-people-fill me-2"></i>Daftar Pegawai
         </h2>
         <div>
-            <a href="{{ route('master-data.pegawai.create') }}" class="btn btn-primary">
+            <a href="<?php echo e(route('master-data.pegawai.create')); ?>" class="btn btn-primary">
                 <i class="bi bi-plus-circle me-1"></i>Tambah Pegawai
             </a>
         </div>
     </div>
 
-    @if(session('success'))
+    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('success')): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
+            <i class="bi bi-check-circle me-2"></i><?php echo e(session('success')); ?>
+
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-    @endif
+    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3">
             <div class="row g-3 align-items-center">
                 <div class="col-md-4">
-                    <form method="GET" action="{{ route('master-data.pegawai.index') }}" class="input-group">
+                    <form method="GET" action="<?php echo e(route('master-data.pegawai.index')); ?>" class="input-group">
                         <input type="text" 
                                name="search" 
                                class="form-control" 
                                placeholder="Cari pegawai..." 
-                               value="{{ request('search') }}"
+                               value="<?php echo e(request('search')); ?>"
                                style="color: #000; background-color: #f8f9fa;">
                         <button class="btn btn-outline-secondary" type="submit">
                             <i class="bi bi-search"></i>
@@ -37,11 +36,11 @@
                     </form>
                 </div>
                 <div class="col-md-3">
-                    <form method="GET" action="{{ route('master-data.pegawai.index') }}">
+                    <form method="GET" action="<?php echo e(route('master-data.pegawai.index')); ?>">
                         <select name="jenis" class="form-select" onchange="this.form.submit()" style="color: #000; background-color: #f8f9fa;">
                             <option value="">Semua Kategori</option>
-                            <option value="btkl" {{ request('jenis') == 'btkl' ? 'selected' : '' }}>BTKL</option>
-                            <option value="btktl" {{ request('jenis') == 'btktl' ? 'selected' : '' }}>BTKTL</option>
+                            <option value="btkl" <?php echo e(request('jenis') == 'btkl' ? 'selected' : ''); ?>>BTKL</option>
+                            <option value="btktl" <?php echo e(request('jenis') == 'btktl' ? 'selected' : ''); ?>>BTKTL</option>
                         </select>
                     </form>
                 </div>
@@ -73,31 +72,32 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($pegawais as $index => $pegawai)
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $pegawais; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $pegawai): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <tr>
-                            <td class="text-center text-muted">{{ ($pegawais->currentPage() - 1) * $pegawais->perPage() + $loop->iteration }}</td>
-                            <td>{{ $pegawai->kode_pegawai }}</td>
-                            <td>{{ $pegawai->nama }}</td>
-                            <td>{{ $pegawai->email }}</td>
-                            <td>{{ $pegawai->no_telepon }}</td>
-                            <td class="col-alamat"><small class="text-muted">{{ Str::limit($pegawai->alamat, 40) }}</small></td>
-                            <td>{{ $pegawai->jenis_kelamin == 'L' ? 'Laki-laki' : 'Perempuan' }}</td>
-                            <td>{{ $pegawai->jabatan }}</td>
+                            <td class="text-center text-muted"><?php echo e(($pegawais->currentPage() - 1) * $pegawais->perPage() + $loop->iteration); ?></td>
+                            <td><?php echo e($pegawai->kode_pegawai); ?></td>
+                            <td><?php echo e($pegawai->nama); ?></td>
+                            <td><?php echo e($pegawai->email); ?></td>
+                            <td><?php echo e($pegawai->no_telepon); ?></td>
+                            <td class="col-alamat"><small class="text-muted"><?php echo e(Str::limit($pegawai->alamat, 40)); ?></small></td>
+                            <td><?php echo e($pegawai->jenis_kelamin == 'L' ? 'Laki-laki' : 'Perempuan'); ?></td>
+                            <td><?php echo e($pegawai->jabatan); ?></td>
                             <td class="text-center">
-                                <span class="badge bg-{{ $pegawai->jenis_pegawai == 'btkl' ? 'primary' : 'success' }}">
-                                    {{ strtoupper($pegawai->jenis_pegawai) }}
+                                <span class="badge bg-<?php echo e($pegawai->jenis_pegawai == 'btkl' ? 'primary' : 'success'); ?>">
+                                    <?php echo e(strtoupper($pegawai->jenis_pegawai)); ?>
+
                                 </span>
                             </td>
-                            <td>{{ strtoupper($pegawai->bank ?? '-') }}</td>
-                            <td>{{ $pegawai->nomor_rekening ?? '-' }}</td>
-                            <td>{{ $pegawai->nama_rekening ?? '-' }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->gaji, 0, ',', '.') }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->tarif, 0, ',', '.') }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->tunjangan, 0, ',', '.') }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->asuransi, 0, ',', '.') }}</td>
+                            <td><?php echo e(strtoupper($pegawai->bank ?? '-')); ?></td>
+                            <td><?php echo e($pegawai->nomor_rekening ?? '-'); ?></td>
+                            <td><?php echo e($pegawai->nama_rekening ?? '-'); ?></td>
+                            <td class="text-end">Rp <?php echo e(number_format($pegawai->gaji, 0, ',', '.')); ?></td>
+                            <td class="text-end">Rp <?php echo e(number_format($pegawai->tarif, 0, ',', '.')); ?></td>
+                            <td class="text-end">Rp <?php echo e(number_format($pegawai->tunjangan, 0, ',', '.')); ?></td>
+                            <td class="text-end">Rp <?php echo e(number_format($pegawai->asuransi, 0, ',', '.')); ?></td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('master-data.pegawai.edit', $pegawai->id) }}" 
+                                    <a href="<?php echo e(route('master-data.pegawai.edit', $pegawai->id)); ?>" 
                                        class="btn btn-outline-primary" 
                                        data-bs-toggle="tooltip" 
                                        title="Edit">
@@ -106,14 +106,14 @@
                                     <button type="button" 
                                             class="btn btn-outline-danger" 
                                             data-bs-toggle="modal" 
-                                            data-bs-target="#deleteModal{{ $pegawai->id }}"
+                                            data-bs-target="#deleteModal<?php echo e($pegawai->id); ?>"
                                             title="Hapus">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                                 
                                 <!-- Delete Modal -->
-                                <div class="modal fade" id="deleteModal{{ $pegawai->id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal fade" id="deleteModal<?php echo e($pegawai->id); ?>" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog">
                                         <div class="modal-content">
                                             <div class="modal-header">
@@ -121,13 +121,13 @@
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             <div class="modal-body">
-                                                Apakah Anda yakin ingin menghapus data pegawai <strong>{{ $pegawai->nama }}</strong>?
+                                                Apakah Anda yakin ingin menghapus data pegawai <strong><?php echo e($pegawai->nama); ?></strong>?
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                <form action="{{ route('master-data.pegawai.destroy', $pegawai->id) }}" method="POST">
-                                                    @csrf
-                                                    @method('DELETE')
+                                                <form action="<?php echo e(route('master-data.pegawai.destroy', $pegawai->id)); ?>" method="POST">
+                                                    <?php echo csrf_field(); ?>
+                                                    <?php echo method_field('DELETE'); ?>
                                                     <button type="submit" class="btn btn-danger">Hapus</button>
                                                 </form>
                                             </div>
@@ -136,7 +136,7 @@
                                 </div>
                             </td>
                         </tr>
-                        @empty
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <tr>
                             <td colspan="17" class="text-center py-4">
                                 <div class="text-muted">
@@ -145,7 +145,7 @@
                                 </div>
                             </td>
                         </tr>
-                        @endforelse
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -153,26 +153,27 @@
             <div class="card-footer bg-white border-top-0">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="text-muted small">
-                        @if($pegawais->total() > 0)
-                            Menampilkan {{ ($pegawais->currentPage() - 1) * $pegawais->perPage() + 1 }} - 
-                            {{ min($pegawais->currentPage() * $pegawais->perPage(), $pegawais->total()) }} 
-                            dari {{ $pegawais->total() }} data
-                        @else
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($pegawais->total() > 0): ?>
+                            Menampilkan <?php echo e(($pegawais->currentPage() - 1) * $pegawais->perPage() + 1); ?> - 
+                            <?php echo e(min($pegawais->currentPage() * $pegawais->perPage(), $pegawais->total())); ?> 
+                            dari <?php echo e($pegawais->total()); ?> data
+                        <?php else: ?>
                             Tidak ada data yang ditemukan
-                        @endif
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </div>
-                    @if($pegawais->hasPages())
+                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($pegawais->hasPages()): ?>
                     <div>
-                        {{ $pegawais->withQueryString()->links() }}
+                        <?php echo e($pegawais->withQueryString()->links()); ?>
+
                     </div>
-                    @endif
+                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
     // Inisialisasi tooltip
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -189,7 +190,7 @@
         }
     }, 5000);
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
 
 <style>
     .table-responsive { overflow-x: auto; }
@@ -239,4 +240,6 @@
         height: 14px;
     }
 </style>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\UMKM_COE\resources\views/master-data/pegawai/index.blade.php ENDPATH**/ ?>

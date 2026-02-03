@@ -26,7 +26,7 @@ class PresensiController extends Controller
         if ($search) {
             $query->whereHas('pegawai', function($q) use ($search) {
                 $q->where('nama', 'like', "%{$search}%")
-                  ->orWhere('nomor_induk_pegawai', 'like', "%{$search}%");
+                  ->orWhere('kode_pegawai', 'like', "%{$search}%");
             });
         }
         
@@ -35,7 +35,7 @@ class PresensiController extends Controller
         // Get pegawais without face verification
         $pegawaiTanpaVerifikasi = [];
         foreach ($pegawais as $pegawai) {
-            $hasVerifikasi = VerifikasiWajah::where('nomor_induk_pegawai', $pegawai->nomor_induk_pegawai)
+            $hasVerifikasi = VerifikasiWajah::where('nomor_induk_pegawai', $pegawai->kode_pegawai)
                 ->where('aktif', true)
                 ->exists();
             
@@ -183,7 +183,7 @@ class PresensiController extends Controller
         \Log::info('AJAX check:', ['ajax' => $request->ajax(), 'wantsJson' => $request->wantsJson(), 'expectsJson' => $request->expectsJson()]);
         
         $request->validate([
-            'nomor_induk_pegawai' => 'required|exists:pegawais,nomor_induk_pegawai',
+            'kode_pegawai' => 'required|exists:pegawais,kode_pegawai',
             'foto_wajah' => 'required|image|mimes:jpeg,png,jpg|max:2048',
         ]);
         
@@ -192,7 +192,7 @@ class PresensiController extends Controller
         try {
             // Debug log
             \Log::info('Starting verifikasi wajah store', [
-                'nomor_induk_pegawai' => $request->nomor_induk_pegawai,
+                'kode_pegawai' => $request->kode_pegawai,
                 'has_file' => $request->hasFile('foto_wajah')
             ]);
             
@@ -216,14 +216,14 @@ class PresensiController extends Controller
                 \Log::info('File stored successfully', ['path' => $path]);
                 
                 // Deactivate previous face verifications for this employee
-                VerifikasiWajah::where('nomor_induk_pegawai', $request->nomor_induk_pegawai)
+                VerifikasiWajah::where('kode_pegawai', $request->kode_pegawai)
                     ->update(['aktif' => false]);
                 
                 \Log::info('Previous verifications deactivated');
                 
                 // Create new face verification
                 $verifikasi = VerifikasiWajah::create([
-                    'nomor_induk_pegawai' => $request->nomor_induk_pegawai,
+                    'kode_pegawai' => $request->kode_pegawai,
                     'foto_wajah' => $path,
                     'aktif' => $request->aktif ?? true,
                     'tanggal_verifikasi' => $request->tanggal_verifikasi ?? now()->toDateString(),
@@ -278,7 +278,7 @@ class PresensiController extends Controller
     public function verifikasiWajahUpdate(Request $request, $id)
     {
         $request->validate([
-            'nomor_induk_pegawai' => 'required|exists:pegawais,nomor_induk_pegawai',
+            'kode_pegawai' => 'required|exists:pegawais,kode_pegawai',
             'foto_wajah' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
         
@@ -321,33 +321,33 @@ class PresensiController extends Controller
         \Log::info('Request input:', $request->all());
         
         $request->validate([
-            'nomor_induk_pegawai' => 'required|exists:pegawais,nomor_induk_pegawai',
+            'kode_pegawai' => 'required|exists:pegawais,kode_pegawai',
             'foto_wajah' => 'required|string', // Accept base64 string
         ]);
         
         \Log::info('Validation passed');
         
-        $pegawai = Pegawai::where('nomor_induk_pegawai', $request->nomor_induk_pegawai)->first();
+        $pegawai = Pegawai::where('kode_pegawai', $request->kode_pegawai)->first();
         
         if (!$pegawai) {
-            \Log::error('Pegawai tidak ditemukan: ' . $request->nomor_induk_pegawai);
+            \Log::error('Pegawai tidak ditemukan: ' . $request->kode_pegawai);
             return response()->json(['success' => false, 'message' => 'Pegawai tidak ditemukan'], 404);
         }
         
-        \Log::info('Pegawai found: ' . $pegawai->nama . ' (ID: ' . $pegawai->nomor_induk_pegawai . ')');
+        \Log::info('Pegawai found: ' . $pegawai->nama . ' (ID: ' . $pegawai->kode_pegawai . ')');
         
-        if (!$pegawai->nomor_induk_pegawai) {
-            \Log::error('Pegawai NIP is null for: ' . $pegawai->nama);
-            return response()->json(['success' => false, 'message' => 'NIP pegawai tidak valid'], 400);
+        if (!$pegawai->kode_pegawai) {
+            \Log::error('Pegawai Kode is null for: ' . $pegawai->nama);
+            return response()->json(['success' => false, 'message' => 'Kode pegawai tidak valid'], 400);
         }
         
         // Check if employee has active face verification
-        $verifikasi = VerifikasiWajah::where('nomor_induk_pegawai', $request->nomor_induk_pegawai)
+        $verifikasi = VerifikasiWajah::where('kode_pegawai', $request->kode_pegawai)
             ->where('aktif', true)
             ->first();
         
         if (!$verifikasi) {
-            \Log::error('Verifikasi wajah tidak aktif untuk pegawai: ' . $request->nomor_induk_pegawai);
+            \Log::error('Verifikasi wajah tidak aktif untuk pegawai: ' . $request->kode_pegawai);
             return response()->json(['success' => false, 'message' => 'Pegawai belum memiliki verifikasi wajah aktif'], 400);
         }
         
@@ -361,19 +361,19 @@ class PresensiController extends Controller
         \Log::info('Current time: ' . $now->format('H:i:s'));
 
         // Check existing attendance for today
-        $presensi = Presensi::where('pegawai_id', $pegawai->nomor_induk_pegawai)
+        $presensi = Presensi::where('pegawai_id', $pegawai->kode_pegawai)
             ->whereDate('tgl_presensi', $today)
             ->first();
         
-        \Log::info('Existing attendance found: ' . ($presensi ? 'Yes' : 'No'));
+        \Log::info('Existing presensi check:', ['found' => $presensi ? 'yes' : 'no']);
         
         if (!$presensi) {
             // First attendance today - CLOCK IN
             \Log::info('Creating new attendance record (CLOCK IN)');
-            \Log::info('Pegawai ID for presensi: ' . $pegawai->nomor_induk_pegawai);
+            \Log::info('Pegawai ID for presensi: ' . $pegawai->kode_pegawai);
             
             $presensiData = [
-                'pegawai_id' => $pegawai->nomor_induk_pegawai,
+                'pegawai_id' => $pegawai->kode_pegawai,
                 'tgl_presensi' => $today,
                 'jam_masuk' => $now->format('H:i:s'),
                 'status' => 'hadir',
@@ -400,7 +400,7 @@ class PresensiController extends Controller
                     'tgl_presensi' => $presensi->tgl_presensi->format('d/m/Y'),
                     'pegawai' => [
                         'nama' => $pegawai->nama,
-                        'nip' => $pegawai->nomor_induk_pegawai
+                        'nip' => $pegawai->kode_pegawai
                     ]
                 ]
             ]);
@@ -441,7 +441,7 @@ class PresensiController extends Controller
                     'tgl_presensi' => $presensi->tgl_presensi->format('d/m/Y'),
                     'pegawai' => [
                         'nama' => $pegawai->nama,
-                        'nip' => $pegawai->nomor_induk_pegawai
+                        'nip' => $pegawai->kode_pegawai
                     ]
                 ]
             ]);
@@ -574,7 +574,7 @@ class PresensiController extends Controller
                     'id' => $attendance->id,
                     'waktu' => $attendance->jam_masuk ? $attendance->jam_masuk : ($attendance->jam_keluar ?? ''),
                     'nama' => $attendance->pegawai->nama ?? 'Unknown',
-                    'nip' => $attendance->pegawai->nomor_induk_pegawai ?? 'Unknown',
+                    'nip' => $attendance->pegawai->kode_pegawai ?? 'Unknown',
                     'jam_masuk' => $attendance->jam_masuk,
                     'jam_keluar' => $attendance->jam_keluar,
                     'status' => $attendance->status,
@@ -603,7 +603,7 @@ class PresensiController extends Controller
                     'id' => $presensi->id,
                     'pegawai' => [
                         'nama' => $presensi->pegawai->nama ?? 'Tidak diketahui',
-                        'nomor_induk_pegawai' => $presensi->pegawai->nomor_induk_pegawai ?? 'N/A',
+                        'nomor_induk_pegawai' => $presensi->pegawai->kode_pegawai ?? 'N/A',
                         'jabatan' => $presensi->pegawai->jabatan ?? 'N/A'
                     ],
                     'tanggal' => \Carbon\Carbon::parse($presensi->tgl_presensi)->isoFormat('dddd, D MMMM YYYY'),
