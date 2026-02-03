@@ -41,8 +41,8 @@
                         
                         // Jika item diinput sebagai bahan baku (berdasarkan relation yang ada)
                         if ($d->bahan_baku_id && $d->bahanBaku) {
-                            // Prioritas: detail->satuan, lalu relation->satuan
-                            $satuanItem = $d->satuan ?: ($d->bahanBaku->satuan ?? 'unit');
+                            // Prioritas: detail->satuan, lalu relation->satuan->nama
+                            $satuanItem = $d->satuan ?: ($d->bahanBaku->satuan->nama ?? $d->bahanBaku->satuan ?? 'unit');
                         }
                         // Fallback jika relation tidak ada
                         elseif ($d->bahan_baku_id) {
@@ -56,7 +56,7 @@
                         $satuanHarga = 'unit';
                         
                         if ($d->bahan_baku_id && $d->bahanBaku) {
-                            $satuanHarga = $d->satuan ?: ($d->bahanBaku->satuan ?? 'unit');
+                            $satuanHarga = $d->satuan ?: ($d->bahanBaku->satuan->nama ?? $d->bahanBaku->satuan ?? 'unit');
                         }
                         elseif ($d->bahan_baku_id) {
                             $satuanHarga = $d->satuan ?: 'unit';

@@ -18,31 +18,38 @@ class BopController extends Controller
     public function index()
     {
         try {
-            // Get all BTKL processes (show all, even without BOP data)
-            $prosesProduksis = ProsesProduksi::with('bopProses')
+            // Get only processes that have BTKL data (from bom_job_btkl table)
+            $prosesIdsWithBTKL = DB::table('bom_job_btkl')
+                ->distinct()
+                ->pluck('proses_produksi_id')
+                ->toArray();
+            
+            $prosesProduksis = ProsesProduksi::whereIn('id', $prosesIdsWithBTKL)
+                ->with('bopProses')
                 ->orderBy('kode_proses')
                 ->get();
 
             // Get all expense accounts (kode 5) as BOP Lainnya candidates
             $akunBeban = Coa::where('kode_akun', 'LIKE', '5%')
+                ->where('is_akun_header', false) // Only show non-header accounts
                 ->orderBy('kode_akun')
                 ->get();
 
             // Transform expense accounts to BOP Lainnya format for display
             $bopLainnya = $akunBeban->map(function($akun) {
-                // Check if there's existing BOP data for this account
-                $existingBop = \App\Models\BopLainnya::where('kode_akun', $akun->kode_akun)->first();
+                // Check if there's existing BOP data for this account in bops table
+                $existingBop = \App\Models\Bop::where('kode_akun', $akun->kode_akun)->first();
                 
                 return (object) [
                     'id' => $existingBop->id ?? null,
                     'kode_akun' => $akun->kode_akun,
                     'nama_akun' => $akun->nama_akun,
-                    'budget' => $existingBop->budget ?? 0,
-                    'kuantitas_per_jam' => $existingBop->kuantitas_per_jam ?? 1,
-                    'aktual' => $existingBop->aktual ?? 0,
+                    'budget' => $existingBop->jumlah ?? 0, // Use 'jumlah' field
+                    'kuantitas_per_jam' => 1, // Default value
+                    'aktual' => 0, // Default value
                     'periode' => $existingBop->periode ?? date('Y-m'),
-                    'keterangan' => $existingBop->keterangan ?? null,
-                    'is_active' => $existingBop->is_active ?? true,
+                    'keterangan' => $existingBop->nama_biaya ?? $akun->nama_akun,
+                    'is_active' => true,
                     'created_at' => $existingBop->created_at ?? now(),
                     'updated_at' => $existingBop->updated_at ?? now(),
                 ];
@@ -52,16 +59,12 @@ class BopController extends Controller
             $totalBopLainnya = $bopLainnya->sum('budget') ?? 0;
             $jumlahBopLainnya = $bopLainnya->count() ?? 0;
 
-            // Calculate BOP summary per product
-            $produkBopSummary = $this->calculateProdukBopSummary($prosesProduksis, $bopLainnya);
-
             return view('master-data.bop.index', compact(
                 'prosesProduksis',
                 'bopLainnya',
                 'totalBopLainnya',
                 'jumlahBopLainnya',
-                'akunBeban',
-                'produkBopSummary'
+                'akunBeban'
             ));
             
         } catch (\Exception $e) {
@@ -71,15 +74,13 @@ class BopController extends Controller
             $totalBopLainnya = 0;
             $jumlahBopLainnya = 0;
             $akunBeban = collect([]);
-            $produkBopSummary = collect([]);
             
             return view('master-data.bop.index', compact(
                 'prosesProduksis',
                 'bopLainnya',
                 'totalBopLainnya',
                 'jumlahBopLainnya',
-                'akunBeban',
-                'produkBopSummary'
+                'akunBeban'
             ))->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -170,7 +171,13 @@ class BopController extends Controller
                 ->with('warning', 'Semua proses BTKL sudah memiliki BOP atau belum memiliki kapasitas per jam.');
         }
 
-        return view('master-data.bop.create-proses', compact('availableProses'));
+        // Get all expense accounts (kode 5) for dynamic BOP components
+        $akunBeban = Coa::where('kode_akun', 'LIKE', '5%')
+            ->where('is_akun_header', false)
+            ->orderBy('kode_akun')
+            ->get();
+
+        return view('master-data.bop.create-proses', compact('availableProses', 'akunBeban'));
     }
 
     /**
@@ -180,12 +187,10 @@ class BopController extends Controller
     {
         $validated = $request->validate([
             'proses_produksi_id' => 'required|exists:proses_produksis,id|unique:bop_proses,proses_produksi_id',
-            'listrik_per_jam' => 'required|numeric|min:0',
-            'gas_bbm_per_jam' => 'required|numeric|min:0',
-            'penyusutan_mesin_per_jam' => 'required|numeric|min:0',
-            'maintenance_per_jam' => 'required|numeric|min:0',
-            'gaji_mandor_per_jam' => 'required|numeric|min:0',
-            'lain_lain_per_jam' => 'nullable|numeric|min:0',
+            'akun_beban' => 'required|array|min:1',
+            'akun_beban.*' => 'required|exists:coas,kode_akun',
+            'nominal_per_jam' => 'required|array|min:1',
+            'nominal_per_jam.*' => 'required|numeric|min:0',
         ]);
 
         try {
@@ -198,20 +203,63 @@ class BopController extends Controller
                 throw new \Exception('Proses BTKL harus memiliki kapasitas per jam yang valid.');
             }
 
-            // Create BOP Proses (calculations will be done automatically in model)
-            BopProses::create($validated);
+            // Calculate total BOP per jam from all inputs
+            $totalBopPerJam = array_sum($validated['nominal_per_jam']);
+
+            // Create BOP Proses with dynamic data
+            $bopProses = BopProses::create([
+                'proses_produksi_id' => $validated['proses_produksi_id'],
+                'total_bop_per_jam' => $totalBopPerJam,
+                'budget' => $totalBopPerJam * 8, // Default 8 jam per shift
+                'aktual' => 0,
+                'periode' => date('Y-m'),
+                'keterangan' => "BOP untuk proses {$prosesProduksi->nama_proses}",
+            ]);
+
+            // Create BOP detail records for each expense account
+            foreach ($validated['akun_beban'] as $index => $akunKode) {
+                $nominal = $validated['nominal_per_jam'][$index];
+                
+                if ($nominal > 0) {
+                    // Create or find KomponenBOP for this akun
+                    $komponenBop = \App\Models\KomponenBop::firstOrCreate([
+                        'kode_komponen' => 'BOP-' . str_replace('.', '', $akunKode),
+                        'nama_komponen' => \App\Models\Coa::find($akunKode)->nama_akun,
+                        'satuan' => 'jam',
+                        'tarif_per_satuan' => $nominal,
+                        'is_active' => true
+                    ]);
+                    
+                    // Create BOP detail record
+                    \App\Models\BopProsesDetail::create([
+                        'bop_proses_id' => $bopProses->id,
+                        'komponen_bop_id' => $komponenBop->id,
+                        'nominal_per_jam' => $nominal,
+                    ]);
+                }
+            }
 
             DB::commit();
 
-            return redirect()
-                ->route('master-data.bop.index')
-                ->with('success', 'BOP Proses berhasil ditambahkan');
+            return redirect()->route('master-data.bop.index')
+                ->with('success', 'BOP Proses berhasil ditambahkan dengan ' . count(array_filter($validated['nominal_per_jam'])) . ' komponen beban.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()
-                ->withInput()
-                ->with('error', 'Gagal menyimpan BOP Proses: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Gagal menambah BOP Proses: ' . $e->getMessage());
+        }
+    }
+
+    public function showProses($id)
+    {
+        try {
+            $bopProses = BopProses::with(['prosesProduksi', 'bopProsesDetails.komponenBop'])->findOrFail($id);
+            return view('master-data.bop.show-proses', compact('bopProses'));
+            
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('master-data.bop.index')
+                ->with('error', 'BOP Proses tidak ditemukan: ' . $e->getMessage());
         }
     }
 
@@ -263,22 +311,6 @@ class BopController extends Controller
             return back()
                 ->withInput()
                 ->with('error', 'Gagal memperbarui BOP Proses: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Show BOP Proses detail
-     */
-    public function showProses($id)
-    {
-        try {
-            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
-            return view('master-data.bop.show-proses', compact('bopProses'));
-            
-        } catch (\Exception $e) {
-            return redirect()
-                ->route('master-data.bop.index')
-                ->with('error', 'BOP Proses tidak ditemukan: ' . $e->getMessage());
         }
     }
 
@@ -392,95 +424,6 @@ class BopController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return false;
-        }
-    }
-
-    /**
-     * Calculate BOP summary per product
-     */
-    private function calculateProdukBopSummary($prosesProduksis, $bopLainnya)
-    {
-        try {
-            $produks = \App\Models\Produk::with(['bom.bomProses.prosesProduksi.bopProses'])
-                ->get();
-
-            return $produks->map(function($produk) use ($prosesProduksis, $bopLainnya) {
-                // Calculate BOP Proses per unit for this product
-                $bopProsesPerUnit = $this->calculateBopProsesForProduct($produk);
-                
-                // Calculate BOP Lainnya per unit for this product
-                $bopLainnyaPerUnit = $bopLainnya->sum(function($bop) use ($produk) {
-                    return $bop->calculateBopForProduct($produk);
-                });
-
-                // Total BOP per unit
-                $totalBopPerUnit = $bopProsesPerUnit + $bopLainnyaPerUnit;
-
-                // HPP Total (Bahan + BTKL + BOP)
-                $biayaBahan = $produk->biaya_bahan ?? 0;
-                $biayaBtkl = $this->calculateBtklForProduct($produk);
-                $hppTotal = $biayaBahan + $biayaBtkl + $totalBopPerUnit;
-
-                return (object) [
-                    'kode_produk' => $produk->kode_produk ?? '-',
-                    'nama_produk' => $produk->nama_produk,
-                    'bop_proses_per_unit' => $bopProsesPerUnit,
-                    'bop_lainnya_per_unit' => $bopLainnyaPerUnit,
-                    'total_bop_per_unit' => $totalBopPerUnit,
-                    'biaya_bahan' => $biayaBahan,
-                    'biaya_btkl' => $biayaBtkl,
-                    'hpp_total' => $hppTotal
-                ];
-            });
-        } catch (\Exception $e) {
-            return collect([]);
-        }
-    }
-
-    /**
-     * Calculate BOP Proses for specific product
-     */
-    private function calculateBopProsesForProduct($produk)
-    {
-        try {
-            if (!$produk->bom || !$produk->bom->bomProses) {
-                return 0;
-            }
-
-            return $produk->bom->bomProses->sum(function($bomProses) {
-                if (!$bomProses->prosesProduksi || !$bomProses->prosesProduksi->bopProses) {
-                    return 0;
-                }
-                return $bomProses->prosesProduksi->bopProses->bop_per_unit ?? 0;
-            });
-        } catch (\Exception $e) {
-            return 0;
-        }
-    }
-
-    /**
-     * Calculate BTKL for specific product
-     */
-    private function calculateBtklForProduct($produk)
-    {
-        try {
-            if (!$produk->bom || !$produk->bom->bomProses) {
-                return 0;
-            }
-
-            return $produk->bom->bomProses->sum(function($bomProses) {
-                if (!$bomProses->prosesProduksi) {
-                    return 0;
-                }
-                
-                $proses = $bomProses->prosesProduksi;
-                $tarifPerJam = $proses->tarif_per_jam ?? 0;
-                $kapasitasPerJam = $proses->kapasitas_per_jam ?? 1;
-                
-                return $kapasitasPerJam > 0 ? $tarifPerJam / $kapasitasPerJam : 0;
-            });
-        } catch (\Exception $e) {
-            return 0;
         }
     }
 }

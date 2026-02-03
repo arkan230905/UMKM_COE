@@ -59,18 +59,26 @@ class BomController extends Controller
             if ($bomJobCosting) {
                 // Get BTKL data with biaya per produk (biaya_per_produk = tarif_per_jam ÷ kapasitas_per_jam)
                 $bomJobBtkl = \Illuminate\Support\Facades\DB::table('bom_job_btkl')
-                    ->join('proses_produksis', 'bom_job_btkl.proses_produksi_id', '=', 'proses_produksis.id')
+                    ->join('btkls', 'bom_job_btkl.btkl_id', '=', 'btkls.id')
+                    ->join('jabatans', 'btkls.jabatan_id', '=', 'jabatans.id')
                     ->where('bom_job_btkl.bom_job_costing_id', $bomJobCosting->id)
-                    ->select('bom_job_btkl.*', 'proses_produksis.tarif_btkl as tarif_per_jam', 'proses_produksis.kapasitas_per_jam')
+                    ->select(
+                        'bom_job_btkl.*', 
+                        'btkls.kode_proses',
+                        'btkls.nama_btkl',
+                        'btkls.tarif_per_jam', 
+                        'btkls.kapasitas_per_jam',
+                        'btkls.satuan',
+                        'btkls.deskripsi_proses',
+                        'jabatans.nama as nama_jabatan',
+                        'jabatans.kategori'
+                    )
                     ->get();
                 
                 $btklCount = $bomJobBtkl->count();
                 
-                // Calculate biaya per produk: tarif_per_jam ÷ kapasitas_per_jam
-                $totalBTKL = $bomJobBtkl->sum(function($item) {
-                    $kapasitas = $item->kapasitas_per_jam ?? 1;
-                    return ($item->tarif_per_jam / $kapasitas) * $item->durasi_jam;
-                });
+                // Use subtotal yang sudah dihitung dengan benar di database
+                $totalBTKL = $bomJobBtkl->sum('subtotal');
                 
                 // Also add bahan pendukung to biaya bahan
                 $bahanPendukung = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->sum('subtotal');
@@ -205,95 +213,6 @@ class BomController extends Controller
         }
     }
 
-    public function edit($id)
-    {
-        try {
-            $bom = Bom::with(['details.bahanBaku', 'details.bahanPendukung', 'proses.prosesProduksi', 'proses.bomProsesBops.komponenBop'])->findOrFail($id);
-            $produk = $bom->produk;
-            
-            // Prepare biaya bahan data for the view
-            $biayaBahan = [];
-            
-            // Add Bahan Baku from BOM details
-            foreach ($bom->details as $detail) {
-                if ($detail->bahanBaku) {
-                    $biayaBahan[] = [
-                        'id' => $detail->bahanBaku->id,
-                        'nama' => $detail->bahanBaku->nama_bahan,
-                        'kode' => $detail->bahanBaku->kode_bahan ?? $detail->bahanBaku->id,
-                        'kategori' => 'Bahan Baku',
-                        'jumlah' => $detail->jumlah,
-                        'satuan' => $detail->satuan,
-                        'harga_satuan' => $detail->harga_per_satuan,
-                        'harga' => $detail->harga_per_satuan, // Add this for view compatibility
-                        'subtotal' => $detail->total_harga
-                    ];
-                }
-            }
-            
-            // Add Bahan Pendukung from BomJobCosting
-            $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
-            if ($bomJobCosting) {
-                $bahanPendukungDetails = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->get();
-                foreach ($bahanPendukungDetails as $detail) {
-                    if ($detail->bahanPendukung) {
-                        $biayaBahan[] = [
-                            'id' => $detail->bahan_pendukung_id,
-                            'nama' => $detail->bahanPendukung->nama_bahan,
-                            'kode' => $detail->bahanPendukung->kode_bahan ?? $detail->bahan_pendukung->id,
-                            'kategori' => 'Bahan Pendukung',
-                            'jumlah' => $detail->jumlah,
-                            'satuan' => $detail->satuan,
-                            'harga_satuan' => $detail->harga_satuan,
-                            'harga' => $detail->harga_satuan, // Add this for view compatibility
-                            'subtotal' => $detail->subtotal
-                        ];
-                    }
-                }
-            }
-            
-            // Get all available materials for selection
-            $bahanBakus = \App\Models\BahanBaku::with('satuan')->orderBy('nama_bahan')->get();
-            $bahanPendukungs = \App\Models\BahanPendukung::with('satuan')->orderBy('nama_bahan')->get();
-            $prosesProduksis = \App\Models\ProsesProduksi::with('bopProses')->orderBy('kode_proses')->get();
-            $komponenBops = \App\Models\KomponenBop::active()->orderBy('nama_komponen')->get();
-            
-            // Get current BTKL and BOP details
-            $currentBTKL = [];
-            $currentBOP = [];
-            $prosesCount = 0;
-            if ($bomJobCosting) {
-                $currentBTKL = DB::table('bom_job_btkl')
-                    ->where('bom_job_costing_id', $bomJobCosting->id)
-                    ->get();
-                    
-                $currentBOP = DB::table('bom_job_bop')
-                    ->where('bom_job_costing_id', $bomJobCosting->id)
-                    ->get();
-                    
-                $prosesCount = $currentBTKL->count();
-            }
-            
-            return view('master-data.bom.edit', compact(
-                'bom', 
-                'produk', 
-                'biayaBahan',
-                'bahanBakus', 
-                'bahanPendukungs', 
-                'prosesProduksis', 
-                'komponenBops',
-                'bomJobCosting',
-                'currentBTKL',
-                'currentBOP',
-                'prosesCount'
-            ));
-            
-        } catch (\Exception $e) {
-            return redirect()->route('master-data.bom.index')
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
-    }
-
     public function create(Request $request)
     {
         try {
@@ -335,24 +254,6 @@ class BomController extends Controller
 
         } catch (\Exception $e) {
             return back()->withInput()->with('error', 'Gagal membuat BOM: ' . $e->getMessage());
-        }
-    }
-
-    public function update(Request $request, $id)
-    {
-        try {
-            $validated = $request->validate([
-                'total_biaya' => 'required|numeric|min:0',
-            ]);
-
-            $bom = Bom::findOrFail($id);
-            $bom->update($validated);
-
-            return redirect()->route('master-data.bom.show', $bom->id)
-                ->with('success', 'BOM berhasil diperbarui.');
-
-        } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Gagal memperbarui BOM: ' . $e->getMessage());
         }
     }
 
