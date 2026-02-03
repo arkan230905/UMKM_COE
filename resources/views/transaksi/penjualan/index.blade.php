@@ -31,7 +31,42 @@
     <div class="page-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-4">
         <div>
             <h1 class="page-title mb-2">Ringkasan Penjualan</h1>
-            <p class="page-subtitle mb-0">Pantau performa transaksi dan akses tindakan penting dengan cepat.</p>
+            <p class="page-subtitle mb-2">Pantau performa transaksi dan akses tindakan penting dengan cepat.</p>
+            <div class="filter-summary small text-white-75">
+                @php
+                    $summaryParts = [];
+                    if (!empty($filters['start_date'] ?? null) || !empty($filters['end_date'] ?? null)) {
+                        $start = $filters['start_date'] ? \Carbon\Carbon::parse($filters['start_date'])->format('d M Y') : 'Awal';
+                        $end = $filters['end_date'] ? \Carbon\Carbon::parse($filters['end_date'])->format('d M Y') : 'Sekarang';
+                        $summaryParts[] = "Periode {$start} - {$end}";
+                    }
+                    if (!empty($filters['payment_method'] ?? null)) {
+                        $payments = [
+                            'cash' => 'Tunai',
+                            'transfer' => 'Transfer',
+                        ];
+                        $summaryParts[] = 'Metode: ' . ($payments[$filters['payment_method']] ?? ucfirst($filters['payment_method']));
+                    }
+                    if (!empty($filters['produk_id'] ?? null)) {
+                        $selectedProduk = $products->firstWhere('id', (int) $filters['produk_id']);
+                        if ($selectedProduk) {
+                            $summaryParts[] = 'Produk: ' . e($selectedProduk->nama_produk);
+                        }
+                    }
+                    if ($categories->isNotEmpty() && !empty($filters['kategori_id'] ?? null)) {
+                        $selectedKategori = $categories->firstWhere('id', (int) $filters['kategori_id']);
+                        if ($selectedKategori) {
+                            $summaryParts[] = 'Kategori: ' . e($selectedKategori->nama);
+                        }
+                    }
+                @endphp
+                @if(!empty($summaryParts))
+                    <span class="badge bg-light text-dark rounded-pill fw-semibold">Filter Aktif</span>
+                    <span class="ms-2">{!! implode(' • ', $summaryParts) !!}</span>
+                @else
+                    <span class="text-muted">Menampilkan semua data penjualan</span>
+                @endif
+            </div>
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('transaksi.penjualan.create') }}" class="btn btn-gradient">
@@ -76,18 +111,78 @@
     </div>
 
     <div class="card table-card">
-        <div class="card-header border-0 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
-            <div>
-                <h5 class="mb-1">Daftar Penjualan</h5>
-                <span class="table-count">{{ $penjualans->count() }} baris ditampilkan</span>
+        <div class="card-header border-0 d-flex flex-column gap-3">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                <div>
+                    <h5 class="mb-1">Daftar Penjualan</h5>
+                    <span class="table-count">{{ $penjualans->total() }} data • {{ $penjualans->perPage() }} per halaman</span>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-outline-slate btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="{{ (empty($summaryParts) ? 'false' : 'true') }}" aria-controls="filterCollapse">
+                        <i class="bi bi-funnel"></i> Filter
+                    </button>
+                    <a href="{{ route('laporan.penjualan', array_filter($filters ?? [])) }}" class="btn btn-outline-slate btn-sm">
+                        <i class="bi bi-box-arrow-up"></i> Export
+                    </a>
+                    @if(!empty(array_filter($filters ?? [])))
+                        <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-outline-slate btn-sm">
+                            <i class="bi bi-x-circle"></i> Reset
+                        </a>
+                    @endif
+                </div>
             </div>
-            <div class="d-flex gap-2">
-                <button type="button" class="btn btn-outline-slate btn-sm">
-                    <i class="bi bi-funnel"></i> Filter
-                </button>
-                <button type="button" class="btn btn-outline-slate btn-sm">
-                    <i class="bi bi-box-arrow-up"></i> Export
-                </button>
+
+            <div class="collapse" id="filterCollapse">
+                <form method="GET" action="{{ route('transaksi.penjualan.index') }}" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label text-white-50">Tanggal Mulai</label>
+                        <input type="date" name="start_date" class="form-control" value="{{ $filters['start_date'] ?? '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-white-50">Tanggal Selesai</label>
+                        <input type="date" name="end_date" class="form-control" value="{{ $filters['end_date'] ?? '' }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-white-50">Metode Pembayaran</label>
+                        <select name="payment_method" class="form-select">
+                            <option value="">Semua Metode</option>
+                            <option value="cash" {{ ($filters['payment_method'] ?? '') === 'cash' ? 'selected' : '' }}>Tunai</option>
+                            <option value="transfer" {{ ($filters['payment_method'] ?? '') === 'transfer' ? 'selected' : '' }}>Transfer</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label text-white-50">Produk</label>
+                        <select name="produk_id" class="form-select">
+                            <option value="">Semua Produk</option>
+                            @foreach($products as $produk)
+                                <option value="{{ $produk->id }}" {{ (int)($filters['produk_id'] ?? 0) === $produk->id ? 'selected' : '' }}>
+                                    {{ $produk->nama_produk }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @if($categories->isNotEmpty())
+                        <div class="col-md-3">
+                            <label class="form-label text-white-50">Kategori Produk</label>
+                            <select name="kategori_id" class="form-select">
+                                <option value="">Semua Kategori</option>
+                                @foreach($categories as $category)
+                                    <option value="{{ $category->id }}" {{ (int)($filters['kategori_id'] ?? 0) === $category->id ? 'selected' : '' }}>
+                                        {{ $category->nama }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+                    <div class="col-12 d-flex justify-content-end gap-2">
+                        <button type="submit" class="btn btn-gradient btn-sm">
+                            <i class="bi bi-funnel-fill me-1"></i> Terapkan
+                        </button>
+                        <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-outline-slate btn-sm">
+                            Reset
+                        </a>
+                    </div>
+                </form>
             </div>
         </div>
         <div class="table-responsive">
@@ -233,7 +328,8 @@
                 </tbody>
             </table>
         </div>
-        <div class="card-footer border-0">
+        <div class="card-footer border-0 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+            <div class="text-muted small">Menampilkan {{ $penjualans->firstItem() ?? 0 }}-{{ $penjualans->lastItem() ?? 0 }} dari {{ $penjualans->total() }} data</div>
             {{ $penjualans->links() }}
         </div>
     </div>
@@ -401,12 +497,21 @@
 
 .table-card .card-header {
     background: transparent;
-    padding: 1.5rem 1.9rem 0;
+    padding: 1.5rem 1.9rem 1rem;
 }
 
 .table-card .card-footer {
     background: transparent;
     padding: 1rem 1.9rem 1.6rem;
+}
+
+.filter-summary .badge {
+    background: rgba(226, 232, 240, 0.85) !important;
+    color: #0f172a !important;
+}
+
+.filter-summary {
+    font-weight: 500;
 }
 
 .table thead th {

@@ -3,18 +3,107 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Builder;
+use Carbon\Carbon;
 use App\Models\Penjualan;
 use App\Models\Produk;
+use App\Models\KategoriProduk;
 use App\Services\StockService;
 use App\Services\JournalService;
 
 class PenjualanController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Ambil semua penjualan beserta relasi produk dan details (untuk multi-item)
-        $penjualans = Penjualan::with(['produk','details'])->orderBy('tanggal','desc')->get();
-        return view('transaksi.penjualan.index', compact('penjualans'));
+        $filters = $request->only(['start_date', 'end_date', 'payment_method', 'produk_id', 'kategori_id']);
+
+        $query = Penjualan::query();
+        $this->applyFilters($query, $filters);
+
+        $summaryQuery = clone $query;
+
+        $penjualans = (clone $query)
+            ->with(['produk', 'details.produk'])
+            ->orderByDesc('tanggal')
+            ->paginate(15)
+            ->withQueryString();
+
+        $categories = collect();
+        if ($this->kategoriTableExists()) {
+            $categories = KategoriProduk::orderBy('nama')->get(['id', 'nama']);
+        }
+        $products = Produk::query()
+            ->orderBy('nama_produk')
+            ->get(['id', 'nama_produk']);
+
+        $totalTransaksi = (clone $summaryQuery)->count();
+        $totalNilai = (float) (clone $summaryQuery)->sum('total');
+        $totalQty = (float) (clone $summaryQuery)->sum('jumlah');
+        $rataRata = $totalTransaksi > 0 ? $totalNilai / $totalTransaksi : 0;
+        $totalHariIni = (float) (clone $summaryQuery)
+            ->whereDate('tanggal', Carbon::today())
+            ->sum('total');
+
+        return view('transaksi.penjualan.index', [
+            'penjualans' => $penjualans,
+            'filters' => $filters,
+            'categories' => $categories,
+            'products' => $products,
+            'summary' => [
+                'total_transaksi' => $totalTransaksi,
+                'total_nilai' => $totalNilai,
+                'total_qty' => $totalQty,
+                'rata_rata' => $rataRata,
+                'total_hari_ini' => $totalHariIni,
+            ],
+        ]);
+    }
+
+    private function kategoriTableExists(): bool
+    {
+        static $exists;
+
+        if ($exists === null) {
+            $exists = \Schema::hasTable('kategori_produks');
+        }
+
+        return $exists;
+    }
+
+    private function applyFilters(Builder $query, array $filters): void
+    {
+        if (!empty($filters['start_date'])) {
+            $query->whereDate('tanggal', '>=', Carbon::parse($filters['start_date'])->toDateString());
+        }
+
+        if (!empty($filters['end_date'])) {
+            $query->whereDate('tanggal', '<=', Carbon::parse($filters['end_date'])->toDateString());
+        }
+
+        if (!empty($filters['payment_method'])) {
+            $query->where('payment_method', $filters['payment_method']);
+        }
+
+        if (!empty($filters['kategori_id']) && $this->kategoriTableExists()) {
+            $kategoriId = (int) $filters['kategori_id'];
+            $query->where(function (Builder $builder) use ($kategoriId) {
+                $builder->whereHas('produk', function (Builder $produkQuery) use ($kategoriId) {
+                    $produkQuery->where('kategori_id', $kategoriId);
+                })->orWhereHas('details.produk', function (Builder $detailQuery) use ($kategoriId) {
+                    $detailQuery->where('kategori_id', $kategoriId);
+                });
+            });
+        }
+
+        if (!empty($filters['produk_id'])) {
+            $produkId = (int) $filters['produk_id'];
+            $query->where(function (Builder $builder) use ($produkId) {
+                $builder->where('produk_id', $produkId)
+                    ->orWhereHas('details', function (Builder $detailQuery) use ($produkId) {
+                        $detailQuery->where('produk_id', $produkId);
+                    });
+            });
+        }
     }
 
     public function create()
