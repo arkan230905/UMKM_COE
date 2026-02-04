@@ -48,15 +48,15 @@
                                 <select name="pegawai_id" id="pegawaiSelect" class="form-select" required>
                                     <option value="">-- Pilih Pegawai --</option>
                                     @foreach($pegawais as $pegawai)
-                                        <option value="{{ $pegawai->nomor_induk_pegawai }}" 
+                                        <option value="{{ $pegawai->kode_pegawai }}" 
                                                 data-nama="{{ $pegawai->nama }}"
                                                 data-email="{{ $pegawai->email }}"
-                                                data-telp="{{ $pegawai->no_telp }}"
+                                                data-telp="{{ $pegawai->no_telepon }}"
                                                 data-alamat="{{ $pegawai->alamat }}"
                                                 data-jabatan="{{ $pegawai->jabatan }}"
-                                                data-tanggal-masuk="{{ $pegawai->tanggal_masuk }}"
-                                                data-status="{{ $pegawai->status_aktif }}">
-                                            {{ $pegawai->nama }} ({{ $pegawai->nomor_induk_pegawai }})
+                                                data-tanggal-masuk="{{ $pegawai->created_at }}"
+                                                data-status="{{ $pegawai->jenis_pegawai }}">
+                                            {{ $pegawai->nama }} ({{ $pegawai->kode_pegawai }})
                                         </option>
                                     @endforeach
                                 </select>
@@ -87,9 +87,13 @@
                         </div>
 
                         <div class="d-flex justify-content-end mt-4">
-                            <button type="button" id="nextToStep2" class="btn btn-primary" disabled>
-                                Lanjut <i class="bi bi-arrow-right ms-1"></i>
-                            </button>
+                            <form id="step1Form" action="{{ route('transaksi.presensi.verifikasi-wajah.step1') }}" method="POST" style="display: inline;">
+                                @csrf
+                                <input type="hidden" name="kode_pegawai" id="selectedPegawaiId" value="">
+                                <button type="submit" id="nextToStep2" class="btn btn-primary" disabled>
+                                    Lanjut <i class="bi bi-arrow-right ms-1"></i>
+                                </button>
+                            </form>
                         </div>
                     </div>
 
@@ -449,11 +453,12 @@ document.getElementById('pegawaiSelect').addEventListener('change', function() {
         // Update status badge
         const statusBadge = document.getElementById('detailStatus');
         const status = selectedOption.dataset.status;
-        statusBadge.textContent = status == '1' ? 'Aktif' : 'Tidak Aktif';
-        statusBadge.className = 'badge ' + (status == '1' ? 'bg-success' : 'bg-danger');
+        statusBadge.textContent = status ? status.toUpperCase() : 'BTKL';
+        statusBadge.className = 'badge ' + (status == 'btkl' ? 'bg-primary' : 'bg-success');
         
         // Show detail and enable next button
         document.getElementById('pegawaiDetail').style.display = 'block';
+        document.getElementById('selectedPegawaiId').value = this.value;
         document.getElementById('nextToStep2').disabled = false;
     } else {
         currentPegawai = null;
@@ -462,13 +467,7 @@ document.getElementById('pegawaiSelect').addEventListener('change', function() {
     }
 });
 
-// Navigation
-document.getElementById('nextToStep2').addEventListener('click', function() {
-    if (currentPegawai) {
-        showStep(2);
-        updateStepIndicator(2);
-    }
-});
+// Navigation - removed since we're using form submission
 
 document.getElementById('backToStep1').addEventListener('click', function() {
     showStep(1);
@@ -660,31 +659,29 @@ document.getElementById('saveVerification').addEventListener('click', function()
         saveBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Menyimpan...';
         saveBtn.disabled = true;
         
-        console.log('=== DEBUG SAVE VERIFICATION ===');
+        console.log('=== SAVE VERIFICATION WITH UNIFIED FLOW ===');
         console.log('Current Pegawai:', currentPegawai);
         console.log('Captured Image Data Length:', capturedImageData.length);
-        console.log('CSRF Token:', '{{ csrf_token() }}');
+        
+        // Extract face encoding from captured image
+        const canvas = document.getElementById('canvas');
+        const faceEncoding = extractFaceEncoding();
+        console.log('Face encoding extracted:', { length: faceEncoding.length });
         
         // Convert data URL to blob
         fetch(capturedImageData)
-            .then(res => {
-                console.log('Fetch response status:', res.status);
-                return res.blob();
-            })
+            .then(res => res.blob())
             .then(blob => {
                 console.log('Blob created, size:', blob.size);
-                console.log('Blob type:', blob.type);
                 
                 const formData = new FormData();
-                formData.append('nomor_induk_pegawai', currentPegawai);
+                formData.append('kode_pegawai', currentPegawai); // Use correct field name
                 formData.append('foto_wajah', blob, 'face_' + Date.now() + '.jpg');
-                formData.append('aktif', 1); // Send as integer 1 instead of boolean true
+                formData.append('encoding_wajah', JSON.stringify(faceEncoding)); // Add encoding
+                formData.append('aktif', true);
                 formData.append('tanggal_verifikasi', new Date().toISOString().split('T')[0]);
                 
-                console.log('FormData created, entries:');
-                for (let [key, value] of formData.entries()) {
-                    console.log(`- ${key}:`, value);
-                }
+                console.log('FormData created with unified flow');
                 
                 const url = '{{ route("transaksi.presensi.verifikasi-wajah.store") }}';
                 console.log('Sending to URL:', url);
@@ -699,56 +696,76 @@ document.getElementById('saveVerification').addEventListener('click', function()
                     }
                 })
                 .then(response => {
-                    console.log('Fetch response status:', response.status);
-                    console.log('Fetch response headers:', response.headers);
-                    
-                    // Check if response is actually JSON
-                    const contentType = response.headers.get('content-type');
-                    console.log('Response content type:', contentType);
-                    
-                    if (contentType && contentType.includes('application/json')) {
-                        return response.json();
-                    } else {
-                        // If not JSON, get text and show error
-                        return response.text().then(text => {
-                            console.log('Response text:', text);
-                            throw new Error('Server returned non-JSON response: ' + text.substring(0, 200));
-                        });
-                    }
+                    console.log('Save response status:', response.status);
+                    return response.json();
                 })
                 .then(data => {
-                    console.log('Response data:', data);
+                    console.log('Save response data:', data);
                     
                     if (data.success) {
                         alert('Verifikasi wajah berhasil disimpan!');
                         window.location.href = '{{ route("transaksi.presensi.verifikasi-wajah.index") }}';
                     } else {
-                        console.error('Server returned error:', data);
+                        console.error('Save error:', data);
                         alert('Gagal menyimpan verifikasi: ' + data.message);
                         saveBtn.innerHTML = originalText;
                         saveBtn.disabled = false;
                     }
                 })
                 .catch(error => {
-                    console.error('Fetch error:', error);
-                    console.error('Fetch error stack:', error.stack);
-                    alert('Terjadi kesalahan saat menyimpan verifikasi: ' + error.message);
+                    console.error('Save error:', error);
+                    alert('Terjadi kesalahan saat menyimpan: ' + error.message);
                     saveBtn.innerHTML = originalText;
                     saveBtn.disabled = false;
                 });
             })
             .catch(error => {
-                console.error('Error converting image:', error);
-                console.error('Image conversion stack:', error.stack);
-                alert('Terjadi kesalahan saat memproses foto: ' + error.message);
+                console.error('Error processing image:', error);
+                alert('Error processing image: ' + error.message);
                 saveBtn.innerHTML = originalText;
                 saveBtn.disabled = false;
             });
     } else {
-        console.log('No captured image or pegawai selected');
         alert('Silakan lengkapi proses verifikasi terlebih dahulu');
     }
 });
+
+// Extract face encoding (simplified version)
+function extractFaceEncoding() {
+    try {
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        const encoding = [];
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = Math.min(canvas.width, canvas.height) / 4;
+        
+        for (let angle = 0; angle < 360; angle += 30) {
+            const x = Math.round(centerX + radius * Math.cos(angle * Math.PI / 180));
+            const y = Math.round(centerY + radius * Math.sin(angle * Math.PI / 180));
+            
+            if (x >= 0 && x < canvas.width && y >= 0 && y < canvas.height) {
+                const index = (y * canvas.width + x) * 4;
+                const gray = 0.299 * data[index] + 0.587 * data[index + 1] + 0.114 * data[index + 2];
+                encoding.push(Math.round(gray * 100) / 100);
+            }
+        }
+        
+        console.log('Face encoding extracted:', {
+            length: encoding.length,
+            sample: encoding.slice(0, 3),
+            method: 'circular_sampling'
+        });
+        
+        return encoding;
+    } catch (error) {
+        console.error('Error extracting face encoding:', error);
+        return [];
+    }
+}
 
 // Step navigation functions
 function showStep(stepNumber) {

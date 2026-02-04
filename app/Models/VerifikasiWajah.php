@@ -7,11 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class VerifikasiWajah extends Model
 {
-    protected $table = 'verifikasi_wajahs';
-    protected $primaryKey = 'id';
+    protected $table = 'verifikasi_wajah';
     
     protected $fillable = [
-        'nomor_induk_pegawai',
+        'kode_pegawai',
         'foto_wajah',
         'encoding_wajah',
         'aktif',
@@ -33,6 +32,6 @@ class VerifikasiWajah extends Model
     
     public function pegawai(): BelongsTo
     {
-        return $this->belongsTo(Pegawai::class, 'nomor_induk_pegawai', 'nomor_induk_pegawai');
+        return $this->belongsTo(Pegawai::class, 'kode_pegawai', 'kode_pegawai');
     }
 }

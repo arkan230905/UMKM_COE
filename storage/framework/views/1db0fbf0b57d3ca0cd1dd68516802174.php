@@ -50,14 +50,6 @@
                             <option value="btktl" <?php echo e(request('jenis_pegawai') == 'btktl' ? 'selected' : ''); ?>>BTKTL</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Status Pembayaran</label>
-                        <select name="status_pembayaran" class="form-select">
-                            <option value="">Semua Status</option>
-                            <option value="lunas" <?php echo e(request('status_pembayaran') == 'lunas' ? 'selected' : ''); ?>>Lunas</option>
-                            <option value="belum_lunas" <?php echo e(request('status_pembayaran') == 'belum_lunas' ? 'selected' : ''); ?>>Belum Lunas</option>
-                        </select>
-                    </div>
                     <div class="col-md-12">
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-primary">
@@ -94,8 +86,10 @@
                             <th>Gaji Pokok / Tarif</th>
                             <th>Jam Kerja</th>
                             <th>Tunjangan</th>
-                            <th>Asuransi</th>
+                            <th>Bonus</th>
+                            <th>Potongan</th>
                             <th>Total Terbayar</th>
+                            <th>Status</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -130,31 +124,41 @@
                                     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                                 </td>
                                 <td>Rp <?php echo e(number_format($gaji->tunjangan ?? 0, 0, ',', '.')); ?></td>
-                                <td>Rp <?php echo e(number_format($gaji->asuransi ?? 0, 0, ',', '.')); ?></td>
                                 <td>Rp <?php echo e(number_format($gaji->bonus ?? 0, 0, ',', '.')); ?></td>
                                 <td>Rp <?php echo e(number_format($gaji->potongan ?? 0, 0, ',', '.')); ?></td>
                                 <td><strong>Rp <?php echo e(number_format($gaji->total_gaji, 0, ',', '.')); ?></strong></td>
                                 <td>
+                                    <span class="badge 
+                                        <?php if(($gaji->status_pembayaran ?? 'belum_lunas') === 'lunas'): ?> bg-success
+                                        <?php elseif(($gaji->status_pembayaran ?? 'belum_lunas') === 'dibatalkan'): ?> bg-danger
+                                        <?php else: ?> bg-warning <?php endif; ?>">
+                                        <?php echo e(ucfirst($gaji->status_pembayaran ?? 'Belum Lunas')); ?>
+
+                                    </span>
+                                </td>
+                                <td>
                                     <div class="btn-group btn-group-sm">
-                                        <a href="<?php echo e(route('transaksi.penggajian.edit', $gaji->id)); ?>" class="btn btn-outline-warning">
+                                        <a href="<?php echo e(route('transaksi.penggajian.slip', $gaji->id)); ?>" class="btn btn-outline-info" title="Lihat Slip">
+                                            <i class="fas fa-file-invoice"></i>
+                                        </a>
+                                        <a href="<?php echo e(route('transaksi.penggajian.slip-pdf', $gaji->id)); ?>" class="btn btn-outline-success" title="Download PDF">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-success" onclick="confirmPayment(<?php echo e($gaji->id); ?>)" title="Bayar">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" onclick="confirmCancel(<?php echo e($gaji->id); ?>)" title="Batalkan">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <a href="<?php echo e(route('transaksi.penggajian.edit', $gaji->id)); ?>" class="btn btn-outline-warning" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="<?php echo e(route('transaksi.penggajian.show', $gaji->id)); ?>" class="btn btn-outline-primary">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <form action="<?php echo e(route('transaksi.penggajian.destroy', $gaji->id)); ?>" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus data ini?')">
-                                            <?php echo csrf_field(); ?>
-                                            <?php echo method_field('DELETE'); ?>
-                                            <button class="btn btn-outline-danger">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
                                     </div>
                                 </td>
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                             <tr>
-                                <td colspan="10" class="text-center py-4">
+                                <td colspan="12" class="text-center py-4">
                                     <i class="fas fa-money-check-alt fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data penggajian</p>
                                 </td>
@@ -166,6 +170,37 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Konfirmasi Pembayaran -->
+<form id="paymentForm" method="POST">
+    <?php echo csrf_field(); ?>
+    <input type="hidden" name="action" value="pay">
+    <input type="hidden" name="metode_pembayaran" value="transfer">
+</form>
+
+<!-- Modal Konfirmasi Pembatalan -->
+<form id="cancelForm" method="POST">
+    <?php echo csrf_field(); ?>
+    <input type="hidden" name="action" value="cancel">
+</form>
+
+<script>
+function confirmPayment(id) {
+    if (confirm('Tandai transaksi ini sebagai dibayar?')) {
+        const form = document.getElementById('paymentForm');
+        form.action = '/transaksi/penggajian/' + id + '/update-status';
+        form.submit();
+    }
+}
+
+function confirmCancel(id) {
+    if (confirm('Batalkan transaksi ini?')) {
+        const form = document.getElementById('cancelForm');
+        form.action = '/transaksi/penggajian/' + id + '/update-status';
+        form.submit();
+    }
+}
+</script>
 <?php $__env->stopSection(); ?>
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\UMKM_COE\resources\views/transaksi/penggajian/index.blade.php ENDPATH**/ ?>

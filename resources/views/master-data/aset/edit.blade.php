@@ -80,7 +80,7 @@
                         <input type="number" step="0.01" class="form-control bg-dark text-white @error('biaya_perolehan') is-invalid @enderror" 
                                id="biaya_perolehan" name="biaya_perolehan" value="{{ old('biaya_perolehan', $aset->biaya_perolehan ?? 0) }}" 
                                required oninput="hitungTotal()">
-                        <small class="text-muted">Biaya tambahan seperti ongkir, instalasi, dll</small>
+                        <small class="text-white">Biaya tambahan seperti ongkir, instalasi, dll</small>
                         @error('biaya_perolehan')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -125,7 +125,7 @@
                         <input type="number" step="0.1" min="0" max="200" class="form-control bg-dark text-white @error('tarif_penyusutan') is-invalid @enderror" 
                                id="tarif_penyusutan" name="tarif_penyusutan" value="{{ old('tarif_penyusutan', $aset->metode_penyusutan === 'saldo_menurun' ? '' : $aset->tarif_penyusutan) }}" 
                                oninput="hitungPenyusutan()">
-                        <small class="text-muted">Tarif penyusutan dalam persen (contoh: 50 untuk 50%)</small>
+                        <small class="text-white">Tarif penyusutan dalam persen (contoh: 50 untuk 50%)</small>
                         @error('tarif_penyusutan')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -149,7 +149,7 @@
                             <option value="11">November</option>
                             <option value="12">Desember</option>
                         </select>
-                        <small class="text-muted">Bulan pembelian aset</small>
+                        <small class="text-white">Bulan pembelian aset</small>
                         @error('bulan_mulai')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -160,7 +160,7 @@
                         <input type="number" step="0.01" class="form-control bg-dark text-white @error('nilai_residu') is-invalid @enderror" 
                                id="nilai_residu" name="nilai_residu" value="{{ old('nilai_residu', $aset->nilai_residu ?? 0) }}" 
                                required oninput="hitungPenyusutan()">
-                        <small class="text-muted">Nilai sisa di akhir umur manfaat</small>
+                        <small class="text-white">Nilai sisa di akhir umur manfaat</small>
                         @error('nilai_residu')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -244,7 +244,7 @@
                         <label for="tanggal_akuisisi" class="form-label text-white">Tanggal Mulai Penyusutan</label>
                         <input type="date" class="form-control bg-dark text-white @error('tanggal_akuisisi') is-invalid @enderror" 
                                id="tanggal_akuisisi" name="tanggal_akuisisi" value="{{ old('tanggal_akuisisi', $aset->tanggal_akuisisi instanceof \Carbon\Carbon ? $aset->tanggal_akuisisi->format('Y-m-d') : $aset->tanggal_akuisisi) }}">
-                        <small class="text-muted">Kosongkan jika sama dengan tanggal pembelian</small>
+                        <small class="text-white">Kosongkan jika sama dengan tanggal pembelian</small>
                         @error('tanggal_akuisisi')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -479,9 +479,9 @@ function updateDepreciationInfo(metode, ratePersen = 0) {
         tarifDiv.innerHTML = `<strong>Tarif Penyusutan Per Tahun:</strong> ${tarifInput.toFixed(1)}% (diinput manual)`;
         
         if (sisaBulan < 12) {
-            keteranganDiv.innerHTML = `<small class="text-muted">Metode Saldo Menurun Ganda dengan partial year. Tahun pertama hanya ${sisaBulan} bulan (mulai ${bulanMulai == 1 ? 'Januari' : bulanMulai == 2 ? 'Februari' : bulanMulai == 3 ? 'Maret' : bulanMulai == 4 ? 'April' : bulanMulai == 5 ? 'Mei' : bulanMulai == 6 ? 'Juni' : bulanMulai == 7 ? 'Juli' : bulanMulai == 8 ? 'Agustus' : bulanMulai == 9 ? 'September' : bulanMulai == 10 ? 'Oktober' : bulanMulai == 11 ? 'November' : 'Desember'}).</small>`;
+            keteranganDiv.innerHTML = `<small class="text-white">Metode Saldo Menurun Ganda dengan partial year. Tahun pertama hanya ${sisaBulan} bulan (mulai ${bulanMulai == 1 ? 'Januari' : bulanMulai == 2 ? 'Februari' : bulanMulai == 3 ? 'Maret' : bulanMulai == 4 ? 'April' : bulanMulai == 5 ? 'Mei' : bulanMulai == 6 ? 'Juni' : bulanMulai == 7 ? 'Juli' : bulanMulai == 8 ? 'Agustus' : bulanMulai == 9 ? 'September' : bulanMulai == 10 ? 'Oktober' : bulanMulai == 11 ? 'November' : 'Desember'}).</small>`;
         } else {
-            keteranganDiv.innerHTML = `<small class="text-muted">Metode Saldo Menurun Ganda menghitung penyusutan berdasarkan tarif persentase yang diinput dari nilai buku awal setiap tahun.</small>`;
+            keteranganDiv.innerHTML = `<small class="text-white">Metode Saldo Menurun Ganda menghitung penyusutan berdasarkan tarif persentase yang diinput dari nilai buku awal setiap tahun.</small>`;
         }
     } else if (metode === 'garis_lurus') {
         // Sembunyikan info untuk metode garis lurus (rumus berbeda)
@@ -493,7 +493,7 @@ function updateDepreciationInfo(metode, ratePersen = 0) {
         
         rumusDiv.innerHTML = `<strong>Rumus:</strong> (Nilai yang Disusutkan × Tahun Sisa) / Jumlah Angka Tahun`;
         tarifDiv.innerHTML = `<strong>Jumlah Angka Tahun:</strong> ${sumOfYears}`;
-        keteranganDiv.innerHTML = `<small class="text-muted">Metode Jumlah Angka Tahun memberikan beban lebih besar pada tahun-tahun awal.</small>`;
+        keteranganDiv.innerHTML = `<small class="text-white">Metode Jumlah Angka Tahun memberikan beban lebih besar pada tahun-tahun awal.</small>`;
     } else {
         infoDiv.style.display = 'none';
     }

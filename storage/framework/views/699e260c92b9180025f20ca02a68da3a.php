@@ -64,8 +64,8 @@
                                 data-kategori="<?php echo e($j->kategori); ?>"
                                 data-tunjangan="<?php echo e($j->tunjangan); ?>"
                                 data-asuransi="<?php echo e($j->asuransi); ?>"
-                                data-gaji="<?php echo e($j->gaji_pokok); ?>"
-                                data-tarif="<?php echo e($j->tarif_lembur); ?>"
+                                data-gaji="<?php echo e($j->gaji); ?>"
+                                data-tarif="<?php echo e($j->tarif); ?>"
                                 <?php echo e(old('jabatan_id')==$j->id?'selected':''); ?>>
                             <?php echo e($j->nama); ?> (<?php echo e(strtoupper($j->kategori)); ?>)
                         </option>

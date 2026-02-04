@@ -285,7 +285,8 @@ Route::middleware('auth')->group(function () {
         Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generate-kode');
         Route::resource('aset', AsetController::class);
         Route::get('aset-kategori-by-jenis', [AsetController::class, 'getKategoriByJenis'])->name('aset.kategori-by-jenis');
-        Route::resource('kualifikasi-tenaga-kerja', JabatanController::class);
+        Route::resource('kualifikasi-tenaga-kerja', JabatanController::class)->except(['update']);
+        Route::post('kualifikasi-tenaga-kerja/{kualifikasi_tenaga_kerja}', [JabatanController::class, 'update'])->name('master-data.kualifikasi-tenaga-kerja.update');
         Route::resource('pegawai', PegawaiController::class);
         Route::resource('vendor', VendorController::class);
         Route::resource('satuan', SatuanController::class);
@@ -373,6 +374,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/{bom}/edit', [BomController::class, 'edit'])->name('edit');
             Route::put('/{bom}', [BomController::class, 'update'])->name('update');
             Route::delete('/{bom}', [BomController::class, 'destroy'])->name('destroy');
+            Route::post('/update-bop', [BomController::class, 'updateBOP'])->name('update-bop');
+            Route::post('/{produk}/update-bom-costs', [BomController::class, 'updateBomCosts'])->name('update-bom-costs');
         });
         
         // BTKL Routes (Biaya Tenaga Kerja Langsung)
@@ -468,6 +471,7 @@ Route::middleware('auth')->group(function () {
             Route::prefix('verifikasi-wajah')->name('verifikasi-wajah.')->group(function() {
                 Route::get('/', [PresensiController::class, 'verifikasiWajahIndex'])->name('index');
                 Route::get('/create', [PresensiController::class, 'verifikasiWajahCreate'])->name('create');
+                Route::post('/step1', [PresensiController::class, 'verifikasiWajahStep1'])->name('step1');
                 Route::get('/face-recognition', [PresensiController::class, 'verifikasiWajahFaceRecognition'])->name('face-recognition');
                 Route::post('/', [PresensiController::class, 'verifikasiWajahStore'])->name('store');
                 Route::get('/{id}/edit', [PresensiController::class, 'verifikasiWajahEdit'])->name('edit');
@@ -502,6 +506,13 @@ Route::middleware('auth')->group(function () {
             Route::put('/{id}', [PenggajianController::class, 'update'])->name('update');
             Route::delete('/{id}', [PenggajianController::class, 'destroy'])->name('destroy');
             Route::get('/print/{id}', [PenggajianController::class, 'print'])->name('print');
+            
+            // Slip gaji
+            Route::get('/{id}/slip', [PenggajianController::class, 'generateSlip'])->name('slip');
+            Route::get('/{id}/slip-pdf', [PenggajianController::class, 'downloadSlip'])->name('slip-pdf');
+            
+            // Status management
+            Route::post('/{id}/update-status', [PenggajianController::class, 'updateStatus'])->name('update-status');
         });
 
         // ============================================================

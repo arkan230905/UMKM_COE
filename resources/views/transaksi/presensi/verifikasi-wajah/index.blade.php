@@ -69,20 +69,27 @@
                                 </div>
                             </td>
                             <td class="text-center">
-                                <span class="badge bg-light text-dark">{{ optional($verifikasi->pegawai)->nomor_induk_pegawai }}</span>
+                                <span class="badge bg-light text-dark">{{ optional($verifikasi->pegawai)->kode_pegawai ?? '-' }}</span>
                             </td>
                             <td class="text-center">
                                 @if($verifikasi->foto_wajah)
                                     <div class="position-relative d-inline-block">
-                                        <img src="{{ asset('storage/' . $verifikasi->foto_wajah) }}?v={{ uniqid() }}" 
-                                             alt="Foto Wajah" 
-                                             class="img-thumbnail rounded-circle shadow-sm" 
-                                             style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #e9ecef; cursor: pointer;"
-                                             onclick="viewPhoto('{{ asset('storage/' . $verifikasi->foto_wajah) }}?v={{ uniqid() }}', '{{ optional($verifikasi->pegawai)->nama }}')"
-                                             onload="console.log('Image loaded: {{ $verifikasi->foto_wajah }}')"
-                                             onerror="this.onerror=null; this.src='{{ asset('images/default-avatar.png') }}'; console.log('Image failed, using default: {{ $verifikasi->foto_wajah }}');">
-                                        <div class="position-absolute bottom-0 end-0 bg-success rounded-circle" 
-                                             style="width: 10px; height: 10px; border: 2px solid white;"></div>
+                                        @if(\Storage::disk('public')->exists($verifikasi->foto_wajah))
+                                            <img src="{{ Storage::url($verifikasi->foto_wajah) }}?v={{ uniqid() }}" 
+                                                 alt="Foto {{ optional($verifikasi->pegawai)->nama }}" 
+                                                 class="img-thumbnail rounded-circle shadow-sm" 
+                                                 style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #e9ecef; cursor: pointer;"
+                                                 onclick="viewPhoto('{{ Storage::url($verifikasi->foto_wajah) }}', '{{ optional($verifikasi->pegawai)->nama }}')"
+                                                 onerror="this.onerror=null; this.src='{{ asset('images/default-avatar.png') }}';">
+                                            <div class="position-absolute bottom-0 end-0 bg-success rounded-circle" 
+                                                 style="width: 10px; height: 10px; border: 2px solid white;"></div>
+                                        @else
+                                            <div class="text-center">
+                                                <i class="bi bi-image text-muted" style="font-size: 1.8rem;"></i>
+                                                <div class="small text-muted">File Not Found</div>
+                                                <div class="small text-muted">{{ $verifikasi->foto_wajah }}</div>
+                                            </div>
+                                        @endif
                                     </div>
                                 @else
                                     <div class="text-center">
@@ -93,8 +100,8 @@
                             </td>
                             <td class="text-center">
                                 <div class="d-flex flex-column">
-                                    <span>{{ \Carbon\Carbon::parse($verifikasi->tanggal_verifikasi)->format('d/m/Y') }}</span>
-                                    <small class="text-muted">{{ \Carbon\Carbon::parse($verifikasi->tanggal_verifikasi)->format('H:i') }}</small>
+                                    <span>{{ $verifikasi->created_at->format('d/m/Y') }}</span>
+                                    <small class="text-muted">{{ $verifikasi->created_at->format('H:i') }}</small>
                                 </div>
                             </td>
                             <td class="text-center">

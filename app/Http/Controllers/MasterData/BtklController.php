@@ -81,7 +81,10 @@ class BtklController extends Controller
                 $validated['kode_proses'] = 'PROC-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
             }
 
-            Btkl::create($validated);
+            $btkl = Btkl::create($validated);
+
+            // Sync BOM when BTKL data changes
+            BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);
 
             DB::commit();
 

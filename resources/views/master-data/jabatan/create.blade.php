@@ -59,13 +59,13 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Gaji Pokok (Rp)</label>
-                        <input type="text" name="gaji" class="form-control money-input" value="{{ old('gaji',0) }}">
+                        <input type="text" name="gaji_pokok" class="form-control money-input" value="{{ old('gaji_pokok',0) }}">
                         <small class="money-hint"></small>
                         <small class="d-block">BTKTL: gaji per bulan. BTKL: isi 0.</small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Tarif/Jam (Rp)</label>
-                        <input type="text" name="tarif" class="form-control money-input" value="{{ old('tarif',0) }}">
+                        <input type="text" name="tarif_lembur" class="form-control money-input" value="{{ old('tarif_lembur',0) }}">
                         <small class="money-hint"></small>
                         <small class="d-block">BTKL: tarif per jam. BTKTL: isi 0.</small>
                     </div>

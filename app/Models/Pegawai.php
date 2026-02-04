@@ -11,14 +11,13 @@ class Pegawai extends Model
     use HasFactory;
 
     protected $table = 'pegawais';
-    protected $primaryKey = 'nomor_induk_pegawai';
+    protected $primaryKey = 'id';
 
     protected $fillable = [
         'kode_pegawai',
-        'nomor_induk_pegawai',
         'nama',
         'email',
-        'no_telp',
+        'no_telepon',
         'alamat',
         'jenis_kelamin',
         'jabatan',

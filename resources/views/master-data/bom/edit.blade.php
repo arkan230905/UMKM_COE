@@ -119,9 +119,9 @@
                                 <th colspan="5" class="text-end">Total Biaya Bahan (Mutlak):</th>
                                 <th>
                                     @php
-                                        $totalBiayaBahan = $biayaBahan->sum(function($bahan) {
-                                            return $bahan['subtotal'] ?? ($bahan['harga'] * $bahan['jumlah']);
-                                        });
+                                        $totalBiayaBahan = array_reduce($biayaBahan, function($carry, $bahan) {
+                                            return $carry + ($bahan['subtotal'] ?? ($bahan['harga'] * $bahan['jumlah']));
+                                        }, 0);
                                     @endphp
                                     <span id="totalBiayaBahan">Rp {{ number_format($totalBiayaBahan, 0, ',', '.') }}</span>
                                     <input type="hidden" name="total_biaya_bahan" id="totalBiayaBahanInput" value="{{ $totalBiayaBahan }}">
@@ -131,7 +131,7 @@
                     </table>
                 </div>
                 
-                @if($biayaBahan->isEmpty())
+                @if(empty($biayaBahan))
                 <div class="text-center py-4">
                     <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
                     <h5 class="text-warning">Belum Ada Data Biaya Bahan</h5>
@@ -334,7 +334,7 @@
 </script>
 
 <script>
-let btklRowIndex = {{ $bom->proses->count() }};
+let btklRowIndex = {{ $prosesCount ?? 0 }};
 let bopRowIndex = {{ $bom->total_bop > 0 ? 1 : 0 }};
 
 // Add BTKL Row

@@ -89,8 +89,8 @@
                             </td>
                             <td class="fw-semibold">Rp <?php echo e(number_format($row->tunjangan,0,',','.')); ?></td>
                             <td class="fw-semibold">Rp <?php echo e(number_format($row->asuransi,0,',','.')); ?></td>
-                            <td class="fw-semibold">Rp <?php echo e(number_format($row->gaji_pokok,0,',','.')); ?></td>
-                            <td class="fw-semibold">Rp <?php echo e(number_format($row->tarif_lembur,0,',','.')); ?></td>
+                            <td class="fw-semibold">Rp <?php echo e(number_format($row->gaji,0,',','.')); ?></td>
+                            <td class="fw-semibold">Rp <?php echo e(number_format($row->tarif,0,',','.')); ?></td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
                                     <a href="<?php echo e(route('master-data.kualifikasi-tenaga-kerja.edit',$row->id)); ?>" class="btn btn-outline-primary">

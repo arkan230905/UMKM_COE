@@ -53,10 +53,6 @@ class AssetResource extends Resource
                 Tables\Columns\TextColumn::make('umur_ekonomis'),
             ])
             ->actions([
-                Tables\Actions\Action::make('detail')
-                    ->label('Detail/Depresiasi')
-                    ->icon('heroicon-o-calculator')
-                    ->url(fn (Asset $record) => Pages\Depreciation::getUrl(['record' => $record->getKey()])),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make()
                     ->visible(fn (Asset $record) => !$record->locked),
@@ -72,7 +68,6 @@ class AssetResource extends Resource
             'index' => Pages\ListAssets::route('/'),
             'create' => Pages\CreateAsset::route('/create'),
             'edit' => Pages\EditAsset::route('/{record}/edit'),
-            'depreciation' => Pages\Depreciation::route('/{record}/depreciation'),
         ];
     }
 }
