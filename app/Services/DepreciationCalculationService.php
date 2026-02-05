@@ -21,18 +21,15 @@ class DepreciationCalculationService
     }
 
     /**
-     * Hitung penyusutan menggunakan metode saldo menurun
-     * Beban penyusutan = Nilai Buku Awal × Persentase Penyusutan
+     * Hitung penyusutan menggunakan metode saldo menurun ganda
+     * Beban penyusutan = Nilai Buku Awal × Tarif (2/Umur Manfaat × 100%)
      */
     public function hitungSaldoMenurun(Aset $aset, float $nilaiBukuAwal): float
     {
-        if (!$aset->persentase_penyusutan) {
-            // Hitung persentase otomatis jika tidak ada
-            $persentase = (1 - pow($aset->nilai_sisa / $aset->harga_perolehan, 1 / $aset->umur_ekonomis_tahun)) * 100;
-            $aset->update(['persentase_penyusutan' => $persentase]);
-        }
-
-        return $nilaiBukuAwal * ($aset->persentase_penyusutan / 100);
+        $umur = $aset->umur_ekonomis_tahun ?? 5;
+        $tarif = (2 / $umur) * 100; // Double declining rate
+        
+        return $nilaiBukuAwal * ($tarif / 100);
     }
 
     /**
@@ -46,6 +43,30 @@ class DepreciationCalculationService
         $sisaUmur = $aset->umur_ekonomis_tahun - $tahunKe + 1;
 
         return ($sisaUmur / $totalDigit) * $nilaiTerdepresiasi;
+    }
+
+    /**
+     * Hitung penyusutan bulanan untuk metode sum of years digits dengan proporsi partial year
+     */
+    public function hitungSumOfYearsDigitsBulanan(Aset $aset, int $bulanKe, Carbon $tanggalMulai): float
+    {
+        $tahunKe = ceil($bulanKe / 12);
+        $nilaiTerdepresiasi = $aset->harga_perolehan - $aset->nilai_sisa;
+        $totalDigit = ($aset->umur_ekonomis_tahun * ($aset->umur_ekonomis_tahun + 1)) / 2;
+        $sisaUmur = $aset->umur_ekonomis_tahun - $tahunKe + 1;
+        
+        // Hitung penyusutan tahunan
+        $penyusutanTahunan = ($sisaUmur / $totalDigit) * $nilaiTerdepresiasi;
+        
+        // Untuk tahun pertama, gunakan proporsi bulan seperti Excel
+        if ($tahunKe == 1) {
+            $startMonth = $tanggalMulai->month;
+            $bulanPertama = 12 - $startMonth + 1; // sisa bulan di tahun pertama
+            return $penyusutanTahunan * ($bulanPertama / 12) / $bulanPertama;
+        } else {
+            // Tahun berikutnya: bagi rata 12
+            return $penyusutanTahunan / 12;
+        }
     }
 
     /**

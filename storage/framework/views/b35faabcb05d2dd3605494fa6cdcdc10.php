@@ -1,6 +1,4 @@
-@extends('layouts.app')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
 <div class="container mt-4">
     <div class="row mb-4">
         <div class="col-md-12">
@@ -19,61 +17,61 @@
                     <table class="table table-borderless">
                         <tr>
                             <td width="40%" class="text-dark"><strong>Kode Aset</strong></td>
-                            <td class="text-dark">: {{ $aset->kode_aset }}</td>
+                            <td class="text-dark">: <?php echo e($aset->kode_aset); ?></td>
                         </tr>
                         <tr>
                             <td class="text-dark"><strong>Nama Aset</strong></td>
-                            <td class="text-dark">: {{ $aset->nama_aset }}</td>
+                            <td class="text-dark">: <?php echo e($aset->nama_aset); ?></td>
                         </tr>
                         <tr>
                             <td class="text-dark"><strong>Jenis Aset</strong></td>
-                            <td class="text-dark">: {{ $aset->kategori->jenisAset->nama ?? '-' }}</td>
+                            <td class="text-dark">: <?php echo e($aset->kategori->jenisAset->nama ?? '-'); ?></td>
                         </tr>
                         <tr>
                             <td class="text-dark"><strong>Kategori Aset</strong></td>
-                            <td class="text-dark">: {{ $aset->kategori->nama ?? '-' }}</td>
+                            <td class="text-dark">: <?php echo e($aset->kategori->nama ?? '-'); ?></td>
                         </tr>
                         <tr>
                             <td class="text-dark"><strong>Tanggal Pembelian</strong></td>
-                            <td class="text-dark">: {{ \Carbon\Carbon::parse($aset->tanggal_beli)->format('d/m/Y') }}</td>
+                            <td class="text-dark">: <?php echo e(\Carbon\Carbon::parse($aset->tanggal_beli)->format('d/m/Y')); ?></td>
                         </tr>
                         <tr>
                             <td class="text-dark"><strong>Tanggal Mulai Penyusutan</strong></td>
-                            <td class="text-dark">: {{ \Carbon\Carbon::parse($aset->tanggal_akuisisi)->format('d/m/Y') }}</td>
+                            <td class="text-dark">: <?php echo e(\Carbon\Carbon::parse($aset->tanggal_akuisisi)->format('d/m/Y')); ?></td>
                         </tr>
-                        @if($aset->metode_penyusutan === 'sum_of_years_digits' && $aset->tanggal_perolehan)
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($aset->metode_penyusutan === 'sum_of_years_digits' && $aset->tanggal_perolehan): ?>
                         <tr>
                             <td class="text-dark"><strong>Tanggal Perolehan</strong></td>
-                            <td class="text-dark">: {{ \Carbon\Carbon::parse($aset->tanggal_perolehan)->format('d/m/Y') }}</td>
+                            <td class="text-dark">: <?php echo e(\Carbon\Carbon::parse($aset->tanggal_perolehan)->format('d/m/Y')); ?></td>
                         </tr>
-                        @endif
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </table>
                 </div>
                 <div class="col-md-6">
                     <table class="table table-borderless">
                         <tr>
                             <td width="40%" class="text-dark"><strong>Harga Perolehan</strong></td>
-                            <td class="text-dark">: Rp {{ number_format($aset->harga_perolehan, 0, ',', '.') }}</td>
+                            <td class="text-dark">: Rp <?php echo e(number_format($aset->harga_perolehan, 0, ',', '.')); ?></td>
                         </tr>
                         <tr>
                             <td class="text-dark"><strong>Biaya Perolehan</strong></td>
-                            <td class="text-dark">: Rp {{ number_format($aset->biaya_perolehan ?? 0, 0, ',', '.') }}</td>
+                            <td class="text-dark">: Rp <?php echo e(number_format($aset->biaya_perolehan ?? 0, 0, ',', '.')); ?></td>
                         </tr>
                         <tr>
                             <td class="text-dark"><strong>Total Perolehan</strong></td>
-                            <td class="text-dark"><strong>: Rp {{ number_format($totalPerolehan, 0, ',', '.') }}</strong></td>
+                            <td class="text-dark"><strong>: Rp <?php echo e(number_format($totalPerolehan, 0, ',', '.')); ?></strong></td>
                         </tr>
                         <tr>
                             <td class="text-dark"><strong>Nilai Residu</strong></td>
-                            <td class="text-dark">: Rp {{ number_format($aset->nilai_residu, 0, ',', '.') }}</td>
+                            <td class="text-dark">: Rp <?php echo e(number_format($aset->nilai_residu, 0, ',', '.')); ?></td>
                         </tr>
                         <tr>
                             <td class="text-dark"><strong>Umur Manfaat</strong></td>
-                            <td class="text-dark">: {{ $aset->umur_manfaat }} tahun</td>
+                            <td class="text-dark">: <?php echo e($aset->umur_manfaat); ?> tahun</td>
                         </tr>
                         <tr>
                             <td class="text-dark"><strong>Metode Penyusutan</strong></td>
-                            <td class="text-dark">: {{ ucwords(str_replace('_', ' ', $aset->metode_penyusutan)) }}</td>
+                            <td class="text-dark">: <?php echo e(ucwords(str_replace('_', ' ', $aset->metode_penyusutan))); ?></td>
                         </tr>
                     </table>
                 </div>
@@ -88,21 +86,21 @@
             <h5 class="mb-0"><i class="bi bi-calculator me-2"></i>Hasil Perhitungan Penyusutan</h5>
         </div>
         <div class="card-body bg-white">
-            @if($aset->metode_penyusutan === 'sum_of_years_digits')
+            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($aset->metode_penyusutan === 'sum_of_years_digits'): ?>
                 <!-- Tampilan khusus untuk Sum Of Years Digits -->
                 <div class="row">
                     <div class="col-md-12">
                         <div class="alert alert-info">
                             <h6><i class="bi bi-info-circle me-2"></i>Informasi Perhitungan</h6>
                             <p class="mb-2">
-                                <strong>Metode:</strong> {{ ucwords(str_replace('_', ' ', $aset->metode_penyusutan)) }}<br>
+                                <strong>Metode:</strong> <?php echo e(ucwords(str_replace('_', ' ', $aset->metode_penyusutan))); ?><br>
                                 <strong>Tahun Pertama:</strong> 
-                                @php
+                                <?php
                                     $tanggalPerolehan = \Carbon\Carbon::parse($aset->tanggal_akuisisi ?? $aset->tanggal_beli);
                                     $bulanPertama = 12 - $tanggalPerolehan->month + 1;
-                                @endphp
-                                {{ $bulanPertama }} bulan ({{ $tanggalPerolehan->format('F') }} - Desember {{ $tanggalPerolehan->year }})<br>
-                                <strong>Dasar Perhitungan:</strong> (Rp {{ number_format($totalPerolehan - $aset->nilai_residu, 0, ',', '.') }}) × (Bobot Tahun/Total Angka Tahun) × (Jumlah Bulan/12)
+                                ?>
+                                <?php echo e($bulanPertama); ?> bulan (<?php echo e($tanggalPerolehan->format('F')); ?> - Desember <?php echo e($tanggalPerolehan->year); ?>)<br>
+                                <strong>Dasar Perhitungan:</strong> (Rp <?php echo e(number_format($totalPerolehan - $aset->nilai_residu, 0, ',', '.')); ?>) × (Bobot Tahun/Total Angka Tahun) × (Jumlah Bulan/12)
                             </p>
                         </div>
                     </div>
@@ -112,8 +110,8 @@
                         <div class="card bg-info bg-opacity-10 border border-info">
                             <div class="card-body">
                                 <h6 class="text-dark">Penyusutan Per Bulan</h6>
-                                <h3 class="text-dark mb-0">Rp {{ number_format($penyusutanPerBulan, 0, ',', '.') }}</h3>
-                                <small class="text-muted">{{ $bulanPertama }} bulan pertama</small>
+                                <h3 class="text-dark mb-0">Rp <?php echo e(number_format($penyusutanPerBulan, 0, ',', '.')); ?></h3>
+                                <small class="text-muted"><?php echo e($bulanPertama); ?> bulan pertama</small>
                             </div>
                         </div>
                     </div>
@@ -121,20 +119,20 @@
                         <div class="card bg-success bg-opacity-10 border border-success">
                             <div class="card-body">
                                 <h6 class="text-dark">Penyusutan Per Tahun</h6>
-                                <h3 class="text-dark mb-0">Rp {{ number_format($penyusutanPerTahun, 0, ',', '.') }}</h3>
-                                <small class="text-muted">Tahun {{ $tanggalPerolehan->year }} ({{ $bulanPertama }} bulan)</small>
+                                <h3 class="text-dark mb-0">Rp <?php echo e(number_format($penyusutanPerTahun, 0, ',', '.')); ?></h3>
+                                <small class="text-muted">Tahun <?php echo e($tanggalPerolehan->year); ?> (<?php echo e($bulanPertama); ?> bulan)</small>
                             </div>
                         </div>
                     </div>
                 </div>
-            @else
+            <?php else: ?>
                 <!-- Tampilan untuk metode lain -->
                 <div class="row text-center">
                     <div class="col-md-6 mb-3">
                         <div class="card bg-info bg-opacity-10 border border-info">
                             <div class="card-body">
                                 <h6 class="text-dark">Penyusutan Per Bulan</h6>
-                                <h3 class="text-dark mb-0">Rp {{ number_format($penyusutanPerBulan, 0, ',', '.') }}</h3>
+                                <h3 class="text-dark mb-0">Rp <?php echo e(number_format($penyusutanPerBulan, 0, ',', '.')); ?></h3>
                             </div>
                         </div>
                     </div>
@@ -142,12 +140,12 @@
                         <div class="card bg-success bg-opacity-10 border border-success">
                             <div class="card-body">
                                 <h6 class="text-dark">Penyusutan Per Tahun</h6>
-                                <h3 class="text-dark mb-0">Rp {{ number_format($penyusutanPerTahun, 0, ',', '.') }}</h3>
+                                <h3 class="text-dark mb-0">Rp <?php echo e(number_format($penyusutanPerTahun, 0, ',', '.')); ?></h3>
                             </div>
                         </div>
                     </div>
                 </div>
-            @endif
+            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
         </div>
     </div>
 
@@ -169,23 +167,23 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($depreciationData as $index => $row)
+                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $depreciationData; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                             <tr>
-                                <td>{{ $row['periode'] ?? $row['tahun'] }}</td>
-                                <td class="text-end">Rp {{ number_format($row['beban_penyusutan'], 2, ',', '.') }}</td>
-                                <td class="text-end">Rp {{ number_format($row['akumulasi_penyusutan'], 2, ',', '.') }}</td>
-                                <td class="text-end">Rp {{ number_format($row['nilai_buku_akhir'], 2, ',', '.') }}</td>
+                                <td><?php echo e($row['periode'] ?? $row['tahun']); ?></td>
+                                <td class="text-end">Rp <?php echo e(number_format($row['beban_penyusutan'], 2, ',', '.')); ?></td>
+                                <td class="text-end">Rp <?php echo e(number_format($row['akumulasi_penyusutan'], 2, ',', '.')); ?></td>
+                                <td class="text-end">Rp <?php echo e(number_format($row['nilai_buku_akhir'], 2, ',', '.')); ?></td>
                                 <td>
-                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#monthlyDetailModal" onclick="showMonthlyDetail('{{ $row['periode'] }}', {{ $row['beban_penyusutan'] }}, {{ $row['tahun'] }}, {{ $row['jumlah_bulan'] }})">
+                                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#monthlyDetailModal" onclick="showMonthlyDetail('<?php echo e($row['periode']); ?>', <?php echo e($row['beban_penyusutan']); ?>, <?php echo e($row['tahun']); ?>, <?php echo e($row['jumlah_bulan']); ?>)">
                                         <i class="fas fa-info-circle"></i> Detail
                                     </button>
                                 </td>
                             </tr>
-                        @empty
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                             <tr>
                                 <td colspan="5" class="text-center text-muted">Belum ada jadwal penyusutan</td>
                             </tr>
-                        @endforelse
+                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -194,10 +192,10 @@
 
     <!-- Tombol Aksi -->
     <div class="mb-4">
-        <a href="{{ route('master-data.aset.index') }}" class="btn btn-secondary">
+        <a href="<?php echo e(route('master-data.aset.index')); ?>" class="btn btn-secondary">
             <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
-        <a href="{{ route('master-data.aset.edit', $aset->id) }}" class="btn btn-primary">
+        <a href="<?php echo e(route('master-data.aset.edit', $aset->id)); ?>" class="btn btn-primary">
             <i class="bi bi-pencil me-1"></i> Edit
         </a>
     </div>
@@ -205,7 +203,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const metodePenyusutan = '{{ $aset->metode_penyusutan }}';
+    const metodePenyusutan = '<?php echo e($aset->metode_penyusutan); ?>';
     const hasilPerhitunganCard = document.getElementById('hasil_perhitungan_card');
     
     console.log('Metode Penyusutan:', metodePenyusutan);
@@ -216,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Menampilkan hasil perhitungan untuk metode:', metodePenyusutan);
 });
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
 
 <!-- Modal Detail Per Bulan -->
 <div class="modal fade" id="monthlyDetailModal" tabindex="-1" aria-labelledby="monthlyDetailModalLabel" aria-hidden="true">
@@ -238,14 +236,14 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 function showMonthlyDetail(periode, penyusutanTahunan, tahun, jumlahBulan) {
     const modal = new bootstrap.Modal(document.getElementById('monthlyDetailModal'));
     const content = document.getElementById('monthlyDetailContent');
     
     // Filter data bulanan untuk periode yang dipilih
-    const monthlyData = @json($monthlyDepreciationData);
+    const monthlyData = <?php echo json_encode($monthlyDepreciationData, 15, 512) ?>;
     
     // Cari index mulai untuk periode ini
     let startIndex = -1;
@@ -272,7 +270,7 @@ function showMonthlyDetail(periode, penyusutanTahunan, tahun, jumlahBulan) {
     let html = `
         <div class="mb-3">
             <h6>Periode ${periode}</h6>
-            <p><strong>Metode:</strong> {{ ucwords(str_replace('_', ' ', $aset->metode_penyusutan)) }}</p>
+            <p><strong>Metode:</strong> <?php echo e(ucwords(str_replace('_', ' ', $aset->metode_penyusutan))); ?></p>
             <p><strong>Penyusutan periode:</strong> Rp ${numberFormat(penyusutanTahunan)}</p>
         </div>
         <div class="table-responsive">
@@ -325,4 +323,6 @@ function numberFormat(num) {
     return num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&.');
 }
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampppp\htdocs\UMKM_COE\resources\views/master-data/aset/show.blade.php ENDPATH**/ ?>

@@ -141,18 +141,71 @@ class Aset extends Model
      */
     public function hitungBebanPenyusutanBulanan(): float
     {
+        // Untuk Sum Of Years Digits, gunakan jadwal bulanan untuk mendapatkan nilai yang tepat
+        if ($this->metode_penyusutan === 'sum_of_years_digits') {
+            $tanggalPerolehan = $this->tanggal_akuisisi ?? $this->tanggal_beli ?? now();
+            $startDate = Carbon::parse($tanggalPerolehan);
+            
+            $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
+            $residu = (float)($this->nilai_residu ?? 0);
+            $umur = (int)($this->umur_manfaat ?? 0);
+            
+            $jadwalBulanan = $this->jadwalBulananJumlahAngkaTahun($total, $residu, $umur, $startDate);
+            
+            // Kembalikan nilai bulanan pertama
+            if (!empty($jadwalBulanan)) {
+                return $jadwalBulanan[0]['biaya_penyusutan'];
+            }
+            
+            return 0.0;
+        }
+        
+        // Untuk metode lain, gunakan logika existing
         $tahunan = $this->hitungBebanPenyusutanTahunan();
         return $tahunan / 12;
     }
 
     /**
-     * Hitung beban penyusutan tahunan
+     * Hitung beban penyusutan tahunan berdasarkan metode
      */
     public function hitungBebanPenyusutanTahunan(): float
     {
         $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
-        $tarif = $this->tarif_penyusutan ? ($this->tarif_penyusutan / 100) : 0;
-        return $tarif > 0 ? ($total * $tarif) : 0.0;
+        $residu = (float)($this->nilai_residu ?? 0);
+        $umur = (int)($this->umur_manfaat ?? 0);
+        
+        if ($umur <= 0 || $total <= 0) return 0.0;
+        
+        switch ($this->metode_penyusutan) {
+            case 'garis_lurus':
+                // (Harga Perolehan - Nilai Residu) / Umur Manfaat
+                return ($total - $residu) / $umur;
+                
+            case 'saldo_menurun':
+                // Double Declining Balance: (100% / Umur Manfaat) × 2 × Nilai Buku Awal
+                $tarif = (2 / $umur) * 100;
+                return $total * ($tarif / 100);
+                
+            case 'sum_of_years_digits':
+                // Total angka tahun: n + (n-1) + ... + 1 = n(n+1)/2
+                // Gunakan jadwal penyusutan untuk mendapatkan nilai yang tepat
+                $tanggalPerolehan = $this->tanggal_akuisisi ?? $this->tanggal_beli ?? now();
+                $startYear = Carbon::parse($tanggalPerolehan)->year;
+                $startMonth = Carbon::parse($tanggalPerolehan)->month;
+                
+                $jadwal = $this->jadwalPenyusutanJumlahAngkaTahun($total, $residu, $umur, $startYear, $startMonth);
+                
+                // Cari beban penyusutan untuk periode pertama
+                if (!empty($jadwal)) {
+                    return $jadwal[0]['beban_penyusutan'];
+                }
+                
+                return 0.0; // Jika tidak ditemukan
+                
+            default:
+                $tarif = $this->tarif_penyusutan ? ($this->tarif_penyusutan / 100) : 0;
+                return $tarif > 0 ? ($total * $tarif) : 0.0;
+        }
     }
 
     /**
@@ -166,23 +219,15 @@ class Aset extends Model
             return 0.0;
         }
         
-        // Untuk metode garis lurus, tahun pertama selalu penuh
-        if ($this->metode_penyusutan === 'garis_lurus') {
-            return $tahunan;
-        }
-        
         // Ambil tanggal perolehan (tanggal_akuisisi atau tanggal_beli)
         $tanggalPerolehan = $this->tanggal_akuisisi ?? $this->tanggal_beli;
         
-        // Jika ada bulan_mulai yang diset, gunakan itu
-        if ($this->bulan_mulai && $this->bulan_mulai >= 1 && $this->bulan_mulai <= 12) {
-            $bulanPerolehan = $this->bulan_mulai;
-        } elseif ($tanggalPerolehan) {
-            $tanggal = \Carbon\Carbon::parse($tanggalPerolehan);
-            $bulanPerolehan = $tanggal->month;
-        } else {
-            return $tahunan; // Jika tidak ada tanggal atau bulan_mulai, gunakan tahunan penuh
+        if (!$tanggalPerolehan) {
+            return $tahunan; // Jika tidak ada tanggal, gunakan tahunan penuh
         }
+        
+        $tanggal = \Carbon\Carbon::parse($tanggalPerolehan);
+        $bulanPerolehan = $tanggal->month;
         
         // Hitung sisa bulan dari bulan perolehan sampai Desember
         $sisaBulan = 12 - $bulanPerolehan + 1; // +1 karena termasuk bulan perolehan
@@ -224,9 +269,7 @@ class Aset extends Model
      */
     public function getDepreciationPerYearAttribute(): float
     {
-        $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
-        $tarif = $this->tarif_penyusutan ? ($this->tarif_penyusutan / 100) : 0;
-        return $tarif > 0 ? ($total * $tarif) : 0.0;
+        return $this->hitungBebanPenyusutanTahunan();
     }
 
     /**
@@ -242,7 +285,7 @@ class Aset extends Model
      */
     public function getPenyusutanPerBulanAttribute(): float
     {
-        return $this->getPenyusutanPerTahunAttribute() / 12;
+        return $this->hitungBebanPenyusutanBulanan();
     }
 
     /**
@@ -304,32 +347,568 @@ class Aset extends Model
     }
 
     /**
-     * Generate jadwal penyusutan tahunan (garis lurus)
+     * Generate jadwal penyusutan tahunan untuk semua metode
      */
     public function jadwalPenyusutan(): array
     {
         $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
         $residu = (float)($this->nilai_residu ?? 0);
-        $umur = (int)($this->umur_manfaat ?? $this->umur_ekonomis_tahun ?? 0);
+        $umur = (int)($this->umur_manfaat ?? 0);
+        
         if ($umur <= 0 || $total <= 0) return [];
-
-        $base = max($total - $residu, 0);
-        $perTahun = $base / $umur;
-        $start = $this->tanggal_akuisisi ?? $this->tanggal_beli ?? now()->toDateString();
-        $startYear = Carbon::parse($start)->year;
-
-        $acc = 0.0; $book = $total; $rows = [];
-        for ($i = 0; $i < $umur; $i++) {
-            $year = $startYear + $i;
-            $dep = min($perTahun, max($book - $residu, 0));
-            $acc += $dep; $book -= $dep;
+        
+        $tanggalPerolehan = $this->tanggal_akuisisi ?? $this->tanggal_beli ?? now();
+        $startYear = Carbon::parse($tanggalPerolehan)->year;
+        $startMonth = Carbon::parse($tanggalPerolehan)->month;
+        
+        switch ($this->metode_penyusutan) {
+            case 'garis_lurus':
+                return $this->jadwalPenyusutanGarisLurus($total, $residu, $umur, $startYear, $startMonth);
+                
+            case 'saldo_menurun':
+                return $this->jadwalPenyusutanSaldoMenurun($total, $residu, $umur, $startYear, $startMonth);
+                
+            case 'sum_of_years_digits':
+                return $this->jadwalPenyusutanJumlahAngkaTahun($total, $residu, $umur, $startYear, $startMonth);
+                
+            default:
+                return [];
+        }
+    }
+    
+    /**
+     * Generate jadwal penyusutan per bulan (untuk modal detail)
+     */
+    public function jadwalPenyusutanPerBulan(): array
+    {
+        $total = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
+        $residu = (float)($this->nilai_residu ?? 0);
+        $umur = (int)($this->umur_manfaat ?? 0);
+        
+        if ($umur <= 0 || $total <= 0) return [];
+        
+        $tanggalPerolehan = $this->tanggal_akuisisi ?? $this->tanggal_beli ?? now();
+        $startDate = Carbon::parse($tanggalPerolehan);
+        
+        switch ($this->metode_penyusutan) {
+            case 'garis_lurus':
+                return $this->jadwalBulananGarisLurus($total, $residu, $umur, $startDate);
+                
+            case 'saldo_menurun':
+                return $this->jadwalBulananSaldoMenurun($total, $residu, $umur, $startDate);
+                
+            case 'sum_of_years_digits':
+                return $this->jadwalBulananJumlahAngkaTahun($total, $residu, $umur, $startDate);
+                
+            default:
+                return [];
+        }
+    }
+    
+    /**
+     * Jadwal bulanan metode Garis Lurus
+     */
+    private function jadwalBulananGarisLurus($total, $residu, $umur, $startDate): array
+    {
+        $penyusutanTahunan = ($total - $residu) / $umur;
+        $penyusutanBulanan = $penyusutanTahunan / 12;
+        $akumulasi = 0.0;
+        $nilaiBuku = $total;
+        $rows = [];
+        
+        $totalBulan = $umur * 12;
+        
+        for ($bulan = 0; $bulan < $totalBulan; $bulan++) {
+            $currentDate = $startDate->copy()->addMonths($bulan);
+            
+            $penyusutan = $penyusutanBulanan;
+            
+            // Pastikan tidak melebihi sisa nilai yang bisa disusutkan
+            $maxPenyusutan = $nilaiBuku - $residu;
+            if ($penyusutan > $maxPenyusutan) {
+                $penyusutan = $maxPenyusutan;
+            }
+            
+            $akumulasi += $penyusutan;
+            $nilaiBuku -= $penyusutan;
+            
             $rows[] = [
-                'tahun' => $year,
-                'beban_penyusutan' => round($dep, 2),
-                'akumulasi_penyusutan' => round($acc, 2),
-                'nilai_buku_akhir' => round($book, 2),
+                'periode' => $currentDate->format('F Y'),
+                'biaya_penyusutan' => round($penyusutan, 2),
+                'akumulasi_penyusutan' => round($akumulasi, 2),
+                'nilai_buku' => round($nilaiBuku, 2),
+            ];
+            
+            // Stop jika sudah mencapai nilai residu
+            if ($nilaiBuku <= $residu) {
+                break;
+            }
+        }
+        
+        return $rows;
+    }
+    
+    /**
+     * Jadwal bulanan metode Saldo Menurun Ganda
+     */
+    private function jadwalBulananSaldoMenurun($total, $residu, $umur, $startDate): array
+    {
+        $tarif = (2 / $umur) * 100; // Double declining rate
+        $tarifBulanan = $tarif / 100;
+        $akumulasi = 0.0;
+        $nilaiBuku = $total;
+        $rows = [];
+        
+        $totalBulan = $umur * 12;
+        $startYear = $startDate->year;
+        
+        for ($bulan = 0; $bulan < $totalBulan; $bulan++) {
+            $currentDate = $startDate->copy()->addMonths($bulan);
+            $tahun = $currentDate->year;
+            
+            // Cek apakah ini adalah bulan terakhir
+            $isLastMonth = ($bulan == $totalBulan - 1);
+            $isFirstYear = ($tahun == $startYear);
+            
+            // Hitung penyusutan bulanan
+            if ($isLastMonth) {
+                // Bulan akhir: gunakan sisa nilai buku - nilai residu
+                $penyusutan = $nilaiBuku - $residu;
+            } elseif ($isFirstYear && $bulan == 0) {
+                // Bulan pertama: gunakan tarif × nilai buku awal
+                $penyusutan = $nilaiBuku * $tarifBulanan;
+                
+                // Pastikan tidak melebihi sisa nilai yang bisa disusutkan
+                $maxPenyusutan = $nilaiBuku - $residu;
+                if ($penyusutan > $maxPenyusutan) {
+                    $penyusutan = $maxPenyusutan;
+                }
+            } else {
+                // Bulan lain: gunakan tarif × nilai buku
+                $penyusutan = $nilaiBuku * $tarifBulanan;
+                
+                // Pastikan tidak melebihi sisa nilai yang bisa disusutkan
+                $maxPenyusutan = $nilaiBuku - $residu;
+                if ($penyusutan > $maxPenyusutan) {
+                    $penyusutan = $maxPenyusutan;
+                }
+            }
+            
+            $akumulasi += $penyusutan;
+            $nilaiBuku -= $penyusutan;
+            
+            $rows[] = [
+                'periode' => $currentDate->format('F Y'),
+                'biaya_penyusutan' => round($penyusutan, 2),
+                'akumulasi_penyusutan' => round($akumulasi, 2),
+                'nilai_buku' => round($nilaiBuku, 2),
+            ];
+            
+            // Stop jika sudah mencapai nilai residu
+            if ($nilaiBuku <= $residu) {
+                break;
+            }
+        }
+        
+        return $rows;
+    }
+    
+    /**
+     * Jadwal bulanan metode Jumlah Angka Tahun
+     */
+    private function jadwalBulananJumlahAngkaTahun($total, $residu, $umur, $startDate): array
+    {
+        $totalAngkaTahun = $umur * ($umur + 1) / 2;
+        $nilaiDisusutkan = $total - $residu;
+        $akumulasi = 0.0;
+        $nilaiBuku = $total;
+        $rows = [];
+        
+        $startMonth = $startDate->month;
+        $startYear = $startDate->year;
+        
+        // Loop melalui setiap tahun fiskal aset (bukan tahun kalender)
+        for ($tahunFiskal = 1; $tahunFiskal <= $umur; $tahunFiskal++) {
+            $bobotTahun = $umur - $tahunFiskal + 1; // 5, 4, 3, 2, 1
+            $penyusutanTahunanPenuh = $nilaiDisusutkan * ($bobotTahun / $totalAngkaTahun);
+            
+            // Tentukan pembagian tahun kalender untuk tahun fiskal ini
+            if ($tahunFiskal == 1) {
+                // Tahun fiskal pertama: mulai dari bulan perolehan
+                $bulanPertama = 12 - $startMonth + 1; // sisa bulan di tahun pertama
+                $bulanKedua = 12 - $bulanPertama; // bulan di tahun berikutnya
+                
+                // Bagian pertama di tahun perolehan
+                $penyusutanBagian1 = $penyusutanTahunanPenuh * ($bulanPertama / 12);
+                $penyusutanPerBulan1 = $penyusutanBagian1 / $bulanPertama;
+                
+                // Generate bulanan untuk bagian pertama
+                for ($i = 0; $i < $bulanPertama; $i++) {
+                    $currentDate = $startDate->copy()->addMonths($i);
+                    
+                    $akumulasi += $penyusutanPerBulan1;
+                    $nilaiBuku -= $penyusutanPerBulan1;
+                    
+                    $rows[] = [
+                        'periode' => $currentDate->format('F Y'),
+                        'biaya_penyusutan' => round($penyusutanPerBulan1, 2),
+                        'akumulasi_penyusutan' => round($akumulasi, 2),
+                        'nilai_buku' => round($nilaiBuku, 2),
+                    ];
+                }
+                
+                // Bagian kedua di tahun berikutnya
+                $penyusutanBagian2 = $penyusutanTahunanPenuh * ($bulanKedua / 12);
+                $penyusutanPerBulan2 = $penyusutanBagian2 / $bulanKedua;
+                
+                // Generate bulanan untuk bagian kedua
+                $startDateBagian2 = $startDate->copy()->addMonths($bulanPertama);
+                for ($i = 0; $i < $bulanKedua; $i++) {
+                    $currentDate = $startDateBagian2->copy()->addMonths($i);
+                    
+                    $akumulasi += $penyusutanPerBulan2;
+                    $nilaiBuku -= $penyusutanPerBulan2;
+                    
+                    $rows[] = [
+                        'periode' => $currentDate->format('F Y'),
+                        'biaya_penyusutan' => round($penyusutanPerBulan2, 2),
+                        'akumulasi_penyusutan' => round($akumulasi, 2),
+                        'nilai_buku' => round($nilaiBuku, 2),
+                    ];
+                }
+                
+            } else {
+                // Tahun fiskal berikutnya: 12 bulan penuh, dibagi 2 tahun kalender
+                // Menggunakan pola Excel: 8 bulan di tahun pertama, 4 bulan di tahun kedua
+                
+                $tahunKalender1 = $startYear + $tahunFiskal - 1;
+                $tahunKalender2 = $startYear + $tahunFiskal;
+                
+                // Bagian pertama: 8 bulan
+                $penyusutanBagian1 = $penyusutanTahunanPenuh * (8 / 12);
+                $penyusutanPerBulan1 = $penyusutanBagian1 / 8;
+                
+                // Generate bulanan untuk bagian pertama (8 bulan)
+                $startDateBagian1 = Carbon::create($tahunKalender1, $startMonth, 1);
+                for ($i = 0; $i < 8; $i++) {
+                    $currentDate = $startDateBagian1->copy()->addMonths($i);
+                    
+                    $akumulasi += $penyusutanPerBulan1;
+                    $nilaiBuku -= $penyusutanPerBulan1;
+                    
+                    $rows[] = [
+                        'periode' => $currentDate->format('F Y'),
+                        'biaya_penyusutan' => round($penyusutanPerBulan1, 2),
+                        'akumulasi_penyusutan' => round($akumulasi, 2),
+                        'nilai_buku' => round($nilaiBuku, 2),
+                    ];
+                }
+                
+                // Bagian kedua: 4 bulan
+                $penyusutanBagian2 = $penyusutanTahunanPenuh * (4 / 12);
+                $penyusutanPerBulan2 = $penyusutanBagian2 / 4;
+                
+                // Generate bulanan untuk bagian kedua (4 bulan)
+                $startDateBagian2 = $startDateBagian1->copy()->addMonths(8);
+                for ($i = 0; $i < 4; $i++) {
+                    $currentDate = $startDateBagian2->copy()->addMonths($i);
+                    
+                    $akumulasi += $penyusutanPerBulan2;
+                    $nilaiBuku -= $penyusutanPerBulan2;
+                    
+                    $rows[] = [
+                        'periode' => $currentDate->format('F Y'),
+                        'biaya_penyusutan' => round($penyusutanPerBulan2, 2),
+                        'akumulasi_penyusutan' => round($akumulasi, 2),
+                        'nilai_buku' => round($nilaiBuku, 2),
+                    ];
+                }
+            }
+            
+            // Stop jika sudah mencapai nilai residu
+            if ($nilaiBuku <= $residu) {
+                break;
+            }
+        }
+        
+        return $rows;
+    }
+    
+    /**
+     * Jadwal penyusutan metode Garis Lurus
+     */
+    private function jadwalPenyusutanGarisLurus($total, $residu, $umur, $startYear, $startMonth): array
+    {
+        $penyusutanTahunan = ($total - $residu) / $umur;
+        $penyusutanBulanan = $penyusutanTahunan / 12;
+        
+        $akumulasi = 0.0;
+        $nilaiBuku = $total;
+        $rows = [];
+        
+        // Hitung total bulan yang harus disusutkan
+        $totalBulan = $umur * 12;
+        
+        // Generate per bulan dari tanggal mulai
+        for ($bulan = 0; $bulan < $totalBulan; $bulan++) {
+            $currentDate = Carbon::create($startYear, $startMonth, 1)->addMonths($bulan);
+            $tahun = $currentDate->year;
+            
+            // Inisialisasi tahun jika belum ada
+            if (!isset($rows[$tahun])) {
+                $rows[$tahun] = [
+                    'tahun' => $tahun,
+                    'beban_penyusutan' => 0,
+                    'akumulasi_penyusutan' => 0,
+                    'nilai_buku_akhir' => $nilaiBuku,
+                    'jumlah_bulan' => 0
+                ];
+            }
+            
+            // Hitung penyusutan bulanan
+            $penyusutanBulanIni = $penyusutanBulanan;
+            
+            // Pastikan tidak melebihi sisa nilai yang bisa disusutkan
+            $maxPenyusutan = $nilaiBuku - $residu;
+            if ($penyusutanBulanIni > $maxPenyusutan) {
+                $penyusutanBulanIni = $maxPenyusutan;
+            }
+            
+            $akumulasi += $penyusutanBulanIni;
+            $nilaiBuku -= $penyusutanBulanIni;
+            
+            $rows[$tahun]['beban_penyusutan'] += $penyusutanBulanIni;
+            $rows[$tahun]['akumulasi_penyusutan'] = $akumulasi;
+            $rows[$tahun]['nilai_buku_akhir'] = $nilaiBuku;
+            $rows[$tahun]['jumlah_bulan']++;
+            
+            // Stop jika sudah mencapai nilai residu
+            if ($nilaiBuku <= $residu) {
+                break;
+            }
+        }
+        
+        // Konversi ke array indexed dan format
+        $result = [];
+        foreach ($rows as $row) {
+            $result[] = [
+                'tahun' => $row['tahun'],
+                'beban_penyusutan' => round($row['beban_penyusutan'], 2),
+                'akumulasi_penyusutan' => round($row['akumulasi_penyusutan'], 2),
+                'nilai_buku_akhir' => round($row['nilai_buku_akhir'], 2),
+                'jumlah_bulan' => $row['jumlah_bulan']
             ];
         }
+        
+        return $result;
+    }
+    
+    /**
+     * Jadwal penyusutan metode Saldo Menurun Ganda
+     */
+    private function jadwalPenyusutanSaldoMenurun($total, $residu, $umur, $startYear, $startMonth): array
+    {
+        $tarif = (2 / $umur) * 100; // Double declining rate
+        
+        $akumulasi = 0.0;
+        $nilaiBuku = $total;
+        $rows = [];
+        
+        // Hitung total bulan yang harus disusutkan
+        $totalBulan = $umur * 12;
+        
+        // Generate per bulan dari tanggal mulai
+        for ($bulan = 0; $bulan < $totalBulan; $bulan++) {
+            $currentDate = Carbon::create($startYear, $startMonth, 1)->addMonths($bulan);
+            $tahun = $currentDate->year;
+            
+            // Inisialisasi tahun jika belum ada
+            if (!isset($rows[$tahun])) {
+                $rows[$tahun] = [
+                    'tahun' => $tahun,
+                    'beban_penyusutan' => 0,
+                    'akumulasi_penyusutan' => 0,
+                    'nilai_buku_akhir' => $nilaiBuku,
+                    'jumlah_bulan' => 0,
+                    'nilai_buku_awal_tahun' => $nilaiBuku,
+                    'is_first_year' => ($tahun == $startYear),
+                    'is_last_year' => false
+                ];
+            }
+            
+            // Hitung penyusutan bulanan
+            $penyusutanBulanIni = 0;
+            
+            // Cek apakah ini adalah tahun terakhir (bulan terakhir dari total bulan)
+            $isLastYear = ($bulan == $totalBulan - 1);
+            
+            if ($isLastYear) {
+                // Tahun akhir: gunakan sisa nilai buku - nilai residu
+                $sisaPenyusutan = $nilaiBuku - $residu;
+                $penyusutanBulanIni = $sisaPenyusutan;
+                $rows[$tahun]['is_last_year'] = true;
+            } elseif ($rows[$tahun]['is_first_year']) {
+                // Tahun pertama: gunakan tarif tahunan dibagi 12
+                $penyusutanTahunan = $rows[$tahun]['nilai_buku_awal_tahun'] * ($tarif / 100);
+                $penyusutanBulanIni = $penyusutanTahunan / 12;
+                
+                // Pastikan tidak melebihi sisa nilai yang bisa disusutkan
+                $maxPenyusutan = $nilaiBuku - $residu;
+                if ($penyusutanBulanIni > $maxPenyusutan) {
+                    $penyusutanBulanIni = $maxPenyusutan;
+                }
+            } else {
+                // Tahun penuh: gunakan tarif × nilai buku awal tahun
+                if ($rows[$tahun]['jumlah_bulan'] == 0) {
+                    // Awal tahun, gunakan nilai buku awal tahun
+                    $penyusutanTahunan = $rows[$tahun]['nilai_buku_awal_tahun'] * ($tarif / 100);
+                    $penyusutanBulanIni = $penyusutanTahunan / 12;
+                } else {
+                    // Bulan selanjutnya di tahun yang sama, gunakan akumulasi tahunan / 12
+                    $targetTahunan = $rows[$tahun]['nilai_buku_awal_tahun'] * ($tarif / 100);
+                    $sisaTahunan = $targetTahunan - $rows[$tahun]['beban_penyusutan'];
+                    $sisaBulan = 12 - $rows[$tahun]['jumlah_bulan'];
+                    $penyusutanBulanIni = $sisaTahunan / $sisaBulan;
+                }
+                
+                // Pastikan tidak melebihi sisa nilai yang bisa disusutkan
+                $maxPenyusutan = $nilaiBuku - $residu;
+                if ($penyusutanBulanIni > $maxPenyusutan) {
+                    $penyusutanBulanIni = $maxPenyusutan;
+                }
+            }
+            
+            $akumulasi += $penyusutanBulanIni;
+            $nilaiBuku -= $penyusutanBulanIni;
+            
+            $rows[$tahun]['beban_penyusutan'] += $penyusutanBulanIni;
+            $rows[$tahun]['akumulasi_penyusutan'] = $akumulasi;
+            $rows[$tahun]['nilai_buku_akhir'] = $nilaiBuku;
+            $rows[$tahun]['jumlah_bulan']++;
+            
+            // Stop jika sudah mencapai nilai residu
+            if ($nilaiBuku <= $residu) {
+                // Sesuaikan nilai buku akhir agar tepat residu jika terlewat
+                $rows[$tahun]['nilai_buku_akhir'] = $residu;
+                break;
+            }
+        }
+        
+        // Konversi ke array indexed dan format
+        $result = [];
+        foreach ($rows as $row) {
+            $result[] = [
+                'tahun' => $row['tahun'],
+                'beban_penyusutan' => round($row['beban_penyusutan'], 2),
+                'akumulasi_penyusutan' => round($row['akumulasi_penyusutan'], 2),
+                'nilai_buku_akhir' => round($row['nilai_buku_akhir'], 2),
+                'jumlah_bulan' => $row['jumlah_bulan']
+            ];
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Jadwal penyusutan metode Jumlah Angka Tahun - Excel Style
+     */
+    private function jadwalPenyusutanJumlahAngkaTahun($total, $residu, $umur, $startYear, $startMonth): array
+    {
+        $totalAngkaTahun = $umur * ($umur + 1) / 2; // Untuk umur 4 tahun: 4+3+2+1 = 10
+        $nilaiDisusutkan = $total - $residu;
+        
+        $akumulasi = 0.0;
+        $nilaiBuku = $total;
+        $rows = [];
+        
+        // Loop melalui setiap tahun fiskal aset
+        for ($tahunFiskal = 1; $tahunFiskal <= $umur; $tahunFiskal++) {
+            $bobotTahun = $umur - $tahunFiskal + 1; // 4, 3, 2, 1
+            $penyusutanTahunanPenuh = $nilaiDisusutkan * ($bobotTahun / $totalAngkaTahun);
+            
+            if ($tahunFiskal == 1) {
+                // Tahun fiskal pertama: mulai dari bulan perolehan
+                $bulanPertama = 12 - $startMonth + 1; // sisa bulan di tahun pertama
+                $bulanKedua = 12 - $bulanPertama; // bulan di tahun berikutnya
+                
+                // Bagian pertama di tahun perolehan
+                $penyusutanBagian1 = $penyusutanTahunanPenuh * ($bulanPertama / 12);
+                $tahunKalender1 = $startYear;
+                
+                // Bagian kedua di tahun berikutnya
+                $penyusutanBagian2 = $penyusutanTahunanPenuh * ($bulanKedua / 12);
+                $tahunKalender2 = $startYear + 1;
+                
+                // Tambahkan baris terpisah untuk setiap bagian
+                $akumulasi += $penyusutanBagian1;
+                $nilaiBuku -= $penyusutanBagian1;
+                $rows[] = [
+                    'tahun' => $tahunKalender1,
+                    'periode' => $tahunKalender1 . '(' . $bulanPertama . ')',
+                    'beban_penyusutan' => $penyusutanBagian1,
+                    'akumulasi_penyusutan' => $akumulasi,
+                    'nilai_buku_akhir' => $nilaiBuku,
+                    'jumlah_bulan' => $bulanPertama
+                ];
+                
+                $akumulasi += $penyusutanBagian2;
+                $nilaiBuku -= $penyusutanBagian2;
+                $rows[] = [
+                    'tahun' => $tahunKalender2,
+                    'periode' => $tahunKalender2 . '(' . $bulanKedua . ')',
+                    'beban_penyusutan' => $penyusutanBagian2,
+                    'akumulasi_penyusutan' => $akumulasi,
+                    'nilai_buku_akhir' => $nilaiBuku,
+                    'jumlah_bulan' => $bulanKedua
+                ];
+                
+            } else {
+                // Tahun fiskal berikutnya: 12 bulan penuh, dibagi 2 tahun kalender
+                // Menggunakan pola Excel: 8 bulan di tahun pertama, 4 bulan di tahun kedua
+                
+                $tahunKalender1 = $startYear + $tahunFiskal - 1;
+                $tahunKalender2 = $startYear + $tahunFiskal;
+                
+                // Bagian pertama: 8 bulan
+                $penyusutanBagian1 = $penyusutanTahunanPenuh * (8 / 12);
+                $akumulasi += $penyusutanBagian1;
+                $nilaiBuku -= $penyusutanBagian1;
+                $rows[] = [
+                    'tahun' => $tahunKalender1,
+                    'periode' => $tahunKalender1 . '(8)',
+                    'beban_penyusutan' => $penyusutanBagian1,
+                    'akumulasi_penyusutan' => $akumulasi,
+                    'nilai_buku_akhir' => $nilaiBuku,
+                    'jumlah_bulan' => 8
+                ];
+                
+                // Bagian kedua: 4 bulan
+                $penyusutanBagian2 = $penyusutanTahunanPenuh * (4 / 12);
+                $akumulasi += $penyusutanBagian2;
+                $nilaiBuku -= $penyusutanBagian2;
+                $rows[] = [
+                    'tahun' => $tahunKalender2,
+                    'periode' => $tahunKalender2 . '(4)',
+                    'beban_penyusutan' => $penyusutanBagian2,
+                    'akumulasi_penyusutan' => $akumulasi,
+                    'nilai_buku_akhir' => $nilaiBuku,
+                    'jumlah_bulan' => 4
+                ];
+            }
+            
+            // Stop jika sudah mencapai nilai residu
+            if ($nilaiBuku <= $residu) {
+                break;
+            }
+        }
+        
+        // Format nilai
+        foreach ($rows as &$row) {
+            $row['beban_penyusutan'] = round($row['beban_penyusutan'], 2);
+            $row['akumulasi_penyusutan'] = round($row['akumulasi_penyusutan'], 2);
+            $row['nilai_buku_akhir'] = round($row['nilai_buku_akhir'], 2);
+        }
+        
         return $rows;
     }
 }

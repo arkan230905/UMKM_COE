@@ -215,23 +215,15 @@ class AsetController extends Controller
         // Hitung total perolehan
         $totalPerolehan = (float)$aset->harga_perolehan + (float)($aset->biaya_perolehan ?? 0);
         
-        // Hitung penyusutan per tahun dan per bulan berdasarkan metode
-        if ($aset->metode_penyusutan === 'garis_lurus') {
-            // Metode garis lurus: (harga perolehan - nilai residu) / umur manfaat
-            $nilaiDisusutkan = $totalPerolehan - (float)($aset->nilai_residu ?? 0);
-            $umurManfaat = (int)($aset->umur_manfaat ?? $aset->umur_ekonomis_tahun ?? 1);
-            $penyusutanPerTahun = $nilaiDisusutkan / $umurManfaat;
-        } else {
-            // Metode lain: tarif penyusutan × harga perolehan
-            $penyusutanPerTahun = $totalPerolehan * (($aset->tarif_penyusutan ?? 0) / 100);
-        }
+        // Gunakan logika perhitungan dari model
+        $penyusutanPerTahun = $aset->hitungBebanPenyusutanTahunan();
+        $penyusutanPerBulan = $aset->hitungBebanPenyusutanBulanan(); // Gunakan fungsi yang benar
         
-        $penyusutanPerBulan = $penyusutanPerTahun / 12;
+        // Generate jadwal penyusutan lengkap
+        $depreciationData = $aset->jadwalPenyusutan();
+        $monthlyDepreciationData = $aset->jadwalPenyusutanPerBulan();
         
-        // Initialize empty depreciation data since depreciation functionality was removed
-        $depreciationData = [];
-        
-        return view('master-data.aset.show', compact('aset', 'depreciationData', 'totalPerolehan', 'penyusutanPerTahun', 'penyusutanPerBulan'));
+        return view('master-data.aset.show', compact('aset', 'depreciationData', 'monthlyDepreciationData', 'totalPerolehan', 'penyusutanPerTahun', 'penyusutanPerBulan'));
     }
 
     /**
