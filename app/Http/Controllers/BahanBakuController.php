@@ -12,7 +12,7 @@ class BahanBakuController extends Controller
     // Menampilkan semua data bahan baku
     public function index()
     {
-        $bahanBaku = BahanBaku::with('satuan')->get();
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->get();
         
         // Hitung harga rata-rata untuk setiap bahan baku
         foreach ($bahanBaku as $bahan) {
@@ -39,21 +39,53 @@ class BahanBakuController extends Controller
     // Simpan data baru ke database
     public function store(Request $request)
     {
+        // Convert comma decimal inputs to dot format for validation and storage
+        $this->convertCommaToDecimal($request);
+        
         $request->validate([
             'nama_bahan' => 'required|string|max:255',
             'satuan_id' => 'required|exists:satuans,id',
-            'stok' => 'required|numeric|min:0',
+            'stok' => 'nullable|numeric|min:0',
             'harga_satuan' => 'required|numeric|min:0',
+            'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan',
+            'stok_minimum' => 'nullable|numeric|min:0',
+            'deskripsi' => 'nullable|string|max:1000',
+            'sub_satuan_1_id' => 'required|exists:satuans,id',
+            'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_1_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_2_id' => 'required|exists:satuans,id',
+            'sub_satuan_2_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_2_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_3_id' => 'required|exists:satuans,id',
+            'sub_satuan_3_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_3_nilai' => 'required|numeric|min:0.01',
         ]);
 
-        // Get the satuan name from the satuan_id
-        $satuan = Satuan::findOrFail($request->satuan_id);
+        // Auto generate kode_bahan if not provided
+        $kodeBahan = $request->kode_bahan;
+        if (empty($kodeBahan)) {
+            $lastBahan = BahanBaku::orderBy('id', 'desc')->first();
+            $nextNumber = $lastBahan ? $lastBahan->id + 1 : 1;
+            $kodeBahan = 'BB' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        }
         
         BahanBaku::create([
             'nama_bahan' => $request->nama_bahan,
+            'kode_bahan' => $kodeBahan,
             'satuan_id' => $request->satuan_id,
-            'stok' => $request->stok,
+            'stok' => $request->stok ?? 0,
             'harga_satuan' => $request->harga_satuan,
+            'stok_minimum' => $request->stok_minimum ?? 0,
+            'deskripsi' => $request->deskripsi,
+            'sub_satuan_1_id' => $request->sub_satuan_1_id,
+            'sub_satuan_1_konversi' => $request->sub_satuan_1_konversi,
+            'sub_satuan_1_nilai' => $request->sub_satuan_1_nilai,
+            'sub_satuan_2_id' => $request->sub_satuan_2_id,
+            'sub_satuan_2_konversi' => $request->sub_satuan_2_konversi,
+            'sub_satuan_2_nilai' => $request->sub_satuan_2_nilai,
+            'sub_satuan_3_id' => $request->sub_satuan_3_id,
+            'sub_satuan_3_konversi' => $request->sub_satuan_3_konversi,
+            'sub_satuan_3_nilai' => $request->sub_satuan_3_nilai,
         ]);
 
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
@@ -70,23 +102,45 @@ class BahanBakuController extends Controller
     // Update data
     public function update(Request $request, $id)
     {
+        // Convert comma decimal inputs to dot format for validation and storage
+        $this->convertCommaToDecimal($request);
+        
         $validatedData = $request->validate([
             'nama_bahan' => 'required|string|max:255',
             'satuan_id' => 'required|exists:satuans,id',
-            'stok' => 'required|numeric|min:0',
+            'stok' => 'nullable|numeric|min:0',
             'harga_satuan' => 'required|numeric|min:0',
+            'stok_minimum' => 'nullable|numeric|min:0',
+            'deskripsi' => 'nullable|string|max:1000',
+            'sub_satuan_1_id' => 'required|exists:satuans,id',
+            'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_1_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_2_id' => 'required|exists:satuans,id',
+            'sub_satuan_2_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_2_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_3_id' => 'required|exists:satuans,id',
+            'sub_satuan_3_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_3_nilai' => 'required|numeric|min:0.01',
         ]);
 
         $bahanBaku = BahanBaku::findOrFail($id);
         
-        // Get the satuan name from the satuan_id
-        $satuan = Satuan::findOrFail($request->satuan_id);
-        
         // Update properties one by one and save
         $bahanBaku->nama_bahan = $request->nama_bahan;
         $bahanBaku->satuan_id = $request->satuan_id;
-        $bahanBaku->stok = $request->stok;
+        $bahanBaku->stok = $request->stok ?? 0;
         $bahanBaku->harga_satuan = $request->harga_satuan;
+        $bahanBaku->stok_minimum = $request->stok_minimum ?? 0;
+        $bahanBaku->deskripsi = $request->deskripsi;
+        $bahanBaku->sub_satuan_1_id = $request->sub_satuan_1_id;
+        $bahanBaku->sub_satuan_1_konversi = $request->sub_satuan_1_konversi;
+        $bahanBaku->sub_satuan_1_nilai = $request->sub_satuan_1_nilai;
+        $bahanBaku->sub_satuan_2_id = $request->sub_satuan_2_id;
+        $bahanBaku->sub_satuan_2_konversi = $request->sub_satuan_2_konversi;
+        $bahanBaku->sub_satuan_2_nilai = $request->sub_satuan_2_nilai;
+        $bahanBaku->sub_satuan_3_id = $request->sub_satuan_3_id;
+        $bahanBaku->sub_satuan_3_konversi = $request->sub_satuan_3_konversi;
+        $bahanBaku->sub_satuan_3_nilai = $request->sub_satuan_3_nilai;
         
         // Save changes
         $bahanBaku->save();
@@ -100,10 +154,63 @@ class BahanBakuController extends Controller
     // Hapus data
     public function destroy($id)
     {
-        $bahanBaku = BahanBaku::findOrFail($id);
-        $bahanBaku->delete();
-
-        return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil dihapus!');
+        try {
+            $bahanBaku = BahanBaku::findOrFail($id);
+            
+            // Check for foreign key constraints before deleting
+            $constraints = [];
+            
+            // Check BOM Job BBB references
+            $bomJobBbbCount = \DB::table('bom_job_bbb')->where('bahan_baku_id', $id)->count();
+            if ($bomJobBbbCount > 0) {
+                $constraints[] = "BOM Job Costing ({$bomJobBbbCount} record(s))";
+            }
+            
+            // Check BOM Details references
+            $bomDetailsCount = \DB::table('bom_details')->where('bahan_baku_id', $id)->count();
+            if ($bomDetailsCount > 0) {
+                $constraints[] = "BOM Details ({$bomDetailsCount} record(s))";
+            }
+            
+            // Check Pembelian Details references
+            $pembelianDetailsCount = \DB::table('pembelian_details')->where('bahan_baku_id', $id)->count();
+            if ($pembelianDetailsCount > 0) {
+                $constraints[] = "Pembelian Details ({$pembelianDetailsCount} record(s))";
+            }
+            
+            // Check Produksi Details references
+            $produksiDetailsCount = \DB::table('produksi_details')->where('bahan_baku_id', $id)->count();
+            if ($produksiDetailsCount > 0) {
+                $constraints[] = "Produksi Details ({$produksiDetailsCount} record(s))";
+            }
+            
+            // If there are constraints, prevent deletion and show error
+            if (!empty($constraints)) {
+                $constraintList = implode(', ', $constraints);
+                return redirect()->route('master-data.bahan-baku.index')
+                    ->with('error', "Tidak dapat menghapus bahan baku '{$bahanBaku->nama_bahan}' karena masih digunakan di: {$constraintList}. Hapus data terkait terlebih dahulu.");
+            }
+            
+            // If no constraints, proceed with deletion
+            $bahanBaku->delete();
+            
+            return redirect()->route('master-data.bahan-baku.index')
+                ->with('success', "Data bahan baku '{$bahanBaku->nama_bahan}' berhasil dihapus!");
+                
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle any other database constraint errors
+            if ($e->getCode() == '23000') {
+                return redirect()->route('master-data.bahan-baku.index')
+                    ->with('error', 'Tidak dapat menghapus data karena masih digunakan di tabel lain. Hapus data terkait terlebih dahulu.');
+            }
+            
+            return redirect()->route('master-data.bahan-baku.index')
+                ->with('error', 'Terjadi kesalahan saat menghapus data: ' . $e->getMessage());
+                
+        } catch (\Exception $e) {
+            return redirect()->route('master-data.bahan-baku.index')
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -135,5 +242,27 @@ class BahanBakuController extends Controller
         $averageHarga = $totalQuantity > 0 ? $totalHarga / $totalQuantity : 0;
         
         return $averageHarga;
+    }
+
+    /**
+     * Convert comma decimal inputs to dot format for proper validation and storage
+     */
+    private function convertCommaToDecimal(Request $request)
+    {
+        $fieldsToConvert = [
+            'harga_satuan', 'stok', 'stok_minimum',
+            'sub_satuan_1_konversi', 'sub_satuan_1_nilai',
+            'sub_satuan_2_konversi', 'sub_satuan_2_nilai', 
+            'sub_satuan_3_konversi', 'sub_satuan_3_nilai'
+        ];
+        
+        foreach ($fieldsToConvert as $field) {
+            if ($request->has($field) && $request->input($field) !== null) {
+                $value = $request->input($field);
+                // Remove thousand separators (dots) and convert comma to dot for decimal
+                $convertedValue = str_replace(['.', ','], ['', '.'], $value);
+                $request->merge([$field => $convertedValue]);
+            }
+        }
     }
 }

@@ -109,23 +109,20 @@
                                             <span class="badge bg-{{ $statusClass }}">{{ $statusText }}</span>
                                         </td>
                                         <td class="text-center">
-                                            <div class="btn-group btn-group-sm">
-                                                @if($hasBop)
-                                                    <a href="{{ route('master-data.bop.show-proses', $bop->id) }}" class="btn btn-outline-info" title="Detail">
+                                            @if($hasBop)
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ route('master-data.bop.show-proses', $bop->id) }}" class="btn btn-outline-info" title="Detail BOP">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
-                                                    <a href="{{ route('master-data.bop.edit-proses', $bop->id) }}" class="btn btn-outline-primary" title="Edit">
+                                                    <a href="{{ route('master-data.bop.edit-proses', $bop->id) }}" class="btn btn-outline-primary" title="Edit BOP">
                                                         <i class="fas fa-edit"></i>
                                                     </a>
-                                                    <button class="btn btn-outline-success" onclick="setBudgetProses({{ $bop->id }})" title="Set Budget">
-                                                        <i class="fas fa-calculator"></i>
-                                                    </button>
-                                                @else
-                                                    <a href="{{ route('master-data.bop.create-proses', ['proses_id' => $proses->id]) }}" class="btn btn-outline-success" title="Setup BOP">
-                                                        <i class="fas fa-plus"></i> Setup
-                                                    </a>
-                                                @endif
-                                            </div>
+                                                </div>
+                                            @else
+                                                <a href="{{ route('master-data.bop.create-proses', ['proses_id' => $proses->id]) }}" class="btn btn-outline-success btn-sm" title="Setup BOP">
+                                                    <i class="fas fa-plus"></i> Setup
+                                                </a>
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty
@@ -237,23 +234,20 @@
                                             @endif
                                         </td>
                                         <td class="text-center">
-                                            <div class="btn-group btn-group-sm">
-                                                @if($hasData)
-                                                    <button class="btn btn-outline-info" onclick="showBopLainnyaDetail({{ $bop->id }})" title="Detail">
-                                                        <i class="fas fa-eye"></i>
-                                                    </button>
+                                            @if($hasData)
+                                                <div class="btn-group btn-group-sm">
                                                     <button class="btn btn-outline-primary" onclick="editBopLainnya({{ $bop->id }})" title="Edit">
-                                                        <i class="fas fa-edit"></i>
+                                                        <i class="fas fa-edit"></i> Edit
                                                     </button>
                                                     <button class="btn btn-outline-danger" onclick="deleteBopLainnya({{ $bop->id }})" title="Hapus">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
-                                                @else
-                                                    <button class="btn btn-outline-success" onclick="setupBopLainnya('{{ $bop->kode_akun }}', '{{ $bop->nama_akun }}')" title="Setup BOP">
-                                                        <i class="fas fa-plus"></i> Setup
-                                                    </button>
-                                                @endif
-                                            </div>
+                                                </div>
+                                            @else
+                                                <button class="btn btn-outline-success btn-sm" onclick="setupBopLainnya('{{ $bop->kode_akun }}', '{{ $bop->nama_akun }}')" title="Setup BOP">
+                                                    <i class="fas fa-plus"></i> Setup
+                                                </button>
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty
@@ -438,37 +432,6 @@ function setupBopLainnya(kodeAkun, namaAkun) {
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('addBopLainnyaModal'));
     modal.show();
-}
-
-function setBudgetProses(id) {
-    // Set budget untuk BOP Proses
-    const budget = prompt('Masukkan budget BOP untuk proses ini:');
-    if (budget && !isNaN(budget)) {
-        fetch('/master-data/bop/set-budget-proses/' + id, {
-            method: 'POST',
-            body: JSON.stringify({ budget: parseFloat(budget) }),
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            alert('Terjadi kesalahan: ' + error.message);
-        });
-    }
-}
-
-function showBopLainnyaDetail(id) {
-    // Show detail modal or redirect to detail page
-    alert('Detail BOP Lainnya akan segera tersedia');
 }
 
 function editBopLainnya(id) {

@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid">
+<div class="container-fluid px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">
-            <i class="fas fa-chart-pie me-2"></i>Detail BOP Proses
+        <h2 class="text-white">
+            <i class="fas fa-eye me-2"></i>Detail BOP Proses
         </h2>
         <div>
-            <a href="{{ route('master-data.bop.edit-proses', $bopProses->id) }}" class="btn btn-warning me-2">
-                <i class="fas fa-edit me-2"></i>Edit BOP
+            <a href="{{ route('master-data.bop.edit-proses', $bopProses->id) }}" class="btn btn-warning">
+                <i class="fas fa-edit me-2"></i>Edit BOP Komponen
             </a>
             <a href="{{ route('master-data.bop.index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Kembali ke BOP
@@ -16,219 +16,190 @@
         </div>
     </div>
 
-    <div class="row">
-        <!-- Informasi Proses -->
+    <div class="row g-4">
+        <!-- Informasi Proses BTKL -->
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-cogs me-2"></i>Informasi Proses BTKL
-                    </h5>
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informasi Proses BTKL</h6>
+                    <small>Data BTKL terkait dengan BOP proses produksi</small>
                 </div>
                 <div class="card-body">
-                    <table class="table table-borderless">
-                        <tr>
-                            <td class="fw-semibold">Kode Proses:</td>
-                            <td><code>{{ $bopProses->prosesProduksi->kode_proses }}</code></td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">Nama Proses:</td>
-                            <td>{{ $bopProses->prosesProduksi->nama_proses }}</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">Tarif BTKL:</td>
-                            <td>Rp {{ number_format($bopProses->prosesProduksi->tarif_per_jam, 0, ',', '.') }}/jam</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">Kapasitas Normal:</td>
-                            <td><span class="badge bg-info">{{ $bopProses->kapasitas_per_jam }} unit/jam</span></td>
-                        </tr>
-                        <tr>
-                            <td class="fw-semibold">Satuan BTKL:</td>
-                            <td>{{ $bopProses->prosesProduksi->satuan_btkl }}</td>
-                        </tr>
-                        @if($bopProses->prosesProduksi->deskripsi)
-                        <tr>
-                            <td class="fw-semibold">Deskripsi:</td>
-                            <td>{{ $bopProses->prosesProduksi->deskripsi }}</td>
-                        </tr>
-                        @endif
-                    </table>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <strong>Kode Proses:</strong><br>
+                            <code class="text-primary fs-6">{{ $bopProses->prosesProduksi->kode_proses }}</code>
+                        </div>
+                        <div class="col-6">
+                            <strong>Nama Proses:</strong><br>
+                            <span class="text-dark">{{ $bopProses->prosesProduksi->nama_proses }}</span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Tarif BTKL:</strong><br>
+                            <span class="text-success fw-bold">{{ format_rupiah_clean($bopProses->prosesProduksi->tarif_per_jam ?? 0) }}</span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Kapasitas:</strong><br>
+                            <span class="badge bg-info fs-6">{{ $bopProses->prosesProduksi->kapasitas_per_jam }} unit/jam</span>
+                        </div>
+                        <div class="col-6">
+                            <strong>BTKL / pcs:</strong><br>
+                            <span class="text-success">{{ format_rupiah_clean($bopProses->prosesProduksi->biaya_per_produk ?? 0) }}</span>
+                        </div>
+                        <div class="col-6">
+                            <strong>Deskripsi:</strong><br>
+                            <span class="text-muted">{{ $bopProses->prosesProduksi->deskripsi ?? 'Proses penggorengan makanan' }}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Ringkasan BOP -->
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-chart-pie me-2"></i>Ringkasan BOP
-                    </h5>
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Ringkasan BOP</h6>
                 </div>
                 <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-6">
-                            <div class="border rounded p-3 mb-3">
-                                <h6 class="text-muted">Total BOP per Jam</h6>
-                                <h4 class="text-warning">{{ $bopProses->total_bop_per_jam_formatted }}</h4>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>Total BOP per Jam:</strong>
+                                <span class="fs-5 text-warning fw-bold">{{ format_rupiah_clean($bopProses->total_bop_per_jam) }}</span>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="border rounded p-3 mb-3">
-                                <h6 class="text-muted">BOP per Unit</h6>
-                                <h4 class="text-success">{{ $bopProses->bop_per_unit_formatted }}</h4>
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>BOP per Unit:</strong>
+                                <span class="fs-5 text-success fw-bold">{{ format_rupiah_clean($bopProses->bop_per_unit) }}</span>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>Efisiensi BOP:</strong>
+                                <span class="text-muted">{{ number_format(($bopProses->prosesProduksi->kapasitas_per_jam ?? 0), 0) }} unit per jam</span>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="mt-3">
-                        <h6 class="text-muted">Efisiensi BOP</h6>
-                        <div class="progress mb-2">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Komponen BOP per Jam -->
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-warning text-dark">
+            <h6 class="mb-0"><i class="fas fa-list me-2"></i>Detail Komponen BOP per Jam</h6>
+        </div>
+        <div class="card-body">
+            @php
+                $components = [
+                    ['name' => 'Listrik Mesin', 'value' => $bopProses->listrik_per_jam, 'color' => 'primary'],
+                    ['name' => 'Gas / BBM', 'value' => $bopProses->gas_bbm_per_jam, 'color' => 'danger'],
+                    ['name' => 'Penyusutan Mesin', 'value' => $bopProses->penyusutan_mesin_per_jam, 'color' => 'secondary'],
+                    ['name' => 'Maintenance', 'value' => $bopProses->maintenance_per_jam, 'color' => 'info'],
+                    ['name' => 'Gaji Mandor', 'value' => $bopProses->gaji_mandor_per_jam, 'color' => 'success'],
+                    ['name' => 'Lain-lain', 'value' => $bopProses->lain_lain_per_jam, 'color' => 'dark']
+                ];
+                $totalBop = $bopProses->total_bop_per_jam;
+            @endphp
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Komponen BOP</th>
+                            <th class="text-end">Biaya per Jam</th>
+                            <th class="text-center">Persentase</th>
+                            <th class="text-end">Biaya per Unit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($components as $component)
                             @php
-                                $efisiensi = $bopProses->efisiensi_bop;
-                                $efisiensiPercent = min(100, $efisiensi * 10); // Scale for display
+                                $percentage = $totalBop > 0 ? ($component['value'] / $totalBop) * 100 : 0;
+                                $biayaPerUnit = ($bopProses->prosesProduksi->kapasitas_per_jam ?? 0) > 0 ? $component['value'] / $bopProses->prosesProduksi->kapasitas_per_jam : 0;
                             @endphp
-                            <div class="progress-bar bg-info" style="width: {{ $efisiensiPercent }}%"></div>
-                        </div>
-                        <small class="text-muted">{{ number_format($efisiensi, 2) }} unit per rupiah</small>
-                    </div>
-                </div>
+                            <tr>
+                                <td>
+                                    <i class="fas fa-circle text-{{ $component['color'] }} me-2"></i>
+                                    {{ $component['name'] }}
+                                </td>
+                                <td class="text-end">
+                                    <span class="fw-bold">{{ format_rupiah_clean($component['value']) }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-{{ $component['color'] }}" 
+                                             role="progressbar" 
+                                             style="width: {{ $percentage }}%"
+                                             aria-valuenow="{{ $percentage }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ number_format($percentage, 1) }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="text-success">{{ format_rupiah_clean($biayaPerUnit) }}</span>
+                                </td>
+                            </tr>
+                        @endforeach
+                        <tr class="table-warning">
+                            <td><strong>Total BOP</strong></td>
+                            <td class="text-end"><strong>{{ format_rupiah_clean($totalBop) }}</strong></td>
+                            <td class="text-center"><strong>100%</strong></td>
+                            <td class="text-end"><strong>{{ format_rupiah_clean($bopProses->bop_per_unit) }}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <!-- Detail Komponen BOP -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-list me-2"></i>Detail Komponen BOP per Jam
-                    </h5>
+    <!-- Simulasi Biaya Produksi -->
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-info text-white">
+            <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>Simulasi Biaya Produksi</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h6>Simulasi Unit yang Diproduksi</h6>
+                        <div class="fs-1 text-primary fw-bold">50</div>
+                        <small class="text-muted">unit</small>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Komponen BOP</th>
-                                    <th class="text-end">Biaya per Jam</th>
-                                    <th class="text-center">Persentase</th>
-                                    <th class="text-end">Biaya per Unit</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @php
-                                    $komponenBop = [
-                                        'Listrik Mesin' => $bopProses->listrik_per_jam,
-                                        'Gas / BBM' => $bopProses->gas_bbm_per_jam,
-                                        'Penyusutan Mesin' => $bopProses->penyusutan_mesin_per_jam,
-                                        'Maintenance' => $bopProses->maintenance_per_jam,
-                                        'Gaji Mandor' => $bopProses->gaji_mandor_per_jam,
-                                        'Lain-lain' => $bopProses->lain_lain_per_jam
-                                    ];
-                                @endphp
-                                
-                                @foreach($komponenBop as $nama => $nilai)
-                                    @if($nilai > 0)
-                                        @php
-                                            $persentase = $bopProses->total_bop_per_jam > 0 ? ($nilai / $bopProses->total_bop_per_jam) * 100 : 0;
-                                            $biayaPerUnit = $bopProses->kapasitas_per_jam > 0 ? $nilai / $bopProses->kapasitas_per_jam : 0;
-                                        @endphp
-                                        <tr>
-                                            <td>
-                                                <i class="fas fa-circle text-primary me-2" style="font-size: 8px;"></i>
-                                                {{ $nama }}
-                                            </td>
-                                            <td class="text-end">
-                                                <span class="fw-semibold">Rp {{ number_format($nilai, 0, ',', '.') }}</span>
-                                            </td>
-                                            <td class="text-center">
-                                                <div class="progress" style="height: 8px;">
-                                                    <div class="progress-bar bg-primary" style="width: {{ $persentase }}%"></div>
-                                                </div>
-                                                <small class="text-muted">{{ number_format($persentase, 1) }}%</small>
-                                            </td>
-                                            <td class="text-end">
-                                                <span class="text-muted">Rp {{ number_format($biayaPerUnit, 2, ',', '.') }}</span>
-                                            </td>
-                                        </tr>
-                                    @endif
-                                @endforeach
-                            </tbody>
-                            <tfoot class="table-light">
-                                <tr>
-                                    <th>Total BOP</th>
-                                    <th class="text-end">{{ $bopProses->total_bop_per_jam_formatted }}</th>
-                                    <th class="text-center">100%</th>
-                                    <th class="text-end">{{ $bopProses->bop_per_unit_formatted }}</th>
-                                </tr>
-                            </tfoot>
-                        </table>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h6>Jam Kerja yang Dibutuhkan</h6>
+                        <div class="fs-1 text-warning fw-bold">1 jam</div>
+                        <small class="text-muted">{{ ($bopProses->prosesProduksi->kapasitas_per_jam ?? 0) }} unit per jam</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <h6>Total Biaya BOP</h6>
+                        <div class="fs-1 text-success fw-bold">{{ format_rupiah_clean($bopProses->total_bop_per_jam) }}</div>
+                        <small class="text-muted">untuk 1 jam produksi</small>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Simulasi Produksi -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-calculator me-2"></i>Simulasi Biaya Produksi
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <label class="form-label">Jumlah Unit yang Diproduksi</label>
-                            <input type="number" class="form-control" id="simulasiUnit" value="100" min="1">
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Jam Kerja yang Dibutuhkan</label>
-                            <input type="text" class="form-control" id="simulasiJam" readonly>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Total Biaya BOP</label>
-                            <input type="text" class="form-control" id="simulasiBiaya" readonly>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-3">
-                        <button class="btn btn-primary" onclick="hitungSimulasi()">
-                            <i class="fas fa-calculator me-2"></i>Hitung Simulasi
-                        </button>
-                    </div>
-                </div>
+            
+            <div class="text-center mt-3">
+                <button class="btn btn-outline-primary" onclick="showSimulation()">
+                    <i class="fas fa-play me-2"></i>Hitung Simulasi
+                </button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-function hitungSimulasi() {
-    const unit = parseInt(document.getElementById('simulasiUnit').value) || 0;
-    const kapasitasPerJam = {{ $bopProses->kapasitas_per_jam }};
-    const bopPerJam = {{ $bopProses->total_bop_per_jam }};
-    
-    if (unit > 0 && kapasitasPerJam > 0) {
-        const jamKerja = unit / kapasitasPerJam;
-        const totalBiaya = jamKerja * bopPerJam;
-        
-        document.getElementById('simulasiJam').value = jamKerja.toFixed(2) + ' jam';
-        document.getElementById('simulasiBiaya').value = 'Rp ' + totalBiaya.toLocaleString('id-ID');
-    }
+function showSimulation() {
+    alert('Fitur simulasi akan segera tersedia');
 }
-
-// Auto calculate on page load
-document.addEventListener('DOMContentLoaded', function() {
-    hitungSimulasi();
-    
-    // Auto calculate when input changes
-    document.getElementById('simulasiUnit').addEventListener('input', hitungSimulasi);
-});
 </script>
 @endsection

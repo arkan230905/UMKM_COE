@@ -25,7 +25,17 @@ class BahanBaku extends Model
         'stok',
         'stok_minimum',
         'keterangan',
-        'satuan_id'
+        'satuan_id',
+        'deskripsi',
+        'sub_satuan_1_id',
+        'sub_satuan_1_konversi',
+        'sub_satuan_1_nilai',
+        'sub_satuan_2_id',
+        'sub_satuan_2_konversi',
+        'sub_satuan_2_nilai',
+        'sub_satuan_3_id',
+        'sub_satuan_3_konversi',
+        'sub_satuan_3_nilai'
     ];
 
     protected $casts = [
@@ -439,6 +449,30 @@ class BahanBaku extends Model
                 'nama' => 'Tidak Diketahui',
                 'kode_satuan' => 'N/A'
             ]);
+    }
+
+    /**
+     * Get the sub satuan 1
+     */
+    public function subSatuan1()
+    {
+        return $this->belongsTo(Satuan::class, 'sub_satuan_1_id');
+    }
+
+    /**
+     * Get the sub satuan 2
+     */
+    public function subSatuan2()
+    {
+        return $this->belongsTo(Satuan::class, 'sub_satuan_2_id');
+    }
+
+    /**
+     * Get the sub satuan 3
+     */
+    public function subSatuan3()
+    {
+        return $this->belongsTo(Satuan::class, 'sub_satuan_3_id');
     }
 
     /**

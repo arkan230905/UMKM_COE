@@ -19,9 +19,17 @@ class BahanPendukung extends Model
         'harga_satuan',
         'stok',
         'stok_minimum',
-        'kategori',
         'kategori_id',
-        'is_active'
+        'is_active',
+        'sub_satuan_1_id',
+        'sub_satuan_1_konversi',
+        'sub_satuan_1_nilai',
+        'sub_satuan_2_id',
+        'sub_satuan_2_konversi',
+        'sub_satuan_2_nilai',
+        'sub_satuan_3_id',
+        'sub_satuan_3_konversi',
+        'sub_satuan_3_nilai'
     ];
 
     protected $casts = [
@@ -84,6 +92,30 @@ class BahanPendukung extends Model
     }
 
     /**
+     * Get the sub satuan 1
+     */
+    public function subSatuan1()
+    {
+        return $this->belongsTo(Satuan::class, 'sub_satuan_1_id');
+    }
+
+    /**
+     * Get the sub satuan 2
+     */
+    public function subSatuan2()
+    {
+        return $this->belongsTo(Satuan::class, 'sub_satuan_2_id');
+    }
+
+    /**
+     * Get the sub satuan 3
+     */
+    public function subSatuan3()
+    {
+        return $this->belongsTo(Satuan::class, 'sub_satuan_3_id');
+    }
+
+    /**
      * Check apakah stok aman
      */
     public function getStokAmanAttribute(): bool
@@ -113,10 +145,10 @@ class BahanPendukung extends Model
     }
 
     /**
-     * Scope untuk filter kategori
+     * Scope untuk filter kategori by ID
      */
-    public function scopeKategori($query, $kategori)
+    public function scopeKategori($query, $kategoriId)
     {
-        return $query->where('kategori', $kategori);
+        return $query->where('kategori_id', $kategoriId);
     }
 }

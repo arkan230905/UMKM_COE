@@ -367,6 +367,18 @@
         object-fit: contain;
         box-shadow: 0 4px 20px rgba(255,255,255,0.1);
     }
+    
+    /* Simple table styling for empty tables */
+    .table-simple {
+        width: 100%;
+    }
+    
+    .table-simple td {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6c757d;
+        font-style: italic;
+    }
 </style>
 @endpush
 
@@ -469,7 +481,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize setelah DOM ready
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('📋 Initializing DataTable and Tooltips');
+        console.log('📋 Initializing page components');
         
         // Initialize tooltips Bootstrap 5
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -477,52 +489,79 @@ document.addEventListener('DOMContentLoaded', function() {
             return new bootstrap.Tooltip(tooltipTriggerEl);
         });
         
-        // Initialize DataTable
+        // Check if table has actual data (not just empty message)
+        const tableBody = document.querySelector('#dataTable tbody');
+        const hasRealData = tableBody && tableBody.children.length > 0 && 
+                           !tableBody.querySelector('td[colspan]');
+        
+        if (!hasRealData) {
+            console.log('ℹ️ Table is empty, skipping DataTable initialization');
+            // Add simple styling for empty table
+            const table = document.getElementById('dataTable');
+            if (table) {
+                table.classList.add('table-simple');
+            }
+            return;
+        }
+        
+        // Initialize DataTable only if we have data
+        console.log('📊 Table has data, initializing DataTable');
+        
+        // Destroy existing DataTable if exists
         if ($.fn.DataTable.isDataTable('#dataTable')) {
             $('#dataTable').DataTable().destroy();
         }
         
-        // Get actual column count
+        // Count actual columns in header
         const headerCount = $('#dataTable thead th').length;
         const lastColIndex = headerCount - 1;
         
         console.log('📊 DataTable initializing with ' + headerCount + ' columns');
         
-        const table = $('#dataTable').DataTable({
-            "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json"
-            },
-            "columnDefs": [
-                { 
-                    "orderable": false, 
-                    "targets": [0, lastColIndex] 
+        try {
+            const table = $('#dataTable').DataTable({
+                "language": {
+                    "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json"
                 },
-                { 
-                    "searchable": false, 
-                    "targets": [0, lastColIndex] 
-                },
-                {
-                    "className": "text-end",
-                    "targets": [5, 7]
-                },
-                {
-                    "className": "text-center",
-                    "targets": [1, 2, 6, 8, lastColIndex]
-                }
-            ],
-            "order": [[3, 'asc']],
-            "pageLength": 25
-        });
-        
-        // Update nomor urut otomatis setiap kali tabel di-render ulang
-        table.on('order.dt search.dt', function () {
-            let i = 1;
-            table.cells(null, 0, { search: 'applied', order: 'applied' }).every(function () {
-                this.data(i++);
+                "columnDefs": [
+                    { 
+                        "orderable": false, 
+                        "targets": [0, lastColIndex] 
+                    },
+                    { 
+                        "searchable": false, 
+                        "targets": [0, lastColIndex] 
+                    },
+                    {
+                        "className": "text-end",
+                        "targets": [5, 7]
+                    },
+                    {
+                        "className": "text-center", 
+                        "targets": [1, 2, 6, 8, lastColIndex]
+                    }
+                ],
+                "order": [[3, 'asc']],
+                "pageLength": 25,
+                "autoWidth": false,
+                "responsive": false,
+                "scrollX": true
             });
-        }).draw();
-        
-        console.log('✅ DataTable initialized');
+            
+            // Update nomor urut otomatis setiap kali tabel di-render ulang
+            table.on('order.dt search.dt', function () {
+                let i = 1;
+                table.cells(null, 0, { search: 'applied', order: 'applied' }).every(function () {
+                    this.data(i++);
+                });
+            }).draw();
+            
+            console.log('✅ DataTable initialized successfully');
+            
+        } catch (error) {
+            console.error('❌ DataTable initialization failed:', error);
+            console.log('ℹ️ Falling back to simple table');
+        }
     });
 </script>
 @endsection

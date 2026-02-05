@@ -116,6 +116,11 @@ select.form-select option {
                         </div>
                     </div>
                     <div class="col-md-3">
+                        <label class="form-label">Nomor Faktur Pembelian</label>
+                        <input type="text" name="nomor_faktur" class="form-control" placeholder="Masukkan nomor faktur" value="{{ old('nomor_faktur') }}">
+                        <small class="text-muted">Nomor faktur dari vendor (opsional)</small>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label">Tanggal <span class="text-danger">*</span></label>
                         <input type="date" name="tanggal" class="form-control" value="{{ date('Y-m-d') }}" required>
                     </div>

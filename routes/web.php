@@ -343,14 +343,13 @@ Route::middleware('auth')->group(function () {
             // BOP Proses Management
             Route::get('/create-proses', [\App\Http\Controllers\MasterData\BopController::class, 'createProses'])->name('create-proses');
             Route::post('/store-proses', [\App\Http\Controllers\MasterData\BopController::class, 'storeProses'])->name('store-proses');
+            Route::get('/show-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'showProses'])->name('show-proses');
             Route::get('/edit-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'editProses'])->name('edit-proses');
             Route::put('/update-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProses'])->name('update-proses');
-            Route::get('/show-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'showProses'])->name('show-proses');
             Route::delete('/destroy-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroyProses'])->name('destroy-proses');
             
             // Utilities
             Route::get('/sync-kapasitas', [\App\Http\Controllers\MasterData\BopController::class, 'syncKapasitas'])->name('sync-kapasitas');
-            Route::post('/set-budget-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'setBudgetProses'])->name('set-budget-proses');
             Route::get('/analysis-data', [\App\Http\Controllers\MasterData\BopController::class, 'getAnalysisData'])->name('analysis-data');
         });
 
@@ -378,16 +377,16 @@ Route::middleware('auth')->group(function () {
             Route::post('/{produk}/update-bom-costs', [BomController::class, 'updateBomCosts'])->name('update-bom-costs');
         });
         
-        // BTKL Routes (Biaya Tenaga Kerja Langsung)
+        // BTKL Routes (Biaya Tenaga Kerja Langsung) - Using ProsesProduksiController
         Route::prefix('btkl')->name('btkl.')->group(function () {
-            Route::get('/', [\App\Http\Controllers\MasterData\BtklController::class, 'index'])->name('index');
-            Route::get('/create', [\App\Http\Controllers\MasterData\BtklController::class, 'create'])->name('create');
-            Route::post('/', [\App\Http\Controllers\MasterData\BtklController::class, 'store'])->name('store');
-            Route::get('/{btkl}', [\App\Http\Controllers\MasterData\BtklController::class, 'show'])->name('show');
-            Route::get('/{btkl}/edit', [\App\Http\Controllers\MasterData\BtklController::class, 'edit'])->name('edit');
-            Route::put('/{btkl}', [\App\Http\Controllers\MasterData\BtklController::class, 'update'])->name('update');
-            Route::patch('/{btkl}', [\App\Http\Controllers\MasterData\BtklController::class, 'update']);
-            Route::delete('/{btkl}', [\App\Http\Controllers\MasterData\BtklController::class, 'destroy'])->name('destroy');
+            Route::get('/', [\App\Http\Controllers\ProsesProduksiController::class, 'index'])->name('index');
+            Route::get('/create', [\App\Http\Controllers\ProsesProduksiController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\ProsesProduksiController::class, 'store'])->name('store');
+            Route::get('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'show'])->name('show');
+            Route::get('/{prosesProduksi}/edit', [\App\Http\Controllers\ProsesProduksiController::class, 'edit'])->name('edit');
+            Route::put('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'update'])->name('update');
+            Route::patch('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'update']);
+            Route::delete('/{prosesProduksi}', [\App\Http\Controllers\ProsesProduksiController::class, 'destroy'])->name('destroy');
         });
         
         // Komponen BOP Routes (Overhead Components)

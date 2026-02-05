@@ -114,7 +114,7 @@ class ProdukController extends Controller
         $request->validate([
             'nama_produk' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
-            'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
             'margin_percent' => 'nullable|numeric|min:0',
             'bopb_method' => 'nullable|in:per_unit,per_hour',
             'bopb_rate' => 'nullable|numeric|min:0',
@@ -171,7 +171,7 @@ class ProdukController extends Controller
         $request->validate([
             'nama_produk' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
-            'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
             'margin_percent' => 'nullable|numeric|min:0',
             'bopb_method' => 'nullable|in:per_unit,per_hour',
             'bopb_rate' => 'nullable|numeric|min:0',

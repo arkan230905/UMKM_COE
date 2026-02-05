@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Konversi Database Lengkap</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .test-section { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; border-left: 4px solid #007bff; }
+        .result { background: #fff; padding: 15px; margin: 15px 0; border: 1px solid #ddd; border-radius: 5px; min-height: 100px; }
+        .database-info { background: #e3f2fd; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        button { padding: 12px 24px; margin: 8px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; font-size: 14px; }
+        button:hover { background: #0056b3; }
+        .success { border-left: 4px solid #28a745; }
+        .warning { border-left: 4px solid #ffc107; }
+        .error { border-left: 4px solid #dc3545; }
+        .formula { font-family: 'Courier New', monospace; background: #f1f3f4; padding: 8px; border-radius: 3px; margin: 5px 0; }
+        h1 { color: #333; text-align: center; }
+        h2 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 5px; }
+        h3 { color: #495057; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧮 Test Sistem Konversi Database Lengkap</h1>
+        
+        <div class="database-info">
+            <h3>📊 Data Sub Satuan dari Database:</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <strong>🐔 Ayam Kampung (Rp 45,000/Ekor):</strong>
+                    <ul>
+                        <li>Sub Satuan 1: Kilogram (1 Ekor = 1,5 Kilogram) → Rp 30,000</li>
+                        <li>Sub Satuan 2: Potong (1 Ekor = 6 Potong) → Rp 7,500</li>
+                        <li>Sub Satuan 3: Gram (1 Ekor = 1.500 Gram) → Rp 30</li>
+                    </ul>
+                </div>
+                <div>
+                    <strong>🍗 Ayam Potong (Rp 32,000/Kilogram):</strong>
+                    <ul>
+                        <li>Sub Satuan 1: Gram (1 Kilogram = 1.000 Gram) → Rp 32</li>
+                        <li>Sub Satuan 2: Potong (1 Kilogram = 4 Potong) → Rp 8,000</li>
+                        <li>Sub Satuan 3: Ons (1 Kilogram = 10 Ons) → Rp 3,200</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Test 1: Ayam Kampung - Konversi Spesifik</h2>
+            <p>Test konversi dari Ekor ke satuan spesifik yang ada di database</p>
+            <button onclick="testAyamKampungSpesifik()">Test Ekor → Potong</button>
+            <button onclick="testAyamKampungKilogram()">Test Ekor → Kilogram</button>
+            <button onclick="testAyamKampungGram()">Test Ekor → Gram</button>
+            <div id="result1" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Test 2: Ayam Kampung - Tampilkan Semua Konversi</h2>
+            <p>Test tampilan semua konversi ketika satuan sama dengan satuan utama</p>
+            <button onclick="testAyamKampungSemua()">Test Ekor → Ekor (Tampilkan Semua)</button>
+            <div id="result2" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Test 3: Ayam Potong - Konversi Spesifik</h2>
+            <p>Test konversi dari Kilogram ke satuan spesifik yang ada di database</p>
+            <button onclick="testAyamPotongGram()">Test Kilogram → Gram</button>
+            <button onclick="testAyamPotongPotong()">Test Kilogram → Potong</button>
+            <button onclick="testAyamPotongOns()">Test Kilogram → Ons</button>
+            <div id="result3" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Test 4: Ayam Potong - Tampilkan Semua Konversi</h2>
+            <p>Test tampilan semua konversi ketika satuan sama dengan satuan utama</p>
+            <button onclick="testAyamPotongSemua()">Test Kilogram → Kilogram (Tampilkan Semua)</button>
+            <div id="result4" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Test 5: Bahan Tanpa Sub Satuan</h2>
+            <p>Test perilaku ketika bahan tidak memiliki data sub satuan</p>
+            <button onclick="testTanpaSubSatuan()">Test Bahan Tanpa Sub Satuan</button>
+            <div id="result5" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        console.log('=== TEST KONVERSI DATABASE LENGKAP ===');
+        
+        // Helper function to format numbers cleanly
+        function formatNumberClean(num) {
+            if (num === Math.floor(num)) {
+                return Math.floor(num).toString();
+            }
+            return parseFloat(num.toFixed(4)).toString();
+        }
+        
+        // Simulasi fungsi updateConversionDisplay yang baru
+        function simulateUpdateConversionDisplay(hargaUtama, satuanUtama, satuanDipilih, subSatuanData) {
+            console.log('=== KONVERSI BERDASARKAN SUB SATUAN DATABASE ===');
+            console.log('Harga Utama:', hargaUtama);
+            console.log('Satuan Utama:', satuanUtama);
+            console.log('Satuan Dipilih:', satuanDipilih);
+            console.log('Data Sub Satuan dari Database:', subSatuanData);
+            
+            if (!satuanDipilih) {
+                return '<small style="color: #666;">Pilih satuan untuk melihat konversi berdasarkan sub satuan database</small>';
+            }
+            
+            // PRIORITAS UTAMA: Gunakan data sub satuan dari database
+            if (subSatuanData.length > 0) {
+                console.log('✅ Menggunakan data sub satuan dari database');
+                
+                // Cari konversi yang tepat berdasarkan satuan yang dipilih
+                const matchingSub = subSatuanData.find(sub => 
+                    sub.nama.toLowerCase().trim() === satuanDipilih.toLowerCase().trim()
+                );
+                
+                if (matchingSub) {
+                    // KONVERSI SPESIFIK: Satuan dipilih ada di sub satuan database
+                    const hargaKonversi = (hargaUtama * matchingSub.konversi) / matchingSub.nilai;
+                    const konversiClean = formatNumberClean(matchingSub.konversi);
+                    const nilaiClean = formatNumberClean(matchingSub.nilai);
+                    
+                    console.log('✅ Konversi ditemukan di database:', matchingSub);
+                    console.log('Perhitungan:', `(${hargaUtama} × ${matchingSub.konversi}) ÷ ${matchingSub.nilai} = ${hargaKonversi}`);
+                    
+                    return `
+                        <div style="color: #17a2b8; margin-bottom: 10px;">
+                            <strong>Rp ${Math.round(hargaKonversi).toLocaleString('id-ID')}/${satuanDipilih}</strong>
+                        </div>
+                        <div style="color: #666; font-size: 0.9rem; line-height: 1.4;">
+                            <div style="margin-bottom: 5px;"><strong>📊 Rumus Konversi:</strong></div>
+                            <div style="margin-bottom: 5px;">• Dasar: ${konversiClean} ${satuanUtama} = ${nilaiClean} ${satuanDipilih}</div>
+                            <div style="margin-bottom: 5px;">• Perhitungan: (Rp ${hargaUtama.toLocaleString('id-ID')} × ${konversiClean}) ÷ ${nilaiClean}</div>
+                            <div style="color: #28a745;"><strong>• Hasil: Rp ${Math.round(hargaKonversi).toLocaleString('id-ID')} per ${satuanDipilih}</strong></div>
+                            <div style="margin-top: 8px; color: #007bff; font-size: 0.8rem;">
+                                <em>💡 Berdasarkan sub satuan yang tersimpan di database</em>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // TAMPILKAN SEMUA KONVERSI: Jika satuan sama dengan utama atau tidak ada yang cocok
+                if (satuanDipilih === satuanUtama || !matchingSub) {
+                    console.log('✅ Menampilkan semua konversi yang tersedia dari database');
+                    
+                    let allConversions = `
+                        <div style="color: #28a745; margin-bottom: 10px;">
+                            <strong>📋 Konversi Tersedia (Database):</strong>
+                        </div>
+                    `;
+                    
+                    subSatuanData.forEach((sub, index) => {
+                        const hargaKonversi = (hargaUtama * sub.konversi) / sub.nilai;
+                        const konversiClean = formatNumberClean(sub.konversi);
+                        const nilaiClean = formatNumberClean(sub.nilai);
+                        
+                        allConversions += `
+                            <div style="border-left: 3px solid #17a2b8; padding-left: 10px; margin-bottom: 15px; font-size: 0.9rem;">
+                                <div style="color: #17a2b8; margin-bottom: 5px;">
+                                    <strong>Rp ${Math.round(hargaKonversi).toLocaleString('id-ID')}/${sub.nama}</strong>
+                                </div>
+                                <div style="color: #666; line-height: 1.3;">
+                                    <div>• Dasar: ${konversiClean} ${satuanUtama} = ${nilaiClean} ${sub.nama}</div>
+                                    <div>• Rumus: (Rp ${hargaUtama.toLocaleString('id-ID')} × ${konversiClean}) ÷ ${nilaiClean}</div>
+                                    <div style="color: #28a745;">• Hasil: Rp ${Math.round(hargaKonversi).toLocaleString('id-ID')}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    allConversions += `
+                        <div style="margin-top: 10px; color: #007bff; font-size: 0.8rem;">
+                            <em>💡 Semua konversi berdasarkan sub satuan database</em>
+                        </div>
+                    `;
+                    
+                    return allConversions;
+                }
+            } else {
+                // TIDAK ADA SUB SATUAN: Tampilkan pesan informatif
+                console.log('⚠️ Tidak ada data sub satuan di database');
+                
+                if (satuanDipilih === satuanUtama) {
+                    return `
+                        <div style="color: #28a745; margin-bottom: 5px;">
+                            <strong>Rp ${hargaUtama.toLocaleString('id-ID')}/${satuanUtama}</strong>
+                        </div>
+                        <div style="color: #666; font-size: 0.9rem;">
+                            <div>✅ Satuan sama dengan satuan utama</div>
+                            <div style="margin-top: 5px; color: #ffc107;">
+                                <em>💡 Untuk konversi otomatis, tambahkan sub satuan di master data bahan</em>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div style="color: #ffc107; margin-bottom: 5px;">
+                            <strong>Konversi tidak tersedia</strong>
+                        </div>
+                        <div style="color: #666; font-size: 0.9rem;">
+                            <div>❌ Tidak ada konversi dari ${satuanUtama} ke ${satuanDipilih}</div>
+                            <div style="margin-top: 5px; color: #17a2b8;">
+                                <em>💡 Tambahkan sub satuan "${satuanDipilih}" di master data bahan untuk konversi otomatis</em>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        // Test functions
+        function testAyamKampungSpesifik() {
+            const subSatuanData = [
+                { nama: 'Kilogram', konversi: 1, nilai: 1.5 },
+                { nama: 'Potong', konversi: 1, nilai: 6 },
+                { nama: 'Gram', konversi: 1, nilai: 1500 }
+            ];
+            
+            const result = simulateUpdateConversionDisplay(45000, 'Ekor', 'Potong', subSatuanData);
+            document.getElementById('result1').innerHTML = result;
+            document.getElementById('result1').className = 'result success';
+        }
+        
+        function testAyamKampungKilogram() {
+            const subSatuanData = [
+                { nama: 'Kilogram', konversi: 1, nilai: 1.5 },
+                { nama: 'Potong', konversi: 1, nilai: 6 },
+                { nama: 'Gram', konversi: 1, nilai: 1500 }
+            ];
+            
+            const result = simulateUpdateConversionDisplay(45000, 'Ekor', 'Kilogram', subSatuanData);
+            document.getElementById('result1').innerHTML = result;
+            document.getElementById('result1').className = 'result success';
+        }
+        
+        function testAyamKampungGram() {
+            const subSatuanData = [
+                { nama: 'Kilogram', konversi: 1, nilai: 1.5 },
+                { nama: 'Potong', konversi: 1, nilai: 6 },
+                { nama: 'Gram', konversi: 1, nilai: 1500 }
+            ];
+            
+            const result = simulateUpdateConversionDisplay(45000, 'Ekor', 'Gram', subSatuanData);
+            document.getElementById('result1').innerHTML = result;
+            document.getElementById('result1').className = 'result success';
+        }
+        
+        function testAyamKampungSemua() {
+            const subSatuanData = [
+                { nama: 'Kilogram', konversi: 1, nilai: 1.5 },
+                { nama: 'Potong', konversi: 1, nilai: 6 },
+                { nama: 'Gram', konversi: 1, nilai: 1500 }
+            ];
+            
+            const result = simulateUpdateConversionDisplay(45000, 'Ekor', 'Ekor', subSatuanData);
+            document.getElementById('result2').innerHTML = result;
+            document.getElementById('result2').className = 'result success';
+        }
+        
+        function testAyamPotongGram() {
+            const subSatuanData = [
+                { nama: 'Gram', konversi: 1, nilai: 1000 },
+                { nama: 'Potong', konversi: 1, nilai: 4 },
+                { nama: 'Ons', konversi: 1, nilai: 10 }
+            ];
+            
+            const result = simulateUpdateConversionDisplay(32000, 'Kilogram', 'Gram', subSatuanData);
+            document.getElementById('result3').innerHTML = result;
+            document.getElementById('result3').className = 'result success';
+        }
+        
+        function testAyamPotongPotong() {
+            const subSatuanData = [
+                { nama: 'Gram', konversi: 1, nilai: 1000 },
+                { nama: 'Potong', konversi: 1, nilai: 4 },
+                { nama: 'Ons', konversi: 1, nilai: 10 }
+            ];
+            
+            const result = simulateUpdateConversionDisplay(32000, 'Kilogram', 'Potong', subSatuanData);
+            document.getElementById('result3').innerHTML = result;
+            document.getElementById('result3').className = 'result success';
+        }
+        
+        function testAyamPotongOns() {
+            const subSatuanData = [
+                { nama: 'Gram', konversi: 1, nilai: 1000 },
+                { nama: 'Potong', konversi: 1, nilai: 4 },
+                { nama: 'Ons', konversi: 1, nilai: 10 }
+            ];
+            
+            const result = simulateUpdateConversionDisplay(32000, 'Kilogram', 'Ons', subSatuanData);
+            document.getElementById('result3').innerHTML = result;
+            document.getElementById('result3').className = 'result success';
+        }
+        
+        function testAyamPotongSemua() {
+            const subSatuanData = [
+                { nama: 'Gram', konversi: 1, nilai: 1000 },
+                { nama: 'Potong', konversi: 1, nilai: 4 },
+                { nama: 'Ons', konversi: 1, nilai: 10 }
+            ];
+            
+            const result = simulateUpdateConversionDisplay(32000, 'Kilogram', 'Kilogram', subSatuanData);
+            document.getElementById('result4').innerHTML = result;
+            document.getElementById('result4').className = 'result success';
+        }
+        
+        function testTanpaSubSatuan() {
+            const subSatuanData = []; // Tidak ada sub satuan
+            
+            const result1 = simulateUpdateConversionDisplay(5000, 'Pieces', 'Pieces', subSatuanData);
+            const result2 = simulateUpdateConversionDisplay(5000, 'Pieces', 'Buah', subSatuanData);
+            
+            document.getElementById('result5').innerHTML = `
+                <h4>Satuan Sama:</h4>
+                ${result1}
+                <h4 style="margin-top: 20px;">Satuan Berbeda:</h4>
+                ${result2}
+            `;
+            document.getElementById('result5').className = 'result warning';
+        }
+    </script>
+</body>
+</html>

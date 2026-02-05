@@ -318,10 +318,13 @@ class BopController extends Controller
         }
     }
 
+    /**
+     * Show form for editing BOP Proses
+     */
     public function showProses($id)
     {
         try {
-            $bopProses = BopProses::with(['prosesProduksi', 'bopProsesDetails.komponenBop'])->findOrFail($id);
+            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
             return view('master-data.bop.show-proses', compact('bopProses'));
             
         } catch (\Exception $e) {
@@ -462,31 +465,6 @@ class BopController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Gagal sync kapasitas: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Set budget for BOP Proses
-     */
-    public function setBudgetProses(Request $request, $id)
-    {
-        $validated = $request->validate([
-            'budget' => 'required|numeric|min:0'
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            $bopProses = BopProses::findOrFail($id);
-            $bopProses->update(['budget' => $validated['budget']]);
-
-            DB::commit();
-
-            return response()->json(['success' => true, 'message' => 'Budget BOP Proses berhasil diset']);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
     }
 

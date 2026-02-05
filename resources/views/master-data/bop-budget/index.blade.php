@@ -143,7 +143,15 @@
                     className: 'text-center',
                     render: function(data, type, row) {
                         var classColor = parseFloat(data) < 0 ? 'text-danger' : 'text-success';
-                        return '<span class="' + classColor + '">' + parseFloat(data).toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + '%</span>';
+                        var formatted = parseFloat(data);
+                        if (formatted == Math.floor(formatted)) {
+                            return '<span class="' + classColor + '">' + formatted.toLocaleString('id-ID') + '%</span>';
+                        }
+                        formatted = formatted.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        if (formatted.includes(',')) {
+                            formatted = formatted.replace(/,?0+$/, '');
+                        }
+                        return '<span class="' + classColor + '">' + formatted + '%</span>';
                     }
                 },
                 { 

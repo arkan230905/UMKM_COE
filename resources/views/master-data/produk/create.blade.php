@@ -47,7 +47,7 @@
                 <div class="mb-3">
                     <label for="foto" class="form-label">Foto Produk</label>
                     <input type="file" name="foto" id="foto" class="form-control" accept="image/jpeg,image/png,image/jpg" onchange="previewImage(event)">
-                    <small style="color: #ffffff;">Format: JPG, JPEG, PNG. Maksimal 2MB.</small>
+                    <small style="color: #000000;">Format: JPG, JPEG, PNG. Maksimal 10MB.</small>
                     
                     <div id="preview-container" class="mt-3" style="display: none;">
                         <p style="color: #ffffff;" class="small mb-2">Preview foto:</p>
@@ -84,9 +84,9 @@ function previewImage(event) {
     const previewImage = document.getElementById('preview-image');
     
     if (file) {
-        // Validasi ukuran file (max 2MB)
-        if (file.size > 2048000) {
-            alert('Ukuran file terlalu besar! Maksimal 2MB.');
+        // Validasi ukuran file (max 10MB)
+        if (file.size > 10485760) {
+            alert('Ukuran file terlalu besar! Maksimal 10MB.');
             event.target.value = '';
             previewContainer.style.display = 'none';
             return;

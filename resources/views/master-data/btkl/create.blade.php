@@ -220,8 +220,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (kapasitas > 0 && tarif > 0) {
             const biayaPerProduk = tarif / kapasitas;
-            biayaPerProdukDisplay.value = biayaPerProduk.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            biayaPerProdukText.textContent = 'Rp ' + tarif.toLocaleString('id-ID') + ' / ' + kapasitas + ' pcs = Rp ' + biayaPerProduk.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            biayaPerProdukDisplay.value = formatNumberClean(biayaPerProduk);
+            biayaPerProdukText.textContent = 'Rp ' + formatNumberClean(tarif) + ' / ' + kapasitas + ' pcs = ' + formatRupiahClean(biayaPerProduk);
             biayaPerProdukDisplay.parentElement.nextElementSibling.style.display = 'block';
         } else {
             biayaPerProdukDisplay.value = '0';
@@ -241,6 +241,24 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     kapasitasInput.addEventListener('input', updateBiayaPerProduk);
+    
+    // Clean number formatting function
+    function formatNumberClean(number) {
+        if (number == Math.floor(number)) {
+            return number.toLocaleString('id-ID');
+        }
+        let formatted = number.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        // Remove trailing zeros after decimal
+        if (formatted.includes(',')) {
+            formatted = formatted.replace(/,?0+$/, '');
+        }
+        return formatted;
+    }
+    
+    // Clean rupiah formatting function  
+    function formatRupiahClean(number) {
+        return 'Rp ' + formatNumberClean(number);
+    }
 });
 </script>
 @endsection

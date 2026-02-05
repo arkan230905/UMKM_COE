@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug JavaScript Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .result { background: #fff; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; min-height: 50px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 3px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+    </style>
+</head>
+<body>
+    <h1>Debug JavaScript Test</h1>
+    
+    <div class="test">
+        <h3>Test 1: Basic JavaScript Functions</h3>
+        <button onclick="testBasicFunctions()">Test Basic Functions</button>
+        <div id="result1" class="result"></div>
+    </div>
+    
+    <div class="test">
+        <h3>Test 2: Conversion Display Simulation</h3>
+        <button onclick="testConversionDisplay()">Test Conversion Display</button>
+        <div id="result2" class="result"></div>
+    </div>
+    
+    <div class="test">
+        <h3>Test 3: Sub Satuan Data Processing</h3>
+        <button onclick="testSubSatuanData()">Test Sub Satuan Data</button>
+        <div id="result3" class="result"></div>
+    </div>
+    
+    <div class="test">
+        <h3>Test 4: DOM Manipulation</h3>
+        <div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0;">
+            <div class="harga-konversi" id="testHargaKonversi">Test conversion display area</div>
+        </div>
+        <button onclick="testDOMManipulation()">Test DOM Manipulation</button>
+        <div id="result4" class="result"></div>
+    </div>
+
+    <script>
+        console.log('=== DEBUG JAVASCRIPT TEST PAGE LOADED ===');
+        
+        // Helper function to format numbers cleanly
+        function formatNumberClean(num) {
+            if (num === Math.floor(num)) {
+                return Math.floor(num).toString();
+            }
+            return parseFloat(num.toFixed(4)).toString();
+        }
+        
+        function testBasicFunctions() {
+            const result = document.getElementById('result1');
+            let tests = [];
+            
+            try {
+                // Test 1: formatNumberClean function
+                const test1 = formatNumberClean(1.0000);
+                tests.push(`formatNumberClean(1.0000) = "${test1}" (expected: "1")`);
+                
+                // Test 2: JSON parsing
+                const testData = '[{"nama":"Gram","konversi":1,"nilai":1000}]';
+                const parsed = JSON.parse(testData);
+                tests.push(`JSON.parse works: ${parsed.length} items`);
+                
+                // Test 3: Array find
+                const found = parsed.find(item => item.nama === 'Gram');
+                tests.push(`Array.find works: ${found ? 'Found Gram' : 'Not found'}`);
+                
+                result.className = 'result success';
+                result.innerHTML = '<strong>✅ All basic functions work:</strong><br>' + tests.join('<br>');
+                
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = '<strong>❌ Error in basic functions:</strong><br>' + error.message;
+            }
+        }
+        
+        function testConversionDisplay() {
+            const result = document.getElementById('result2');
+            
+            try {
+                // Simulate Ayam Potong data
+                const hargaUtama = 32000;
+                const satuanUtama = 'Kilogram';
+                const satuanDipilih = 'Potong';
+                const subSatuanData = [
+                    { nama: 'Gram', konversi: 1, nilai: 1000 },
+                    { nama: 'Potong', konversi: 1, nilai: 4 },
+                    { nama: 'Ons', konversi: 1, nilai: 10 }
+                ];
+                
+                // Test exact match
+                const matchingSub = subSatuanData.find(sub => 
+                    sub.nama.toLowerCase().trim() === satuanDipilih.toLowerCase().trim()
+                );
+                
+                if (matchingSub) {
+                    const hargaKonversi = (hargaUtama * matchingSub.konversi) / matchingSub.nilai;
+                    const konversiClean = formatNumberClean(matchingSub.konversi);
+                    const nilaiClean = formatNumberClean(matchingSub.nilai);
+                    
+                    const konversiText = `
+                        <div style="color: #17a2b8;"><strong>Rp ${Math.round(hargaKonversi).toLocaleString('id-ID')}/${satuanDipilih}</strong></div>
+                        <small style="color: #666;">Rumus: ${konversiClean} ${satuanUtama} = ${nilaiClean} ${satuanDipilih}<br>Rp ${hargaUtama.toLocaleString('id-ID')} × ${konversiClean} ÷ ${nilaiClean} = Rp ${Math.round(hargaKonversi).toLocaleString('id-ID')}</small>
+                    `;
+                    
+                    result.className = 'result success';
+                    result.innerHTML = '<strong>✅ Conversion calculation works:</strong><br>' + konversiText;
+                } else {
+                    result.className = 'result error';
+                    result.innerHTML = '<strong>❌ No matching sub satuan found</strong>';
+                }
+                
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = '<strong>❌ Error in conversion display:</strong><br>' + error.message;
+            }
+        }
+        
+        function testSubSatuanData() {
+            const result = document.getElementById('result3');
+            
+            try {
+                // Test with Ayam Kampung data (same unit)
+                const hargaUtama = 45000;
+                const satuanUtama = 'Ekor';
+                const satuanDipilih = 'Ekor';
+                const subSatuanData = [
+                    { nama: 'Kilogram', konversi: 1, nilai: 1.5 },
+                    { nama: 'Potong', konversi: 1, nilai: 6 },
+                    { nama: 'Gram', konversi: 1, nilai: 1500 }
+                ];
+                
+                if (subSatuanData.length > 0 && satuanDipilih === satuanUtama) {
+                    let allConversions = '<div style="color: #28a745;"><strong>Konversi tersedia:</strong></div>';
+                    subSatuanData.forEach(sub => {
+                        const hargaKonversi = (hargaUtama * sub.konversi) / sub.nilai;
+                        const konversiClean = formatNumberClean(sub.konversi);
+                        const nilaiClean = formatNumberClean(sub.nilai);
+                        
+                        allConversions += `
+                            <div style="color: #17a2b8; font-size: 0.9rem; margin-bottom: 5px;">
+                                <strong>Rp ${Math.round(hargaKonversi).toLocaleString('id-ID')}/${sub.nama}</strong><br>
+                                <small style="color: #666;">Rumus: ${konversiClean} ${satuanUtama} = ${nilaiClean} ${sub.nama}</small>
+                            </div>
+                        `;
+                    });
+                    
+                    result.className = 'result success';
+                    result.innerHTML = '<strong>✅ Sub satuan processing works:</strong><br>' + allConversions;
+                } else {
+                    result.className = 'result error';
+                    result.innerHTML = '<strong>❌ Sub satuan processing failed</strong>';
+                }
+                
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = '<strong>❌ Error in sub satuan processing:</strong><br>' + error.message;
+            }
+        }
+        
+        function testDOMManipulation() {
+            const result = document.getElementById('result4');
+            const testDiv = document.getElementById('testHargaKonversi');
+            
+            try {
+                // Test DOM manipulation
+                const testHTML = `
+                    <div style="color: #17a2b8;"><strong>Rp 8.000/Potong</strong></div>
+                    <small style="color: #666;">Rumus: 1 Kilogram = 4 Potong<br>Rp 32.000 × 1 ÷ 4 = Rp 8.000</small>
+                `;
+                
+                testDiv.innerHTML = testHTML;
+                
+                result.className = 'result success';
+                result.innerHTML = '<strong>✅ DOM manipulation works:</strong><br>Check the test area above - it should show conversion formula.';
+                
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = '<strong>❌ Error in DOM manipulation:</strong><br>' + error.message;
+            }
+        }
+        
+        // Auto-run basic test on load
+        setTimeout(() => {
+            testBasicFunctions();
+        }, 500);
+    </script>
+</body>
+</html>

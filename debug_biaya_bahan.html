@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Biaya Bahan</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .d-none { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Debug Biaya Bahan - Test Page</h1>
+    
+    <div class="debug">
+        <h3>Test 1: Basic HTML Structure</h3>
+        <table id="bahanBakuTable">
+            <thead>
+                <tr>
+                    <th>BAHAN BAKU</th>
+                    <th>JUMLAH</th>
+                    <th>SATUAN</th>
+                    <th>HARGA SATUAN</th>
+                    <th>SUB TOTAL</th>
+                    <th>AKSI</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr id="newBahanBakuRow" class="d-none">
+                    <td>
+                        <select name="bahan_baku[new][id]" class="bahan-baku-select">
+                            <option value="">-- Pilih Bahan Baku --</option>
+                            <option value="1" data-harga="45000" data-satuan="Ekor">Ayam Kampung - Rp 45.000/Ekor</option>
+                            <option value="2" data-harga="32000" data-satuan="Kilogram">Ayam Potong - Rp 32.000/Kilogram</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" name="bahan_baku[new][jumlah]" class="qty-input" step="0.01" min="0" placeholder="0">
+                    </td>
+                    <td>
+                        <select name="bahan_baku[new][satuan]" class="satuan-select">
+                            <option value="">-- Satuan --</option>
+                            <option value="Ekor">Ekor</option>
+                            <option value="Kilogram">Kilogram</option>
+                            <option value="Potong">Potong</option>
+                            <option value="Gram">Gram</option>
+                        </select>
+                    </td>
+                    <td class="harga-display">
+                        <div class="harga-utama">-</div>
+                        <div class="harga-konversi" style="font-size: 0.75rem; color: #666;"></div>
+                    </td>
+                    <td class="subtotal-display">-</td>
+                    <td>
+                        <button type="button" class="remove-item">Hapus</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <button type="button" id="addBahanBaku" onclick="addBahanBakuRow()">Tambah Bahan Baku</button>
+        <button type="button" onclick="testFunction()">Test Function</button>
+    </div>
+    
+    <div class="debug">
+        <h3>Test Results:</h3>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        console.log('=== DEBUG PAGE LOADED ===');
+        
+        function addBahanBakuRow() {
+            console.log('=== addBahanBakuRow called ===');
+            const testResults = document.getElementById('testResults');
+            
+            const newRow = document.getElementById('newBahanBakuRow');
+            if (!newRow) {
+                testResults.innerHTML += '<div class="error">ERROR: newBahanBakuRow not found!</div>';
+                return;
+            }
+            
+            const tbody = newRow.parentElement;
+            const clone = newRow.cloneNode(true);
+            clone.classList.remove('d-none');
+            clone.id = 'bahanBaku_' + Date.now();
+            
+            const timestamp = Date.now();
+            clone.querySelectorAll('[name^="bahan_baku[new]"]').forEach(input => {
+                const fieldName = input.name.match(/\[new\]\[(\w+)\]/)[1];
+                input.name = `bahan_baku[${timestamp}][${fieldName}]`;
+                input.value = '';
+            });
+            
+            tbody.insertBefore(clone, newRow);
+            testResults.innerHTML += '<div class="success">✓ Row added successfully! ID: ' + clone.id + '</div>';
+            
+            // Add event listeners to new row
+            attachEventListeners(clone);
+        }
+        
+        function attachEventListeners(row) {
+            if (!row) return;
+            
+            const select = row.querySelector('.bahan-baku-select');
+            if (select) {
+                select.addEventListener('change', function() {
+                    console.log('Bahan changed:', this.value);
+                    const option = this.options[this.selectedIndex];
+                    if (option && option.dataset.harga) {
+                        const hargaDisplay = row.querySelector('.harga-utama');
+                        if (hargaDisplay) {
+                            hargaDisplay.textContent = 'Rp ' + parseInt(option.dataset.harga).toLocaleString('id-ID');
+                        }
+                    }
+                });
+            }
+        }
+        
+        function testFunction() {
+            const testResults = document.getElementById('testResults');
+            testResults.innerHTML += '<div class="success">✓ Test function called at ' + new Date().toLocaleTimeString() + '</div>';
+            
+            // Test if elements exist
+            const newRow = document.getElementById('newBahanBakuRow');
+            const addBtn = document.getElementById('addBahanBaku');
+            
+            testResults.innerHTML += '<div>newBahanBakuRow exists: ' + (newRow ? 'YES' : 'NO') + '</div>';
+            testResults.innerHTML += '<div>addBahanBaku button exists: ' + (addBtn ? 'YES' : 'NO') + '</div>';
+            
+            if (newRow) {
+                testResults.innerHTML += '<div>newBahanBakuRow classes: ' + newRow.className + '</div>';
+                testResults.innerHTML += '<div>newBahanBakuRow display: ' + getComputedStyle(newRow).display + '</div>';
+            }
+        }
+        
+        // Auto-add first row on load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, auto-adding first row...');
+            setTimeout(() => {
+                addBahanBakuRow();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

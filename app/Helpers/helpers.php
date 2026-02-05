@@ -9,6 +9,41 @@ if (!function_exists('format_rupiah')) {
     }
 }
 
+if (!function_exists('format_number_clean')) {
+    /**
+     * Format number without unnecessary decimal places
+     * Removes ,00 but keeps meaningful decimals like ,50
+     */
+    function format_number_clean($number, $decimals = 2)
+    {
+        // If it's a whole number, show without decimals
+        if ($number == floor($number)) {
+            return number_format($number, 0, ',', '.');
+        }
+        
+        // Format with decimals and remove trailing zeros
+        $formatted = number_format($number, $decimals, ',', '.');
+        
+        // Remove trailing zeros after decimal point
+        if (strpos($formatted, ',') !== false) {
+            $formatted = rtrim($formatted, '0');
+            $formatted = rtrim($formatted, ',');
+        }
+        
+        return $formatted;
+    }
+}
+
+if (!function_exists('format_rupiah_clean')) {
+    /**
+     * Format rupiah without unnecessary decimal places
+     */
+    function format_rupiah_clean($angka, $decimals = 2)
+    {
+        return 'Rp ' . format_number_clean($angka, $decimals);
+    }
+}
+
 if (!function_exists('tanggal_indonesia')) {
     function tanggal_indonesia($tanggal, $tampil_hari = false)
     {

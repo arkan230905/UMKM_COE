@@ -285,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             document.getElementById('infoKapasitas').textContent = parseInt(kapasitas).toLocaleString('id-ID');
             document.getElementById('infoTarif').textContent = parseInt(tarif).toLocaleString('id-ID');
-            document.getElementById('infoBiayaPerUnit').textContent = parseFloat(biayaPerUnit).toLocaleString('id-ID', {minimumFractionDigits: 2});
+            document.getElementById('infoBiayaPerUnit').textContent = formatRupiahClean(parseFloat(biayaPerUnit));
             document.getElementById('kapasitasPerJam').textContent = parseInt(kapasitas).toLocaleString('id-ID');
             
             prosesInfo.style.display = 'block';
@@ -318,7 +318,25 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update display
         document.getElementById('totalBopPerJam').textContent = totalBopPerJam.toLocaleString('id-ID');
-        document.getElementById('bopPerUnit').textContent = bopPerUnit.toLocaleString('id-ID', {minimumFractionDigits: 2});
+        document.getElementById('bopPerUnit').textContent = formatRupiahClean(bopPerUnit);
+    }
+    
+    // Clean number formatting function
+    function formatNumberClean(number) {
+        if (number == Math.floor(number)) {
+            return number.toLocaleString('id-ID');
+        }
+        let formatted = number.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        // Remove trailing zeros after decimal
+        if (formatted.includes(',')) {
+            formatted = formatted.replace(/,?0+$/, '');
+        }
+        return formatted;
+    }
+    
+    // Clean rupiah formatting function  
+    function formatRupiahClean(number) {
+        return 'Rp ' + formatNumberClean(number);
     }
     
     // Form submission
