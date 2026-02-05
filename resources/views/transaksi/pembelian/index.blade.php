@@ -102,8 +102,9 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 50px">#</th>
+                            <th class="text-center" style="width: 50px">No</th>
                             <th>Nomor Transaksi</th>
+                            <th>Nomor Faktur</th>
                             <th>Tanggal</th>
                             <th>Vendor</th>
                             <th>Item Dibeli</th>
@@ -118,6 +119,13 @@
                             <tr>
                                 <td class="text-center">{{ $key + 1 }}</td>
                                 <td style="color: #000; font-weight: bold;">{{ $pembelian->nomor_pembelian ?? 'KOSONG' }}</td>
+                                <td>
+                                    @if($pembelian->nomor_faktur)
+                                        <span class="badge bg-info">{{ $pembelian->nomor_faktur }}</span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                                 <td>{{ $pembelian->tanggal->format('d-m-Y') }}</td>
                                 <td>
                                     <div class="d-flex align-items-center">
@@ -225,7 +233,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="text-center py-4">
+                                <td colspan="10" class="text-center py-4">
                                     <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data pembelian</p>
                                 </td>

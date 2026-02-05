@@ -9,6 +9,7 @@ use App\Models\Jurnal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Models\BopLainnya;
 
 class PembayaranBebanController extends Controller
 {
@@ -24,27 +25,37 @@ class PembayaranBebanController extends Controller
     public function create()
     {
         try {
-            // Cari akun beban (kategori 5 untuk beban)
-            $akunBeban = Coa::where('kode_akun', 'like', '5%')
+            // Cari akun beban yang sudah ada budget di BOP Lainnya
+            $akunBeban = BopLainnya::where('budget', '>', 0)
                 ->where('is_active', 1)
-                ->orderBy('kode_akun')
-                ->get();
-                
-            // Cari akun kas (kode 1101-1103 untuk kas dan bank)
-            $akunKas = Coa::where(function($query) {
-                    $query->where('kode_akun', 'like', '1101%')  // Kas
-                          ->orWhere('kode_akun', 'like', '1102%') // Bank
-                          ->orWhere('kode_akun', 'like', '1103%'); // Kas di Bank
+                ->with(['coa'])
+                ->get()
+                ->map(function($bop) {
+                    return $bop->coa;
                 })
-                ->where('is_active', 1)
-                ->orderBy('kode_akun')
-                ->get();
+                ->filter(function($coa) {
+                    return $coa; // Hanya filter yang COA-nya ada
+                })
+                ->unique('kode_akun'); // Hapus duplikat berdasarkan kode_akun
+                
+            // Cari akun kas (kode 101-102 untuk kas dan bank)
+            $akunKas = Coa::where(function ($q) {
+                $q->where('kode_akun', 'like', '101%') // Kas
+                  ->orWhere('kode_akun', 'like', '102%') // Bank
+                  ->orWhere('kode_akun', 'like', '103%'); 
+            })
+            ->orderBy('kode_akun')
+            ->get();
             
-            if ($akunBeban->isEmpty() || $akunKas->isEmpty()) {
-                $error = 'Akun beban atau akun kas belum diatur. ';
-                $error .= $akunBeban->isEmpty() ? 'Tidak ada akun beban yang aktif. ' : '';
-                $error .= $akunKas->isEmpty() ? 'Tidak ada akun kas/bank yang aktif.' : '';
+            if ($akunBeban->isEmpty()) {
+                $error = 'Akun beban dengan budget belum diatur. ';
+                $error .= 'Tidak ada akun beban dengan budget yang aktif. ';
                 return back()->with('error', $error);
+            }
+            
+            if ($akunKas->isEmpty()) {
+                // Warning only, not blocking
+                \Log::warning('Tidak ada akun kas/bank yang aktif untuk pembayaran beban');
             }
             
             return view('transaksi.pembayaran-beban.create', compact('akunBeban', 'akunKas'));

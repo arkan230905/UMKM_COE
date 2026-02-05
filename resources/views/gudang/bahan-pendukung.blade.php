@@ -26,7 +26,7 @@
                             <tr>
                                 <td>{{ $bahan->kode_bahan }}</td>
                                 <td>{{ $bahan->nama_bahan }}</td>
-                                <td>{{ $bahan->kategoriBahanPendukung->nama ?? $bahan->kategori ?? 'N/A' }}</td>
+                                <td>{{ $bahan->kategoriBahanPendukung->nama ?? 'N/A' }}</td>
                                 <td>{{ number_format($bahan->stok, 2) }}</td>
                                 <td>Rp {{ number_format($bahan->harga_satuan, 0, ',', '.') }}</td>
                             </tr>

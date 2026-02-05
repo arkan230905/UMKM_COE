@@ -336,19 +336,20 @@ Route::middleware('auth')->group(function () {
             
             // BOP Lainnya
             Route::post('/store-lainnya', [\App\Http\Controllers\MasterData\BopController::class, 'storeLainnya'])->name('store-lainnya');
+            Route::get('/get-lainnya/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'getLainnya'])->name('get-lainnya');
+            Route::put('/update-lainnya/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateLainnya'])->name('update-lainnya');
             Route::delete('/destroy-lainnya/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroyLainnya'])->name('destroy-lainnya');
             
             // BOP Proses Management
             Route::get('/create-proses', [\App\Http\Controllers\MasterData\BopController::class, 'createProses'])->name('create-proses');
             Route::post('/store-proses', [\App\Http\Controllers\MasterData\BopController::class, 'storeProses'])->name('store-proses');
+            Route::get('/show-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'showProses'])->name('show-proses');
             Route::get('/edit-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'editProses'])->name('edit-proses');
             Route::put('/update-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProses'])->name('update-proses');
-            Route::get('/show-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'showProses'])->name('show-proses');
             Route::delete('/destroy-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroyProses'])->name('destroy-proses');
             
             // Utilities
             Route::get('/sync-kapasitas', [\App\Http\Controllers\MasterData\BopController::class, 'syncKapasitas'])->name('sync-kapasitas');
-            Route::post('/set-budget-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'setBudgetProses'])->name('set-budget-proses');
             Route::get('/analysis-data', [\App\Http\Controllers\MasterData\BopController::class, 'getAnalysisData'])->name('analysis-data');
         });
 
@@ -371,14 +372,12 @@ Route::middleware('auth')->group(function () {
             Route::post('/', [BomController::class, 'store'])->name('store');
             Route::get('/{bom}', [BomController::class, 'show'])->name('show');
             Route::get('/{bom}/print', [BomController::class, 'print'])->name('print');
-            Route::get('/{bom}/edit', [BomController::class, 'edit'])->name('edit');
-            Route::put('/{bom}', [BomController::class, 'update'])->name('update');
             Route::delete('/{bom}', [BomController::class, 'destroy'])->name('destroy');
             Route::post('/update-bop', [BomController::class, 'updateBOP'])->name('update-bop');
             Route::post('/{produk}/update-bom-costs', [BomController::class, 'updateBomCosts'])->name('update-bom-costs');
         });
         
-        // BTKL Routes (Biaya Tenaga Kerja Langsung)
+        // BTKL Routes (Biaya Tenaga Kerja Langsung) - Using ProsesProduksiController
         Route::prefix('btkl')->name('btkl.')->group(function () {
             Route::get('/', [\App\Http\Controllers\ProsesProduksiController::class, 'index'])->name('index');
             Route::get('/create', [\App\Http\Controllers\ProsesProduksiController::class, 'create'])->name('create');
@@ -435,14 +434,14 @@ Route::middleware('auth')->group(function () {
         });
 
         // Alias route untuk backward compatibility - LANGSUNG KE CONTROLLER
-        Route::prefix('expense-payment')->group(function() {
-            Route::get('/', [ExpensePaymentController::class, 'index']);
-            Route::get('/create', [ExpensePaymentController::class, 'create']);
-            Route::post('/', [ExpensePaymentController::class, 'store']);
-            Route::get('/{id}', [ExpensePaymentController::class, 'show']);
-            Route::get('/{id}/edit', [ExpensePaymentController::class, 'edit']);
-            Route::put('/{id}', [ExpensePaymentController::class, 'update']);
-            Route::delete('/{id}', [ExpensePaymentController::class, 'destroy']);
+        Route::prefix('expense-payment')->name('expense-payment.')->group(function() {
+            Route::get('/', [ExpensePaymentController::class, 'index'])->name('index');
+            Route::get('/create', [ExpensePaymentController::class, 'create'])->name('create');
+            Route::post('/', [ExpensePaymentController::class, 'store'])->name('store');
+            Route::get('/{id}', [ExpensePaymentController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [ExpensePaymentController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [ExpensePaymentController::class, 'update'])->name('update');
+            Route::delete('/{id}', [ExpensePaymentController::class, 'destroy'])->name('destroy');
         });
 
         // ============================================================

@@ -180,9 +180,9 @@ class BiayaBahanController extends Controller
                 ->where('bom_job_costing_id', $bomJobCosting->id)
                 ->get() : [];
         
-        // Get available bahan baku and bahan pendukung for selection
-        $bahanBakus = BahanBaku::with('satuan')->orderBy('nama_bahan')->get();
-        $bahanPendukungs = BahanPendukung::with('satuan')->orderBy('nama_bahan')->get();
+        // Get available bahan baku and bahan pendukung for selection with sub satuan
+        $bahanBakus = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->orderBy('nama_bahan')->get();
+        $bahanPendukungs = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->orderBy('nama_bahan')->get();
         
         // Get all satuan for dropdown
         $satuans = \App\Models\Satuan::orderBy('nama')->get();
@@ -451,9 +451,9 @@ class BiayaBahanController extends Controller
                 ->where('bom_job_costing_id', $bomJobCosting->id)
                 ->get() : [];
         
-        // Get available bahan baku and bahan pendukung for selection
-        $bahanBakus = BahanBaku::with('satuan')->orderBy('nama_bahan')->get();
-        $bahanPendukungs = BahanPendukung::with('satuan')->orderBy('nama_bahan')->get();
+        // Get available bahan baku and bahan pendukung for selection with sub satuan
+        $bahanBakus = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->orderBy('nama_bahan')->get();
+        $bahanPendukungs = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->orderBy('nama_bahan')->get();
         
         // Get all satuan for dropdown
         $satuans = \App\Models\Satuan::orderBy('nama')->get();

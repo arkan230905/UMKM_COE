@@ -79,7 +79,7 @@
                             <tr>
                                 <td style="color: #000 !important;">{{ $bahan->kode_bahan }}</td>
                                 <td style="color: #000 !important;">{{ $bahan->nama_bahan }}</td>
-                                <td style="color: #000 !important;">{{ $bahan->kategoriBahanPendukung->nama ?? $bahan->kategori ?? 'N/A' }}</td>
+                                <td style="color: #000 !important;">{{ $bahan->kategoriBahanPendukung->nama ?? 'N/A' }}</td>
                                 <td style="color: #000 !important;">{{ number_format($bahan->stok, 2) }}</td>
                                 <td style="color: #000 !important;">Rp {{ number_format($bahan->harga_satuan, 0, ',', '.') }}</td>
                             </tr>

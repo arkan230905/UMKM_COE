@@ -103,8 +103,8 @@
                                             <i class="fas fa-coins text-primary"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-semibold">{{ $item->coaBeban->nama_akun }}</div>
-                                            <small class="text-muted">{{ $item->coaBeban->kode_akun }}</small>
+                                            <div class="fw-semibold">{{ $item->coaBeban->nama_akun ?? 'Unknown' }}</div>
+                                            <small class="text-muted">{{ $item->coaBeban->kode_akun ?? 'Unknown' }}</small>
                                         </div>
                                     </div>
                                 </td>
@@ -114,12 +114,12 @@
                                             <i class="fas fa-money-bill-wave text-success"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-semibold">{{ $item->coaKas->nama_akun }}</div>
-                                            <small class="text-muted">{{ $item->coaKas->kode_akun }}</small>
+                                            <div class="fw-semibold">{{ $item->coaKasBank->nama_akun ?? 'Unknown' }}</div>
+                                            <small class="text-muted">{{ $item->coaKasBank->kode_akun ?? 'Unknown' }}</small>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="text-end fw-semibold">Rp {{ number_format($item->jumlah, 0, ',', '.') }}</td>
+                                <td class="text-end fw-semibold">Rp {{ number_format($item->nominal, 0, ',', '.') }}</td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
                                         <a href="{{ route('transaksi.pembayaran-beban.show', $item->id) }}" class="btn btn-outline-primary">

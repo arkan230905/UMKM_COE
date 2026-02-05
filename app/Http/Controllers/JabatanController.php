@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Jabatan;
+use App\Services\BomSyncService;
 use Illuminate\Http\Request;
 
 class JabatanController extends Controller
@@ -103,6 +104,12 @@ class JabatanController extends Controller
         $data['tarif'] = $data['tarif'] ?? 0;
 
         $jabatan->update($data);
+        
+        // Sync BOM when jabatan data changes (affects BTKL calculations)
+        if ($jabatan->kategori === 'btkl') {
+            BomSyncService::syncBomFromJabatanChange($jabatan->id);
+        }
+        
         return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')->with('success','Jabatan berhasil diperbarui');
     }
 

@@ -150,13 +150,25 @@ class PenjualanController extends Controller
                 $totalDiscHeader += $discNom;
             }
 
+            // Get additional costs
+            $biayaOngkir = (float) ($request->biaya_ongkir ?? 0);
+            $biayaService = (float) ($request->biaya_service ?? 0);
+            $ppnPersen = (float) ($request->ppn_persen ?? 0);
+            
+            // Calculate PPN
+            $ppnBase = $grand + $biayaOngkir + $biayaService;
+            $totalPPN = $ppnBase * ($ppnPersen / 100);
+            
+            // Calculate final total
+            $finalTotal = $grand + $biayaOngkir + $biayaService + $totalPPN;
+
             $penjualan = Penjualan::create([
                 'tanggal' => $tanggal,
                 'payment_method' => $request->payment_method,
                 'jumlah' => $totalQtyHeader,
                 'harga_satuan' => null,
                 'diskon_nominal' => $totalDiscHeader,
-                'total' => $grand,
+                'total' => $finalTotal,
             ]);
 
             // Simpan detail & konsumsi stok per item

@@ -13,6 +13,7 @@ class Pembelian extends Model
 
     protected $fillable = [
         'nomor_pembelian',
+        'nomor_faktur',
         'vendor_id',
         'kode_pembelian',
         'tanggal',

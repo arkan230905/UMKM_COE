@@ -242,22 +242,6 @@ class BopTerpaduController extends Controller
     }
 
     /**
-     * Show BOP Proses detail
-     */
-    public function showProses($id)
-    {
-        try {
-            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
-            return view('master-data.bop-terpadu.show-proses', compact('bopProses'));
-            
-        } catch (\Exception $e) {
-            return redirect()
-                ->route('master-data.bop-terpadu.index')
-                ->with('error', 'BOP Proses tidak ditemukan: ' . $e->getMessage());
-        }
-    }
-
-    /**
      * Delete BOP Proses
      */
     public function destroyProses($id)

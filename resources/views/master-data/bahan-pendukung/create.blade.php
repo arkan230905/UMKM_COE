@@ -105,6 +105,166 @@
                     <textarea name="deskripsi" class="form-control" rows="3" placeholder="Deskripsi bahan pendukung (opsional)">{{ old('deskripsi') }}</textarea>
                 </div>
 
+                <!-- Sub Satuan Section -->
+                <div class="card mt-4">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">
+                            <i class="fas fa-exchange-alt me-2"></i>Konversi Sub Satuan
+                            <span class="text-danger">*</span>
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Contoh:</strong> Jika satuan utama adalah Kilogram, maka:
+                                    <br>• Sub Satuan 1: 1 Kilogram = 1000 Gram
+                                    <br>• Sub Satuan 2: 1 Kilogram = 3 Potong  
+                                    <br>• Sub Satuan 3: 2 Kilogram = 1 Ekor
+                                    <br><small class="text-muted">Kolom "Satuan Utama" akan otomatis terisi sesuai pilihan satuan utama di atas.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sub Satuan 1 -->
+                        <div class="row align-items-end mb-3">
+                            <div class="col-md-2">
+                                <label class="form-label">Konversi 1 <span class="text-danger">*</span></label>
+                                <input type="text" name="sub_satuan_1_konversi" class="form-control number-input @error('sub_satuan_1_konversi') is-invalid @enderror" 
+                                       value="{{ old('sub_satuan_1_konversi', '1') }}" placeholder="1" required>
+                                @error('sub_satuan_1_konversi')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Satuan Utama</label>
+                                <input type="text" class="form-control satuan-utama-text" value="Pilih Satuan Utama" readonly style="background-color: #f8f9fa;">
+                            </div>
+                            <div class="col-md-1 text-center">
+                                <span class="fw-bold">=</span>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Nilai 1 <span class="text-danger">*</span></label>
+                                <input type="text" name="sub_satuan_1_nilai" class="form-control number-input @error('sub_satuan_1_nilai') is-invalid @enderror" 
+                                       value="{{ old('sub_satuan_1_nilai', '1') }}" placeholder="1" required>
+                                @error('sub_satuan_1_nilai')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Sub Satuan 1 <span class="text-danger">*</span></label>
+                                <select name="sub_satuan_1_id" class="form-select @error('sub_satuan_1_id') is-invalid @enderror" required>
+                                    <option value="">- Pilih Satuan -</option>
+                                    @foreach($satuans as $satuan)
+                                        <option value="{{ $satuan->id }}" {{ old('sub_satuan_1_id') == $satuan->id ? 'selected' : '' }}>
+                                            {{ $satuan->nama }} ({{ $satuan->kode }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('sub_satuan_1_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearSubSatuan(1)" title="Reset">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Sub Satuan 2 -->
+                        <div class="row align-items-end mb-3">
+                            <div class="col-md-2">
+                                <label class="form-label">Konversi 2 <span class="text-danger">*</span></label>
+                                <input type="text" name="sub_satuan_2_konversi" class="form-control number-input @error('sub_satuan_2_konversi') is-invalid @enderror" 
+                                       value="{{ old('sub_satuan_2_konversi', '1') }}" placeholder="1" required>
+                                @error('sub_satuan_2_konversi')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control satuan-utama-text" value="Pilih Satuan Utama" readonly style="background-color: #f8f9fa;">
+                            </div>
+                            <div class="col-md-1 text-center">
+                                <span class="fw-bold">=</span>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Nilai 2 <span class="text-danger">*</span></label>
+                                <input type="text" name="sub_satuan_2_nilai" class="form-control number-input @error('sub_satuan_2_nilai') is-invalid @enderror" 
+                                       value="{{ old('sub_satuan_2_nilai', '1') }}" placeholder="1" required>
+                                @error('sub_satuan_2_nilai')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Sub Satuan 2 <span class="text-danger">*</span></label>
+                                <select name="sub_satuan_2_id" class="form-select @error('sub_satuan_2_id') is-invalid @enderror" required>
+                                    <option value="">- Pilih Satuan -</option>
+                                    @foreach($satuans as $satuan)
+                                        <option value="{{ $satuan->id }}" {{ old('sub_satuan_2_id') == $satuan->id ? 'selected' : '' }}>
+                                            {{ $satuan->nama }} ({{ $satuan->kode }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('sub_satuan_2_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearSubSatuan(2)" title="Reset">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Sub Satuan 3 -->
+                        <div class="row align-items-end mb-3">
+                            <div class="col-md-2">
+                                <label class="form-label">Konversi 3 <span class="text-danger">*</span></label>
+                                <input type="text" name="sub_satuan_3_konversi" class="form-control number-input @error('sub_satuan_3_konversi') is-invalid @enderror" 
+                                       value="{{ old('sub_satuan_3_konversi', '1') }}" placeholder="1" required>
+                                @error('sub_satuan_3_konversi')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control satuan-utama-text" value="Pilih Satuan Utama" readonly style="background-color: #f8f9fa;">
+                            </div>
+                            <div class="col-md-1 text-center">
+                                <span class="fw-bold">=</span>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Nilai 3 <span class="text-danger">*</span></label>
+                                <input type="text" name="sub_satuan_3_nilai" class="form-control number-input @error('sub_satuan_3_nilai') is-invalid @enderror" 
+                                       value="{{ old('sub_satuan_3_nilai', '1') }}" placeholder="1" required>
+                                @error('sub_satuan_3_nilai')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Sub Satuan 3 <span class="text-danger">*</span></label>
+                                <select name="sub_satuan_3_id" class="form-select @error('sub_satuan_3_id') is-invalid @enderror" required>
+                                    <option value="">- Pilih Satuan -</option>
+                                    @foreach($satuans as $satuan)
+                                        <option value="{{ $satuan->id }}" {{ old('sub_satuan_3_id') == $satuan->id ? 'selected' : '' }}>
+                                            {{ $satuan->nama }} ({{ $satuan->kode }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('sub_satuan_3_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            <div class="col-md-1">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="clearSubSatuan(3)" title="Reset">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <hr>
                 <div class="d-flex justify-content-end gap-2">
                     <a href="{{ route('master-data.bahan-pendukung.index') }}" class="btn btn-secondary">Batal</a>
@@ -117,3 +277,131 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function clearSubSatuan(index) {
+    // Reset the sub satuan fields to default values
+    document.querySelector(`input[name="sub_satuan_${index}_konversi"]`).value = '1';
+    document.querySelector(`select[name="sub_satuan_${index}_id"]`).value = '';
+    document.querySelector(`input[name="sub_satuan_${index}_nilai"]`).value = '1';
+}
+
+// Handle number input with comma decimal separator
+function setupNumberInputs() {
+    const numberInputs = document.querySelectorAll('.number-input');
+    
+    numberInputs.forEach(input => {
+        input.addEventListener('input', function(e) {
+            let value = e.target.value;
+            
+            // Allow numbers, comma, and dot
+            value = value.replace(/[^0-9,\.]/g, '');
+            
+            // Replace multiple commas/dots with single one
+            value = value.replace(/[,\.]{2,}/g, ',');
+            
+            // Ensure only one decimal separator
+            const parts = value.split(/[,\.]/);
+            if (parts.length > 2) {
+                value = parts[0] + ',' + parts.slice(1).join('');
+            }
+            
+            e.target.value = value;
+        });
+        
+        input.addEventListener('blur', function(e) {
+            let value = e.target.value;
+            if (value && !isNaN(value.replace(',', '.'))) {
+                // Format the number properly
+                const numValue = parseFloat(value.replace(',', '.'));
+                if (numValue === Math.floor(numValue)) {
+                    e.target.value = numValue.toString();
+                } else {
+                    e.target.value = numValue.toString().replace('.', ',');
+                }
+            }
+        });
+    });
+}
+
+// Convert comma to dot before form submission
+function convertCommasToDots() {
+    const numberInputs = document.querySelectorAll('.number-input');
+    numberInputs.forEach(input => {
+        if (input.value) {
+            input.value = input.value.replace(',', '.');
+        }
+    });
+}
+
+// Update satuan utama display when main satuan changes
+document.addEventListener('DOMContentLoaded', function() {
+    const satuanSelect = document.querySelector('select[name="satuan_id"]');
+    const satuanUtamaTexts = document.querySelectorAll('.satuan-utama-text');
+    
+    // Setup number inputs
+    setupNumberInputs();
+    
+    function updateSatuanUtamaDisplay() {
+        const selectedOption = satuanSelect.options[satuanSelect.selectedIndex];
+        let satuanText = 'Pilih Satuan Utama';
+        
+        if (selectedOption && selectedOption.value) {
+            // Extract nama satuan from option text (format: "Nama (Kode)")
+            const optionText = selectedOption.text;
+            const satuanNama = optionText.split(' (')[0]; // Get part before " ("
+            satuanText = satuanNama;
+        }
+        
+        satuanUtamaTexts.forEach(input => {
+            input.value = satuanText;
+        });
+    }
+    
+    // Initial call and event listener
+    satuanSelect.addEventListener('change', updateSatuanUtamaDisplay);
+    updateSatuanUtamaDisplay();
+    
+    // Form validation and submission
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Convert commas to dots before validation
+            convertCommasToDots();
+            
+            let isValid = true;
+            const requiredFields = [
+                'sub_satuan_1_konversi', 'sub_satuan_1_id', 'sub_satuan_1_nilai',
+                'sub_satuan_2_konversi', 'sub_satuan_2_id', 'sub_satuan_2_nilai',
+                'sub_satuan_3_konversi', 'sub_satuan_3_id', 'sub_satuan_3_nilai'
+            ];
+            
+            requiredFields.forEach(fieldName => {
+                const field = document.querySelector(`[name="${fieldName}"]`);
+                if (field && (!field.value || field.value.trim() === '')) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                } else if (field) {
+                    field.classList.remove('is-invalid');
+                    
+                    // Validate number fields
+                    if (fieldName.includes('konversi') || fieldName.includes('nilai')) {
+                        const numValue = parseFloat(field.value);
+                        if (isNaN(numValue) || numValue <= 0) {
+                            field.classList.add('is-invalid');
+                            isValid = false;
+                        }
+                    }
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Mohon lengkapi semua field Sub Satuan yang wajib diisi dengan nilai yang valid.');
+            }
+        });
+    }
+});
+</script>
+@endpush

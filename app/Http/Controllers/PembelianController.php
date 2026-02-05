@@ -197,6 +197,7 @@ class PembelianController extends Controller
                     // 1. Buat header pembelian
                     $pembelian = new Pembelian([
                         'vendor_id' => $request->vendor_id,
+                        'nomor_faktur' => $request->nomor_faktur,
                         'tanggal' => $request->tanggal,
                         'total_harga' => $computedTotal,
                         'terbayar' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? $computedTotal : 0,
@@ -204,6 +205,7 @@ class PembelianController extends Controller
                         'status' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? 'lunas' : 'belum_lunas',
                         'payment_method' => $paymentMethod,
                         'bank_id' => $request->bank_id === 'credit' ? null : $request->bank_id,
+                        'keterangan' => $request->keterangan,
                     ]);
                     $pembelian->save();
 
@@ -555,6 +557,7 @@ class PembelianController extends Controller
                     
                     $pembelian->update([
                         'vendor_id' => $request->vendor_id,
+                        'nomor_faktur' => $request->nomor_faktur,
                         'tanggal' => $request->tanggal,
                         'total_harga' => $computedTotal,
                         'terbayar' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? $computedTotal : 0,

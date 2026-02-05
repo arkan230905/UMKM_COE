@@ -231,7 +231,7 @@
                         </div>
                         <div class="col-md-4">
                             <strong>BOP per Unit:</strong><br>
-                            <span class="fs-5 text-success">Rp <span id="bopPerUnit">{{ number_format($bopProses->bop_per_unit, 2, ',', '.') }}</span></span>
+                            <span class="fs-5 text-success">{{ format_rupiah_clean($bopProses->bop_per_unit) }}</span>
                         </div>
                     </div>
                 </div>
@@ -269,9 +269,32 @@ document.addEventListener('DOMContentLoaded', function() {
         // Calculate BOP per unit
         const bopPerUnit = kapasitas > 0 ? totalBopPerJam / kapasitas : 0;
         
-        // Update display
-        document.getElementById('totalBopPerJam').textContent = totalBopPerJam.toLocaleString('id-ID');
-        document.getElementById('bopPerUnit').textContent = bopPerUnit.toLocaleString('id-ID', {minimumFractionDigits: 2});
+        // Update display with clean formatting
+        document.getElementById('totalBopPerJam').textContent = formatNumberClean(totalBopPerJam);
+        
+        // Update BOP per unit display if element exists
+        const bopPerUnitElement = document.getElementById('bopPerUnit');
+        if (bopPerUnitElement) {
+            bopPerUnitElement.textContent = formatRupiahClean(bopPerUnit);
+        }
+    }
+    
+    // Clean number formatting function
+    function formatNumberClean(number) {
+        if (number == Math.floor(number)) {
+            return number.toLocaleString('id-ID');
+        }
+        let formatted = number.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        // Remove trailing zeros after decimal
+        if (formatted.includes(',')) {
+            formatted = formatted.replace(/,?0+$/, '');
+        }
+        return formatted;
+    }
+    
+    // Clean rupiah formatting function  
+    function formatRupiahClean(number) {
+        return 'Rp ' + formatNumberClean(number);
     }
     
     // Form submission

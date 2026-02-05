@@ -90,123 +90,14 @@
                         <small class="text-light">Masukkan biaya overhead pabrik per jam operasi mesin</small>
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="listrik_per_jam" class="form-label text-white">Listrik Mesin per Jam <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text">Rp</span>
-                            <input type="number" 
-                                   name="listrik_per_jam" 
-                                   id="listrik_per_jam" 
-                                   class="form-control bop-component @error('listrik_per_jam') is-invalid @enderror" 
-                                   value="{{ old('listrik_per_jam', $bopProses->listrik_per_jam) }}"
-                                   min="0" 
-                                   step="0.01" 
-                                   placeholder="5000"
-                                   required>
+                    <div class="col-12">
+                        <div id="komponenBopContainer">
+                            <!-- Dynamic rows will be inserted here -->
                         </div>
-                        @error('listrik_per_jam')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                        <small class="text-light">Biaya listrik untuk operasi mesin per jam</small>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label for="gas_bbm_per_jam" class="form-label text-white">Gas/BBM per Jam <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text">Rp</span>
-                            <input type="number" 
-                                   name="gas_bbm_per_jam" 
-                                   id="gas_bbm_per_jam" 
-                                   class="form-control bop-component @error('gas_bbm_per_jam') is-invalid @enderror" 
-                                   value="{{ old('gas_bbm_per_jam', $bopProses->gas_bbm_per_jam) }}"
-                                   min="0" 
-                                   step="0.01" 
-                                   placeholder="3000"
-                                   required>
-                        </div>
-                        @error('gas_bbm_per_jam')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                        <small class="text-light">Biaya bahan bakar untuk operasi mesin per jam</small>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label for="penyusutan_mesin_per_jam" class="form-label text-white">Penyusutan Mesin per Jam <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text">Rp</span>
-                            <input type="number" 
-                                   name="penyusutan_mesin_per_jam" 
-                                   id="penyusutan_mesin_per_jam" 
-                                   class="form-control bop-component @error('penyusutan_mesin_per_jam') is-invalid @enderror" 
-                                   value="{{ old('penyusutan_mesin_per_jam', $bopProses->penyusutan_mesin_per_jam) }}"
-                                   min="0" 
-                                   step="0.01" 
-                                   placeholder="2000"
-                                   required>
-                        </div>
-                        @error('penyusutan_mesin_per_jam')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                        <small class="text-light">Alokasi penyusutan mesin per jam operasi</small>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label for="maintenance_per_jam" class="form-label text-white">Maintenance per Jam <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text">Rp</span>
-                            <input type="number" 
-                                   name="maintenance_per_jam" 
-                                   id="maintenance_per_jam" 
-                                   class="form-control bop-component @error('maintenance_per_jam') is-invalid @enderror" 
-                                   value="{{ old('maintenance_per_jam', $bopProses->maintenance_per_jam) }}"
-                                   min="0" 
-                                   step="0.01" 
-                                   placeholder="1500"
-                                   required>
-                        </div>
-                        @error('maintenance_per_jam')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                        <small class="text-light">Biaya perawatan dan maintenance mesin per jam</small>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label for="gaji_mandor_per_jam" class="form-label text-white">Gaji Mandor per Jam <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text">Rp</span>
-                            <input type="number" 
-                                   name="gaji_mandor_per_jam" 
-                                   id="gaji_mandor_per_jam" 
-                                   class="form-control bop-component @error('gaji_mandor_per_jam') is-invalid @enderror" 
-                                   value="{{ old('gaji_mandor_per_jam', $bopProses->gaji_mandor_per_jam) }}"
-                                   min="0" 
-                                   step="0.01" 
-                                   placeholder="4000"
-                                   required>
-                        </div>
-                        @error('gaji_mandor_per_jam')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                        <small class="text-light">Alokasi gaji mandor/supervisor per jam</small>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label for="lain_lain_per_jam" class="form-label text-white">Lain-lain per Jam</label>
-                        <div class="input-group">
-                            <span class="input-group-text">Rp</span>
-                            <input type="number" 
-                                   name="lain_lain_per_jam" 
-                                   id="lain_lain_per_jam" 
-                                   class="form-control bop-component @error('lain_lain_per_jam') is-invalid @enderror" 
-                                   value="{{ old('lain_lain_per_jam', $bopProses->lain_lain_per_jam) }}"
-                                   min="0" 
-                                   step="0.01" 
-                                   placeholder="1000">
-                        </div>
-                        @error('lain_lain_per_jam')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                        <small class="text-light">Biaya overhead lainnya per jam (opsional)</small>
+                        
+                        <button type="button" id="addKomponenBtn" class="btn btn-success btn-sm mt-3">
+                            <i class="fas fa-plus"></i> Tambah Komponen
+                        </button>
                     </div>
                 </div>
 
@@ -214,17 +105,21 @@
                 <div class="info-card mt-4">
                     <h6 class="text-warning mb-3"><i class="fas fa-calculator me-2"></i>Ringkasan Perhitungan</h6>
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <strong>Total BOP per Jam:</strong><br>
                             <span class="fs-5 text-warning">Rp <span id="totalBopPerJam">{{ number_format($bopProses->total_bop_per_jam, 0, ',', '.') }}</span></span>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <strong>Budget per Shift (8 jam):</strong><br>
+                            <span class="fs-5 text-info">Rp <span id="budgetShift">{{ number_format($bopProses->budget ?? ($bopProses->total_bop_per_jam * 8), 0, ',', '.') }}</span></span>
+                        </div>
+                        <div class="col-md-3">
                             <strong>Kapasitas per Jam:</strong><br>
                             <span class="fs-5 text-info">{{ $bopProses->kapasitas_per_jam }} unit</span>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <strong>BOP per Unit:</strong><br>
-                            <span class="fs-5 text-success">Rp <span id="bopPerUnit">{{ number_format($bopProses->bop_per_unit, 2, ',', '.') }}</span></span>
+                            <span class="fs-5 text-success">{{ format_rupiah_clean($bopProses->bop_per_unit) }}</span>
                         </div>
                     </div>
                 </div>
@@ -244,34 +139,196 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const bopComponents = document.querySelectorAll('.bop-component');
+    const komponenContainer = document.getElementById('komponenBopContainer');
+    const addKomponenBtn = document.getElementById('addKomponenBtn');
+    
+    // Static list of BOP components
+    const komponenOptions = [
+        'Listrik Mesin',
+        'Gas / BBM',
+        'Penyusutan Mesin',
+        'Maintenance',
+        'Air & Kebersihan',
+        'Bahan Penolong',
+        'Gaji Mandor',
+        'Lain-lain'
+    ];
+    
+    // Existing components from server
+    const existingComponents = @json($bopProses->komponen_bop ?? []);
     const kapasitas = {{ $bopProses->kapasitas_per_jam }};
     
-    // Update calculation when BOP components change
-    bopComponents.forEach(function(input) {
+    let komponenCount = 0;
+    
+    // Load existing components
+    if (existingComponents && existingComponents.length > 0) {
+        existingComponents.forEach(function(component) {
+            addKomponenRow(component.component, component.rate_per_hour);
+        });
+    } else {
+        // Add initial empty row if no existing components
+        addKomponenRow();
+    }
+    
+    // Add component row function
+    function addKomponenRow(component = '', rate = '') {
+        komponenCount++;
+        const rowId = `komponen_${komponenCount}`;
+        
+        const rowHtml = `
+            <div class="row g-3 mb-3 komponen-row" id="${rowId}">
+                <div class="col-md-5">
+                    <label class="form-label text-white">Komponen BOP</label>
+                    <select name="komponen_bop[${komponenCount}][component]" 
+                            class="form-select komponen-select" 
+                            data-row-id="${rowId}"
+                            required>
+                        <option value="">-- Pilih Komponen --</option>
+                        ${komponenOptions.map(opt => 
+                            `<option value="${opt}" ${component === opt ? 'selected' : ''}>${opt}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label text-white">Nominal per Jam (Rp)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Rp</span>
+                        <input type="number" 
+                               name="komponen_bop[${komponenCount}][rate_per_hour]" 
+                               class="form-control rate-input" 
+                               data-row-id="${rowId}"
+                               value="${rate}"
+                               min="0" 
+                               step="0.01" 
+                               placeholder="0"
+                               required>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-white">&nbsp;</label><br>
+                    <button type="button" class="btn btn-danger btn-sm w-100 delete-row" data-row-id="${rowId}">
+                        <i class="fas fa-trash"></i> Hapus
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        komponenContainer.insertAdjacentHTML('beforeend', rowHtml);
+        
+        // Add event listeners to new row
+        const newRow = document.getElementById(rowId);
+        const select = newRow.querySelector('.komponen-select');
+        const input = newRow.querySelector('.rate-input');
+        const deleteBtn = newRow.querySelector('.delete-row');
+        
+        select.addEventListener('change', updateCalculation);
         input.addEventListener('input', updateCalculation);
+        deleteBtn.addEventListener('click', function() {
+            deleteRow(rowId);
+        });
+        
+        updateCalculation();
+    }
+    
+    // Delete row function
+    function deleteRow(rowId) {
+        const row = document.getElementById(rowId);
+        if (row) {
+            row.remove();
+            updateCalculation();
+        }
+    }
+    
+    // Add component button event
+    addKomponenBtn.addEventListener('click', function() {
+        addKomponenRow();
     });
     
+    // Update calculation function
     function updateCalculation() {
-        // Calculate total BOP per jam
+        // Calculate total BOP per jam from all rate inputs
         let totalBopPerJam = 0;
-        bopComponents.forEach(function(input) {
+        const rateInputs = document.querySelectorAll('.rate-input');
+        rateInputs.forEach(function(input) {
             totalBopPerJam += parseFloat(input.value) || 0;
         });
+        
+        // Calculate budget per shift (8 jam)
+        const budgetShift = totalBopPerJam * 8;
         
         // Calculate BOP per unit
         const bopPerUnit = kapasitas > 0 ? totalBopPerJam / kapasitas : 0;
         
-        // Update display
-        document.getElementById('totalBopPerJam').textContent = totalBopPerJam.toLocaleString('id-ID');
-        document.getElementById('bopPerUnit').textContent = bopPerUnit.toLocaleString('id-ID', {minimumFractionDigits: 2});
+        // Update display with clean formatting
+        document.getElementById('totalBopPerJam').textContent = formatNumberClean(totalBopPerJam);
+        document.getElementById('budgetShift').textContent = formatNumberClean(budgetShift);
+        
+        // Update BOP per unit display if element exists
+        const bopPerUnitElement = document.getElementById('bopPerUnit');
+        if (bopPerUnitElement) {
+            bopPerUnitElement.textContent = formatRupiahClean(bopPerUnit);
+        }
+    }
+    
+    // Clean number formatting function
+    function formatNumberClean(number) {
+        if (number == Math.floor(number)) {
+            return number.toLocaleString('id-ID');
+        }
+        let formatted = number.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        // Remove trailing zeros after decimal
+        if (formatted.includes(',')) {
+            formatted = formatted.replace(/,?0+$/, '');
+        }
+        return formatted;
+    }
+    
+    // Clean rupiah formatting function  
+    function formatRupiahClean(number) {
+        return 'Rp ' + formatNumberClean(number);
     }
     
     // Form submission
     const form = document.getElementById('editBopForm');
-    const submitBtn = document.querySelector('button[type="submit"]');
+    const submitBtn = form.querySelector('button[type="submit"]');
     
     form.addEventListener('submit', function(e) {
+        // Validate at least one component is filled
+        const rateInputs = document.querySelectorAll('.rate-input');
+        let hasValidComponent = false;
+        
+        rateInputs.forEach(function(input) {
+            if (parseFloat(input.value) > 0) {
+                hasValidComponent = true;
+            }
+        });
+        
+        if (!hasValidComponent) {
+            e.preventDefault();
+            alert('Harap isi minimal satu komponen BOP dengan nominal lebih dari 0.');
+            return;
+        }
+        
+        // Check for duplicate components
+        const selectedComponents = [];
+        const selects = document.querySelectorAll('.komponen-select');
+        let hasDuplicates = false;
+        
+        selects.forEach(function(select) {
+            const value = select.value;
+            if (value && selectedComponents.includes(value)) {
+                hasDuplicates = true;
+            } else if (value) {
+                selectedComponents.push(value);
+            }
+        });
+        
+        if (hasDuplicates) {
+            e.preventDefault();
+            alert('Komponen BOP tidak boleh duplikat.');
+            return;
+        }
+        
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
     });

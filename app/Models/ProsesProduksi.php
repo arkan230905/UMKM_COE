@@ -18,6 +18,7 @@ class ProsesProduksi extends Model
         'tarif_btkl',
         'satuan_btkl',
         'kapasitas_per_jam',
+        'jabatan_id',
     ];
 
     protected $casts = [
@@ -100,6 +101,14 @@ class ProsesProduksi extends Model
     }
 
     /**
+     * Get jabatan terkait
+     */
+    public function jabatan()
+    {
+        return $this->belongsTo(\App\Models\Jabatan::class, 'jabatan_id');
+    }
+
+    /**
      * Hitung total BOP default untuk proses ini
      */
     public function getTotalBopDefaultAttribute(): float
@@ -140,7 +149,7 @@ class ProsesProduksi extends Model
     {
         $biaya = $this->getBiayaPerProdukAttribute();
         if ($biaya > 0) {
-            return 'Rp ' . number_format($biaya, 2, ',', '.');
+            return format_rupiah_clean($biaya);
         }
         return '-';
     }

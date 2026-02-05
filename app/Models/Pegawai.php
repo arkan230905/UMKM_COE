@@ -62,6 +62,11 @@ class Pegawai extends Model
         return $this->hasMany(Presensi::class, 'pegawai_id');
     }
 
+    public function jabatan()
+    {
+        return $this->belongsTo(Jabatan::class, 'jabatan', 'nama');
+    }
+
     // Scope untuk pencarian
     public function scopeSearch($query, $search)
     {

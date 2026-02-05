@@ -1,0 +1,867 @@
+@extends('layouts.app')
+
+@section('content')
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0 text-dark">
+            <i class="fas fa-plus me-2"></i>Tambah Biaya Bahan
+            <small class="text-muted fw-normal">- {{ $produk->nama_produk }}</small>
+        </h2>
+        <div class="btn-group">
+            <a href="{{ route('master-data.biaya-bahan.index') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </a>
+        </div>
+    </div>
+
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <!-- Product Info Card -->
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-dark text-white">
+            <h6 class="mb-0">
+                <i class="fas fa-info-circle me-2"></i>Informasi Produk
+            </h6>
+        </div>
+        <div class="card-body bg-light">
+            <div class="row">
+                <div class="col-md-4">
+                    <p class="mb-1"><strong>Produk:</strong></p>
+                    <p class="text-muted">{{ $produk->nama_produk }}</p>
+                </div>
+                <div class="col-md-4">
+                    <p class="mb-1"><strong>Jumlah Produk yang Dibuat:</strong></p>
+                    <p class="text-muted">{{ number_format($produk->stok, 0, ',', '.') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form action="{{ route('master-data.biaya-bahan.store', $produk->id) }}" method="POST">
+        @csrf
+
+        <!-- Bahan Baku Card -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <h6 class="mb-0">
+                    <i class="fas fa-cube me-2"></i>1. Biaya Bahan Baku (BBB)
+                </h6>
+            </div>
+            <div class="card-body" style="background-color: #f8f4ff;">
+                <div class="table-responsive">
+                    <table class="table table-sm" id="bahanBakuTable">
+                        <thead style="background-color: #9f7aea; color: white;">
+                            <tr>
+                                <th>BAHAN BAKU</th>
+                                <th class="text-center">JUMLAH</th>
+                                <th class="text-center">SATUAN</th>
+                                <th class="text-end">HARGA SATUAN</th>
+                                <th class="text-end">SUB TOTAL</th>
+                                <th class="text-center">AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr id="newBahanBakuRow" class="d-none">
+                                <td>
+                                    <select name="bahan_baku[new][id]" class="form-select form-select-sm bahan-baku-select">
+                                        <option value="">-- Pilih Bahan Baku --</option>
+                                        @foreach($bahanBakus as $bahanBaku)
+                                            @php
+                                                $satuanBB = is_object($bahanBaku->satuan) ? $bahanBaku->satuan->nama : $bahanBaku->satuan;
+                                                
+                                                // Prepare sub satuan data
+                                                $subSatuanData = [];
+                                                if ($bahanBaku->subSatuan1) {
+                                                    $subSatuanData[] = [
+                                                        'id' => $bahanBaku->sub_satuan_1_id,
+                                                        'nama' => $bahanBaku->subSatuan1->nama,
+                                                        'konversi' => $bahanBaku->sub_satuan_1_konversi,
+                                                        'nilai' => $bahanBaku->sub_satuan_1_nilai
+                                                    ];
+                                                }
+                                                if ($bahanBaku->subSatuan2) {
+                                                    $subSatuanData[] = [
+                                                        'id' => $bahanBaku->sub_satuan_2_id,
+                                                        'nama' => $bahanBaku->subSatuan2->nama,
+                                                        'konversi' => $bahanBaku->sub_satuan_2_konversi,
+                                                        'nilai' => $bahanBaku->sub_satuan_2_nilai
+                                                    ];
+                                                }
+                                                if ($bahanBaku->subSatuan3) {
+                                                    $subSatuanData[] = [
+                                                        'id' => $bahanBaku->sub_satuan_3_id,
+                                                        'nama' => $bahanBaku->subSatuan3->nama,
+                                                        'konversi' => $bahanBaku->sub_satuan_3_konversi,
+                                                        'nilai' => $bahanBaku->sub_satuan_3_nilai
+                                                    ];
+                                                }
+                                            @endphp
+                                            <option value="{{ $bahanBaku->id }}" 
+                                                    data-harga="{{ $bahanBaku->harga_satuan }}"
+                                                    data-satuan="{{ $satuanBB }}"
+                                                    data-sub-satuan="{{ json_encode($subSatuanData) }}">
+                                                {{ $bahanBaku->nama_bahan }} - Rp {{ number_format($bahanBaku->harga_satuan, 0, ',', '.') }}/{{ $satuanBB }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td style="width: 120px;">
+                                    <input type="number" name="bahan_baku[new][jumlah]" 
+                                           class="form-control form-control-sm qty-input text-center" 
+                                           step="0.01" min="0" placeholder="0">
+                                </td>
+                                <td style="width: 120px;">
+                                    <select name="bahan_baku[new][satuan]" class="form-select form-select-sm satuan-select">
+                                        <option value="">-- Satuan --</option>
+                                        @foreach($satuans as $satuan)
+                                            <option value="{{ $satuan->nama }}">{{ $satuan->nama }}</option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td class="text-end harga-display" style="width: 200px;">
+                                    <div class="harga-utama">-</div>
+                                    <div class="harga-konversi mt-1" style="font-size: 0.75rem; color: #666;"></div>
+                                </td>
+                                <td class="text-end subtotal-display" style="width: 150px;">-</td>
+                                <td class="text-center" style="width: 80px;">
+                                    <button type="button" class="btn btn-sm btn-danger remove-item">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot style="background-color: #fef3c7;">
+                            <tr>
+                                <th colspan="4" class="text-end">Total BBB</th>
+                                <th class="text-end" id="totalBahanBaku">Rp 0</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary mt-2" id="addBahanBaku" onclick="window.addBahanBakuRow(); return false;">
+                    <i class="fas fa-plus"></i> Tambah Bahan Baku
+                </button>
+            </div>
+        </div>
+
+        <!-- Bahan Pendukung Card -->
+        <div class="card shadow-sm mb-3">
+            <div class="card-header text-white" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
+                <h6 class="mb-0">
+                    <i class="fas fa-flask me-2"></i>2. Bahan Pendukung/Penolong
+                </h6>
+            </div>
+            <div class="card-body" style="background-color: #ecfeff;">
+                <div class="table-responsive">
+                    <table class="table table-sm" id="bahanPendukungTable">
+                        <thead style="background-color: #22d3ee; color: white;">
+                            <tr>
+                                <th>BAHAN PENOLONG</th>
+                                <th class="text-center">JUMLAH</th>
+                                <th class="text-center">SATUAN</th>
+                                <th class="text-end">HARGA SATUAN</th>
+                                <th class="text-end">SUB TOTAL</th>
+                                <th class="text-center">AKSI</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr id="newBahanPendukungRow" class="d-none">
+                                <td>
+                                    <select name="bahan_pendukung[new][id]" class="form-select form-select-sm bahan-pendukung-select">
+                                        <option value="">-- Pilih Bahan Pendukung --</option>
+                                        @foreach($bahanPendukungs as $bahanPendukung)
+                                            @php
+                                                $satuanBP = is_object($bahanPendukung->satuan) ? $bahanPendukung->satuan->nama : $bahanPendukung->satuan;
+                                                
+                                                // Prepare sub satuan data
+                                                $subSatuanData = [];
+                                                if ($bahanPendukung->subSatuan1) {
+                                                    $subSatuanData[] = [
+                                                        'id' => $bahanPendukung->sub_satuan_1_id,
+                                                        'nama' => $bahanPendukung->subSatuan1->nama,
+                                                        'konversi' => $bahanPendukung->sub_satuan_1_konversi,
+                                                        'nilai' => $bahanPendukung->sub_satuan_1_nilai
+                                                    ];
+                                                }
+                                                if ($bahanPendukung->subSatuan2) {
+                                                    $subSatuanData[] = [
+                                                        'id' => $bahanPendukung->sub_satuan_2_id,
+                                                        'nama' => $bahanPendukung->subSatuan2->nama,
+                                                        'konversi' => $bahanPendukung->sub_satuan_2_konversi,
+                                                        'nilai' => $bahanPendukung->sub_satuan_2_nilai
+                                                    ];
+                                                }
+                                                if ($bahanPendukung->subSatuan3) {
+                                                    $subSatuanData[] = [
+                                                        'id' => $bahanPendukung->sub_satuan_3_id,
+                                                        'nama' => $bahanPendukung->subSatuan3->nama,
+                                                        'konversi' => $bahanPendukung->sub_satuan_3_konversi,
+                                                        'nilai' => $bahanPendukung->sub_satuan_3_nilai
+                                                    ];
+                                                }
+                                            @endphp
+                                            <option value="{{ $bahanPendukung->id }}" 
+                                                    data-harga="{{ $bahanPendukung->harga_satuan }}"
+                                                    data-satuan="{{ $satuanBP }}"
+                                                    data-sub-satuan="{{ json_encode($subSatuanData) }}">
+                                                {{ $bahanPendukung->nama_bahan }} - Rp {{ number_format($bahanPendukung->harga_satuan, 0, ',', '.') }}/{{ $satuanBP }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td style="width: 120px;">
+                                    <input type="number" name="bahan_pendukung[new][jumlah]" 
+                                           class="form-control form-control-sm qty-input text-center" 
+                                           step="0.01" min="0" placeholder="0">
+                                </td>
+                                <td style="width: 120px;">
+                                    <select name="bahan_pendukung[new][satuan]" class="form-select form-select-sm satuan-select">
+                                        <option value="">-- Satuan --</option>
+                                        @foreach($satuans as $satuan)
+                                            <option value="{{ $satuan->nama }}">{{ $satuan->nama }}</option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td class="text-end harga-display" style="width: 200px;">
+                                    <div class="harga-utama">-</div>
+                                    <div class="harga-konversi mt-1" style="font-size: 0.75rem; color: #666;"></div>
+                                </td>
+                                <td class="text-end subtotal-display" style="width: 150px;">-</td>
+                                <td class="text-center" style="width: 80px;">
+                                    <button type="button" class="btn btn-sm btn-danger remove-item">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot style="background-color: #cffafe;">
+                            <tr>
+                                <th colspan="4" class="text-end">Total Bahan Pendukung</th>
+                                <th class="text-end" id="totalBahanPendukung">Rp 0</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <button type="button" class="btn btn-sm btn-info mt-2" id="addBahanPendukung" onclick="window.addBahanPendukungRow(); return false;">
+                    <i class="fas fa-plus"></i> Tambah Bahan Pendukung
+                </button>
+            </div>
+        </div>
+
+        <!-- Summary & Action Buttons -->
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <!-- DEBUG TEST BUTTON -->
+                <div class="mb-3 p-2 bg-light border rounded">
+                    <small class="text-muted">Debug Test:</small>
+                    <button type="button" class="btn btn-sm btn-warning ms-2" onclick="testConversionFunction()">
+                        🧪 Test Conversion Function
+                    </button>
+                    <button type="button" class="btn btn-sm btn-info ms-2" onclick="testSubtotalCalculation()">
+                        🧮 Test Subtotal Calculation
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger ms-2" onclick="emergencyDebug()">
+                        🚨 Emergency Debug
+                    </button>
+                    <div id="testResult" class="mt-1 text-small"></div>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">Total Biaya Bahan: <span id="summaryTotalBiaya" class="text-success">Rp 0</span></h5>
+                        <small class="text-muted">
+                            BBB: <span id="summaryBahanBaku">Rp 0</span> | 
+                            Bahan Pendukung: <span id="summaryBahanPendukung">Rp 0</span>
+                        </small>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-2"></i>Simpan Biaya Bahan
+                        </button>
+                        <a href="{{ route('master-data.biaya-bahan.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Batal
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@push('scripts')
+<!-- FORCE REFRESH: 1770332270 -->
+<script>
+console.log("=== BIAYA BAHAN FINAL VERSION LOADED ===");
+console.log("Timestamp: " + new Date().toISOString());
+
+// GLOBAL VARIABLES
+window.biayaBahanLoaded = true;
+
+// Helper function untuk format angka bersih
+function formatNumberClean(num) {
+    if (num === Math.floor(num)) {
+        return Math.floor(num).toString();
+    }
+    return parseFloat(num.toFixed(4)).toString();
+}
+
+// FUNGSI UTAMA: Update Conversion Display
+function updateConversionDisplay(row, option) {
+    console.log("=== updateConversionDisplay DIPANGGIL ===");
+    
+    const hargaKonversiDiv = row.querySelector('.harga-konversi');
+    const satuanSelect = row.querySelector('.satuan-select');
+    
+    if (!hargaKonversiDiv || !option || !satuanSelect) {
+        console.log("Element tidak ditemukan:", {
+            hargaKonversiDiv: !!hargaKonversiDiv,
+            option: !!option,
+            satuanSelect: !!satuanSelect
+        });
+        return;
+    }
+    
+    const hargaUtama = parseFloat(option.dataset.harga) || 0;
+    const satuanUtama = option.dataset.satuan || "unit";
+    const satuanDipilih = satuanSelect.value;
+    const subSatuanData = JSON.parse(option.dataset.subSatuan || "[]");
+    
+    console.log("Data konversi:", {
+        hargaUtama: hargaUtama,
+        satuanUtama: satuanUtama,
+        satuanDipilih: satuanDipilih,
+        subSatuanData: subSatuanData
+    });
+    
+    if (!satuanDipilih) {
+        hargaKonversiDiv.innerHTML = '<small class="text-muted">Pilih satuan untuk melihat konversi</small>';
+        return;
+    }
+    
+    // PRIORITAS: Gunakan data sub satuan dari database
+    if (subSatuanData.length > 0) {
+        console.log("✅ Menggunakan data sub satuan dari database");
+        
+        // Cari konversi yang tepat
+        const matchingSub = subSatuanData.find(sub => 
+            sub.nama.toLowerCase().trim() === satuanDipilih.toLowerCase().trim()
+        );
+        
+        if (matchingSub) {
+            // KONVERSI SPESIFIK
+            const hargaKonversi = (hargaUtama * matchingSub.konversi) / matchingSub.nilai;
+            const konversiClean = formatNumberClean(matchingSub.konversi);
+            const nilaiClean = formatNumberClean(matchingSub.nilai);
+            
+            console.log("✅ Konversi ditemukan:", matchingSub);
+            console.log("Harga konversi:", hargaKonversi);
+            
+            const konversiText = `
+                <div class="text-info mb-2">
+                    <strong>Rp ${Math.round(hargaKonversi).toLocaleString("id-ID")}/${satuanDipilih}</strong>
+                </div>
+                <div class="text-muted" style="font-size: 0.75rem; line-height: 1.4;">
+                    <div class="mb-1"><strong>📊 Rumus Konversi:</strong></div>
+                    <div class="mb-1">• Dasar: ${konversiClean} ${satuanUtama} = ${nilaiClean} ${satuanDipilih}</div>
+                    <div class="mb-1">• Perhitungan: (Rp ${hargaUtama.toLocaleString("id-ID")} × ${konversiClean}) ÷ ${nilaiClean}</div>
+                    <div class="text-success"><strong>• Hasil: Rp ${Math.round(hargaKonversi).toLocaleString("id-ID")} per ${satuanDipilih}</strong></div>
+                    <div class="mt-1 text-primary" style="font-size: 0.7rem;">
+                        <em>💡 Berdasarkan sub satuan database</em>
+                    </div>
+                </div>
+            `;
+            hargaKonversiDiv.innerHTML = konversiText;
+            return;
+        }
+        
+        // TAMPILKAN SEMUA KONVERSI jika satuan sama atau tidak ada yang cocok
+        if (satuanDipilih === satuanUtama || !matchingSub) {
+            console.log("✅ Menampilkan semua konversi tersedia");
+            
+            let allConversions = `<div class="text-success mb-2"><strong>📋 Konversi Tersedia:</strong></div>`;
+            
+            subSatuanData.forEach((sub, index) => {
+                const hargaKonversi = (hargaUtama * sub.konversi) / sub.nilai;
+                const konversiClean = formatNumberClean(sub.konversi);
+                const nilaiClean = formatNumberClean(sub.nilai);
+                
+                allConversions += `
+                    <div class="border-start border-info ps-2 mb-2" style="font-size: 0.75rem;">
+                        <div class="text-info mb-1">
+                            <strong>Rp ${Math.round(hargaKonversi).toLocaleString("id-ID")}/${sub.nama}</strong>
+                        </div>
+                        <div class="text-muted" style="line-height: 1.3;">
+                            <div>• Dasar: ${konversiClean} ${satuanUtama} = ${nilaiClean} ${sub.nama}</div>
+                            <div>• Rumus: (Rp ${hargaUtama.toLocaleString("id-ID")} × ${konversiClean}) ÷ ${nilaiClean}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            allConversions += `<div class="mt-2 text-primary" style="font-size: 0.7rem;"><em>💡 Dari database sub satuan</em></div>`;
+            hargaKonversiDiv.innerHTML = allConversions;
+            return;
+        }
+    } else {
+        // TIDAK ADA SUB SATUAN
+        console.log("⚠️ Tidak ada data sub satuan");
+        
+        if (satuanDipilih === satuanUtama) {
+            hargaKonversiDiv.innerHTML = `
+                <div class="text-success mb-1">
+                    <strong>Rp ${hargaUtama.toLocaleString("id-ID")}/${satuanUtama}</strong>
+                </div>
+                <div class="text-muted" style="font-size: 0.75rem;">
+                    ✅ Satuan sama dengan satuan utama
+                </div>
+            `;
+        } else {
+            hargaKonversiDiv.innerHTML = `
+                <div class="text-warning mb-1">
+                    <strong>Konversi tidak tersedia</strong>
+                </div>
+                <div class="text-muted" style="font-size: 0.75rem;">
+                    ❌ Tidak ada konversi dari ${satuanUtama} ke ${satuanDipilih}
+                </div>
+            `;
+        }
+    }
+}
+
+// FUNGSI: Get Conversion Factor untuk perhitungan subtotal
+function getConversionFactor(fromUnit, toUnit, subSatuanData = []) {
+    console.log("=== getConversionFactor ===");
+    console.log("Dari:", fromUnit, "Ke:", toUnit);
+    
+    const from = fromUnit.toLowerCase().trim();
+    const to = toUnit.toLowerCase().trim();
+    
+    if (from === to) {
+        return { factor: 1, source: "same_unit" };
+    }
+    
+    // Cari di data sub satuan database
+    if (subSatuanData && subSatuanData.length > 0) {
+        const matchingSub = subSatuanData.find(sub => 
+            sub.nama.toLowerCase().trim() === to
+        );
+        
+        if (matchingSub) {
+            const factor = matchingSub.konversi / matchingSub.nilai;
+            console.log("✅ Faktor konversi dari database:", factor);
+            return { factor: factor, source: "database" };
+        }
+    }
+    
+    console.log("❌ Tidak ada faktor konversi");
+    return { factor: null, source: "not_found" };
+}
+
+// FUNGSI: Calculate Row Subtotal
+function calculateRowSubtotal(row) {
+    console.log("=== calculateRowSubtotal DIPANGGIL ===");
+    
+    const bahanSelect = row.querySelector('.bahan-baku-select, .bahan-pendukung-select');
+    const qtyInput = row.querySelector('.qty-input');
+    const satuanSelect = row.querySelector('.satuan-select');
+    const subtotalDisplay = row.querySelector('.subtotal-display');
+    
+    console.log("Elements found:", {
+        bahanSelect: !!bahanSelect,
+        qtyInput: !!qtyInput,
+        satuanSelect: !!satuanSelect,
+        subtotalDisplay: !!subtotalDisplay
+    });
+    
+    if (!bahanSelect || !qtyInput || !satuanSelect || !subtotalDisplay) {
+        console.log("❌ Element tidak lengkap");
+        return;
+    }
+    
+    const option = bahanSelect.options[bahanSelect.selectedIndex];
+    if (!option || !option.value) {
+        console.log("❌ Tidak ada bahan yang dipilih");
+        subtotalDisplay.innerHTML = '-';
+        return;
+    }
+    
+    const harga = parseFloat(option.dataset.harga) || 0;
+    const qty = parseFloat(qtyInput.value) || 0;
+    const satuanUtama = option.dataset.satuan || "unit";
+    const satuanDipilih = satuanSelect.value;
+    const subSatuanData = JSON.parse(option.dataset.subSatuan || "[]");
+    
+    console.log("Data perhitungan:", {
+        harga: harga,
+        qty: qty,
+        satuanUtama: satuanUtama,
+        satuanDipilih: satuanDipilih
+    });
+    
+    if (qty <= 0 || !satuanDipilih) {
+        console.log("❌ Quantity atau satuan tidak valid");
+        subtotalDisplay.innerHTML = '-';
+        return;
+    }
+    
+    let subtotal = harga * qty;
+    console.log("Subtotal dasar (same unit):", subtotal);
+    
+    // Gunakan konversi database jika satuan berbeda
+    if (satuanUtama !== satuanDipilih) {
+        console.log("🔄 Menerapkan konversi...");
+        const conversionResult = getConversionFactor(satuanUtama, satuanDipilih, subSatuanData);
+        if (conversionResult.factor !== null) {
+            subtotal = (harga * conversionResult.factor) * qty;
+            console.log("✅ Subtotal setelah konversi:", subtotal, "dengan faktor:", conversionResult.factor);
+        } else {
+            console.log("⚠️ Tidak ada faktor konversi, menggunakan harga dasar");
+        }
+    }
+    
+    subtotalDisplay.innerHTML = '<strong class="text-success">Rp ' + Math.round(subtotal).toLocaleString("id-ID") + '</strong>';
+    console.log("✅ Subtotal display updated:", subtotalDisplay.innerHTML);
+    
+    // Update total
+    setTimeout(calculateTotals, 100);
+}
+
+// FUNGSI: Calculate Totals
+function calculateTotals() {
+    console.log("=== calculateTotals ===");
+    
+    let totalBahanBaku = 0;
+    let totalBahanPendukung = 0;
+    
+    // Hitung Bahan Baku
+    document.querySelectorAll('#bahanBakuTable tbody tr:not(#newBahanBakuRow):not(.d-none)').forEach(row => {
+        const subtotalText = row.querySelector('.subtotal-display')?.textContent || '';
+        const subtotal = parseFloat(subtotalText.replace(/[^\d]/g, '')) || 0;
+        totalBahanBaku += subtotal;
+    });
+    
+    // Hitung Bahan Pendukung
+    document.querySelectorAll('#bahanPendukungTable tbody tr:not(#newBahanPendukungRow):not(.d-none)').forEach(row => {
+        const subtotalText = row.querySelector('.subtotal-display')?.textContent || '';
+        const subtotal = parseFloat(subtotalText.replace(/[^\d]/g, '')) || 0;
+        totalBahanPendukung += subtotal;
+    });
+    
+    const totalBiaya = totalBahanBaku + totalBahanPendukung;
+    
+    console.log("Totals calculated:", {
+        bahanBaku: totalBahanBaku,
+        bahanPendukung: totalBahanPendukung,
+        total: totalBiaya
+    });
+    
+    // Update displays
+    const elements = {
+        totalBahanBaku: document.getElementById('totalBahanBaku'),
+        totalBahanPendukung: document.getElementById('totalBahanPendukung'),
+        summaryBahanBaku: document.getElementById('summaryBahanBaku'),
+        summaryBahanPendukung: document.getElementById('summaryBahanPendukung'),
+        summaryTotalBiaya: document.getElementById('summaryTotalBiaya')
+    };
+    
+    if (elements.totalBahanBaku) elements.totalBahanBaku.textContent = 'Rp ' + totalBahanBaku.toLocaleString('id-ID');
+    if (elements.totalBahanPendukung) elements.totalBahanPendukung.textContent = 'Rp ' + totalBahanPendukung.toLocaleString('id-ID');
+    if (elements.summaryBahanBaku) elements.summaryBahanBaku.textContent = 'Rp ' + totalBahanBaku.toLocaleString('id-ID');
+    if (elements.summaryBahanPendukung) elements.summaryBahanPendukung.textContent = 'Rp ' + totalBahanPendukung.toLocaleString('id-ID');
+    if (elements.summaryTotalBiaya) elements.summaryTotalBiaya.textContent = 'Rp ' + totalBiaya.toLocaleString('id-ID');
+}
+
+// FUNGSI: Add Row Event Listeners
+function addRowEventListeners(row) {
+    console.log("=== addRowEventListeners ===");
+    
+    const bahanSelect = row.querySelector('.bahan-baku-select, .bahan-pendukung-select');
+    const qtyInput = row.querySelector('.qty-input');
+    const satuanSelect = row.querySelector('.satuan-select');
+    const removeBtn = row.querySelector('.remove-item');
+    
+    if (bahanSelect) {
+        bahanSelect.addEventListener('change', function() {
+            console.log("🔄 Bahan selected:", this.value);
+            const option = this.options[this.selectedIndex];
+            if (option && option.dataset.harga) {
+                // Auto-fill satuan
+                if (option.dataset.satuan && satuanSelect) {
+                    satuanSelect.value = option.dataset.satuan;
+                    console.log("✅ Auto-filled satuan:", option.dataset.satuan);
+                }
+                
+                // Auto-set quantity jika kosong
+                if (qtyInput && (!qtyInput.value || qtyInput.value === '0')) {
+                    qtyInput.value = '1';
+                    console.log("✅ Auto-set quantity to 1");
+                }
+                
+                // Update harga display
+                const hargaDisplay = row.querySelector('.harga-utama');
+                if (hargaDisplay) {
+                    const harga = parseInt(option.dataset.harga);
+                    hargaDisplay.innerHTML = '<strong>Rp ' + harga.toLocaleString('id-ID') + '</strong>';
+                }
+                
+                // Show conversion info
+                updateConversionDisplay(row, option);
+            }
+            calculateRowSubtotal(row);
+        });
+    }
+    
+    if (qtyInput) {
+        qtyInput.addEventListener('input', function() {
+            console.log("🔄 Quantity changed:", this.value);
+            calculateRowSubtotal(row);
+        });
+    }
+    
+    if (satuanSelect) {
+        satuanSelect.addEventListener('change', function() {
+            console.log("🔄 Satuan changed:", this.value);
+            const bahanSelect = row.querySelector('.bahan-baku-select, .bahan-pendukung-select');
+            if (bahanSelect && bahanSelect.value) {
+                const option = bahanSelect.options[bahanSelect.selectedIndex];
+                updateConversionDisplay(row, option);
+            }
+            calculateRowSubtotal(row);
+        });
+    }
+    
+    if (removeBtn) {
+        removeBtn.addEventListener('click', function() {
+            if (confirm('Yakin ingin menghapus baris ini?')) {
+                row.remove();
+                calculateTotals();
+            }
+        });
+    }
+}
+
+// FUNGSI: Add Bahan Baku Row
+function addBahanBakuRow() {
+    console.log("=== addBahanBakuRow ===");
+    
+    const newRow = document.getElementById('newBahanBakuRow');
+    if (!newRow) {
+        console.error("❌ newBahanBakuRow not found!");
+        alert('Error: Template row tidak ditemukan!');
+        return false;
+    }
+    
+    const tbody = newRow.parentElement;
+    const clone = newRow.cloneNode(true);
+    clone.classList.remove('d-none');
+    clone.id = 'bahanBaku_' + Date.now();
+    
+    // Update name attributes
+    const timestamp = Date.now();
+    clone.querySelectorAll('[name^="bahan_baku[new]"]').forEach(input => {
+        const fieldName = input.name.match(/\[new\]\[(\w+)\]/)[1];
+        input.name = `bahan_baku[${timestamp}][${fieldName}]`;
+        input.value = '';
+    });
+    
+    tbody.insertBefore(clone, newRow);
+    console.log("✅ Row added successfully! ID:", clone.id);
+    
+    // Add event listeners
+    addRowEventListeners(clone);
+    
+    return false;
+}
+
+// FUNGSI: Add Bahan Pendukung Row
+function addBahanPendukungRow() {
+    console.log("=== addBahanPendukungRow ===");
+    
+    const newRow = document.getElementById('newBahanPendukungRow');
+    if (!newRow) {
+        console.error("❌ newBahanPendukungRow not found!");
+        alert('Error: Template row tidak ditemukan!');
+        return false;
+    }
+    
+    const tbody = newRow.parentElement;
+    const clone = newRow.cloneNode(true);
+    clone.classList.remove('d-none');
+    clone.id = 'bahanPendukung_' + Date.now();
+    
+    // Update name attributes
+    const timestamp = Date.now();
+    clone.querySelectorAll('[name^="bahan_pendukung[new]"]').forEach(input => {
+        const fieldName = input.name.match(/\[new\]\[(\w+)\]/)[1];
+        input.name = `bahan_pendukung[${timestamp}][${fieldName}]`;
+        input.value = '';
+    });
+    
+    tbody.insertBefore(clone, newRow);
+    console.log("✅ Row added successfully! ID:", clone.id);
+    
+    // Add event listeners
+    addRowEventListeners(clone);
+    
+    return false;
+}
+
+// FUNGSI DEBUG
+function emergencyDebug() {
+    console.log("=== EMERGENCY DEBUG ===");
+    const testResult = document.getElementById('testResult');
+    
+    let debugInfo = [];
+    
+    // Check functions
+    debugInfo.push('Functions exist:');
+    debugInfo.push(`- updateConversionDisplay: ${typeof updateConversionDisplay}`);
+    debugInfo.push(`- calculateRowSubtotal: ${typeof calculateRowSubtotal}`);
+    debugInfo.push(`- getConversionFactor: ${typeof getConversionFactor}`);
+    
+    // Check DOM
+    const rows = document.querySelectorAll('#bahanBakuTable tbody tr:not(#newBahanBakuRow):not(.d-none)');
+    debugInfo.push(`<br>DOM elements:`);
+    debugInfo.push(`- Visible rows: ${rows.length}`);
+    
+    if (rows.length > 0) {
+        const firstRow = rows[0];
+        const bahanSelect = firstRow.querySelector('.bahan-baku-select');
+        const hargaKonversiDiv = firstRow.querySelector('.harga-konversi');
+        const satuanSelect = firstRow.querySelector('.satuan-select');
+        
+        debugInfo.push(`- Bahan select: ${!!bahanSelect} (value: ${bahanSelect?.value || 'none'})`);
+        debugInfo.push(`- Harga konversi div: ${!!hargaKonversiDiv}`);
+        debugInfo.push(`- Satuan select: ${!!satuanSelect} (value: ${satuanSelect?.value || 'none'})`);
+        
+        if (bahanSelect && bahanSelect.value) {
+            const option = bahanSelect.options[bahanSelect.selectedIndex];
+            debugInfo.push(`- Option data-harga: ${option?.dataset?.harga || 'none'}`);
+            debugInfo.push(`- Option data-satuan: ${option?.dataset?.satuan || 'none'}`);
+            debugInfo.push(`- Option data-sub-satuan: ${option?.dataset?.subSatuan || 'none'}`);
+            
+            // Manual trigger
+            if (typeof updateConversionDisplay === 'function') {
+                try {
+                    updateConversionDisplay(firstRow, option);
+                    calculateRowSubtotal(firstRow);
+                    debugInfo.push(`- Manual trigger: SUCCESS`);
+                } catch (error) {
+                    debugInfo.push(`- Manual trigger: ERROR - ${error.message}`);
+                }
+            }
+        }
+    }
+    
+    if (testResult) {
+        testResult.innerHTML = debugInfo.join('<br>');
+    }
+    console.log('Emergency debug info:', debugInfo);
+}
+
+// Make functions global
+window.addBahanBakuRow = addBahanBakuRow;
+window.addBahanPendukungRow = addBahanPendukungRow;
+window.emergencyDebug = emergencyDebug;
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("=== DOM LOADED - INITIALIZING ===");
+    
+    // Add event listeners to buttons
+    const addBBBtn = document.getElementById('addBahanBaku');
+    const addBPBtn = document.getElementById('addBahanPendukung');
+    
+    if (addBBBtn) {
+        addBBBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            addBahanBakuRow();
+        });
+        console.log("✅ Add Bahan Baku button listener attached");
+    }
+    
+    if (addBPBtn) {
+        addBPBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            addBahanPendukungRow();
+        });
+        console.log("✅ Add Bahan Pendukung button listener attached");
+    }
+    
+    // Auto-add first row
+    setTimeout(() => {
+        const existingRows = document.querySelectorAll('#bahanBakuTable tbody tr:not(#newBahanBakuRow):not(.d-none), #bahanPendukungTable tbody tr:not(#newBahanPendukungRow):not(.d-none)');
+        if (existingRows.length === 0) {
+            console.log("No existing rows, adding first Bahan Baku row...");
+            addBahanBakuRow();
+        }
+    }, 1000);
+    
+    console.log("=== INITIALIZATION COMPLETE ===");
+});
+
+console.log("=== SCRIPT LOADED SUCCESSFULLY ===");
+</script>
+@endpush
+
+@push('styles')
+<style>
+.table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.alert {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.btn-group-sm .btn {
+    margin: 0 2px;
+}
+
+.form-control-sm {
+    font-size: 0.875rem;
+}
+
+.subtotal-display {
+    font-weight: 600;
+    color: #28a745;
+}
+
+#summaryTotalBiaya, #summaryHargaJual {
+    font-size: 1.1rem;
+}
+</style>
+@endpush
+@endsection

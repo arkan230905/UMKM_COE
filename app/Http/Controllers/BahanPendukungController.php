@@ -20,7 +20,7 @@ class BahanPendukungController extends Controller
         // Simple debug
         \Log::info('Bahan Pendukung Index Called');
         
-        $query = BahanPendukung::with(['satuan', 'kategoriBahanPendukung']);
+        $query = BahanPendukung::with(['satuan', 'kategoriBahanPendukung', 'subSatuan1', 'subSatuan2', 'subSatuan3']);
         
         // Filter kategori
         if ($request->filled('kategori')) {
@@ -115,6 +115,9 @@ class BahanPendukungController extends Controller
 
     public function store(Request $request)
     {
+        // Convert comma decimal inputs to dot format for validation and storage
+        $this->convertCommaToDecimal($request);
+        
         $validated = $request->validate([
             'nama_bahan' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
@@ -123,11 +126,16 @@ class BahanPendukungController extends Controller
             'stok' => 'nullable|numeric|min:0',
             'stok_minimum' => 'nullable|numeric|min:0',
             'kategori_id' => 'required|exists:kategori_bahan_pendukung,id',
+            'sub_satuan_1_id' => 'required|exists:satuans,id',
+            'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_1_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_2_id' => 'required|exists:satuans,id',
+            'sub_satuan_2_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_2_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_3_id' => 'required|exists:satuans,id',
+            'sub_satuan_3_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_3_nilai' => 'required|numeric|min:0.01',
         ]);
-
-        // Set kategori string dari nama kategori untuk backward compatibility
-        $kategori = KategoriBahanPendukung::find($validated['kategori_id']);
-        $validated['kategori'] = strtolower($kategori->nama);
 
         // Create bahan pendukung
         BahanPendukung::create($validated);
@@ -151,6 +159,9 @@ class BahanPendukungController extends Controller
 
     public function update(Request $request, BahanPendukung $bahanPendukung)
     {
+        // Convert comma decimal inputs to dot format for validation and storage
+        $this->convertCommaToDecimal($request);
+        
         $validated = $request->validate([
             'nama_bahan' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
@@ -159,16 +170,19 @@ class BahanPendukungController extends Controller
             'stok' => 'nullable|numeric|min:0',
             'stok_minimum' => 'nullable|numeric|min:0',
             'kategori_id' => 'required|exists:kategori_bahan_pendukung,id',
+            'sub_satuan_1_id' => 'required|exists:satuans,id',
+            'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_1_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_2_id' => 'required|exists:satuans,id',
+            'sub_satuan_2_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_2_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_3_id' => 'required|exists:satuans,id',
+            'sub_satuan_3_konversi' => 'required|numeric|min:0.01',
+            'sub_satuan_3_nilai' => 'required|numeric|min:0.01',
         ]);
 
         // Handle checkbox - tidak perlu validasi boolean
         $validated['is_active'] = $request->has('is_active');
-        
-        // Set kategori string dari nama kategori untuk backward compatibility
-        $kategori = KategoriBahanPendukung::find($validated['kategori_id']);
-        if ($kategori) {
-            $validated['kategori'] = strtolower($kategori->nama);
-        }
         
         $bahanPendukung->update($validated);
         
@@ -187,6 +201,28 @@ class BahanPendukungController extends Controller
                 ->with('success', 'Bahan pendukung berhasil dihapus');
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal menghapus: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Convert comma decimal inputs to dot format for proper validation and storage
+     */
+    private function convertCommaToDecimal(Request $request)
+    {
+        $fieldsToConvert = [
+            'harga_satuan', 'stok', 'stok_minimum',
+            'sub_satuan_1_konversi', 'sub_satuan_1_nilai',
+            'sub_satuan_2_konversi', 'sub_satuan_2_nilai', 
+            'sub_satuan_3_konversi', 'sub_satuan_3_nilai'
+        ];
+        
+        foreach ($fieldsToConvert as $field) {
+            if ($request->has($field) && $request->input($field) !== null) {
+                $value = $request->input($field);
+                // Remove thousand separators (dots) and convert comma to dot for decimal
+                $convertedValue = str_replace(['.', ','], ['', '.'], $value);
+                $request->merge([$field => $convertedValue]);
+            }
         }
     }
 }

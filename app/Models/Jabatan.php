@@ -10,6 +10,23 @@ class Jabatan extends Model
 
     public function pegawais(): HasMany
     {
-        return $this->hasMany(Pegawai::class);
+        return $this->hasMany(Pegawai::class, 'jabatan', 'nama');
+    }
+
+    /**
+     * Get count of active employees for this position
+     */
+    public function getJumlahPegawaiAttribute()
+    {
+        return $this->pegawais()->count();
+    }
+    
+    /**
+     * Calculate automatic BTKL rate based on tariff and employee count
+     */
+    public function getTarifBtklAttribute()
+    {
+        $jumlahPegawai = $this->pegawais()->count();
+        return $this->tarif * $jumlahPegawai;
     }
 }

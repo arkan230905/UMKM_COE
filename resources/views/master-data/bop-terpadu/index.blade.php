@@ -101,22 +101,17 @@
                                             @endif
                                         </td>
                                         <td class="text-center">
-                                            <div class="btn-group btn-group-sm">
-                                                @if($proses->bopProses)
-                                                    <a href="{{ route('master-data.bop-terpadu.show-proses', $proses->bopProses->id) }}" class="btn btn-outline-info" title="Detail">
-                                                        <i class="fas fa-eye"></i>
+                                            @if($proses->bopProses)
+                                                <a href="{{ route('master-data.bop-terpadu.edit-proses', $proses->bopProses->id) }}" class="btn btn-outline-primary btn-sm" title="Edit BOP">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                            @else
+                                                @if($proses->kapasitas_per_jam > 0)
+                                                    <a href="{{ route('master-data.bop-terpadu.create-proses', ['proses_id' => $proses->id]) }}" class="btn btn-outline-success btn-sm" title="Buat BOP">
+                                                        <i class="fas fa-plus"></i> Setup
                                                     </a>
-                                                    <a href="{{ route('master-data.bop-terpadu.edit-proses', $proses->bopProses->id) }}" class="btn btn-outline-primary" title="Edit">
-                                                        <i class="fas fa-edit"></i>
-                                                    </a>
-                                                @else
-                                                    @if($proses->kapasitas_per_jam > 0)
-                                                        <a href="{{ route('master-data.bop-terpadu.create-proses', ['proses_id' => $proses->id]) }}" class="btn btn-outline-success btn-sm" title="Buat BOP">
-                                                            <i class="fas fa-plus"></i> BOP
-                                                        </a>
-                                                    @endif
                                                 @endif
-                                            </div>
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty
@@ -487,9 +482,5 @@ function editBopProses(bopId) {
     window.location.href = '{{ route("master-data.bop-terpadu.edit-proses") }}/' + bopId;
 }
 
-function showBopDetail(bopId) {
-    // Implement detail modal or redirect
-    window.location.href = '{{ route("master-data.bop-terpadu.show-proses") }}/' + bopId;
-}
 </script>
 @endsection

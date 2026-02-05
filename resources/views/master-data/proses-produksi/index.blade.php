@@ -49,6 +49,7 @@
                             <th class="text-center" style="width: 50px">#</th>
                             <th>Kode</th>
                             <th>Nama Proses</th>
+                            <th>Jabatan BTKL</th>
                             <th class="text-end">Tarif BTKL/Jam</th>
                             <th class="text-center">Satuan</th>
                             <th class="text-center">Kapasitas/Jam</th>
@@ -80,6 +81,23 @@
                                         </div>
                                     </div>
                                 </td>
+                                <td>
+                                    @if($proses->jabatan)
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle bg-success bg-opacity-10 p-1 me-2">
+                                                <i class="fas fa-users text-success"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">{{ $proses->jabatan->nama }}</div>
+                                                <small class="text-muted">
+                                                    {{ $proses->jabatan->pegawais->count() }} pegawai @ Rp {{ number_format($proses->jabatan->tarif, 0, ',', '.') }}/jam
+                                                </small>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                                 <td class="text-end">
                                     <div class="fw-semibold">Rp {{ number_format($proses->tarif_btkl, 0, ',', '.') }}</div>
                                     <small class="text-muted">per {{ $proses->satuan_btkl ?? 'jam' }}</small>
@@ -91,7 +109,7 @@
                                     <span class="badge bg-info">{{ $proses->kapasitas_per_jam ?? 0 }} unit/jam</span>
                                 </td>
                                 <td class="text-end" 
-                                    data-biaya-per-produk="{{ number_format($proses->biaya_per_produk, 2, ',', '.') }}"
+                                    data-biaya-per-produk="{{ format_number_clean($proses->biaya_per_produk) }}"
                                     data-tarif="{{ number_format($proses->tarif_btkl, 0, ',', '.') }}"
                                     data-kapasitas="{{ $proses->kapasitas_per_jam }}">
                                     @if($proses->biaya_per_produk > 0)
@@ -121,7 +139,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4">
+                                <td colspan="9" class="text-center py-4">
                                     <i class="fas fa-cogs fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data BTKL</p>
                                     <a href="{{ route('master-data.btkl.create') }}" class="btn btn-primary">
@@ -171,7 +189,7 @@
                                         return $p->tarif_btkl / $p->kapasitas_per_jam; 
                                     }) : 0;
                             @endphp
-                            <div class="fw-bold text-warning">Rp {{ number_format($avgBiayaPerUnit, 2, ',', '.') }}</div>
+                            <div class="fw-bold text-warning">{{ format_rupiah_clean($avgBiayaPerUnit) }}</div>
                             <small class="text-muted">Rata-rata Biaya/Unit</small>
                         </div>
                     </div>

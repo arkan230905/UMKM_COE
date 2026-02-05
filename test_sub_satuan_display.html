@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Sub Satuan Display</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { background: #f0f0f0; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .result { background: #fff; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Test Sub Satuan Display</h1>
+    
+    <div class="test">
+        <h3>Test Case: Ayam Kampung (Ekor) - Same Unit Selected</h3>
+        <p><strong>Expected:</strong> Should show ALL available sub satuan conversions</p>
+        <button onclick="testAyamKampungSameUnit()">Test Ayam Kampung → Ekor</button>
+        <div id="result1" class="result"></div>
+    </div>
+    
+    <div class="test">
+        <h3>Test Case: Ayam Kampung (Ekor) - Different Unit Selected</h3>
+        <p><strong>Expected:</strong> Should show specific conversion formula</p>
+        <button onclick="testAyamKampungDifferentUnit()">Test Ayam Kampung → Potong</button>
+        <div id="result2" class="result"></div>
+    </div>
+    
+    <div class="test">
+        <h3>Test Case: Ayam Potong (Kilogram) - Same Unit Selected</h3>
+        <p><strong>Expected:</strong> Should show ALL available sub satuan conversions</p>
+        <button onclick="testAyamPotongSameUnit()">Test Ayam Potong → Kilogram</button>
+        <div id="result3" class="result"></div>
+    </div>
+
+    <script>
+        // Helper function to format numbers cleanly
+        function formatNumberClean(num) {
+            if (num === Math.floor(num)) {
+                return Math.floor(num).toString();
+            }
+            return parseFloat(num.toFixed(4)).toString();
+        }
+        
+        // Simulate the updateConversionDisplay function
+        function simulateConversionDisplay(hargaUtama, satuanUtama, satuanDipilih, subSatuanData) {
+            console.log('=== CONVERSION SIMULATION ===');
+            console.log('Harga Utama:', hargaUtama);
+            console.log('Satuan Utama:', satuanUtama);
+            console.log('Satuan Dipilih:', satuanDipilih);
+            console.log('Sub Satuan Data:', subSatuanData);
+            
+            if (!satuanDipilih) {
+                return '<small class="text-muted">Pilih satuan untuk melihat konversi</small>';
+            }
+            
+            // ALWAYS show sub satuan conversions if available, regardless of selected unit
+            if (subSatuanData.length > 0) {
+                // Look for exact match first
+                const matchingSub = subSatuanData.find(sub => 
+                    sub.nama.toLowerCase().trim() === satuanDipilih.toLowerCase().trim()
+                );
+                
+                if (matchingSub) {
+                    // Show specific conversion for selected unit
+                    const hargaKonversi = (hargaUtama * matchingSub.konversi) / matchingSub.nilai;
+                    const konversiClean = formatNumberClean(matchingSub.konversi);
+                    const nilaiClean = formatNumberClean(matchingSub.nilai);
+                    
+                    return `
+                        <div style="color: #17a2b8;"><strong>Rp ${Math.round(hargaKonversi).toLocaleString('id-ID')}/${satuanDipilih}</strong></div>
+                        <small style="color: #666;">Rumus: ${konversiClean} ${satuanUtama} = ${nilaiClean} ${satuanDipilih}<br>Rp ${hargaUtama.toLocaleString('id-ID')} × ${konversiClean} ÷ ${nilaiClean} = Rp ${Math.round(hargaKonversi).toLocaleString('id-ID')}</small>
+                    `;
+                }
+                
+                // If same unit as base, show ALL available conversions
+                if (satuanDipilih === satuanUtama) {
+                    let allConversions = '<div style="color: #28a745;"><strong>Konversi tersedia:</strong></div>';
+                    subSatuanData.forEach(sub => {
+                        const hargaKonversi = (hargaUtama * sub.konversi) / sub.nilai;
+                        const konversiClean = formatNumberClean(sub.konversi);
+                        const nilaiClean = formatNumberClean(sub.nilai);
+                        
+                        allConversions += `
+                            <div style="color: #17a2b8; font-size: 0.9rem; margin-bottom: 5px;">
+                                <strong>Rp ${Math.round(hargaKonversi).toLocaleString('id-ID')}/${sub.nama}</strong><br>
+                                <small style="color: #666;">Rumus: ${konversiClean} ${satuanUtama} = ${nilaiClean} ${sub.nama}</small>
+                            </div>
+                        `;
+                    });
+                    return allConversions;
+                }
+                
+                // If different unit but no exact match, show available conversions
+                let availableConversions = '<div style="color: #ffc107;"><small>Konversi tersedia:</small></div>';
+                subSatuanData.forEach(sub => {
+                    const hargaKonversi = (hargaUtama * sub.konversi) / sub.nilai;
+                    const konversiClean = formatNumberClean(sub.konversi);
+                    const nilaiClean = formatNumberClean(sub.nilai);
+                    
+                    availableConversions += `
+                        <div style="color: #666; font-size: 0.8rem;">
+                            <strong>Rp ${Math.round(hargaKonversi).toLocaleString('id-ID')}/${sub.nama}</strong><br>
+                            ${konversiClean} ${satuanUtama} = ${nilaiClean} ${sub.nama}
+                        </div>
+                    `;
+                });
+                return availableConversions;
+            } else {
+                // No sub satuan data available
+                if (satuanDipilih === satuanUtama) {
+                    return '<small style="color: #28a745;">Satuan sama, tidak perlu konversi</small>';
+                } else {
+                    return `<small style="color: #ffc107;">Konversi dari ${satuanUtama} ke ${satuanDipilih} tidak tersedia</small>`;
+                }
+            }
+        }
+        
+        function testAyamKampungSameUnit() {
+            const subSatuanData = [
+                { nama: 'Kilogram', konversi: 1, nilai: 1.5 },
+                { nama: 'Potong', konversi: 1, nilai: 6 },
+                { nama: 'Gram', konversi: 1, nilai: 1500 }
+            ];
+            
+            const result = simulateConversionDisplay(45000, 'Ekor', 'Ekor', subSatuanData);
+            document.getElementById('result1').innerHTML = result;
+        }
+        
+        function testAyamKampungDifferentUnit() {
+            const subSatuanData = [
+                { nama: 'Kilogram', konversi: 1, nilai: 1.5 },
+                { nama: 'Potong', konversi: 1, nilai: 6 },
+                { nama: 'Gram', konversi: 1, nilai: 1500 }
+            ];
+            
+            const result = simulateConversionDisplay(45000, 'Ekor', 'Potong', subSatuanData);
+            document.getElementById('result2').innerHTML = result;
+        }
+        
+        function testAyamPotongSameUnit() {
+            const subSatuanData = [
+                { nama: 'Gram', konversi: 1, nilai: 1000 },
+                { nama: 'Potong', konversi: 1, nilai: 4 },
+                { nama: 'Ons', konversi: 1, nilai: 10 }
+            ];
+            
+            const result = simulateConversionDisplay(32000, 'Kilogram', 'Kilogram', subSatuanData);
+            document.getElementById('result3').innerHTML = result;
+        }
+    </script>
+</body>
+</html>
