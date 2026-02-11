@@ -61,8 +61,8 @@
                                 data-kategori="{{ $j->kategori }}"
                                 data-tunjangan="{{ $j->tunjangan }}"
                                 data-asuransi="{{ $j->asuransi }}"
-                                data-gaji_pokok="{{ $j->gaji_pokok }}"
-                                data-tarif_lembur="{{ $j->tarif_lembur }}"
+                                data-gaji_pokok="{{ $j->gaji_pokok ?? $j->gaji ?? 0 }}"
+                                data-tarif_lembur="{{ $j->tarif_lembur ?? $j->tarif ?? 0 }}"
                                 {{ old('jabatan_id')==$j->id || $pegawai->jabatan===$j->nama ? 'selected' : '' }}>
                             {{ $j->nama }} ({{ strtoupper($j->kategori) }})
                         </option>
@@ -75,8 +75,8 @@
             <input type="hidden" name="kategori" id="kategori" value="{{ old('kategori',$pegawai->kategori) }}">
             <input type="hidden" name="tunjangan" id="tunjangan" value="{{ old('tunjangan',$pegawai->tunjangan) }}">
             <input type="hidden" name="asuransi" id="asuransi" value="{{ old('asuransi',$pegawai->asuransi) }}">
-            <input type="hidden" name="gaji_pokok" id="gaji_pokok" value="{{ old('gaji_pokok',$pegawai->gaji_pokok) }}">
-            <input type="hidden" name="tarif_lembur" id="tarif_lembur" value="{{ old('tarif_lembur',$pegawai->tarif_lembur) }}">
+            <input type="hidden" name="gaji_pokok" id="gaji_pokok" value="{{ old('gaji_pokok',$pegawai->gaji_pokok ?? $pegawai->gaji ?? 0) }}">
+            <input type="hidden" name="tarif_lembur" id="tarif_lembur" value="{{ old('tarif_lembur',$pegawai->tarif_lembur ?? $pegawai->tarif ?? 0) }}">
 
             <!-- Preview otomatis dari Jabatan -->
             <div class="col-12">
@@ -138,8 +138,8 @@
                 kategori: ds.kategori || '',
                 tunjangan: ds.tunjangan || 0,
                 asuransi: ds.asuransi || 0,
-                gaji_pokok: ds.gaji_pokok || 0,
-                tarif_lembur: ds.tarif_lembur || 0,
+                gaji_pokok: parseFloat(ds.gaji_pokok || ds.gaji || 0),
+                tarif_lembur: parseFloat(ds.tarif_lembur || ds.tarif || 0),
             };
             // set hidden
             document.getElementById('jabatan').value = data.nama;
