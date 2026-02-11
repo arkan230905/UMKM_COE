@@ -1,30 +1,25 @@
 <?php $__env->startSection('content'); ?>
-<div class="container-fluid px-4 py-4">
+<div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0 text-dark">
+        <h2 class="mb-0">
             <i class="fas fa-sitemap me-2"></i>Bill of Materials (BOM)
         </h2>
+        <a href="<?php echo e(route('master-data.bom.create')); ?>" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Buat BOM Baru
+        </a>
     </div>
 
     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('success')): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i><?php echo e(session('success')); ?>
+        <div class="alert alert-success alert-dismissible fade show">
+            <?php echo e(session('success')); ?>
 
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
 
     <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('error')): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-circle me-2"></i><?php echo e(session('error')); ?>
-
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-
-    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(session('warning')): ?>
-        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i><?php echo e(session('warning')); ?>
+        <div class="alert alert-danger alert-dismissible fade show">
+            <?php echo e(session('error')); ?>
 
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
@@ -40,7 +35,7 @@
         <div class="card-body">
             <form action="<?php echo e(route('master-data.bom.index')); ?>" method="GET">
                 <div class="row g-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label for="nama_produk" class="form-label">Nama Produk</label>
                         <input type="text" class="form-control" id="nama_produk" name="nama_produk" 
                                value="<?php echo e(request('nama_produk')); ?>" placeholder="Cari nama produk...">
@@ -51,267 +46,141 @@
                             <option value="">Semua</option>
                             <option value="ada" <?php echo e(request('status') == 'ada' ? 'selected' : ''); ?>>Sudah Ada BOM</option>
                             <option value="belum" <?php echo e(request('status') == 'belum' ? 'selected' : ''); ?>>Belum Ada BOM</option>
+                            <option value="lengkap" <?php echo e(request('status') == 'lengkap' ? 'selected' : ''); ?>>BOM Lengkap</option>
+                            <option value="tidak_lengkap" <?php echo e(request('status') == 'tidak_lengkap' ? 'selected' : ''); ?>>BOM Tidak Lengkap</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label d-block">&nbsp;</label>
-                        <div class="btn-group w-100">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i> Filter
-                            </button>
-                            <a href="<?php echo e(route('master-data.bom.index')); ?>" class="btn btn-outline-secondary">
-                                <i class="fas fa-times"></i> Reset
-                            </a>
-                        </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i> Cari
+                        </button>
+                        <a href="<?php echo e(route('master-data.bom.index')); ?>" class="btn btn-secondary">
+                            <i class="fas fa-refresh"></i> Reset
+                        </a>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Data Table -->
-    <div class="card shadow-sm">
+    <!-- BOM Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Daftar BOM Produk
+            </h5>
+        </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-dark">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <th style="width: 5%;" class="text-center">#</th>
-                            <th style="width: 20%;">Nama Produk</th>
-                            <th style="width: 15%;" class="text-center">Jumlah Bahan</th>
-                            <th style="width: 12%;" class="text-end">Biaya Bahan</th>
-                            <th style="width: 12%;" class="text-end">Biaya BTKL</th>
-                            <th style="width: 12%;" class="text-end">Biaya BOP</th>
-                            <th style="width: 15%;" class="text-end">Total Biaya BOM</th>
-                            <th style="width: 15%;" class="text-center">Status</th>
-                            <th style="width: 20%;" class="text-center">Aksi</th>
+                            <th>Nama Produk</th>
+                            <th>Biaya Bahan</th>
+                            <th>Biaya BTKL</th>
+                            <th>Biaya BOP</th>
+                            <th>Total Biaya BOM</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php $__empty_1 = true; $__currentLoopData = $produks; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $produk): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                             <?php
-                                // Cek apakah produk sudah punya BOM
-                                $bom = $produk->boms->first();
-                                $bomJobCosting = $produk->bomJobCosting; // Sudah di-load di controller
-                                
-                                // Hitung jumlah bahan dan total biaya HANYA jika BOM benar-benar ada
-                                $jumlahBahanBaku = 0;
-                                $jumlahBahanPendukung = 0;
-                                $totalBiaya = 0;
-                                
-                                // Tentukan apakah benar-benar ada BOM aktif
-                                $hasBOM = ($bom !== null);
-                                
-                                if ($bom) {
-                                    // Jika ada BOM aktif, hitung data dari BOM
-                                    $jumlahBahanBaku = \App\Models\BomDetail::where('bom_id', $bom->id)->count();
-                                    $totalBiaya = $bom->total_hpp ?? $bom->total_biaya ?? 0;
-                                }
-                                
-                                // Hitung Bahan Pendukung dari BomJobCosting
-                                if ($bomJobCosting) {
-                                    $jumlahBahanPendukung = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->count();
-                                }
-                                
-                                // BomJobCosting hanya untuk referensi, tidak mempengaruhi status BOM
-                                // Ini data historis atau data untuk referensi saja
-                                
-                                $jumlahTotal = $jumlahBahanBaku + $jumlahBahanPendukung;
-                                
-                                // Cek biaya bahan
-                                $biayaBahan = $produk->biaya_bahan ?? 0;
-                                $hasBiayaBahan = $biayaBahan > 0;
+                                $missingColumns = [];
+                                if (($produk->total_biaya_bahan ?? 0) == 0) $missingColumns[] = 'Biaya Bahan';
+                                if (($produk->total_btkl ?? 0) == 0) $missingColumns[] = 'Biaya BTKL';
+                                if (($produk->total_bop ?? 0) == 0) $missingColumns[] = 'Biaya BOP';
+                                $hasBom = $produk->bomJobCosting || $produk->boms->isNotEmpty();
+                                $isIncomplete = !empty($missingColumns);
                             ?>
                             <tr>
-                                <td class="text-center"><?php echo e($loop->iteration); ?></td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($produk->foto): ?>
-                                            <img src="<?php echo e(Storage::url($produk->foto)); ?>" 
-                                                 alt="<?php echo e($produk->nama_produk); ?>" 
-                                                 class="rounded me-2"
-                                                 style="width: 40px; height: 40px; object-fit: cover;">
-                                        <?php else: ?>
-                                            <div class="bg-secondary rounded me-2 d-flex align-items-center justify-content-center" 
-                                                 style="width: 40px; height: 40px;">
-                                                <i class="fas fa-box text-white"></i>
-                                            </div>
-                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                                            <i class="fas fa-box text-primary"></i>
+                                        </div>
                                         <div>
-                                            <div class="fw-bold"><?php echo e($produk->nama_produk); ?></div>
-                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($produk->barcode): ?>
-                                                <small class="text-muted"><?php echo e($produk->barcode); ?></small>
-                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                            <div class="fw-semibold"><?php echo e($produk->nama_produk); ?></div>
+                                            <small class="text-muted">ID: <?php echo e($produk->id); ?></small>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="text-center">
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($bom && $jumlahTotal > 0): ?>
-                                        <div class="mb-1">
-                                            <span class="badge bg-info"><?php echo e($jumlahTotal); ?> item</span>
-                                        </div>
-                                        <small class="text-muted d-block">
-                                            BBB: <?php echo e($jumlahBahanBaku); ?> | BP: <?php echo e($jumlahBahanPendukung); ?>
+                                <td class="<?php if(($produk->total_biaya_bahan ?? 0) == 0): ?> text-warning fw-bold <?php endif; ?>">
+                                    <div class="fw-semibold <?php if(($produk->total_biaya_bahan ?? 0) == 0): ?> text-warning <?php endif; ?>">
+                                        Rp <?php echo e(number_format($produk->total_biaya_bahan ?? 0, 0, ',', '.')); ?>
 
-                                        </small>
-                                    <?php else: ?>
-                                        <span class="text-muted">-</span>
-                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                </td>
-                                <td class="text-end">
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($produk->total_biaya_bahan > 0): ?>
-                                        <div class="fw-bold text-info">
-                                            Rp <?php echo e(number_format($produk->total_biaya_bahan, 0, ',', '.')); ?>
-
-                                        </div>
-                                    <?php else: ?>
-                                        <span class="text-muted">Rp 0</span>
-                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                </td>
-                                <td class="text-end">
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($produk->has_btkl && $produk->total_btkl > 0): ?>
-                                        <div class="fw-bold text-warning">
-                                            Rp <?php echo e(number_format($produk->total_btkl, 0, ',', '.')); ?>
-
-                                        </div>
-                                        <small class="text-muted d-block"><?php echo e($produk->btkl_count); ?> proses</small>
-                                    <?php else: ?>
-                                        <span class="text-muted">Rp 0</span>
-                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                </td>
-                                <td class="text-end">
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($produk->total_bop > 0): ?>
-                                        <div class="fw-bold text-info">
-                                            Rp <?php echo e(number_format($produk->total_bop, 0, ',', '.')); ?>
-
-                                        </div>
-                                        <small class="text-muted d-block">Manual</small>
-                                    <?php else: ?>
-                                        <span class="text-muted">Rp 0</span>
-                                        <small class="text-muted d-block">Belum ada</small>
-                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                </td>
-                                <td class="text-end">
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(($produk->total_biaya_bahan > 0) || ($produk->has_btkl && $produk->total_btkl > 0) || ($produk->total_bop > 0)): ?>
-                                        <div class="fw-bold text-success fs-5">
-                                            Rp <?php echo e(number_format($produk->total_biaya_bahan + $produk->total_btkl + $produk->total_bop, 0, ',', '.')); ?>
-
-                                        </div>
-                                    <?php else: ?>
-                                        <span class="text-muted">Rp 0</span>
-                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                </td>
-                                <td class="text-center">
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($bom): ?>
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check-circle"></i> Sudah Ada BOM
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="badge bg-secondary">
-                                            <i class="fas fa-minus-circle"></i> Belum Ada BOM
-                                        </span>
-                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                    <br>
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$hasBiayaBahan): ?>
-                                        <small class="badge bg-warning text-dark mt-1">
-                                            <i class="fas fa-exclamation-triangle"></i> Belum ada biaya bahan
-                                        </small>
-                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(!$produk->has_btkl): ?>
-                                        <small class="badge bg-warning text-dark mt-1">
-                                            <i class="fas fa-exclamation-triangle"></i> Belum ada BTKL
-                                        </small>
-                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($bomJobCosting && !$bom): ?>
-                                        <small class="badge bg-info text-white mt-1">
-                                            <i class="fas fa-calculator"></i> Ada Job Costing
-                                        </small>
-                                    <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                </td>
-                                <td class="text-center">
-                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($bom): ?>
-                                        
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <a href="<?php echo e(route('master-data.bom.show', $bom->id)); ?>" 
-                                               class="btn btn-outline-primary" 
-                                               data-bs-toggle="tooltip" 
-                                               title="Lihat Detail BOM">
-                                                <i class="fas fa-eye"></i> Detail
-                                            </a>
-                                            <form action="<?php echo e(route('master-data.bom.destroy', $bom->id)); ?>" 
-                                                  method="POST" 
-                                                  class="d-inline" 
-                                                  onsubmit="return confirm('Yakin ingin menghapus BOM untuk <?php echo e($produk->nama_produk); ?>?')">
-                                                <?php echo csrf_field(); ?>
-                                                <?php echo method_field('DELETE'); ?>
-                                                <button type="submit" 
-                                                        class="btn btn-outline-danger btn-sm" 
-                                                        data-bs-toggle="tooltip" 
-                                                        title="Hapus BOM">
-                                                    <i class="fas fa-trash"></i> Hapus
-                                                </button>
-                                            </form>
-                                        </div>
-                                    <?php else: ?>
-                                        
-                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBiayaBahan): ?>
-                                            <a href="<?php echo e(route('master-data.bom.create', ['produk_id' => $produk->id])); ?>" 
-                                               class="btn btn-success btn-sm" 
-                                               data-bs-toggle="tooltip" 
-                                               title="Tambah BOM">
-                                                <i class="fas fa-plus"></i> Tambah BOM
-                                            </a>
-                                            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($bomJobCosting): ?>
-                                                <br><small class="text-info mt-1">
-                                                    <i class="fas fa-info-circle"></i> Ada data Job Costing
-                                                </small>
-                                            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
-                                        <?php else: ?>
-                                            <button type="button" 
-                                                    class="btn btn-warning btn-sm" 
-                                                    data-bs-toggle="modal" 
-                                                    data-bs-target="#biayaBahanModal<?php echo e($produk->id); ?>"
-                                                    title="Isi biaya bahan dulu">
-                                                <i class="fas fa-exclamation-triangle"></i> Isi Biaya Bahan Dulu
-                                            </button>
-                                            
-                                            <!-- Modal Notifikasi -->
-                                            <div class="modal fade" id="biayaBahanModal<?php echo e($produk->id); ?>" tabindex="-1">
-                                                <div class="modal-dialog">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header bg-warning">
-                                                            <h5 class="modal-title">
-                                                                <i class="fas fa-exclamation-triangle"></i> Biaya Bahan Belum Ada
-                                                            </h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                        </div>
-                                                        <div class="modal-body">
-                                                            <p>Produk <strong><?php echo e($produk->nama_produk); ?></strong> belum memiliki data biaya bahan.</p>
-                                                            <p>Silakan isi biaya bahan terlebih dahulu sebelum membuat BOM.</p>
-                                                            <div class="alert alert-info">
-                                                                <i class="fas fa-info-circle"></i> 
-                                                                <strong>Kenapa harus isi biaya bahan dulu?</strong><br>
-                                                                BOM membutuhkan data biaya bahan baku dan bahan pendukung untuk menghitung total biaya produksi.
-                                                            </div>
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                            <a href="<?php echo e(route('master-data.biaya-bahan.create', $produk->id)); ?>" class="btn btn-primary">
-                                                                <i class="fas fa-calculator"></i> Isi Biaya Bahan
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(($produk->total_biaya_bahan ?? 0) == 0): ?>
+                                            <i class="fas fa-exclamation-triangle ms-1" title="Biaya bahan kosong"></i>
                                         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i> Otomatis masuk sesuai dengan data halaman biaya bahan
+                                    </small>
+                                </td>
+                                <td class="<?php if(($produk->total_btkl ?? 0) == 0): ?> text-warning fw-bold <?php endif; ?>">
+                                    <div class="fw-semibold <?php if(($produk->total_btkl ?? 0) == 0): ?> text-warning <?php endif; ?>">
+                                        Rp <?php echo e(number_format($produk->total_btkl ?? 0, 0, ',', '.')); ?>
+
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(($produk->total_btkl ?? 0) == 0): ?>
+                                            <i class="fas fa-exclamation-triangle ms-1" title="Biaya BTKL kosong"></i>
+                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i> Otomatis masuk sesuai dengan data halaman btkl
+                                    </small>
+                                </td>
+                                <td class="<?php if(($produk->total_bop ?? 0) == 0): ?> text-warning fw-bold <?php endif; ?>">
+                                    <div class="fw-semibold <?php if(($produk->total_bop ?? 0) == 0): ?> text-warning <?php endif; ?>">
+                                        Rp <?php echo e(number_format($produk->total_bop ?? 0, 0, ',', '.')); ?>
+
+                                        <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if(($produk->total_bop ?? 0) == 0): ?>
+                                            <i class="fas fa-exclamation-triangle ms-1" title="Biaya BOP kosong"></i>
+                                        <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle"></i> Otomatis masuk sesuai dengan data halaman bop
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-primary">
+                                        Rp <?php echo e(number_format($produk->total_bom_cost ?? 0, 0, ',', '.')); ?>
+
+                                    </div>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calculator"></i> Nominal Biaya bahan + BTKL + BOP, sistem otomatis menambahkan sendiri
+                                    </small>
+                                </td>
+                                <td>
+                                    <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($hasBom && !$isIncomplete): ?>
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>Produk Sudah Memiliki BOM
+                                        </span>
+                                    <?php elseif($hasBom && $isIncomplete): ?>
+                                        <span class="badge bg-warning" title="BOM belum lengkap: <?php echo e(implode(', ', $missingColumns)); ?>">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>BOM Belum Lengkap
+                                        </span>
+                                        <div class="text-muted small mt-1">
+                                            <i class="fas fa-info-circle"></i> Kolom kosong: <?php echo e(implode(', ', $missingColumns)); ?>
+
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle me-1"></i>Belum Ada BOM
+                                        </span>
                                     <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
+                                </td>
+                                <td>
+                                    <a href="<?php echo e(route('master-data.bom.show', $produk->id)); ?>" class="btn btn-outline-info" title="Detail">
+                                        <i class="fas fa-eye"></i> Detail
+                                    </a>
                                 </td>
                             </tr>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                             <tr>
-                                <td colspan="6" class="text-center py-5">
-                                    <i class="fas fa-sitemap fa-3x text-muted mb-3 d-block"></i>
-                                    <p class="text-muted mb-0">Belum ada data produk</p>
+                                <td colspan="7" class="text-center py-4">
+                                    <i class="fas fa-sitemap fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">Belum ada data BOM</p>
                                 </td>
                             </tr>
                         <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
@@ -320,87 +189,55 @@
             </div>
             
             <!-- Pagination -->
-            <?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if BLOCK]><![endif]--><?php endif; ?><?php if($produks->hasPages()): ?>
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div class="text-muted">
-                    Menampilkan <?php echo e($produks->firstItem()); ?> sampai <?php echo e($produks->lastItem()); ?> dari <?php echo e($produks->total()); ?> data
+                    Menampilkan <?php echo e($produks->firstItem()); ?> - <?php echo e($produks->lastItem()); ?> dari <?php echo e($produks->total()); ?> data
                 </div>
                 <?php echo e($produks->links()); ?>
 
             </div>
-            <?php endif; ?><?php if(\Livewire\Mechanisms\ExtendBlade\ExtendBlade::isRenderingLivewireComponent()): ?><!--[if ENDBLOCK]><![endif]--><?php endif; ?>
         </div>
     </div>
+</div>
 
 <?php $__env->startPush('styles'); ?>
 <style>
+    .text-warning {
+        background-color: rgba(255, 193, 7, 0.1);
+        border-radius: 4px;
+        padding: 2px 4px;
+    }
+    
     .table {
-        margin-bottom: 0;
+        border-collapse: separate;
+        border-spacing: 0;
     }
     
     .table th {
-        border-top: none;
+        border-top: 2px solid #dee2e6 !important;
+        border-bottom: 2px solid #dee2e6 !important;
         font-weight: 600;
-        font-size: 0.875rem;
-        vertical-align: middle;
-        white-space: nowrap;
+        text-align: center !important;
+        vertical-align: middle !important;
     }
     
     .table td {
-        vertical-align: middle;
+        border-bottom: 1px solid #dee2e6;
+        text-align: center !important;
+        vertical-align: middle !important;
     }
     
-    .badge {
-        font-size: 0.75rem;
-        padding: 0.375rem 0.75rem;
-        font-weight: 500;
+    .table td:first-child {
+        text-align: left !important;
     }
     
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
-    }
-    
-    .table-responsive {
-        border-radius: 0.375rem;
-    }
-    
-    .card {
-        border: none;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    }
-    
-    .card-header {
-        border-bottom: 1px solid rgba(0, 0, 0, 0.125);
-    }
-    
-    .table tbody tr:hover {
-        background-color: rgba(0, 123, 255, 0.05);
-        transition: background-color 0.2s ease;
-    }
-    
-    .table img {
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .fs-5 {
-        font-size: 1.1rem !important;
+    .table td:nth-child(5),
+    .table td:nth-child(6),
+    .table td:nth-child(7) {
+        text-align: center !important;
     }
 </style>
 <?php $__env->stopPush(); ?>
-
-<?php $__env->startPush('scripts'); ?>
-<script>
-    // Initialize tooltips
-    document.addEventListener('DOMContentLoaded', function() {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        });
-    });
-</script>
-<?php $__env->stopPush(); ?>
-
 <?php $__env->stopSection(); ?>
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\UMKM_COE\resources\views/master-data/bom/index.blade.php ENDPATH**/ ?>

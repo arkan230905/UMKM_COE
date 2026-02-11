@@ -76,6 +76,7 @@ class BahanBaku extends Model
 
     /**
      * Konversi harga dari satuan apapun ke satuan utama
+     * Enhanced with specific conversion examples from user requirements
      * 
      * @param float $harga Harga dalam satuan yang dibeli
      * @param string $fromUnit Satuan pembelian
@@ -85,7 +86,7 @@ class BahanBaku extends Model
     public function konversiKeSatuanUtama($harga, $fromUnit, $quantity)
     {
         // Default values jika tidak ada
-        $satuanUtama = $this->satuan ?? 'KG';
+        $satuanUtama = $this->satuan->nama ?? $this->satuan ?? 'KG';
         
         // Normalisasi satuan
         $fromUnit = strtoupper(trim($fromUnit));
@@ -99,53 +100,17 @@ class BahanBaku extends Model
             ];
         }
         
-        // Konversi faktor ke KG (satuan utama default)
-        $konversiFaktor = 1;
+        // Enhanced conversion logic based on user examples
+        $konversiFaktor = $this->getKonversiFaktor($fromUnit, $satuanUtama);
         
-        switch($fromUnit) {
-            case 'KG':
-            case 'KILOGRAM':
-            case 'K':
-                $konversiFaktor = 1;
-                break;
-            case 'G':
-            case 'GRAM':
-            case 'GR':
-                $konversiFaktor = 0.001; // 1 gram = 0.001 kg
-                break;
-            case 'L':
-            case 'LITER':
-            case 'LTR':
-                $konversiFaktor = 1; // Asumi 1L = 1kg
-                break;
-            case 'ML':
-            case 'MILILITER':
-                $konversiFaktor = 0.001; // 1ml = 0.001L = 0.001kg
-                break;
-            case 'PCS':
-            case 'PC':
-            case 'BUAH':
-            case 'PIECE':
-            case 'PACK':
-            case 'PAK':
-            case 'BUNGKUS':
-            case 'BOX':
-            case 'BOTOL':
-            case 'DUS':
-                $konversiFaktor = 1; // Tidak bisa konversi, asumsikan 1 pcs = 1 kg
-                break;
-            default:
-                $konversiFaktor = 1;
-        }
-        
-        // Hitung jumlah dalam satuan utama (kg)
+        // Hitung jumlah dalam satuan utama
         $quantityUtama = $quantity * $konversiFaktor;
         
         // Hitung harga per satuan utama
-        // Jika beli 200g @ Rp 2.000, maka 200g = 0.2kg
-        // Harga per kg = Rp 2.000 / 0.2kg = Rp 10.000/kg
+        // Jika beli 500g @ Rp 10.000, maka 500g = 0.5kg
+        // Harga per kg = Rp 10.000 / 0.5kg = Rp 20.000/kg
         if ($quantityUtama > 0) {
-            $hargaPerSatuanUtama = $harga / $quantityUtama;
+            $hargaPerSatuanUtama = ($harga * $quantity) / $quantityUtama;
         } else {
             $hargaPerSatuanUtama = $harga;
         }
@@ -154,6 +119,86 @@ class BahanBaku extends Model
             'quantity' => $quantityUtama,
             'harga_per_satuan_utama' => $hargaPerSatuanUtama
         ];
+    }
+    
+    /**
+     * Get conversion factor from purchase unit to main unit
+     * Based on user examples and standard conversions
+     * 
+     * @param string $fromUnit Purchase unit
+     * @param string $satuanUtama Main unit
+     * @return float Conversion factor
+     */
+    private function getKonversiFaktor($fromUnit, $satuanUtama)
+    {
+        // Konversi untuk satuan utama KG
+        if ($satuanUtama === 'KG' || $satuanUtama === 'KILOGRAM') {
+            switch($fromUnit) {
+                case 'KG':
+                case 'KILOGRAM':
+                    return 1; // 15 kg = 15 kg
+                case 'G':
+                case 'GRAM':
+                    return 0.001; // 500 gram = 0.5 kg
+                case 'ONS':
+                    return 0.1; // 1 ons = 0.1 kg
+                case 'L':
+                case 'LITER':
+                    return 1; // 15 liter = 15 liter (asumsi density = 1)
+                case 'ML':
+                case 'MILILITER':
+                    return 0.001; // 1000 ml = 1 liter = 1 kg
+                    
+                // Konversi kemasan berdasarkan contoh user
+                case 'TABUNG':
+                    return 30; // 1 tabung = 30 kg (contoh gas)
+                case 'BUNGKUS':
+                    return 0.01; // 500 gram = 50 bungkus, jadi 1 bungkus = 10g = 0.01kg
+                case 'BOTOL':
+                    return 0.5; // Asumsi 1 botol = 500ml = 0.5kg
+                case 'KALENG':
+                    return 0.4; // Asumsi 1 kaleng = 400g = 0.4kg
+                case 'SACHET':
+                    return 0.01; // Asumsi 1 sachet = 10g = 0.01kg
+                    
+                // Satuan kemasan standar
+                case 'PCS':
+                case 'BUAH':
+                case 'PACK':
+                case 'PAK':
+                case 'BOX':
+                    return 1; // Default 1:1
+                case 'DUS':
+                    return 12; // Asumsi 1 dus = 12 unit
+                default:
+                    return 1;
+            }
+        }
+        
+        // Konversi untuk satuan utama LITER
+        if ($satuanUtama === 'L' || $satuanUtama === 'LITER') {
+            switch($fromUnit) {
+                case 'L':
+                case 'LITER':
+                    return 1; // 15 liter = 15 liter
+                case 'ML':
+                case 'MILILITER':
+                    return 0.001; // 1000 ml = 1 liter
+                case 'KG':
+                case 'KILOGRAM':
+                    return 1; // Asumsi 1 kg = 1 liter
+                case 'G':
+                case 'GRAM':
+                    return 0.001; // 1000 gram = 1 kg = 1 liter
+                case 'BOTOL':
+                    return 0.5; // 1 botol = 500ml = 0.5L
+                default:
+                    return 1;
+            }
+        }
+        
+        // Default untuk satuan lain
+        return 1;
     }
     
     /**

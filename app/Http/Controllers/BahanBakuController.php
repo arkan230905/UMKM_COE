@@ -29,6 +29,24 @@ class BahanBakuController extends Controller
         return view('master-data.bahan-baku.index', compact('bahanBaku'));
     }
 
+    // Menampilkan detail bahan baku
+    public function show($id)
+    {
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->findOrFail($id);
+        
+        // Hitung harga rata-rata untuk display
+        $averageHarga = $this->getAverageHargaSatuan($bahanBaku->id);
+        
+        // Jika ada harga rata-rata, gunakan itu. Jika tidak, gunakan harga default
+        if ($averageHarga > 0) {
+            $bahanBaku->harga_satuan_display = $averageHarga;
+        } else {
+            $bahanBaku->harga_satuan_display = $bahanBaku->harga_satuan;
+        }
+        
+        return view('master-data.bahan-baku.show', compact('bahanBaku'));
+    }
+
     // Menampilkan form tambah data
     public function create()
     {
@@ -259,10 +277,97 @@ class BahanBakuController extends Controller
         foreach ($fieldsToConvert as $field) {
             if ($request->has($field) && $request->input($field) !== null) {
                 $value = $request->input($field);
-                // Remove thousand separators (dots) and convert comma to dot for decimal
-                $convertedValue = str_replace(['.', ','], ['', '.'], $value);
+                $convertedValue = $this->smartNumberConversion($value);
                 $request->merge([$field => $convertedValue]);
             }
         }
+    }
+    
+    /**
+     * Smart number conversion that handles various Indonesian number formats
+     */
+    private function smartNumberConversion($value)
+    {
+        // Remove any spaces
+        $value = trim($value);
+        
+        // If empty, return as is
+        if (empty($value)) {
+            return $value;
+        }
+        
+        // Count dots and commas to determine format
+        $dotCount = substr_count($value, '.');
+        $commaCount = substr_count($value, ',');
+        
+        // If no dots or commas, it's already a clean number
+        if ($dotCount === 0 && $commaCount === 0) {
+            return $value;
+        }
+        
+        // Find positions of last dot and comma
+        $lastDotPos = strrpos($value, '.');
+        $lastCommaPos = strrpos($value, ',');
+        
+        // Case 1: Only commas (Indonesian decimal: 1,5 or 1000,50)
+        if ($commaCount > 0 && $dotCount === 0) {
+            return str_replace(',', '.', $value);
+        }
+        
+        // Case 2: Only dots
+        if ($dotCount > 0 && $commaCount === 0) {
+            // If multiple dots, treat all but last as thousand separators
+            if ($dotCount > 1) {
+                $parts = explode('.', $value);
+                $lastPart = array_pop($parts);
+                // If last part has 3 digits, it's likely a thousand separator (e.g., 1.000.000)
+                if (strlen($lastPart) === 3 && ctype_digit($lastPart)) {
+                    return implode('', array_merge($parts, [$lastPart]));
+                } else {
+                    // Last part is decimal (e.g., 1.000.50)
+                    return implode('', $parts) . '.' . $lastPart;
+                }
+            } else {
+                // Single dot - check if it's thousand separator or decimal
+                $parts = explode('.', $value);
+                if (count($parts) === 2) {
+                    $beforeDot = $parts[0];
+                    $afterDot = $parts[1];
+                    
+                    // If after dot has exactly 3 digits and all are digits, and before dot is 1-3 digits
+                    // it's likely a thousand separator (e.g., 1.000, 15.000)
+                    if (strlen($afterDot) === 3 && ctype_digit($afterDot) && 
+                        strlen($beforeDot) >= 1 && strlen($beforeDot) <= 3 && ctype_digit($beforeDot)) {
+                        return $beforeDot . $afterDot;
+                    } else {
+                        // Otherwise it's a decimal separator (e.g., 2.5, 50.75)
+                        return $value;
+                    }
+                } else {
+                    return $value;
+                }
+            }
+        }
+        
+        // Case 3: Both dots and commas
+        if ($dotCount > 0 && $commaCount > 0) {
+            // Determine which is the decimal separator based on position
+            if ($lastCommaPos > $lastDotPos) {
+                // Comma is decimal separator (e.g., 1.000,50)
+                $integerPart = substr($value, 0, $lastCommaPos);
+                $decimalPart = substr($value, $lastCommaPos + 1);
+                $integerPart = str_replace('.', '', $integerPart); // Remove thousand separators
+                return $integerPart . '.' . $decimalPart;
+            } else {
+                // Dot is decimal separator (e.g., 1,000.50)
+                $integerPart = substr($value, 0, $lastDotPos);
+                $decimalPart = substr($value, $lastDotPos + 1);
+                $integerPart = str_replace(',', '', $integerPart); // Remove thousand separators
+                return $integerPart . '.' . $decimalPart;
+            }
+        }
+        
+        // Fallback: return original value
+        return $value;
     }
 }

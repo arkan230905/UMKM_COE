@@ -17,10 +17,11 @@ class BomJobBTKL extends Model
         static::saving(function ($m) { 
             // Perhitungan BTKL yang lebih akurat:
             // Jika ada kapasitas_per_jam, hitung beban per produk
-            if ($m->kapasitas_per_jam && $m->kapasitas_per_jam > 0) {
+            $kapasitasPerJam = $m->attributes['kapasitas_per_jam'] ?? null;
+            if ($kapasitasPerJam && $kapasitasPerJam > 0) {
                 // Beban per produk = (durasi_jam × tarif_per_jam) ÷ kapasitas_per_jam
                 $totalBiayaPerJam = $m->durasi_jam * $m->tarif_per_jam;
-                $m->subtotal = $totalBiayaPerJam / $m->kapasitas_per_jam;
+                $m->subtotal = $totalBiayaPerJam / $kapasitasPerJam;
             } else {
                 // Fallback ke perhitungan lama (jika belum ada kapasitas)
                 $m->subtotal = $m->durasi_jam * $m->tarif_per_jam;
@@ -39,10 +40,11 @@ class BomJobBTKL extends Model
     /**
      * Get kapasitas per jam (dari input manual atau master BTKL)
      */
-    public function getKapasitasPerJamAttribute()
+    public function getKapasitasPerJamAttribute($value)
     {
-        if ($this->kapasitas_per_jam && $this->kapasitas_per_jam > 0) {
-            return $this->kapasitas_per_jam;
+        // Jika ada value dari database, gunakan itu
+        if ($value && $value > 0) {
+            return $value;
         }
         
         // Ambil dari master BTKL jika ada

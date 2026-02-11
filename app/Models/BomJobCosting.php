@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use App\Support\UnitConverter;
 
 class BomJobCosting extends Model
@@ -55,7 +56,7 @@ class BomJobCosting extends Model
         
         $this->save();
         
-        // Update HPP dan Biaya Bahan di produk
+        // Update HPP dan Biaya Bahan di produk (TANPA TRIGGER OBSERVER)
         if ($this->produk) {
             // Hitung total biaya bahan (BBB + Bahan Pendukung)
             $totalBiayaBahan = $this->total_bbb + $this->total_bahan_pendukung;
@@ -65,11 +66,15 @@ class BomJobCosting extends Model
             $margin = $this->produk->margin_percent ?? 30;
             $hargaJual = $this->hpp_per_unit * (1 + ($margin / 100));
             
-            $this->produk->update([
-                'biaya_bahan' => $biayaBahanPerUnit,
-                'harga_bom' => $this->hpp_per_unit,  // HPP per unit dari BOM Job Costing
-                'harga_jual' => $hargaJual
-            ]);
+            // Use DB::table to avoid triggering observers and prevent infinite loop
+            DB::table('produks')
+                ->where('id', $this->produk->id)
+                ->update([
+                    'biaya_bahan' => $biayaBahanPerUnit,
+                    'harga_bom' => $this->hpp_per_unit,  // HPP per unit dari BOM Job Costing
+                    'harga_jual' => $hargaJual,
+                    'updated_at' => now()
+                ]);
         }
         
         return $this;

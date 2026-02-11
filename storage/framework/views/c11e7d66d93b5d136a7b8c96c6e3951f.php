@@ -185,6 +185,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link-rounded <?php echo e(request()->is('laporan/stock-realtime*') ? 'active' : ''); ?>" href="<?php echo e(route('laporan.stock-realtime')); ?>">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Stok Real-Time</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link-rounded <?php echo e(request()->is('laporan/penjualan*') ? 'active' : ''); ?>" href="<?php echo e(route('laporan.penjualan')); ?>">
                     <i class="fas fa-shopping-bag"></i>
                     <span>Laporan Penjualan</span>

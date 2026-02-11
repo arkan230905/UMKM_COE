@@ -45,6 +45,7 @@ use App\Http\Controllers\PelunasanUtangController;
 
 // Laporan
 use App\Http\Controllers\LaporanController;
+use App\Http\Controllers\StockReportController;
 
 // Profile
 use App\Http\Controllers\ProfileController;
@@ -343,9 +344,13 @@ Route::middleware('auth')->group(function () {
             // BOP Proses Management
             Route::get('/create-proses', [\App\Http\Controllers\MasterData\BopController::class, 'createProses'])->name('create-proses');
             Route::post('/store-proses', [\App\Http\Controllers\MasterData\BopController::class, 'storeProses'])->name('store-proses');
+            Route::post('/store-proses-simple', [\App\Http\Controllers\MasterData\BopController::class, 'storeProsesSimple'])->name('store-proses-simple');
             Route::get('/show-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'showProses'])->name('show-proses');
+            Route::get('/show-proses-modal/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'showProsesModal'])->name('show-proses-modal');
+            Route::get('/get-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'getBopProses'])->name('get-proses');
             Route::get('/edit-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'editProses'])->name('edit-proses');
             Route::put('/update-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProses'])->name('update-proses');
+            Route::put('/update-proses-simple/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProsesSimple'])->name('update-proses-simple');
             Route::delete('/destroy-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroyProses'])->name('destroy-proses');
             
             // Utilities
@@ -359,6 +364,10 @@ Route::middleware('auth')->group(function () {
             Route::get('by-produk/{id}', [BomController::class, 'view'])->name('view-by-produk');
             Route::post('by-produk/{id}', [BomController::class, 'updateByProduk'])->name('update-by-produk');
             Route::get('generate-kode', [BomController::class, 'generateKodeBom'])->name('generate-kode');
+            
+            // Auto-population routes
+            Route::post('/populate-all', [BomController::class, 'populateAllBomData'])->name('populate-all');
+            Route::post('/sync/{produk}', [BomController::class, 'syncBomData'])->name('sync');
             
             // API routes for AJAX calls
             Route::get('/get-bom-details/{produkId}', [BomController::class, 'getBomDetails'])->name('getBomDetails');
@@ -591,6 +600,12 @@ Route::middleware('auth')->group(function () {
     Route::prefix('laporan')->name('laporan.')->middleware('role:admin,owner')->group(function() {
         // Laporan Stok
         Route::get('/stok', [LaporanController::class, 'stok'])->name('stok');
+        
+        // Laporan Stok Real-Time
+        Route::get('/stock-realtime', [\App\Http\Controllers\StockReportController::class, 'index'])->name('stock-realtime');
+        Route::get('/stock-movements', [\App\Http\Controllers\StockReportController::class, 'movements'])->name('stock-movements');
+        Route::post('/stock-sync', [\App\Http\Controllers\StockReportController::class, 'syncStock'])->name('stock-sync');
+        Route::get('/api/stock-data', [\App\Http\Controllers\StockReportController::class, 'apiStockData'])->name('api.stock-data');
         
         // Laporan Pembelian
         Route::get('/pembelian', [LaporanController::class, 'pembelian'])->name('pembelian');

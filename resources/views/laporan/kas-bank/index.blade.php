@@ -46,36 +46,66 @@
         <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body text-center">
-                    <div class="text-muted small mb-2">Total Saldo Awal</div>
-                    <div class="h5 mb-0 text-primary">Rp {{ number_format($totalSaldoAwal, 0, ',', '.') }}</div>
+                    <div class="text-muted small mb-2">
+                        <i class="fas fa-balance-scale me-1"></i>Total Saldo Awal
+                    </div>
+                    <div class="h5 mb-0 {{ $totalSaldoAwal < 0 ? 'text-danger' : 'text-primary' }}">
+                        Rp {{ number_format($totalSaldoAwal, 0, ',', '.') }}
+                    </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body text-center">
-                    <div class="text-muted small mb-2">Total Transaksi Masuk</div>
-                    <div class="h5 mb-0 text-success">Rp {{ number_format($totalTransaksiMasuk, 0, ',', '.') }}</div>
+                    <div class="text-muted small mb-2">
+                        <i class="fas fa-arrow-down me-1"></i>Total Transaksi Masuk
+                    </div>
+                    <div class="h5 mb-0 text-success">
+                        Rp {{ number_format($totalTransaksiMasuk, 0, ',', '.') }}
+                    </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body text-center">
-                    <div class="text-muted small mb-2">Total Transaksi Keluar</div>
-                    <div class="h5 mb-0 text-danger">Rp {{ number_format($totalTransaksiKeluar, 0, ',', '.') }}</div>
+                    <div class="text-muted small mb-2">
+                        <i class="fas fa-arrow-up me-1"></i>Total Transaksi Keluar
+                    </div>
+                    <div class="h5 mb-0 text-danger">
+                        Rp {{ number_format($totalTransaksiKeluar, 0, ',', '.') }}
+                    </div>
                 </div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card border-0 shadow-sm">
                 <div class="card-body text-center">
-                    <div class="text-muted small mb-2">Total Saldo Akhir</div>
-                    <div class="h5 mb-0 text-primary fw-bold">Rp {{ number_format($totalKeseluruhan, 0, ',', '.') }}</div>
+                    <div class="text-muted small mb-2">
+                        <i class="fas fa-calculator me-1"></i>Total Saldo Akhir
+                    </div>
+                    <div class="h5 mb-0 {{ $totalKeseluruhan < 0 ? 'text-danger' : 'text-success' }} fw-bold">
+                        Rp {{ number_format($totalKeseluruhan, 0, ',', '.') }}
+                        @if($totalKeseluruhan < 0)
+                            <i class="fas fa-exclamation-triangle ms-1" title="Total Saldo Negatif - Perlu Perhatian"></i>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    @if($totalKeseluruhan < 0)
+    <!-- Warning Alert for Negative Balance -->
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Perhatian!</strong> Total saldo kas dan bank menunjukkan nilai negatif sebesar 
+        <strong>Rp {{ number_format(abs($totalKeseluruhan), 0, ',', '.') }}</strong>. 
+        Hal ini menunjukkan bahwa pengeluaran melebihi pemasukan. Silakan periksa transaksi dan pertimbangkan untuk menambah modal atau mengurangi pengeluaran.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    @endif
 
     <!-- Tabel Saldo per Akun -->
     <div class="card shadow-sm">
@@ -95,20 +125,43 @@
                     </thead>
                     <tbody>
                         @forelse($dataKasBank as $data)
-                        <tr>
-                            <td>{{ $data['kode_akun'] }}</td>
+                        <tr class="{{ $data['saldo_akhir'] < 0 ? 'table-warning' : '' }}">
+                            <td><strong>{{ $data['kode_akun'] }}</strong></td>
                             <td>{{ $data['nama_akun'] }}</td>
-                            <td class="text-end">Rp {{ number_format($data['saldo_awal'], 0, ',', '.') }}</td>
-                            <td class="text-end text-success fw-bold">Rp {{ number_format($data['transaksi_masuk'], 0, ',', '.') }}</td>
-                            <td class="text-end text-danger fw-bold">Rp {{ number_format($data['transaksi_keluar'], 0, ',', '.') }}</td>
-                            <td class="text-end fw-bold">Rp {{ number_format($data['saldo_akhir'], 0, ',', '.') }}</td>
+                            <td class="text-end">
+                                <span class="{{ $data['saldo_awal'] < 0 ? 'text-danger' : 'text-primary' }}">
+                                    Rp {{ number_format($data['saldo_awal'], 0, ',', '.') }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="text-success fw-bold">
+                                    <i class="fas fa-arrow-down me-1"></i>
+                                    Rp {{ number_format($data['transaksi_masuk'], 0, ',', '.') }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="text-danger fw-bold">
+                                    <i class="fas fa-arrow-up me-1"></i>
+                                    Rp {{ number_format($data['transaksi_keluar'], 0, ',', '.') }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <span class="fw-bold {{ $data['saldo_akhir'] < 0 ? 'text-danger' : 'text-success' }}">
+                                    Rp {{ number_format($data['saldo_akhir'], 0, ',', '.') }}
+                                    @if($data['saldo_akhir'] < 0)
+                                        <i class="fas fa-exclamation-triangle ms-1" title="Saldo Negatif"></i>
+                                    @endif
+                                </span>
+                            </td>
                             <td class="text-center">
-                                <button class="btn btn-sm btn-success" onclick="showDetailMasuk({{ $data['id'] }}, '{{ $data['nama_akun'] }}')">
-                                    <i class="fas fa-arrow-down"></i> Masuk
-                                </button>
-                                <button class="btn btn-sm btn-danger" onclick="showDetailKeluar({{ $data['id'] }}, '{{ $data['nama_akun'] }}')">
-                                    <i class="fas fa-arrow-up"></i> Keluar
-                                </button>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-success" onclick="showDetailMasuk('{{ $data['kode_akun'] }}', '{{ $data['nama_akun'] }}')" title="Detail Transaksi Masuk">
+                                        <i class="fas fa-arrow-down"></i> Masuk
+                                    </button>
+                                    <button class="btn btn-danger" onclick="showDetailKeluar('{{ $data['kode_akun'] }}', '{{ $data['nama_akun'] }}')" title="Detail Transaksi Keluar">
+                                        <i class="fas fa-arrow-up"></i> Keluar
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         @empty

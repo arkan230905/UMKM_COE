@@ -50,24 +50,24 @@
                     <div class="col-md-6">
                         <label class="form-label">Tunjangan (Rp)</label>
                         <input type="text" name="tunjangan" class="form-control money-input" value="{{ old('tunjangan',$jabatan->tunjangan) }}">
-                        <small class="text-white money-hint"></small>
+                        <small class="text-dark money-hint"></small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Asuransi (Rp)</label>
                         <input type="text" name="asuransi" class="form-control money-input" value="{{ old('asuransi',$jabatan->asuransi) }}">
-                        <small class="text-white money-hint"></small>
+                        <small class="text-dark money-hint"></small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Gaji Pokok (Rp)</label>
                         <input type="text" name="gaji" class="form-control money-input" value="{{ old('gaji',$jabatan->gaji) }}">
-                        <small class="text-white money-hint"></small>
-                        <small class="text-white d-block">BTKTL: gaji per bulan. BTKL: isi 0.</small>
+                        <small class="text-dark money-hint"></small>
+                        <small class="text-dark d-block">BTKTL: gaji per bulan. BTKL: isi 0.</small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Tarif/Jam (Rp)</label>
                         <input type="text" name="tarif" class="form-control money-input" value="{{ old('tarif',$jabatan->tarif) }}">
-                        <small class="text-white money-hint"></small>
-                        <small class="text-white d-block">BTKL: tarif per jam. BTKTL: isi 0.</small>
+                        <small class="text-dark money-hint"></small>
+                        <small class="text-dark d-block">BTKL: tarif per jam. BTKTL: isi 0.</small>
                     </div>
                 </div>
 

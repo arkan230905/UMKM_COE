@@ -146,7 +146,18 @@ class BahanPendukungController extends Controller
 
     public function show(BahanPendukung $bahanPendukung)
     {
-        $bahanPendukung->load(['satuan', 'kategoriBahanPendukung']);
+        $bahanPendukung->load(['satuan', 'kategoriBahanPendukung', 'subSatuan1', 'subSatuan2', 'subSatuan3']);
+        
+        // Hitung harga rata-rata untuk display
+        $averageHarga = $this->getAverageHargaSatuan($bahanPendukung->id);
+        
+        // Jika ada harga rata-rata, gunakan itu. Jika tidak, gunakan harga default
+        if ($averageHarga > 0) {
+            $bahanPendukung->harga_satuan_display = $averageHarga;
+        } else {
+            $bahanPendukung->harga_satuan_display = $bahanPendukung->harga_satuan;
+        }
+        
         return view('master-data.bahan-pendukung.show', compact('bahanPendukung'));
     }
 
@@ -224,5 +235,36 @@ class BahanPendukungController extends Controller
                 $request->merge([$field => $convertedValue]);
             }
         }
+    }
+
+    /**
+     * Get average harga satuan untuk bahan pendukung
+     */
+    public function getAverageHargaSatuan($bahanPendukungId)
+    {
+        $bahanPendukung = BahanPendukung::findOrFail($bahanPendukungId);
+        
+        // Ambil semua pembelian detail untuk bahan pendukung ini
+        $details = \App\Models\PembelianDetail::where('bahan_pendukung_id', $bahanPendukungId)
+            ->with(['pembelian'])
+            ->get();
+        
+        if ($details->isEmpty()) {
+            return 0;
+        }
+        
+        // Hitung total harga dan total quantity
+        $totalHarga = 0;
+        $totalQuantity = 0;
+        
+        foreach ($details as $detail) {
+            $totalHarga += ($detail->harga_satuan ?? 0) * ($detail->jumlah ?? 0);
+            $totalQuantity += ($detail->jumlah ?? 0);
+        }
+        
+        // Hitung harga rata-rata
+        $averageHarga = $totalQuantity > 0 ? $totalHarga / $totalQuantity : 0;
+        
+        return $averageHarga;
     }
 }
