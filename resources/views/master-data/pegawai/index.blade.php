@@ -95,8 +95,8 @@
                             <td>{{ strtoupper($pegawai->bank ?? '-') }}</td>
                             <td>{{ $pegawai->nomor_rekening ?? '-' }}</td>
                             <td>{{ $pegawai->nama_rekening ?? '-' }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->gaji, 0, ',', '.') }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->tarif, 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format($pegawai->gaji_pokok, 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format($pegawai->tarif_lembur, 0, ',', '.') }}</td>
                             <td class="text-end">Rp {{ number_format($pegawai->tunjangan, 0, ',', '.') }}</td>
                             <td class="text-end">Rp {{ number_format($pegawai->asuransi, 0, ',', '.') }}</td>
                             <td class="text-center">
