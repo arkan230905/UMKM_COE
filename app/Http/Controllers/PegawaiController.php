@@ -41,7 +41,7 @@ class PegawaiController extends Controller
     // Tampilkan form create
     public function create()
     {
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji','tarif')->orderBy('nama')->get();
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif_per_jam')->orderBy('nama')->get();
         return view('master-data.pegawai.create', compact('jabatans'));
     }
 
@@ -72,9 +72,10 @@ class PegawaiController extends Controller
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'jabatan' => $jab->nama,
             'jenis_pegawai' => $jenisPegawai,
-            'gaji' => $jab->gaji ?? 0,
-            'tarif' => $jab->tarif ?? 0,
+            'gaji_pokok' => $jab->gaji_pokok ?? $jab->gaji ?? 0,
+            'tarif_per_jam' => $jab->tarif_per_jam ?? $jab->tarif ?? 0,
             'tunjangan' => $jab->tunjangan ?? 0,
+            'asuransi' => $jab->asuransi ?? 0,
             'bank' => $request->input('bank'),
             'nomor_rekening' => $request->input('nomor_rekening'),
             'nama_rekening' => $request->input('nama_rekening'),
@@ -96,7 +97,7 @@ class PegawaiController extends Controller
     // Form edit pegawai
     public function edit(Pegawai $pegawai)
     {
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji','tarif')->orderBy('nama')->get();
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif_per_jam')->orderBy('nama')->get();
         return view('master-data.pegawai.edit', compact('pegawai','jabatans'));
     }
 
@@ -127,9 +128,10 @@ class PegawaiController extends Controller
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'jabatan' => $jab->nama,
             'jenis_pegawai' => $jenisPegawai,
-            'gaji' => $jab->gaji ?? 0,
-            'tarif' => $jab->tarif ?? 0,
+            'gaji_pokok' => $jab->gaji_pokok ?? $jab->gaji ?? 0,
+            'tarif_per_jam' => $jab->tarif_per_jam ?? $jab->tarif ?? 0,
             'tunjangan' => $jab->tunjangan ?? 0,
+            'asuransi' => $jab->asuransi ?? 0,
         ];
         
         // Log the update data for debugging
