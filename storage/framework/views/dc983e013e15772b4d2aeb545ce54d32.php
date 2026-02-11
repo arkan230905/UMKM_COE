@@ -47,7 +47,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link-rounded <?php echo e(request()->is('master-data/satuan*') ? 'active' : ''); ?>" href="<?php echo e(route('master-data.satuan.index')); ?>">
+                <a class="nav-link-rounded <?php echo e(request()->is('master-data/satuan*') ? 'active' : ''); ?>" href="<?php echo e(route('master-data.satuan.dashboard')); ?>">
                     <i class="fas fa-balance-scale"></i>
                     <span>Satuan</span>
                 </a>
@@ -283,4 +283,4 @@
             </li>
         </ul>
     </div>
-</div><?php /**PATH C:\UMKM_COE\resources\views/layouts/sidebar.blade.php ENDPATH**/ ?>
+</div><?php /**PATH C:\xampp\htdocs\UMKM_COE\resources\views/layouts/sidebar.blade.php ENDPATH**/ ?>
