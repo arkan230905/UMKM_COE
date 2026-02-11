@@ -538,7 +538,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{pembelian}', [PembelianController::class, 'show'])->name('show');
             Route::get('/{pembelian}/edit', [PembelianController::class, 'edit'])->name('edit');
             Route::put('/{pembelian}', [PembelianController::class, 'update'])->name('update');
-        Route::patch('/{pembelian}', [PembelianController::class, 'update'])->name('update');
+            Route::patch('/{pembelian}', [PembelianController::class, 'update'])->name('update');
             Route::delete('/{pembelian}', [PembelianController::class, 'destroy'])->name('destroy');
         });
 
