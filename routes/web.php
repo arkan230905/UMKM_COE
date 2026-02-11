@@ -1,9 +1,13 @@
-
 <?php
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\WelcomeController;
+
+// Test route for debugging
+Route::get('test-satuan', function() {
+    return 'Satuan Dashboard Test - Route is working!';
+});
 
 // ====================================================================
 // AUTHENTICATION ROUTES
@@ -289,6 +293,7 @@ Route::middleware('auth')->group(function () {
         Route::post('kualifikasi-tenaga-kerja/{kualifikasi_tenaga_kerja}', [JabatanController::class, 'update'])->name('master-data.kualifikasi-tenaga-kerja.update');
         Route::resource('pegawai', PegawaiController::class);
         Route::resource('vendor', VendorController::class);
+        Route::get('satuan-dashboard', [SatuanController::class, 'dashboard'])->name('satuan.dashboard');
         Route::resource('satuan', SatuanController::class);
         // Route::resource('user', UserController::class); // Commented out to avoid error
         
