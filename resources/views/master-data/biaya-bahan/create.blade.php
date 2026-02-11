@@ -471,9 +471,12 @@ function getConversionFactor(fromUnit, toUnit, subSatuanData = []) {
         );
         
         if (match) {
-            const konversi = parseFloat(match.konversi) || 1;
+            // PENTING: nilai = jumlah sub satuan dalam 1 satuan utama
+            // Contoh: 1 Liter = 1000 Gram, maka nilai = 1000
+            // Factor = 1 / 1000 = 0.001
+            // Harga per Gram = Harga per Liter × 0.001
             const nilai = parseFloat(match.nilai) || 1;
-            return konversi / nilai;
+            return 1 / nilai;
         }
     }
     

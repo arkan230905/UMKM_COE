@@ -108,8 +108,12 @@ class LaporanKasBankController extends Controller
             }
         }
         
-        // 4. Jika tidak ada periode atau saldo, gunakan saldo awal dari COA
-        return is_numeric($akun->saldo_awal) ? (float) ($akun->saldo_awal ?? 0) : 0;
+        // 4. Jika tidak ada periode atau saldo, gunakan saldo awal dari COA atau 0 untuk virtual accounts
+        if (isset($akun->saldo_awal)) {
+            return is_numeric($akun->saldo_awal) ? (float) ($akun->saldo_awal ?? 0) : 0;
+        }
+        
+        return 0;
     }
     
     /**
@@ -117,9 +121,12 @@ class LaporanKasBankController extends Controller
      */
     private function getTransaksiMasuk($akun, $startDate, $endDate)
     {
+        // Mapping COA ke accounts table
+        $accountCode = $this->mapCoaToAccountCode($akun->kode_akun);
+        
         // Cari account_id yang sesuai
         $account = DB::table('accounts')
-            ->where('code', $akun->kode_akun)
+            ->where('code', $accountCode)
             ->first();
         
         if (!$account) {
@@ -141,9 +148,12 @@ class LaporanKasBankController extends Controller
      */
     private function getTransaksiKeluar($akun, $startDate, $endDate)
     {
+        // Mapping COA ke accounts table
+        $accountCode = $this->mapCoaToAccountCode($akun->kode_akun);
+        
         // Cari account_id yang sesuai
         $account = DB::table('accounts')
-            ->where('code', $akun->kode_akun)
+            ->where('code', $accountCode)
             ->first();
         
         if (!$account) {
@@ -161,6 +171,21 @@ class LaporanKasBankController extends Controller
     }
     
     /**
+     * Map COA code to accounts table code
+     */
+    private function mapCoaToAccountCode($coaCode)
+    {
+        $mapping = [
+            '1110' => '101', // Kas COA -> Kas Account
+            '1120' => '102', // Bank COA -> Bank Account
+            '101' => '101',  // Direct mapping
+            '102' => '102',  // Direct mapping
+        ];
+        
+        return $mapping[$coaCode] ?? $coaCode;
+    }
+    
+    /**
      * Get detail transaksi masuk
      */
     public function getDetailMasuk(Request $request, $coaId)
@@ -168,15 +193,16 @@ class LaporanKasBankController extends Controller
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
         
-        // Ambil COA
+        // Try to find COA first, then use coaId as kode_akun directly
         $coa = Coa::find($coaId);
-        if (!$coa) {
-            return response()->json([]);
-        }
+        $kodeAkun = $coa ? $coa->kode_akun : $coaId;
+        
+        // Map COA code to account code
+        $accountCode = $this->mapCoaToAccountCode($kodeAkun);
         
         // Cari account_id yang sesuai
         $account = DB::table('accounts')
-            ->where('code', $coa->kode_akun)
+            ->where('code', $accountCode)
             ->first();
         
         if (!$account) {
@@ -215,15 +241,16 @@ class LaporanKasBankController extends Controller
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
         
-        // Ambil COA
+        // Try to find COA first, then use coaId as kode_akun directly
         $coa = Coa::find($coaId);
-        if (!$coa) {
-            return response()->json([]);
-        }
+        $kodeAkun = $coa ? $coa->kode_akun : $coaId;
+        
+        // Map COA code to account code
+        $accountCode = $this->mapCoaToAccountCode($kodeAkun);
         
         // Cari account_id yang sesuai
         $account = DB::table('accounts')
-            ->where('code', $coa->kode_akun)
+            ->where('code', $accountCode)
             ->first();
         
         if (!$account) {

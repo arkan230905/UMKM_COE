@@ -22,34 +22,36 @@
 
     <div class="card">
         <div class="card-header">
-            <h5 class="mb-0">
+            <h5 class="mb-1">
                 <i class="fas fa-list me-2"></i>Daftar Kualifikasi Tenaga Kerja
             </h5>
-            <form method="GET" class="row g-2 mt-3">
-                <div class="col-md-3">
+            
+            <!-- Modern Filter Section -->
+            <form method="GET" class="d-flex align-items-center gap-2" style="margin-left: 30px;">
+                <div class="d-flex shadow-sm" style="border-radius: 20px; overflow: hidden; background: white; min-width: 320px;">
                     <input type="text" 
                            name="search" 
                            value="{{ request('search') }}" 
-                           class="form-control" 
-                           placeholder="Cari nama kualifikasi...">
-                </div>
-                <div class="col-md-3">
-                    <select name="kategori" class="form-select" onchange="this.form.submit()">
+                           class="form-control border-0" 
+                           placeholder="Cari nama"
+                           style="padding: 8px 15px; background: white; border-radius: 20px 0 0 20px; outline: none; box-shadow: none; font-size: 14px;">
+                    
+                    <select name="kategori" class="form-select border-0" style="padding: 8px 12px; background: white; border-radius: 0 20px 20px 0; outline: none; box-shadow: none; border-left: 1px solid #e0e0e0; font-size: 14px;">
                         <option value="">Semua Kategori</option>
                         <option value="btkl" {{ request('kategori') == 'btkl' ? 'selected' : '' }}>BTKL</option>
                         <option value="btktl" {{ request('kategori') == 'btktl' ? 'selected' : '' }}>BTKTL</option>
                     </select>
                 </div>
-                <div class="col-md-3 d-flex">
-                    <button type="submit" class="btn btn-primary me-2">
-                        <i class="fas fa-search me-2"></i>Cari
-                    </button>
-                    @if(request('search') || request('kategori'))
-                        <a href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-redo me-2"></i>Reset
-                        </a>
-                    @endif
-                </div>
+                
+                <button type="submit" class="btn shadow-sm" style="border-radius: 20px; padding: 8px 20px; background: #8B7355; color: white; border: none; font-size: 14px;">
+                    <i class="fas fa-search me-1"></i>Cari
+                </button>
+                
+                @if(request('search') || request('kategori'))
+                    <a href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}" class="btn btn-outline-secondary" style="border-radius: 20px; padding: 8px 15px; font-size: 14px;">
+                        <i class="fas fa-redo me-1"></i>Reset
+                    </a>
+                @endif
             </form>
         </div>
         <div class="card-body p-0">

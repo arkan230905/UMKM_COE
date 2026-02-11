@@ -2,10 +2,7 @@
 
 @section('content')
 <div class="container-fluid px-4 py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">
-            <i class="bi bi-people-fill me-2"></i>Daftar Pegawai
-        </h2>
+    <div class="d-flex justify-content-end align-items-center mb-4">
         <div>
             <a href="{{ route('master-data.pegawai.create') }}" class="btn btn-primary">
                 <i class="bi bi-plus-circle me-1"></i>Tambah Pegawai
@@ -22,30 +19,37 @@
 
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3">
-            <div class="row g-3 align-items-center">
-                <div class="col-md-4">
-                    <form method="GET" action="{{ route('master-data.pegawai.index') }}" class="input-group">
-                        <input type="text" 
-                               name="search" 
-                               class="form-control" 
-                               placeholder="Cari pegawai..." 
-                               value="{{ request('search') }}"
-                               style="color: #000; background-color: #f8f9fa;">
-                        <button class="btn btn-outline-secondary" type="submit">
-                            <i class="bi bi-search"></i>
-                        </button>
-                    </form>
+            <h5 class="mb-1">
+                <i class="bi bi-people-fill me-2"></i>Daftar Pegawai
+            </h5>
+            
+            <!-- Modern Filter Section -->
+            <form method="GET" action="{{ route('master-data.pegawai.index') }}" class="d-flex align-items-center gap-2" style="margin-left: 30px;">
+                <div class="d-flex shadow-sm" style="border-radius: 20px; overflow: hidden; background: white; min-width: 320px;">
+                    <input type="text" 
+                           name="search" 
+                           value="{{ request('search') }}" 
+                           class="form-control border-0" 
+                           placeholder="Cari pegawai"
+                           style="padding: 8px 15px; background: white; border-radius: 20px 0 0 20px; outline: none; box-shadow: none; font-size: 14px;">
+                    
+                    <select name="jenis" class="form-select border-0" style="padding: 8px 12px; background: white; border-radius: 0 20px 20px 0; outline: none; box-shadow: none; border-left: 1px solid #e0e0e0; font-size: 14px;">
+                        <option value="">Semua Kategori</option>
+                        <option value="btkl" {{ request('jenis') == 'btkl' ? 'selected' : '' }}>BTKL</option>
+                        <option value="btktl" {{ request('jenis') == 'btktl' ? 'selected' : '' }}>BTKTL</option>
+                    </select>
                 </div>
-                <div class="col-md-3">
-                    <form method="GET" action="{{ route('master-data.pegawai.index') }}">
-                        <select name="jenis" class="form-select" onchange="this.form.submit()" style="color: #000; background-color: #f8f9fa;">
-                            <option value="">Semua Kategori</option>
-                            <option value="btkl" {{ request('jenis') == 'btkl' ? 'selected' : '' }}>BTKL</option>
-                            <option value="btktl" {{ request('jenis') == 'btktl' ? 'selected' : '' }}>BTKTL</option>
-                        </select>
-                    </form>
-                </div>
-            </div>
+                
+                <button type="submit" class="btn shadow-sm" style="border-radius: 20px; padding: 8px 20px; background: #8B7355; color: white; border: none; font-size: 14px;">
+                    <i class="bi bi-search me-1"></i>Cari
+                </button>
+                
+                @if(request('search') || request('jenis'))
+                    <a href="{{ route('master-data.pegawai.index') }}" class="btn btn-outline-secondary" style="border-radius: 20px; padding: 8px 15px; font-size: 14px;">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Reset
+                    </a>
+                @endif
+            </form>
         </div>
         
         <div class="card-body p-0">
@@ -91,8 +95,8 @@
                             <td>{{ strtoupper($pegawai->bank ?? '-') }}</td>
                             <td>{{ $pegawai->nomor_rekening ?? '-' }}</td>
                             <td>{{ $pegawai->nama_rekening ?? '-' }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->gaji, 0, ',', '.') }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->tarif, 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format($pegawai->gaji_pokok, 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format($pegawai->tarif_lembur, 0, ',', '.') }}</td>
                             <td class="text-end">Rp {{ number_format($pegawai->tunjangan, 0, ',', '.') }}</td>
                             <td class="text-end">Rp {{ number_format($pegawai->asuransi, 0, ',', '.') }}</td>
                             <td class="text-center">

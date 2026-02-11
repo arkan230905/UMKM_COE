@@ -50,13 +50,30 @@ class BopProses extends Model
     protected static function booted()
     {
         static::saving(function ($model) {
-            // Calculate total BOP per jam from JSON components (new structure)
+            // Calculate total BOP per jam from components
+            $totalBop = 0;
+            
+            // Check if we have JSON komponen_bop (new structure)
             if ($model->komponen_bop) {
                 $komponenBop = is_array($model->komponen_bop) ? $model->komponen_bop : json_decode($model->komponen_bop, true);
-                if (is_array($komponenBop)) {
-                    $model->total_bop_per_jam = array_sum(array_column($komponenBop, 'rate_per_hour'));
+                if (is_array($komponenBop) && isset($komponenBop[0]['rate_per_hour'])) {
+                    // New JSON structure
+                    $totalBop = array_sum(array_column($komponenBop, 'rate_per_hour'));
                 }
             }
+            
+            // If no JSON data or total is 0, calculate from individual fields (old structure)
+            if ($totalBop == 0) {
+                $totalBop = 
+                    floatval($model->listrik_per_jam ?? 0) +
+                    floatval($model->gas_bbm_per_jam ?? 0) +
+                    floatval($model->penyusutan_mesin_per_jam ?? 0) +
+                    floatval($model->maintenance_per_jam ?? 0) +
+                    floatval($model->gaji_mandor_per_jam ?? 0) +
+                    floatval($model->lain_lain_per_jam ?? 0);
+            }
+            
+            $model->total_bop_per_jam = $totalBop;
 
             // Auto-sync kapasitas dari BTKL
             if ($model->prosesProduksi) {
@@ -92,9 +109,17 @@ class BopProses extends Model
     }
 
     /**
-     * Get komponen BOP dalam array
+     * Get komponen BOP dalam array - raw data dari database
      */
-    public function getKomponenBopAttribute(): array
+    public function getRawKomponenBopAttribute()
+    {
+        return $this->attributes['komponen_bop'] ?? null;
+    }
+
+    /**
+     * Get komponen BOP dalam format lama untuk backward compatibility
+     */
+    public function getKomponenBopLegacyAttribute(): array
     {
         return [
             'listrik_per_jam' => $this->listrik_per_jam ?? 0,

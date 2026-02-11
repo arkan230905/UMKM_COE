@@ -319,13 +319,38 @@ class BopController extends Controller
     }
 
     /**
-     * Show form for editing BOP Proses
+     * Show BOP detail for modal (AJAX)
+     */
+    public function showProsesModal($id)
+    {
+        try {
+            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
+            
+            // Get matching BTKL data based on process name
+            $btkl = \App\Models\Btkl::where('nama_btkl', $bopProses->prosesProduksi->nama_proses)->first();
+            
+            return view('master-data.bop.show-proses-modal', compact('bopProses', 'btkl'));
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'BOP Proses tidak ditemukan: ' . $e->getMessage()
+            ], 404);
+        }
+    }
+
+    /**
+     * Show BOP detail page
      */
     public function showProses($id)
     {
         try {
             $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
-            return view('master-data.bop.show-proses', compact('bopProses'));
+            
+            // Get matching BTKL data based on process name
+            $btkl = \App\Models\Btkl::where('nama_btkl', $bopProses->prosesProduksi->nama_proses)->first();
+            
+            return view('master-data.bop.show-proses', compact('bopProses', 'btkl'));
             
         } catch (\Exception $e) {
             return redirect()
@@ -469,33 +494,125 @@ class BopController extends Controller
     }
 
     /**
-     * Update aktual BOP from expense payments
-     * This method will be called when expense payments are made
+     * Store BOP Proses (simplified version)
      */
-    public function updateAktualFromExpense($kodeAkun, $jumlah)
+    public function storeProsesSimple(Request $request)
     {
+        $validated = $request->validate([
+            'proses_produksi_id' => 'required|exists:proses_produksis,id|unique:bop_proses,proses_produksi_id',
+            'budget' => 'required|numeric|min:0',
+            'total_bop_per_jam' => 'required|numeric|min:0',
+            'periode' => 'required|string',
+            'keterangan' => 'nullable|string'
+        ]);
+
         try {
             DB::beginTransaction();
 
-            // Update BOP Lainnya aktual
-            $bopLainnya = \App\Models\BopLainnya::where('kode_akun', $kodeAkun)
-                ->where('is_active', true)
-                ->first();
-
-            if ($bopLainnya) {
-                $bopLainnya->increment('aktual', $jumlah);
+            // Get BTKL process to validate capacity
+            $prosesProduksi = ProsesProduksi::findOrFail($validated['proses_produksi_id']);
+            
+            if ($prosesProduksi->kapasitas_per_jam <= 0) {
+                throw new \Exception('Proses produksi harus memiliki kapasitas per jam yang valid.');
             }
 
-            // Update BOP Proses aktual if related to specific process expenses
-            // This can be expanded based on business logic
+            $kapasitasPerJam = $prosesProduksi->kapasitas_per_jam;
+            $bopPerUnit = $kapasitasPerJam > 0 ? $validated['total_bop_per_jam'] / $kapasitasPerJam : 0;
+
+            // Create BOP Proses
+            $bopProses = BopProses::create([
+                'proses_produksi_id' => $validated['proses_produksi_id'],
+                'komponen_bop' => [], // Empty for now
+                'total_bop_per_jam' => $validated['total_bop_per_jam'],
+                'kapasitas_per_jam' => $kapasitasPerJam,
+                'bop_per_unit' => $bopPerUnit,
+                'budget' => $validated['budget'],
+                'aktual' => 0,
+                'periode' => $validated['periode'],
+                'keterangan' => $validated['keterangan'] ?? "BOP untuk proses {$prosesProduksi->nama_proses}",
+                'is_active' => true,
+            ]);
 
             DB::commit();
 
-            return true;
+            return response()->json([
+                'success' => true,
+                'message' => 'BOP Proses berhasil ditambahkan'
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return false;
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menambah BOP Proses: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Update BOP Proses (simplified version)
+     */
+    public function updateProsesSimple(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'budget' => 'required|numeric|min:0',
+            'total_bop_per_jam' => 'required|numeric|min:0',
+            'aktual' => 'nullable|numeric|min:0',
+            'keterangan' => 'nullable|string'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $bopProses = BopProses::findOrFail($id);
+            
+            $kapasitasPerJam = $bopProses->prosesProduksi->kapasitas_per_jam;
+            $bopPerUnit = $kapasitasPerJam > 0 ? $validated['total_bop_per_jam'] / $kapasitasPerJam : 0;
+
+            // Update BOP Proses
+            $bopProses->update([
+                'total_bop_per_jam' => $validated['total_bop_per_jam'],
+                'bop_per_unit' => $bopPerUnit,
+                'budget' => $validated['budget'],
+                'aktual' => $validated['aktual'] ?? $bopProses->aktual,
+                'keterangan' => $validated['keterangan'] ?? $bopProses->keterangan,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'BOP Proses berhasil diperbarui'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memperbarui BOP Proses: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Get BOP Proses data for editing
+     */
+    public function getBopProses($id)
+    {
+        try {
+            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
+            
+            return response()->json([
+                'success' => true,
+                'bop' => $bopProses
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
         }
     }
 }

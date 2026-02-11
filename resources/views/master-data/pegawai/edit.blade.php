@@ -61,8 +61,8 @@
                                 data-kategori="{{ $j->kategori }}"
                                 data-tunjangan="{{ $j->tunjangan }}"
                                 data-asuransi="{{ $j->asuransi }}"
-                                data-gaji="{{ $j->gaji }}"
-                                data-tarif="{{ $j->tarif }}"
+                                data-gaji_pokok="{{ $j->gaji_pokok }}"
+                                data-tarif_lembur="{{ $j->tarif_lembur }}"
                                 {{ old('jabatan_id')==$j->id || $pegawai->jabatan===$j->nama ? 'selected' : '' }}>
                             {{ $j->nama }} ({{ strtoupper($j->kategori) }})
                         </option>
@@ -75,8 +75,8 @@
             <input type="hidden" name="kategori" id="kategori" value="{{ old('kategori',$pegawai->kategori) }}">
             <input type="hidden" name="tunjangan" id="tunjangan" value="{{ old('tunjangan',$pegawai->tunjangan) }}">
             <input type="hidden" name="asuransi" id="asuransi" value="{{ old('asuransi',$pegawai->asuransi) }}">
-            <input type="hidden" name="gaji" id="gaji" value="{{ old('gaji',$pegawai->gaji) }}">
-            <input type="hidden" name="tarif" id="tarif" value="{{ old('tarif',$pegawai->tarif) }}">
+            <input type="hidden" name="gaji_pokok" id="gaji_pokok" value="{{ old('gaji_pokok',$pegawai->gaji_pokok) }}">
+            <input type="hidden" name="tarif_lembur" id="tarif_lembur" value="{{ old('tarif_lembur',$pegawai->tarif_lembur) }}">
 
             <!-- Preview otomatis dari Jabatan -->
             <div class="col-12">
@@ -138,22 +138,22 @@
                 kategori: ds.kategori || '',
                 tunjangan: ds.tunjangan || 0,
                 asuransi: ds.asuransi || 0,
-                gaji: ds.gaji || 0,
-                tarif: ds.tarif || 0,
+                gaji_pokok: ds.gaji_pokok || 0,
+                tarif_lembur: ds.tarif_lembur || 0,
             };
             // set hidden
             document.getElementById('jabatan').value = data.nama;
             document.getElementById('kategori').value = (data.kategori||'').toUpperCase();
             document.getElementById('tunjangan').value = data.tunjangan;
             document.getElementById('asuransi').value = data.asuransi;
-            document.getElementById('gaji').value = data.gaji;
-            document.getElementById('tarif').value = data.tarif;
+            document.getElementById('gaji_pokok').value = data.gaji_pokok;
+            document.getElementById('tarif_lembur').value = data.tarif_lembur;
             // preview
             document.getElementById('pv-kategori').textContent = (data.kategori||'').toUpperCase();
             document.getElementById('pv-tunjangan').textContent = fmt(data.tunjangan);
             document.getElementById('pv-asuransi').textContent = fmt(data.asuransi);
-            document.getElementById('pv-gaji').textContent = fmt(data.gaji);
-            document.getElementById('pv-tarif').textContent = fmt(data.tarif);
+            document.getElementById('pv-gaji').textContent = fmt(data.gaji_pokok);
+            document.getElementById('pv-tarif').textContent = fmt(data.tarif_lembur);
             document.getElementById('preview-box').style.display='block';
         };
         dd.addEventListener('change', mapFromSelect);

@@ -14,7 +14,15 @@ class BomJobBOP extends Model
 
     protected static function booted()
     {
-        static::saving(function ($m) { $m->subtotal = $m->jumlah * $m->tarif; });
+        static::saving(function ($m) { 
+            // Ensure subtotal is calculated correctly
+            $jumlah = floatval($m->jumlah ?? 0);
+            $tarif = floatval($m->tarif ?? 0);
+            $m->subtotal = $jumlah * $tarif;
+            
+            // Log for debugging
+            \Log::info("BomJobBOP saving - Jumlah: {$jumlah}, Tarif: {$tarif}, Subtotal: {$m->subtotal}");
+        });
         static::saved(function ($m) { $m->bomJobCosting?->recalculate(); });
         static::deleted(function ($m) { $m->bomJobCosting?->recalculate(); });
     }

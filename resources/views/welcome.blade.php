@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Selamat Datang - UMKM Management System</title>
+    <title>Sistem ERP Manufaktur - Solusi Keuangan Terpadu</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
@@ -104,30 +104,59 @@
 
         .logo-container {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
+            position: relative;
         }
 
         .logo {
-            max-width: 180px;
-            height: auto;
+            max-width: 160px;
+            height: 160px;
             margin: 0 auto 1.5rem;
             display: block;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-radius: 50%;
+            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.25);
+            transition: all 0.4s ease;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+            padding: 20px;
+            border: 3px solid rgba(59, 130, 246, 0.3);
+            object-fit: contain;
         }
 
         .logo:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+            transform: translateY(-3px) rotate(5deg);
+            box-shadow: 0 15px 40px rgba(59, 130, 246, 0.35);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .logo-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: -1;
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.9; transform: translate(-50%, -50%) scale(1.15); }
         }
 
         h1 {
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             font-weight: 700;
             margin-bottom: 1.5rem;
             color: #ffffff;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1.2;
         }
 
         .welcome-text {
@@ -186,16 +215,30 @@
         .feature-item {
             display: flex;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 1.2rem;
             color: #e2e8f0;
             opacity: 0.9;
+            padding: 0.5rem 0;
+            transition: all 0.3s ease;
+        }
+
+        .feature-item:hover {
+            opacity: 1;
+            transform: translateX(5px);
         }
 
         .feature-icon {
-            width: 24px;
-            height: 24px;
-            margin-right: 1rem;
-            color: #60a5fa; /* Lighter blue for better visibility */
+            width: 28px;
+            height: 28px;
+            margin-right: 1.2rem;
+            color: #60a5fa;
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 50%;
+            padding: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
         }
 
         .divider {
@@ -295,23 +338,28 @@
             <!-- Left Side - Welcome Content -->
             <div class="welcome-left">
                 <div class="logo-container">
-                    <img src="{{ asset('images/logo.png') }}" alt="UMKM Management Logo" class="logo">
+                    <div class="logo-glow"></div>
+                    <img src="{{ asset('images/logo.png') }}" alt="Manufacturing ERP Logo" class="logo">
                 </div>
-                <h1>Selamat Datang di UMKM Management</h1>
-                <p class="welcome-text">Kelola bisnis UMKM Anda dengan lebih mudah dan efisien. Mulai perjalanan bisnis Anda bersama kami.</p>
+                <h1>Sistem Keuangan Manufaktur Terpadu</h1>
+                <p class="welcome-text">Solusi lengkap untuk mengelola keuangan dan operasional perusahaan manufaktur Anda. Dari pembelian bahan baku hingga laporan keuangan, semua terintegrasi dalam satu platform.</p>
                 
                 <div class="feature-list">
                     <div class="feature-item">
-                        <i class="fas fa-check-circle feature-icon"></i>
-                        <span>Manajemen inventaris yang mudah</span>
+                        <i class="fas fa-industry feature-icon"></i>
+                        <span>Manajemen Produksi & BOM (Bill of Materials)</span>
                     </div>
                     <div class="feature-item">
-                        <i class="fas fa-check-circle feature-icon"></i>
-                        <span>Laporan keuangan terintegrasi</span>
+                        <i class="fas fa-calculator feature-icon"></i>
+                        <span>Perhitungan Harga Pokok Produksi Otomatis</span>
                     </div>
                     <div class="feature-item">
-                        <i class="fas fa-check-circle feature-icon"></i>
-                        <span>Monitor penjualan real-time</span>
+                        <i class="fas fa-chart-line feature-icon"></i>
+                        <span>Laporan Keuangan & Analisis Biaya Real-time</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-boxes feature-icon"></i>
+                        <span>Kontrol Inventaris Bahan Baku & Produk Jadi</span>
                     </div>
                 </div>
 
@@ -331,12 +379,32 @@
             <!-- Right Side - Image/Illustration -->
             <div class="welcome-right">
                 <div>
-                    <h2 class="text-2xl font-bold mb-4">Bergabung dengan Ratusan UMKM Lainnya</h2>
-                    <p class="mb-6">Tingkatkan penjualan dan kelola bisnis Anda dengan lebih efisien menggunakan platform kami.</p>
+                    <h2 class="text-3xl font-bold mb-6">Solusi ERP Manufaktur Terdepan</h2>
+                    <p class="mb-8 text-lg">Tingkatkan efisiensi produksi dan kontrol keuangan perusahaan manufaktur Anda dengan sistem ERP yang komprehensif dan mudah digunakan.</p>
                     
-                    <div class="testimonial">
-                        "Sistem ini telah membantu saya mengelola inventaris dan keuangan dengan lebih baik. Sangat direkomendasikan untuk UMKM!"
-                        <span class="testimonial-author">- Ahmad, Pemilik Toko ABC</span>
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-green-400 rounded-full mr-3"></div>
+                            <span class="text-green-100">Sistem Terintegrasi & Komprehensif</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-blue-400 rounded-full mr-3"></div>
+                            <span class="text-blue-100">Interface Modern & User-Friendly</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-purple-400 rounded-full mr-3"></div>
+                            <span class="text-purple-100">Laporan Real-time & Akurat</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 bg-yellow-400 rounded-full mr-3"></div>
+                            <span class="text-yellow-100">Efisiensi Maksimal & Hemat Biaya</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-lg border border-blue-400/30">
+                        <p class="text-center text-blue-100 font-medium">
+                            "Platform yang dirancang khusus untuk memenuhi kebutuhan industri manufaktur modern dengan teknologi terdepan"
+                        </p>
                     </div>
                 </div>
             </div>
