@@ -61,8 +61,8 @@
                                 data-kategori="{{ $j->kategori }}"
                                 data-tunjangan="{{ $j->tunjangan }}"
                                 data-asuransi="{{ $j->asuransi }}"
-                                data-gaji_pokok="{{ $j->gaji_pokok ?? $j->gaji ?? 0 }}"
-                                data-tarif_per_jam="{{ $j->tarif_per_jam ?? $j->tarif ?? 0 }}"
+                                data-gaji_pokok="{{ $j->gaji ?? 0 }}"
+                                data-tarif_per_jam="{{ $j->tarif ?? 0 }}"
                                 {{ old('jabatan_id')==$j->id || $pegawai->jabatan===$j->nama ? 'selected' : '' }}>
                             {{ $j->nama }} ({{ strtoupper($j->kategori) }})
                         </option>
@@ -138,8 +138,8 @@
                 kategori: ds.kategori || '',
                 tunjangan: ds.tunjangan || 0,
                 asuransi: ds.asuransi || 0,
-                gaji_pokok: parseFloat(ds.gaji_pokok || ds.gaji || 0),
-                tarif_per_jam: parseFloat(ds.tarif_per_jam || ds.tarif || 0),
+                gaji_pokok: parseFloat(ds.gaji_pokok || 0),
+                tarif_per_jam: parseFloat(ds.tarif_per_jam || 0),
             };
             // set hidden
             document.getElementById('jabatan').value = data.nama;
