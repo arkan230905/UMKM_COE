@@ -39,8 +39,8 @@ class JabatanController extends Controller
         $request->merge([
             'tunjangan' => $this->normalizeMoney($request->input('tunjangan')),
             'asuransi' => $this->normalizeMoney($request->input('asuransi')),
-            'gaji' => $this->normalizeMoney($request->input('gaji') ?? $request->input('gaji_pokok')),
-            'tarif' => $this->normalizeMoney($request->input('tarif') ?? $request->input('tarif_lembur')),
+            'gaji' => $this->normalizeMoney($request->input('gaji')),
+            'tarif' => $this->normalizeMoney($request->input('tarif')),
         ]);
         $data = $request->validate([
             'nama' => 'required|string|max:255',
@@ -86,8 +86,8 @@ class JabatanController extends Controller
         $request->merge([
             'tunjangan' => $this->normalizeMoney($request->input('tunjangan')),
             'asuransi' => $this->normalizeMoney($request->input('asuransi')),
-            'gaji' => $this->normalizeMoney($request->input('gaji') ?? $request->input('gaji_pokok')),
-            'tarif' => $this->normalizeMoney($request->input('tarif') ?? $request->input('tarif_lembur')),
+            'gaji' => $this->normalizeMoney($request->input('gaji')),
+            'tarif' => $this->normalizeMoney($request->input('tarif')),
         ]);
         $data = $request->validate([
             'nama' => 'required|string|max:255',
@@ -159,7 +159,7 @@ class JabatanController extends Controller
         }
     }
 
-    public function normalizeMoney($value): ?string
+    private function normalizeMoney($value): ?string
     {
         if ($value === null || $value === '') return $value;
         // Hilangkan spasi

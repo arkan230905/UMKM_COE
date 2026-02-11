@@ -1,9 +1,13 @@
-
 <?php
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\WelcomeController;
+
+// Test route for debugging
+Route::get('test-satuan', function() {
+    return 'Satuan Dashboard Test - Route is working!';
+});
 
 // ====================================================================
 // AUTHENTICATION ROUTES
@@ -290,6 +294,7 @@ Route::middleware('auth')->group(function () {
         Route::post('kualifikasi-tenaga-kerja/{kualifikasi_tenaga_kerja}', [JabatanController::class, 'update'])->name('master-data.kualifikasi-tenaga-kerja.update');
         Route::resource('pegawai', PegawaiController::class);
         Route::resource('vendor', VendorController::class);
+        Route::get('satuan-dashboard', [SatuanController::class, 'dashboard'])->name('satuan.dashboard');
         Route::resource('satuan', SatuanController::class);
         // Route::resource('user', UserController::class); // Commented out to avoid error
         
@@ -479,6 +484,7 @@ Route::middleware('auth')->group(function () {
             Route::prefix('verifikasi-wajah')->name('verifikasi-wajah.')->group(function() {
                 Route::get('/', [PresensiController::class, 'verifikasiWajahIndex'])->name('index');
                 Route::get('/create', [PresensiController::class, 'verifikasiWajahCreate'])->name('create');
+                Route::post('/step1', [PresensiController::class, 'verifikasiWajahStep1'])->name('step1');
                 Route::get('/face-recognition', [PresensiController::class, 'verifikasiWajahFaceRecognition'])->name('face-recognition');
                 Route::post('/', [PresensiController::class, 'verifikasiWajahStore'])->name('store');
                 Route::get('/{id}/edit', [PresensiController::class, 'verifikasiWajahEdit'])->name('edit');
@@ -513,6 +519,13 @@ Route::middleware('auth')->group(function () {
             Route::put('/{id}', [PenggajianController::class, 'update'])->name('update');
             Route::delete('/{id}', [PenggajianController::class, 'destroy'])->name('destroy');
             Route::get('/print/{id}', [PenggajianController::class, 'print'])->name('print');
+            
+            // Slip gaji
+            Route::get('/{id}/slip', [PenggajianController::class, 'generateSlip'])->name('slip');
+            Route::get('/{id}/slip-pdf', [PenggajianController::class, 'downloadSlip'])->name('slip-pdf');
+            
+            // Status management
+            Route::post('/{id}/update-status', [PenggajianController::class, 'updateStatus'])->name('update-status');
         });
 
         // ============================================================

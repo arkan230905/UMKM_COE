@@ -47,7 +47,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link-rounded {{ request()->is('master-data/satuan*') ? 'active' : '' }}" href="{{ route('master-data.satuan.index') }}">
+                <a class="nav-link-rounded {{ request()->is('master-data/satuan*') ? 'active' : '' }}" href="{{ route('master-data.satuan.dashboard') }}">
                     <i class="fas fa-balance-scale"></i>
                     <span>Satuan</span>
                 </a>

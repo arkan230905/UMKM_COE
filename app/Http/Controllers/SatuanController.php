@@ -13,6 +13,15 @@ class SatuanController extends Controller
         return view('master-data.satuan.index', compact('satuans'));
     }
 
+    /**
+     * Display satuan management page with tabs
+     */
+    public function dashboard()
+    {
+        $satuans = Satuan::orderBy('kode', 'asc')->get();
+        return view('master-data.satuan.dashboard', compact('satuans'));
+    }
+
     public function create()
     {
         return view('master-data.satuan.create');

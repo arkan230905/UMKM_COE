@@ -25,7 +25,7 @@ class PegawaiController extends Controller
             $query->where(function($q) use ($search) {
                 $q->where('nama', 'like', '%' . $search . '%')
                   ->orWhere('email', 'like', '%' . $search . '%')
-                  ->orWhere('no_telp', 'like', '%' . $search . '%')
+                  ->orWhere('no_telepon', 'like', '%' . $search . '%')
                   ->orWhere('jabatan', 'like', '%' . $search . '%');
             });
         }
@@ -67,14 +67,13 @@ class PegawaiController extends Controller
         $pegawaiData = [
             'nama' => $validated['nama'],
             'email' => $validated['email'],
-            'no_telepon' => $validated['no_telepon'],
+            'no_telp' => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'jabatan' => $jab->nama,
             'jenis_pegawai' => $jenisPegawai,
             'gaji' => $jab->gaji ?? 0,
-            'gaji_pokok' => $jab->gaji ?? 0,
-            'tarif_per_jam' => $jab->tarif ?? 0,
+            'tarif' => $jab->tarif ?? 0,
             'tunjangan' => $jab->tunjangan ?? 0,
             'bank' => $request->input('bank'),
             'nomor_rekening' => $request->input('nomor_rekening'),
@@ -123,14 +122,13 @@ class PegawaiController extends Controller
         $updateData = [
             'nama' => $validated['nama'],
             'email' => $validated['email'],
-            'no_telepon' => $validated['no_telepon'],
+            'no_telp' => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'jabatan' => $jab->nama,
             'jenis_pegawai' => $jenisPegawai,
             'gaji' => $jab->gaji ?? 0,
-            'gaji_pokok' => $jab->gaji ?? 0,
-            'tarif_per_jam' => $jab->tarif ?? 0,
+            'tarif' => $jab->tarif ?? 0,
             'tunjangan' => $jab->tunjangan ?? 0,
         ];
         

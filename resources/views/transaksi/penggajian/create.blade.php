@@ -14,10 +14,25 @@
         </div>
     @endif
 
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <div class="card bg-dark text-white border-0">
         <div class="card-body">
             <form action="{{ route('transaksi.penggajian.store') }}" method="POST" id="formPenggajian">
                 @csrf
+
+                <!-- Hidden fields untuk data pegawai -->
+                <input type="hidden" name="gaji_pokok" id="hidden_gaji_pokok" value="0">
+                <input type="hidden" name="tarif_per_jam" id="hidden_tarif_per_jam" value="0">
+                <input type="hidden" name="tunjangan" id="hidden_tunjangan" value="0">
+                <input type="hidden" name="asuransi" id="hidden_asuransi" value="0">
+                <input type="hidden" name="total_jam_kerja" id="hidden_total_jam_kerja" value="0">
+                <input type="hidden" name="jenis_pegawai" id="hidden_jenis_pegawai" value="">
 
                 <!-- Informasi Pegawai -->
                 <div class="row g-3 mb-4">
@@ -35,9 +50,13 @@
                                         data-tunjangan="{{ $pegawai->tunjangan ?? 0 }}"
                                         data-asuransi="{{ $pegawai->asuransi ?? 0 }}">
                                     {{ $pegawai->nama }} - {{ $pegawai->jabatan ?? 'Staff' }} ({{ strtoupper($pegawai->jenis_pegawai ?? 'BTKTL') }})
+                                    [Gaji: {{ number_format($pegawai->gaji_pokok ?? 0, 0, ',', '.') }}, Tarif: {{ number_format($pegawai->tarif_per_jam ?? 0, 0, ',', '.') }}]
                                 </option>
                             @endforeach
                         </select>
+                        @error('pegawai_id')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="col-md-4">
@@ -46,6 +65,9 @@
                         </label>
                         <input type="date" name="tanggal_penggajian" id="tanggal_penggajian" 
                                class="form-control form-control-lg" value="{{ date('Y-m-d') }}" required onchange="loadJamKerja()">
+                        @error('tanggal_penggajian')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="col-md-2">
@@ -59,6 +81,9 @@
                                 </option>
                             @endforeach
                         </select>
+                        @error('coa_kasbank')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 
@@ -132,6 +157,9 @@
                                            class="form-control" value="0" onchange="hitungTotal()">
                                 </div>
                                 <small class="text-muted">Bonus kinerja, lembur, dll</small>
+                                @error('bonus')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
                             </div>
 
                             <div class="col-md-6">
@@ -142,6 +170,9 @@
                                            class="form-control" value="0" onchange="hitungTotal()">
                                 </div>
                                 <small class="text-muted">Keterlambatan, pinjaman, dll</small>
+                                @error('potongan')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
                     </div>
@@ -167,7 +198,7 @@
                     <a href="{{ route('transaksi.penggajian.index') }}" class="btn btn-secondary btn-lg">
                         <i class="bi bi-arrow-left"></i> Kembali
                     </a>
-                    <button type="submit" class="btn btn-success btn-lg">
+                    <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
                         <i class="bi bi-save"></i> Simpan Penggajian
                     </button>
                 </div>
@@ -199,6 +230,14 @@ function loadPegawaiData() {
         pegawaiData.tunjangan = parseFloat(option.dataset.tunjangan) || 0;
         pegawaiData.asuransi = parseFloat(option.dataset.asuransi) || 0;
         
+        // Update hidden fields
+        document.getElementById('hidden_gaji_pokok').value = pegawaiData.gajiPokok;
+        document.getElementById('hidden_tarif_per_jam').value = pegawaiData.tarif;
+        document.getElementById('hidden_tunjangan').value = pegawaiData.tunjangan;
+        document.getElementById('hidden_asuransi').value = pegawaiData.asuransi;
+        document.getElementById('hidden_jenis_pegawai').value = pegawaiData.jenis;
+        document.getElementById('hidden_total_jam_kerja').value = pegawaiData.jamKerja;
+        
         // Update display
         document.getElementById('display_gaji_pokok').value = pegawaiData.gajiPokok.toLocaleString('id-ID');
         document.getElementById('display_tarif').value = pegawaiData.tarif.toLocaleString('id-ID');
@@ -218,6 +257,14 @@ function loadPegawaiData() {
         
         // Load jam kerja
         loadJamKerja();
+    } else {
+        // Reset hidden fields
+        document.getElementById('hidden_gaji_pokok').value = 0;
+        document.getElementById('hidden_tarif_per_jam').value = 0;
+        document.getElementById('hidden_tunjangan').value = 0;
+        document.getElementById('hidden_asuransi').value = 0;
+        document.getElementById('hidden_jenis_pegawai').value = '';
+        document.getElementById('hidden_total_jam_kerja').value = 0;
     }
 }
 
@@ -238,12 +285,14 @@ function loadJamKerja() {
             .then(data => {
                 pegawaiData.jamKerja = parseFloat(data.total_jam) || 0;
                 document.getElementById('display_jam_kerja').value = pegawaiData.jamKerja.toLocaleString('id-ID');
+                document.getElementById('hidden_total_jam_kerja').value = pegawaiData.jamKerja;
                 hitungTotal();
             })
             .catch(error => {
                 console.error('Error loading jam kerja:', error);
                 pegawaiData.jamKerja = 0;
                 document.getElementById('display_jam_kerja').value = '0';
+                document.getElementById('hidden_total_jam_kerja').value = 0;
                 hitungTotal();
             });
     } else {
@@ -277,6 +326,45 @@ function hitungTotal() {
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     hitungTotal();
+    
+    // Debug form submission
+    document.getElementById('formPenggajian').addEventListener('submit', function(e) {
+        console.log('Form data yang akan dikirim:');
+        const formData = new FormData(this);
+        for (let [key, value] of formData.entries()) {
+            console.log(key + ':', value);
+        }
+        
+        // Validasi required fields
+        const pegawaiId = document.getElementById('pegawai_id').value;
+        const tanggal = document.getElementById('tanggal_penggajian').value;
+        const coaKasbank = document.getElementById('coa_kasbank').value;
+        
+        if (!pegawaiId) {
+            alert('Pilih pegawai terlebih dahulu!');
+            e.preventDefault();
+            return false;
+        }
+        
+        if (!tanggal) {
+            alert('Pilih tanggal penggajian terlebih dahulu!');
+            e.preventDefault();
+            return false;
+        }
+        
+        if (!coaKasbank) {
+            alert('Pilih akun kas/bank terlebih dahulu!');
+            e.preventDefault();
+            return false;
+        }
+        
+        // Disable submit button untuk prevent double submit
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan...';
+        
+        console.log('Form validation passed, submitting...');
+    });
 });
 </script>
 @endsection
