@@ -237,7 +237,7 @@ class ProdukController extends Controller
             'deskripsi',
             'harga_jual',
             'stok',
-            'foto_produk',
+            'foto',
             'barcode',
             'created_at'
         ])

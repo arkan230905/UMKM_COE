@@ -44,8 +44,8 @@
                 <div class="card h-100 shadow-sm product-card">
                     <!-- Product Image -->
                     <div class="product-image-container">
-                        @if($produk->foto_produk)
-                            <img src="{{ asset('storage/' . $produk->foto_produk) }}" 
+                        @if($produk->foto)
+                            <img src="{{ asset('storage/' . $produk->foto) }}" 
                                  class="card-img-top product-image" 
                                  alt="{{ $produk->nama_produk }}">
                         @else
