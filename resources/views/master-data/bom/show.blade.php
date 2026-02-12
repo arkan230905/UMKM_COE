@@ -4,7 +4,7 @@
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Detail Harga Pokok Produksi: {{ $produk->nama_produk }}</h3>
-        <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary">
+        <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Kembali
         </a>
     </div>

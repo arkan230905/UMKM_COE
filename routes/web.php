@@ -363,8 +363,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/analysis-data', [\App\Http\Controllers\MasterData\BopController::class, 'getAnalysisData'])->name('analysis-data');
         });
 
-        // BOM Routes
-        Route::prefix('bom')->name('bom.')->group(function () {
+        // Harga Pokok Produksi Routes
+        Route::prefix('harga-pokok-produksi')->name('harga-pokok-produksi.')->group(function () {
             Route::get('calculate/{produkId}', [BomController::class, 'calculateBomCost'])->name('calculate');
             Route::get('by-produk/{id}', [BomController::class, 'view'])->name('view-by-produk');
             Route::post('by-produk/{id}', [BomController::class, 'updateByProduk'])->name('update-by-produk');

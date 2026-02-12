@@ -6,7 +6,7 @@
         <h2 class="mb-0">
             <i class="fas fa-sitemap me-2"></i>Harga Pokok Produksi Per Produk
         </h2>
-        <a href="{{ route('master-data.bom.create') }}" class="btn btn-primary">
+        <a href="{{ route('master-data.harga-pokok-produksi.create') }}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Buat Harga Pokok Produksi Baru
         </a>
     </div>
@@ -33,7 +33,7 @@
             </h6>
         </div>
         <div class="card-body">
-            <form action="{{ route('master-data.bom.index') }}" method="GET">
+            <form action="{{ route('master-data.harga-pokok-produksi.index') }}" method="GET">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label for="nama_produk" class="form-label">Nama Produk</label>
@@ -54,7 +54,7 @@
                         <button type="submit" class="btn btn-primary me-2">
                             <i class="fas fa-search"></i> Cari
                         </button>
-                        <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary">
+                        <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
                             <i class="fas fa-refresh"></i> Reset
                         </a>
                     </div>
@@ -166,7 +166,7 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <a href="{{ route('master-data.bom.show', $produk->id) }}" class="btn btn-outline-info" title="Detail">
+                                    <a href="{{ route('master-data.harga-pokok-produksi.show', $produk->id) }}" class="btn btn-outline-info" title="Detail">
                                         <i class="fas fa-eye"></i> Detail
                                     </a>
                                 </td>

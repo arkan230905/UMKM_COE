@@ -11,12 +11,12 @@
                 Buat Harga Pokok Produksi Per Produk
             @endif
         </h3>
-        <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary">
+        <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-2"></i>Kembali
         </a>
     </div>
 
-    <form action="{{ route('master-data.bom.store') }}" method="POST" id="bomForm">
+    <form action="{{ route('master-data.harga-pokok-produksi.store') }}" method="POST" id="bomForm">
         @csrf
         
         <!-- Pilih Produk -->
@@ -309,7 +309,7 @@
 
         <!-- Submit Button -->
         <div class="d-flex justify-content-end gap-2">
-            <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary">
+            <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
                 <i class="fas fa-times me-2"></i>Batal
             </a>
             <button type="submit" class="btn btn-primary">
