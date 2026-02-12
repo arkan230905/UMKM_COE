@@ -72,9 +72,10 @@ class PegawaiController extends Controller
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'jabatan' => $jab->nama,
             'jenis_pegawai' => $jenisPegawai,
-            'gaji' => $jab->gaji ?? 0,
-            'tarif' => $jab->tarif ?? 0,
+            'gaji_pokok' => $jab->gaji_pokok ?? $jab->gaji ?? 0,
+            'tarif_per_jam' => $jab->tarif_per_jam ?? $jab->tarif ?? 0,
             'tunjangan' => $jab->tunjangan ?? 0,
+            'asuransi' => $jab->asuransi ?? 0,
             'bank' => $request->input('bank'),
             'nomor_rekening' => $request->input('nomor_rekening'),
             'nama_rekening' => $request->input('nama_rekening'),
@@ -127,9 +128,10 @@ class PegawaiController extends Controller
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'jabatan' => $jab->nama,
             'jenis_pegawai' => $jenisPegawai,
-            'gaji' => $jab->gaji ?? 0,
-            'tarif' => $jab->tarif ?? 0,
+            'gaji_pokok' => $jab->gaji_pokok ?? $jab->gaji ?? 0,
+            'tarif_per_jam' => $jab->tarif_per_jam ?? $jab->tarif ?? 0,
             'tunjangan' => $jab->tunjangan ?? 0,
+            'asuransi' => $jab->asuransi ?? 0,
         ];
         
         // Log the update data for debugging

@@ -61,8 +61,8 @@
                                 data-kategori="{{ $j->kategori }}"
                                 data-tunjangan="{{ $j->tunjangan }}"
                                 data-asuransi="{{ $j->asuransi }}"
-                                data-gaji_pokok="{{ $j->gaji_pokok }}"
-                                data-tarif_lembur="{{ $j->tarif_lembur }}"
+                                data-gaji_pokok="{{ $j->gaji ?? 0 }}"
+                                data-tarif_per_jam="{{ $j->tarif ?? 0 }}"
                                 {{ old('jabatan_id')==$j->id || $pegawai->jabatan===$j->nama ? 'selected' : '' }}>
                             {{ $j->nama }} ({{ strtoupper($j->kategori) }})
                         </option>
@@ -75,8 +75,8 @@
             <input type="hidden" name="kategori" id="kategori" value="{{ old('kategori',$pegawai->kategori) }}">
             <input type="hidden" name="tunjangan" id="tunjangan" value="{{ old('tunjangan',$pegawai->tunjangan) }}">
             <input type="hidden" name="asuransi" id="asuransi" value="{{ old('asuransi',$pegawai->asuransi) }}">
-            <input type="hidden" name="gaji_pokok" id="gaji_pokok" value="{{ old('gaji_pokok',$pegawai->gaji_pokok) }}">
-            <input type="hidden" name="tarif_lembur" id="tarif_lembur" value="{{ old('tarif_lembur',$pegawai->tarif_lembur) }}">
+            <input type="hidden" name="gaji_pokok" id="gaji_pokok" value="{{ old('gaji_pokok',$pegawai->gaji_pokok ?? $pegawai->gaji ?? 0) }}">
+            <input type="hidden" name="tarif_per_jam" id="tarif_per_jam" value="{{ old('tarif_per_jam',$pegawai->tarif_per_jam ?? $pegawai->tarif ?? 0) }}">
 
             <!-- Preview otomatis dari Jabatan -->
             <div class="col-12">
@@ -138,8 +138,8 @@
                 kategori: ds.kategori || '',
                 tunjangan: ds.tunjangan || 0,
                 asuransi: ds.asuransi || 0,
-                gaji_pokok: ds.gaji_pokok || 0,
-                tarif_lembur: ds.tarif_lembur || 0,
+                gaji_pokok: parseFloat(ds.gaji_pokok || 0),
+                tarif_per_jam: parseFloat(ds.tarif_per_jam || 0),
             };
             // set hidden
             document.getElementById('jabatan').value = data.nama;
@@ -147,13 +147,13 @@
             document.getElementById('tunjangan').value = data.tunjangan;
             document.getElementById('asuransi').value = data.asuransi;
             document.getElementById('gaji_pokok').value = data.gaji_pokok;
-            document.getElementById('tarif_lembur').value = data.tarif_lembur;
+            document.getElementById('tarif_per_jam').value = data.tarif_per_jam;
             // preview
             document.getElementById('pv-kategori').textContent = (data.kategori||'').toUpperCase();
             document.getElementById('pv-tunjangan').textContent = fmt(data.tunjangan);
             document.getElementById('pv-asuransi').textContent = fmt(data.asuransi);
             document.getElementById('pv-gaji').textContent = fmt(data.gaji_pokok);
-            document.getElementById('pv-tarif').textContent = fmt(data.tarif_lembur);
+            document.getElementById('pv-tarif').textContent = fmt(data.tarif_per_jam);
             document.getElementById('preview-box').style.display='block';
         };
         dd.addEventListener('change', mapFromSelect);
