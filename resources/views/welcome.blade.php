@@ -347,7 +347,7 @@
                 <div class="feature-list">
                     <div class="feature-item">
                         <i class="fas fa-industry feature-icon"></i>
-                        <span>Manajemen Produksi & BOM (Bill of Materials)</span>
+                        <span>Manajemen Produksi & Harga Pokok Produksi</span>
                     </div>
                     <div class="feature-item">
                         <i class="fas fa-calculator feature-icon"></i>

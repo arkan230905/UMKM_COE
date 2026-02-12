@@ -31,7 +31,7 @@
                     </div>
 
                     <div class="mt-4">
-                        <h5>Daftar BOM</h5>
+                        <h5>Daftar Harga Pokok Produksi</h5>
                         @if($produk->boms->count() > 0)
                             <div class="table-responsive">
                                 <table class="table table-bordered">

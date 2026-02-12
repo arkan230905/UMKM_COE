@@ -19,7 +19,7 @@
         <li class="nav-item mb-2"><a href="{{ route('master-data.produk.index') }}" class="nav-link text-white">Produk</a></li>
         <li class="nav-item mb-2"><a href="{{ route('master-data.bahan-baku.index') }}" class="nav-link text-white">Bahan Baku</a></li>
         <li class="nav-item mb-2"><a href="{{ route('master-data.bop.index') }}" class="nav-link text-white">BOP</a></li>
-        <li class="nav-item mb-2"><a href="{{ route('master-data.bom.index') }}" class="nav-link text-white">BOM</a></li>
+        <li class="nav-item mb-2"><a href="{{ route('master-data.bom.index') }}" class="nav-link text-white">Harga Pokok Produksi</a></li>
 
         {{-- Transaksi --}}
         <li class="nav-item mb-2">

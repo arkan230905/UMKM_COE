@@ -64,7 +64,7 @@
                     <label for="margin_percent" class="form-label">Presentase Keuntungan (%)</label>
                     <input type="number" step="0.01" name="margin_percent" 
                            class="form-control" value="{{ old('margin_percent', 30) }}">
-                    <small style="color: #ffffff;">Harga jual dihitung otomatis dari Harga BOM × (1 + Margin%).</small>
+                    <small style="color: #ffffff;">Harga jual dihitung otomatis dari Harga Pokok Produksi × (1 + Margin%).</small>
                 </div>
 
                 <div class="d-flex justify-content-end gap-2">
