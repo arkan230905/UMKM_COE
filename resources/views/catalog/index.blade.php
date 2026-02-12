@@ -116,17 +116,6 @@
             </div>
         @endforelse
     </div>
-
-    <!-- Pagination (if needed) -->
-    @if($produks->hasPages())
-        <div class="row">
-            <div class="col-12">
-                <div class="d-flex justify-content-center">
-                    {{ $produks->links() }}
-                </div>
-            </div>
-        </div>
-    @endif
 </div>
 
 <!-- Custom Styles -->
