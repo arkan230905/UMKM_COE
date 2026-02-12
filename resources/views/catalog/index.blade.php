@@ -1,4 +1,6 @@
-@extends('layouts.app')
+@extends('layouts.catalog')
+
+@section('title', 'Katalog Produk - UMKM COE')
 
 @section('content')
 <div class="container-fluid py-4">
