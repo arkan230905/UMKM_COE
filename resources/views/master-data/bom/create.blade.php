@@ -6,9 +6,9 @@
         <h3>
             <i class="fas fa-sitemap me-2"></i>
             @if($selectedProduk)
-                Buat BOM: {{ $selectedProduk->nama_produk }}
+                Buat Harga Pokok Produksi: {{ $selectedProduk->nama_produk }}
             @else
-                Buat BOM (Bill of Materials)
+                Buat Harga Pokok Produksi Per Produk
             @endif
         </h3>
         <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary">
@@ -64,7 +64,7 @@
                                     <option value="{{ $produk->id }}">{{ $produk->nama_produk }}</option>
                                 @endforeach
                             </select>
-                            <small class="text-muted">Pilih produk yang akan dibuatkan BOM</small>
+                            <small class="text-muted">Pilih produk yang akan dibuatkan Harga Pokok Produksi</small>
                         @endif
                     </div>
                 </div>
@@ -155,7 +155,7 @@
                     <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
                     <h5 class="text-warning">Belum Ada Data Biaya Bahan</h5>
                     <p class="text-muted mb-3">
-                        Produk ini belum memiliki data biaya bahan yang diperlukan untuk membuat BOM.
+                        Produk ini belum memiliki data biaya bahan yang diperlukan untuk membuat Harga Pokok Produksi.
                     </p>
                     <div class="alert alert-info">
                         <strong>Langkah yang perlu dilakukan:</strong>
@@ -164,7 +164,7 @@
                             <li>Cari produk ini dan klik <strong>Edit</strong></li>
                             <li>Tambahkan bahan baku dan bahan pendukung</li>
                             <li>Simpan data biaya bahan</li>
-                            <li>Kembali ke halaman ini untuk membuat BOM</li>
+                            <li>Kembali ke halaman ini untuk membuat Harga Pokok Produksi</li>
                         </ol>
                     </div>
                     @if($selectedProduk)
@@ -313,7 +313,7 @@
                 <i class="fas fa-times me-2"></i>Batal
             </a>
             <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save me-2"></i>Simpan BOM
+                <i class="fas fa-save me-2"></i>Simpan Harga Pokok Produksi
             </button>
         </div>
     </form>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Cetak BOM - {{ $bom->produk->nama_produk }}</title>
+    <title>Cetak Harga Pokok Produksi - {{ $bom->produk->nama_produk }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         @page { size: A4; margin: 1cm; }
@@ -36,7 +36,7 @@
         @else
             <div class="company-name">UMKM COE</div>
         @endif
-        <div class="report-title">LAPORAN BILL OF MATERIAL (BOM) - PROCESS COSTING</div>
+        <div class="report-title">LAPORAN HARGA POKOK PRODUKSI PER PRODUK - PROCESS COSTING</div>
         <div>Tanggal Cetak: {{ now()->format('d F Y H:i') }}</div>
     </div>
 

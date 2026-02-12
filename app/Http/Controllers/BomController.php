@@ -122,7 +122,7 @@ class BomController extends Controller
             }
 
             return redirect()->route('master-data.bom.index')
-                ->with('success', 'BOP berhasil diperbarui dan BOM dihitung ulang untuk ' . $produk->nama_produk);
+                ->with('success', 'BOP berhasil diperbarui dan Harga Pokok Produksi dihitung ulang untuk ' . $produk->nama_produk);
 
         } catch (\Exception $e) {
             return redirect()->route('master-data.bom.index')
@@ -186,7 +186,7 @@ class BomController extends Controller
                 
         } catch (\Exception $e) {
             return redirect()->route('master-data.bom.index')
-                ->with('error', 'Gagal mengisi data BOM: ' . $e->getMessage());
+                ->with('error', 'Gagal mengisi data Harga Pokok Produksi: ' . $e->getMessage());
         }
     }
 
@@ -220,7 +220,7 @@ class BomController extends Controller
                 
         } catch (\Exception $e) {
             return redirect()->route('master-data.bom.index')
-                ->with('error', 'Gagal menyinkronkan data BOM: ' . $e->getMessage());
+                ->with('error', 'Gagal menyinkronkan data Harga Pokok Produksi: ' . $e->getMessage());
         }
     }
 

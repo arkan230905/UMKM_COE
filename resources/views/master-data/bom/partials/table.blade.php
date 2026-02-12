@@ -1,4 +1,4 @@
-<h5 class="mt-3">BOM Produk: {{ $produk->nama_produk }}</h5>
+<h5 class="mt-3">Harga Pokok Produksi Produk: {{ $produk->nama_produk }}</h5>
 
 <form method="POST" action="{{ route('master-data.bom.updateByProduk', $produk->id) }}">
     @csrf
