@@ -88,7 +88,6 @@
                 <option value="admin">Admin</option>
                 <option value="pegawai_pembelian">Pegawai Gudang</option>
                 <option value="kasir">Kasir</option>
-                <option value="pelanggan">Pelanggan</option>
             </select>
         </div>
 
@@ -149,10 +148,7 @@
                 kodeGroup.classList.remove('hidden');
                 kodeInput.setAttribute('required', 'required');
                 debugInfo += 'Fields: Email, Kode Perusahaan (no password)';
-            } else if (role === 'pelanggan') {
-                passwordGroup.classList.remove('hidden');
-                passwordInput.setAttribute('required', 'required');
-                debugInfo += 'Fields: Email, Password (no kode)';
+            } else if (role === 'owner') {
             }
 
             debugContent.innerHTML = debugInfo;

@@ -105,7 +105,6 @@
                     <option value="admin" {{ old('login_role') == 'admin' ? 'selected' : '' }}>Admin</option>
                     <option value="pegawai_pembelian" {{ old('login_role') == 'pegawai_pembelian' ? 'selected' : '' }}>Pegawai Gudang</option>
                     <option value="kasir" {{ old('login_role') == 'kasir' ? 'selected' : '' }}>Kasir</option>
-                    <option value="pelanggan" {{ old('login_role') == 'pelanggan' ? 'selected' : '' }}>Pelanggan</option>
                     <option value="presensi" {{ old('login_role') == 'presensi' ? 'selected' : '' }}>Presensi Pegawai</option>
                 </select>
             </div>
@@ -188,7 +187,7 @@
                     }
 
                     // Roles that need password
-                    if (['owner', 'pelanggan'].includes(role)) {
+                    if (['owner'].includes(role)) {
                         passwordField.classList.remove('hidden');
                         document.getElementById('password').setAttribute('required', 'required');
                     }
