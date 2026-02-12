@@ -63,6 +63,7 @@ use App\Http\Controllers\Pelanggan\CartController;
 use App\Http\Controllers\Pelanggan\CheckoutController;
 use App\Http\Controllers\Pelanggan\OrderController as PelangganOrderController;
 use App\Http\Controllers\Pelanggan\FavoriteController as PelangganFavoriteController;
+use App\Http\Controllers\Pelanggan\Auth\LoginController as PelangganLoginController;
 use App\Http\Controllers\MidtransController;
 use App\Http\Controllers\Auth\RegisterController;
 
@@ -94,6 +95,16 @@ use App\Http\Controllers\PresensiController;
 Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
+
+// Catalog Route - Public
+Route::get('/catalog', [ProdukController::class, 'catalog'])->name('catalog');
+
+// Pelanggan Login Routes - Public
+Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
+    Route::get('/login', [PelangganLoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [PelangganLoginController::class, 'login'])->name('login.post');
+    Route::post('/logout', [PelangganLoginController::class, 'logout'])->name('logout');
+});
 
 
 // ====================================================================
