@@ -12,31 +12,11 @@
         <p class="lead">Pusat Produk UMKM & Wisata Desa</p>
 
         <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
-            <a href="#tentang-desa" class="btn btn-outline-light px-4">Tentang Desa</a>
             <a href="#wisata-desa" class="btn btn-outline-light px-4">Wisata Desa</a>
             <a href="#produk-umkm" class="btn btn-warning px-4">Produk UMKM</a>
         </div>
     </div>
 </div>
-
-<!-- ================= TENTANG DESA ================= -->
-<section id="tentang-desa" class="section-soft">
-    <div class="container">
-        <div class="row align-items-center g-4">
-            <div class="col-md-6">
-                <h2 class="section-title">Tentang Desa Karangpakuan</h2>
-                <p>
-                    Desa Karangpakuan merupakan desa asri di kaki gunung yang
-                    memiliki potensi wisata alam serta produk UMKM unggulan.
-                    Produk diproduksi langsung oleh masyarakat desa setiap hari.
-                </p>
-            </div>
-            <div class="col-md-6">
-                <img src="/images/desa.jpg" class="img-fluid rounded-4 shadow">
-            </div>
-        </div>
-    </div>
-</section>
 
 <!-- ================= WISATA DESA ================= -->
 <section id="wisata-desa" class="section-white">
