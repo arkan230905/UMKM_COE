@@ -104,16 +104,21 @@
     </div>
 </section>
 
-<!-- ================= CARA PEMESANAN ================= -->
-<section class="section-white">
+<!-- ================= CALL TO ACTION ================= -->
+<section class="section-soft">
     <div class="container text-center">
-        <h2 class="section-title mb-4">Cara Pemesanan Mudah</h2>
-
-        <div class="row g-4">
-            <div class="col-md-3 step">Daftar / Login</div>
-            <div class="col-md-3 step">Pilih Produk / Tiket</div>
-            <div class="col-md-3 step">Lakukan Pembayaran</div>
-            <div class="col-md-3 step">Lacak Pesanan</div>
+        <h2 class="section-title mb-4">Ingin Menikmati Wisata dan Produk UMKM?</h2>
+        <p class="mb-4">Daftar sekarang untuk memesan tiket wisata dan produk unggulan desa</p>
+        
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+            <a href="/pelanggan/login" class="btn btn-warning btn-lg px-5">
+                <i class="fas fa-shopping-cart me-2"></i>
+                Beli Tiket Wisata dan Produk UMKM Disini
+            </a>
+            <a href="/pelanggan/register" class="btn btn-outline-warning btn-lg px-5">
+                <i class="fas fa-user-plus me-2"></i>
+                Daftar Akun Baru
+            </a>
         </div>
     </div>
 </section>

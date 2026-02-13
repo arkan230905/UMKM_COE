@@ -104,6 +104,10 @@ Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
     Route::get('/login', [PelangganLoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [PelangganLoginController::class, 'login'])->name('login.post');
     Route::post('/logout', [PelangganLoginController::class, 'logout'])->name('logout');
+    
+    // Register
+    Route::get('/register', [RegisterController::class, 'showPelangganRegisterForm'])->name('register');
+    Route::post('/register', [RegisterController::class, 'registerPelanggan'])->name('register.post');
 });
 
 
