@@ -60,17 +60,6 @@
                                 Potensi wisata alam menjadi daya tarik utama dengan adanya curug yang memukau, waduk yang indah, 
                                 dan area perkemahan yang asri dan terawat.
                             </p>
-                            <p class="desa-description">
-                                UMKM di Desa Karangpakuan terus berkembang dengan berbagai produk unggulan 
-                                yang mencerminkan kekayaan lokal. Mulai dari produk pertanian segar, olahan pangan tradisional, 
-                                hingga kerajinan tangan yang bernilai seni tinggi, semuanya diproduksi dengan kualitas terbaik 
-                                oleh masyarakat desa yang berpengalaman.
-                            </p>
-                            <p class="desa-description">
-                                Keberlanjutan pembangunan desa dan pemberdayaan masyarakat lokal menjadi prioritas utama, 
-                                dengan tetap menjaga kelestarian alam dan budaya asli. Desa Karangpakuan siap menjadi 
-                                destinasi wisata dan sentra UMKM unggulan di wilayah Sumedang, Jawa Barat.
-                            </p>
                         </div>
                     </div>
                 </div>
@@ -248,7 +237,7 @@
     font-size: 1rem;
     line-height: 1.7;
     color: #555;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.5rem;
     text-align: justify;
 }
 
