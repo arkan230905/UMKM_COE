@@ -50,6 +50,7 @@ use App\Http\Controllers\PelunasanUtangController;
 // Laporan
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\StockReportController;
+use App\Http\Controllers\LaporanKartuStokController;
 
 // Profile
 use App\Http\Controllers\ProfileController;
@@ -628,6 +629,9 @@ Route::middleware('auth')->group(function () {
     Route::prefix('laporan')->name('laporan.')->middleware('role:admin,owner')->group(function() {
         // Laporan Stok
         Route::get('/stok', [LaporanController::class, 'stok'])->name('stok');
+        
+        // Laporan Kartu Stok
+        Route::get('/kartu-stok', [LaporanKartuStokController::class, 'index'])->name('kartu-stok');
         
         // Laporan Stok Real-Time
         Route::get('/stock-realtime', [\App\Http\Controllers\StockReportController::class, 'index'])->name('stock-realtime');

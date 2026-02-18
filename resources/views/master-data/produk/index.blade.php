@@ -86,6 +86,7 @@
                     <thead class="thead-light">
                         <tr>
                             <th width="5%">#</th>
+                            <th>Foto</th>
                             <th>Barcode</th>
                             <th>Nama Produk</th>
                             <th>Deskripsi</th>
