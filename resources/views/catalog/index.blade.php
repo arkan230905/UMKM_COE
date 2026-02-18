@@ -40,8 +40,8 @@
 <section class="section-white">
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-8">
-                <div class="row">
+            <div class="col-lg-12">
+                <div class="row g-4 align-items-center">
                     <div class="col-md-6">
                         <img src="/images/fotobersamadesa.jpg" alt="Bersama Desa Karangpakuan" class="img-fluid rounded-3 shadow">
                     </div>
@@ -245,22 +245,22 @@
 }
 
 .desa-description {
-    font-size: 1.1rem;
-    line-height: 1.8;
+    font-size: 1rem;
+    line-height: 1.7;
     color: #555;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.2rem;
     text-align: justify;
 }
 
 .desa-content .section-title {
     color: #3a3a3a;
-    font-size: 3rem;
+    font-size: 2.5rem;
     font-weight: 800;
 }
 
 /* Gambar lebih besar */
 .section-white img {
-    max-height: 500px;
+    max-height: 450px;
     width: 100%;
     object-fit: cover;
 }
@@ -268,18 +268,18 @@
 /* Responsive untuk Tentang Desa */
 @media (max-width: 991px) {
     .desa-content {
-        padding-left: 1rem;
+        padding-left: 1.5rem;
         padding-right: 0;
-        margin-top: 2rem;
+        margin-top: 1rem;
     }
     
     .desa-description {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         line-height: 1.6;
     }
     
     .desa-content .section-title {
-        font-size: 2.5rem;
+        font-size: 2rem;
         text-align: center;
     }
     
@@ -290,18 +290,18 @@
 
 @media (max-width: 768px) {
     .desa-content {
-        padding-left: 0;
+        padding-left: 1rem;
         padding-right: 0;
-        margin-top: 2rem;
+        margin-top: 1rem;
     }
     
     .desa-description {
-        font-size: 0.9rem;
-        line-height: 1.6;
+        font-size: 0.85rem;
+        line-height: 1.5;
     }
     
     .desa-content .section-title {
-        font-size: 2rem;
+        font-size: 1.8rem;
         text-align: center;
     }
     
