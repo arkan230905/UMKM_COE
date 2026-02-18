@@ -40,7 +40,7 @@
 <section class="section-white">
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-5">
+            <div class="col-lg-4">
                 <div class="desa-content">
                     <h2 class="section-title mb-4">Tentang Desa Karangpakuan</h2>
                     <p class="desa-description">
@@ -68,7 +68,7 @@
                     </p>
                 </div>
             </div>
-            <div class="col-lg-7">
+            <div class="col-lg-8">
                 <img src="/images/fotobersamadesa.jpg" alt="Bersama Desa Karangpakuan" class="img-fluid rounded-3 shadow">
             </div>
         </div>
@@ -236,7 +236,8 @@
 
 /* Tentang Desa Styles */
 .desa-content {
-    padding-right: 2rem;
+    padding-left: 0;
+    padding-right: 1rem;
 }
 
 .desa-description {
@@ -263,7 +264,8 @@
 /* Responsive untuk Tentang Desa */
 @media (max-width: 991px) {
     .desa-content {
-        padding-right: 1rem;
+        padding-left: 0;
+        padding-right: 0.5rem;
         margin-top: 2rem;
     }
     
@@ -284,6 +286,7 @@
 
 @media (max-width: 768px) {
     .desa-content {
+        padding-left: 0;
         padding-right: 0;
         margin-top: 2rem;
     }
