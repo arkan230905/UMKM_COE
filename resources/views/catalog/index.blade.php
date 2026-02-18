@@ -10,24 +10,12 @@
         <div class="slider-wrapper">
             <div class="slide active">
                 <img src="/images/karangpakuanumkm.jpg" alt="UMKM Karangpakuan">
-                <div class="slide-content">
-                    <h1 class="hero-title">Produk Unggulan UMKM</h1>
-                    <p class="hero-subtitle">Desa Karangpakuan</p>
-                </div>
             </div>
             <div class="slide">
                 <img src="/images/karangpakuanwaduk.jpg" alt="Waduk Karangpakuan">
-                <div class="slide-content">
-                    <h1 class="hero-title">Produk Unggulan UMKM</h1>
-                    <p class="hero-subtitle">Desa Karangpakuan</p>
-                </div>
             </div>
             <div class="slide">
                 <img src="/images/karangpakuancamp.jpg" alt="Camp Karangpakuan">
-                <div class="slide-content">
-                    <h1 class="hero-title">Produk Unggulan UMKM</h1>
-                    <p class="hero-subtitle">Desa Karangpakuan</p>
-                </div>
             </div>
         </div>
         
@@ -137,29 +125,6 @@
     object-fit: cover;
 }
 
-.slide-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    color: white;
-    z-index: 5;
-}
-
-.hero-title {
-    font-size: 3.5rem;
-    font-weight: 800;
-    margin-bottom: 1rem;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-}
-
-.hero-subtitle {
-    font-size: 1.5rem;
-    font-weight: 300;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
-}
-
 .slider-btn {
     position: absolute;
     top: 50%;
@@ -260,14 +225,6 @@
         min-height: 400px;
     }
     
-    .hero-title {
-        font-size: 2.5rem;
-    }
-    
-    .hero-subtitle {
-        font-size: 1.2rem;
-    }
-    
     .slider-btn {
         width: 45px;
         height: 45px;
@@ -298,14 +255,6 @@
 }
 
 @media (max-width: 480px) {
-    .hero-title {
-        font-size: 2rem;
-    }
-    
-    .hero-subtitle {
-        font-size: 1rem;
-    }
-    
     .slider-container-full {
         height: 50vh;
         min-height: 350px;
