@@ -248,7 +248,7 @@
     font-size: 1rem;
     line-height: 1.7;
     color: #555;
-    margin-bottom: 1.2rem;
+    margin-bottom: 0.8rem;
     text-align: justify;
 }
 
