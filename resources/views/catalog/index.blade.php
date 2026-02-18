@@ -234,7 +234,7 @@
 }
 
 .desa-description {
-    font-size: 1rem;
+    font-size: 1.1rem;
     line-height: 1.7;
     color: #555;
     margin-bottom: 0.5rem;
@@ -243,7 +243,7 @@
 
 .desa-content .section-title {
     color: #3a3a3a;
-    font-size: 2.5rem;
+    font-size: 2.8rem;
     font-weight: 800;
 }
 
@@ -263,12 +263,12 @@
     }
     
     .desa-description {
-        font-size: 0.9rem;
+        font-size: 1rem;
         line-height: 1.6;
     }
     
     .desa-content .section-title {
-        font-size: 2rem;
+        font-size: 2.3rem;
         text-align: center;
     }
     
@@ -285,12 +285,12 @@
     }
     
     .desa-description {
-        font-size: 0.85rem;
+        font-size: 0.95rem;
         line-height: 1.5;
     }
     
     .desa-content .section-title {
-        font-size: 1.8rem;
+        font-size: 2.1rem;
         text-align: center;
     }
     
