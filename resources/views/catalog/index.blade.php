@@ -41,7 +41,10 @@
     <div class="container">
         <div class="row align-items-center">
             <div class="col-md-6">
-                <img src="/images/fotobersamadesa.jpg" alt="Bersama Desa Karangpakuan" class="img-fluid rounded-3 shadow">
+                <picture>
+                    <source srcset="/images/fotobersamadesa.heif" type="image/heif">
+                    <img src="/images/default-avatar.png" alt="Bersama Desa Karangpakuan" class="img-fluid rounded-3 shadow">
+                </picture>
             </div>
             <div class="col-md-6">
                 <div class="desa-content">
