@@ -40,26 +40,34 @@
 <section class="section-white">
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-7">
+            <div class="col-lg-8">
                 <img src="/images/fotobersamadesa.jpg" alt="Bersama Desa Karangpakuan" class="img-fluid rounded-3 shadow">
             </div>
-            <div class="col-lg-5">
+            <div class="col-lg-4">
                 <div class="desa-content">
                     <h2 class="section-title mb-4">Tentang Desa Karangpakuan</h2>
                     <p class="desa-description">
                         Desa Karangpakuan adalah sebuah desa yang kaya akan potensi alam dan budaya, 
                         terletak di kawasan Sumedang, Jawa Barat. Desa ini menawarkan keindahan alam yang memukau 
-                        dengan latar belakang pegunungan yang hijau dan udara yang segar.
+                        dengan latar belakang pegunungan yang hijau dan udara yang segar, menciptakan suasana yang tenang 
+                        dan nyaman untuk dikunjungi.
                     </p>
                     <p class="desa-description">
                         Sebagai bagian dari Kabupaten Sumedang di Jawa Barat, Desa Karangpakuan memiliki 
                         karakteristik desa yang khas dengan masyarakat yang ramah dan menjunjung tinggi nilai-nilai gotong royong. 
-                        Potensi wisata alam menjadi daya tarik utama dengan adanya curug, waduk, dan area perkemahan yang indah.
+                        Potensi wisata alam menjadi daya tarik utama dengan adanya curug yang memukau, waduk yang indah, 
+                        dan area perkemahan yang asri dan terawat.
                     </p>
                     <p class="desa-description">
                         UMKM di Desa Karangpakuan terus berkembang dengan berbagai produk unggulan 
-                        yang mencerminkan kekayaan lokal. Dari produk pertanian hingga kerajinan tangan, 
-                        semuanya diproduksi dengan kualitas terbaik oleh masyarakat desa.
+                        yang mencerminkan kekayaan lokal. Mulai dari produk pertanian segar, olahan pangan tradisional, 
+                        hingga kerajinan tangan yang bernilai seni tinggi, semuanya diproduksi dengan kualitas terbaik 
+                        oleh masyarakat desa yang berpengalaman.
+                    </p>
+                    <p class="desa-description">
+                        Keberlanjutan pembangunan desa dan pemberdayaan masyarakat lokal menjadi prioritas utama, 
+                        dengan tetap menjaga kelestarian alam dan budaya asli. Desa Karangpakuan siap menjadi 
+                        destinasi wisata dan sentra UMKM unggulan di wilayah Sumedang, Jawa Barat.
                     </p>
                 </div>
             </div>
@@ -255,12 +263,12 @@
 /* Responsive untuk Tentang Desa */
 @media (max-width: 991px) {
     .desa-content {
-        padding-left: 0;
+        padding-left: 1rem;
         margin-top: 2rem;
     }
     
     .desa-description {
-        font-size: 1rem;
+        font-size: 0.95rem;
         line-height: 1.6;
     }
     
@@ -281,7 +289,7 @@
     }
     
     .desa-description {
-        font-size: 1rem;
+        font-size: 0.9rem;
         line-height: 1.6;
     }
     
