@@ -40,10 +40,7 @@
 <section class="section-white">
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-6">
-                <img src="/images/fotobersamadesa.jpg" alt="Bersama Desa Karangpakuan" class="img-fluid rounded-3 shadow">
-            </div>
-            <div class="col-lg-6">
+            <div class="col-lg-5">
                 <div class="desa-content">
                     <h2 class="section-title mb-4">Tentang Desa Karangpakuan</h2>
                     <p class="desa-description">
@@ -70,6 +67,9 @@
                         destinasi wisata dan sentra UMKM unggulan di wilayah Sumedang, Jawa Barat.
                     </p>
                 </div>
+            </div>
+            <div class="col-lg-7">
+                <img src="/images/fotobersamadesa.jpg" alt="Bersama Desa Karangpakuan" class="img-fluid rounded-3 shadow">
             </div>
         </div>
     </div>
@@ -236,7 +236,7 @@
 
 /* Tentang Desa Styles */
 .desa-content {
-    padding-left: 7rem;
+    padding-right: 2rem;
 }
 
 .desa-description {
@@ -249,7 +249,7 @@
 
 .desa-content .section-title {
     color: #3a3a3a;
-    font-size: 2rem;
+    font-size: 3rem;
     font-weight: 800;
 }
 
@@ -263,7 +263,7 @@
 /* Responsive untuk Tentang Desa */
 @media (max-width: 991px) {
     .desa-content {
-        padding-left: 1rem;
+        padding-right: 1rem;
         margin-top: 2rem;
     }
     
@@ -273,7 +273,7 @@
     }
     
     .desa-content .section-title {
-        font-size: 1.5rem;
+        font-size: 2.5rem;
         text-align: center;
     }
     
@@ -284,7 +284,7 @@
 
 @media (max-width: 768px) {
     .desa-content {
-        padding-left: 0;
+        padding-right: 0;
         margin-top: 2rem;
     }
     
@@ -294,7 +294,7 @@
     }
     
     .desa-content .section-title {
-        font-size: 1.5rem;
+        font-size: 2rem;
         text-align: center;
     }
     
