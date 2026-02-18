@@ -40,10 +40,10 @@
 <section class="section-white">
     <div class="container">
         <div class="row align-items-center">
-            <div class="col-lg-8">
+            <div class="col-lg-6">
                 <img src="/images/fotobersamadesa.jpg" alt="Bersama Desa Karangpakuan" class="img-fluid rounded-3 shadow">
             </div>
-            <div class="col-lg-4">
+            <div class="col-lg-6">
                 <div class="desa-content">
                     <h2 class="section-title mb-4">Tentang Desa Karangpakuan</h2>
                     <p class="desa-description">
@@ -236,7 +236,7 @@
 
 /* Tentang Desa Styles */
 .desa-content {
-    padding-left: 2rem;
+    padding-left: 7rem;
 }
 
 .desa-description {
