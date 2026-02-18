@@ -4,27 +4,13 @@
 
 @section('content')
 
-<!-- ================= HERO DESA ================= -->
-<div class="hero-desa">
-    <div class="overlay"></div>
-    <div class="container position-relative text-center text-white">
-        <h1 class="fw-bold display-5">UMKM Desa Karangpakuan</h1>
-        <p class="lead">Pusat Produk UMKM & Wisata Desa</p>
-
-        <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
-            <a href="#wisata-desa" class="btn btn-outline-light px-4">Wisata Desa</a>
-            <a href="#produk-umkm" class="btn btn-warning px-4">Produk UMKM</a>
-        </div>
-    </div>
-</div>
-
-<!-- ================= WISATA DESA ================= -->
-<section id="wisata-desa" class="section-white">
-    <div class="container text-center">
-        <h2 class="section-title mb-4">Wisata Desa</h2>
+<!-- ================= PRODUK UMKM ================= -->
+<section id="produk-umkm" class="section-soft">
+    <div class="container">
+        <h2 class="section-title text-center mb-5">Produk Unggulan UMKM</h2>
 
         <!-- Image Slider -->
-        <div class="slider-container">
+        <div class="slider-container mb-5">
             <div class="slider-wrapper">
                 <div class="slide active">
                     <img src="/images/karangpakuanumkm.jpg" alt="UMKM Karangpakuan">
@@ -55,13 +41,6 @@
                 <span class="indicator" onclick="goToSlide(2)"></span>
             </div>
         </div>
-    </div>
-</section>
-
-<!-- ================= PRODUK UMKM ================= -->
-<section id="produk-umkm" class="section-soft">
-    <div class="container">
-        <h2 class="section-title text-center mb-5">Produk Unggulan UMKM</h2>
 
         <div class="row g-4">
             @forelse($produks as $produk)
@@ -143,11 +122,11 @@
 /* Slider Styles */
 .slider-container {
     position: relative;
-    max-width: 800px;
-    margin: 0 auto;
+    max-width: 1000px;
+    margin: 0 auto 3rem auto;
     overflow: hidden;
     border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
 }
 
 .slider-wrapper {
@@ -162,38 +141,39 @@
 
 .slide img {
     width: 100%;
-    height: 400px;
+    height: 500px;
     object-fit: cover;
     border-radius: 20px;
 }
 
 .slide h5 {
     position: absolute;
-    bottom: 20px;
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.8);
     color: white;
-    padding: 10px 20px;
-    border-radius: 25px;
+    padding: 15px 30px;
+    border-radius: 30px;
     margin: 0;
     font-weight: 600;
+    font-size: 1.2rem;
 }
 
 .slider-btn {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(255,255,255,0.9);
+    background: rgba(255,255,255,0.95);
     border: none;
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 20px;
     color: #3a3a3a;
     transition: all 0.3s;
     z-index: 10;
@@ -205,26 +185,26 @@
 }
 
 .prev-btn {
-    left: 20px;
+    left: 30px;
 }
 
 .next-btn {
-    right: 20px;
+    right: 30px;
 }
 
 .slider-indicators {
     position: absolute;
-    bottom: 20px;
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 10px;
+    gap: 15px;
     z-index: 10;
 }
 
 .indicator {
-    width: 12px;
-    height: 12px;
+    width: 15px;
+    height: 15px;
     border-radius: 50%;
     background: rgba(255,255,255,0.5);
     cursor: pointer;
@@ -233,8 +213,8 @@
 
 .indicator.active {
     background: #ffc107;
-    width: 30px;
-    border-radius: 6px;
+    width: 40px;
+    border-radius: 8px;
 }
 
 .card-produk {
@@ -263,30 +243,46 @@
 /* Responsive */
 @media (max-width: 768px) {
     .slider-container {
-        margin: 0 20px;
+        margin: 0 20px 2rem 20px;
+        max-width: none;
     }
     
     .slide img {
-        height: 250px;
-    }
-    
-    .slider-btn {
-        width: 40px;
-        height: 40px;
-        font-size: 14px;
-    }
-    
-    .prev-btn {
-        left: 10px;
-    }
-    
-    .next-btn {
-        right: 10px;
+        height: 300px;
     }
     
     .slide h5 {
-        font-size: 14px;
-        padding: 8px 16px;
+        font-size: 1rem;
+        padding: 10px 20px;
+        bottom: 20px;
+    }
+    
+    .slider-btn {
+        width: 45px;
+        height: 45px;
+        font-size: 16px;
+    }
+    
+    .prev-btn {
+        left: 15px;
+    }
+    
+    .next-btn {
+        right: 15px;
+    }
+    
+    .slider-indicators {
+        bottom: 20px;
+        gap: 10px;
+    }
+    
+    .indicator {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .indicator.active {
+        width: 25px;
     }
 }
 </style>
