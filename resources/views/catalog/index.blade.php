@@ -4,44 +4,53 @@
 
 @section('content')
 
+<!-- ================= HERO SLIDER ================= -->
+<section class="hero-slider">
+    <div class="slider-container-full">
+        <div class="slider-wrapper">
+            <div class="slide active">
+                <img src="/images/karangpakuanumkm.jpg" alt="UMKM Karangpakuan">
+                <div class="slide-content">
+                    <h1 class="hero-title">Produk Unggulan UMKM</h1>
+                    <p class="hero-subtitle">Desa Karangpakuan</p>
+                </div>
+            </div>
+            <div class="slide">
+                <img src="/images/karangpakuanwaduk.jpg" alt="Waduk Karangpakuan">
+                <div class="slide-content">
+                    <h1 class="hero-title">Produk Unggulan UMKM</h1>
+                    <p class="hero-subtitle">Desa Karangpakuan</p>
+                </div>
+            </div>
+            <div class="slide">
+                <img src="/images/karangpakuancamp.jpg" alt="Camp Karangpakuan">
+                <div class="slide-content">
+                    <h1 class="hero-title">Produk Unggulan UMKM</h1>
+                    <p class="hero-subtitle">Desa Karangpakuan</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Slider Controls -->
+        <button class="slider-btn prev-btn" onclick="changeSlide(-1)">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="slider-btn next-btn" onclick="changeSlide(1)">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+        
+        <!-- Slider Indicators -->
+        <div class="slider-indicators">
+            <span class="indicator active" onclick="goToSlide(0)"></span>
+            <span class="indicator" onclick="goToSlide(1)"></span>
+            <span class="indicator" onclick="goToSlide(2)"></span>
+        </div>
+    </div>
+</section>
+
 <!-- ================= PRODUK UMKM ================= -->
 <section id="produk-umkm" class="section-soft">
     <div class="container">
-        <h2 class="section-title text-center mb-5">Produk Unggulan UMKM</h2>
-
-        <!-- Image Slider -->
-        <div class="slider-container mb-5">
-            <div class="slider-wrapper">
-                <div class="slide active">
-                    <img src="/images/karangpakuanumkm.jpg" alt="UMKM Karangpakuan">
-                    <h5 class="mt-3">UMKM Karangpakuan</h5>
-                </div>
-                <div class="slide">
-                    <img src="/images/karangpakuanwaduk.jpg" alt="Waduk Karangpakuan">
-                    <h5 class="mt-3">Waduk Karangpakuan</h5>
-                </div>
-                <div class="slide">
-                    <img src="/images/karangpakuancamp.jpg" alt="Camp Karangpakuan">
-                    <h5 class="mt-3">Camp Karangpakuan</h5>
-                </div>
-            </div>
-            
-            <!-- Slider Controls -->
-            <button class="slider-btn prev-btn" onclick="changeSlide(-1)">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <button class="slider-btn next-btn" onclick="changeSlide(1)">
-                <i class="fas fa-chevron-right"></i>
-            </button>
-            
-            <!-- Slider Indicators -->
-            <div class="slider-indicators">
-                <span class="indicator active" onclick="goToSlide(0)"></span>
-                <span class="indicator" onclick="goToSlide(1)"></span>
-                <span class="indicator" onclick="goToSlide(2)"></span>
-            </div>
-        </div>
-
         <div class="row g-4">
             @forelse($produks as $produk)
             <div class="col-md-4">
@@ -96,75 +105,66 @@
 
 <!-- ================= STYLE ================= -->
 <style>
-.hero-desa {
-    background: url('/images/hero-desa.jpg') center/cover no-repeat;
-    padding: 130px 0;
+.hero-slider {
     position: relative;
-}
-.hero-desa .overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,.55);
-}
-.section-soft {
-    background: #f7f4ef;
-    padding: 80px 0;
-}
-.section-white {
-    background: #ffffff;
-    padding: 80px 0;
-}
-.section-title {
-    font-weight: 700;
-    color: #3a3a3a;
+    width: 100%;
+    overflow: hidden;
 }
 
-/* Slider Styles */
-.slider-container {
+.slider-container-full {
     position: relative;
-    max-width: 1000px;
-    margin: 0 auto 3rem auto;
+    width: 100%;
+    height: 70vh;
+    min-height: 500px;
     overflow: hidden;
-    border-radius: 20px;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
 }
 
 .slider-wrapper {
     display: flex;
+    height: 100%;
     transition: transform 0.5s ease-in-out;
 }
 
 .slide {
     min-width: 100%;
+    height: 100%;
     position: relative;
 }
 
 .slide img {
     width: 100%;
-    height: 500px;
+    height: 100%;
     object-fit: cover;
-    border-radius: 20px;
 }
 
-.slide h5 {
+.slide-content {
     position: absolute;
-    bottom: 30px;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.8);
+    transform: translate(-50%, -50%);
+    text-align: center;
     color: white;
-    padding: 15px 30px;
-    border-radius: 30px;
-    margin: 0;
-    font-weight: 600;
-    font-size: 1.2rem;
+    z-index: 5;
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+
+.hero-subtitle {
+    font-size: 1.5rem;
+    font-weight: 300;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
 }
 
 .slider-btn {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(255,255,255,0.95);
+    background: rgba(255,255,255,0.9);
     border: none;
     width: 60px;
     height: 60px;
@@ -217,6 +217,19 @@
     border-radius: 8px;
 }
 
+.section-soft {
+    background: #f7f4ef;
+    padding: 80px 0;
+}
+.section-white {
+    background: #ffffff;
+    padding: 80px 0;
+}
+.section-title {
+    font-weight: 700;
+    color: #3a3a3a;
+}
+
 .card-produk {
     background: #fff;
     border-radius: 20px;
@@ -242,19 +255,17 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-    .slider-container {
-        margin: 0 20px 2rem 20px;
-        max-width: none;
+    .slider-container-full {
+        height: 60vh;
+        min-height: 400px;
     }
     
-    .slide img {
-        height: 300px;
+    .hero-title {
+        font-size: 2.5rem;
     }
     
-    .slide h5 {
-        font-size: 1rem;
-        padding: 10px 20px;
-        bottom: 20px;
+    .hero-subtitle {
+        font-size: 1.2rem;
     }
     
     .slider-btn {
@@ -283,6 +294,21 @@
     
     .indicator.active {
         width: 25px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+    
+    .slider-container-full {
+        height: 50vh;
+        min-height: 350px;
     }
 }
 </style>
