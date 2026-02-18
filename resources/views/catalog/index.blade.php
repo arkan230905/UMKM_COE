@@ -243,7 +243,7 @@
 
 .desa-content .section-title {
     color: #3a3a3a;
-    font-size: 2.8rem;
+    font-size: 3.2rem;
     font-weight: 800;
 }
 
