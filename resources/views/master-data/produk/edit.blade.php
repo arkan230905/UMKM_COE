@@ -53,7 +53,7 @@
         <div class="mb-3">
             <label class="form-label">Presentase Keuntungan (%)</label>
             <input type="number" step="0.01" name="margin_percent" class="form-control" value="{{ old('margin_percent', $produk->margin_percent) }}">
-            <small style="color: #ffffff;">Harga jual dihitung otomatis dari Harga BOM × (1 + Margin%).</small>
+            <small style="color: #ffffff;">Harga jual dihitung otomatis dari Harga Pokok Produksi × (1 + Margin%).</small>
         </div>
         <button type="submit" class="btn btn-success">Update</button>
         <a href="{{ route('master-data.produk.index') }}" class="btn btn-secondary">Kembali</a>

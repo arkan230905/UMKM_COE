@@ -10,6 +10,7 @@ use App\Models\StockLayer;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use App\Support\UnitConverter;
+use Illuminate\Support\Str;
 
 class ProdukController extends Controller
 {
@@ -222,5 +223,38 @@ class ProdukController extends Controller
         $produk->delete();
         return redirect()->route('master-data.produk.index')
                          ->with('success', 'Produk berhasil dihapus.');
+    }
+
+    /**
+     * Display public catalog page for customers
+     */
+    public function catalog(Request $request)
+    {
+        // Get products with stock and pricing info
+        $query = Produk::select([
+            'id',
+            'nama_produk',
+            'deskripsi',
+            'harga_jual',
+            'stok',
+            'foto',
+            'barcode',
+            'created_at'
+        ])
+        ->where('stok', '>', 0); // Only show products with stock
+
+        // Apply search filter
+        if ($request->has('search') && !empty($request->search)) {
+            $searchTerm = $request->search;
+            $query->where(function($q) use ($searchTerm) {
+                $q->where('nama_produk', 'LIKE', "%{$searchTerm}%")
+                  ->orWhere('deskripsi', 'LIKE', "%{$searchTerm}%")
+                  ->orWhere('barcode', 'LIKE', "%{$searchTerm}%");
+            });
+        }
+
+        $produks = $query->orderBy('nama_produk', 'asc')->get();
+
+        return view('catalog.index', compact('produks'));
     }
 }

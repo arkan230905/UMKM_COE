@@ -50,6 +50,7 @@ use App\Http\Controllers\PelunasanUtangController;
 // Laporan
 use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\StockReportController;
+use App\Http\Controllers\LaporanKartuStokController;
 
 // Profile
 use App\Http\Controllers\ProfileController;
@@ -63,6 +64,7 @@ use App\Http\Controllers\Pelanggan\CartController;
 use App\Http\Controllers\Pelanggan\CheckoutController;
 use App\Http\Controllers\Pelanggan\OrderController as PelangganOrderController;
 use App\Http\Controllers\Pelanggan\FavoriteController as PelangganFavoriteController;
+use App\Http\Controllers\Pelanggan\Auth\LoginController as PelangganLoginController;
 use App\Http\Controllers\MidtransController;
 use App\Http\Controllers\Auth\RegisterController;
 
@@ -94,6 +96,20 @@ use App\Http\Controllers\PresensiController;
 Route::get('/', function () {
     return view('welcome');
 })->name('welcome');
+
+// Catalog Route - Public
+Route::get('/catalog', [ProdukController::class, 'catalog'])->name('catalog');
+
+// Pelanggan Login Routes - Public
+Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
+    Route::get('/login', [PelangganLoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [PelangganLoginController::class, 'login'])->name('login.post');
+    Route::post('/logout', [PelangganLoginController::class, 'logout'])->name('logout');
+    
+    // Register
+    Route::get('/register', [RegisterController::class, 'showPelangganRegisterForm'])->name('register');
+    Route::post('/register', [RegisterController::class, 'registerPelanggan'])->name('register.post');
+});
 
 
 // ====================================================================
@@ -363,8 +379,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/analysis-data', [\App\Http\Controllers\MasterData\BopController::class, 'getAnalysisData'])->name('analysis-data');
         });
 
-        // BOM Routes
-        Route::prefix('bom')->name('bom.')->group(function () {
+        // Harga Pokok Produksi Routes
+        Route::prefix('harga-pokok-produksi')->name('harga-pokok-produksi.')->group(function () {
             Route::get('calculate/{produkId}', [BomController::class, 'calculateBomCost'])->name('calculate');
             Route::get('by-produk/{id}', [BomController::class, 'view'])->name('view-by-produk');
             Route::post('by-produk/{id}', [BomController::class, 'updateByProduk'])->name('update-by-produk');
@@ -613,6 +629,9 @@ Route::middleware('auth')->group(function () {
     Route::prefix('laporan')->name('laporan.')->middleware('role:admin,owner')->group(function() {
         // Laporan Stok
         Route::get('/stok', [LaporanController::class, 'stok'])->name('stok');
+        
+        // Laporan Kartu Stok
+        Route::get('/kartu-stok', [LaporanKartuStokController::class, 'index'])->name('kartu-stok');
         
         // Laporan Stok Real-Time
         Route::get('/stock-realtime', [\App\Http\Controllers\StockReportController::class, 'index'])->name('stock-realtime');

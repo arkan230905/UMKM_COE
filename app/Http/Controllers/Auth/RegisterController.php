@@ -119,9 +119,56 @@ class RegisterController extends Controller
             case 'pegawai_pembelian':
                 return route('transaksi.pembelian.index');
             case 'pelanggan':
-                return route('pelanggan.produk.index');
+                return route('pelanggan.dashboard');
             default:
                 return '/dashboard';
+        }
+    }
+
+    /**
+     * Show the customer registration form.
+     */
+    public function showPelangganRegisterForm()
+    {
+        return view('pelanggan.auth.register');
+    }
+
+    /**
+     * Handle a customer registration request.
+     */
+    public function registerPelanggan(Request $request)
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'no_telepon' => ['required', 'string', 'max:15'],
+            'alamat' => ['required', 'string', 'max:500'],
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => 'pelanggan',
+                'no_telepon' => $request->no_telepon,
+                'alamat' => $request->alamat,
+                'status' => 'aktif',
+            ]);
+
+            DB::commit();
+
+            auth()->login($user);
+
+            return redirect()->route('pelanggan.dashboard')
+                ->with('success', 'Registrasi berhasil! Selamat datang di UMKM Desa Karangpakuan.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()
+                ->withInput()
+                ->with('error', 'Registrasi gagal. Silakan coba lagi.');
         }
     }
 }

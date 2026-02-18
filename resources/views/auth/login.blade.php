@@ -283,7 +283,6 @@
                         <option value="admin">Admin</option>
                         <option value="pegawai_pembelian">Pegawai Gudang</option>
                         <option value="kasir">Kasir</option>
-                        <option value="pelanggan">Pelanggan</option>
                     </select>
                     @error('login_role')
                         <div class="text-danger small">{{ $message }}</div>
@@ -291,7 +290,7 @@
                 </div>
 
                 <div id="login-fields" style="display: none;">
-                    <!-- Field Email (hanya untuk owner, admin, pelanggan, pegawai, kasir) -->
+                    <!-- Field Email (hanya untuk owner, admin, pegawai, kasir) -->
                     <div id="email_field" class="mb-3" style="display: none;">
                         <label for="email" class="form-label">Email</label>
                         <input id="email" type="email" name="email" value="{{ old('email') }}" class="form-control">
@@ -300,7 +299,7 @@
                         @enderror
                     </div>
 
-                    <!-- Field Password (hanya untuk owner, admin, pelanggan) -->
+                    <!-- Field Password (hanya untuk owner, admin) -->
                     <div id="password_field" class="mb-3" style="display: none;">
                         <label for="password" class="form-label">Password</label>
                         <input id="password" type="password" name="password" class="form-control">
@@ -377,8 +376,8 @@
                     if (role === 'admin' || role === 'pegawai_pembelian' || role === 'kasir') {
                         // no extra fields
                     }
-                    // Role owner dan pelanggan: dengan password
-                    else if (role === 'owner' || role === 'pelanggan') {
+                    // Role owner: dengan password
+                    else if (role === 'owner') {
                         passwordField.style.display = 'block';
                         rememberMeField.style.display = 'flex';
                         if (passwordInput) {
@@ -431,8 +430,8 @@
                         }
                     }
 
-                    // Validasi password untuk owner dan pelanggan
-                    if (['owner', 'pelanggan'].includes(role)) {
+                    // Validasi password untuk owner
+                    if (['owner'].includes(role)) {
                         const password = document.getElementById('password');
                         if (!password || !password.value || password.value.trim() === '') {
                             e.preventDefault();

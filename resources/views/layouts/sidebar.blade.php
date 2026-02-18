@@ -109,9 +109,9 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link-rounded {{ request()->is('master-data/bom*') ? 'active' : '' }}" href="{{ route('master-data.bom.index') }}">
+                <a class="nav-link-rounded {{ request()->is('master-data/harga-pokok-produksi*') ? 'active' : '' }}" href="{{ route('master-data.harga-pokok-produksi.index') }}">
                     <i class="fas fa-sitemap"></i>
-                    <span>BOM (Bill of Materials)</span>
+                    <span>Harga Pokok Produksi</span>
                 </a>
             </li>
             

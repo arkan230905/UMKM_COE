@@ -90,7 +90,7 @@
                             <th>Barcode</th>
                             <th>Nama Produk</th>
                             <th>Deskripsi</th>
-                            <th class="text-right">Harga BOM</th>
+                            <th class="text-right">Harga Harga Pokok Produksi</th>
                             <th class="text-center">Margin</th>
                             <th class="text-right">Harga Jual</th>
                             <th class="text-center">Stok</th>

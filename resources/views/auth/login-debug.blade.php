@@ -73,7 +73,6 @@
                                 <option value="">Pilih Role</option>
                                 <option value="admin">Admin</option>
                                 <option value="owner">Owner</option>
-                                <option value="pelanggan">Pelanggan</option>
                             </select>
                         </div>
 
@@ -197,10 +196,7 @@
                 emailField.style.display = 'block';
                 passwordField.style.display = 'block';
                 log('Showing: Kode Perusahaan + Email + Password');
-            } else if (role === 'pelanggan') {
-                emailField.style.display = 'block';
-                passwordField.style.display = 'block';
-                log('Showing: Email + Password');
+            }
             }
 
             updateFieldStatus();

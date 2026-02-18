@@ -121,11 +121,11 @@ class BomController extends Controller
                 \App\Services\BomSyncService::recalculateBomCosts($bom);
             }
 
-            return redirect()->route('master-data.bom.index')
-                ->with('success', 'BOP berhasil diperbarui dan BOM dihitung ulang untuk ' . $produk->nama_produk);
+            return redirect()->route('master-data.harga-pokok-produksi.index')
+                ->with('success', 'BOP berhasil diperbarui dan Harga Pokok Produksi dihitung ulang untuk ' . $produk->nama_produk);
 
         } catch (\Exception $e) {
-            return redirect()->route('master-data.bom.index')
+            return redirect()->route('master-data.harga-pokok-produksi.index')
                 ->with('error', 'Gagal memperbarui BOP: ' . $e->getMessage());
         }
     }
@@ -174,19 +174,19 @@ class BomController extends Controller
             $bopCount = \App\Models\BopProses::where('is_active', true)->count();
             
             if ($btklCount == 0 || $bopCount == 0) {
-                return redirect()->route('master-data.bom.index')
+                return redirect()->route('master-data.harga-pokok-produksi.index')
                     ->with('error', 'Tidak ada data BTKL atau BOP yang aktif. Silakan buat data master BTKL dan BOP terlebih dahulu.');
             }
             
             // Run auto-population
             \App\Services\BomSyncService::autoPopulateAllProducts();
             
-            return redirect()->route('master-data.bom.index')
+            return redirect()->route('master-data.harga-pokok-produksi.index')
                 ->with('success', "Berhasil mengisi data BTKL dan BOP untuk semua produk. BTKL: {$btklCount} proses, BOP: {$bopCount} proses.");
                 
         } catch (\Exception $e) {
-            return redirect()->route('master-data.bom.index')
-                ->with('error', 'Gagal mengisi data BOM: ' . $e->getMessage());
+            return redirect()->route('master-data.harga-pokok-produksi.index')
+                ->with('error', 'Gagal mengisi data Harga Pokok Produksi: ' . $e->getMessage());
         }
     }
 
@@ -215,12 +215,12 @@ class BomController extends Controller
             \App\Services\BomSyncService::syncBTKLForBom($bomJobCosting);
             \App\Services\BomSyncService::syncBOPForBom($bomJobCosting);
             
-            return redirect()->route('master-data.bom.index')
+            return redirect()->route('master-data.harga-pokok-produksi.index')
                 ->with('success', "Berhasil menyinkronkan data BTKL dan BOP untuk produk: {$produk->nama_produk}");
                 
         } catch (\Exception $e) {
-            return redirect()->route('master-data.bom.index')
-                ->with('error', 'Gagal menyinkronkan data BOM: ' . $e->getMessage());
+            return redirect()->route('master-data.harga-pokok-produksi.index')
+                ->with('error', 'Gagal menyinkronkan data Harga Pokok Produksi: ' . $e->getMessage());
         }
     }
 
@@ -464,7 +464,7 @@ class BomController extends Controller
             ));
 
         } catch (\Exception $e) {
-            return redirect()->route('master-data.bom.index')
+            return redirect()->route('master-data.harga-pokok-produksi.index')
                 ->with('error', 'Terjadi kesalahan saat menampilkan detail BOM: ' . $e->getMessage());
         }
     }
@@ -537,14 +537,14 @@ class BomController extends Controller
             $produks = Produk::whereNotIn('id', $produkIdsWithBom)->get();
             
             if ($produks->isEmpty()) {
-                return redirect()->route('master-data.bom.index')
+                return redirect()->route('master-data.harga-pokok-produksi.index')
                     ->with('info', 'Semua produk sudah memiliki BOM. Tidak ada produk yang bisa ditambahkan BOM-nya.');
             }
             
             return view('master-data.bom.create', compact('produks'));
             
         } catch (\Exception $e) {
-            return redirect()->route('master-data.bom.index')
+            return redirect()->route('master-data.harga-pokok-produksi.index')
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -579,7 +579,7 @@ class BomController extends Controller
             $bom = Bom::findOrFail($id);
             $bom->delete();
 
-            return redirect()->route('master-data.bom.index')
+            return redirect()->route('master-data.harga-pokok-produksi.index')
                 ->with('success', 'BOM berhasil dihapus.');
 
         } catch (\Exception $e) {
@@ -595,7 +595,7 @@ class BomController extends Controller
             return view('master-data.bom.print', compact('bom'));
             
         } catch (\Exception $e) {
-            return redirect()->route('master-data.bom.index')
+            return redirect()->route('master-data.harga-pokok-produksi.index')
                 ->with('error', 'Terjadi kesalahan saat mencetak BOM: ' . $e->getMessage());
         }
     }

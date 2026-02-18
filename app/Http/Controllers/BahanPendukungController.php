@@ -128,13 +128,13 @@ class BahanPendukungController extends Controller
             'kategori_id' => 'required|exists:kategori_bahan_pendukung,id',
             'sub_satuan_1_id' => 'required|exists:satuans,id',
             'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
-            'sub_satuan_1_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_1_nilai' => 'required|numeric',
             'sub_satuan_2_id' => 'required|exists:satuans,id',
             'sub_satuan_2_konversi' => 'required|numeric|min:0.01',
-            'sub_satuan_2_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_2_nilai' => 'required|numeric',
             'sub_satuan_3_id' => 'required|exists:satuans,id',
             'sub_satuan_3_konversi' => 'required|numeric|min:0.01',
-            'sub_satuan_3_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_3_nilai' => 'required|numeric',
         ]);
 
         // Create bahan pendukung
@@ -183,13 +183,13 @@ class BahanPendukungController extends Controller
             'kategori_id' => 'required|exists:kategori_bahan_pendukung,id',
             'sub_satuan_1_id' => 'required|exists:satuans,id',
             'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
-            'sub_satuan_1_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_1_nilai' => 'required|numeric',
             'sub_satuan_2_id' => 'required|exists:satuans,id',
             'sub_satuan_2_konversi' => 'required|numeric|min:0.01',
-            'sub_satuan_2_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_2_nilai' => 'required|numeric',
             'sub_satuan_3_id' => 'required|exists:satuans,id',
             'sub_satuan_3_konversi' => 'required|numeric|min:0.01',
-            'sub_satuan_3_nilai' => 'required|numeric|min:0.01',
+            'sub_satuan_3_nilai' => 'required|numeric',
         ]);
 
         // Handle checkbox - tidak perlu validasi boolean

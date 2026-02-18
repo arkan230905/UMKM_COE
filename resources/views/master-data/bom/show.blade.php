@@ -3,8 +3,8 @@
 @section('content')
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>Detail BOM: {{ $produk->nama_produk }}</h3>
-        <a href="{{ route('master-data.bom.index') }}" class="btn btn-secondary">
+        <h3>Detail Harga Pokok Produksi: {{ $produk->nama_produk }}</h3>
+        <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
             <i class="bi bi-arrow-left"></i> Kembali
         </a>
     </div>
@@ -496,7 +496,7 @@
     <div class="card shadow-lg border-success border-3">
         <div class="card-header bg-success text-white">
             <h5 class="mb-0 fw-bold">
-                <i class="fas fa-calculator me-2"></i>Total BOM - {{ $produk->nama_produk }}
+                <i class="fas fa-calculator me-2"></i>Total Harga Pokok Produksi - {{ $produk->nama_produk }}
             </h5>
         </div>
         <div class="card-body bg-light">
@@ -546,7 +546,7 @@
                                 <tfoot>
                                     <tr class="border-top border-3 border-success bg-success bg-opacity-15">
                                         <th class="fw-bold fs-4 text-success py-4">
-                                            <i class="fas fa-chart-bar me-2"></i>TOTAL BOM:
+                                            <i class="fas fa-chart-bar me-2"></i>TOTAL HARGA POKOK PRODUKSI:
                                         </th>
                                         <th class="text-end fw-bold fs-4 text-success py-4">
                                             @if($totalBiayaBOM > 0)
@@ -570,7 +570,7 @@
                         <div class="d-flex align-items-center">
                             <i class="fas fa-info-circle me-3 fs-5"></i>
                             <div>
-                                <strong>Ringkasan BOM:</strong> 
+                                <strong>Ringkasan Harga Pokok Produksi:</strong> 
                                 Total biaya produksi untuk <strong>{{ $produk->nama_produk }}</strong> 
                                 mencakup {{ count($detailBahanBaku) + count($detailBahanPendukung) }} item bahan, 
                                 {{ count($btklDataForDisplay) }} proses BTKL, dan 

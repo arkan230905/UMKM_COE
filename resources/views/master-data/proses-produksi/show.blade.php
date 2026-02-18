@@ -192,7 +192,7 @@
             <div class="card">
                 <div class="card-header">
                     <h6 class="mb-0">
-                        <i class="fas fa-history me-2"></i>Riwayat Penggunaan dalam BOM
+                        <i class="fas fa-history me-2"></i>Riwayat Penggunaan dalam Harga Pokok Produksi
                     </h6>
                 </div>
                 <div class="card-body">
@@ -201,7 +201,7 @@
                             <table class="table table-sm">
                                 <thead>
                                     <tr>
-                                        <th>BOM</th>
+                                        <th>Harga Pokok Produksi</th>
                                         <th>Produk</th>
                                         <th>Urutan</th>
                                         <th>Durasi</th>
@@ -222,7 +222,7 @@
                     @else
                         <div class="text-center text-muted py-3">
                             <i class="fas fa-inbox fa-2x mb-2"></i>
-                            <p>Proses ini belum digunakan dalam BOM manapun</p>
+                            <p>Proses ini belum digunakan dalam Harga Pokok Produksi manapun</p>
                         </div>
                     @endif
                 </div>

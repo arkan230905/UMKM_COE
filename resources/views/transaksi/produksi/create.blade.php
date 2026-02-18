@@ -47,7 +47,7 @@
                 <!-- Informasi BOM Produk -->
                 <div class="card bg-light mb-4" id="bom-info" style="display: none;">
                     <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">📋 Informasi BOM Produk</h5>
+                        <h5 class="mb-0">📋 Informasi Harga Pokok Produksi Produk</h5>
                     </div>
                     <div class="card-body">
                         <div class="alert alert-info mb-0">

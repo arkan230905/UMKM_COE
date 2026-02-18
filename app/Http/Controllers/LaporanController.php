@@ -144,7 +144,22 @@ class LaporanController extends Controller
             if ($itemId) { 
                 $movQ->where('item_id', $itemId); 
                 
-                // Calculate initial balance for the selected item
+                // Get initial stock from master data
+                if ($tipe == 'material') {
+                    $item = BahanBaku::find($itemId);
+                    $saldoAwalQty = (float)($item->stok ?? 0);
+                    $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
+                } elseif ($tipe == 'product') {
+                    $item = Produk::find($itemId);
+                    $saldoAwalQty = (float)($item->stok ?? 0);
+                    $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_pokok ?? 0);
+                } elseif ($tipe == 'bahan_pendukung') {
+                    $item = \App\Models\BahanPendukung::find($itemId);
+                    $saldoAwalQty = (float)($item->stok ?? 0);
+                    $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
+                }
+                
+                // Calculate movements before the selected date range
                 if ($from) {
                     $before = StockMovement::where('item_type', $tipe)
                         ->where('item_id', $itemId)
