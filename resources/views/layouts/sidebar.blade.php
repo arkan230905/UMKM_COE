@@ -71,6 +71,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link-rounded {{ request()->is('master-data/pelanggan*') ? 'active' : '' }}" href="{{ route('master-data.pelanggan.index') }}">
+                    <i class="fas fa-users"></i>
+                    <span>Pelanggan</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link-rounded {{ request()->is('master-data/bahan-baku*') ? 'active' : '' }}" href="{{ route('master-data.bahan-baku.index') }}">
                     <i class="fas fa-cubes"></i>
                     <span>Bahan Baku</span>

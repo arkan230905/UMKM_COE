@@ -6,6 +6,9 @@
         <h2 class="mb-0">
             <i class="fas fa-users me-2"></i>Pelanggan
         </h2>
+        <a href="{{ route('master-data.pelanggan.create') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Tambah Pelanggan
+        </a>
     </div>
 
     @if(session('success'))
@@ -36,8 +39,8 @@
                             <th class="text-center" style="width: 50px">#</th>
                             <th>Nama</th>
                             <th>Email</th>
-                            <th>Username</th>
                             <th>No. Telepon</th>
+                            <th>Password</th>
                             <th>Total Pesanan</th>
                             <th>Terdaftar</th>
                             <th class="text-center">Aksi</th>
@@ -59,8 +62,20 @@
                                     </div>
                                 </td>
                                 <td>{{ $pelanggan->email ?? '-' }}</td>
-                                <td>{{ $pelanggan->username ?? '-' }}</td>
-                                <td>{{ $pelanggan->phone ?? '-' }}</td>
+                                <td>{{ $pelanggan->no_telepon ?? '-' }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>Active
+                                        </span>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-warning" 
+                                                onclick="resetPassword({{ $pelanggan->id }}, '{{ $pelanggan->name }}')"
+                                                title="Reset Password">
+                                            <i class="fas fa-key"></i>
+                                        </button>
+                                    </div>
+                                </td>
                                 <td>
                                     <span class="badge bg-primary">{{ $pelanggan->orders_count ?? 0 }}</span>
                                 </td>
@@ -98,4 +113,93 @@
         </div>
     </div>
 </div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-key me-2"></i>Reset Password Pelanggan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="resetPasswordForm" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <p>Reset password untuk: <strong id="resetPelangganName"></strong></p>
+                    
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label fw-bold">Password Baru</label>
+                        <input type="password" name="password" id="new_password" class="form-control" 
+                               placeholder="Masukkan password baru minimal 6 karakter" required minlength="6">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password_confirmation" class="form-label fw-bold">Konfirmasi Password</label>
+                        <input type="password" name="password_confirmation" id="password_confirmation" 
+                               class="form-control" placeholder="Ulangi password baru" required>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Password baru akan langsung aktif untuk pelanggan ini.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-key me-1"></i>Reset Password
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function resetPassword(pelangganId, pelangganName) {
+    document.getElementById('resetPelangganName').textContent = pelangganName;
+    document.getElementById('resetPasswordForm').action = `/master-data/pelanggan/${pelangganId}/reset-password`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+    modal.show();
+}
+
+document.getElementById('resetPasswordForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Memproses...';
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal')).hide();
+            location.reload();
+        } else {
+            alert('Gagal reset password: ' + (data.message || 'Terjadi kesalahan'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat reset password');
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+});
+</script>
 @endsection

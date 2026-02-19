@@ -241,7 +241,7 @@ class ProdukController extends Controller
             'barcode',
             'created_at'
         ])
-        ->where('stok', '>', 0); // Only show products with stock
+        ->where('stok', '>=', 0); // Show all products including those with zero stock
 
         // Apply search filter
         if ($request->has('search') && !empty($request->search)) {
