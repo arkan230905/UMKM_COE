@@ -292,7 +292,8 @@ Route::middleware('auth')->group(function () {
     // ================================================================
     Route::prefix('master-data')->name('master-data.')->middleware('role:admin,owner')->group(function () {
         // Pelanggan
-        Route::resource('pelanggan', \App\Http\Controllers\MasterData\PelangganController::class)->except(['create', 'store']);
+        Route::resource('pelanggan', \App\Http\Controllers\MasterData\PelangganController::class);
+        Route::post('pelanggan/{id}/reset-password', [\App\Http\Controllers\MasterData\PelangganController::class, 'resetPassword'])->name('pelanggan.reset-password');
         
         // Bahan Baku
         Route::resource('bahan-baku', BahanBakuController::class);

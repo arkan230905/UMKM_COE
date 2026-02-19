@@ -15,13 +15,12 @@ class PelangganController extends Controller
     {
         $user = Auth::user();
         
-        // Ambil produk yang tersedia (stok > 0)
-        $produks = Produk::where('stok', '>', 0)
-            ->with('satuan')
+        // Ambil SEMUA produk dari master data (tanpa filter stok)
+        $produks = Produk::with('satuan')
             ->orderBy('nama_produk')
             ->get();
         
-        // Hitung stok tersedia dari stock_movements
+        // Hitung stok tersedia dari stock_movements untuk semua produk
         $produks = $produks->map(function($p) {
             $stokMasuk = DB::table('stock_movements')
                 ->where('item_type', 'product')
@@ -37,9 +36,7 @@ class PelangganController extends Controller
             
             $p->stok_tersedia = max(0, $stokMasuk - $stokKeluar);
             return $p;
-        })->filter(function($p) {
-            return $p->stok_tersedia > 0;
-        });
+        }); // Remove filter to show all products
         
         // Ambil keranjang dari session
         $cart = session('cart', []);

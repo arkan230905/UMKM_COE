@@ -19,6 +19,33 @@ class PelangganController extends Controller
         return view('master-data.pelanggan.index', compact('pelanggans'));
     }
 
+    public function create()
+    {
+        return view('master-data.pelanggan.create');
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'no_telepon' => 'required|string|max:20',
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'no_telepon' => $request->no_telepon,
+            'password' => Hash::make($request->password),
+            'role' => 'pelanggan',
+            'email_verified_at' => now(),
+        ]);
+
+        return redirect()->route('master-data.pelanggan.index')
+            ->with('success', 'Pelanggan berhasil ditambahkan!');
+    }
+
     public function show($id)
     {
         $pelanggan = User::where('role', 'pelanggan')->findOrFail($id);
@@ -29,6 +56,33 @@ class PelangganController extends Controller
         }]);
 
         return view('master-data.pelanggan.show', compact('pelanggan'));
+    }
+
+    public function getPassword($id)
+    {
+        $pelanggan = User::where('role', 'pelanggan')->findOrFail($id);
+        
+        return response()->json([
+            'password' => $pelanggan->password // Hashed password
+        ]);
+    }
+
+    public function resetPassword(Request $request, $id)
+    {
+        $pelanggan = User::where('role', 'pelanggan')->findOrFail($id);
+
+        $request->validate([
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        $pelanggan->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password pelanggan berhasil direset!'
+        ]);
     }
 
     public function edit($id)
@@ -44,16 +98,14 @@ class PelangganController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $id,
-            'username' => 'required|string|unique:users,username,' . $id,
-            'phone' => 'nullable|string|max:20',
-            'password' => 'nullable|min:8|confirmed',
+            'no_telepon' => 'required|string|max:20',
+            'password' => 'nullable|min:6|confirmed',
         ]);
 
         $data = [
             'name' => $request->name,
             'email' => $request->email,
-            'username' => $request->username,
-            'phone' => $request->phone,
+            'no_telepon' => $request->no_telepon,
         ];
 
         // Update password jika diisi

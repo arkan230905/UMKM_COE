@@ -29,7 +29,9 @@ class DashboardController extends Controller
     {
         $search = trim($request->input('q', ''));
 
-        $produksQuery = Produk::where('stok', '>', 0);
+        // Ambil SEMUA produk dari master data (tanpa filter stok)
+        $produksQuery = Produk::with('satuan');
+        
         if ($search !== '') {
             $produksQuery->where(function($q) use ($search) {
                 $q->where('nama_produk', 'like', "%{$search}%")
@@ -41,6 +43,24 @@ class DashboardController extends Controller
             ->orderBy('nama_produk')
             ->paginate(12)
             ->withQueryString();
+        
+        // Hitung stok tersedia dari stock_movements untuk semua produk
+        $produks->getCollection()->transform(function($p) {
+            $stokMasuk = \Illuminate\Support\Facades\DB::table('stock_movements')
+                ->where('item_type', 'product')
+                ->where('item_id', $p->id)
+                ->where('direction', 'in')
+                ->sum('qty');
+            
+            $stokKeluar = \Illuminate\Support\Facades\DB::table('stock_movements')
+                ->where('item_type', 'product')
+                ->where('item_id', $p->id)
+                ->where('direction', 'out')
+                ->sum('qty');
+            
+            $p->stok_tersedia = max(0, $stokMasuk - $stokKeluar);
+            return $p;
+        });
 
         $cartCount = Cart::where('user_id', auth()->id())->sum('qty');
 
@@ -67,10 +87,25 @@ class DashboardController extends Controller
             }
             // Fallback jika belum ada penjualan, tampilkan produk terbaru
             if ($result->isEmpty()) {
-                $result = Produk::where('stok', '>', 0)
-                    ->orderByDesc('created_at')
-                    ->limit(6)
-                    ->get();
+                $allProducts = Produk::orderByDesc('created_at')->limit(6)->get();
+                
+                // Hitung stok tersedia dari stock_movements
+                $result = $allProducts->filter(function($p) {
+                    $stokMasuk = \Illuminate\Support\Facades\DB::table('stock_movements')
+                        ->where('item_type', 'product')
+                        ->where('item_id', $p->id)
+                        ->where('direction', 'in')
+                        ->sum('qty');
+                    
+                    $stokKeluar = \Illuminate\Support\Facades\DB::table('stock_movements')
+                        ->where('item_type', 'product')
+                        ->where('item_id', $p->id)
+                        ->where('direction', 'out')
+                        ->sum('qty');
+                    
+                    $p->stok_tersedia = max(0, $stokMasuk - $stokKeluar);
+                    return $p->stok_tersedia > 0; // Hanya tampilkan produk yang ada stoknya
+                });
             }
             return $result;
         });

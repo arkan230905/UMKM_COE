@@ -17,7 +17,7 @@
         }
         
         .navbar-custom {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #d4a574 0%, #b8935f 100%);
             box-shadow: 0 2px 4px rgba(0,0,0,.1);
         }
         

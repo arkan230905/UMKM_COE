@@ -14,8 +14,8 @@ class LoginController extends Controller
      */
     public function showLoginForm(Request $request)
     {
-        // If already logged in as customer, redirect to dashboard
-        if (Auth::guard('pelanggan')->check()) {
+        // If already logged in, redirect to dashboard
+        if (Auth::check()) {
             return redirect()->route('pelanggan.dashboard');
         }
 
@@ -36,7 +36,7 @@ class LoginController extends Controller
             'password' => 'required',
         ]);
 
-        if (Auth::guard('pelanggan')->attempt($credentials)) {
+        if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
 
             // Get redirect URL from request or default to dashboard
@@ -70,7 +70,7 @@ class LoginController extends Controller
      */
     public function logout(Request $request)
     {
-        Auth::guard('pelanggan')->logout();
+        Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

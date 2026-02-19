@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Edit Pelanggan')
+@section('title', 'Tambah Pelanggan')
 
 @section('content')
 <div class="container-fluid">
@@ -9,11 +9,18 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-user-edit me-2"></i>
-                        Edit Data Pelanggan
+                        <i class="fas fa-user-plus me-2"></i>
+                        Tambah Pelanggan Baru
                     </h5>
                 </div>
                 <div class="card-body">
+                    @if(session('success'))
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            {{ session('success') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    @endif
+
                     @if($errors->any())
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <ul class="mb-0">
@@ -25,10 +32,9 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('master-data.pelanggan.update', $pelanggan->id) }}" method="POST">
+                    <form action="{{ route('master-data.pelanggan.store') }}" method="POST">
                         @csrf
-                        @method('PUT')
-
+                        
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -39,7 +45,7 @@
                                            class="form-control @error('name') is-invalid @enderror" 
                                            id="name" 
                                            name="name" 
-                                           value="{{ old('name', $pelanggan->name) }}" 
+                                           value="{{ old('name') }}" 
                                            placeholder="Masukkan nama lengkap pelanggan" 
                                            required>
                                     @error('name')
@@ -59,7 +65,7 @@
                                            class="form-control @error('email') is-invalid @enderror" 
                                            id="email" 
                                            name="email" 
-                                           value="{{ old('email', $pelanggan->email) }}" 
+                                           value="{{ old('email') }}" 
                                            placeholder="Masukkan email pelanggan" 
                                            required>
                                     @error('email')
@@ -81,7 +87,7 @@
                                            class="form-control @error('no_telepon') is-invalid @enderror" 
                                            id="no_telepon" 
                                            name="no_telepon" 
-                                           value="{{ old('no_telepon', $pelanggan->no_telepon) }}" 
+                                           value="{{ old('no_telepon') }}" 
                                            placeholder="Masukkan nomor telepon pelanggan" 
                                            required>
                                     @error('no_telepon')
@@ -91,27 +97,18 @@
                                     @enderror
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-12">
-                                <hr>
-                                <h6 class="mb-3">
-                                    <i class="fas fa-key me-1"></i> Ubah Password (Opsional)
-                                </h6>
-                                <p class="text-muted small mb-3">Kosongkan jika tidak ingin mengubah password</p>
-                            </div>
                             
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="password" class="form-label fw-bold">
-                                        <i class="fas fa-lock me-1"></i> Password Baru
+                                        <i class="fas fa-lock me-1"></i> Password
                                     </label>
                                     <input type="password" 
                                            class="form-control @error('password') is-invalid @enderror" 
                                            id="password" 
                                            name="password" 
-                                           placeholder="Masukkan password minimal 6 karakter">
+                                           placeholder="Masukkan password minimal 6 karakter" 
+                                           required>
                                     @error('password')
                                         <div class="invalid-feedback">
                                             {{ $message }}
@@ -119,17 +116,20 @@
                                     @enderror
                                 </div>
                             </div>
+                        </div>
 
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="password_confirmation" class="form-label fw-bold">
-                                        <i class="fas fa-lock me-1"></i> Konfirmasi Password Baru
+                                        <i class="fas fa-lock me-1"></i> Konfirmasi Password
                                     </label>
                                     <input type="password" 
                                            class="form-control @error('password_confirmation') is-invalid @enderror" 
                                            id="password_confirmation" 
                                            name="password_confirmation" 
-                                           placeholder="Ulangi password baru">
+                                           placeholder="Ulangi password" 
+                                           required>
                                     @error('password_confirmation')
                                         <div class="invalid-feedback">
                                             {{ $message }}
@@ -146,7 +146,7 @@
                                         <i class="fas fa-arrow-left me-1"></i> Kembali
                                     </a>
                                     <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save me-1"></i> Simpan Perubahan
+                                        <i class="fas fa-save me-1"></i> Simpan Pelanggan
                                     </button>
                                 </div>
                             </div>
