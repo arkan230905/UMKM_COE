@@ -21,22 +21,36 @@ class AccountHelper
      */
     public static function getKasBankAccounts()
     {
-        // Prioritas: Gunakan COA yang memiliki saldo awal
-        $coaAccounts = Coa::whereIn('kode_akun', ['1110', '1120'])
-            ->where('tipe_akun', 'Asset')
+        // Prioritas: Cari COA yang mengandung kata 'kas' atau 'bank'
+        $coaAccounts = Coa::where('tipe_akun', 'Asset')
             ->where('is_akun_header', '!=', 1)
+            ->where(function($query) {
+                $query->where('nama_akun', 'like', '%kas%')
+                      ->orWhere('nama_akun', 'like', '%bank%');
+            })
             ->orderBy('kode_akun')
             ->get();
         
-        // Jika ada COA dengan saldo awal, gunakan itu
+        // Jika ada COA dengan nama kas/bank, gunakan itu
         if ($coaAccounts->count() > 0) {
             return $coaAccounts;
         }
         
-        // Fallback: cari di accounts table yang memiliki transaksi
+        // Fallback: cari COA dengan kode yang umum untuk kas/bank
+        $fallbackCoas = Coa::whereIn('kode_akun', ['1110', '1120', '101', '102'])
+            ->where('tipe_akun', 'Asset')
+            ->where('is_akun_header', '!=', 1)
+            ->orderBy('kode_akun')
+            ->get();
+            
+        if ($fallbackCoas->count() > 0) {
+            return $fallbackCoas;
+        }
+        
+        // Last fallback: cari di accounts table yang memiliki transaksi
         $activeAccountCodes = DB::table('accounts')
             ->join('journal_lines', 'accounts.id', '=', 'journal_lines.account_id')
-            ->whereIn('accounts.code', ['101', '102'])
+            ->whereIn('accounts.code', ['101', '102', '1110', '1120'])
             ->distinct()
             ->pluck('accounts.code')
             ->toArray();

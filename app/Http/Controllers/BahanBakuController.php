@@ -12,7 +12,7 @@ class BahanBakuController extends Controller
     // Menampilkan semua data bahan baku
     public function index()
     {
-        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->get();
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])->get();
         
         // Hitung harga rata-rata untuk setiap bahan baku
         foreach ($bahanBaku as $bahan) {
@@ -32,7 +32,7 @@ class BahanBakuController extends Controller
     // Menampilkan detail bahan baku
     public function show($id)
     {
-        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->findOrFail($id);
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])->findOrFail($id);
         
         // Hitung harga rata-rata untuk display
         $averageHarga = $this->getAverageHargaSatuan($bahanBaku->id);
@@ -51,7 +51,8 @@ class BahanBakuController extends Controller
     public function create()
     {
         $satuans = Satuan::all();
-        return view('master-data.bahan-baku.create', compact('satuans'));
+        $coas = \App\Models\Coa::orderBy('nama_akun')->get();
+        return view('master-data.bahan-baku.create', compact('satuans', 'coas'));
     }
 
     // Simpan data baru ke database
@@ -77,6 +78,9 @@ class BahanBakuController extends Controller
             'sub_satuan_3_id' => 'required|exists:satuans,id',
             'sub_satuan_3_konversi' => 'required|numeric|min:0.01',
             'sub_satuan_3_nilai' => 'required|numeric|min:0.01',
+            'coa_pembelian_id' => 'nullable|exists:coas,kode_akun',
+            'coa_persediaan_id' => 'nullable|exists:coas,kode_akun',
+            'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
         ]);
 
         // Auto generate kode_bahan if not provided
@@ -104,6 +108,9 @@ class BahanBakuController extends Controller
             'sub_satuan_3_id' => $request->sub_satuan_3_id,
             'sub_satuan_3_konversi' => $request->sub_satuan_3_konversi,
             'sub_satuan_3_nilai' => $request->sub_satuan_3_nilai,
+            'coa_pembelian_id' => $request->coa_pembelian_id,
+            'coa_persediaan_id' => $request->coa_persediaan_id,
+            'coa_hpp_id' => $request->coa_hpp_id,
         ]);
 
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
@@ -112,9 +119,10 @@ class BahanBakuController extends Controller
     // Menampilkan form edit
     public function edit($id)
     {
-        $bahanBaku = BahanBaku::with('satuan')->findOrFail($id);
+        $bahanBaku = BahanBaku::with(['satuan', 'coaPembelian', 'coaPersediaan', 'coaHpp'])->findOrFail($id);
         $satuans = Satuan::all();
-        return view('master-data.bahan-baku.edit', compact('bahanBaku', 'satuans'));
+        $coas = \App\Models\Coa::orderBy('nama_akun')->get();
+        return view('master-data.bahan-baku.edit', compact('bahanBaku', 'satuans', 'coas'));
     }
 
     // Update data
@@ -139,6 +147,9 @@ class BahanBakuController extends Controller
             'sub_satuan_3_id' => 'required|exists:satuans,id',
             'sub_satuan_3_konversi' => 'required|numeric|min:0.01',
             'sub_satuan_3_nilai' => 'required|numeric|min:0.01',
+            'coa_pembelian_id' => 'nullable|exists:coas,kode_akun',
+            'coa_persediaan_id' => 'nullable|exists:coas,kode_akun',
+            'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
         ]);
 
         $bahanBaku = BahanBaku::findOrFail($id);
@@ -159,6 +170,11 @@ class BahanBakuController extends Controller
         $bahanBaku->sub_satuan_3_id = $request->sub_satuan_3_id;
         $bahanBaku->sub_satuan_3_konversi = $request->sub_satuan_3_konversi;
         $bahanBaku->sub_satuan_3_nilai = $request->sub_satuan_3_nilai;
+        
+        // Update COA fields
+        $bahanBaku->coa_pembelian_id = $request->coa_pembelian_id;
+        $bahanBaku->coa_persediaan_id = $request->coa_persediaan_id;
+        $bahanBaku->coa_hpp_id = $request->coa_hpp_id;
         
         // Save changes
         $bahanBaku->save();

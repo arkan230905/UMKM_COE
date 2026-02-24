@@ -423,7 +423,7 @@
                         </tfoot>
                     </table>
                 </div>
-                <button type="button" class="btn btn-sm btn-info mt-2" id="addBahanPendukung" onclick="window.addBahanPendukungRow(); return false;">
+                <button type="button" class="btn btn-sm btn-info mt-2" id="addBahanPendukung" onclick="addBahanPendukungRow(); return false;">
                     <i class="fas fa-plus"></i> Tambah Bahan Pendukung
                 </button>
             </div>
@@ -434,18 +434,22 @@
             <div class="card-body">
                 <!-- DEBUG TEST BUTTON -->
                 <div class="mb-3 p-2 bg-light border rounded">
-                    <small class="text-muted">Debug Test:</small>
-                    <button type="button" class="btn btn-sm btn-warning ms-2" onclick="testConversionFunction()">
-                        🧪 Test Conversion Function
+                    <h6 class="text-primary mb-2">🔍 DEBUG TESTING</h6>
+                    <button type="button" class="btn btn-sm btn-warning me-2" onclick="testAddBahanPendukung()">
+                        🧪 Test Add Bahan Pendukung
                     </button>
-                    <button type="button" class="btn btn-sm btn-info ms-2" onclick="testSubtotalCalculation()">
-                        🧮 Test Subtotal Calculation
+                    <button type="button" class="btn btn-sm btn-danger me-2" onclick="checkElements()">
+                        🔍 Check Elements
                     </button>
-                    <button type="button" class="btn btn-sm btn-danger ms-2" onclick="emergencyDebug()">
-                        🚨 Emergency Debug
+                    <button type="button" class="btn btn-sm btn-success me-2" onclick="clearConsole()">
+                        🗑️ Clear Console
                     </button>
-                    <div id="testResult" class="mt-1 text-small"></div>
                 </div>
+
+                <button type="button" class="btn btn-sm btn-info mt-2" id="addBahanPendukung" onclick="addBahanPendukungRow(); return false;">
+                    <i class="fas fa-plus"></i> Tambah Bahan Pendukung
+                </button>
+                <div id="testResult" class="mt-1 text-small"></div>
                 
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
@@ -872,72 +876,41 @@ function addBahanPendukungRow() {
     clone.classList.remove("d-none");
     clone.id = "bahanPendukung_" + Date.now();
     
+    console.log("📋 Template row found:", newRow);
+    console.log("📋 Clone created:", clone);
+    
     // Update name attributes
     const timestamp = Date.now();
     clone.querySelectorAll('[name^="bahan_pendukung[new]"]').forEach(input => {
         const fieldName = input.name.match(/\[new\]\[(\w+)\]/)[1];
         input.name = `bahan_pendukung[${timestamp}][${fieldName}]`;
         input.value = "";
+        console.log(`📝 Updated input name: ${input.name}`);
     });
     
     tbody.insertBefore(clone, newRow);
     addRowEventListeners(clone);
     
-    console.log("✅ Bahan Pendukung row added");
-    return false;
-}
-
-
-// Test functions for debugging
-function testConversionFunction() {
-    console.log("🧪 Testing conversion function");
-    const testResult = document.getElementById("testResult");
-    
-    try {
-        // Test data
-        const testData = [
-            {
-                "nama": "Kilogram",
-                "konversi": "1.0000",
-                "nilai": "1.5000"
-            },
-            {
-                "nama": "Potong", 
-                "konversi": "1.0000",
-                "nilai": "6.0000"
-            }
-        ];
+    console.log("✅ Bahan Pendukung row added successfully");
         
-        const hargaUtama = 45000;
-        const satuanUtama = "Ekor";
+        const newRow = document.getElementById("newBahanBakuRow");
+        if (!newRow) {
+            console.error("❌ Template row not found");
+            return false;
+        }
         
-        let results = [];
-        results.push(`Harga Utama: ${formatRupiah(hargaUtama)}/${satuanUtama}`);
+        const tbody = newRow.parentElement;
+        const clone = newRow.cloneNode(true);
+        clone.classList.remove("d-none");
+        clone.id = "bahanBaku_" + Date.now();
         
-        testData.forEach(sub => {
-            const konversi = parseFloat(sub.konversi);
-            const nilai = parseFloat(sub.nilai);
-            const hargaKonversi = (hargaUtama * konversi) / nilai;
-            
-            results.push(`${sub.nama}: ${formatRupiah(hargaKonversi)} (${konversi}÷${nilai})`);
+        // Update name attributes
+        const timestamp = Date.now();
+        clone.querySelectorAll('[name^="bahan_baku[new]"]').forEach(input => {
+            const fieldName = input.name.match(/\[new\]\[(\w+)\]/)[1];
+            input.name = `bahan_baku[${timestamp}][${fieldName}]`;
+            input.value = "";
         });
-        
-        if (testResult) {
-            testResult.innerHTML = `<div class="alert alert-success">✅ Test Results:<br>${results.join('<br>')}</div>`;
-        }
-        
-        console.log("✅ Conversion test passed");
-        
-    } catch (error) {
-        if (testResult) {
-            testResult.innerHTML = `<div class="alert alert-danger">❌ Test Error: ${error.message}</div>`;
-        }
-        console.error("❌ Conversion test failed:", error);
-    }
-}
-
-function testSubtotalCalculation() {
-    console.log("🧮 Testing subtotal calculation");
     const testResult = document.getElementById("testResult");
     
     try {
@@ -1072,10 +1045,14 @@ document.addEventListener("DOMContentLoaded", function() {
     
     if (addBPBtn) {
         addBPBtn.addEventListener("click", function(e) {
+            console.log("🔘 Bahan Pendukung button clicked!");
             e.preventDefault();
-            addBahanPendukungRow();
+            const result = addBahanPendukungRow();
+            console.log("🎯 Function result:", result);
         });
-        console.log("✅ BP button attached");
+        console.log("✅ BP button attached successfully");
+    } else {
+        console.error("❌ Bahan Pendukung button not found!");
     }
     
     // Initialize existing rows with event listeners

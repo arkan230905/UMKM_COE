@@ -20,7 +20,7 @@ class BahanPendukungController extends Controller
         // Simple debug
         \Log::info('Bahan Pendukung Index Called');
         
-        $query = BahanPendukung::with(['satuan', 'kategoriBahanPendukung', 'subSatuan1', 'subSatuan2', 'subSatuan3']);
+        $query = BahanPendukung::with(['satuan', 'kategoriBahanPendukung', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp']);
         
         // Filter kategori
         if ($request->filled('kategori')) {
@@ -110,7 +110,8 @@ class BahanPendukungController extends Controller
     {
         $satuans = Satuan::orderBy('nama')->get();
         $kategoris = KategoriBahanPendukung::active()->orderBy('nama')->get();
-        return view('master-data.bahan-pendukung.create', compact('satuans', 'kategoris'));
+        $coas = \App\Models\Coa::orderBy('nama_akun')->get();
+        return view('master-data.bahan-pendukung.create', compact('satuans', 'kategoris', 'coas'));
     }
 
     public function store(Request $request)
@@ -135,7 +136,15 @@ class BahanPendukungController extends Controller
             'sub_satuan_3_id' => 'required|exists:satuans,id',
             'sub_satuan_3_konversi' => 'required|numeric|min:0.01',
             'sub_satuan_3_nilai' => 'required|numeric',
+            'coa_pembelian_id' => 'nullable|exists:coas,kode_akun',
+            'coa_persediaan_id' => 'nullable|exists:coas,kode_akun',
+            'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
         ]);
+
+        // Add COA fields to validated data
+        $validated['coa_pembelian_id'] = $request->coa_pembelian_id;
+        $validated['coa_persediaan_id'] = $request->coa_persediaan_id;
+        $validated['coa_hpp_id'] = $request->coa_hpp_id;
 
         // Create bahan pendukung
         BahanPendukung::create($validated);
@@ -146,7 +155,7 @@ class BahanPendukungController extends Controller
 
     public function show(BahanPendukung $bahanPendukung)
     {
-        $bahanPendukung->load(['satuan', 'kategoriBahanPendukung', 'subSatuan1', 'subSatuan2', 'subSatuan3']);
+        $bahanPendukung->load(['satuan', 'kategoriBahanPendukung', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp']);
         
         // Hitung harga rata-rata untuk display
         $averageHarga = $this->getAverageHargaSatuan($bahanPendukung->id);
@@ -165,7 +174,8 @@ class BahanPendukungController extends Controller
     {
         $satuans = Satuan::orderBy('nama')->get();
         $kategoris = KategoriBahanPendukung::active()->orderBy('nama')->get();
-        return view('master-data.bahan-pendukung.edit', compact('bahanPendukung', 'satuans', 'kategoris'));
+        $coas = \App\Models\Coa::orderBy('nama_akun')->get();
+        return view('master-data.bahan-pendukung.edit', compact('bahanPendukung', 'satuans', 'kategoris', 'coas'));
     }
 
     public function update(Request $request, BahanPendukung $bahanPendukung)
@@ -190,10 +200,18 @@ class BahanPendukungController extends Controller
             'sub_satuan_3_id' => 'required|exists:satuans,id',
             'sub_satuan_3_konversi' => 'required|numeric|min:0.01',
             'sub_satuan_3_nilai' => 'required|numeric',
+            'coa_pembelian_id' => 'nullable|exists:coas,kode_akun',
+            'coa_persediaan_id' => 'nullable|exists:coas,kode_akun',
+            'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
         ]);
 
         // Handle checkbox - tidak perlu validasi boolean
         $validated['is_active'] = $request->has('is_active');
+        
+        // Add COA fields to validated data
+        $validated['coa_pembelian_id'] = $request->coa_pembelian_id;
+        $validated['coa_persediaan_id'] = $request->coa_persediaan_id;
+        $validated['coa_hpp_id'] = $request->coa_hpp_id;
         
         $bahanPendukung->update($validated);
         

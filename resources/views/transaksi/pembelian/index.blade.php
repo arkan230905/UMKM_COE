@@ -208,27 +208,11 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="{{ route('transaksi.pembelian.edit', $pembelian->id) }}" class="btn btn-outline-warning">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a href="{{ route('transaksi.pembelian.show', $pembelian->id) }}" class="btn btn-outline-primary">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{{ route('transaksi.retur-pembelian.create', ['pembelian_id' => $pembelian->id]) }}" class="btn btn-outline-info">
-                                            <i class="fas fa-undo"></i>
-                                        </a>
-                                        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'purchase', 'ref_id' => $pembelian->id]) }}" class="btn btn-outline-secondary">
-                                            <i class="fas fa-book"></i>
-                                        </a>
-                                        <form action="{{ route('transaksi.pembelian.destroy', $pembelian->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="btn btn-outline-danger">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
+                                    <a href="{{ route('transaksi.pembelian.show', $pembelian->id) }}" 
+                                       class="btn btn-outline-primary" 
+                                       title="Lihat Detail Pembelian {{ $pembelian->nomor_pembelian }}">
+                                        <i class="fas fa-eye"></i> Detail
+                                    </a>
                                 </td>
                             </tr>
                         @empty

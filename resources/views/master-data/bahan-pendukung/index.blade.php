@@ -78,6 +78,9 @@
                             <th>Nama Bahan</th>
                             <th>Satuan Utama</th>
                             <th class="text-end">Harga Satuan Utama</th>
+                            <th>COA Pembelian</th>
+                            <th>COA Persediaan</th>
+                            <th>COA HPP</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -105,6 +108,30 @@
                                 <td class="text-end fw-semibold">
                                     Rp {{ number_format($bahan->harga_satuan_display ?? $bahan->harga_satuan ?? 0, 0, ',', '.') }}
                                 </td>
+                                <td>
+                                    @if($bahan->coaPembelian)
+                                        <small class="text-muted">{{ $bahan->coaPembelian->kode_akun }}</small><br>
+                                        <span class="badge bg-success">{{ $bahan->coaPembelian->nama_akun }}</span>
+                                    @else
+                                        <span class="badge bg-secondary">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($bahan->coaPersediaan)
+                                        <small class="text-muted">{{ $bahan->coaPersediaan->kode_akun }}</small><br>
+                                        <span class="badge bg-info">{{ $bahan->coaPersediaan->nama_akun }}</span>
+                                    @else
+                                        <span class="badge bg-secondary">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($bahan->coaHpp)
+                                        <small class="text-muted">{{ $bahan->coaHpp->kode_akun }}</small><br>
+                                        <span class="badge bg-warning">{{ $bahan->coaHpp->nama_akun }}</span>
+                                    @else
+                                        <span class="badge bg-secondary">-</span>
+                                    @endif
+                                </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
                                         <a href="{{ route('master-data.bahan-pendukung.show', $bahan->id) }}" class="btn btn-outline-info" title="Detail">
@@ -122,7 +149,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center py-4">
+                                <td colspan="7" class="text-center py-4">
                                     <i class="fas fa-flask fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data bahan pendukung</p>
                                 </td>

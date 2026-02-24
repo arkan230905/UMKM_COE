@@ -143,7 +143,7 @@ select.form-select option {
                                                 🏦 {{ $kb->nama_akun }}
                                             @endif
                                         @endif
-                                        (Saldo: Rp {{ number_format($kb->saldo_awal ?? 0, 0, ',', '.') }})
+                                        (Saldo: Rp {{ number_format($kb->saldo_realtime ?? $kb->saldo_awal ?? 0, 0, ',', '.') }})
                                     </option>
                                 @endif
                             @endforeach

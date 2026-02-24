@@ -494,44 +494,36 @@ class BopController extends Controller
     }
 
     /**
-     * Store BOP Proses (simplified version)
-     */
-    public function storeProsesSimple(Request $request)
-    {
-        $validated = $request->validate([
-            'proses_produksi_id' => 'required|exists:proses_produksis,id|unique:bop_proses,proses_produksi_id',
-            'budget' => 'required|numeric|min:0',
-            'total_bop_per_jam' => 'required|numeric|min:0',
-            'periode' => 'required|string',
-            'keterangan' => 'nullable|string'
         ]);
 
-        try {
-            DB::beginTransaction();
+        // Build komponen array
+        $komponenBop = [];
+        foreach ($validated['komponen_name'] as $index => $name) {
+            if (!empty($name)) {
+                $komponenBop[] = [
+                    'name' => $name,
+                    'rate_per_hour' => $validated['komponen_rate'][$index] ?? 0,
+                    'description' => $validated['komponen_desc'][$index] ?? ''
+                ];
+                'total_bop_per_jam' => $validated['total_bop_per_jam'],
+                'aktual' => $validated['aktual'] ?? 0,
+                'keterangan' => $validated['keterangan'] ?? ''
+            ]);
 
-            // Get BTKL process to validate capacity
-            $prosesProduksi = ProsesProduksi::findOrFail($validated['proses_produksi_id']);
-            
-            if ($prosesProduksi->kapasitas_per_jam <= 0) {
-                throw new \Exception('Proses produksi harus memiliki kapasitas per jam yang valid.');
+            // Build komponen array
+            $komponenBop = [];
+            foreach ($validated['komponen_name'] as $index => $name) {
+                if (!empty($name)) {
+                    $komponenBop[] = [
+                        'name' => $name,
+                        'rate_per_hour' => $validated['komponen_rate'][$index] ?? 0,
+                        'description' => $validated['komponen_desc'][$index] ?? ''
+                    ];
+                }
             }
 
-            $kapasitasPerJam = $prosesProduksi->kapasitas_per_jam;
-            $bopPerUnit = $kapasitasPerJam > 0 ? $validated['total_bop_per_jam'] / $kapasitasPerJam : 0;
-
-            // Create BOP Proses
-            $bopProses = BopProses::create([
-                'proses_produksi_id' => $validated['proses_produksi_id'],
-                'komponen_bop' => [], // Empty for now
-                'total_bop_per_jam' => $validated['total_bop_per_jam'],
-                'kapasitas_per_jam' => $kapasitasPerJam,
-                'bop_per_unit' => $bopPerUnit,
-                'budget' => $validated['budget'],
-                'aktual' => 0,
-                'periode' => $validated['periode'],
-                'keterangan' => $validated['keterangan'] ?? "BOP untuk proses {$prosesProduksi->nama_proses}",
-                'is_active' => true,
-            ]);
+            // Save komponen as JSON
+            $bopProses->update(['komponen_bop' => json_encode($komponenBop)]);
 
             DB::commit();
 
@@ -542,6 +534,7 @@ class BopController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menambah BOP Proses: ' . $e->getMessage()
@@ -554,14 +547,14 @@ class BopController extends Controller
      */
     public function updateProsesSimple(Request $request, $id)
     {
-        $validated = $request->validate([
-            'budget' => 'required|numeric|min:0',
-            'total_bop_per_jam' => 'required|numeric|min:0',
-            'aktual' => 'nullable|numeric|min:0',
-            'keterangan' => 'nullable|string'
-        ]);
-
         try {
+            $validated = $request->validate([
+                'budget' => 'required|numeric|min:0',
+                'total_bop_per_jam' => 'required|numeric|min:0',
+                'aktual' => 'nullable|numeric|min:0',
+                'keterangan' => 'nullable|string'
+            ]);
+
             DB::beginTransaction();
 
             $bopProses = BopProses::findOrFail($id);
@@ -585,13 +578,28 @@ class BopController extends Controller
                 'message' => 'BOP Proses berhasil diperbarui'
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memperbarui BOP Proses: ' . $e->getMessage()
+                'message' => 'Validasi gagal: ' . implode(', ', $e->errors()->all())
+            ], 422);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            // Log error for debugging
+            \Log::error('BOP Update Error: ' . $e->getMessage(), [
+                'id' => $id,
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
             ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memperbarui BOP Proses: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -608,11 +616,23 @@ class BopController extends Controller
                 'bop' => $bopProses
             ]);
             
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Data BOP Proses tidak ditemukan'
+            ], 404);
+            
+        } catch (\Exception $e) {
+            // Log error for debugging
+            \Log::error('BOP Get Error: ' . $e->getMessage(), [
+                'id' => $id,
+                'trace' => $e->getTraceAsString()
             ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat data BOP Proses: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

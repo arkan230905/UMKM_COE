@@ -125,7 +125,7 @@ class JabatanController extends Controller
         ]);
 
         try {
-            // Cek apakah jabatan digunakan di tabel pegawai
+            // Cek apakah jabatan digunakan di tabel pegawai (berdasarkan ID untuk akurasi)
             $pegawaiCount = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
             if ($pegawaiCount > 0) {
                 \Log::warning('Jabatan cannot be deleted - used in pegawai table', [
@@ -133,29 +133,43 @@ class JabatanController extends Controller
                     'pegawai_count' => $pegawaiCount
                 ]);
                 
-                return back()->with('error', "Jabatan '{$jabatan->nama}' tidak dapat dihapus karena digunakan oleh {$pegawaiCount} pegawai.");
+                // Get pegawai names for better error message
+                $pegawaiNames = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->pluck('nama')->implode(', ');
+                
+                return back()->with('error', 
+                    "❌ Jabatan '{$jabatan->nama}' tidak dapat dihapus karena digunakan oleh {$pegawaiCount} pegawai:<br><br>" .
+                    "<strong>Pegawai:</strong> {$pegawaiNames}<br><br>" .
+                    "💡 <strong>Solusi:</strong> Ubah jabatan pegawai tersebut terlebih dahulu, atau hapus pegawai jika tidak diperlukan."
+                );
             }
 
             $jabatanName = $jabatan->nama;
             $jabatanId = $jabatan->id;
             
-            $jabatan->delete();
+            // Hapus jabatan
+            $deleted = $jabatan->delete();
             
-            \Log::info('Jabatan deleted successfully', [
+            \Log::info('Jabatan deletion result', [
                 'deleted_jabatan_id' => $jabatanId,
-                'deleted_jabatan_nama' => $jabatanName
+                'deleted_jabatan_nama' => $jabatanName,
+                'deletion_success' => $deleted
             ]);
             
-            return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')
-                ->with('success', "Jabatan '{$jabatanName}' berhasil dihapus");
+            if ($deleted) {
+                return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')
+                    ->with('success', "✅ Jabatan '{$jabatanName}' berhasil dihapus");
+            } else {
+                return back()->with('error', "❌ Gagal menghapus jabatan '{$jabatanName}'. Silakan coba lagi.");
+            }
                 
         } catch (\Exception $e) {
             \Log::error('Error deleting jabatan', [
                 'jabatan_id' => $jabatan->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
-            return back()->with('error', 'Terjadi kesalahan saat menghapus jabatan: ' . $e->getMessage());
+            return back()->with('error', '❌ Terjadi kesalahan saat menghapus jabatan: ' . $e->getMessage());
         }
     }
 

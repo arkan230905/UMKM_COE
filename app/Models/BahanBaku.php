@@ -35,7 +35,10 @@ class BahanBaku extends Model
         'sub_satuan_2_nilai',
         'sub_satuan_3_id',
         'sub_satuan_3_konversi',
-        'sub_satuan_3_nilai'
+        'sub_satuan_3_nilai',
+        'coa_pembelian_id',    // COA untuk pembelian
+        'coa_persediaan_id',    // COA untuk persediaan
+        'coa_hpp_id'           // COA untuk HPP
     ];
 
     protected $casts = [
@@ -518,6 +521,30 @@ class BahanBaku extends Model
     public function subSatuan3()
     {
         return $this->belongsTo(Satuan::class, 'sub_satuan_3_id');
+    }
+
+    /**
+     * Get the COA for pembelian
+     */
+    public function coaPembelian()
+    {
+        return $this->belongsTo(Coa::class, 'coa_pembelian_id');
+    }
+
+    /**
+     * Get the COA for persediaan
+     */
+    public function coaPersediaan()
+    {
+        return $this->belongsTo(Coa::class, 'coa_persediaan_id');
+    }
+
+    /**
+     * Get the COA for HPP
+     */
+    public function coaHpp()
+    {
+        return $this->belongsTo(Coa::class, 'coa_hpp_id');
     }
 
     /**

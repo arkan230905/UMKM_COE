@@ -121,26 +121,74 @@ class LaporanKasBankController extends Controller
      */
     private function getTransaksiMasuk($akun, $startDate, $endDate)
     {
-        // Mapping COA ke accounts table
-        $accountCode = $this->mapCoaToAccountCode($akun->kode_akun);
+        $totalMasuk = 0;
         
-        // Cari account_id yang sesuai
-        $account = DB::table('accounts')
-            ->where('code', $accountCode)
-            ->first();
-        
-        if (!$account) {
-            return 0;
+        // 1. Penjualan (cash/transfer masuk ke kas/bank)
+        $penjualanMasuk = DB::table('penjualans')
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->where(function($query) use ($akun) {
+                $query->where(function($subQuery) use ($akun) {
+                    // Jika akun adalah Kas (mengandung kata 'kas')
+                    if (stripos($akun->nama_akun, 'kas') !== false) {
+                        $subQuery->where('payment_method', 'cash');
+                    }
+                    // Jika akun adalah Bank (mengandung kata 'bank')
+                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                        $subQuery->where('payment_method', 'transfer');
+                    }
+                });
+            })
+            ->sum('total');
+            
+        $totalMasuk += (float) ($penjualanMasuk ?? 0);
+            
+        // 2. Pelunasan Utang (pembayaran utang masuk ke kas/bank)
+        try {
+            $pelunasanUtangMasuk = DB::table('pelunasan_utangs')
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where(function($query) use ($akun) {
+                    $query->where(function($subQuery) use ($akun) {
+                        // Jika akun adalah Kas (mengandung kata 'kas')
+                        if (stripos($akun->nama_akun, 'kas') !== false) {
+                            $subQuery->where('metode_bayar', 'tunai');
+                        }
+                        // Jika akun adalah Bank (mengandung kata 'bank')
+                        elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                            $subQuery->where('metode_bayar', 'transfer');
+                        }
+                    });
+                })
+                ->sum('dibayar_bersih');
+                
+            $totalMasuk += (float) ($pelunasanUtangMasuk ?? 0);
+        } catch (\Exception $e) {
+            // Tabel tidak ada, skip
+        }
+            
+        // 3. Retur Pembelian (uang kembali masuk ke kas/bank)
+        try {
+            $returPembelianMasuk = DB::table('purchase_returns')
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where(function($query) use ($akun) {
+                    $query->where(function($subQuery) use ($akun) {
+                        // Jika akun adalah Kas (mengandung kata 'kas')
+                        if (stripos($akun->nama_akun, 'kas') !== false) {
+                            $subQuery->where('payment_method', 'cash');
+                        }
+                        // Jika akun adalah Bank (mengandung kata 'bank')
+                        elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                            $subQuery->where('payment_method', 'transfer');
+                        }
+                    });
+                })
+                ->sum('total_refund');
+                
+            $totalMasuk += (float) ($returPembelianMasuk ?? 0);
+        } catch (\Exception $e) {
+            // Tabel tidak ada, skip
         }
         
-        // Hitung debit (transaksi masuk) dalam periode
-        $masuk = DB::table('journal_lines')
-            ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.account_id', $account->id)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->sum('debit');
-            
-        return is_numeric($masuk) ? (float) $masuk : 0;
+        return $totalMasuk;
     }
     
     /**
@@ -148,26 +196,117 @@ class LaporanKasBankController extends Controller
      */
     private function getTransaksiKeluar($akun, $startDate, $endDate)
     {
-        // Mapping COA ke accounts table
-        $accountCode = $this->mapCoaToAccountCode($akun->kode_akun);
+        $totalKeluar = 0;
         
-        // Cari account_id yang sesuai
-        $account = DB::table('accounts')
-            ->where('code', $accountCode)
-            ->first();
-        
-        if (!$account) {
-            return 0;
+        // Prioritas 1: Ambil dari journal lines (jurnal akuntansi)
+        try {
+            $accountCode = $this->mapCoaToAccountCode($akun->kode_akun);
+            $account = DB::table('accounts')->where('code', $accountCode)->first();
+            
+            if ($account) {
+                $journalKeluar = DB::table('journal_lines')
+                    ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                    ->where('journal_lines.account_id', $account->id)
+                    ->where('journal_lines.credit', '>', 0)
+                    ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+                    ->sum('journal_lines.credit');
+                    
+                $totalKeluar += (float) ($journalKeluar ?? 0);
+            }
+        } catch (\Exception $e) {
+            // Skip journal errors, fallback to direct transactions
         }
         
-        // Hitung credit (transaksi keluar) dalam periode
-        $keluar = DB::table('journal_lines')
-            ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.account_id', $account->id)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->sum('credit');
+        // Prioritas 2: Ambil dari transaksi langsung (jika journal tidak ada)
+        // 1. Pembelian (cash/transfer keluar dari kas/bank ke persediaan)
+        $pembelianKeluar = DB::table('pembelians')
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->where(function($query) use ($akun) {
+                $query->where(function($subQuery) use ($akun) {
+                    // Jika akun adalah Kas (mengandung kata 'kas')
+                    if (stripos($akun->nama_akun, 'kas') !== false) {
+                        $subQuery->where('payment_method', 'cash');
+                    }
+                    // Jika akun adalah Bank (mengandung kata 'bank')
+                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                        $subQuery->where('payment_method', 'transfer');
+                    }
+                });
+            })
+            ->sum('total_harga');
             
-        return is_numeric($keluar) ? (float) $keluar : 0;
+        $totalKeluar += (float) ($pembelianKeluar ?? 0);
+            
+        // 2. Pembayaran Beban (cash/transfer keluar dari kas/bank)
+        try {
+            $bebanKeluar = DB::table('expense_payments')
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where(function($query) use ($akun) {
+                    $query->where(function($subQuery) use ($akun) {
+                        // Jika akun adalah Kas (mengandung kata 'kas')
+                        if (stripos($akun->nama_akun, 'kas') !== false) {
+                            $subQuery->where('payment_method', 'cash');
+                        }
+                        // Jika akun adalah Bank (mengandung kata 'bank')
+                        elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                            $subQuery->where('payment_method', 'transfer');
+                        }
+                    });
+                })
+                ->sum('jumlah');
+                
+            $totalKeluar += (float) ($bebanKeluar ?? 0);
+        } catch (\Exception $e) {
+            // Tabel tidak ada, skip
+        }
+            
+        // 3. Penggajian (cash/transfer keluar dari kas/bank)
+        try {
+            $penggajianKeluar = DB::table('penggajians')
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where(function($query) use ($akun) {
+                    $query->where(function($subQuery) use ($akun) {
+                        // Jika akun adalah Kas (mengandung kata 'kas')
+                        if (stripos($akun->nama_akun, 'kas') !== false) {
+                            $subQuery->where('payment_method', 'cash');
+                        }
+                        // Jika akun adalah Bank (mengandung kata 'bank')
+                        elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                            $subQuery->where('payment_method', 'transfer');
+                        }
+                    });
+                })
+                ->sum('total_gaji');
+                
+            $totalKeluar += (float) ($penggajianKeluar ?? 0);
+        } catch (\Exception $e) {
+            // Tabel tidak ada, skip
+        }
+            
+        // 4. Retur Penjualan (uang kembali keluar dari kas/bank)
+        try {
+            $returPenjualanKeluar = DB::table('returns')
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where(function($query) use ($akun) {
+                    $query->where(function($subQuery) use ($akun) {
+                        // Jika akun adalah Kas (mengandung kata 'kas')
+                        if (stripos($akun->nama_akun, 'kas') !== false) {
+                            $subQuery->where('payment_method', 'cash');
+                        }
+                        // Jika akun adalah Bank (mengandung kata 'bank')
+                        elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                            $subQuery->where('payment_method', 'transfer');
+                        }
+                    });
+                })
+                ->sum('total_refund');
+                
+            $totalKeluar += (float) ($returPenjualanKeluar ?? 0);
+        } catch (\Exception $e) {
+            // Tabel tidak ada, skip
+        }
+        
+        return $totalKeluar;
     }
     
     /**
@@ -197,38 +336,106 @@ class LaporanKasBankController extends Controller
         $coa = Coa::find($coaId);
         $kodeAkun = $coa ? $coa->kode_akun : $coaId;
         
-        // Map COA code to account code
-        $accountCode = $this->mapCoaToAccountCode($kodeAkun);
+        $transaksi = collect();
         
-        // Cari account_id yang sesuai
-        $account = DB::table('accounts')
-            ->where('code', $accountCode)
-            ->first();
-        
-        if (!$account) {
-            return response()->json([]);
+        // 1. Ambil transaksi dari journal_lines (jurnal akuntansi)
+        try {
+            $accountCode = $this->mapCoaToAccountCode($kodeAkun);
+            $account = DB::table('accounts')->where('code', $accountCode)->first();
+            
+            if ($account) {
+                $journalTransaksi = DB::table('journal_lines')
+                    ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                    ->where('journal_lines.account_id', $account->id)
+                    ->where('journal_lines.debit', '>', 0)
+                    ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+                    ->orderBy('journal_entries.tanggal', 'desc')
+                    ->get()
+                    ->map(function($line) {
+                        return [
+                            'tanggal' => date('d/m/Y', strtotime($line->tanggal)),
+                            'nomor_transaksi' => $this->getNomorTransaksiFromData($line),
+                            'jenis' => $this->getJenisTransaksiFromData($line),
+                            'keterangan' => $line->memo ?? '-',
+                            'nominal' => (float)$line->debit
+                        ];
+                    })
+                    ->filter(function($item) {
+                        return !is_null($item['nomor_transaksi']);
+                    });
+                    
+                $transaksi = $transaksi->concat($journalTransaksi);
+            }
+        } catch (\Exception $e) {
+            // Skip journal errors
         }
         
-        $transaksi = DB::table('journal_lines')
-            ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.account_id', $account->id)
-            ->where('journal_lines.debit', '>', 0)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->orderBy('journal_entries.tanggal', 'desc')
+        // 2. Ambil transaksi penjualan langsung (cash/transfer)
+        $penjualanTransaksi = DB::table('penjualans')
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->where(function($query) use ($coa) {
+                $query->where(function($subQuery) use ($coa) {
+                    // Jika akun adalah Kas (mengandung kata 'kas')
+                    if ($coa && stripos($coa->nama_akun, 'kas') !== false) {
+                        $subQuery->where('payment_method', 'cash');
+                    }
+                    // Jika akun adalah Bank (mengandung kata 'bank')
+                    elseif ($coa && stripos($coa->nama_akun, 'bank') !== false) {
+                        $subQuery->where('payment_method', 'transfer');
+                    }
+                });
+            })
+            ->orderBy('tanggal', 'desc')
             ->get()
-            ->map(function($line) {
+            ->map(function($penjualan) {
                 return [
-                    'tanggal' => date('d/m/Y', strtotime($line->tanggal)),
-                    'nomor_transaksi' => $this->getNomorTransaksiFromData($line),
-                    'jenis' => $this->getJenisTransaksiFromData($line),
-                    'keterangan' => $line->memo ?? '-',
-                    'nominal' => (float)$line->debit
+                    'tanggal' => date('d/m/Y', strtotime($penjualan->tanggal)),
+                    'nomor_transaksi' => 'PJ-' . date('Y', strtotime($penjualan->tanggal)) . '-' . str_pad($penjualan->id, 3, '0', STR_PAD_LEFT),
+                    'jenis' => 'Penjualan',
+                    'keterangan' => 'Penjualan ' . ucfirst($penjualan->payment_method),
+                    'nominal' => (float)$penjualan->total
                 ];
-            })
-            ->filter(function($item) {
-                return !is_null($item['nomor_transaksi']);
-            })
-            ->values();
+            });
+            
+        $transaksi = $transaksi->concat($penjualanTransaksi);
+        
+        // 3. Ambil transaksi pelunasan utang langsung (jika ada)
+        try {
+            $pelunasanTransaksi = DB::table('pelunasan_utangs')
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where(function($query) use ($coa) {
+                    $query->where(function($subQuery) use ($coa) {
+                        // Jika akun adalah Kas (mengandung kata 'kas')
+                        if ($coa && stripos($coa->nama_akun, 'kas') !== false) {
+                            $subQuery->where('metode_bayar', 'tunai');
+                        }
+                        // Jika akun adalah Bank (mengandung kata 'bank')
+                        elseif ($coa && stripos($coa->nama_akun, 'bank') !== false) {
+                            $subQuery->where('metode_bayar', 'transfer');
+                        }
+                    });
+                })
+                ->orderBy('tanggal', 'desc')
+                ->get()
+                ->map(function($pelunasan) {
+                    return [
+                        'tanggal' => date('d/m/Y', strtotime($pelunasan->tanggal)),
+                        'nomor_transaksi' => 'PU-' . date('Y', strtotime($pelunasan->tanggal)) . '-' . str_pad($pelunasan->id, 3, '0', STR_PAD_LEFT),
+                        'jenis' => 'Pelunasan Utang',
+                        'keterangan' => 'Pelunasan Utang ' . ucfirst($pelunasan->metode_bayar),
+                        'nominal' => (float)$pelunasan->dibayar_bersih
+                    ];
+                });
+                
+            $transaksi = $transaksi->concat($pelunasanTransaksi);
+        } catch (\Exception $e) {
+            // Skip pelunasan errors
+        }
+        
+        // Sort by date
+        $transaksi = $transaksi->sortByDesc(function($item) {
+            return strtotime(str_replace('/', '-', $item['tanggal']));
+        })->values();
         
         return response()->json($transaksi);
     }
@@ -245,38 +452,106 @@ class LaporanKasBankController extends Controller
         $coa = Coa::find($coaId);
         $kodeAkun = $coa ? $coa->kode_akun : $coaId;
         
-        // Map COA code to account code
-        $accountCode = $this->mapCoaToAccountCode($kodeAkun);
+        $transaksi = collect();
         
-        // Cari account_id yang sesuai
-        $account = DB::table('accounts')
-            ->where('code', $accountCode)
-            ->first();
-        
-        if (!$account) {
-            return response()->json([]);
+        // 1. Ambil transaksi dari journal_lines (jurnal akuntansi)
+        try {
+            $accountCode = $this->mapCoaToAccountCode($kodeAkun);
+            $account = DB::table('accounts')->where('code', $accountCode)->first();
+            
+            if ($account) {
+                $journalTransaksi = DB::table('journal_lines')
+                    ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                    ->where('journal_lines.account_id', $account->id)
+                    ->where('journal_lines.credit', '>', 0)
+                    ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+                    ->orderBy('journal_entries.tanggal', 'desc')
+                    ->get()
+                    ->map(function($line) {
+                        return [
+                            'tanggal' => date('d/m/Y', strtotime($line->tanggal)),
+                            'nomor_transaksi' => $this->getNomorTransaksiFromData($line),
+                            'jenis' => $this->getJenisTransaksiFromData($line),
+                            'keterangan' => $line->memo ?? '-',
+                            'nominal' => (float)$line->credit
+                        ];
+                    })
+                    ->filter(function($item) {
+                        return !is_null($item['nomor_transaksi']);
+                    });
+                    
+                $transaksi = $transaksi->concat($journalTransaksi);
+            }
+        } catch (\Exception $e) {
+            // Skip journal errors
         }
         
-        $transaksi = DB::table('journal_lines')
-            ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.account_id', $account->id)
-            ->where('journal_lines.credit', '>', 0)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->orderBy('journal_entries.tanggal', 'desc')
+        // 2. Ambil transaksi pembelian langsung (cash/transfer)
+        $pembelianTransaksi = DB::table('pembelians')
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->where(function($query) use ($coa) {
+                $query->where(function($subQuery) use ($coa) {
+                    // Jika akun adalah Kas (mengandung kata 'kas')
+                    if ($coa && stripos($coa->nama_akun, 'kas') !== false) {
+                        $subQuery->where('payment_method', 'cash');
+                    }
+                    // Jika akun adalah Bank (mengandung kata 'bank')
+                    elseif ($coa && stripos($coa->nama_akun, 'bank') !== false) {
+                        $subQuery->where('payment_method', 'transfer');
+                    }
+                });
+            })
+            ->orderBy('tanggal', 'desc')
             ->get()
-            ->map(function($line) {
+            ->map(function($pembelian) {
                 return [
-                    'tanggal' => date('d/m/Y', strtotime($line->tanggal)),
-                    'nomor_transaksi' => $this->getNomorTransaksiFromData($line),
-                    'jenis' => $this->getJenisTransaksiFromData($line),
-                    'keterangan' => $line->memo ?? '-',
-                    'nominal' => (float)$line->credit
+                    'tanggal' => date('d/m/Y', strtotime($pembelian->tanggal)),
+                    'nomor_transaksi' => $pembelian->nomor_pembelian ?? 'PB-' . date('Y', strtotime($pembelian->tanggal)) . '-' . str_pad($pembelian->id, 3, '0', STR_PAD_LEFT),
+                    'jenis' => 'Pembelian',
+                    'keterangan' => 'Pembelian ' . ucfirst($pembelian->payment_method),
+                    'nominal' => (float)$pembelian->total_harga
                 ];
-            })
-            ->filter(function($item) {
-                return !is_null($item['nomor_transaksi']);
-            })
-            ->values();
+            });
+            
+        $transaksi = $transaksi->concat($pembelianTransaksi);
+        
+        // 3. Ambil transaksi beban langsung (jika ada)
+        try {
+            $bebanTransaksi = DB::table('expense_payments')
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where(function($query) use ($coa) {
+                    $query->where(function($subQuery) use ($coa) {
+                        // Jika akun adalah Kas (mengandung kata 'kas')
+                        if ($coa && stripos($coa->nama_akun, 'kas') !== false) {
+                            $subQuery->where('payment_method', 'cash');
+                        }
+                        // Jika akun adalah Bank (mengandung kata 'bank')
+                        elseif ($coa && stripos($coa->nama_akun, 'bank') !== false) {
+                            $subQuery->where('payment_method', 'transfer');
+                        }
+                    });
+                })
+                ->orderBy('tanggal', 'desc')
+                ->get()
+                ->map(function($beban) {
+                    return [
+                        'tanggal' => date('d/m/Y', strtotime($beban->tanggal)),
+                        'nomor_transaksi' => 'EXP-' . date('Y', strtotime($beban->tanggal)) . '-' . str_pad($beban->id, 3, '0', STR_PAD_LEFT),
+                        'jenis' => 'Beban',
+                        'keterangan' => $beban->keterangan ?? 'Pembayaran Beban',
+                        'nominal' => (float)$beban->jumlah
+                    ];
+                });
+                
+            $transaksi = $transaksi->concat($bebanTransaksi);
+        } catch (\Exception $e) {
+            // Skip expense errors
+        }
+        
+        // Sort by date
+        $transaksi = $transaksi->sortByDesc(function($item) {
+            return strtotime(str_replace('/', '-', $item['tanggal']));
+        })->values();
         
         return response()->json($transaksi);
     }

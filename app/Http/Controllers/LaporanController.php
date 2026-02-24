@@ -135,33 +135,60 @@ class LaporanController extends Controller
         $saldoAwalQty = 0.0;
         $saldoAwalNilai = 0.0;
         $running = [];
-        $saldoPerItem = [];
+        $conversionData = [];
+        $item = null;
 
         try {
             // Query mutasi dalam periode (untuk kartu stok spesifik item jika item dipilih)
-            $movQ = StockMovement::query()->where('item_type', $tipe);
+            $movQ = StockMovement::query()->where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe);
             
             if ($itemId) { 
                 $movQ->where('item_id', $itemId); 
                 
-                // Get initial stock from master data
+                // Get item data and conversion ratios
                 if ($tipe == 'material') {
                     $item = BahanBaku::find($itemId);
-                    $saldoAwalQty = (float)($item->stok ?? 0);
-                    $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
                 } elseif ($tipe == 'product') {
                     $item = Produk::find($itemId);
-                    $saldoAwalQty = (float)($item->stok ?? 0);
-                    $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_pokok ?? 0);
                 } elseif ($tipe == 'bahan_pendukung') {
                     $item = \App\Models\BahanPendukung::find($itemId);
-                    $saldoAwalQty = (float)($item->stok ?? 0);
-                    $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
                 }
                 
-                // Calculate movements before the selected date range
+                // Prepare conversion data
+                $conversionData = [
+                    'primary' => [
+                        'nama' => $item->satuanRelation->nama_satuan ?? '',
+                        'konversi' => 1
+                    ]
+                ];
+                
+                // Add sub units if they exist
+                if ($item->sub_satuan_1_id && $item->sub_satuan_1) {
+                    $conversionData['sub1'] = [
+                        'nama' => $item->sub_satuan_1->nama_satuan,
+                        'konversi' => $item->sub_satuan_1_nilai ?? 1
+                    ];
+                }
+                if ($item->sub_satuan_2_id && $item->sub_satuan_2) {
+                    $conversionData['sub2'] = [
+                        'nama' => $item->sub_satuan_2->nama_satuan,
+                        'konversi' => $item->sub_satuan_2_nilai ?? 1
+                    ];
+                }
+                if ($item->sub_satuan_3_id && $item->sub_satuan_3) {
+                    $conversionData['sub3'] = [
+                        'nama' => $item->sub_satuan_3->nama_satuan,
+                        'konversi' => $item->sub_satuan_3_nilai ?? 1
+                    ];
+                }
+                
+                // Start with 0 as initial stock (don't use master data)
+                $saldoAwalQty = 0.0;
+                $saldoAwalNilai = 0.0;
+                
+                // Calculate all movements before the selected date range
                 if ($from) {
-                    $before = StockMovement::where('item_type', $tipe)
+                    $before = StockMovement::where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe)
                         ->where('item_id', $itemId)
                         ->whereDate('tanggal', '<', $from)
                         ->orderBy('tanggal', 'asc')
@@ -176,49 +203,152 @@ class LaporanController extends Controller
                             $saldoAwalNilai -= (float)($m->total_cost ?? 0);
                         }
                     }
+                    
+                    // If no movements before date range, use master data as initial stock
+                    if ($before->isEmpty() && $item->stok > 0) {
+                        $saldoAwalQty = (float)($item->stok ?? 0);
+                        $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
+                    }
+                } else {
+                    // If no date range, use master data
+                    $saldoAwalQty = (float)($item->stok ?? 0);
+                    $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
                 }
             }
             
-            if ($from) { 
-                $movQ->whereDate('tanggal', '>=', $from); 
-            }
-            if ($to) {   
-                $movQ->whereDate('tanggal', '<=', $to); 
-            }
-            
-            $movements = $movQ->orderBy('tanggal', 'asc')
-                             ->orderBy('id', 'asc')
-                             ->get();
-
-            // Build running saldo untuk tampilan kartu stok
-            $qty = $saldoAwalQty; 
-            $nilai = $saldoAwalNilai;
-            
-            foreach ($movements as $m) {
-                $inQty = 0; $inNilai = 0; $outQty = 0; $outNilai = 0;
-                if ($m->direction === 'in') {
-                    $inQty = (float)$m->qty; 
-                    $inNilai = (float)($m->total_cost ?? 0);
-                    $qty += $inQty; 
-                    $nilai += $inNilai;
-                } else {
-                    $outQty = (float)$m->qty; 
-                    $outNilai = (float)($m->total_cost ?? 0);
-                    $qty -= $outQty; 
-                    $nilai -= $outNilai;
+            // If no date range specified, get all movements
+            if (!$from && !$to) {
+                $movements = $movQ->orderBy('tanggal', 'asc')
+                                 ->orderBy('id', 'asc')
+                                 ->get();
+            } else {
+                // Get movements within date range
+                if ($from) { 
+                    $movQ->whereDate('tanggal', '>=', $from); 
+                }
+                if ($to) {   
+                    $movQ->whereDate('tanggal', '<=', $to); 
                 }
                 
-                $running[] = [
-                    'tanggal' => $m->tanggal,
-                    'ref' => ($m->ref_type . '#' . $m->ref_id),
-                    'in_qty' => $inQty,
-                    'in_nilai' => $inNilai,
-                    'out_qty' => $outQty,
-                    'out_nilai' => $outNilai,
-                    'saldo_qty' => $qty,
-                    'saldo_nilai' => $nilai,
-                    'satuan' => $m->satuan,
-                ];
+                $movements = $movQ->orderBy('tanggal', 'asc')
+                                 ->orderBy('id', 'asc')
+                                 ->get();
+            }
+
+            // Build daily stock card
+            $dailyStock = [];
+            
+            // Build daily stock card - show each transaction individually with monthly opening balance
+                if ($movements->count() > 0) {
+                    // Initialize running totals
+                    $runningQty = $saldoAwalQty;
+                    $runningNilai = $saldoAwalNilai;
+                    
+                    $previousMonth = null;
+                    $currentMonth = null;
+                    $processedMonths = [];
+                    
+                    // Group movements by month to identify opening balance dates
+                    $monthlyMovements = [];
+                    foreach ($movements as $m) {
+                        $dateStr = is_string($m->tanggal) ? $m->tanggal : $m->tanggal->format('Y-m-d');
+                        $monthKey = substr($dateStr, 0, 7); // Y-m format
+                        if (!isset($monthlyMovements[$monthKey])) {
+                            $monthlyMovements[$monthKey] = [];
+                        }
+                        $monthlyMovements[$monthKey][] = $m;
+                    }
+                    
+                    // Sort months
+                    ksort($monthlyMovements);
+                    
+                    // Process each month
+                    foreach ($monthlyMovements as $monthKey => $monthMovements) {
+                        // Add opening balance row for this month (except first month if no opening balance)
+                        if ($runningQty > 0 || $runningNilai > 0) {
+                            $firstDate = $monthKey . '-01'; // First day of month
+                            $dailyStock[] = [
+                                'tanggal' => $firstDate,
+                                'saldo_awal_qty' => $runningQty,
+                                'saldo_awal_nilai' => $runningNilai,
+                                'pembelian_qty' => 0,
+                                'pembelian_nilai' => 0,
+                                'produksi_qty' => 0,
+                                'produksi_nilai' => 0,
+                                'saldo_akhir_qty' => $runningQty,
+                                'saldo_akhir_nilai' => $runningNilai,
+                                'ref_type' => 'opening_balance',
+                                'ref_id' => '',
+                                'is_opening_balance' => true
+                            ];
+                        }
+                        
+                        // Process individual movements in this month
+                        foreach ($monthMovements as $m) {
+                            $dateStr = is_string($m->tanggal) ? $m->tanggal : $m->tanggal->format('Y-m-d');
+                            
+                            // No opening balance for individual transactions
+                            $saldoAwalQty = 0;
+                            $saldoAwalNilai = 0;
+                            
+                            // Process individual movement
+                            if ($m->direction === 'in') {
+                                if ($m->ref_type === 'adjustment') {
+                                    // Adjustment goes to pembelian column (it's adding stock)
+                                    $dailyInQty = (float)$m->qty;
+                                    $dailyInNilai = (float)($m->total_cost ?? 0);
+                                    $dailyOutQty = 0;
+                                    $dailyOutNilai = 0;
+                                } else {
+                                    // Regular purchase goes to pembelian column
+                                    $dailyInQty = (float)$m->qty;
+                                    $dailyInNilai = (float)($m->total_cost ?? 0);
+                                    $dailyOutQty = 0;
+                                    $dailyOutNilai = 0;
+                                }
+                            } else {
+                                $dailyInQty = 0;
+                                $dailyInNilai = 0;
+                                $dailyOutQty = (float)$m->qty;
+                                $dailyOutNilai = (float)($m->total_cost ?? 0);
+                            }
+                            
+                            // Update running totals
+                            $runningQty += $dailyInQty - $dailyOutQty;
+                            $runningNilai += $dailyInNilai - $dailyOutNilai;
+                            
+                            // Add to daily stock
+                            $dailyStock[] = [
+                                'tanggal' => $dateStr,
+                                'saldo_awal_qty' => $saldoAwalQty,
+                                'saldo_awal_nilai' => $saldoAwalNilai,
+                                'pembelian_qty' => $dailyInQty,
+                                'pembelian_nilai' => $dailyInNilai,
+                                'produksi_qty' => $dailyOutQty,
+                                'produksi_nilai' => $dailyOutNilai,
+                                'saldo_akhir_qty' => $runningQty,
+                                'saldo_akhir_nilai' => $runningNilai,
+                                'ref_type' => $m->ref_type,
+                                'ref_id' => $m->ref_id,
+                                'is_opening_balance' => false
+                            ];
+                        }
+                    }
+                } else {
+                // No movements, just show initial stock if there's any
+                if ($saldoAwalQty > 0 || $saldoAwalNilai > 0) {
+                    $dailyStock[] = [
+                        'tanggal' => $from ?? now()->format('Y-m-d'),
+                        'saldo_awal_qty' => $saldoAwalQty,
+                        'saldo_awal_nilai' => $saldoAwalNilai,
+                        'pembelian_qty' => 0,
+                        'pembelian_nilai' => 0,
+                        'produksi_qty' => 0,
+                        'produksi_nilai' => 0,
+                        'saldo_akhir_qty' => $saldoAwalQty,
+                        'saldo_akhir_nilai' => $saldoAwalNilai,
+                    ];
+                }
             }
 
             // Untuk tampilan ringkasan saldo per item bila item belum dipilih
@@ -271,10 +401,12 @@ class LaporanController extends Controller
             'materials', 
             'products', 
             'bahanPendukungs',
-            'saldoPerItem', 
             'saldoAwalQty', 
             'saldoAwalNilai', 
-            'running'
+            'running',
+            'dailyStock',
+            'conversionData',
+            'item'
         ));
     }
     

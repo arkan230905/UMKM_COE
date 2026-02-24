@@ -16,17 +16,17 @@ class LaporanKartuStokController extends Controller
         
         $stockMovements = collect();
         
-        // Get stock movements if material is selected
+        // Get stock movements if material is selected - ORDER BY DATE for proper sequence
         if ($request->filled('material_type') && $request->filled('material_id')) {
             if ($request->material_type == 'bahan_baku') {
                 $stockMovements = StockMovement::where('item_type', 'material')
                     ->where('item_id', $request->material_id)
-                    ->orderBy('created_at')
+                    ->orderBy('tanggal') // Order by date instead of created_at
                     ->get();
             } elseif ($request->material_type == 'bahan_pendukung') {
                 $stockMovements = StockMovement::where('item_type', 'support')
                     ->where('item_id', $request->material_id)
-                    ->orderBy('created_at')
+                    ->orderBy('tanggal') // Order by date instead of created_at
                     ->get();
             }
         }

@@ -405,6 +405,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{bom}/print', [BomController::class, 'print'])->name('print');
             Route::delete('/{bom}', [BomController::class, 'destroy'])->name('destroy');
             Route::post('/update-bop', [BomController::class, 'updateBOP'])->name('update-bop');
+            Route::post('/update-bop-from-detail', [BomController::class, 'updateBOPFromDetail'])->name('update-bop-from-detail');
             Route::post('/{produk}/update-bom-costs', [BomController::class, 'updateBomCosts'])->name('update-bom-costs');
         });
         

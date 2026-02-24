@@ -186,5 +186,139 @@
             </div>
         </div>
     </div>
+    
+    <!-- Action Buttons -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex gap-2 justify-content-center">
+                <a href="{{ route('transaksi.pembelian.show', $pembelian->id) }}" 
+                   class="btn btn-primary" 
+                   title="Lihat Detail Pembelian {{ $pembelian->nomor_pembelian }}">
+                    <i class="fas fa-eye me-2"></i>Detail
+                </a>
+                <button type="button" 
+                        class="btn btn-info" 
+                        data-bs-toggle="modal" 
+                        data-bs-target="#journalModal"
+                        title="Lihat Jurnal Pembelian {{ $pembelian->nomor_pembelian }}">
+                    <i class="fas fa-book me-2"></i>Lihat Jurnal
+                </button>
+                <a href="{{ route('transaksi.retur-pembelian.create', ['pembelian_id' => $pembelian->id]) }}" 
+                   class="btn btn-secondary" 
+                   title="Retur Pembelian {{ $pembelian->nomor_pembelian }}">
+                    <i class="fas fa-undo me-2"></i>Retur
+                </a>
+                <form action="{{ route('transaksi.pembelian.destroy', $pembelian->id) }}" 
+                      method="POST" 
+                      class="d-inline" 
+                      onsubmit="return confirm('Apakah Anda yakin ingin menghapus pembelian {{ $pembelian->nomor_pembelian }}?\n\nPerhatian: Data yang dihapus tidak dapat dikembalikan!')">
+                    @csrf
+                    @method('DELETE')
+                    <button class="btn btn-danger" 
+                            title="Hapus Pembelian {{ $pembelian->nomor_pembelian }}">
+                        <i class="fas fa-trash me-2"></i>Hapus
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+<!-- Journal Modal -->
+<div class="modal fade" id="journalModal" tabindex="-1" aria-labelledby="journalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="journalModalLabel">
+                    <i class="fas fa-book me-2"></i>Jurnal Pembelian
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped align-middle">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Akun</th>
+                                <th>Keterangan</th>
+                                <th class="text-end">Debet</th>
+                                <th class="text-end">Kredit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Header Pembelian -->
+                            <tr>
+                                <td>{{ $pembelian->tanggal?->format('d-m-Y') }}</td>
+                                <td>
+                                    @if($pembelian->payment_method === 'credit')
+                                        <span class="badge bg-warning">Utang Dagang</span>
+                                    @elseif($pembelian->payment_method === 'transfer')
+                                        <span class="badge bg-primary">Bank</span>
+                                    @else
+                                        <span class="badge bg-success">Kas</span>
+                                    @endif
+                                </td>
+                                <td>Pembelian {{ $pembelian->vendor->nama_vendor ?? 'Vendor' }}</td>
+                                <td class="text-end">Rp {{ number_format($pembelian->total_harga ?? 0, 0, ',', '.') }}</td>
+                                <td class="text-end">-</td>
+                            </tr>
+                            
+                            <!-- Detail Bahan Baku -->
+                            @foreach(($pembelian->details ?? [])->where('bahan_baku_id', '!=', null) as $d)
+                            @php 
+                                $subtotal = ($d->jumlah ?? 0) * ($d->harga_satuan ?? 0);
+                            @endphp
+                            <tr>
+                                <td>{{ $pembelian->tanggal?->format('d-m-Y') }}</td>
+                                <td>
+                                    @if($d->bahanBaku && $d->bahanBaku->coaPembelian)
+                                        <span class="badge bg-success">{{ $d->bahanBaku->coaPembelian->nama_akun }}</span><br>
+                                        <small class="text-muted">{{ $d->bahanBaku->coaPembelian->kode_akun }}</small>
+                                    @else
+                                        <span class="badge bg-secondary">Tidak ada COA</span>
+                                    @endif
+                                </td>
+                                <td>Pembelian {{ $d->bahanBaku ? $d->bahanBaku->nama_bahan : 'Unknown' }}</td>
+                                <td class="text-end">-</td>
+                                <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                            </tr>
+                            @endforeach
+                            
+                            <!-- Detail Bahan Pendukung -->
+                            @foreach(($pembelian->details ?? [])->where('bahan_pendukung_id', '!=', null) as $d)
+                            @php 
+                                $subtotal = ($d->jumlah ?? 0) * ($d->harga_satuan ?? 0);
+                            @endphp
+                            <tr>
+                                <td>{{ $pembelian->tanggal?->format('d-m-Y') }}</td>
+                                <td>
+                                    @if($d->bahanPendukung && $d->bahanPendukung->coaPembelian)
+                                        <span class="badge bg-success">{{ $d->bahanPendukung->coaPembelian->nama_akun }}</span><br>
+                                        <small class="text-muted">{{ $d->bahanPendukung->coaPembelian->kode_akun }}</small>
+                                    @else
+                                        <span class="badge bg-secondary">Tidak ada COA</span>
+                                    @endif
+                                </td>
+                                <td>Pembelian {{ $d->bahanPendukung ? $d->bahanPendukung->nama_bahan : 'Unknown' }}</td>
+                                <td class="text-end">-</td>
+                                <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="3" class="text-end">Total:</th>
+                                <th class="text-end">Rp {{ number_format($pembelian->total_harga ?? 0, 0, ',', '.') }}</th>
+                                <th class="text-end">Rp {{ number_format($pembelian->total_harga ?? 0, 0, ',', '.') }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection

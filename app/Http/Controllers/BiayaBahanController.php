@@ -475,6 +475,16 @@ class BiayaBahanController extends Controller
             $bom->update(['total_biaya' => $totalBiaya]);
             $produk->update(['harga_bom' => $totalBiaya]);
             
+            // UPDATE BomJobCosting dengan total biaya bahan
+            if ($bomJobCosting) {
+                $bomJobCosting->total_bbb = $totalBiayaBahanBaku;
+                $bomJobCosting->total_bahan_pendukung = $totalBiayaBahanPendukung;
+                $bomJobCosting->save();
+                
+                // Recalculate untuk update total_hpp
+                $bomJobCosting->recalculate();
+            }
+            
             // Sync all BOMs to ensure consistency
             BomSyncService::syncAllBoms();
             
@@ -678,6 +688,16 @@ class BiayaBahanController extends Controller
             // UPDATE TOTALS
             $bom->update(['total_biaya' => $totalBiaya]);
             $produk->update(['harga_bom' => $totalBiaya]);
+            
+            // UPDATE BomJobCosting dengan total biaya bahan
+            if ($bomJobCosting) {
+                $bomJobCosting->total_bbb = $totalBiayaBahanBaku;
+                $bomJobCosting->total_bahan_pendukung = $totalBiayaBahanPendukung;
+                $bomJobCosting->save();
+                
+                // Recalculate untuk update total_hpp
+                $bomJobCosting->recalculate();
+            }
             
             // Sync all BOMs to ensure consistency
             BomSyncService::syncAllBoms();

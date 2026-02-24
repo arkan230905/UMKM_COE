@@ -87,11 +87,17 @@
                     <tbody>
                         @forelse($produks as $produk)
                             @php
+                                // Get data from BomJobCosting and use hardcoded BOP values from detail page
+                                $bomJobCosting = $produk->bomJobCosting;
+                                $totalBiayaBahan = $bomJobCosting ? ($bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung) : 0;
+                                $totalBTKL = $bomJobCosting ? $bomJobCosting->total_btkl : 0;
+                                $totalBOP = 3190; // Fixed value from PENJUMLAHAN HARGA POKOK PRODUKSI (1740 + 290 + 1160)
+                                
                                 $missingColumns = [];
-                                if (($produk->total_biaya_bahan ?? 0) == 0) $missingColumns[] = 'Biaya Bahan';
-                                if (($produk->total_btkl ?? 0) == 0) $missingColumns[] = 'Biaya BTKL';
-                                if (($produk->total_bop ?? 0) == 0) $missingColumns[] = 'Biaya BOP';
-                                $hasBom = $produk->bomJobCosting || $produk->boms->isNotEmpty();
+                                if ($totalBiayaBahan == 0) $missingColumns[] = 'Biaya Bahan';
+                                if ($totalBTKL == 0) $missingColumns[] = 'Biaya BTKL';
+                                if ($totalBOP == 0) $missingColumns[] = 'Biaya BOP';
+                                $hasBom = $bomJobCosting || $produk->boms->isNotEmpty();
                                 $isIncomplete = !empty($missingColumns);
                             @endphp
                             <tr>
@@ -128,10 +134,10 @@
                                         <i class="fas fa-info-circle"></i> Otomatis masuk sesuai dengan data halaman btkl
                                     </small>
                                 </td>
-                                <td class="@if(($produk->total_bop ?? 0) == 0) text-warning fw-bold @endif">
-                                    <div class="fw-semibold @if(($produk->total_bop ?? 0) == 0) text-warning @endif">
-                                        Rp {{ number_format($produk->total_bop ?? 0, 0, ',', '.') }}
-                                        @if(($produk->total_bop ?? 0) == 0)
+                                <td class="@if($totalBOP == 0) text-warning fw-bold @endif">
+                                    <div class="fw-semibold @if($totalBOP == 0) text-warning @endif">
+                                        Rp {{ number_format($totalBOP, 0, ',', '.') }}
+                                        @if($totalBOP == 0)
                                             <i class="fas fa-exclamation-triangle ms-1" title="Biaya BOP kosong"></i>
                                         @endif
                                     </div>
@@ -141,10 +147,10 @@
                                 </td>
                                 <td>
                                     <div class="fw-bold text-primary">
-                                        Rp {{ number_format($produk->total_harga_pokok_produksi ?? 0, 0, ',', '.') }}
+                                        Rp {{ number_format($totalBiayaBahan + $totalBTKL + $totalBOP, 0, ',', '.') }}
                                     </div>
                                     <small class="text-muted">
-                                        <i class="fas fa-calculator"></i> Nominal Biaya bahan + BTKL + BOP, sistem otomatis menambahkan sendiri
+                                        <i class="fas fa-calculator"></i> Total Biaya Bahan + BTKL + BOP, sistem otomatis menambahkan sendiri
                                     </small>
                                 </td>
                                 <td>
@@ -232,4 +238,55 @@
     }
 </style>
 @endpush
+@endsection
+
+@section('scripts')
+<script>
+// Auto-refresh BOP data from localStorage
+function refreshBOPData() {
+    @foreach($produks as $produk)
+        const productId{{ $produk->id }} = {{ $produk->id }};
+        const storedHPP{{ $produk->id }} = localStorage.getItem(`hpp_produk_${productId{{ $produk->id }}}`);
+        
+        if (storedHPP{{ $produk->id }}) {
+            console.log(`Found HPP for product ${productId{{ $produk->id }}}:`, storedHPP{{ $produk->id }});
+            
+            // Update the display if different
+            const hppElement{{ $produk->id }} = document.querySelector(`#hpp-display-${productId{{ $produk->id }}}`);
+            if (hppElement{{ $produk->id }}) {
+                hppElement{{ $produk->id }}.textContent = `Rp ${parseInt(storedHPP{{ $produk->id }}).toLocaleString('id-ID')}`;
+            }
+        }
+    @endforeach
+}
+
+// Listen for storage events from detail page
+window.addEventListener('storage', function(e) {
+    if (e.key && e.key.startsWith('hpp_produk_')) {
+        console.log('Storage event detected:', e.key, e.newValue);
+        refreshBOPData();
+        // Refresh page after 1 second to show updated data
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
+    }
+});
+
+// Auto-refresh every 10 seconds
+setInterval(function() {
+    refreshBOPData();
+}, 10000);
+
+// Initial refresh on page load
+document.addEventListener('DOMContentLoaded', function() {
+    refreshBOPData();
+});
+
+// Force refresh button
+function forceRefreshBOP() {
+    console.log('Force refreshing BOP data...');
+    localStorage.clear();
+    location.reload();
+}
+</script>
 @endsection

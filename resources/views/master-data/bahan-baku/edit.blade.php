@@ -274,6 +274,55 @@
                 </div>
 
                 <hr>
+                
+                <!-- COA Fields -->
+                <h5 class="mb-3">Akun COA</h5>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">COA Pembelian <span class="text-danger">*</span></label>
+                            <select name="coa_pembelian_id" id="coa_pembelian_id" class="form-select" required>
+                                <option value="">-- Pilih COA Pembelian --</option>
+                                @foreach($coas as $coa)
+                                    <option value="{{ $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}" {{ old('coa_pembelian_id', $bahanBaku->coa_pembelian_id) == $coa->kode_akun ? 'selected' : '' }}>
+                                        {{ $coa->nama_akun }} ({{ $coa->kode_akun }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">* Wajib diisi</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">COA Persediaan <span class="text-danger">*</span></label>
+                            <select name="coa_persediaan_id" id="coa_persediaan_id" class="form-select" required>
+                                <option value="">-- Pilih COA Persediaan --</option>
+                                @foreach($coas as $coa)
+                                    <option value="{{ $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}" {{ old('coa_persediaan_id', $bahanBaku->coa_persediaan_id) == $coa->kode_akun ? 'selected' : '' }}>
+                                        {{ $coa->nama_akun }} ({{ $coa->kode_akun }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">* Wajib diisi</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label class="form-label">COA HPP <span class="text-danger">*</span></label>
+                            <select name="coa_hpp_id" id="coa_hpp_id" class="form-select" required>
+                                <option value="">-- Pilih COA HPP --</option>
+                                @foreach($coas as $coa)
+                                    <option value="{{ $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}" {{ old('coa_hpp_id', $bahanBaku->coa_hpp_id) == $coa->kode_akun ? 'selected' : '' }}>
+                                        {{ $coa->nama_akun }} ({{ $coa->kode_akun }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">* Wajib diisi</small>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
                 <div class="d-flex justify-content-end gap-2">
                     <a href="{{ route('master-data.bahan-baku.index') }}" class="btn btn-secondary">Batal</a>
                     <button type="submit" class="btn btn-primary">
@@ -410,6 +459,68 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Auto-fill COA fields based on account type and parent
+    function autoFillCOA() {
+        // Get all COA options
+        const coaOptions = document.querySelectorAll('#coa_pembelian_id option[data-tipe]');
+        
+        // Group COA by type and parent
+        const coaByType = {};
+        coaOptions.forEach(option => {
+            const type = option.dataset.tipe;
+            const parent = option.dataset.induk;
+            
+            if (!coaByType[type]) {
+                coaByType[type] = {};
+            }
+            
+            if (!coaByType[type][parent]) {
+                coaByType[type][parent] = [];
+            }
+            
+            coaByType[type][parent].push(option.value);
+        });
+        
+        // Auto-fill logic
+        ['coa_pembelian_id', 'coa_persediaan_id', 'coa_hpp_id'].forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+            
+            // Clear current selection
+            field.value = '';
+            
+            // Add change event listener
+            field.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const selectedType = selectedOption.dataset.tipe;
+                const selectedParent = selectedOption.dataset.induk;
+                
+                // Auto-fill other fields with same type and parent
+                ['coa_pembelian_id', 'coa_persediaan_id', 'coa_hpp_id'].forEach(otherFieldId => {
+                    if (otherFieldId !== fieldId) {
+                        const otherField = document.getElementById(otherFieldId);
+                        if (otherField) {
+                            // Clear current selection
+                            otherField.value = '';
+                            
+                            // Find matching COA
+                            const matchingOptions = Array.from(otherField.options).filter(opt => 
+                                opt.dataset.tipe === selectedType && opt.dataset.induk === selectedParent
+                            );
+                            
+                            if (matchingOptions.length > 0) {
+                                otherField.value = matchingOptions[0].value;
+                            }
+                        }
+                    }
+                });
+            });
+        });
+    }
+    
+    // Initialize auto-fill when page loads
+    document.addEventListener('DOMContentLoaded', autoFillCOA);
 });
 </script>
 @endpush

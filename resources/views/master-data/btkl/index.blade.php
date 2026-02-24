@@ -199,8 +199,115 @@ document.addEventListener('DOMContentLoaded', function() {
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     });
+    tooltipList.forEach(function (tooltip) {
+        tooltip.show();
+    });
 });
+
+// Realtime update functionality
+function refreshBTKLData() {
+    fetch('/master-data/harga-pokok-produksi/calculate/1')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update BTKL data in the table
+                updateBTKLTable(data.data.btkl);
+                
+                // Trigger storage event for other tabs
+                localStorage.setItem('btkl_updated', Date.now());
+                
+                // Send message to other windows
+                window.postMessage({
+                    type: 'data_updated',
+                    source: 'btkl'
+                }, '*');
+                
+                // Show success notification
+                showNotification('Data BTKL berhasil diperbarui', 'success');
+            }
+        })
+        .catch(error => {
+            console.error('Error refreshing BTKL data:', error);
+            showNotification('Gagal memperbarui data BTKL', 'error');
+        });
+}
+
+// Function to update BTKL table
+function updateBTKLTable(btklData) {
+    if (!btklData) return;
+    
+    // Update each row in the table
+    btklData.forEach((btkl, index) => {
+        const row = document.querySelector(`tr:has(td:contains("${btkl.kode_proses}"))`);
+        if (!row) return;
+        
+        // Update cells
+        const kodeCell = row.querySelector('td:nth-child(1)');
+        const namaCell = row.querySelector('td:nth-child(2)');
+        const jabatanCell = row.querySelector('td:nth-child(3)');
+        const tarifCell = row.querySelector('td:nth-child(5)');
+        const kapasitasCell = row.querySelector('td:nth-child(7)');
+        const biayaCell = row.querySelector('td:nth-child(8)');
+        
+        if (kodeCell) kodeCell.innerHTML = `<span class="badge bg-secondary">${btkl.kode_proses}</span>`;
+        if (namaCell) namaCell.innerHTML = `<div class="d-flex align-items-center"><i class="bi bi-gear-fill me-2 text-primary"></i><div><div class="fw-bold">${btkl.nama_proses}</div><small class="text-muted">Nama proses produksi</small></div></div></div>`;
+        if (jabatanCell) jabatanCell.innerHTML = `<div class="d-flex align-items-center"><i class="bi bi-person-workspace me-2 text-info"></i><div><div class="fw-bold">${btkl.nama_jabatan}</div><small class="text-muted">${btkl.kategori || ''}</small></div></div></div>`;
+        if (tarifCell) tarifCell.innerHTML = `<span class="fw-bold text-success">${formatNumber(btkl.tarif_per_jam)}/jam</span>`;
+        if (kapasitasCell) kapasitasCell.innerHTML = `<span class="fw-bold">${formatNumber(btkl.kapasitas_per_jam)} pcs</span>`;
+        if (biayaCell) biayaCell.innerHTML = `<div class="d-flex align-items-center"><i class="bi bi-cash-stack me-2 text-warning"></i><div><div class="fw-bold text-warning">${formatNumber(btkl.biaya_per_produk)}</div><small class="text-muted">Rp ${formatNumber(btkl.tarif_per_jam / btkl.kapasitas_per_jam, 2, ",", ".")}</small></div></div></div>`;
+    });
+}
+
+// Show notification function
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0`;
+    notification.style.zIndex = '9999';
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.minWidth = '300px';
+    notification.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Format number function
+function formatNumber(num) {
+    return new Intl.NumberFormat('id-ID').format(num);
+}
+
+// Listen for storage events (from other tabs)
+window.addEventListener('storage', function(e) {
+    if (e.key === 'btkl_updated') {
+        refreshBTKLData();
+    }
+});
+
+// Listen for custom events from other pages
+window.addEventListener('message', function(event) {
+    if (event.data.type === 'data_updated') {
+        if (event.data.source === 'bom' || event.data.source === 'bop') {
+            refreshBTKLData();
+        }
+    }
+});
+
+// Auto-refresh every 30 seconds
+setInterval(function() {
+    refreshBTKLData();
+}, 30000);
 </script>
 @endpush
 @endsection
-
