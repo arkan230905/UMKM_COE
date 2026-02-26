@@ -68,9 +68,43 @@ class BomController extends Controller
             $bomJobCosting = $produk->bomJobCosting;
             
             if ($bomJobCosting) {
-                // Use data from BomJobCosting for bahan and BTKL
+                // Use data from BomJobCosting for bahan
                 $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
-                $totalBTKL = $bomJobCosting->total_btkl;
+                
+                // Calculate BTKL real-time from bom_job_btkl with correct formula
+                $btklData = DB::table('bom_job_btkl')
+                    ->leftJoin('btkls', 'bom_job_btkl.btkl_id', '=', 'btkls.id')
+                    ->leftJoin('jabatans', 'btkls.jabatan_id', '=', 'jabatans.id')
+                    ->where('bom_job_btkl.bom_job_costing_id', $bomJobCosting->id)
+                    ->select(
+                        'bom_job_btkl.*',
+                        'btkls.kapasitas_per_jam',
+                        'jabatans.id as jabatan_id',
+                        'jabatans.tarif as tarif_jabatan'
+                    )
+                    ->get();
+                
+                $totalBTKL = 0;
+                $btklCount = $btklData->count();
+                
+                foreach ($btklData as $btkl) {
+                    if ($btkl->jabatan_id) {
+                        // Get jumlah pegawai for this jabatan
+                        $jumlahPegawai = DB::table('pegawais')
+                            ->join('jabatans', 'pegawais.jabatan', '=', 'jabatans.nama')
+                            ->where('jabatans.id', $btkl->jabatan_id)
+                            ->count();
+                        
+                        // Calculate tarif BTKL: Jumlah Pegawai × Tarif per Jam Jabatan
+                        $tarifBtkl = $jumlahPegawai * ($btkl->tarif_jabatan ?? 0);
+                        
+                        // Calculate biaya per produk: Tarif BTKL ÷ Kapasitas per Jam
+                        $kapasitasPerJam = $btkl->kapasitas_per_jam ?? 1;
+                        $biayaPerProduk = $kapasitasPerJam > 0 ? $tarifBtkl / $kapasitasPerJam : 0;
+                        
+                        $totalBTKL += $biayaPerProduk;
+                    }
+                }
                 
                 // Calculate BOP using the same logic as show method
                 $bopData = \Illuminate\Support\Facades\DB::table('bom_job_bop')
@@ -130,11 +164,8 @@ class BomController extends Controller
             $produk->btkl_count = $btklCount;
             $produk->has_btkl = $btklCount > 0;
             
-            // Calculate total BOM cost
+            // Calculate total HPP: Biaya Bahan + BTKL + BOP
             $totalBiayaHPP = $totalBiayaBahan + $totalBTKL + $totalBOP;
-            
-            // Sesuai permintaan user: Total HPP = Biaya Bahan + Biaya Bahan + BTKL + BOP
-            $totalBiayaHPP = $totalBiayaBahan + $totalBiayaBahan + $totalBTKL + $totalBOP;
             
             $produk->total_bom_cost = $totalBiayaHPP;
             
@@ -577,12 +608,13 @@ class BomController extends Controller
                         'bom_job_btkl.*', 
                         'btkls.kode_proses',
                         'btkls.nama_btkl',
-                        'btkls.tarif_per_jam', 
+                        'btkls.tarif_per_jam as tarif_per_jam_btkl', 
                         'btkls.kapasitas_per_jam',
                         'btkls.satuan',
                         'btkls.deskripsi_proses',
                         'jabatans.nama as nama_jabatan',
-                        'jabatans.kategori'
+                        'jabatans.kategori',
+                        'jabatans.tarif as tarif_per_jam_jabatan'
                     )
                     ->get();
                     
@@ -593,16 +625,22 @@ class BomController extends Controller
                         $jumlahPegawai = \App\Models\Pegawai::where('jabatan', $item->nama_jabatan)->count();
                     }
                     
+                    // Calculate tarif BTKL: Jumlah Pegawai × Tarif per Jam Jabatan
+                    $tarifPerJamJabatan = $item->tarif_per_jam_jabatan ?? 0;
+                    $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
+                    
                     return [
                         'id' => $item->id,
                         'kode_proses' => $item->kode_proses,
                         'nama_proses' => $item->nama_btkl,
                         'nama_jabatan' => $item->nama_jabatan,
-                        'tarif_per_jam' => $item->tarif_per_jam ?? 0,
+                        'tarif_per_jam' => $tarifPerJamJabatan, // Tarif per jam jabatan (untuk display "X pegawai @ Rp Y/jam")
+                        'tarif_btkl' => $tarifBtkl, // Tarif BTKL yang sudah dikalikan jumlah pegawai
                         'kapasitas_per_jam' => $item->kapasitas_per_jam ?? 0,
                         'waktu_pengerjaan' => $item->waktu_pengerjaan ?? 0,
                         'jumlah_pegawai' => $jumlahPegawai,
-                        'subtotal_btkl' => ($item->tarif_per_jam ?? 0) * ($item->waktu_pengerjaan ?? 0) * $jumlahPegawai,
+                        'satuan' => $item->satuan ?? 'Jam',
+                        'subtotal_btkl' => $tarifBtkl * ($item->waktu_pengerjaan ?? 0),
                         'subtotal' => $item->subtotal ?? 0
                     ];
                 })->toArray();
@@ -678,7 +716,17 @@ class BomController extends Controller
 
             if ($bomJobCosting) {
                 $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
-                $totalBiayaBTKL = $bomJobCosting->total_btkl;
+                
+                // Calculate BTKL total from btklDataForDisplay (real-time calculation)
+                $totalBiayaBTKL = 0;
+                foreach ($btklDataForDisplay as $btkl) {
+                    $jumlahPegawai = $btkl['jumlah_pegawai'] ?? 0;
+                    $tarifPerJamJabatan = $btkl['tarif_per_jam'] ?? 0;
+                    $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
+                    $kapasitasPerJam = $btkl['kapasitas_per_jam'] ?? 1;
+                    $biayaPerProduk = $kapasitasPerJam > 0 ? $tarifBtkl / $kapasitasPerJam : 0;
+                    $totalBiayaBTKL += $biayaPerProduk;
+                }
                 
                 // Calculate BOP total - use the correct total from Biaya Per Produk table
                 $totalBiayaBOP = 0;

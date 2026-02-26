@@ -99,7 +99,13 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    <div class="fw-semibold">Rp {{ number_format($proses->tarif_btkl, 0, ',', '.') }}</div>
+                                    @php
+                                        // Calculate tarif BTKL: Jumlah Pegawai × Tarif per Jam Jabatan
+                                        $jumlahPegawai = $proses->jabatan ? $proses->jabatan->pegawais->count() : 0;
+                                        $tarifPerJamJabatan = $proses->jabatan ? $proses->jabatan->tarif : 0;
+                                        $tarifBtklCalculated = $jumlahPegawai * $tarifPerJamJabatan;
+                                    @endphp
+                                    <div class="fw-semibold">Rp {{ number_format($tarifBtklCalculated, 0, ',', '.') }}</div>
                                     <small class="text-muted">per {{ $proses->satuan_btkl ?? 'jam' }}</small>
                                 </td>
                                 <td class="text-center">
@@ -109,11 +115,14 @@
                                     <span class="badge bg-info">{{ $proses->kapasitas_per_jam ?? 0 }} unit/jam</span>
                                 </td>
                                 <td class="text-end" 
-                                    data-biaya-per-produk="{{ format_number_clean($proses->biaya_per_produk) }}"
-                                    data-tarif="{{ number_format($proses->tarif_btkl, 0, ',', '.') }}"
+                                    data-biaya-per-produk="{{ $proses->kapasitas_per_jam > 0 ? number_format($tarifBtklCalculated / $proses->kapasitas_per_jam, 0, ',', '.') : '0' }}"
+                                    data-tarif="{{ number_format($tarifBtklCalculated, 0, ',', '.') }}"
                                     data-kapasitas="{{ $proses->kapasitas_per_jam }}">
-                                    @if($proses->biaya_per_produk > 0)
-                                        <div class="fw-semibold text-success">{{ $proses->biaya_per_produk_formatted }}</div>
+                                    @if($proses->kapasitas_per_jam > 0)
+                                        @php
+                                            $biayaPerProduk = $tarifBtklCalculated / $proses->kapasitas_per_jam;
+                                        @endphp
+                                        <div class="fw-semibold text-success">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</div>
                                         <small class="text-muted">per unit</small>
                                     @else
                                         <span class="text-muted">-</span>
@@ -164,7 +173,18 @@
                         <div class="col-md-3">
                             <div class="border-end">
                                 @php
-                                    $avgTarif = $prosesProduksis->avg('tarif_btkl');
+                                    // Calculate average tarif using dynamic calculation
+                                    $totalTarif = 0;
+                                    $countProses = 0;
+                                    foreach($prosesProduksis as $proses) {
+                                        if($proses->jabatan) {
+                                            $jumlahPegawai = $proses->jabatan->pegawais->count();
+                                            $tarifPerJamJabatan = $proses->jabatan->tarif;
+                                            $totalTarif += ($jumlahPegawai * $tarifPerJamJabatan);
+                                            $countProses++;
+                                        }
+                                    }
+                                    $avgTarif = $countProses > 0 ? $totalTarif / $countProses : 0;
                                 @endphp
                                 <div class="fw-bold text-success">Rp {{ number_format($avgTarif, 0, ',', '.') }}</div>
                                 <small class="text-muted">Rata-rata Tarif/Jam</small>
@@ -181,15 +201,21 @@
                         </div>
                         <div class="col-md-3">
                             @php
-                                $validProses = $prosesProduksis->filter(function($p) { 
-                                    return $p->kapasitas_per_jam > 0; 
-                                });
-                                $avgBiayaPerUnit = $validProses->count() > 0 ? 
-                                    $validProses->avg(function($p) { 
-                                        return $p->tarif_btkl / $p->kapasitas_per_jam; 
-                                    }) : 0;
+                                // Calculate average biaya per unit using dynamic tarif
+                                $totalBiayaPerUnit = 0;
+                                $countValidProses = 0;
+                                foreach($prosesProduksis as $proses) {
+                                    if($proses->kapasitas_per_jam > 0 && $proses->jabatan) {
+                                        $jumlahPegawai = $proses->jabatan->pegawais->count();
+                                        $tarifPerJamJabatan = $proses->jabatan->tarif;
+                                        $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
+                                        $totalBiayaPerUnit += ($tarifBtkl / $proses->kapasitas_per_jam);
+                                        $countValidProses++;
+                                    }
+                                }
+                                $avgBiayaPerUnit = $countValidProses > 0 ? $totalBiayaPerUnit / $countValidProses : 0;
                             @endphp
-                            <div class="fw-bold text-warning">{{ format_rupiah_clean($avgBiayaPerUnit) }}</div>
+                            <div class="fw-bold text-warning">Rp {{ number_format($avgBiayaPerUnit, 0, ',', '.') }}</div>
                             <small class="text-muted">Rata-rata Biaya/Unit</small>
                         </div>
                     </div>

@@ -162,11 +162,13 @@ class BiayaBahanController extends Controller
                         ->where('id', $produk->id)
                         ->update([
                             'harga_bom' => $totalHPP,
+                            'harga_pokok' => $totalHPP,  // Update harga_pokok untuk harga jual
                             'updated_at' => now()
                         ]);
                     
                     // Update the model instance for consistency
                     $produk->harga_bom = $totalHPP;
+                    $produk->harga_pokok = $totalHPP;
                 }
                 
                 $allDetails = array_merge($detailBahanBaku, $detailBahanPendukung);
@@ -484,14 +486,6 @@ class BiayaBahanController extends Controller
             // UPDATE TOTALS
             $bom->update(['total_biaya' => $totalBiaya]);
             
-            // Calculate complete HPP (Biaya Bahan + BTKL + BOP)
-            $totalHPP = $totalBiaya;
-            if ($bomJobCosting) {
-                $totalHPP = $totalBiaya + $bomJobCosting->total_btkl + $bomJobCosting->total_bop;
-            }
-            
-            $produk->update(['harga_bom' => $totalHPP]);
-            
             // UPDATE BomJobCosting dengan total biaya bahan
             if ($bomJobCosting) {
                 $bomJobCosting->total_bbb = $totalBiayaBahanBaku;
@@ -501,6 +495,18 @@ class BiayaBahanController extends Controller
                 // Recalculate untuk update total_hpp
                 $bomJobCosting->recalculate();
             }
+            
+            // Calculate complete HPP (Biaya Bahan + BTKL + BOP)
+            $totalHPP = $totalBiaya;
+            if ($bomJobCosting) {
+                $totalHPP = $totalBiaya + $bomJobCosting->total_btkl + $bomJobCosting->total_bop;
+            }
+            
+            // Update harga_bom dan harga_pokok di tabel produks
+            $produk->update([
+                'harga_bom' => $totalHPP,
+                'harga_pokok' => $totalHPP  // Update harga_pokok untuk harga jual
+            ]);
             
             // Sync all BOMs to ensure consistency
             BomSyncService::syncAllBoms();
@@ -709,14 +715,6 @@ class BiayaBahanController extends Controller
             // UPDATE TOTALS
             $bom->update(['total_biaya' => $totalBiaya]);
             
-            // Calculate complete HPP (Biaya Bahan + BTKL + BOP)
-            $totalHPP = $totalBiaya;
-            if ($bomJobCosting) {
-                $totalHPP = $totalBiaya + $bomJobCosting->total_btkl + $bomJobCosting->total_bop;
-            }
-            
-            $produk->update(['harga_bom' => $totalHPP]);
-            
             // UPDATE BomJobCosting dengan total biaya bahan
             if ($bomJobCosting) {
                 $bomJobCosting->total_bbb = $totalBiayaBahanBaku;
@@ -726,6 +724,18 @@ class BiayaBahanController extends Controller
                 // Recalculate untuk update total_hpp
                 $bomJobCosting->recalculate();
             }
+            
+            // Calculate complete HPP (Biaya Bahan + BTKL + BOP)
+            $totalHPP = $totalBiaya;
+            if ($bomJobCosting) {
+                $totalHPP = $totalBiaya + $bomJobCosting->total_btkl + $bomJobCosting->total_bop;
+            }
+            
+            // Update harga_bom dan harga_pokok di tabel produks
+            $produk->update([
+                'harga_bom' => $totalHPP,
+                'harga_pokok' => $totalHPP  // Update harga_pokok untuk harga jual
+            ]);
             
             // Sync all BOMs to ensure consistency
             BomSyncService::syncAllBoms();

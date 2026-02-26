@@ -100,9 +100,16 @@
                     <tbody>
                         @forelse($produks as $produk)
                             @php
-                                $hargaBomProduk = $produk->harga_bom ?? 0;
+                                // Get HPP from calculated array
+                                $hargaBomProduk = $hargaBom[$produk->id] ?? 0;
+                                
+                                // Get margin percentage (default 30%)
                                 $margin = (float) ($produk->margin_percent ?? 30);
-                                $hargaJual = $produk->harga_jual ?? $hargaBomProduk * (1 + ($margin / 100));
+                                
+                                // Calculate selling price: HPP + (HPP * margin%)
+                                // Formula: Harga Jual = HPP * (1 + margin/100)
+                                $hargaJual = $hargaBomProduk * (1 + ($margin / 100));
+                                
                                 $stok = (float) $produk->stok;
                             @endphp
                             <tr>
@@ -139,24 +146,7 @@
                                 </td>
                                 <td>{{ $produk->nama_produk }}</td>
                                 <td>{{ $produk->deskripsi ? \Illuminate\Support\Str::limit($produk->deskripsi, 50) : '-' }}</td>
-                                <td class="text-right">
-    @if($hargaBomProduk > 0)
-        <span class="badge bg-success text-white" data-bs-toggle="tooltip" title="HPP Lengkap">
-            Rp {{ number_format($hargaBomProduk, 0, ',', '.') }}
-            <i class="fas fa-check-circle ms-1"></i>
-        </span>
-    @else
-        <span class="badge bg-warning text-dark" data-bs-toggle="tooltip" title="HPP Belum Lengkap - Klik disini untuk mengisi">
-            Rp {{ number_format($hargaBomProduk, 0, ',', '.') }}
-            <i class="fas fa-exclamation-triangle ms-1"></i>
-        </span>
-        <small class="text-muted d-block">
-            <a href="{{ route('master-data.harga-pokok-produksi.show', $produk->id) }}" class="text-decoration-none">
-                <i class="fas fa-external-link-alt"></i> Atur HPP
-            </a>
-        </small>
-    @endif
-</td>
+                                <td class="text-right">Rp {{ number_format($hargaBomProduk, 0, ',', '.') }}</td>
                                 <td class="text-center">{{ number_format($margin, 0, ',', '.') }}%</td>
                                 <td class="text-right font-weight-bold">Rp {{ number_format($hargaJual, 0, ',', '.') }}</td>
                                 <td class="text-center {{ $stok <= 0 ? 'text-danger font-weight-bold' : '' }}">

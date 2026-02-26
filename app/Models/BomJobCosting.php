@@ -72,6 +72,7 @@ class BomJobCosting extends Model
                 ->update([
                     'biaya_bahan' => $biayaBahanPerUnit,
                     'harga_bom' => $this->total_hpp,  // Total HPP lengkap
+                    'harga_pokok' => $this->total_hpp,  // Update harga_pokok untuk harga jual
                     'harga_jual' => $hargaJual,
                     'updated_at' => now()
                 ]);
