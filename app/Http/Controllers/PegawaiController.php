@@ -90,6 +90,11 @@ class PegawaiController extends Controller
         
         // Create the pegawai record
         Pegawai::create($pegawaiData);
+        
+        // Sync BOM when pegawai changes (affects BTKL calculations)
+        if (strtolower($jenisPegawai) === 'btkl') {
+            \App\Services\BomSyncService::syncBomFromJabatanChange($jab->id);
+        }
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil ditambahkan.');
     }
@@ -139,6 +144,11 @@ class PegawaiController extends Controller
         
         // Update the pegawai record
         $pegawai->update($updateData);
+        
+        // Sync BOM when pegawai changes (affects BTKL calculations)
+        if (strtolower($jenisPegawai) === 'btkl') {
+            \App\Services\BomSyncService::syncBomFromJabatanChange($jab->id);
+        }
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil diperbarui.');
     }
@@ -146,7 +156,16 @@ class PegawaiController extends Controller
     // Hapus pegawai
     public function destroy(Pegawai $pegawai)
     {
+        // Get jabatan before deleting
+        $jabatanNama = $pegawai->jabatan;
+        $jabatan = \App\Models\Jabatan::where('nama', $jabatanNama)->first();
+        
         $pegawai->delete();
+        
+        // Sync BOM when pegawai changes (affects BTKL calculations)
+        if ($jabatan && strtolower($jabatan->kategori) === 'btkl') {
+            \App\Services\BomSyncService::syncBomFromJabatanChange($jabatan->id);
+        }
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil dihapus.');
     }

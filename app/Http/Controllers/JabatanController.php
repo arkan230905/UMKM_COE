@@ -43,12 +43,14 @@ class JabatanController extends Controller
             'tarif' => $this->normalizeMoney($request->input('tarif')),
         ]);
         $data = $request->validate([
-            'nama' => 'required|string|max:255',
+            'nama' => 'required|string|max:255|unique:jabatans,nama',
             'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0',
             'asuransi' => 'nullable|numeric|min:0',
             'gaji' => 'nullable|numeric|min:0',
             'tarif' => 'nullable|numeric|min:0',
+        ], [
+            'nama.unique' => 'Nama kualifikasi sudah ada. Silakan gunakan nama yang berbeda.',
         ]);
 
         // Normalisasi nilai default
@@ -90,12 +92,14 @@ class JabatanController extends Controller
             'tarif' => $this->normalizeMoney($request->input('tarif')),
         ]);
         $data = $request->validate([
-            'nama' => 'required|string|max:255',
+            'nama' => 'required|string|max:255|unique:jabatans,nama,' . $jabatan->id,
             'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0',
             'asuransi' => 'nullable|numeric|min:0',
             'gaji' => 'nullable|numeric|min:0',
             'tarif' => 'nullable|numeric|min:0',
+        ], [
+            'nama.unique' => 'Nama kualifikasi sudah ada. Silakan gunakan nama yang berbeda.',
         ]);
 
         $data['tunjangan'] = $data['tunjangan'] ?? 0;

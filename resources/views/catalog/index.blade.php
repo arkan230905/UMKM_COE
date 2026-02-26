@@ -128,7 +128,7 @@
                                         {{ $produk->deskripsi ? Str::limit($produk->deskripsi, 100) : 'Tidak ada deskripsi' }}
                                     </p>
                                     <p class="price">
-                                        Rp {{ number_format($produk->harga_jual,0,',','.') }}
+                                        Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}
                                     </p>
                                 </div>
                             </div>

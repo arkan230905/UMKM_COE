@@ -196,8 +196,14 @@
                                     <td>{{ $btkl['nama_jabatan'] ?? 'N/A' }}</td>
                                     <td class="text-center">{{ $btkl['jumlah_pegawai'] ?? 0 }} pegawai @ Rp {{ number_format($btkl['tarif_per_jam'] ?? 0, 0, ',', '.') }}/jam</td>
                                     <td class="text-end tarif data-value">
-                                        @if(($btkl['tarif_per_jam'] ?? 0) > 0)
-                                            Rp {{ number_format($btkl['tarif_per_jam'] ?? 0, 0, ',', '.') }}
+                                        @php
+                                            // Calculate tarif BTKL: Jumlah Pegawai × Tarif per Jam Jabatan
+                                            $jumlahPegawai = $btkl['jumlah_pegawai'] ?? 0;
+                                            $tarifPerJamJabatan = $btkl['tarif_per_jam'] ?? 0;
+                                            $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
+                                        @endphp
+                                        @if($tarifBtkl > 0)
+                                            Rp {{ number_format($tarifBtkl, 0, ',', '.') }}
                                             <br>
                                             <small class="text-muted">per jam</small>
                                         @else
@@ -207,8 +213,16 @@
                                     <td class="text-center">{{ $btkl['satuan'] ?? 'Jam' }}</td>
                                     <td class="text-center">{{ number_format($btkl['kapasitas_per_jam'] ?? 0, 0, ',', '.') }} unit/jam</td>
                                     <td class="text-end subtotal data-value">
-                                        @if(($btkl['subtotal'] ?? 0) > 0)
-                                            Rp {{ number_format($btkl['subtotal'] ?? 0, 0, ',', '.') }}
+                                        @php
+                                            // Calculate biaya per produk: Tarif BTKL ÷ Kapasitas per Jam
+                                            $jumlahPegawai = $btkl['jumlah_pegawai'] ?? 0;
+                                            $tarifPerJamJabatan = $btkl['tarif_per_jam'] ?? 0;
+                                            $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
+                                            $kapasitasPerJam = $btkl['kapasitas_per_jam'] ?? 1;
+                                            $biayaPerProduk = $kapasitasPerJam > 0 ? $tarifBtkl / $kapasitasPerJam : 0;
+                                        @endphp
+                                        @if($biayaPerProduk > 0)
+                                            Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}
                                             <br>
                                             <small class="text-muted">per unit</small>
                                         @else

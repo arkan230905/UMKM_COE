@@ -147,7 +147,7 @@
                                 </td>
                                 <td>
                                     <div class="fw-bold text-primary">
-                                        Rp {{ number_format($totalBiayaBahan + $totalBTKL + $totalBOP, 0, ',', '.') }}
+                                        Rp {{ number_format(($produk->total_biaya_bahan ?? 0) + ($produk->total_btkl ?? 0) + $totalBOP, 0, ',', '.') }}
                                     </div>
                                     <small class="text-muted">
                                         <i class="fas fa-calculator"></i> Total Biaya Bahan + BTKL + BOP, sistem otomatis menambahkan sendiri

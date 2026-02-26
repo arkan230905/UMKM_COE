@@ -63,9 +63,14 @@ class BomSyncService
             // Add BTKL data from each process
             foreach ($btklProcesses as $btkl) {
                 $kapasitasPerJam = $btkl->kapasitas_per_jam ?? 1;
-                $tarifPerJam = $btkl->tarif_per_jam ?? 0;
+                
+                // Calculate tarif BTKL real-time: Jumlah Pegawai × Tarif per Jam Jabatan
+                $jumlahPegawai = $btkl->jabatan ? $btkl->jabatan->pegawais->count() : 0;
+                $tarifPerJamJabatan = $btkl->jabatan ? $btkl->jabatan->tarif : 0;
+                $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
+                
                 $durasiPerUnit = 1 / $kapasitasPerJam; // jam per unit
-                $biayaPerUnit = $tarifPerJam / $kapasitasPerJam; // biaya per unit (CORRECT CALCULATION)
+                $biayaPerUnit = $tarifBtkl / $kapasitasPerJam; // biaya per unit (CORRECT CALCULATION)
                 
                 // Use direct database insert to ensure correct values
                 DB::table('bom_job_btkl')->insert([
@@ -73,15 +78,15 @@ class BomSyncService
                     'btkl_id' => $btkl->id,
                     'nama_proses' => $btkl->nama_btkl,
                     'durasi_jam' => $durasiPerUnit,
-                    'tarif_per_jam' => $tarifPerJam,
+                    'tarif_per_jam' => $tarifBtkl, // Use calculated tarif, not stored value
                     'kapasitas_per_jam' => $kapasitasPerJam,
                     'subtotal' => $biayaPerUnit, // This should be the correct biaya per unit
-                    'keterangan' => "Proses {$btkl->nama_btkl} untuk 1 unit {$bomJobCosting->produk->nama_produk}",
+                    'keterangan' => "Proses {$btkl->nama_btkl} untuk 1 unit {$bomJobCosting->produk->nama_produk} ({$jumlahPegawai} pegawai @ Rp " . number_format($tarifPerJamJabatan, 0) . "/jam)",
                     'created_at' => now(),
                     'updated_at' => now()
                 ]);
                 
-                Log::info("Added BTKL: {$btkl->nama_btkl} - Rp " . number_format($biayaPerUnit, 2));
+                Log::info("Added BTKL: {$btkl->nama_btkl} - Tarif: Rp " . number_format($tarifBtkl, 0) . " ({$jumlahPegawai} pegawai × Rp " . number_format($tarifPerJamJabatan, 0) . ") - Biaya per unit: Rp " . number_format($biayaPerUnit, 2));
             }
             
             // Recalculate BOM totals
