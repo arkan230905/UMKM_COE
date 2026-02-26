@@ -62,16 +62,16 @@ class BomJobCosting extends Model
             $totalBiayaBahan = $this->total_bbb + $this->total_bahan_pendukung;
             $biayaBahanPerUnit = $this->jumlah_produk > 0 ? $totalBiayaBahan / $this->jumlah_produk : 0;
             
-            // Update harga_bom dengan total HPP dan harga_jual dengan margin
+            // Update harga_bom dengan total HPP (lengkap) dan harga_jual dengan margin
             $margin = $this->produk->margin_percent ?? 30;
-            $hargaJual = $this->hpp_per_unit * (1 + ($margin / 100));
+            $hargaJual = $this->total_hpp * (1 + ($margin / 100));
             
             // Use DB::table to avoid triggering observers and prevent infinite loop
             DB::table('produks')
                 ->where('id', $this->produk->id)
                 ->update([
                     'biaya_bahan' => $biayaBahanPerUnit,
-                    'harga_bom' => $this->hpp_per_unit,  // HPP per unit dari BOM Job Costing
+                    'harga_bom' => $this->total_hpp,  // Total HPP lengkap
                     'harga_jual' => $hargaJual,
                     'updated_at' => now()
                 ]);

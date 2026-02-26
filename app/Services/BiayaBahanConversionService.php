@@ -20,7 +20,7 @@ class BiayaBahanConversionService
      */
     public function convertBahanBakuToBase(BahanBaku $bahanBaku, float $jumlah, string $satuanInput): array
     {
-        $harga = (float)$bahanBaku->harga_satuan;
+        $harga = (float)($bahanBaku->harga_rata_rata ?? $bahanBaku->harga_satuan);
         $satuanBaseObj = $bahanBaku->satuan;
         $satuanBase = is_object($satuanBaseObj) ? ($satuanBaseObj->nama ?? 'unit') : ($satuanBaseObj ?: 'unit');
 
@@ -81,7 +81,7 @@ class BiayaBahanConversionService
      */
     public function convertBahanPendukungToBase(BahanPendukung $bahanPendukung, float $jumlah, string $satuanInput): array
     {
-        $harga = (float)$bahanPendukung->harga_satuan;
+        $harga = (float)($bahanPendukung->harga_rata_rata ?? $bahanPendukung->harga_satuan);
         $satuanBaseObj = $bahanPendukung->satuan;
         $satuanBase = is_object($satuanBaseObj) ? ($satuanBaseObj->nama ?? 'unit') : ($satuanBaseObj ?: 'unit');
 

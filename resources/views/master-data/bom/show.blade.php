@@ -32,7 +32,7 @@
                         </tr>
                         <tr>
                             <th>Tanggal Dibuat:</th>
-                            <td>{{ $bomJobCosting->created_at->format('d F Y H:i') ?? '-' }}</td>
+                            <td>{{ $bomJobCosting?->created_at->format('d F Y H:i') ?? '-' }}</td>
                         </tr>
                     </table>
                 </div>
@@ -587,14 +587,6 @@
                                 <i class="fas fa-box me-2 text-success"></i>BIAYA BAHAN
                             </td>
                             <td class="text-end fw-bold fs-5" id="total-biaya-bahan">
-                                @php
-                                    $totalBiayaBahan = 0;
-                                    if(isset($bbbDataForDisplay) && count($bbbDataForDisplay) > 0) {
-                                        foreach($bbbDataForDisplay as $bbb) {
-                                            $totalBiayaBahan += ($bbb['subtotal'] ?? 0);
-                                        }
-                                    }
-                                @endphp
                                 @if($totalBiayaBahan > 0)
                                     Rp {{ number_format($totalBiayaBahan, 0, ',', '.') }}
                                 @else
@@ -619,10 +611,6 @@
                                 <i class="fas fa-cogs me-2 text-warning"></i>BOP
                             </td>
                             <td class="text-end fw-bold fs-5" id="total-bop">
-                                @php
-                                    // Calculate BOP from Biaya Per Produk values
-                                    $totalBiayaBOP = 1740 + 290 + 1160; // Penggorengan + Perbumbuan + Pengemasan
-                                @endphp
                                 @if($totalBiayaBOP > 0)
                                     Rp {{ number_format($totalBiayaBOP, 0, ',', '.') }}
                                 @else
@@ -635,11 +623,8 @@
                                 <i class="fas fa-chart-line me-2"></i>TOTAL BIAYA HARGA POKOK PRODUKSI
                             </td>
                             <td class="text-end fw-bold fs-4" id="grand-total">
-                                @php
-                                    $grandTotal = $totalBiayaBahan + $totalBiayaBTKL + $totalBiayaBOP;
-                                @endphp
-                                @if($grandTotal > 0)
-                                    Rp {{ number_format($grandTotal, 0, ',', '.') }}
+                                @if($totalBiayaBOM > 0)
+                                    Rp {{ number_format($totalBiayaBOM, 0, ',', '.') }}
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
@@ -650,8 +635,8 @@
                                 <i class="fas fa-tag me-2"></i>HARGA POKOK PRODUKSI
                             </td>
                             <td class="text-end fw-bold fs-3 text-white" id="harga-pokok-produksi">
-                                @if($grandTotal > 0)
-                                    Rp {{ number_format($grandTotal, 0, ',', '.') }}
+                                @if($totalBiayaBOM > 0)
+                                    Rp {{ number_format($totalBiayaBOM, 0, ',', '.') }}
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif

@@ -89,17 +89,15 @@ class DashboardController extends Controller
         $trendPembelian = $this->calculateTrend('pembelian');
         $trendProduksi = $this->calculateTrend('produksi');
         $trendRetur = $this->calculateTrend('retur');
-
-        // ✅ TAMBAHAN: Data Kas & Bank Detail
-        $kasBankDetails = $this->getKasBankDetails();
-        
         // ✅ TAMBAHAN: Data Penjualan untuk Chart (12 bulan terakhir)
         $salesChartData = $this->getSalesChartData();
+        
+        // ✅ TAMBAHAN: Detail Kas & Bank untuk dashboard
+        $kasBankDetails = $this->getKasBankDetails();
 
         return view('dashboard', compact(
-            // Master Data
             'totalPegawai',
-            'totalPresensi',
+            'totalPresensi', 
             'totalProduk',
             'totalVendor',
             'totalBahanBaku',
@@ -108,74 +106,243 @@ class DashboardController extends Controller
             'totalBOM',
             'totalCOA',
             'totalProduksi',
-            
-            // Transaction Counts
             'totalPembelian',
             'totalPenjualan',
             'totalRetur',
             'totalPenggajian',
-            
-            // Financial Data
             'totalKasBank',
             'pendapatanBulanIni',
             'totalPiutang',
             'totalUtang',
-            
-            // Recent Transactions
             'recentExpensePayments',
             'recentApSettlements',
-            
-            // Trends
             'trendPenjualan',
             'trendPembelian',
             'trendProduksi',
             'trendRetur',
-            
-            // ✅ TAMBAHAN: Kas & Bank Details dan Sales Chart
-            'kasBankDetails',
-            'salesChartData'
+            'salesChartData',
+            'kasBankDetails'
         ));
     }
 
     /**
-     * Calculate total cash and bank balances
+     * Calculate total cash and bank balances - menggunakan logic yang sama dengan LaporanKasBankController
      */
     private function getTotalKasBank()
     {
         try {
             if (!\Schema::hasTable('coas')) { return 0; }
 
-            // Ambil COA Kas dan Bank menggunakan helper
-            $coas = \App\Helpers\AccountHelper::getKasBankAccounts();
-            if ($coas->isEmpty()) { return 0; }
+            // Ambil COA Kas dan Bank menggunakan helper - sama dengan LaporanKasBankController
+            $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts();
+            \Log::info('Dashboard: Total akun Kas & Bank: ' . $akunKasBank->count());
+            
+            if ($akunKasBank->isEmpty()) { 
+                \Log::info('Dashboard: akunKasBank kosong, return 0');
+                return 0; 
+            }
 
             $total = 0;
-            foreach ($coas as $coa) {
-                $saldoAwal = (float)$coa->saldo_awal;
+            $startDate = now()->startOfMonth()->format('Y-m-d');
+            $endDate = now()->endOfMonth()->format('Y-m-d');
+            
+            foreach ($akunKasBank as $akun) {
+                // Gunakan logic yang sama dengan LaporanKasBankController
+                $saldoAwal = $this->getSaldoAwal($akun, $startDate);
+                $transaksiMasuk = $this->getTransaksiMasuk($akun, $startDate, $endDate);
+                $transaksiKeluar = $this->getTransaksiKeluar($akun, $startDate, $endDate);
                 
-                // Cari account_id yang sesuai
-                $account = \DB::table('accounts')->where('code', $coa->kode_akun)->first();
-                if (!$account) {
-                    $total += $saldoAwal;
-                    continue;
-                }
-                
-                // Hitung dari journal_lines
-                if (\Schema::hasTable('journal_lines')) {
-                    $debit = \DB::table('journal_lines')->where('account_id', $account->id)->sum('debit');
-                    $kredit = \DB::table('journal_lines')->where('account_id', $account->id)->sum('credit');
-                    $saldo = $saldoAwal + (float)$debit - (float)$kredit;
-                    $total += $saldo;  // ✅ Tidak pakai max(0, ...) agar saldo negatif tetap dihitung
-                } else {
-                    $total += $saldoAwal;
-                }
+                // Untuk akun Kas & Bank (Aset), saldo normal adalah Debit
+                // Saldo Akhir = Saldo Awal + Debit (Masuk) - Kredit (Keluar)
+                $saldoAkhir = $saldoAwal + $transaksiMasuk - $transaksiKeluar;
+                $total += $saldoAkhir;
             }
             
-            return $total;  // ✅ Return total apa adanya (bisa negatif)
+            return $total;
         } catch (\Exception $e) {
             \Log::error('Error getTotalKasBank: ' . $e->getMessage());
             return 0;
         }
+    }
+
+    /**
+     * Get saldo awal sebelum periode - sama dengan logic LaporanKasBankController
+     * Saldo Awal = Saldo dari CoaPeriodBalance atau saldo awal COA
+     */
+    private function getSaldoAwal($akun, $startDate)
+    {
+        // 1. Cari periode yang sesuai dengan start date
+        $periode = \App\Models\CoaPeriod::where('periode', date('Y-m', strtotime($startDate)))->first();
+        
+        if ($periode) {
+            // 2. Cek apakah ada saldo di CoaPeriodBalance untuk periode tersebut
+            $periodBalance = \DB::table('coa_period_balances')
+                ->where('kode_akun', $akun->kode_akun)
+                ->where('period_id', $periode->id)
+                ->first();
+                
+            if ($periodBalance) {
+                return is_numeric($periodBalance->saldo_awal) ? (float) $periodBalance->saldo_awal : 0;
+            }
+        }
+        
+        // 3. Jika tidak ada periode atau tidak ada balance, cek periode sebelumnya
+        $previousPeriod = isset($periode) ? $periode->getPreviousPeriod() : null;
+        if ($previousPeriod) {
+            $previousBalance = \DB::table('coa_period_balances')
+                ->where('kode_akun', $akun->kode_akun)
+                ->where('period_id', $previousPeriod->id)
+                ->first();
+                
+            if ($previousBalance) {
+                return is_numeric($previousBalance->saldo_akhir) ? (float) $previousBalance->saldo_akhir : 0;
+            }
+        }
+        
+        // 4. Jika tidak ada sama sekali, gunakan saldo awal dari COA
+        return (float)$akun->saldo_awal;
+    }
+
+    /**
+     * Get total transaksi masuk dalam periode (Debit) - sama dengan logic LaporanKasBankController
+     */
+    private function getTransaksiMasuk($akun, $startDate, $endDate)
+    {
+        $totalMasuk = 0;
+        
+        // 1. Penjualan (cash/transfer masuk ke kas/bank) - sama dengan LaporanKasBankController
+        $penjualanMasuk = \DB::table('penjualans')
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->where(function($query) use ($akun) {
+                // Jika akun adalah Kas (mengandung kata 'kas')
+                if (stripos($akun->nama_akun, 'kas') !== false) {
+                    $query->where('payment_method', 'cash');
+                }
+                // Jika akun adalah Bank (mengandung kata 'bank')
+                elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                    $query->where('payment_method', 'transfer');
+                }
+            })
+            ->sum('total');
+            
+        $totalMasuk += (float) ($penjualanMasuk ?? 0);
+        
+        // 2. Pelunasan Utang (pembayaran utang masuk ke kas/bank) - sama dengan LaporanKasBankController
+        try {
+            $pelunasanUtangMasuk = \DB::table('pelunasan_utangs')
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where(function($query) use ($akun) {
+                    // Jika akun adalah Kas (mengandung kata 'kas')
+                    if (stripos($akun->nama_akun, 'kas') !== false) {
+                        $query->where('payment_method', 'cash');
+                    }
+                    // Jika akun adalah Bank (mengandung kata 'bank')
+                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                        $query->where('payment_method', 'transfer');
+                    }
+                })
+                ->sum('dibayar_bersih');
+                
+            $totalMasuk += (float) ($pelunasanUtangMasuk ?? 0);
+        } catch (\Exception $e) {
+            // Table might not exist
+        }
+        
+        // 3. Retur Pembelian (uang kembali masuk ke kas/bank) - sama dengan LaporanKasBankController
+        try {
+            $returPembelianMasuk = \DB::table('purchase_returns')
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where(function($query) use ($akun) {
+                    $query->where(function($subQuery) use ($akun) {
+                        // Jika akun adalah Kas (mengandung kata 'kas')
+                        if (stripos($akun->nama_akun, 'kas') !== false) {
+                            $subQuery->where('payment_method', 'cash');
+                        }
+                        // Jika akun adalah Bank (mengandung kata 'bank')
+                        elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                            $subQuery->where('payment_method', 'transfer');
+                        }
+                    });
+                })
+                ->sum('total_refund');
+                
+            $totalMasuk += (float) ($returPembelianMasuk ?? 0);
+        } catch (\Exception $e) {
+            // Table might not exist
+        }
+        
+        return $totalMasuk;
+    }
+
+    /**
+     * Get total transaksi keluar dalam periode (Kredit) - sama dengan logic LaporanKasBankController
+     */
+    private function getTransaksiKeluar($akun, $startDate, $endDate)
+    {
+        $totalKeluar = 0;
+        
+        // 1. Pembelian (cash/transfer keluar dari kas/bank) - sama dengan LaporanKasBankController
+        $pembelianKeluar = \DB::table('pembelians')
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->where(function($query) use ($akun) {
+                // Jika akun adalah Kas (mengandung kata 'kas')
+                if (stripos($akun->nama_akun, 'kas') !== false) {
+                    $query->where('payment_method', 'cash');
+                }
+                // Jika akun adalah Bank (mengandung kata 'bank')
+                elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                    $query->where('payment_method', 'transfer');
+                }
+            })
+            ->sum('total');
+            
+        $totalKeluar += (float) ($pembelianKeluar ?? 0);
+        
+        // 2. Penggajian (pengeluaran kas/bank) - sama dengan LaporanKasBankController
+        try {
+            $penggajianKeluar = \DB::table('penggajians')
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where(function($query) use ($akun) {
+                    // Jika akun adalah Kas (mengandung kata 'kas')
+                    if (stripos($akun->nama_akun, 'kas') !== false) {
+                        $query->where('payment_method', 'cash');
+                    }
+                    // Jika akun adalah Bank (mengandung kata 'bank')
+                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                        $query->where('payment_method', 'transfer');
+                    }
+                })
+                ->sum('total_gaji');
+                
+            $totalKeluar += (float) ($penggajianKeluar ?? 0);
+        } catch (\Exception $e) {
+            // Table might not exist
+        }
+        
+        // 3. Retur Penjualan (uang kembali ke kas/bank) - sama dengan LaporanKasBankController
+        try {
+            $returPenjualanKeluar = \DB::table('returns')
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where(function($query) use ($akun) {
+                    $query->where(function($subQuery) use ($akun) {
+                        // Jika akun adalah Kas (mengandung kata 'kas')
+                        if (stripos($akun->nama_akun, 'kas') !== false) {
+                            $subQuery->where('payment_method', 'cash');
+                        }
+                        // Jika akun adalah Bank (mengandung kata 'bank')
+                        elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                            $subQuery->where('payment_method', 'transfer');
+                        }
+                    });
+                })
+                ->sum('total_refund');
+                
+            $totalKeluar += (float) ($returPenjualanKeluar ?? 0);
+        } catch (\Exception $e) {
+            // Table might not exist
+        }
+        
+        return $totalKeluar;
     }
 
     /**
@@ -336,34 +503,38 @@ class DashboardController extends Controller
     }
 
     /**
-     * ✅ TAMBAHAN: Get Kas & Bank details per account
+     * ✅ TAMBAHAN: Get Kas & Bank details per account - menggunakan logic yang sama dengan LaporanKasBankController
      */
     private function getKasBankDetails()
     {
         try {
             if (!\Schema::hasTable('coas')) { return collect(); }
 
-            $coas = \App\Helpers\AccountHelper::getKasBankAccounts();
-            if ($coas->isEmpty()) { return collect(); }
+            // Ambil COA Kas dan Bank menggunakan helper - sama dengan LaporanKasBankController
+            $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts();
+            if ($akunKasBank->isEmpty()) { return collect(); }
 
             $details = [];
-            foreach ($coas as $coa) {
-                $saldoAwal = (float)$coa->saldo_awal;
+            $startDate = now()->startOfMonth()->format('Y-m-d');
+            $endDate = now()->endOfMonth()->format('Y-m-d');
+            
+            foreach ($akunKasBank as $akun) {
+                // Gunakan logic yang sama dengan LaporanKasBankController
+                $saldoAwal = $this->getSaldoAwal($akun, $startDate);
+                $transaksiMasuk = $this->getTransaksiMasuk($akun, $startDate, $endDate);
+                $transaksiKeluar = $this->getTransaksiKeluar($akun, $startDate, $endDate);
                 
-                // Cari account_id yang sesuai
-                $account = \DB::table('accounts')->where('code', $coa->kode_akun)->first();
-                $saldo = $saldoAwal;
-                
-                if ($account && \Schema::hasTable('journal_lines')) {
-                    $debit = \DB::table('journal_lines')->where('account_id', $account->id)->sum('debit');
-                    $kredit = \DB::table('journal_lines')->where('account_id', $account->id)->sum('credit');
-                    $saldo = $saldoAwal + (float)$debit - (float)$kredit;
-                }
+                // Untuk akun Kas & Bank (Aset), saldo normal adalah Debit
+                // Saldo Akhir = Saldo Awal + Debit (Masuk) - Kredit (Keluar)
+                $saldoAkhir = $saldoAwal + $transaksiMasuk - $transaksiKeluar;
                 
                 $details[] = [
-                    'nama_akun' => $coa->nama_akun,
-                    'kode_akun' => $coa->kode_akun,
-                    'saldo' => $saldo  // ✅ Tidak pakai max(0, ...) agar saldo negatif tetap ditampilkan
+                    'kode_akun' => $akun->kode_akun,
+                    'nama_akun' => $akun->nama_akun,
+                    'saldo_awal' => $saldoAwal,
+                    'transaksi_masuk' => $transaksiMasuk,
+                    'transaksi_keluar' => $transaksiKeluar,
+                    'saldo_akhir' => $saldoAkhir  // ✅ Perbaikan: gunakan key yang sama dengan LaporanKasBankController
                 ];
             }
             

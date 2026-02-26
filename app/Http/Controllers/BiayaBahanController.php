@@ -149,18 +149,24 @@ class BiayaBahanController extends Controller
                 // Total biaya bahan
                 $totalBiayaBahan = $totalBiayaBahanBaku + $totalBiayaBahanPendukung;
                 
+                // Calculate complete HPP (Biaya Bahan + BTKL + BOP)
+                $totalHPP = $totalBiayaBahan;
+                if ($bomJobCosting) {
+                    $totalHPP = $totalBiayaBahan + $bomJobCosting->total_btkl + $bomJobCosting->total_bop;
+                }
+                
                 // Update harga_bom produk jika berbeda (TANPA TRIGGER OBSERVER)
-                if ($produk->harga_bom != $totalBiayaBahan) {
+                if ($produk->harga_bom != $totalHPP) {
                     // Use DB::table to avoid triggering observers
                     DB::table('produks')
                         ->where('id', $produk->id)
                         ->update([
-                            'harga_bom' => $totalBiayaBahan,
+                            'harga_bom' => $totalHPP,
                             'updated_at' => now()
                         ]);
                     
                     // Update the model instance for consistency
-                    $produk->harga_bom = $totalBiayaBahan;
+                    $produk->harga_bom = $totalHPP;
                 }
                 
                 $allDetails = array_merge($detailBahanBaku, $detailBahanPendukung);
@@ -367,6 +373,8 @@ class BiayaBahanController extends Controller
 
             $converter = new UnitConverter();
             $totalBiaya = 0;
+            $totalBiayaBahanBaku = 0;
+            $totalBiayaBahanPendukung = 0;
             $savedCount = 0;
 
             // GET OR CREATE BOM
@@ -413,6 +421,7 @@ class BiayaBahanController extends Controller
                     $hargaPerSatuanDipakai = $result['harga_per_satuan'];
                     
                     $totalBiaya += $subtotal;
+                    $totalBiayaBahanBaku += $subtotal;
                     
                     // Simpan ke BomJobBBB (primary storage)
                     $bbbDetail = new BomJobBBB();
@@ -457,6 +466,7 @@ class BiayaBahanController extends Controller
                     $hargaPerSatuanDipakai = $result['harga_per_satuan'];
                     
                     $totalBiaya += $subtotal;
+                    $totalBiayaBahanBaku += $subtotal;
                     
                     $pendukungDetail = new BomJobBahanPendukung();
                     $pendukungDetail->bom_job_costing_id = $bomJobCosting->id;
@@ -473,7 +483,14 @@ class BiayaBahanController extends Controller
             
             // UPDATE TOTALS
             $bom->update(['total_biaya' => $totalBiaya]);
-            $produk->update(['harga_bom' => $totalBiaya]);
+            
+            // Calculate complete HPP (Biaya Bahan + BTKL + BOP)
+            $totalHPP = $totalBiaya;
+            if ($bomJobCosting) {
+                $totalHPP = $totalBiaya + $bomJobCosting->total_btkl + $bomJobCosting->total_bop;
+            }
+            
+            $produk->update(['harga_bom' => $totalHPP]);
             
             // UPDATE BomJobCosting dengan total biaya bahan
             if ($bomJobCosting) {
@@ -582,6 +599,8 @@ class BiayaBahanController extends Controller
 
             $converter = new UnitConverter();
             $totalBiaya = 0;
+            $totalBiayaBahanBaku = 0;
+            $totalBiayaBahanPendukung = 0;
             $savedCount = 0;
             
             // GET OR CREATE BOM
@@ -627,6 +646,7 @@ class BiayaBahanController extends Controller
                     $hargaPerSatuanDipakai = $result['harga_per_satuan'];
                     
                     $totalBiaya += $subtotal;
+                    $totalBiayaBahanBaku += $subtotal;
                     
                     // Simpan ke BomJobBBB (primary storage)
                     $bbbDetail = new BomJobBBB();
@@ -671,6 +691,7 @@ class BiayaBahanController extends Controller
                     $hargaPerSatuanDipakai = $result['harga_per_satuan'];
                     
                     $totalBiaya += $subtotal;
+                    $totalBiayaBahanBaku += $subtotal;
                     
                     $pendukungDetail = new BomJobBahanPendukung();
                     $pendukungDetail->bom_job_costing_id = $bomJobCosting->id;
@@ -687,7 +708,14 @@ class BiayaBahanController extends Controller
             
             // UPDATE TOTALS
             $bom->update(['total_biaya' => $totalBiaya]);
-            $produk->update(['harga_bom' => $totalBiaya]);
+            
+            // Calculate complete HPP (Biaya Bahan + BTKL + BOP)
+            $totalHPP = $totalBiaya;
+            if ($bomJobCosting) {
+                $totalHPP = $totalBiaya + $bomJobCosting->total_btkl + $bomJobCosting->total_bop;
+            }
+            
+            $produk->update(['harga_bom' => $totalHPP]);
             
             // UPDATE BomJobCosting dengan total biaya bahan
             if ($bomJobCosting) {

@@ -87,11 +87,11 @@
                     <tbody>
                         @forelse($produks as $produk)
                             @php
-                                // Get data from BomJobCosting and use hardcoded BOP values from detail page
+                                // Get data from BomJobCosting (controller already calculates BOP correctly)
                                 $bomJobCosting = $produk->bomJobCosting;
-                                $totalBiayaBahan = $bomJobCosting ? ($bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung) : 0;
-                                $totalBTKL = $bomJobCosting ? $bomJobCosting->total_btkl : 0;
-                                $totalBOP = 3190; // Fixed value from PENJUMLAHAN HARGA POKOK PRODUKSI (1740 + 290 + 1160)
+                                $totalBiayaBahan = $produk->total_biaya_bahan ?? 0;
+                                $totalBTKL = $produk->total_btkl ?? 0;
+                                $totalBOP = $produk->total_bop ?? 0;
                                 
                                 $missingColumns = [];
                                 if ($totalBiayaBahan == 0) $missingColumns[] = 'Biaya Bahan';
