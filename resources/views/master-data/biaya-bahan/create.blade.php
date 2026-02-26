@@ -115,10 +115,10 @@
                                                 }
                                             @endphp
                                             <option value="{{ $bahanBaku->id }}" 
-                                                    data-harga="{{ $bahanBaku->harga_satuan }}"
+                                                    data-harga="{{ $bahanBaku->harga_rata_rata ?? $bahanBaku->harga_satuan }}"
                                                     data-satuan="{{ $satuanBB }}"
                                                     data-sub-satuan="{{ json_encode($subSatuanData) }}">
-                                                {{ $bahanBaku->nama_bahan }} - Rp {{ number_format($bahanBaku->harga_satuan, 0, ',', '.') }}/{{ $satuanBB }}
+                                                {{ $bahanBaku->nama_bahan }} - Rp {{ number_format($bahanBaku->harga_rata_rata ?? $bahanBaku->harga_satuan, 0, ',', '.') }}/{{ $satuanBB }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -157,7 +157,7 @@
                         </tfoot>
                     </table>
                 </div>
-                <button type="button" class="btn btn-sm btn-primary mt-2" id="addBahanBaku" onclick="window.addBahanBakuRow(); return false;">
+                <button type="button" class="btn btn-sm btn-primary mt-2" id="addBahanBaku">
                     <i class="fas fa-plus"></i> Tambah Bahan Baku
                 </button>
             </div>
@@ -220,10 +220,10 @@
                                                 }
                                             @endphp
                                             <option value="{{ $bahanPendukung->id }}" 
-                                                    data-harga="{{ $bahanPendukung->harga_satuan }}"
+                                                    data-harga="{{ $bahanPendukung->harga_rata_rata ?? $bahanPendukung->harga_satuan }}"
                                                     data-satuan="{{ $satuanBP }}"
                                                     data-sub-satuan="{{ json_encode($subSatuanData) }}">
-                                                {{ $bahanPendukung->nama_bahan }} - Rp {{ number_format($bahanPendukung->harga_satuan, 0, ',', '.') }}/{{ $satuanBP }}
+                                                {{ $bahanPendukung->nama_bahan }} - Rp {{ number_format($bahanPendukung->harga_rata_rata ?? $bahanPendukung->harga_satuan, 0, ',', '.') }}/{{ $satuanBP }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -262,7 +262,7 @@
                         </tfoot>
                     </table>
                 </div>
-                <button type="button" class="btn btn-sm btn-info mt-2" id="addBahanPendukung" onclick="window.addBahanPendukungRow(); return false;">
+                <button type="button" class="btn btn-sm btn-info mt-2" id="addBahanPendukung">
                     <i class="fas fa-plus"></i> Tambah Bahan Pendukung
                 </button>
             </div>
@@ -919,10 +919,16 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // Auto-add first row
     setTimeout(() => {
-        const existingRows = document.querySelectorAll("#bahanBakuTable tbody tr:not(#newBahanBakuRow):not(.d-none)");
-        if (existingRows.length === 0) {
-            console.log("🚀 Auto-adding first row");
+        const existingBBRows = document.querySelectorAll("#bahanBakuTable tbody tr:not(#newBahanBakuRow):not(.d-none)");
+        if (existingBBRows.length === 0) {
+            console.log("🚀 Auto-adding first Bahan Baku row");
             addBahanBakuRow();
+        }
+        
+        const existingBPRows = document.querySelectorAll("#bahanPendukungTable tbody tr:not(#newBahanPendukungRow):not(.d-none)");
+        if (existingBPRows.length === 0) {
+            console.log("🚀 Auto-adding first Bahan Pendukung row");
+            addBahanPendukungRow();
         }
     }, 500);
     

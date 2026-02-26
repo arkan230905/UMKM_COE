@@ -211,8 +211,8 @@
                                         <small class="text-muted">{{ $detail['kode_akun'] }}</small>
                                     </div>
                                     <div class="text-end">
-                                        <span class="badge {{ $detail['saldo'] >= 0 ? 'bg-success' : 'bg-danger' }} fs-6">
-                                            Rp {{ number_format($detail['saldo'], 0, ',', '.') }}
+                                        <span class="badge {{ $detail['saldo_akhir'] >= 0 ? 'bg-success' : 'bg-danger' }} fs-6">
+                                            Rp {{ number_format($detail['saldo_akhir'], 0, ',', '.') }}
                                         </span>
                                     </div>
                                 </div>

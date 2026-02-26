@@ -11,61 +11,50 @@ use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use App\Support\UnitConverter;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class ProdukController extends Controller
 {
     public function index()
     {
-        // Get all products with real-time BOM costs
-        $produks = Produk::select([
-            'id', 
-            'barcode',
-            'nama_produk', 
-            'deskripsi',
-            'foto',
-            'harga_bom',
-            'harga_jual', 
-            'margin_percent',
-            'stok'
-        ])->get();
+        // Get all products with their HPP data from BomJobCosting
+        $produks = Produk::with(['bomJobCosting'])->get();
         
-        // Update harga_bom with real-time BOM data
+        // Force refresh HPP data for all products to ensure latest data
         foreach ($produks as $produk) {
-            $bom = Bom::where('produk_id', $produk->id)->first();
-            if ($bom) {
-                $produk->harga_bom = $bom->total_biaya;
-                // Update database to sync
-                $produk->save();
-            }
-        }
-        
-        // If any product has null harga_bom, calculate it from BOM details
-        if ($produks->contains('harga_bom', null)) {
-            $produksWithBom = Produk::whereNull('harga_bom')
-                ->with(['boms.details.bahanBaku'])
-                ->get();
-            
-            foreach ($produksWithBom as $produk) {
-                $bom = $produk->boms->first();
-                if (!$bom) continue;
+            $bomJobCosting = $produk->bomJobCosting;
+            if ($bomJobCosting) {
+                // Force recalculate to get latest HPP
+                $bomJobCosting->recalculate();
                 
-                $totalBiayaBahan = $bom->details->sum('subtotal') ?? 0;
-                
-                // Update the product's harga_bom
-                $produk->update([
-                    'harga_bom' => $totalBiayaBahan,
-                    'harga_jual' => $produk->harga_jual ?? $totalBiayaBahan * (1 + (($produk->margin_percent ?? 30) / 100))
-                ]);
-                
-                // Update the harga_bom in the collection
-                if ($p = $produks->where('id', $produk->id)->first()) {
-                    $p->harga_bom = $totalBiayaBahan;
+                // Force update product with latest HPP
+                $totalHPP = $bomJobCosting->total_hpp;
+                if ($produk->harga_bom != $totalHPP) {
+                    DB::table('produks')
+                        ->where('id', $produk->id)
+                        ->update([
+                            'harga_bom' => $totalHPP,
+                            'updated_at' => now()
+                        ]);
+                    $produk->harga_bom = $totalHPP; // Update model instance
                 }
             }
         }
         
-        // Prepare data for the view
-        $hargaBom = $produks->pluck('harga_bom', 'id')->toArray();
+        // Get HPP data for each product from HPP page calculations
+        $hargaBom = [];
+        foreach ($produks as $produk) {
+            $bomJobCosting = $produk->bomJobCosting;
+            
+            if ($bomJobCosting) {
+                // Use HPP data from BomJobCosting (same as HPP page)
+                $totalHPP = $bomJobCosting->total_hpp;
+                $hargaBom[$produk->id] = $totalHPP;
+            } else {
+                // For products without BomJobCosting, use existing harga_bom or default to 0
+                $hargaBom[$produk->id] = $produk->harga_bom ?? 0;
+            }
+        }
         
         return view('master-data.produk.index', compact('produks', 'hargaBom'));
     }
