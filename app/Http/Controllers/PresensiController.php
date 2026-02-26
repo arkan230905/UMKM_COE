@@ -32,16 +32,24 @@ class PresensiController extends Controller
         
         $presensis = $query->paginate(10);
         
-        // Get pegawais without face verification
+        // Get pegawais without face verification (only if table exists)
         $pegawaiTanpaVerifikasi = [];
-        foreach ($pegawais as $pegawai) {
-            $hasVerifikasi = VerifikasiWajah::where('kode_pegawai', $pegawai->kode_pegawai)
-                ->where('aktif', true)
-                ->exists();
-            
-            if (!$hasVerifikasi) {
-                $pegawaiTanpaVerifikasi[] = $pegawai;
+        try {
+            // Check if verifikasi_wajah table exists
+            if (\Schema::hasTable('verifikasi_wajah')) {
+                foreach ($pegawais as $pegawai) {
+                    $hasVerifikasi = VerifikasiWajah::where('kode_pegawai', $pegawai->kode_pegawai)
+                        ->where('aktif', true)
+                        ->exists();
+                    
+                    if (!$hasVerifikasi) {
+                        $pegawaiTanpaVerifikasi[] = $pegawai;
+                    }
+                }
             }
+        } catch (\Exception $e) {
+            // Silently ignore if table doesn't exist
+            \Log::info('Verifikasi wajah table not found, skipping verification check');
         }
         
         // Get today's presensi without face verification
