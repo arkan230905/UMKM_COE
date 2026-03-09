@@ -82,7 +82,7 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
-                    <thead class="table-dark">
+                    <thead class="custom-table-header">
                         <tr>
                             <th>No</th>
                             <th>Kode Aset</th>
@@ -91,7 +91,6 @@
                             <th>Kategori</th>
                             <th>Harga Perolehan (Rp)</th>
                             <th>Tanggal Beli</th>
-                            <th>Nilai Buku (Rp)</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -106,7 +105,6 @@
                                 <td>{{ $aset->kategori->nama ?? '-' }}</td>
                                 <td class="text-end">{{ number_format($aset->harga_perolehan, 0, ',', '.') }}</td>
                                 <td>{{ is_string($aset->tanggal_beli) ? \Carbon\Carbon::parse($aset->tanggal_beli)->format('d/m/Y') : $aset->tanggal_beli->format('d/m/Y') }}</td>
-                                <td class="text-end">{{ number_format($aset->nilai_buku, 0, ',', '.') }}</td>
                                 <td>
                                     @php
                                         $badgeClass = [
@@ -121,24 +119,26 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="{{ route('master-data.aset.edit', $aset->id) }}" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <form action="{{ route('master-data.aset.destroy', $aset->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus aset ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm" title="Hapus">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                    <a href="{{ route('master-data.aset.show', $aset->id) }}" class="btn btn-sm btn-info">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
+                                    <div class="btn-group" role="group">
+                                        <a href="{{ route('master-data.aset.edit', $aset->id) }}" class="btn btn-sm btn-primary" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form action="{{ route('master-data.aset.destroy', $aset->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus aset ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger" title="Hapus">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                        <a href="{{ route('master-data.aset.show', $aset->id) }}" class="btn btn-sm btn-secondary" title="Lihat">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="text-center py-4">Tidak ada data aset</td>
+                                <td colspan="9" class="text-center py-4">Tidak ada data aset</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -163,9 +163,71 @@
     .btn-sm {
         padding: 0.25rem 0.5rem;
         font-size: 0.875rem;
+        border-radius: 0.375rem;
+        transition: all 0.15s ease-in-out;
     }
     .table td {
         vertical-align: middle;
+    }
+    
+    /* Custom table header with brown color matching theme */
+    .custom-table-header {
+        background-color: #7D6347 !important;
+        color: white !important;
+    }
+    
+    .custom-table-header th {
+        background-color: #7D6347 !important;
+        color: white !important;
+        border-color: #8B6F47 !important;
+        font-weight: 600;
+    }
+    
+    /* Standardized button styling */
+    .btn-group .btn-sm {
+        min-width: 35px;
+        height: 31px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 1px;
+    }
+    
+    .btn-group .btn-sm i {
+        font-size: 0.75rem;
+    }
+    
+    /* Primary button (Edit) - Brown theme */
+    .btn-primary {
+        background-color: #7D6347;
+        border-color: #7D6347;
+    }
+    
+    .btn-primary:hover {
+        background-color: #8B6F47;
+        border-color: #8B6F47;
+    }
+    
+    /* Danger button (Delete) - Red but consistent style */
+    .btn-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+    
+    .btn-danger:hover {
+        background-color: #c82333;
+        border-color: #c82333;
+    }
+    
+    /* Secondary button (View) - Gray/light brown */
+    .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        border-color: #545b62;
     }
 </style>
 @endpush
