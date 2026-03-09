@@ -11,6 +11,43 @@
         </a>
     </div>
 
+    <!-- Ringkasan Penjualan Harian -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <i class="fas fa-chart-line me-2"></i>Ringkasan Penjualan Harian
+            </h6>
+        </div>
+        <div class="card-body py-3">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Total Penjualan</span>
+                        <strong class="text-primary">Rp {{ number_format($totalPenjualan, 0, ',', '.') }}</strong>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Jumlah Transaksi</span>
+                        <strong class="text-info">{{ number_format($jumlahTransaksi, 0, ',', '.') }}</strong>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Produk Terjual</span>
+                        <strong class="text-warning">{{ number_format($totalProdukTerjual, 0, ',', '.') }}</strong>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">Total Profit</span>
+                        <strong class="{{ $totalProfit >= 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($totalProfit, 0, ',', '.') }}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Filter Section -->
     <div class="card mb-4">
         <div class="card-header">
@@ -69,15 +106,26 @@
     </div>
 
     <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">
-                <i class="fas fa-list me-2"></i>Riwayat Penjualan
-                @if(request()->hasAny(['nomor_transaksi', 'tanggal_mulai', 'tanggal_selesai', 'payment_method', 'status']))
-                    <small class="text-muted">(Filter Aktif)</small>
-                @endif
-            </h5>
+        <div class="card-header card-tabs-toggle">
+            <ul class="nav nav-tabs card-header-tabs" id="penjualanTab" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="penjualan-list-tab" data-bs-toggle="tab" href="#penjualan-list" role="tab" aria-controls="penjualan-list" aria-selected="true">Penjualan</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="retur-list-tab" data-bs-toggle="tab" href="#retur-list" role="tab" aria-controls="retur-list" aria-selected="false">Retur</a>
+                </li>
+            </ul>
         </div>
         <div class="card-body">
+            <div class="tab-content" id="penjualanTabContent">
+                <div class="tab-pane fade show active" id="penjualan-list" role="tabpanel" aria-labelledby="penjualan-list-tab">
+                    <!-- Konten Penjualan -->
+                    <h5 class="mb-3">
+                        <i class="fas fa-list me-2"></i>Riwayat Penjualan
+                        @if(request()->hasAny(['nomor_transaksi', 'tanggal_mulai', 'tanggal_selesai', 'payment_method', 'status']))
+                            <small class="text-muted">(Filter Aktif)</small>
+                        @endif
+                    </h5>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
@@ -90,9 +138,8 @@
                             <th class="text-end">Qty</th>
                             <th class="text-end">Harga/Satuan</th>
                             <th class="text-end">HPP</th>
-                            <th class="text-end">Margin</th>
-                            <th class="text-end">Diskon %</th>
-                            <th class="text-end">Diskon (Rp)</th>
+                            <th class="text-end">Profit</th>
+                            <th class="text-end">Diskon</th>
                             <th class="text-end">Total</th>
                             <th>Status Retur</th>
                             <th class="text-center">Aksi</th>
@@ -181,25 +228,14 @@
                                     @if($detailCount > 1)
                                         @foreach($penjualan->details as $d)
                                             @php $sub = (float)$d->jumlah * (float)$d->harga_satuan; $disc = (float)($d->diskon_nominal ?? 0); $pct = $sub>0 ? ($disc/$sub*100) : 0; @endphp
-                                            <div>{{ number_format($pct, 2, ',', '.') }}%</div>
+                                            <div>{{ number_format($pct, 2, ',', '.') }}% (Rp {{ number_format($disc, 0, ',', '.') }})</div>
                                         @endforeach
                                     @elseif($detailCount === 1)
                                         @php $d=$penjualan->details[0]; $sub=(float)$d->jumlah*(float)$d->harga_satuan; $disc=(float)($d->diskon_nominal??0); $pct=$sub>0?($disc/$sub*100):0; @endphp
-                                        {{ number_format($pct, 2, ',', '.') }}%
+                                        {{ number_format($pct, 2, ',', '.') }}% (Rp {{ number_format($disc, 0, ',', '.') }})
                                     @else
-                                        @php $pct=0; if(($penjualan->jumlah??0)>0){ $hdrHarga=$penjualan->harga_satuan; if(is_null($hdrHarga)){ $hdrHarga=((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0))/(float)$penjualan->jumlah; } $subtotal=$penjualan->jumlah*$hdrHarga; $pct=$subtotal>0?(((float)($penjualan->diskon_nominal ?? 0))/$subtotal*100):0; } @endphp
-                                        {{ number_format($pct, 2, ',', '.') }}%
-                                    @endif
-                                </td>
-                                <td class="text-end">
-                                    @if($detailCount > 1)
-                                        @foreach($penjualan->details as $d)
-                                            <div>Rp {{ number_format($d->diskon_nominal ?? 0, 0, ',', '.') }}</div>
-                                        @endforeach
-                                    @elseif($detailCount === 1)
-                                        Rp {{ number_format($penjualan->details[0]->diskon_nominal ?? 0, 0, ',', '.') }}
-                                    @else
-                                        Rp {{ number_format($penjualan->diskon_nominal ?? 0, 0, ',', '.') }}
+                                        @php $pct=0; $disc=(float)($penjualan->diskon_nominal ?? 0); if(($penjualan->jumlah??0)>0){ $hdrHarga=$penjualan->harga_satuan; if(is_null($hdrHarga)){ $hdrHarga=((float)$penjualan->total + $disc)/(float)$penjualan->jumlah; } $subtotal=$penjualan->jumlah*$hdrHarga; $pct=$subtotal>0?($disc/$subtotal*100):0; } @endphp
+                                        {{ number_format($pct, 2, ',', '.') }}% (Rp {{ number_format($disc, 0, ',', '.') }})
                                     @endif
                                 </td>
                                 <td class="text-end fw-semibold">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</td>
@@ -216,19 +252,19 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn btn-outline-warning">
+                                        <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn btn-outline-warning" data-bs-toggle="tooltip" title="Edit Transaksi">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="{{ route('transaksi.retur-penjualan.create', ['penjualan_id' => $penjualan->id]) }}" class="btn btn-outline-info">
+                                        <a href="{{ route('transaksi.retur-penjualan.create', ['penjualan_id' => $penjualan->id]) }}" class="btn btn-outline-info" data-bs-toggle="tooltip" title="Proses Retur">
                                             <i class="fas fa-undo"></i>
                                         </a>
-                                        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn btn-outline-primary">
+                                        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn btn-outline-primary" data-bs-toggle="tooltip" title="Lihat Jurnal">
                                             <i class="fas fa-book"></i> Jurnal
                                         </a>
                                         <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="btn btn-outline-danger">
+                                            <button class="btn btn-outline-danger" data-bs-toggle="tooltip" title="Hapus Transaksi">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
@@ -239,7 +275,51 @@
                     </tbody>
                 </table>
             </div>
+                    <!-- Akhir Konten Penjualan -->
+                </div>
+                <div class="tab-pane fade" id="retur-list" role="tabpanel" aria-labelledby="retur-list-tab">
+                    <!-- Konten Retur -->
+                    <h5 class="mb-3">
+                        <i class="fas fa-undo me-2"></i>Riwayat Retur Penjualan
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 50px">#</th>
+                                    <th>Nomor Retur</th>
+                                    <th>Nomor Transaksi</th>
+                                    <th>Tanggal Retur</th>
+                                    <th>Produk</th>
+                                    <th class="text-end">Qty Retur</th>
+                                    <th>Alasan Retur</th>
+                                    <th class="text-end">Total Nilai Retur</th>
+                                    <th>Status</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted">
+                                        <i class="fas fa-info-circle me-2"></i>Belum ada data retur penjualan
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Akhir Konten Retur -->
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+});
+</script>
 @endsection

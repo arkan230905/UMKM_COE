@@ -196,6 +196,7 @@ class StockService
     private function getItemSpecificConversionRatio(string $itemType, int $itemId, string $fromSatuan): float
     {
         // Get the item and its conversion data
+        $item = null;
         if ($itemType === 'material') {
             $item = \App\Models\BahanBaku::find($itemId);
         } elseif ($itemType === 'support') {

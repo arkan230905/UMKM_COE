@@ -385,28 +385,27 @@
                                                 <div class="col-md-4">
                                                     <h6 class="fw-bold text-primary">Berat</h6>
                                                     <ul class="list-unstyled">
-                                                        <li>1 kg = 1.000 gram</li>
-                                                        <li>1 kg = 10 ons</li>
-                                                        <li>1 ons = 100 gram</li>
-                                                        <li>1 ton = 1.000 kg</li>
+                                                        <li>1 Kilogram = 1.000 Gram</li>
+                                                        <li>1 Kilogram = 10 Ons</li>
+                                                        <li>1 Ons = 100 Gram</li>
                                                     </ul>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <h6 class="fw-bold text-success">Volume</h6>
                                                     <ul class="list-unstyled">
-                                                        <li>1 liter = 1.000 ml</li>
-                                                        <li>1 liter = 1 kg (air)</li>
-                                                        <li>1 galon = 3,785 liter</li>
-                                                        <li>1 gelas = 250 ml</li>
+                                                        <li>1 Liter = 1.000 Mililiter</li>
+                                                        <li>1 Galon = 3,785 Liter</li>
+                                                        <li>1 Sendok Makan = 15 Mililiter</li>
+                                                        <li>1 Sendok Teh = 5 Mililiter</li>
                                                     </ul>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <h6 class="fw-bold text-warning">Pieces</h6>
                                                     <ul class="list-unstyled">
-                                                        <li>1 lusin = 12 buah</li>
-                                                        <li>1 kodi = 20 buah</li>
-                                                        <li>1 gross = 144 buah</li>
-                                                        <li>1 rim = 500 lembar</li>
+                                                        <li>1 Pieces = 1 Potong</li>
+                                                        <li>1 Bungkus = 1 unit</li>
+                                                        <li>1 Ekor = 1 unit</li>
+                                                        <li>1 Siung = 1 unit</li>
                                                     </ul>
                                                 </div>
                                             </div>
@@ -570,59 +569,30 @@ function showSuccessMessage(message) {
 const satuanData = @json($satuans ?? []);
 
 // Konversi faktor ke satuan dasar (kg/gram/liter)
+// Hanya untuk satuan yang ada di database
 const konversiFaktor = {
     // Berat
-    'kg': 1,
     'kilogram': 1,
     'gram': 0.001,
-    'g': 0.001,
-    'gr': 0.001,
     'ons': 0.1,
-    'hg': 0.1,
-    'dag': 0.01,
-    'kwintal': 100,
-    'ton': 1000,
-    'lbs': 0.453592,
-    'oz': 0.0283495,
     
     // Volume
     'liter': 1,
-    'l': 1,
-    'ltr': 1,
     'mililiter': 0.001,
-    'ml': 0.001,
-    'gelas': 0.25,
-    'sendok_makan': 0.015,
-    'sendok_teh': 0.005,
     'galon': 3.785,
     
     // Pieces (diasumsikan 1:1 untuk konversi universal)
-    'pcs': 1,
-    'pc': 1,
-    'buah': 1,
-    'piece': 1,
-    'pack': 1,
-    'pak': 1,
-    'box': 1,
-    'botol': 1,
-    'dus': 1,
-    'bungkus': 1,
-    'kaleng': 1,
-    'sachet': 1,
-    'tablet': 1,
-    'kapsul': 1,
-    'tube': 1,
+    'pieces': 1,
     'potong': 1,
-    'lembar': 1,
-    'roll': 1,
-    'meter': 1,
-    'cm': 0.01,
-    'mm': 0.001,
-    'inch': 0.0254,
-    'kodi': 20,
-    'lusin': 12,
-    'gross': 144,
-    'rim': 500
+    'bungkus': 1,
+    'ekor': 1,
+    'siung': 1,
+    'tabung': 1,
+    'sendok makan': 0.015,
+    'sendok teh': 0.005,
+    
+    // Lainnya
+    'watt': 1 // Unit daya, tidak bisa dikonversi ke satuan lain
 };
 
 // Initialize dropdowns
@@ -634,22 +604,13 @@ function initializeDropdowns() {
     satuanAsal.innerHTML = '<option value="">-- Pilih Satuan --</option>';
     satuanTujuan.innerHTML = '<option value="">-- Pilih Satuan --</option>';
     
-    // Add satuan options from database
+    // Add satuan options from database ONLY
     satuanData.forEach(satuan => {
         const optionAsal = new Option(satuan.nama, satuan.nama.toLowerCase());
         const optionTujuan = new Option(satuan.nama, satuan.nama.toLowerCase());
         
         satuanAsal.add(optionAsal);
         satuanTujuan.add(optionTujuan);
-    });
-    
-    // Add common units if not in database
-    const commonUnits = ['kg', 'gram', 'liter', 'ml', 'pcs', 'buah', 'potong', 'lusin'];
-    commonUnits.forEach(unit => {
-        if (!Array.from(satuanAsal.options).some(opt => opt.value === unit)) {
-            satuanAsal.add(new Option(unit.toUpperCase(), unit));
-            satuanTujuan.add(new Option(unit.toUpperCase(), unit));
-        }
     });
 }
 

@@ -227,6 +227,8 @@ class ProdukController extends Controller
             'nama_produk' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
+            'harga_jual' => 'required|string',
+            'hpp' => 'nullable|numeric|min:0',
             'margin_percent' => 'nullable|numeric|min:0',
             'bopb_method' => 'nullable|in:per_unit,per_hour',
             'bopb_rate' => 'nullable|numeric|min:0',
@@ -234,36 +236,48 @@ class ProdukController extends Controller
             'btkl_per_unit' => 'nullable|numeric|min:0',
         ]);
 
+        // Parse formatted harga_jual (remove dots) back to pure number
+        $hargaJualFormatted = $request->input('harga_jual');
+        $hargaJual = intval(str_replace('.', '', $hargaJualFormatted));
+        
+        // Debug: log the values
+        \Log::info('ProdukController::update - Debug harga_jual');
+        \Log::info('Raw harga_jual from form: ' . $hargaJualFormatted);
+        \Log::info('Parsed harga_jual: ' . $hargaJual);
+        \Log::info('HPP from request: ' . $request->input('hpp'));
+        \Log::info('Margin percent from request: ' . $request->input('margin_percent'));
+
         $data = [
             'nama_produk' => $request->nama_produk,
             'deskripsi' => $request->deskripsi,
-            'margin_percent' => $request->input('margin_percent'),
+            'harga_jual' => $hargaJual,
             'bopb_method' => $request->input('bopb_method'),
             'bopb_rate' => $request->input('bopb_rate'),
             'labor_hours_per_unit' => $request->input('labor_hours_per_unit'),
             'btkl_per_unit' => $request->input('btkl_per_unit'),
         ];
 
+        // Calculate margin_percent from harga_jual and hpp
+        $hpp = $request->input('hpp', $produk->hpp ?? $produk->getActualHPP());
+        
+        if ($hpp > 0 && $hargaJual > 0) {
+            $marginPercent = (($hargaJual - $hpp) / $hpp) * 100;
+            $data['margin_percent'] = $marginPercent;
+        } else {
+            $data['margin_percent'] = 0;
+        }
+
         if ($request->hasFile('foto')) {
             $data['foto'] = $request->file('foto')->store('produk', 'public');
         }
 
         $produk->update($data);
-        
-        // Recalculate harga_jual if margin changed
-        if ($request->filled('margin_percent')) {
-            $hargaPokok = $produk->harga_pokok ?? 0;
-            $margin = (float) $request->input('margin_percent', 30);
-            $hargaJual = $hargaPokok * (1 + ($margin / 100));
-            
-            // Update harga_jual in database
-            DB::table('produks')
-                ->where('id', $produk->id)
-                ->update([
-                    'harga_jual' => $hargaJual,
-                    'updated_at' => now()
-                ]);
-        }
+
+        // Debug: log the stored values after update
+        \Log::info('ProdukController::update - After update');
+        \Log::info('Stored harga_jual in database: ' . $produk->harga_jual);
+        \Log::info('Stored margin_percent in database: ' . $produk->margin_percent);
+        \Log::info('Final data array: ' . json_encode($data));
 
         return redirect()->route('master-data.produk.index')
                          ->with('success', 'Produk berhasil diupdate.');

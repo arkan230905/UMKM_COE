@@ -103,12 +103,21 @@
                                 // Get HPP from calculated array
                                 $hargaBomProduk = $hargaBom[$produk->id] ?? 0;
                                 
-                                // Get margin percentage (default 30%)
-                                $margin = (float) ($produk->margin_percent ?? 30);
+                                // Use stored harga_jual from database, not recalculate
+                                $hargaJual = $produk->harga_jual ?? 0;
                                 
-                                // Calculate selling price: HPP + (HPP * margin%)
-                                // Formula: Harga Jual = HPP * (1 + margin/100)
-                                $hargaJual = $hargaBomProduk * (1 + ($margin / 100));
+                                // Debug: log values
+                                error_log("DASHBOARD DEBUG - Produk: {$produk->nama_produk}, ID: {$produk->id}");
+                                error_log("DASHBOARD DEBUG - Harga Jual from DB: " . ($produk->harga_jual ?? 'NULL'));
+                                error_log("DASHBOARD DEBUG - Harga Jual variable: {$hargaJual}");
+                                error_log("DASHBOARD DEBUG - HPP: {$hargaBomProduk}");
+                                
+                                // Calculate margin percentage from stored values
+                                if ($hargaBomProduk > 0 && $hargaJual > 0) {
+                                    $margin = (($hargaJual - $hargaBomProduk) / $hargaBomProduk) * 100;
+                                } else {
+                                    $margin = 0;
+                                }
                                 
                                 $stok = (float) $produk->stok;
                             @endphp
