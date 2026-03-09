@@ -299,6 +299,12 @@ class LaporanController extends Controller
                                     $dailyInNilai = (float)($m->total_cost ?? 0);
                                     $dailyOutQty = 0;
                                     $dailyOutNilai = 0;
+                                } elseif ($m->ref_type === 'production' && $tipe === 'product') {
+                                    // Production IN for products goes to produksi column
+                                    $dailyInQty = 0;
+                                    $dailyInNilai = 0;
+                                    $dailyOutQty = (float)$m->qty; // Use produksi column for production IN
+                                    $dailyOutNilai = (float)($m->total_cost ?? 0);
                                 } else {
                                     // Regular purchase goes to pembelian column
                                     $dailyInQty = (float)$m->qty;
@@ -314,8 +320,14 @@ class LaporanController extends Controller
                             }
                             
                             // Update running totals
-                            $runningQty += $dailyInQty - $dailyOutQty;
-                            $runningNilai += $dailyInNilai - $dailyOutNilai;
+                            if ($m->ref_type === 'production' && $tipe === 'product') {
+                                // Production IN movements should add to stock even though shown in produksi column
+                                $runningQty += $dailyOutQty; // Production IN adds to stock
+                                $runningNilai += $dailyOutNilai;
+                            } else {
+                                $runningQty += $dailyInQty - $dailyOutQty;
+                                $runningNilai += $dailyInNilai - $dailyOutNilai;
+                            }
                             
                             // Add to daily stock
                             $dailyStock[] = [

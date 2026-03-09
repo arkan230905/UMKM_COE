@@ -108,7 +108,15 @@
                                             <td>{{ $index + 1 }}</td>
                                             <td>
                                                 <div>
-                                                    <div class="fw-semibold">{{ $bahan['nama_bahan'] }}</div>
+                                                    <div class="fw-semibold {{ ($bahan['status'] ?? '') == 'dihapus' ? 'text-decoration-line-through text-danger' : '' }}">
+                                                        {{ $bahan['nama_bahan'] }}
+                                                    </div>
+                                                    @if(($bahan['status'] ?? '') == 'dihapus')
+                                                        <div class="text-danger small">
+                                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                                            <strong>Dihapus</strong>
+                                                        </div>
+                                                    @endif
                                                     <small class="text-muted">{{ $bahan['satuan'] }}</small>
                                                 </div>
                                             </td>
@@ -119,10 +127,22 @@
                                                 {{ $bahan['satuan'] }}
                                             </td>
                                             <td class="text-end">
-                                                Rp {{ number_format($bahan['harga_satuan'], 0, ',', '.') }}
+                                                @if(($bahan['status'] ?? '') == 'dihapus')
+                                                    <del>Rp {{ number_format($bahan['harga_satuan'], 0, ',', '.') }}</del>
+                                                    <br>
+                                                    <small class="text-danger">
+                                                        Terakhir: Rp {{ number_format($bahan['harga_terakhir'], 0, ',', '.') }}
+                                                    </small>
+                                                @else
+                                                    Rp {{ number_format($bahan['harga_satuan'], 0, ',', '.') }}
+                                                @endif
                                             </td>
                                             <td class="text-end">
-                                                <strong>Rp {{ number_format($bahan['subtotal'], 0, ',', '.') }}</strong>
+                                                @if(($bahan['status'] ?? '') == 'dihapus')
+                                                    <del>Rp {{ number_format($bahan['subtotal'], 0, ',', '.') }}</del>
+                                                @else
+                                                    <strong>Rp {{ number_format($bahan['subtotal'], 0, ',', '.') }}</strong>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach
@@ -164,7 +184,15 @@
                                             <td>{{ $index + 1 }}</td>
                                             <td>
                                                 <div>
-                                                    <div class="fw-semibold">{{ $bahan['nama_bahan'] }}</div>
+                                                    <div class="fw-semibold {{ ($bahan['status'] ?? '') == 'dihapus' ? 'text-decoration-line-through text-danger' : '' }}">
+                                                        {{ $bahan['nama_bahan'] }}
+                                                    </div>
+                                                    @if(($bahan['status'] ?? '') == 'dihapus')
+                                                        <div class="text-danger small">
+                                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                                            <strong>Dihapus</strong>
+                                                        </div>
+                                                    @endif
                                                     <small class="text-muted">{{ $bahan['satuan'] }}</small>
                                                 </div>
                                             </td>
@@ -175,10 +203,22 @@
                                                 {{ $bahan['satuan'] }}
                                             </td>
                                             <td class="text-end">
-                                                Rp {{ number_format($bahan['harga_satuan'], 0, ',', '.') }}
+                                                @if(($bahan['status'] ?? '') == 'dihapus')
+                                                    <del>Rp {{ number_format($bahan['harga_satuan'], 0, ',', '.') }}</del>
+                                                    <br>
+                                                    <small class="text-danger">
+                                                        Terakhir: Rp {{ number_format($bahan['harga_terakhir'], 0, ',', '.') }}
+                                                    </small>
+                                                @else
+                                                    Rp {{ number_format($bahan['harga_satuan'], 0, ',', '.') }}
+                                                @endif
                                             </td>
                                             <td class="text-end">
-                                                <strong>Rp {{ number_format($bahan['subtotal'], 0, ',', '.') }}</strong>
+                                                @if(($bahan['status'] ?? '') == 'dihapus')
+                                                    <del>Rp {{ number_format($bahan['subtotal'], 0, ',', '.') }}</del>
+                                                @else
+                                                    <strong>Rp {{ number_format($bahan['subtotal'], 0, ',', '.') }}</strong>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach
@@ -230,8 +270,32 @@
                                 <small class="text-muted">
                                     <i class="fas fa-info-circle me-1"></i>
                                     Perhitungan biaya bahan untuk produk ini
+                                    @if($totalBiayaBahanBaku > 0 && $totalBiayaBahanPendukung == 0)
+                                        (hanya bahan baku)
+                                    @elseif($totalBiayaBahanBaku == 0 && $totalBiayaBahanPendukung > 0)
+                                        (hanya bahan pendukung)
+                                    @endif
                                 </small>
                             </div>
+                            @if(collect($detailBahanBaku)->contains('status', 'dihapus') || collect($detailBahanPendukung)->contains(fn($b) => ($b['status'] ?? '') == 'dihapus'))
+                                <div class="alert alert-warning mt-3">
+                                    <h6><i class="fas fa-exclamation-triangle me-2"></i>Informasi Bahan yang Dihapus</h6>
+                                    <p class="mb-0">
+                                        <strong>Bahan yang dihapus tidak mempengaruhi perhitungan biaya bahan:</strong>
+                                    </p>
+                                    <ul class="mb-2">
+                                        <li><strong>Harga satuan dan subtotal diset ke 0</strong> - agar tidak merusak perhitungan biaya bahan yang masih aktif</li>
+                                        <li><strong>Data terakhir tersimpan</strong> - harga dan nama bahan terakhir dicatat untuk referensi</li>
+                                        <li><strong>Status "Dihapus" ditampilkan</strong> - memberikan keterangan visual yang jelas</li>
+                                    </ul>
+                                    <p class="mb-0">
+                                        <small class="text-muted">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            <strong>Catatan:</strong> Perubahan pada harga bahan atau penambahan bahan baru akan otomatis mengupdate perhitungan biaya bahan dan harga pokok produksi.
+                                        </small>
+                                    </p>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>

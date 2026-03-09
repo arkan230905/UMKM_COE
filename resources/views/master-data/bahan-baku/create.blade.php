@@ -77,6 +77,10 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                             <small class="text-muted">Kosongkan jika belum ada stok</small>
+                            <div class="alert alert-info mt-2 mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Informasi:</strong> Saldo awal ini mencatat stok per tanggal 1 bulan berjalan.
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-4">
@@ -291,7 +295,8 @@
                             <label class="form-label">COA HPP <span class="text-danger">*</span></label>
                             <select name="coa_hpp_id" id="coa_hpp_id" class="form-select" required>
                                 <option value="">-- Pilih COA HPP --</option>
-                                @foreach($coas as $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}">{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
+                                @foreach($coas as $coa)
+                                    <option value="{{ $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}">{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
                                 @endforeach
                             </select>
                             <small class="text-muted">* Wajib diisi</small>

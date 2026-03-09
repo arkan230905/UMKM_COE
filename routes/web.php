@@ -307,8 +307,7 @@ Route::middleware('auth')->group(function () {
         Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generate-kode');
         Route::resource('aset', AsetController::class);
         Route::get('aset-kategori-by-jenis', [AsetController::class, 'getKategoriByJenis'])->name('aset.kategori-by-jenis');
-        Route::resource('kualifikasi-tenaga-kerja', JabatanController::class)->except(['update']);
-        Route::post('kualifikasi-tenaga-kerja/{kualifikasi_tenaga_kerja}', [JabatanController::class, 'update'])->name('master-data.kualifikasi-tenaga-kerja.update');
+        Route::resource('kualifikasi-tenaga-kerja', JabatanController::class);
         Route::resource('pegawai', PegawaiController::class);
         Route::resource('vendor', VendorController::class);
         Route::get('satuan-dashboard', [SatuanController::class, 'dashboard'])->name('satuan.dashboard');
@@ -634,6 +633,8 @@ Route::middleware('auth')->group(function () {
         
         // Laporan Kartu Stok
         Route::get('/kartu-stok', [LaporanKartuStokController::class, 'index'])->name('kartu-stok');
+        Route::get('/kartu-stok/reset', [LaporanKartuStokController::class, 'createResetForm'])->name('kartu-stok.reset');
+        Route::post('/reset-produk-stok', [LaporanKartuStokController::class, 'resetProdukStok'])->name('reset-produk-stok');
         
         // Laporan Stok Real-Time
         Route::get('/stock-realtime', [\App\Http\Controllers\StockReportController::class, 'index'])->name('stock-realtime');

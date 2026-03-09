@@ -111,8 +111,18 @@
                                 $totalBiaya = $biaya['total_biaya'] ?? 0;
                                 $totalBiayaBahanBaku = $biaya['total_biaya_bahan_baku'] ?? 0;
                                 $totalBiayaBahanPendukung = $biaya['total_biaya_bahan_pendukung'] ?? 0;
-                                $jumlahBahanBaku = count($biaya['detail_bahan_baku'] ?? []);
-                                $jumlahBahanPendukung = count($biaya['detail_bahan_pendukung'] ?? []);
+                                
+                                // HANYA HITUNG ITEM YANG VALID (harga > 0)
+                                $detailBahanBaku = $biaya['detail_bahan_baku'] ?? [];
+                                $detailBahanPendukung = $biaya['detail_bahan_pendukung'] ?? [];
+                                
+                                $jumlahBahanBaku = collect($detailBahanBaku)->filter(function($item) {
+                                    return ($item['subtotal'] ?? 0) > 0;
+                                })->count();
+                                
+                                $jumlahBahanPendukung = collect($detailBahanPendukung)->filter(function($item) {
+                                    return ($item['subtotal'] ?? 0) > 0;
+                                })->count();
                             @endphp
                             <tr>
                                 <td class="text-center">{{ $loop->iteration }}</td>
