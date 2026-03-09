@@ -12,9 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pegawais', function (Blueprint $table) {
-            // Add new columns after the existing ones
-            $table->decimal('gaji_pokok', 15, 2)->nullable()->after('gaji');
-            $table->decimal('tarif_lembur', 15, 2)->nullable()->after('tarif');
+            // Add new columns after the existing ones, but only if they don't exist
+            if (!Schema::hasColumn('pegawais', 'gaji_pokok')) {
+                $table->decimal('gaji_pokok', 15, 2)->nullable()->after('gaji');
+            }
+            if (!Schema::hasColumn('pegawais', 'tarif_lembur')) {
+                $table->decimal('tarif_lembur', 15, 2)->nullable()->after('tarif');
+            }
         });
     }
 
