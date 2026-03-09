@@ -1,5 +1,105 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+/* White background design for all input fields */
+.form-control {
+    background-color: #FFFFFF !important;
+    color: #1a1a1a !important;
+    border: 1px solid #dee2e6 !important;
+}
+
+.form-control:focus {
+    background-color: #FFFFFF !important;
+    color: #1a1a1a !important;
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+.form-control:disabled,
+.form-control[readonly] {
+    background-color: #F5F5F5 !important;
+    color: #1a1a1a !important;
+    opacity: 1 !important;
+    cursor: not-allowed !important;
+    border-color: #ced4da !important;
+}
+
+.form-select {
+    background-color: #FFFFFF !important;
+    color: #1a1a1a !important;
+    border: 1px solid #dee2e6 !important;
+}
+
+.form-select:focus {
+    background-color: #FFFFFF !important;
+    color: #1a1a1a !important;
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+.form-select:disabled,
+.form-select[readonly] {
+    background-color: #F5F5F5 !important;
+    color: #1a1a1a !important;
+    opacity: 1 !important;
+    cursor: not-allowed !important;
+    border-color: #ced4da !important;
+}
+
+/* Override specific classes */
+.form-control.bg-secondary {
+    background-color: #F5F5F5 !important;
+    color: #1a1a1a !important;
+    border-color: #ced4da !important;
+}
+
+.form-control.bg-dark {
+    background-color: #FFFFFF !important;
+    color: #1a1a1a !important;
+    border-color: #dee2e6 !important;
+}
+
+.form-select.bg-secondary {
+    background-color: #F5F5F5 !important;
+    color: #1a1a1a !important;
+    border-color: #ced4da !important;
+}
+
+.form-select.bg-dark {
+    background-color: #FFFFFF !important;
+    color: #1a1a1a !important;
+    border-color: #dee2e6 !important;
+}
+
+/* Fix untuk placeholder */
+.form-control::placeholder {
+    color: #6c757d !important;
+}
+
+/* Fix untuk validasi */
+.is-invalid {
+    border-color: #dc3545 !important;
+}
+
+.invalid-feedback {
+    color: #dc3545 !important;
+}
+
+/* Hide asterisks for required fields (more specific) */
+/* Show asterisks for editable fields only */
+.form-label .text-danger {
+    display: inline !important;
+    color: #dc3545 !important;
+}
+
+/* Hide asterisks only for read-only field containers */
+.bg-secondary .form-label .text-danger {
+    display: none !important;
+}
+</style>
+@endpush
+
 @section('content')
 <div class="container text-light">
     <h2 class="mb-4 text-white">Edit Aset</h2>
@@ -55,7 +155,7 @@
 
                 <div class="mb-3">
                     <label for="kategori_aset_id" class="form-label text-white">Kategori Aset <span class="text-danger">*</span></label>
-                    <select class="form-select bg-dark text-white @error('kategori_aset_id') is-invalid @enderror" 
+                    <select class="form-select bg-dark text-white @error('kategori_asset_id') is-invalid @enderror" 
                             id="kategori_aset_id" name="kategori_aset_id" required>
                         <option value="" disabled selected>-- Pilih Jenis Aset terlebih dahulu --</option>
                     </select>
@@ -66,21 +166,20 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="harga_perolehan" class="form-label text-white">Harga Perolehan (Rp) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" class="form-control bg-dark text-white @error('harga_perolehan') is-invalid @enderror" 
+                        <label for="harga_perolehan" class="form-label text-white">Harga Perolehan (Rp)</label>
+                        <input type="number" step="0.01" class="form-control bg-secondary text-white" 
                                id="harga_perolehan" name="harga_perolehan" value="{{ old('harga_perolehan', $aset->harga_perolehan) }}" 
-                               required oninput="hitungTotal()">
+                               readonly oninput="hitungTotal()" title="Tidak dapat diubah">
                         @error('harga_perolehan')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label for="biaya_perolehan" class="form-label text-white">Biaya Perolehan (Rp) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" class="form-control bg-dark text-white @error('biaya_perolehan') is-invalid @enderror" 
+                        <label for="biaya_perolehan" class="form-label text-white">Biaya Perolehan (Rp)</label>
+                        <input type="number" step="0.01" class="form-control bg-secondary text-white" 
                                id="biaya_perolehan" name="biaya_perolehan" value="{{ old('biaya_perolehan', $aset->biaya_perolehan ?? 0) }}" 
-                               required oninput="hitungTotal()">
-                        <small class="text-white">Biaya tambahan seperti ongkir, instalasi, dll</small>
+                               readonly oninput="hitungTotal()" title="Tidak dapat diubah">
                         @error('biaya_perolehan')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -94,9 +193,9 @@
 
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label for="metode_penyusutan" class="form-label text-white">Metode Penyusutan <span class="text-danger">*</span></label>
-                        <select class="form-select bg-dark text-white @error('metode_penyusutan') is-invalid @enderror" 
-                                id="metode_penyusutan" name="metode_penyusutan" required onchange="hitungPenyusutan()">
+                        <label for="metode_penyusutan" class="form-label text-white">Metode Penyusutan</label>
+                        <select class="form-select bg-secondary text-white" 
+                                id="metode_penyusutan" name="metode_penyusutan" required onchange="hitungPenyusutan()" title="Tidak dapat diubah">
                             <option value="" disabled selected>-- Pilih Metode --</option>
                             @foreach($metodePenyusutan as $key => $value)
                                 <option value="{{ $key }}" {{ old('metode_penyusutan', $aset->metode_penyusutan) == $key ? 'selected' : '' }}>
@@ -110,10 +209,10 @@
                     </div>
 
                     <div class="col-md-4 mb-3">
-                        <label for="umur_manfaat" class="form-label text-white">Umur Manfaat (tahun) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control bg-dark text-white @error('umur_manfaat') is-invalid @enderror" 
-                               id="umur_manfaat" name="umur_manfaat" value="{{ old('umur_manfaat') }}" 
-                               min="1" max="100" required oninput="hitungPenyusutan()">
+                        <label for="umur_manfaat" class="form-label text-white">Umur Manfaat (tahun)</label>
+                        <input type="number" class="form-control bg-secondary text-white" 
+                               id="umur_manfaat" name="umur_manfaat" value="{{ old('umur_manfaat', $aset->umur_manfaat) }}" 
+                               min="1" max="100" required oninput="hitungPenyusutan()" readonly title="Tidak dapat diubah">
                         @error('umur_manfaat')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -121,10 +220,10 @@
 
                     <!-- Tarif Penyusutan Per Tahun (hanya untuk saldo menurun) -->
                     <div class="col-md-4 mb-3" id="tarif_penyusutan_container" style="display: none;">
-                        <label for="tarif_penyusutan" class="form-label text-white">Tarif Penyusutan Per Tahun (%) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.1" min="0" max="200" class="form-control bg-dark text-white @error('tarif_penyusutan') is-invalid @enderror" 
+                        <label for="tarif_penyusutan" class="form-label text-white">Tarif Penyusutan Per Tahun (%)</label>
+                        <input type="number" step="0.01" min="0" max="200" class="form-control bg-secondary text-white" 
                                id="tarif_penyusutan" name="tarif_penyusutan" value="{{ old('tarif_penyusutan', $aset->metode_penyusutan === 'saldo_menurun' ? '' : $aset->tarif_penyusutan) }}" 
-                               oninput="hitungPenyusutan()">
+                               oninput="hitungPenyusutan()" readonly title="Tidak dapat diubah">
                         <small class="text-white">Tarif penyusutan dalam persen (contoh: 50 untuk 50%)</small>
                         @error('tarif_penyusutan')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -133,9 +232,9 @@
 
                     <!-- Bulan Mulai (hanya untuk saldo menurun) -->
                     <div class="col-md-4 mb-3" id="bulan_mulai_container" style="display: none;">
-                        <label for="bulan_mulai" class="form-label text-white">Bulan Mulai <span class="text-danger">*</span></label>
-                        <select class="form-select bg-dark text-white @error('bulan_mulai') is-invalid @enderror" 
-                                id="bulan_mulai" name="bulan_mulai" onchange="hitungPenyusutan()">
+                        <label for="bulan_mulai" class="form-label text-white">Bulan Mulai</label>
+                        <select class="form-select bg-secondary text-white" 
+                                id="bulan_mulai" name="bulan_mulai" onchange="hitungPenyusutan()" readonly title="Tidak dapat diubah">
                             <option value="1">Januari</option>
                             <option value="2">Februari</option>
                             <option value="3">Maret</option>
@@ -149,18 +248,16 @@
                             <option value="11">November</option>
                             <option value="12">Desember</option>
                         </select>
-                        <small class="text-white">Bulan pembelian aset</small>
                         @error('bulan_mulai')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
 
                     <div class="col-md-4 mb-3">
-                        <label for="nilai_residu" class="form-label text-white">Nilai Residu (Rp) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" class="form-control bg-dark text-white @error('nilai_residu') is-invalid @enderror" 
+                        <label for="nilai_residu" class="form-label text-white">Nilai Residu (Rp)</label>
+                        <input type="number" step="0.01" class="form-control bg-secondary text-white" 
                                id="nilai_residu" name="nilai_residu" value="{{ old('nilai_residu', $aset->nilai_residu ?? 0) }}" 
-                               required oninput="hitungPenyusutan()">
-                        <small class="text-white">Nilai sisa di akhir umur manfaat</small>
+                               required oninput="hitungPenyusutan()" readonly title="Tidak dapat diubah">
                         @error('nilai_residu')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -203,38 +300,14 @@
                                 </tbody>
                             </table>
                         </div>
-                        
-                        <!-- Tabel Perhitungan Per Tahun (hanya untuk saldo menurun) -->
-                        <div id="tabel_perhitungan_tahunan" class="mt-4" style="display: none;">
-                            <h6 class="text-light mb-3"><i class="bi bi-table me-2"></i>Perhitungan Penyusutan Per Tahun</h6>
-                            <div class="table-responsive">
-                                <table class="table table-bordered table-dark table-sm">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th class="text-center">Tahun</th>
-                                            <th class="text-end">Nilai Buku Awal</th>
-                                            <th class="text-end">Penyusutan</th>
-                                            <th class="text-end">Nilai Buku Akhir</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tabel_perhitungan_body">
-                                        <!-- Akan diisi oleh JavaScript -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                        
-                        <div class="alert alert-info mt-3 mb-0">
-                            <small><i class="bi bi-info-circle me-1"></i> Perhitungan ini adalah estimasi berdasarkan metode yang dipilih</small>
-                        </div>
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="tanggal_beli" class="form-label text-white">Tanggal Pembelian <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control bg-dark text-white @error('tanggal_beli') is-invalid @enderror" 
-                               id="tanggal_beli" name="tanggal_beli" value="{{ old('tanggal_beli', $aset->tanggal_beli instanceof \Carbon\Carbon ? $aset->tanggal_beli->format('Y-m-d') : $aset->tanggal_beli) }}" required>
+                        <label for="tanggal_beli" class="form-label text-white">Tanggal Pembelian</label>
+                        <input type="date" class="form-control bg-secondary text-white" 
+                               id="tanggal_beli" name="tanggal_beli" value="{{ old('tanggal_beli', $aset->tanggal_beli instanceof \Carbon\Carbon ? $aset->tanggal_beli->format('Y-m-d') : $aset->tanggal_beli) }}" required readonly title="Tidak dapat diubah">
                         @error('tanggal_beli')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -242,8 +315,8 @@
 
                     <div class="col-md-6 mb-3">
                         <label for="tanggal_akuisisi" class="form-label text-white">Tanggal Mulai Penyusutan</label>
-                        <input type="date" class="form-control bg-dark text-white @error('tanggal_akuisisi') is-invalid @enderror" 
-                               id="tanggal_akuisisi" name="tanggal_akuisisi" value="{{ old('tanggal_akuisisi', $aset->tanggal_akuisisi instanceof \Carbon\Carbon ? $aset->tanggal_akuisisi->format('Y-m-d') : $aset->tanggal_akuisisi) }}">
+                        <input type="date" class="form-control bg-secondary text-white" 
+                               id="tanggal_akuisisi" name="tanggal_akuisisi" value="{{ old('tanggal_akuisisi', $aset->tanggal_akuisisi instanceof \Carbon\Carbon ? $aset->tanggal_akuisisi->format('Y-m-d') : $aset->tanggal_akuisisi) }}" readonly title="Tidak dapat diubah">
                         <small class="text-white">Kosongkan jika sama dengan tanggal pembelian</small>
                         @error('tanggal_akuisisi')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -252,7 +325,7 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="keterangan" class="form-label text-white">Keterangan</label>
+                    <label for="keterangan" class="form-label text-white">Keterangan <span class="text-danger">*</span></label>
                     <textarea class="form-control bg-dark text-white @error('keterangan') is-invalid @enderror" 
                               id="keterangan" name="keterangan" rows="3">{{ old('keterangan', $aset->keterangan) }}</textarea>
                     @error('keterangan')
@@ -312,71 +385,6 @@ function hitungTotal() {
     hitungPenyusutan();
 }
 
-// Hitung penyusutan per tahun untuk metode saldo menurun
-function hitungPerhitunganTahunan(total, residu, umur, tarifPersen, bulanMulai) {
-    const tabelContainer = document.getElementById('tabel_perhitungan_tahunan');
-    const tabelBody = document.getElementById('tabel_perhitungan_body');
-    
-    if (!tarifPersen || tarifPersen <= 0) {
-        tabelContainer.style.display = 'none';
-        return;
-    }
-    
-    const rate = tarifPersen / 100;
-    let bookValue = total;
-    let totalPenyusutan = 0;
-    
-    let html = '';
-    
-    // Hitung sisa bulan di tahun pertama
-    const sisaBulanTahun1 = 13 - bulanMulai; // Jika mulai Februari (2), sisa = 11 bulan
-    
-    for (let tahun = 1; tahun <= umur; tahun++) {
-        let penyusutan = 0;
-        
-        if (tahun === 1) {
-            // Tahun pertama: partial year sesuai rumus Excel
-            // Rumus: (Tarif% * sisa bulan) / 12 * nilai buku awal
-            penyusutan = (rate * sisaBulanTahun1) / 12 * bookValue;
-        } else {
-            // Tahun berikutnya: full year
-            penyusutan = bookValue * rate;
-        }
-        
-        // Tahun terakhir: pastikan menyentuh nilai sisa
-        if (tahun === umur || bookValue - penyusutan <= residu) {
-            penyusutan = bookValue - residu; // Sisakan sesuai nilai residu yang diinput
-        }
-        
-        const maxDepreciable = Math.max(bookValue - residu, 0);
-        const penyusunanActual = Math.min(penyusutan, maxDepreciable);
-        
-        bookValue -= penyusunanActual;
-        totalPenyusutan += penyusunanActual;
-        
-        // Tambahkan keterangan untuk tahun pertama
-        let tahunLabel = tahun;
-        if (tahun === 1 && sisaBulanTahun1 < 12) {
-            tahunLabel = `${tahun} (${sisaBulanTahun1} bulan)`;
-        }
-        
-        html += `
-            <tr>
-                <td class="text-center">${tahunLabel}</td>
-                <td class="text-end">Rp ${formatRupiah(bookValue + penyusunanActual)}</td>
-                <td class="text-end">Rp ${formatRupiah(penyusunanActual)}</td>
-                <td class="text-end">Rp ${formatRupiah(bookValue)}</td>
-            </tr>
-        `;
-        
-        // Jangan break, tetap lanjutkan hingga umur manfaat selesai
-        // untuk menampilkan semua tahun sesuai umur manfaat
-    }
-    
-    tabelBody.innerHTML = html;
-    tabelContainer.style.display = 'block';
-}
-
 // Hitung penyusutan
 function hitungPenyusutan() {
     const harga = parseFloat(document.getElementById('harga_perolehan').value) || 0;
@@ -413,7 +421,6 @@ function hitungPenyusutan() {
         penyusutanTahunan = nilaiDisusutkan / umur;
         // Sembunyikan info untuk metode garis lurus
         document.getElementById('info_metode_penyusutan').style.display = 'none';
-        document.getElementById('tabel_perhitungan_tahunan').style.display = 'none';
     } else if (metode === 'saldo_menurun') {
         // Metode saldo menurun (double declining balance) - gunakan tarif yang diinput
         const tarifPersen = parseFloat(document.getElementById('tarif_penyusutan').value) || 0;
@@ -435,9 +442,6 @@ function hitungPenyusutan() {
         // Pastikan tidak melebihi nilai yang bisa disusutkan
         penyusutanTahunan = Math.min(penyusutanTahunan, nilaiDisusutkan);
         
-        // Tampilkan perhitungan per tahun
-        hitungPerhitunganTahunan(total, residu, umur, tarifPersen, bulanMulai);
-        
         // Tampilkan rumus dan tarif penyusutan
         updateDepreciationInfo('saldo_menurun', tarifPersen);
         
@@ -447,11 +451,9 @@ function hitungPenyusutan() {
         const sumOfYears = (umur * (umur + 1)) / 2;
         penyusutanTahunan = (nilaiDisusutkan * umur) / sumOfYears;
         updateDepreciationInfo('sum_of_years_digits');
-        document.getElementById('tabel_perhitungan_tahunan').style.display = 'none';
     } else {
         // Sembunyikan info jika tidak ada metode yang dipilih
         document.getElementById('info_metode_penyusutan').style.display = 'none';
-        document.getElementById('tabel_perhitungan_tahunan').style.display = 'none';
     }
     
     const penyusutanBulanan = penyusutanTahunan / 12;

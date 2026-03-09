@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\JenisAset;
 use App\Models\KategoriAset;
 use App\Models\Aset;
+use App\Services\DepreciationCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -13,6 +14,13 @@ use Carbon\Carbon;
 
 class AsetController extends Controller
 {
+    protected $depreciationService;
+    
+    public function __construct(DepreciationCalculationService $depreciationService)
+    {
+        $this->depreciationService = $depreciationService;
+    }
+    
     /**
      * Display a listing of the assets.
      */
@@ -215,21 +223,27 @@ class AsetController extends Controller
         // Hitung total perolehan
         $totalPerolehan = (float)$aset->harga_perolehan + (float)($aset->biaya_perolehan ?? 0);
         
+        // Generate jadwal penyusutan per bulan
+        $depreciationData = $this->depreciationService->generateMonthlySchedule($aset);
+        
         // Hitung penyusutan per tahun dan per bulan berdasarkan metode
         if ($aset->metode_penyusutan === 'garis_lurus') {
             // Metode garis lurus: (harga perolehan - nilai residu) / umur manfaat
             $nilaiDisusutkan = $totalPerolehan - (float)($aset->nilai_residu ?? 0);
             $umurManfaat = (int)($aset->umur_manfaat ?? $aset->umur_ekonomis_tahun ?? 1);
             $penyusutanPerTahun = $nilaiDisusutkan / $umurManfaat;
+        } elseif ($aset->metode_penyusutan === 'sum_of_years_digits') {
+            // Metode jumlah angka tahun: gunakan tahun pertama (fraksi tertinggi)
+            $nilaiDisusutkan = $totalPerolehan - (float)($aset->nilai_residu ?? 0);
+            $umurManfaat = (int)($aset->umur_manfaat ?? $aset->umur_ekonomis_tahun ?? 1);
+            $sumOfYears = ($umurManfaat * ($umurManfaat + 1)) / 2;
+            $penyusutanPerTahun = ($nilaiDisusutkan * $umurManfaat) / $sumOfYears; // Tahun pertama
         } else {
             // Metode lain: tarif penyusutan × harga perolehan
             $penyusutanPerTahun = $totalPerolehan * (($aset->tarif_penyusutan ?? 0) / 100);
         }
         
         $penyusutanPerBulan = $penyusutanPerTahun / 12;
-        
-        // Initialize empty depreciation data since depreciation functionality was removed
-        $depreciationData = [];
         
         return view('master-data.aset.show', compact('aset', 'depreciationData', 'totalPerolehan', 'penyusutanPerTahun', 'penyusutanPerBulan'));
     }
@@ -260,25 +274,31 @@ class AsetController extends Controller
         $kategori = KategoriAset::find($request->kategori_aset_id);
         $disusutkan = $kategori ? $kategori->disusutkan : true;
         
-        // Validation rules dasar
+        // Validation rules untuk field yang boleh diedit saja
         $rules = [
             'nama_aset' => 'required|string|max:255',
             'kategori_aset_id' => 'required|exists:kategori_asets,id',
+            'keterangan' => 'nullable|string',
+        ];
+        
+        // Field financial tidak boleh diubah, tapi tetap divalidasi untuk keamanan
+        $financialRules = [
             'harga_perolehan' => 'required|numeric|min:0',
             'biaya_perolehan' => 'required|numeric|min:0',
             'tanggal_beli' => 'required|date',
             'tanggal_akuisisi' => 'nullable|date|after_or_equal:tanggal_beli',
-            'keterangan' => 'nullable|string',
         ];
         
-        // Tambah validation untuk penyusutan jika aset disusutkan
+        // Field penyusutan tidak boleh diubah, tapi tetap divalidasi untuk keamanan
         if ($disusutkan) {
-            $rules['nilai_residu'] = 'required|numeric|min:0';
-            $rules['umur_manfaat'] = 'required|integer|min:1|max:100';
-            $rules['metode_penyusutan'] = 'required|in:garis_lurus,saldo_menurun,sum_of_years_digits';
-            $rules['tarif_penyusutan'] = 'nullable|numeric|min:0|max:200';
-            $rules['bulan_mulai'] = 'nullable|integer|min:1|max:12';
-            $rules['tanggal_perolehan'] = 'nullable|date';
+            $depreciationRules = [
+                'nilai_residu' => 'required|numeric|min:0',
+                'umur_manfaat' => 'required|integer|min:1|max:100',
+                'metode_penyusutan' => 'required|in:garis_lurus,saldo_menurun,sum_of_years_digits',
+                'tarif_penyusutan' => 'nullable|numeric|min:0|max:200',
+                'bulan_mulai' => 'nullable|integer|min:1|max:12',
+                'tanggal_perolehan' => 'nullable|date',
+            ];
         }
         
         $validated = $request->validate($rules);
@@ -286,76 +306,21 @@ class AsetController extends Controller
         try {
             DB::beginTransaction();
             
-            // Calculate total perolehan
-            $hargaPerolehan = (float) $request->harga_perolehan;
-            $biayaPerolehan = (float) $request->biaya_perolehan;
-            $totalPerolehan = $hargaPerolehan + $biayaPerolehan;
-            
-            // Initialize penyusutan variables
-            $penyusutanPerTahun = 0;
-            $penyusutanPerBulan = 0;
-            $nilaiResidu = 0;
-            $umurManfaat = 0;
-            $metodePenyusutan = null;
-            
-            // Calculate depreciation only if asset is depreciable
-            if ($disusutkan) {
-                $nilaiResidu = (float) $request->nilai_residu;
-                $umurManfaat = (int) $request->umur_manfaat;
-                $metodePenyusutan = $request->metode_penyusutan;
-                
-                $nilaiTerdepresiasi = $totalPerolehan - $nilaiResidu;
-                
-                if ($metodePenyusutan === 'garis_lurus') {
-                    // Straight line method: tarif × harga perolehan
-                    $tarif = $request->tarif_penyusutan ? ($request->tarif_penyusutan / 100) : (1 / $umurManfaat);
-                    $penyusutanPerTahun = $totalPerolehan * $tarif;
-                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
-                } elseif ($metodePenyusutan === 'saldo_menurun') {
-                    // Declining balance method: tarif × harga perolehan
-                    $tarif = $request->tarif_penyusutan ? ($request->tarif_penyusutan / 100) : (2 / $umurManfaat);
-                    $penyusutanPerTahun = $totalPerolehan * $tarif;
-                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
-                } else {
-                    // Sum of years digits: tarif × harga perolehan
-                    $tarif = $request->tarif_penyusutan ? ($request->tarif_penyusutan / 100) : ($umurManfaat / (($umurManfaat * ($umurManfaat + 1)) / 2));
-                    $penyusutanPerTahun = $totalPerolehan * $tarif;
-                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
-                }
-            }
-            
-            // Update the asset
+            // Update hanya field yang boleh diedit
             $aset->nama_aset = $request->nama_aset;
             $aset->kategori_aset_id = $request->kategori_aset_id;
-            $aset->harga_perolehan = $hargaPerolehan;
-            $aset->biaya_perolehan = $biayaPerolehan;
-            $aset->nilai_residu = $nilaiResidu;
-            $aset->umur_manfaat = $umurManfaat;
-            $aset->metode_penyusutan = $metodePenyusutan;
-            $aset->tarif_penyusutan = $request->tarif_penyusutan;
-            $aset->bulan_mulai = $request->bulan_mulai ?? 1;
-            $aset->tanggal_perolehan = $request->tanggal_perolehan;
-            $aset->penyusutan_per_tahun = round($penyusutanPerTahun, 2);
-            $aset->penyusutan_per_bulan = round($penyusutanPerBulan, 2);
-            $aset->nilai_buku = $totalPerolehan - ($aset->akumulasi_penyusutan ?? 0);
-            $aset->tanggal_beli = $request->tanggal_beli;
-            $aset->tanggal_akuisisi = $request->tanggal_akuisisi ?: $request->tanggal_beli;
             $aset->keterangan = $request->keterangan;
             $aset->updated_by = auth()->id();
+            
+            // Field financial dan penyusutan TIDAK diubah, gunakan nilai yang sudah ada
+            // Ini untuk menjaga konsistensi perhitungan penyusutan
             
             $aset->save();
             
             DB::commit();
             
-            $successMessage = 'Aset berhasil diperbarui';
-            if ($disusutkan) {
-                $successMessage .= ' dengan penyusutan per bulan: Rp ' . number_format($penyusutanPerBulan, 2) . ' dan per tahun: Rp ' . number_format($penyusutanPerTahun, 2);
-            } else {
-                $successMessage .= '. Aset ini tidak mengalami penyusutan.';
-            }
-            
             return redirect()->route('master-data.aset.index')
-                ->with('success', $successMessage);
+                ->with('success', 'Aset berhasil diperbarui. Hanya data umum yang dapat diubah untuk menjaga konsistensi perhitungan penyusutan.');
                 
         } catch (\Exception $e) {
             DB::rollBack();

@@ -18,10 +18,11 @@ return new class extends Migration
             ->whereNotNull('gaji')
             ->update(['gaji_pokok' => DB::raw('gaji')]);
             
-        DB::table('pegawais')
-            ->whereNull('tarif_lembur')
-            ->whereNotNull('tarif')
-            ->update(['tarif_lembur' => DB::raw('tarif')]);
+        // The tarif_lembur column doesn't exist, so skip this update
+        // DB::table('pegawais')
+        //     ->whereNull('tarif_lembur')
+        //     ->whereNotNull('tarif')
+        //     ->update(['tarif_lembur' => DB::raw('tarif')]);
     }
 
     /**
@@ -35,9 +36,10 @@ return new class extends Migration
             ->whereNotNull('gaji_pokok')
             ->update(['gaji' => DB::raw('gaji_pokok')]);
             
-        DB::table('pegawais')
-            ->whereNull('tarif')
-            ->whereNotNull('tarif_lembur')
-            ->update(['tarif' => DB::raw('tarif_lembur')]);
+        // The tarif_lembur column doesn't exist, so skip this update
+        // DB::table('pegawais')
+        //     ->whereNull('tarif')
+        //     ->whereNotNull('tarif_lembur')
+        //     ->update(['tarif' => DB::raw('tarif_lembur')]);
     }
 };
