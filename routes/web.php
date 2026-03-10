@@ -374,6 +374,15 @@ Route::middleware('auth')->group(function () {
             Route::put('/update-proses-simple/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProsesSimple'])->name('update-proses-simple');
             Route::delete('/destroy-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroyProses'])->name('destroy-proses');
             
+            // Beban Operasional Routes
+            Route::prefix('beban-operasional')->name('beban-operasional.')->group(function () {
+                Route::post('/store', [\App\Http\Controllers\MasterData\BopController::class, 'storeBebanOperasional'])->name('store');
+                Route::get('/get/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'getBebanOperasional'])->name('get');
+                Route::put('/update/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateBebanOperasional'])->name('update');
+                Route::delete('/delete/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'deleteBebanOperasional'])->name('delete');
+                Route::get('/data', [\App\Http\Controllers\MasterData\BopController::class, 'getBebanOperasionalData'])->name('data');
+            });
+            
             // Utilities
             Route::get('/sync-kapasitas', [\App\Http\Controllers\MasterData\BopController::class, 'syncKapasitas'])->name('sync-kapasitas');
             Route::get('/analysis-data', [\App\Http\Controllers\MasterData\BopController::class, 'getAnalysisData'])->name('analysis-data');

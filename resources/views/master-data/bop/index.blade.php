@@ -6,132 +6,221 @@
         <h2 class="mb-0">
             <i class="fas fa-chart-pie me-2"></i>BOP (Biaya Overhead Pabrik)
         </h2>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBopProsesModal">
+        <button id="addButton" class="btn btn-primary" onclick="openAddModal()">
             <i class="fas fa-plus me-2"></i>Tambah BOP Proses
         </button>
     </div>
 
-    <!-- BOP Table -->
-    <div class="card">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 table-wide">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="text-center" style="width: 5%">No</th>
-                            <th style="width: 25%">Nama Proses</th>
-                            <th style="width: 15%">BOP/Jam</th>
-                            <th style="width: 15%">BOP/pcs</th>
-                            <th style="width: 20%">Biaya/Produk</th>
-                            <th style="width: 20%">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($bopProses as $index => $bop)
-                        <tr>
-                            <td class="text-center">
-                                <span class="badge bg-light text-dark">{{ $index + 1 }}</span>
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-gear-fill me-2 text-primary opacity-50"></i>
-                                    <div>
-                                        <div class="fw-semibold">{{ $bop->prosesProduksi->nama_proses ?? '-' }}</div>
-                                        <small class="text-muted">Proses</small>
+    <!-- Tab Switch -->
+    <div class="mb-4">
+        <div class="btn-group w-100" role="group">
+            <button type="button" class="btn btn-outline-primary active" id="bopProsesTab" onclick="switchTab('bop-proses')">
+                <i class="fas fa-industry me-2"></i>BOP Proses
+            </button>
+            <button type="button" class="btn btn-outline-primary" id="bebanOperasionalTab" onclick="switchTab('beban-operasional')">
+                <i class="fas fa-chart-line me-2"></i>Beban Operasional
+            </button>
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div id="bopProsesContent" class="tab-content" style="display: block;">
+        <!-- BOP Table -->
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 table-wide">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-center" style="width: 5%">No</th>
+                                <th style="width: 25%">Nama Proses</th>
+                                <th style="width: 15%">BOP/Jam</th>
+                                <th style="width: 15%">BOP/pcs</th>
+                                <th style="width: 20%">Biaya/Produk</th>
+                                <th style="width: 20%">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($bopProses as $index => $bop)
+                            <tr>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark">{{ $index + 1 }}</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-gear-fill me-2 text-primary opacity-50"></i>
+                                        <div>
+                                            <div class="fw-semibold">{{ $bop->prosesProduksi->nama_proses ?? '-' }}</div>
+                                            <small class="text-muted">Proses</small>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-clock-fill me-2 text-info opacity-50"></i>
-                                    <div>
-                                        <div class="fw-semibold text-info">{{ $bop->total_bop_per_jam_formatted }}</div>
-                                        <small class="text-muted">Per jam</small>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-clock-fill me-2 text-info opacity-50"></i>
+                                        <div>
+                                            <div class="fw-semibold text-info">{{ $bop->total_bop_per_jam_formatted }}</div>
+                                            <small class="text-muted">Per jam</small>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-box-seam me-2 text-warning opacity-50"></i>
-                                    <div>
-                                        <div class="fw-semibold text-warning">Rp {{ number_format($bop->bop_per_unit, 2, ',', '.') }}</div>
-                                        <small class="text-muted">Per pcs</small>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-box-seam me-2 text-warning opacity-50"></i>
+                                        <div>
+                                            <div class="fw-semibold text-warning">Rp {{ number_format($bop->bop_per_unit, 2, ',', '.') }}</div>
+                                            <small class="text-muted">Per pcs</small>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <i class="bi bi-cash-stack me-2 text-success opacity-50"></i>
-                                    <div>
-                                        <div class="fw-bold text-success">{{ $bop->biaya_per_produk_formatted }}</div>
-                                        <small class="text-muted">Total biaya</small>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-cash-stack me-2 text-success opacity-50"></i>
+                                        <div>
+                                            <div class="fw-bold text-success">{{ $bop->biaya_per_produk_formatted }}</div>
+                                            <small class="text-muted">Total biaya</small>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="d-flex gap-1">
-                                    <button type="button" 
-                                           class="btn btn-sm btn-info text-white rounded-pill px-3"
-                                           onclick="viewBopDetail({{ $bop->id }})"
-                                           data-bs-toggle="tooltip" 
-                                           title="Lihat Detail">
-                                        <i class="bi bi-eye me-1"></i>
-                                        <span class="d-none d-md-inline">Lihat</span>
-                                    </button>
-                                    <button type="button" 
-                                           class="btn btn-sm btn-warning text-white rounded-pill px-3"
-                                           onclick="editBopProses({{ $bop->id }})"
-                                           data-bs-toggle="tooltip" 
-                                           title="Edit BOP">
-                                        <i class="bi bi-pencil-square me-1"></i>
-                                        <span class="d-none d-md-inline">Edit</span>
-                                    </button>
-                                    <button type="button" 
-                                           class="btn btn-sm btn-danger text-white rounded-pill px-3"
-                                           data-bs-toggle="modal" 
-                                           data-bs-target="#deleteModal{{ $bop->id }}"
-                                           data-bs-toggle="tooltip" 
-                                           title="Hapus BOP">
-                                        <i class="bi bi-trash3 me-1"></i>
-                                        <span class="d-none d-md-inline">Hapus</span>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-    
-                        @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-4">
-                                <div class="text-muted">
-                                    <i class="bi bi-inbox display-4 d-block mb-2"></i>
-                                    <p>Belum ada data BOP</p>
-                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBopProsesModal">
-                                        <i class="bi bi-plus me-2"></i>Tambah BOP Pertama
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforelse
-                        
-                        <!-- Total Row - Only for Biaya/Produk -->
-                        @if($bopProses->count() > 0)
-                        <tr class="table-active fw-bold">
-                            <td colspan="4" class="text-end">
-                                <span class="text-muted">Total Biaya/Produk:</span>
-                            </td>
-                            <td>
-                                <div class="d-flex align-items-center justify-content-end">
-                                    @php
-                                        $totalBiayaPerProduk = $bopProses->sum('biaya_per_produk');
-                                    @endphp
-                                    <span class="fw-bold text-success fs-6">Rp {{ number_format($totalBiayaPerProduk, 2, ',', '.') }}</span>
-                                </div>
-                            </td>
-                            <td>-</td>
-                        </tr>
-                        @endif
-                    </tbody>
-                </table>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <button type="button" 
+                                               class="btn btn-sm btn-info text-white rounded-pill px-3"
+                                               onclick="viewBopDetail({{ $bop->id }})"
+                                               data-bs-toggle="tooltip" 
+                                               title="Lihat Detail">
+                                            <i class="bi bi-eye me-1"></i>
+                                            <span class="d-none d-md-inline">Lihat</span>
+                                        </button>
+                                        <button type="button" 
+                                               class="btn btn-sm btn-warning text-white rounded-pill px-3"
+                                               onclick="editBopProses({{ $bop->id }})"
+                                               data-bs-toggle="tooltip" 
+                                               title="Edit BOP">
+                                            <i class="bi bi-pencil-square me-1"></i>
+                                            <span class="d-none d-md-inline">Edit</span>
+                                        </button>
+                                        <button type="button" 
+                                               class="btn btn-sm btn-danger text-white rounded-pill px-3"
+                                               data-bs-toggle="modal" 
+                                               data-bs-target="#deleteModal{{ $bop->id }}"
+                                               data-bs-toggle="tooltip" 
+                                               title="Hapus BOP">
+                                            <i class="bi bi-trash3 me-1"></i>
+                                            <span class="d-none d-md-inline">Hapus</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+        
+                            @empty
+                            <tr>
+                                <td colspan="6" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                                        <p>Belum ada data BOP</p>
+                                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBopProsesModal">
+                                            <i class="bi bi-plus me-2"></i>Tambah BOP Pertama
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforelse
+                            
+                            <!-- Total Row - Only for Biaya/Produk -->
+                            @if($bopProses->count() > 0)
+                            <tr class="table-active fw-bold">
+                                <td colspan="4" class="text-end">
+                                    <span class="text-muted">Total Biaya/Produk:</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center justify-content-end">
+                                        @php
+                                            $totalBiayaPerProduk = $bopProses->sum('biaya_per_produk');
+                                        @endphp
+                                        <span class="fw-bold text-success fs-6">Rp {{ number_format($totalBiayaPerProduk, 2, ',', '.') }}</span>
+                                    </div>
+                                </td>
+                                <td>-</td>
+                            </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Beban Operasional Content -->
+    <div id="bebanOperasionalContent" class="tab-content" style="display: none;">
+        <!-- Filter Section -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="filterKategori" class="form-label">Kategori</label>
+                        <select class="form-select" id="filterKategori" onchange="filterBebanOperasional()">
+                            <option value="">Semua Kategori</option>
+                            <option value="Administrasi">Administrasi</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Utilitas">Utilitas</option>
+                            <option value="Distribusi">Distribusi</option>
+                            <option value="Lain-lain">Lain-lain</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="filterStatus" class="form-label">Status</label>
+                        <select class="form-select" id="filterStatus" onchange="filterBebanOperasional()">
+                            <option value="">Semua Status</option>
+                            <option value="aktif">Aktif</option>
+                            <option value="nonaktif">Nonaktif</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="filterSearch" class="form-label">Cari Beban</label>
+                        <input type="text" class="form-control" id="filterSearch" placeholder="Nama beban..." onkeyup="filterBebanOperasional()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Beban Operasional Table -->
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 table-wide">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-center" style="width: 5%">No</th>
+                                <th style="width: 15%">Kategori</th>
+                                <th style="width: 30%">Nama Beban</th>
+                                <th style="width: 20%" class="text-end">Budget Bulanan</th>
+                                <th style="width: 10%">Status</th>
+                                <th style="width: 20%">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bebanOperasionalTableBody">
+                            <!-- Data will be loaded via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info Section -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <h6 class="text-muted">
+                            <i class="bi bi-info-circle me-2"></i>Master Data Beban Operasional
+                        </h6>
+                        <p class="mb-0 text-muted">
+                            Halaman ini mengelola daftar jenis beban operasional yang akan digunakan sebagai referensi pada transaksi pembayaran beban.
+                            Data master ini tidak berisi nominal transaksi aktual.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -679,6 +768,592 @@ function saveEditedBop() {
         alert('Terjadi kesalahan saat menyimpan data');
     });
 }
+
+// Tab switching functionality
+function switchTab(tab) {
+    const bopProsesTab = document.getElementById('bopProsesTab');
+    const bebanOperasionalTab = document.getElementById('bebanOperasionalTab');
+    const bopProsesContent = document.getElementById('bopProsesContent');
+    const bebanOperasionalContent = document.getElementById('bebanOperasionalContent');
+    const addButton = document.getElementById('addButton');
+
+    if (tab === 'bop-proses') {
+        // Show BOP Proses tab
+        bopProsesTab.classList.add('active');
+        bebanOperasionalTab.classList.remove('active');
+        bopProsesContent.style.display = 'block';
+        bebanOperasionalContent.style.display = 'none';
+        
+        // Update add button
+        addButton.innerHTML = '<i class="fas fa-plus me-2"></i>Tambah BOP Proses';
+        addButton.setAttribute('onclick', "openAddModal()");
+        
+        // Update URL without page reload (clean URL)
+        const url = new URL(window.location);
+        // Clear all existing search params
+        url.searchParams.delete('tab');
+        url.searchParams.delete('tanggal');
+        url.searchParams.delete('kategori');
+        url.searchParams.delete('nama_beban');
+        url.searchParams.delete('nominal');
+        url.searchParams.delete('keterangan');
+        window.history.replaceState({}, '', url);
+        
+    } else if (tab === 'beban-operasional') {
+        // Show Beban Operasional tab
+        bebanOperasionalTab.classList.add('active');
+        bopProsesTab.classList.remove('active');
+        bebanOperasionalContent.style.display = 'block';
+        bopProsesContent.style.display = 'none';
+        
+        // Update add button
+        addButton.innerHTML = '<i class="fas fa-plus me-2"></i>Tambah Beban Operasional';
+        addButton.setAttribute('onclick', "openBebanOperasionalModal()");
+        
+        // Update URL without page reload (clean URL)
+        const url = new URL(window.location);
+        // Clear all existing search params except tab
+        const tabValue = url.searchParams.get('tab');
+        url.searchParams.delete('tab');
+        url.searchParams.delete('tanggal');
+        url.searchParams.delete('kategori');
+        url.searchParams.delete('nama_beban');
+        url.searchParams.delete('nominal');
+        url.searchParams.delete('keterangan');
+        url.searchParams.set('tab', 'beban-operasional');
+        window.history.replaceState({}, '', url);
+        
+        // Load Beban Operasional data
+        loadBebanOperasionalData();
+    }
+}
+
+// Open BOP Proses modal (existing functionality)
+function openAddModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addBopProsesModal'));
+    modal.show();
+}
+
+// Open Beban Operasional modal
+function openBebanOperasionalModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addBebanOperasionalModal'));
+    modal.show();
+}
+
+// Load Beban Operasional data
+function loadBebanOperasionalData() {
+    const kategori = document.getElementById('filterKategori').value;
+    const status = document.getElementById('filterStatus').value;
+    const search = document.getElementById('filterSearch').value;
+    
+    const params = new URLSearchParams();
+    if (kategori) params.append('kategori', kategori);
+    if (status) params.append('status', status);
+    if (search) params.append('search', search);
+    
+    // Show loading state
+    const tbody = document.getElementById('bebanOperasionalTableBody');
+    if (tbody) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="text-muted">
+                        <i class="fas fa-spinner fa-spin display-4 d-block mb-2"></i>
+                        <p>Memuat data...</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+    
+    fetch(`{{ route('master-data.bop.beban-operasional.data') }}?${params.toString()}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                renderBebanOperasionalTable(data.data);
+                // Summary tidak diperlukan untuk master data
+            } else {
+                showAlert('danger', data.message || 'Gagal memuat data');
+                // Show empty state on error
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-exclamation-triangle display-4 d-block mb-2"></i>
+                                    <p>Gagal memuat data</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', 'Terjadi kesalahan saat memuat data: ' + error.message);
+            // Show empty state on error
+            if (tbody) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <div class="text-muted">
+                                <i class="bi bi-exclamation-triangle display-4 d-block mb-2"></i>
+                                <p>Terjadi kesalahan saat memuat data</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        });
+}
+
+// Render Beban Operasional table
+function renderBebanOperasionalTable(data) {
+    const tbody = document.getElementById('bebanOperasionalTableBody');
+    
+    if (data.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center py-4">
+                    <div class="text-muted">
+                        <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                        <p>Belum ada data Beban Operasional</p>
+                        <button class="btn btn-primary" onclick="openBebanOperasionalModal()">
+                            <i class="bi bi-plus me-2"></i>Tambah Beban Operasional Pertama
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = data.map((item, index) => `
+        <tr>
+            <td class="text-center">
+                ${index + 1}
+            </td>
+            <td>${item.kategori}</td>
+            <td>
+                <div class="fw-semibold">${item.nama_beban}</div>
+            </td>
+            <td class="text-end">
+                <div class="fw-bold text-info">${item.budget_bulanan_formatted || '-'}</div>
+            </td>
+            <td>${item.status_badge}</td>
+            <td>
+                <div class="d-flex gap-1">
+                    <button type="button" 
+                           class="btn btn-sm btn-warning text-white rounded-pill px-3"
+                           onclick="editBebanOperasional(${item.id})"
+                           data-bs-toggle="tooltip" 
+                           title="Edit Beban Operasional">
+                        <i class="bi bi-pencil-square me-1"></i>
+                        <span class="d-none d-md-inline">Edit</span>
+                    </button>
+                    <button type="button" 
+                           class="btn btn-sm btn-danger text-white rounded-pill px-3"
+                           onclick="deleteBebanOperasional(${item.id})"
+                           data-bs-toggle="tooltip" 
+                           title="Hapus Beban Operasional">
+                        <i class="bi bi-trash3 me-1"></i>
+                        <span class="d-none d-md-inline">Hapus</span>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Update Beban Operasional summary (not used for master data)
+function updateBebanOperasionalSummary(totalPerPeriode, totalPerKategori) {
+    // Summary tidak diperlukan untuk master data
+    // Function ini tetap ada untuk compatibility
+}
+
+// Helper function to format number as Indonesian Rupiah
+function formatRupiah(amount) {
+    if (amount === null || amount === undefined || amount === 0) {
+        return '0';
+    }
+    return new Intl.NumberFormat('id-ID').format(amount);
+}
+
+// Filter Beban Operasional
+function filterBebanOperasional() {
+    loadBebanOperasionalData();
+}
+
+// Edit Beban Operasional
+function editBebanOperasional(id) {
+    fetch(`{{ route('master-data.bop.beban-operasional.get', ':id') }}`.replace(':id', id))
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const item = data.data;
+                document.getElementById('editBebanOperasionalId').value = item.id;
+                document.getElementById('editKategori').value = item.kategori;
+                document.getElementById('editNamaBeban').value = item.nama_beban;
+                document.getElementById('editBudgetBulanan').value = item.budget_bulanan || '';
+                document.getElementById('editKeterangan').value = item.keterangan || '';
+                document.getElementById('editStatus').value = item.status || 'aktif';
+                
+                const modal = new bootstrap.Modal(document.getElementById('editBebanOperasionalModal'));
+                modal.show();
+            } else {
+                showAlert('danger', data.message || 'Gagal memuat data');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', 'Terjadi kesalahan saat memuat data');
+        });
+}
+
+// Delete Beban Operasional
+function deleteBebanOperasional(id) {
+    if (confirm('Apakah Anda yakin ingin menghapus Beban Operasional ini?')) {
+        fetch(`{{ route('master-data.bop.beban-operasional.delete', ':id') }}`.replace(':id', id), {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', data.message);
+                
+                // Update URL to stay on Beban Operasional tab
+                const url = new URL(window.location);
+                url.searchParams.set('tab', 'beban-operasional');
+                window.history.replaceState({}, '', url);
+                
+                // Reload data
+                loadBebanOperasionalData();
+            } else {
+                showAlert('danger', data.message || 'Gagal menghapus data');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('danger', 'Terjadi kesalahan saat menghapus data');
+        });
+    }
+}
+
+// Save Beban Operasional (Add)
+function saveBebanOperasional() {
+    event.preventDefault(); // Prevent default form submission
+    
+    console.log('saveBebanOperasional called');
+    
+    const form = document.getElementById('addBebanOperasionalForm');
+    const submitButton = form.querySelector('button[type="submit"]');
+    
+    if (!form) {
+        console.error('Form not found!');
+        return;
+    }
+    
+    // Disable submit button to prevent double submission
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Menyimpan...';
+    
+    const formData = new FormData(form);
+    console.log('FormData prepared:', Object.fromEntries(formData));
+    
+    fetch('{{ route('master-data.bop.beban-operasional.store') }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(response => {
+        console.log('saveBebanOperasional response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('saveBebanOperasional response data:', data);
+        if (data.success) {
+            showAlert('success', data.message);
+            bootstrap.Modal.getInstance(document.getElementById('addBebanOperasionalModal')).hide();
+            form.reset();
+            
+            // Update URL to stay on Beban Operasional tab
+            const url = new URL(window.location);
+            url.searchParams.set('tab', 'beban-operasional');
+            window.history.replaceState({}, '', url);
+            
+            // Reload data
+            setTimeout(() => {
+                loadBebanOperasionalData();
+            }, 500);
+        } else {
+            if (data.errors) {
+                // Show validation errors
+                let errorMessage = 'Validasi gagal:<br>';
+                Object.entries(data.errors).forEach(([field, errors]) => {
+                    errorMessage += `${errors.join('<br>')}<br>`;
+                });
+                showAlert('danger', errorMessage);
+            } else {
+                showAlert('danger', data.message || 'Gagal menyimpan data');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'Terjadi kesalahan saat menyimpan data: ' + error.message);
+    })
+    .finally(() => {
+        // Re-enable submit button
+        submitButton.disabled = false;
+        submitButton.innerHTML = '<i class="fas fa-save me-1"></i>Simpan';
+    });
+}
+
+// Update Beban Operasional (Edit)
+function updateBebanOperasional() {
+    event.preventDefault(); // Prevent default form submission
+    
+    const form = document.getElementById('editBebanOperasionalForm');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const id = document.getElementById('editBebanOperasionalId').value;
+    
+    // Disable submit button to prevent double submission
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Memperbarui...';
+    
+    const formData = new FormData(form);
+    
+    fetch(`{{ route('master-data.bop.beban-operasional.update', ':id') }}`.replace(':id', id), {
+        method: 'PUT',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            showAlert('success', data.message);
+            bootstrap.Modal.getInstance(document.getElementById('editBebanOperasionalModal')).hide();
+            
+            // Update URL to stay on Beban Operasional tab
+            const url = new URL(window.location);
+            url.searchParams.set('tab', 'beban-operasional');
+            window.history.replaceState({}, '', url);
+            
+            // Reload data
+            setTimeout(() => {
+                loadBebanOperasionalData();
+            }, 300);
+        } else {
+            if (data.errors) {
+                let errorMessage = 'Validasi gagal:<br>';
+                Object.entries(data.errors).forEach(([field, errors]) => {
+                    errorMessage += `${errors.join('<br>')}<br>`;
+                });
+                showAlert('danger', errorMessage);
+            } else {
+                showAlert('danger', data.message || 'Gagal memperbarui data');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('danger', 'Terjadi kesalahan saat memperbarui data: ' + error.message);
+    })
+    .finally(() => {
+        // Re-enable submit button
+        submitButton.disabled = false;
+        submitButton.innerHTML = '<i class="fas fa-save me-1"></i>Update';
+    });
+}
+
+// Show alert helper
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Check URL parameter for tab state
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    
+    // Clean URL from unwanted query parameters (form fields)
+    const url = new URL(window.location);
+    let hasUnwantedParams = false;
+    
+    // Check for form field parameters and clean them
+    ['tanggal', 'kategori', 'nama_beban', 'nominal', 'keterangan'].forEach(param => {
+        if (url.searchParams.has(param)) {
+            url.searchParams.delete(param);
+            hasUnwantedParams = true;
+        }
+    });
+    
+    // Update URL if we cleaned unwanted parameters
+    if (hasUnwantedParams) {
+        if (tabParam === 'beban-operasional') {
+            url.searchParams.set('tab', 'beban-operasional');
+        }
+        window.history.replaceState({}, '', url);
+    }
+    
+    // Set initial tab state based on URL parameter or default to BOP Proses
+    if (tabParam === 'beban-operasional') {
+        switchTab('beban-operasional');
+    } else {
+        switchTab('bop-proses');
+    }
+});
 </script>
+
+<!-- Add Beban Operasional Modal -->
+<div class="modal fade" id="addBebanOperasionalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle me-2"></i>Tambah Beban Operasional
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addBebanOperasionalForm" method="POST" action="javascript:void(0);" onsubmit="saveBebanOperasional(); return false;">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="addKategori" class="form-label">Kategori <span class="text-danger">*</span></label>
+                        <select name="kategori" id="addKategori" class="form-select" required>
+                            <option value="">Pilih Kategori</option>
+                            <option value="Administrasi">Administrasi</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Utilitas">Utilitas</option>
+                            <option value="Distribusi">Distribusi</option>
+                            <option value="Lain-lain">Lain-lain</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addNamaBeban" class="form-label">Nama Beban <span class="text-danger">*</span></label>
+                        <input type="text" name="nama_beban" id="addNamaBeban" class="form-control" placeholder="Contoh: Gaji Karyawan" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addBudgetBulanan" class="form-label">Budget Bulanan</label>
+                        <input type="number" name="budget_bulanan" id="addBudgetBulanan" class="form-control" placeholder="0" min="0" step="0.01">
+                        <small class="form-text text-muted">Anggaran bulanan untuk beban ini. Bukan nominal pembayaran aktual.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addKeterangan" class="form-label">Keterangan</label>
+                        <textarea name="keterangan" id="addKeterangan" class="form-control" rows="2" placeholder="Opsional"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addStatus" class="form-label">Status <span class="text-danger">*</span></label>
+                        <select name="status" id="addStatus" class="form-select" required>
+                            <option value="aktif" selected>Aktif</option>
+                            <option value="nonaktif">Nonaktif</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Simpan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Beban Operasional Modal -->
+<div class="modal fade" id="editBebanOperasionalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Edit Beban Operasional
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editBebanOperasionalForm" method="POST" action="javascript:void(0);" onsubmit="updateBebanOperasional(); return false;">
+                @csrf
+                <input type="hidden" id="editBebanOperasionalId" name="id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editKategori" class="form-label">Kategori <span class="text-danger">*</span></label>
+                        <select name="kategori" id="editKategori" class="form-select" required>
+                            <option value="">Pilih Kategori</option>
+                            <option value="Administrasi">Administrasi</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Utilitas">Utilitas</option>
+                            <option value="Distribusi">Distribusi</option>
+                            <option value="Lain-lain">Lain-lain</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editNamaBeban" class="form-label">Nama Beban <span class="text-danger">*</span></label>
+                        <input type="text" name="nama_beban" id="editNamaBeban" class="form-control" placeholder="Contoh: Gaji Karyawan" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editBudgetBulanan" class="form-label">Budget Bulanan</label>
+                        <input type="number" name="budget_bulanan" id="editBudgetBulanan" class="form-control" placeholder="0" min="0" step="0.01">
+                        <small class="form-text text-muted">Anggaran bulanan untuk beban ini. Bukan nominal pembayaran aktual.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editKeterangan" class="form-label">Keterangan</label>
+                        <textarea name="keterangan" id="editKeterangan" class="form-control" rows="2" placeholder="Opsional"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editStatus" class="form-label">Status <span class="text-danger">*</span></label>
+                        <select name="status" id="editStatus" class="form-select" required>
+                            <option value="aktif">Aktif</option>
+                            <option value="nonaktif">Nonaktif</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Update
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endpush
 @endsection

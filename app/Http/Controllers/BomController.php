@@ -926,13 +926,38 @@ class BomController extends Controller
             $produks = Produk::whereNotIn('id', $produkIdsWithBom)->get();
             
             if ($produks->isEmpty()) {
+                // Check if this is an AJAX request
+                if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Semua produk sudah memiliki BOM. Tidak ada produk yang bisa ditambahkan BOM-nya.',
+                        'redirect' => route('master-data.harga-pokok-produksi.index')
+                    ]);
+                }
+                
                 return redirect()->route('master-data.harga-pokok-produksi.index')
                     ->with('info', 'Semua produk sudah memiliki BOM. Tidak ada produk yang bisa ditambahkan BOM-nya.');
+            }
+            
+            // Check if this is an AJAX request
+            if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Products available for BOM creation',
+                    'redirect' => route('master-data.harga-pokok-produksi.create')
+                ]);
             }
             
             return view('master-data.bom.create', compact('produks'));
             
         } catch (\Exception $e) {
+            if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                ], 500);
+            }
+            
             return redirect()->route('master-data.harga-pokok-produksi.index')
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
