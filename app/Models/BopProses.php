@@ -21,8 +21,6 @@ class BopProses extends Model
         'lain_lain_per_jam',
         'komponen_bop',
         'total_bop_per_jam',
-        'budget',
-        'aktual',
         'kapasitas_per_jam', // Read-only dari BTKL
         'bop_per_unit',
         'is_active'
@@ -37,8 +35,6 @@ class BopProses extends Model
         'lain_lain_per_jam' => 'decimal:2',
         'komponen_bop' => 'array',
         'total_bop_per_jam' => 'decimal:2',
-        'budget' => 'decimal:2',
-        'aktual' => 'decimal:2',
         'kapasitas_per_jam' => 'integer',
         'bop_per_unit' => 'decimal:4',
         'is_active' => 'boolean'
@@ -86,9 +82,6 @@ class BopProses extends Model
             } else {
                 $model->bop_per_unit = 0;
             }
-
-            // Set budget to total_bop_per_jam * 8 (8 jam per shift)
-            $model->budget = $model->total_bop_per_jam * 8;
         });
     }
 
@@ -167,51 +160,23 @@ class BopProses extends Model
     }
 
     /**
-     * Hitung selisih budget vs aktual
+     * Get biaya per produk (BTKL per pcs + BOP per pcs)
      */
-    public function getSelisihAttribute(): float
+    public function getBiayaPerProdukAttribute(): float
     {
-        return ($this->budget ?? 0) - ($this->aktual ?? 0);
+        if ($this->kapasitas_per_jam > 0 && $this->prosesProduksi) {
+            $btklPerPcs = $this->prosesProduksi->tarif_btkl / $this->kapasitas_per_jam;
+            return $this->bop_per_unit + $btklPerPcs;
+        }
+        return 0;
     }
 
     /**
-     * Format selisih untuk tampilan
+     * Format biaya per produk untuk tampilan
      */
-    public function getSelisihFormattedAttribute(): string
+    public function getBiayaPerProdukFormattedAttribute(): string
     {
-        $selisih = $this->selisih;
-        return 'Rp ' . number_format(abs($selisih), 0, ',', '.') . ($selisih < 0 ? ' (Over)' : '');
+        return 'Rp ' . number_format($this->biaya_per_produk, 2, ',', '.');
     }
 
-    /**
-     * Get status class untuk warna
-     */
-    public function getStatusClassAttribute(): string
-    {
-        return $this->selisih >= 0 ? 'success' : 'danger';
-    }
-
-    /**
-     * Get status text
-     */
-    public function getStatusTextAttribute(): string
-    {
-        return $this->selisih >= 0 ? 'Under Budget' : 'Over Budget';
-    }
-
-    /**
-     * Format budget untuk tampilan
-     */
-    public function getBudgetFormattedAttribute(): string
-    {
-        return 'Rp ' . number_format($this->budget ?? 0, 0, ',', '.');
-    }
-
-    /**
-     * Format aktual untuk tampilan
-     */
-    public function getAktualFormattedAttribute(): string
-    {
-        return 'Rp ' . number_format($this->aktual ?? 0, 0, ',', '.');
-    }
 }
