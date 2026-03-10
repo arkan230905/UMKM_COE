@@ -11,179 +11,125 @@
         </button>
     </div>
 
-    <!-- BOP Process Cards - Individual -->
-    @foreach($prosesProduksis as $proses)
-        @php
-            // Set exact values based on process name
-            if ($proses->nama_proses === 'Menggoreng') {
-                $kapasitasPerJam = 50;
-                $btklPerJam = 45000;
-                $btklPerPcs = 900;
-                $totalBopPerJam = 42000;
-                $bopPerPcs = 840;
-                $biayaPerProduk = 1740;
-                $biayaPerJam = 87000;
-                $komponenBop = [
-                    ['name' => 'Listrik Mesin', 'rate_per_hour' => 5000, 'description' => 'Pemanas Minyak'],
-                    ['name' => 'Gas / BBM', 'rate_per_hour' => 20000, 'description' => ''],
-                    ['name' => 'Maintenace', 'rate_per_hour' => 5000, 'description' => 'Mesin Goreng'],
-                    ['name' => 'Penyusutan Mesin', 'rate_per_hour' => 10000, 'description' => 'Rutin'],
-                    ['name' => 'Air & Kebersihan', 'rate_per_hour' => 2000, 'description' => 'Cuci alat']
-                ];
-            } elseif ($proses->nama_proses === 'Membumbui') {
-                $kapasitasPerJam = 200;
-                $btklPerJam = 48000;
-                $btklPerPcs = 240;
-                $totalBopPerJam = 10000;
-                $bopPerPcs = 50;
-                $biayaPerProduk = 290;
-                $biayaPerJam = 58000;
-                $komponenBop = [
-                    ['name' => 'Listrik Mixer', 'rate_per_hour' => 4000, 'description' => 'Mesin Ringan'],
-                    ['name' => 'Penyusutan Alat', 'rate_per_hour' => 3000, 'description' => 'Drum / Mixer'],
-                    ['name' => 'Maintenace', 'rate_per_hour' => 2000, 'description' => 'Rutin'],
-                    ['name' => 'Kebersihan', 'rate_per_hour' => 1000, 'description' => 'Rutin']
-                ];
-            } elseif ($proses->nama_proses === 'Packing') {
-                $kapasitasPerJam = 50;
-                $btklPerJam = 45000;
-                $btklPerPcs = 900;
-                $totalBopPerJam = 13000;
-                $bopPerPcs = 260;
-                $biayaPerProduk = 1160;
-                $biayaPerJam = 58000;
-                $komponenBop = [
-                    ['name' => 'Listrik', 'rate_per_hour' => 3000, 'description' => ''],
-                    ['name' => 'Penyusutan Alat', 'rate_per_hour' => 4000, 'description' => 'Alat Packing'],
-                    ['name' => 'Plastik Kemasan', 'rate_per_hour' => 5000, 'description' => 'Penunjang'],
-                    ['name' => 'Kebersihan', 'rate_per_hour' => 1000, 'description' => 'Area']
-                ];
-            } else {
-                continue; // Skip if not matching process
-            }
-        @endphp
-        
-        <div class="card mb-4">
-            <div class="card-header">
-                <h5 class="mb-0">Biaya per Proses:</h5>
-            </div>
-            <div class="card-body">
-                <!-- Process Info Table -->
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Proses</th>
-                                <th></th>
-                                <th>Kapasitas</th>
-                                <th></th>
-                                <th>BTKL / jam</th>
-                                <th></th>
-                                <th>BTKL / pcs</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>{{ $proses->nama_proses }}</strong></td>
-                                <td></td>
-                                <td>{{ $kapasitasPerJam }} pcs/jam</td>
-                                <td></td>
-                                <td>{{ number_format($btklPerJam, 0, ',', '.') }}</td>
-                                <td></td>
-                                <td>{{ number_format($btklPerPcs, 0, ',', '.') }}</td>
-                                <td></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Empty row for spacing -->
-                <div class="mb-4"></div>
-                
-                <!-- BOP Components Table -->
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered" id="bop-table-{{ $proses->id }}">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Komponen</th>
-                                <th>Rp / Jam</th>
-                                <th>Keterangan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($komponenBop as $komponen)
-                                <tr data-index="{{ $loop->index }}">
-                                    <td>{{ $komponen['name'] }}</td>
-                                    <td>{{ number_format($komponen['rate_per_hour'], 0, ',', '.') }}</td>
-                                    <td>{{ $komponen['description'] }}</td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Empty row for spacing -->
-                <div class="mb-4"></div>
-                
-                <!-- Summary Table -->
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Total BOP /jam</th>
-                                <th>BOP / pcs</th>
-                                <th>Biaya / produk</th>
-                                <th>Biaya / jam</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>{{ number_format($totalBopPerJam, 0, ',', '.') }}</td>
-                                <td>{{ number_format($bopPerPcs, 0, ',', '.') }}</td>
-                                <td>RP{{ number_format($biayaPerProduk, 0, ',', '.') }},00</td>
-                                <td>{{ number_format($biayaPerJam, 0, ',', '.') }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Actions -->
-                <div class="text-center mt-3">
-                    <button class="btn btn-warning btn-sm" onclick="editBopProses({{ $proses->id }})" title="Edit BOP">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>
-                </div>
-                
-                            </div>
-        </div>
-    @endforeach
-    
-    <!-- Final Summary -->
+    <!-- BOP Table -->
     <div class="card">
-        <div class="card-header bg-success text-white">
-            <h5 class="mb-0">Biaya Per Produk</h5>
-        </div>
-        <div class="card-body">
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-bordered">
+                <table class="table table-hover align-middle mb-0 table-wide">
                     <thead class="table-light">
                         <tr>
-                            <th>Biaya Per produk</th>
-                            <th>Penggorengan</th>
-                            <th>Perbumbuan</th>
-                            <th>Pengemasan</th>
-                            <th>Total</th>
+                            <th class="text-center" style="width: 5%">No</th>
+                            <th style="width: 25%">Nama Proses</th>
+                            <th style="width: 15%">BOP/Jam</th>
+                            <th style="width: 15%">BOP/pcs</th>
+                            <th style="width: 20%">Biaya/Produk</th>
+                            <th style="width: 20%">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
+                        @forelse($bopProses as $index => $bop)
                         <tr>
-                            <td><strong>Biaya Per produk</strong></td>
-                            <td>RP1.740,00</td>
-                            <td>RP290,00</td>
-                            <td>RP1.160,00</td>
-                            <td><strong>RP3.190,00</strong></td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark">{{ $index + 1 }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-gear-fill me-2 text-primary opacity-50"></i>
+                                    <div>
+                                        <div class="fw-semibold">{{ $bop->prosesProduksi->nama_proses ?? '-' }}</div>
+                                        <small class="text-muted">Proses</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-clock-fill me-2 text-info opacity-50"></i>
+                                    <div>
+                                        <div class="fw-semibold text-info">{{ $bop->total_bop_per_jam_formatted }}</div>
+                                        <small class="text-muted">Per jam</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-box-seam me-2 text-warning opacity-50"></i>
+                                    <div>
+                                        <div class="fw-semibold text-warning">Rp {{ number_format($bop->bop_per_unit, 2, ',', '.') }}</div>
+                                        <small class="text-muted">Per pcs</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-cash-stack me-2 text-success opacity-50"></i>
+                                    <div>
+                                        <div class="fw-bold text-success">{{ $bop->biaya_per_produk_formatted }}</div>
+                                        <small class="text-muted">Total biaya</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <button type="button" 
+                                           class="btn btn-sm btn-info text-white rounded-pill px-3"
+                                           onclick="viewBopDetail({{ $bop->id }})"
+                                           data-bs-toggle="tooltip" 
+                                           title="Lihat Detail">
+                                        <i class="bi bi-eye me-1"></i>
+                                        <span class="d-none d-md-inline">Lihat</span>
+                                    </button>
+                                    <button type="button" 
+                                           class="btn btn-sm btn-warning text-white rounded-pill px-3"
+                                           onclick="editBopProses({{ $bop->id }})"
+                                           data-bs-toggle="tooltip" 
+                                           title="Edit BOP">
+                                        <i class="bi bi-pencil-square me-1"></i>
+                                        <span class="d-none d-md-inline">Edit</span>
+                                    </button>
+                                    <button type="button" 
+                                           class="btn btn-sm btn-danger text-white rounded-pill px-3"
+                                           data-bs-toggle="modal" 
+                                           data-bs-target="#deleteModal{{ $bop->id }}"
+                                           data-bs-toggle="tooltip" 
+                                           title="Hapus BOP">
+                                        <i class="bi bi-trash3 me-1"></i>
+                                        <span class="d-none d-md-inline">Hapus</span>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
+    
+                        @empty
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                                    <p>Belum ada data BOP</p>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addBopProsesModal">
+                                        <i class="bi bi-plus me-2"></i>Tambah BOP Pertama
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforelse
+                        
+                        <!-- Total Row - Only for Biaya/Produk -->
+                        @if($bopProses->count() > 0)
+                        <tr class="table-active fw-bold">
+                            <td colspan="4" class="text-end">
+                                <span class="text-muted">Total Biaya/Produk:</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center justify-content-end">
+                                    @php
+                                        $totalBiayaPerProduk = $bopProses->sum('biaya_per_produk');
+                                    @endphp
+                                    <span class="fw-bold text-success fs-6">Rp {{ number_format($totalBiayaPerProduk, 2, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td>-</td>
+                        </tr>
+                        @endif
                     </tbody>
                 </table>
             </div>
@@ -191,433 +137,257 @@
     </div>
 </div>
 
+<!-- Delete Modals -->
+@forelse($bopProses as $bop)
+<div class="modal fade" id="deleteModal{{ $bop->id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ $bop->id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel{{ $bop->id }}">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Konfirmasi Hapus
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <div class="bg-danger bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                        <i class="bi bi-trash3 text-danger" style="font-size: 2rem;"></i>
+                    </div>
+                    <h6 class="text-danger fw-bold">Apakah Anda yakin?</h6>
+                    <p class="text-muted mb-0">Data BOP untuk proses <strong>"{{ $bop->prosesProduksi->nama_proses ?? 'Tidak Diketahui' }}"</strong> akan dihapus secara permanen.</p>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-info-circle-fill text-warning me-2"></i>
+                        <div>
+                            <strong>Informasi:</strong>
+                            <ul class="mb-0 mt-1 small">
+                                <li>Proses: {{ $bop->prosesProduksi->nama_proses ?? 'Tidak Diketahui' }}</li>
+                                <li>BOP/Jam: {{ $bop->total_bop_per_jam_formatted }}</li>
+                                <li>BOP/pcs: Rp {{ number_format($bop->bop_per_unit, 2, ',', '.') }}</li>
+                                                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>Batal
+                </button>
+                <form action="{{ route('master-data.bop.destroy-proses', $bop->id) }}" method="POST" class="d-inline">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger rounded-pill px-4">
+                        <i class="bi bi-trash3 me-1"></i>Hapus Permanen
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@empty
+@endforelse
+
 <!-- Modals -->
 @include('master-data.bop.modals')
 
+@push('scripts')
 <script>
-// Store BOP data for each process
-let bopData = {};
+// Store BTKL data for auto-fill functionality
+const btklData = @json($btklData);
 
-// Initialize BOP data
-@foreach($prosesProduksis as $proses)
-    @php
-        if ($proses->nama_proses === 'Menggoreng') {
-            $komponenData = [
-                ['name' => 'Listrik Mesin', 'rate_per_hour' => 5000, 'description' => 'Pemanas Minyak'],
-                ['name' => 'Gas / BBM', 'rate_per_hour' => 20000, 'description' => ''],
-                ['name' => 'Maintenace', 'rate_per_hour' => 5000, 'description' => 'Mesin Goreng'],
-                ['name' => 'Penyusutan Mesin', 'rate_per_hour' => 10000, 'description' => 'Rutin'],
-                ['name' => 'Air & Kebersihan', 'rate_per_hour' => 2000, 'description' => 'Cuci alat']
-            ];
-        } elseif ($proses->nama_proses === 'Membumbui') {
-            $komponenData = [
-                ['name' => 'Listrik Mixer', 'rate_per_hour' => 4000, 'description' => 'Mesin Ringan'],
-                ['name' => 'Penyusutan Alat', 'rate_per_hour' => 3000, 'description' => 'Drum / Mixer'],
-                ['name' => 'Maintenace', 'rate_per_hour' => 2000, 'description' => 'Rutin'],
-                ['name' => 'Kebersihan', 'rate_per_hour' => 1000, 'description' => 'Rutin']
-            ];
-        } elseif ($proses->nama_proses === 'Packing') {
-            $komponenData = [
-                ['name' => 'Listrik', 'rate_per_hour' => 3000, 'description' => ''],
-                ['name' => 'Penyusutan Alat', 'rate_per_hour' => 4000, 'description' => 'Alat Packing'],
-                ['name' => 'Plastik Kemasan', 'rate_per_hour' => 5000, 'description' => 'Penunjang'],
-                ['name' => 'Kebersihan', 'rate_per_hour' => 1000, 'description' => 'Area']
-            ];
-        } else {
-            $komponenData = [];
-        }
-    @endphp
-    bopData[{{ $proses->id }}] = @json($komponenData);
-@endforeach
-
-// Update BOP component
-function updateBopComponent(prosesId, index, field, value) {
-    if (!bopData[prosesId]) {
-        bopData[prosesId] = [];
-    }
-    
-    if (!bopData[prosesId][index]) {
-        bopData[prosesId][index] = { name: '', rate_per_hour: 0, description: '' };
-    }
-    
-    bopData[prosesId][index][field] = value;
-    
-    // Update summary table
-    updateSummaryTable(prosesId);
-    
-    // Save to backend (you can implement AJAX call here)
-    saveBopData(prosesId);
-}
-
-// Add new BOP component
-function addBopComponent(prosesId) {
-    if (!bopData[prosesId]) {
-        bopData[prosesId] = [];
-    }
-    
-    bopData[prosesId].push({
-        name: '',
-        rate_per_hour: 0,
-        description: ''
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
     });
-    
-    // Refresh table
-    refreshBopTable(prosesId);
-    updateSummaryTable(prosesId);
-}
 
-// Remove BOP component
-function removeBopComponent(prosesId, index) {
-    if (!bopData[prosesId]) return;
-    
-    bopData[prosesId].splice(index, 1);
-    
-    // Refresh table
-    refreshBopTable(prosesId);
-    updateSummaryTable(prosesId);
-}
+    // Setup auto-fill for BTKL fields
+    setupBtklAutoFill();
+});
 
-// Refresh BOP table
-function refreshBopTable(prosesId) {
-    const table = document.getElementById(`bop-table-${prosesId}`);
-    const tbody = table.querySelector('tbody');
-    
-    // Clear existing rows except the "Add" button row
-    const rows = tbody.querySelectorAll('tr');
-    rows.forEach((row, index) => {
-        if (index < rows.length - 1) {
-            row.remove();
-        }
-    });
-    
-    // Re-add components
-    bopData[prosesId].forEach((component, index) => {
-        const newRow = tbody.insertRow(index);
-        newRow.innerHTML = `
-            <td>
-                <input type="text" class="form-control form-control-sm" value="${component.name}" 
-                       onchange="updateBopComponent(${prosesId}, ${index}, 'name', this.value)">
-            </td>
-            <td>
-                <input type="number" class="form-control form-control-sm" value="${component.rate_per_hour}" 
-                       onchange="updateBopComponent(${prosesId}, ${index}, 'rate_per_hour', this.value)">
-            </td>
-            <td>
-                <input type="text" class="form-control form-control-sm" value="${component.description}" 
-                       onchange="updateBopComponent(${prosesId}, ${index}, 'description', this.value)">
-            </td>
-            <td>
-                <button class="btn btn-danger btn-sm" onclick="removeBopComponent(${prosesId}, ${index})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-    });
-}
-
-// Update summary table
-function updateSummaryTable(prosesId) {
-    if (!bopData[prosesId]) return;
-    
-    const components = bopData[prosesId];
-    const totalBopPerJam = components.reduce((sum, comp) => sum + (comp.rate_per_hour || 0), 0);
-    
-    // Find the summary table for this process
-    const summaryTable = document.querySelector(`#proses-${prosesId}-summary`);
-    if (summaryTable) {
-        // Update the summary values
-        const cells = summaryTable.querySelectorAll('tbody tr td');
-        if (cells.length >= 4) {
-            cells[0].textContent = totalBopPerJam.toLocaleString('id-ID');
-            // You may need to update other calculations based on your business logic
-        }
-    }
-}
-
-// Edit BOP process
-function editBopProses(prosesId) {
-    // Set the process ID in the hidden field
-    document.getElementById('editBopProsesId').value = prosesId;
-    
-    // Find the process data
-    let processName = '';
-    let komponenData = [];
-    
-    // Get process name and components from the stored data
-    @foreach($prosesProduksis as $proses)
-        if (prosesId == {{ $proses->id }}) {
-            processName = '{{ $proses->nama_proses }}';
-            komponenData = bopData[{{ $proses->id }}] || [];
-        }
-    @endforeach
-    
-    // Set default values based on process name
-    let kapasitas = 0;
-    let btklPerJam = 0;
-    
-    if (processName === 'Menggoreng') {
-        kapasitas = 50;
-        btklPerJam = 45000;
-        if (komponenData.length === 0) {
-            komponenData = [
-                { name: 'Listrik Mesin', rate_per_hour: 5000, description: 'Pemanas Minyak' },
-                { name: 'Gas / BBM', rate_per_hour: 20000, description: '' },
-                { name: 'Maintenace', rate_per_hour: 5000, description: 'Mesin Goreng' },
-                { name: 'Penyusutan Mesin', rate_per_hour: 10000, description: 'Rutin' },
-                { name: 'Air & Kebersihan', rate_per_hour: 2000, description: 'Cuci alat' }
-            ];
-        }
-    } else if (processName === 'Membumbui') {
-        kapasitas = 200;
-        btklPerJam = 48000;
-        if (komponenData.length === 0) {
-            komponenData = [
-                { name: 'Listrik Mixer', rate_per_hour: 4000, description: 'Mesin Ringan' },
-                { name: 'Penyusutan Alat', rate_per_hour: 3000, description: 'Drum / Mixer' },
-                { name: 'Maintenace', rate_per_hour: 2000, description: 'Rutin' },
-                { name: 'Kebersihan', rate_per_hour: 1000, description: 'Rutin' }
-            ];
-        }
-    } else if (processName === 'Packing') {
-        kapasitas = 50;
-        btklPerJam = 45000;
-        if (komponenData.length === 0) {
-            komponenData = [
-                { name: 'Listrik', rate_per_hour: 3000, description: '' },
-                { name: 'Penyusutan Alat', rate_per_hour: 4000, description: 'Alat Packing' },
-                { name: 'Plastik Kemasan', rate_per_hour: 5000, description: 'Penunjang' },
-                { name: 'Kebersihan', rate_per_hour: 1000, description: 'Area' }
-            ];
-        }
-    }
-    
-    // Update modal fields
-    document.getElementById('editNamaProses').value = processName;
-    document.getElementById('editKapasitas').value = kapasitas;
-    document.getElementById('editBtklPerJam').value = btklPerJam;
-    
-    // Calculate BTKL per pcs
-    const btklPerPcs = kapasitas > 0 ? btklPerJam / kapasitas : 0;
-    document.getElementById('editBtklPerPcs').value = btklPerPcs;
-    
-    // Update components table
-    updateEditKomponenTable(komponenData);
-    
-    // Show modal
-    try {
-        const modalElement = document.getElementById('editBopProsesModal');
-        if (modalElement) {
-            const modal = new bootstrap.Modal(modalElement);
-            modal.show();
-        } else {
-            console.error('Modal element not found');
-        }
-    } catch (error) {
-        console.error('Error showing modal:', error);
-    }
-}
-
-// Update edit komponen table
-function updateEditKomponenTable(komponen) {
-    const tbody = document.getElementById('editKomponenRows');
-    tbody.innerHTML = '';
-    
-    komponen.forEach((component, index) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>
-                <input type="text" class="form-control form-control-sm" value="${component.name}" 
-                       id="edit_nama_${index}" placeholder="Nama komponen">
-            </td>
-            <td>
-                <input type="number" class="form-control form-control-sm" value="${component.rate_per_hour}" 
-                       id="edit_rate_${index}" min="0" step="0.01" placeholder="0">
-            </td>
-            <td>
-                <input type="text" class="form-control form-control-sm" value="${component.description}" 
-                       id="edit_desc_${index}" placeholder="Keterangan">
-            </td>
-            <td>
-                <button type="button" class="btn btn-danger btn-sm" onclick="removeEditKomponen(${index})">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
-    
-    // Add empty row for new component
-    const addRow = document.createElement('tr');
-    addRow.innerHTML = `
-        <td>
-            <input type="text" class="form-control form-control-sm" 
-                   id="edit_nama_new" placeholder="Nama komponen">
-        </td>
-        <td>
-            <input type="number" class="form-control form-control-sm" 
-                   id="edit_rate_new" min="0" step="0.01" placeholder="0">
-        </td>
-        <td>
-            <input type="text" class="form-control form-control-sm" 
-                   id="edit_desc_new" placeholder="Keterangan">
-        </td>
-        <td>
-            <button type="button" class="btn btn-success btn-sm" onclick="addEditKomponen()">
-                <i class="fas fa-plus"></i> Tambah
-            </button>
-        </td>
-    `;
-    tbody.appendChild(addRow);
-}
-
-// Add new component in edit modal
-function addEditKomponen() {
-    const tbody = document.getElementById('editKomponenRows');
-    if (!tbody) return;
-    
-    const rowCount = tbody.children.length;
-    
-    const newRow = document.createElement('tr');
-    newRow.innerHTML = `
-        <td>
-            <input type="text" class="form-control form-control-sm" 
-                   id="edit_nama_${rowCount}" placeholder="Nama komponen">
-        </td>
-        <td>
-            <input type="number" class="form-control form-control-sm" 
-                   id="edit_rate_${rowCount}" min="0" step="0.01" placeholder="0">
-        </td>
-        <td>
-            <input type="text" class="form-control form-control-sm" 
-                   id="edit_desc_${rowCount}" placeholder="Keterangan">
-        </td>
-        <td>
-            <button type="button" class="btn btn-danger btn-sm" onclick="removeEditKomponen(${rowCount})">
-                <i class="fas fa-trash"></i>
-            </button>
-        </td>
-    `;
-    tbody.appendChild(newRow);
-}
-
-// Remove component in edit modal
-function removeEditKomponen(index) {
-    const tbody = document.getElementById('editKomponenRows');
-    if (!tbody) return;
-    
-    const rows = tbody.children;
-    if (index < rows.length) {
-        rows[index].remove();
-        // Re-index remaining rows
-        Array.from(rows).forEach((row, i) => {
-            if (i >= index) {
-                // Update IDs for remaining rows
-                const inputs = row.querySelectorAll('input, button');
-                inputs.forEach(input => {
-                    if (input.id) {
-                        const oldId = input.id;
-                        const newId = oldId.replace(/_\d+$/, `_${i}`);
-                        input.id = newId;
-                        
-                        // Update onclick for button
-                        if (input.onclick) {
-                            input.onclick = new Function('removeEditKomponen(' + i + ')');
-                        }
-                    }
-                });
+function setupBtklAutoFill() {
+    // Event listener for process selection in add modal
+    const processSelect = document.getElementById('proses_produksi_id');
+    if (processSelect) {
+        processSelect.addEventListener('change', function() {
+            const selectedProsesId = this.value;
+            const selectedOption = this.options[this.selectedIndex];
+            const btklInfo = document.getElementById('btklInfo');
+            const btklInfoText = document.getElementById('btklInfoText');
+            
+            if (selectedProsesId) {
+                // Get process data from option attributes
+                const kapasitas = parseFloat(selectedOption.getAttribute('data-kapasitas')) || 0;
+                const tarif = parseFloat(selectedOption.getAttribute('data-tarif')) || 0;
+                const prosesNama = selectedOption.getAttribute('data-nama') || '';
+                const jabatan = selectedOption.getAttribute('data-jabatan') || '';
+                
+                // Fill BTKL fields with data from ProsesProduksi
+                document.getElementById('kapasitas').value = kapasitas;
+                document.getElementById('btkl_per_jam').value = tarif;
+                
+                // Calculate BTKL per pcs
+                const btklPerPcs = kapasitas > 0 ? tarif / kapasitas : 0;
+                document.getElementById('btkl_per_pcs').value = btklPerPcs.toFixed(2);
+                
+                // Set fields as readonly (auto-generated)
+                document.getElementById('kapasitas').readOnly = true;
+                document.getElementById('btkl_per_jam').readOnly = true;
+                document.getElementById('btkl_per_pcs').readOnly = true;
+                
+                // Show info if data is available
+                if (kapasitas > 0 && tarif > 0) {
+                    btklInfo.classList.remove('d-none');
+                    btklInfoText.textContent = `Data BTKL tersedia: Kapasitas ${kapasitas} pcs/jam, Tarif Rp ${tarif.toLocaleString('id-ID')}/jam (${jabatan})`;
+                } else {
+                    btklInfo.classList.remove('d-none');
+                    btklInfo.classList.remove('alert-info');
+                    btklInfo.classList.add('alert-warning');
+                    btklInfoText.textContent = 'Data BTKL untuk proses ini belum lengkap. Silakan lengkapi data BTKL terlebih dahulu.';
+                }
+                
+                // Trigger calculation after BTKL data is filled
+                calculateBopSummary();
+            } else {
+                // Clear all fields
+                document.getElementById('kapasitas').value = '';
+                document.getElementById('btkl_per_jam').value = '';
+                document.getElementById('btkl_per_pcs').value = '';
+                document.getElementById('kapasitas').readOnly = false;
+                document.getElementById('btkl_per_jam').readOnly = false;
+                document.getElementById('btkl_per_pcs').readOnly = false;
+                
+                // Hide info
+                btklInfo.classList.add('d-none');
+                btklInfo.classList.remove('alert-warning');
+                btklInfo.classList.add('alert-info');
+                
+                // Clear calculations
+                clearBopSummary();
             }
         });
     }
+    
+    // Setup event listeners for component rate changes
+    setupComponentRateListeners();
 }
 
-// Save edited BOP data
-function saveEditedBop() {
-    const prosesId = document.getElementById('editBopProsesId').value;
-    const tbody = document.getElementById('editKomponenRows');
-    if (!tbody) return;
+// Add component row function
+function addKomponenRow() {
+    const tbody = document.getElementById('komponenRows');
+    const newRow = document.createElement('tr');
     
-    const rows = tbody.children;
-    const komponen = [];
+    newRow.innerHTML = `
+        <td><input type="text" name="komponen_name[]" class="form-control" placeholder="Nama komponen"></td>
+        <td><input type="number" name="komponen_rate[]" class="form-control komponen-rate" min="0" step="0.01" placeholder="0" onchange="calculateBopSummary()"></td>
+        <td><input type="text" name="komponen_desc[]" class="form-control" placeholder="Keterangan"></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">Hapus</button></td>
+    `;
     
-    // Collect data from all rows except the "add new" row
-    for (let i = 0; i < rows.length; i++) {
-        const namaInput = document.getElementById(`edit_nama_${i}`);
-        const rateInput = document.getElementById(`edit_rate_${i}`);
-        const descInput = document.getElementById(`edit_desc_${i}`);
-        
-        if (namaInput && rateInput && descInput) {
-            const nama = namaInput.value || '';
-            const rate = parseFloat(rateInput.value) || 0;
-            const desc = descInput.value || '';
-            
-            if (nama || rate > 0) {
-                komponen.push({
-                    name: nama,
-                    rate_per_hour: rate,
-                    description: desc
-                });
+    tbody.appendChild(newRow);
+    
+    // Setup listener for new row
+    const rateInput = newRow.querySelector('.komponen-rate');
+    if (rateInput) {
+        rateInput.addEventListener('input', calculateBopSummary);
+    }
+    
+    // Recalculate after adding row
+    calculateBopSummary();
+}
+
+// Remove row function
+function removeRow(button) {
+    const row = button.closest('tr');
+    const tbody = row.parentNode;
+    
+    // Don't remove if it's the last row
+    if (tbody.children.length > 1) {
+        row.remove();
+        calculateBopSummary();
+    } else {
+        // Clear the last row instead of removing it
+        row.querySelectorAll('input').forEach(input => {
+            if (input.type === 'number') {
+                input.value = '0';
+            } else {
+                input.value = '';
             }
-        }
+        });
+        calculateBopSummary();
     }
-    
-    // Update the stored data
-    bopData[prosesId] = komponen;
-    
-    // Update the display table
-    refreshBopTable(prosesId);
-    updateSummaryTable(prosesId);
-    
-    // Close modal
-    const modalElement = document.getElementById('editBopProsesModal');
-    if (modalElement) {
-        const modal = bootstrap.Modal.getInstance(modalElement);
-        if (modal) modal.hide();
-    }
-    
-    // Show notification
-    showNotification('BOP data updated successfully', 'success');
-    
-    // Here you can add AJAX call to save to backend
-    console.log('Updated BOP data for process:', prosesId, komponen);
 }
 
-// Save BOP data to backend (placeholder function)
-function saveBopData(prosesId) {
-    // Implement AJAX call to save data
-    console.log('Saving BOP data for process:', prosesId, bopData[prosesId]);
-    
-    // Example AJAX call:
-    /*
-    fetch(`/master-data/bop/save/${prosesId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: JSON.stringify({
-            components: bopData[prosesId]
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Show success message
-            showNotification('BOP data saved successfully', 'success');
-        } else {
-            showNotification('Error saving BOP data', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Error saving BOP data', 'error');
+// Setup component rate listeners
+function setupComponentRateListeners() {
+    const rateInputs = document.querySelectorAll('.komponen-rate');
+    rateInputs.forEach(input => {
+        input.addEventListener('input', calculateBopSummary);
     });
-    */
 }
 
-// Show notification (helper function)
-function showNotification(message, type) {
-    // You can implement any notification system here
-    console.log(`${type}: ${message}`);
+// Calculate BOP summary based on new formula
+function calculateBopSummary() {
+    // Get BTKL values
+    const kapasitas = parseFloat(document.getElementById('kapasitas').value) || 0;
+    const btklPerJam = parseFloat(document.getElementById('btkl_per_jam').value) || 0;
+    
+    // Calculate BTKL per pcs
+    const btklPerPcs = kapasitas > 0 ? btklPerJam / kapasitas : 0;
+    
+    // Calculate Total BOP per jam from components
+    const componentRates = document.querySelectorAll('.komponen-rate');
+    let totalBopPerJam = 0;
+    componentRates.forEach(input => {
+        totalBopPerJam += parseFloat(input.value) || 0;
+    });
+    
+    // Calculate BOP per pcs
+    const bopPerPcs = kapasitas > 0 ? totalBopPerJam / kapasitas : 0;
+    
+    // Calculate Biaya per produk
+    const biayaPerProduk = btklPerPcs + bopPerPcs;
+    
+    // Calculate Biaya per jam
+    const biayaPerJam = btklPerJam + totalBopPerJam;
+    
+    // Update readonly fields
+    const totalBopInput = document.getElementById('total_bop_per_jam');
+    if (totalBopInput) {
+        totalBopInput.value = totalBopPerJam.toFixed(2);
+    }
+    
+    // Update BOP per pcs field
+    const bopPerPcsInput = document.getElementById('bop_per_pcs');
+    if (bopPerPcsInput) {
+        bopPerPcsInput.value = bopPerPcs.toFixed(2);
+    }
+    
+    // Update Biaya per produk field
+    const biayaPerProdukInput = document.getElementById('biaya_per_produk');
+    if (biayaPerProdukInput) {
+        biayaPerProdukInput.value = biayaPerProduk.toFixed(2);
+    }
+    
+    // Update Biaya per jam field
+    const biayaPerJamInput = document.getElementById('biaya_per_jam');
+    if (biayaPerJamInput) {
+        biayaPerJamInput.value = biayaPerJam.toFixed(2);
+    }
+}
+
+// Clear BOP summary
+function clearBopSummary() {
+    const fields = ['total_bop_per_jam', 'bop_per_pcs', 'biaya_per_produk', 'biaya_per_jam'];
+    fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.value = '0';
+        }
+    });
 }
 
 function viewBopDetail(id) {
@@ -634,31 +404,281 @@ function viewBopDetail(id) {
         });
 }
 
-// Handle form submission for add BOP
-document.getElementById('bopProsesForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+function editBopProses(id) {
+    // Load edit modal content or show existing modal
+    fetch(`/master-data/bop/edit-proses-modal/${id}`)
+        .then(response => response.text())
+        .then(data => {
+            document.getElementById('editBopContent').innerHTML = data;
+            const modal = new bootstrap.Modal(document.getElementById('editBopModal'));
+            modal.show();
+            
+            // Setup auto-fill for edit modal after content is loaded
+            setTimeout(() => setupEditModalAutoFill(id), 100);
+        })
+        .catch(error => {
+            alert('Terjadi kesalahan: ' + error.message);
+        });
+}
+
+function setupEditModalAutoFill(bopId) {
+    // Find the BOP data and setup edit modal fields
+    fetch(`/master-data/bop/get-proses/${bopId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.bop) {
+                const bop = data.bop;
+                const prosesId = bop.proses_produksi_id;
+                
+                // Find the process option in edit modal
+                const editProcessSelect = document.getElementById('editProsesProduksiId');
+                if (editProcessSelect) {
+                    // Set the selected process
+                    editProcessSelect.value = prosesId;
+                    
+                    // Get the selected option data
+                    const selectedOption = editProcessSelect.options[editProcessSelect.selectedIndex];
+                    if (selectedOption && selectedOption.value) {
+                        const kapasitas = parseFloat(selectedOption.getAttribute('data-kapasitas')) || 0;
+                        const tarif = parseFloat(selectedOption.getAttribute('data-tarif')) || 0;
+                        
+                        // Fill edit modal BTKL fields
+                        const editKapasitas = document.getElementById('editKapasitas');
+                        const editBtklPerJam = document.getElementById('editBtklPerJam');
+                        const editBtklPerPcs = document.getElementById('editBtklPerPcs');
+                        
+                        if (editKapasitas) {
+                            editKapasitas.value = kapasitas;
+                            editKapasitas.readOnly = true;
+                        }
+                        
+                        if (editBtklPerJam) {
+                            editBtklPerJam.value = tarif;
+                            editBtklPerJam.readOnly = true;
+                        }
+                        
+                        if (editBtklPerPcs) {
+                            const btklPerPcs = kapasitas > 0 ? tarif / kapasitas : 0;
+                            editBtklPerPcs.value = btklPerPcs.toFixed(2);
+                            editBtklPerPcs.readOnly = true;
+                        }
+                        
+                        // Show info for edit modal
+                        const editBtklInfo = document.getElementById('editBtklInfo');
+                        const editBtklInfoText = document.getElementById('editBtklInfoText');
+                        const jabatan = selectedOption.getAttribute('data-jabatan') || '';
+                        
+                        if (editBtklInfo && editBtklInfoText) {
+                            if (kapasitas > 0 && tarif > 0) {
+                                editBtklInfo.classList.remove('d-none');
+                                editBtklInfoText.textContent = `Data BTKL tersedia: Kapasitas ${kapasitas} pcs/jam, Tarif Rp ${tarif.toLocaleString('id-ID')}/jam (${jabatan})`;
+                            } else {
+                                editBtklInfo.classList.remove('d-none');
+                                editBtklInfo.classList.remove('alert-info');
+                                editBtklInfo.classList.add('alert-warning');
+                                editBtklInfoText.textContent = 'Data BTKL untuk proses ini belum lengkap.';
+                            }
+                        }
+                    }
+                }
+                
+                // Load existing components
+                loadEditComponents(bop);
+                
+                // Trigger calculation for edit modal
+                calculateEditBopSummary();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading BOP data for edit:', error);
+        });
+}
+
+// Load components for edit modal
+function loadEditComponents(bop) {
+    const editKomponenRows = document.getElementById('editKomponenRows');
+    editKomponenRows.innerHTML = '';
     
-    const form = e.target;
+    // Load components from bop.komponen_bop if exists
+    let components = [];
+    if (bop.komponen_bop) {
+        if (typeof bop.komponen_bop === 'string') {
+            try {
+                components = JSON.parse(bop.komponen_bop);
+            } catch (e) {
+                components = [];
+            }
+        } else if (Array.isArray(bop.komponen_bop)) {
+            components = bop.komponen_bop;
+        }
+    }
+    
+    // If no components, create empty row
+    if (components.length === 0) {
+        components = [{component: '', rate_per_hour: 0, description: ''}];
+    }
+    
+    // Add component rows
+    components.forEach(comp => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><input type="text" name="edit_komponen_name[]" class="form-control" value="${comp.component || comp.nama_komponen || ''}" placeholder="Nama komponen"></td>
+            <td><input type="number" name="edit_komponen_rate[]" class="form-control edit-komponen-rate" min="0" step="0.01" value="${comp.rate_per_hour || comp.rp_per_jam || 0}" placeholder="0" onchange="calculateEditBopSummary()"></td>
+            <td><input type="text" name="edit_komponen_desc[]" class="form-control" value="${comp.description || comp.keterangan || ''}" placeholder="Keterangan"></td>
+            <td><button type="button" class="btn btn-sm btn-danger" onclick="removeEditRow(this)">Hapus</button></td>
+        `;
+        editKomponenRows.appendChild(row);
+    });
+    
+    // Setup listeners for edit components
+    setupEditComponentListeners();
+}
+
+// Add component row for edit modal
+function addEditKomponenRow() {
+    const tbody = document.getElementById('editKomponenRows');
+    const newRow = document.createElement('tr');
+    
+    newRow.innerHTML = `
+        <td><input type="text" name="edit_komponen_name[]" class="form-control" placeholder="Nama komponen"></td>
+        <td><input type="number" name="edit_komponen_rate[]" class="form-control edit-komponen-rate" min="0" step="0.01" placeholder="0" onchange="calculateEditBopSummary()"></td>
+        <td><input type="text" name="edit_komponen_desc[]" class="form-control" placeholder="Keterangan"></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="removeEditRow(this)">Hapus</button></td>
+    `;
+    
+    tbody.appendChild(newRow);
+    
+    // Setup listener for new row
+    const rateInput = newRow.querySelector('.edit-komponen-rate');
+    if (rateInput) {
+        rateInput.addEventListener('input', calculateEditBopSummary);
+    }
+    
+    // Recalculate after adding row
+    calculateEditBopSummary();
+}
+
+// Remove row for edit modal
+function removeEditRow(button) {
+    const row = button.closest('tr');
+    const tbody = row.parentNode;
+    
+    // Don't remove if it's the last row
+    if (tbody.children.length > 1) {
+        row.remove();
+        calculateEditBopSummary();
+    } else {
+        // Clear the last row instead of removing it
+        row.querySelectorAll('input').forEach(input => {
+            if (input.type === 'number') {
+                input.value = '0';
+            } else {
+                input.value = '';
+            }
+        });
+        calculateEditBopSummary();
+    }
+}
+
+// Setup edit component listeners
+function setupEditComponentListeners() {
+    const rateInputs = document.querySelectorAll('.edit-komponen-rate');
+    rateInputs.forEach(input => {
+        input.addEventListener('input', calculateEditBopSummary);
+    });
+}
+
+// Calculate BOP summary for edit modal
+function calculateEditBopSummary() {
+    // Get BTKL values from edit modal
+    const kapasitas = parseFloat(document.getElementById('editKapasitas').value) || 0;
+    const btklPerJam = parseFloat(document.getElementById('editBtklPerJam').value) || 0;
+    
+    // Calculate BTKL per pcs
+    const btklPerPcs = kapasitas > 0 ? btklPerJam / kapasitas : 0;
+    
+    // Calculate Total BOP per jam from components
+    const componentRates = document.querySelectorAll('.edit-komponen-rate');
+    let totalBopPerJam = 0;
+    componentRates.forEach(input => {
+        totalBopPerJam += parseFloat(input.value) || 0;
+    });
+    
+    // Calculate BOP per pcs
+    const bopPerPcs = kapasitas > 0 ? totalBopPerJam / kapasitas : 0;
+    
+    // Calculate Biaya per produk
+    const biayaPerProduk = btklPerPcs + bopPerPcs;
+    
+    // Calculate Biaya per jam
+    const biayaPerJam = btklPerJam + totalBopPerJam;
+    
+    // Update readonly fields in edit modal
+    const editTotalBopInput = document.getElementById('editTotalBopPerJam');
+    if (editTotalBopInput) {
+        editTotalBopInput.value = totalBopPerJam.toFixed(2);
+    }
+    
+    const editBopPerPcsInput = document.getElementById('editBopPerPcs');
+    if (editBopPerPcsInput) {
+        editBopPerPcsInput.value = bopPerPcs.toFixed(2);
+    }
+    
+    const editBiayaPerProdukInput = document.getElementById('editBiayaPerProduk');
+    if (editBiayaPerProdukInput) {
+        editBiayaPerProdukInput.value = biayaPerProduk.toFixed(2);
+    }
+    
+    const editBiayaPerJamInput = document.getElementById('editBiayaPerJam');
+    if (editBiayaPerJamInput) {
+        editBiayaPerJamInput.value = biayaPerJam.toFixed(2);
+    }
+}
+
+// Save edited BOP
+function saveEditedBop() {
+    const form = document.getElementById('editBopProsesForm');
+    const bopId = document.getElementById('editBopProsesId').value;
+    
+    if (!bopId) {
+        alert('ID BOP tidak ditemukan');
+        return;
+    }
+    
+    // Create FormData
     const formData = new FormData(form);
     
-    fetch(form.action, {
+    // Submit via AJAX
+    formData.append('_method', 'PUT'); // Add method override for PUT request
+    
+    fetch(`/master-data/bop/update-proses-simple/${bopId}`, {
         method: 'POST',
         body: formData,
         headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         }
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.reload();
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editBopProsesModal'));
+            modal.hide();
+            
+            // Show success message
+            alert(data.message);
+            
+            // Reload page to show updated data
+            window.location.reload();
         } else {
             alert('Error: ' + data.message);
         }
     })
     .catch(error => {
-        alert('Terjadi kesalahan: ' + error.message);
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menyimpan data');
     });
-});
+}
 </script>
+@endpush
 @endsection
