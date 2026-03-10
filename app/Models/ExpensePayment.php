@@ -10,13 +10,28 @@ class ExpensePayment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'tanggal','coa_beban_id','metode_bayar','coa_kasbank','nominal','deskripsi','user_id'
+        'tanggal',
+        'beban_operasional_id',
+        'coa_beban_id', 
+        'metode_bayar',
+        'coa_kasbank',
+        'nominal_pembayaran',
+        'keterangan',
+        'user_id'
     ];
 
     protected $casts = [
         'tanggal' => 'date',
-        'nominal' => 'decimal:2',
+        'nominal_pembayaran' => 'decimal:2',
     ];
+
+    /**
+     * Relasi ke Beban Operasional
+     */
+    public function bebanOperasional()
+    {
+        return $this->belongsTo(BebanOperasional::class);
+    }
 
     /**
      * Relasi ke COA Beban
@@ -48,5 +63,29 @@ class ExpensePayment extends Model
     public function coa()
     {
         return $this->coaBeban();
+    }
+
+    /**
+     * Accessor untuk format nominal pembayaran
+     */
+    public function getNominalPembayaranFormattedAttribute()
+    {
+        return 'Rp ' . number_format($this->nominal_pembayaran, 0, ',', '.');
+    }
+
+    /**
+     * Accessor untuk nama beban operasional
+     */
+    public function getNamaBebanOperasionalAttribute()
+    {
+        return $this->bebanOperasional ? $this->bebanOperasional->nama_beban : '-';
+    }
+
+    /**
+     * Accessor untuk kategori beban
+     */
+    public function getKategoriBebanAttribute()
+    {
+        return $this->bebanOperasional ? $this->bebanOperasional->kategori : '-';
     }
 }

@@ -22,8 +22,8 @@
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Informasi Pembayaran</h6>
-                    <span class="badge badge-{{ $pembayaran->status == 'lunas' ? 'success' : 'warning' }}">
-                        {{ strtoupper($pembayaran->status) }}
+                    <span class="badge badge-success">
+                        SELESAI
                     </span>
                 </div>
                 <div class="card-body">
@@ -33,31 +33,29 @@
                             <td>{{ $pembayaran->tanggal->format('d/m/Y') }}</td>
                         </tr>
                         <tr>
-                            <th>No. Transaksi</th>
-                            <td>{{ $pembayaran->kode_transaksi }}</td>
+                            <th>Beban Operasional</th>
+                            <td>{{ $pembayaran->nama_beban_operasional }}</td>
                         </tr>
                         <tr>
                             <th>Akun Beban</th>
-                            <td>{{ $pembayaran->coaBeban->kode }} - {{ $pembayaran->coaBeban->nama }}</td>
+                            <td>{{ $pembayaran->coaBeban->kode_akun }} - {{ $pembayaran->coaBeban->nama_akun }}</td>
                         </tr>
                         <tr>
-                            <th>Akun Kas</th>
-                            <td>{{ $pembayaran->coaKas->kode }} - {{ $pembayaran->coaKas->nama }}</td>
+                            <th>Akun Kas/Bank</th>
+                            <td>{{ $pembayaran->coaKasBank->kode_akun }} - {{ $pembayaran->coaKasBank->nama_akun }}</td>
                         </tr>
                         <tr>
-                            <th>Jumlah</th>
-                            <td class="font-weight-bold">{{ format_rupiah($pembayaran->jumlah) }}</td>
+                            <th>Metode Bayar</th>
+                            <td>{{ ucfirst($pembayaran->metode_bayar) }}</td>
+                        </tr>
+                        <tr>
+                            <th>Nominal Pembayaran</th>
+                            <td class="font-weight-bold">{{ $pembayaran->nominal_pembayaran_formatted }}</td>
                         </tr>
                         <tr>
                             <th>Keterangan</th>
-                            <td>{{ $pembayaran->keterangan }}</td>
+                            <td>{{ $pembayaran->keterangan ?? '-' }}</td>
                         </tr>
-                        @if($pembayaran->catatan)
-                        <tr>
-                            <th>Catatan</th>
-                            <td>{{ $pembayaran->catatan }}</td>
-                        </tr>
-                        @endif
                         <tr>
                             <th>Dibuat Oleh</th>
                             <td>{{ $pembayaran->user->name ?? '-' }}</td>
@@ -88,14 +86,14 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>{{ $pembayaran->coaBeban->kode }} - {{ $pembayaran->coaBeban->nama }}</td>
-                                    <td class="text-right">{{ format_rupiah($pembayaran->jumlah) }}</td>
+                                    <td>{{ $pembayaran->coaBeban->kode_akun }} - {{ $pembayaran->coaBeban->nama_akun }}</td>
+                                    <td class="text-right">{{ $pembayaran->nominal_pembayaran_formatted }}</td>
                                     <td class="text-right">-</td>
                                 </tr>
                                 <tr>
-                                    <td>{{ $pembayaran->coaKas->kode }} - {{ $pembayaran->coaKas->nama }}</td>
+                                    <td>{{ $pembayaran->coaKasBank->kode_akun }} - {{ $pembayaran->coaKasBank->nama_akun }}</td>
                                     <td class="text-right">-</td>
-                                    <td class="text-right">{{ format_rupiah($pembayaran->jumlah) }}</td>
+                                    <td class="text-right">{{ $pembayaran->nominal_pembayaran_formatted }}</td>
                                 </tr>
                             </tbody>
                         </table>
