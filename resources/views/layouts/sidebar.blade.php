@@ -19,6 +19,57 @@
     
     <div class="sidebar-nav">
         <ul class="nav">
+            @if(Auth::check() && Auth::user()->role === 'pegawai')
+                {{-- SIDEBAR KHUSUS PEGAWAI --}}
+                <!-- Dashboard Pegawai -->
+                <li class="nav-item">
+                    <a href="{{ route('pegawai.dashboard') }}" class="nav-link-rounded {{ request()->is('pegawai/dashboard') ? 'active' : '' }}">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                
+                <!-- Presensi Section -->
+                <li class="nav-item">
+                    <div class="nav-section-header-rounded">
+                        <i class="fas fa-calendar-check"></i>
+                        <span>PRESENSI</span>
+                    </div>
+                </li>
+                
+                <li class="nav-item">
+                    <a class="nav-link-rounded {{ request()->is('pegawai/presensi/absen-wajah') ? 'active' : '' }}" href="{{ route('pegawai.presensi.absen-wajah') }}">
+                        <i class="fas fa-camera"></i>
+                        <span>Absen Wajah</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a class="nav-link-rounded {{ request()->is('pegawai/riwayat-presensi') ? 'active' : '' }}" href="{{ route('pegawai.riwayat-presensi') }}">
+                        <i class="fas fa-history"></i>
+                        <span>Riwayat Presensi</span>
+                    </a>
+                </li>
+                
+                <li class="nav-item">
+                    <a class="nav-link-rounded {{ request()->is('pegawai/rekap-harian') ? 'active' : '' }}" href="{{ route('pegawai.rekap-harian') }}">
+                        <i class="fas fa-users"></i>
+                        <span>Rekap Harian</span>
+                    </a>
+                </li>
+                
+                <!-- Logout -->
+                <li class="nav-item mt-4">
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="nav-link-rounded" style="width: 100%; text-align: left; background: none; border: none; cursor: pointer;">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </button>
+                    </form>
+                </li>
+            @else
+                {{-- SIDEBAR UNTUK OWNER/ADMIN --}}
             <!-- Dashboard -->
             <li class="nav-item">
                 <a href="{{ route('dashboard') }}" class="nav-link-rounded {{ request()->is('dashboard') ? 'active' : '' }}">
@@ -293,6 +344,7 @@
                     </button>
                 </form>
             </li>
+            @endif
         </ul>
     </div>
 </div>
