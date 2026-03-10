@@ -21,6 +21,7 @@ class ProfileController extends Controller
         
         // Debug: Log request data
         \Log::info('Profile Update Request - User ID: ' . $user->id);
+        \Log::info('Profile Update Request - Method: ' . $request->method());
         \Log::info('Profile Update Request - Has File: ' . ($request->hasFile('profile_photo') ? 'Yes' : 'No'));
         
         // Simple validation
@@ -37,9 +38,24 @@ class ProfileController extends Controller
             \Log::info('Processing photo upload...');
             
             $file = $request->file('profile_photo');
+            
+            // Debug file info
+            \Log::info('File original name: ' . $file->getClientOriginalName());
+            \Log::info('File size: ' . $file->getSize());
+            \Log::info('File mime: ' . $file->getMimeType());
+            
             $filename = time() . '_' . str_replace(' ', '_', $file->getClientOriginalName());
             
             \Log::info('Generated filename: ' . $filename);
+            
+            // Hapus foto lama jika ada
+            if ($user->profile_photo) {
+                $oldPath = storage_path('app/public/profile-photos/' . $user->profile_photo);
+                if (file_exists($oldPath)) {
+                    unlink($oldPath);
+                    \Log::info('Old photo deleted: ' . $oldPath);
+                }
+            }
             
             // Store file
             $storedPath = $file->storeAs('profile-photos', $filename, 'public');
@@ -47,16 +63,9 @@ class ProfileController extends Controller
             \Log::info('Stored path: ' . $storedPath);
             
             if ($storedPath) {
-                // Update user with photo IMMEDIATELY
+                // Update user dengan photo
                 $user->profile_photo = $filename;
-                $user->save();
-                
-                \Log::info('Photo saved to database: ' . $filename);
-                
-                // Refresh user data
-                $user->refresh();
-                
-                \Log::info('User refreshed. Profile photo: ' . $user->profile_photo);
+                \Log::info('Photo filename set: ' . $filename);
             } else {
                 \Log::error('Failed to store photo file');
             }
@@ -69,9 +78,11 @@ class ProfileController extends Controller
         $user->username = $request->username;
         $user->email = $request->email;
         $user->phone = $request->phone;
+        
+        // Save user data (termasuk photo jika ada)
         $user->save();
 
-        \Log::info('Profile updated successfully');
+        \Log::info('Profile updated successfully. Photo: ' . ($user->profile_photo ?? 'NULL'));
 
         return redirect()->route('profil-admin')->with('success', 'Profil berhasil diperbarui!');
     }

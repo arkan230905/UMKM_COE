@@ -112,40 +112,30 @@
     <!-- Jadwal Penyusutan Per Tahun -->
     <div class="card mb-4 bg-white">
         <div class="card-header bg-warning text-dark">
-            <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Jadwal Penyusutan Per Tahun</h5>
+            <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Jadwal Penyusutan Per Bulan</h5>
         </div>
         <div class="card-body bg-white">
             <div class="table-responsive">
                 <table class="table table-striped align-middle">
                     <thead>
                         <tr>
-                            <th>TAHUN</th>
+                            <th>TAHUN/BULAN</th>
                             <th class="text-end">PENYUSUTAN</th>
                             <th class="text-end">AKUMULASI PENY</th>
                             <th class="text-end">NILAI BUKU</th>
-                            <th>RINCIAN</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($depreciationData as $index => $row)
                             <tr>
-                                <td>{{ $row->tahun }}</td>
-                                <td class="text-end">Rp {{ number_format($row->beban_penyusutan, 2, ',', '.') }}</td>
-                                <td class="text-end">Rp {{ number_format($row->akumulasi_penyusutan, 2, ',', '.') }}</td>
-                                <td class="text-end">Rp {{ number_format($row->nilai_buku_akhir, 2, ',', '.') }}</td>
-                                <td>
-                                    @if($aset->metode_penyusutan === 'garis_lurus')
-                                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#monthlyDetailModal" onclick="showMonthlyDetail({{ $row->tahun }}, {{ $row->beban_penyusutan }})">
-                                            <i class="fas fa-info-circle"></i> Detail
-                                        </button>
-                                    @else
-                                        -
-                                    @endif
-                                </td>
+                                <td>{{ $row['tahun_bulan'] }}</td>
+                                <td class="text-end">Rp {{ number_format($row['penyusutan'], 0, ',', '.') }}</td>
+                                <td class="text-end">Rp {{ number_format($row['akumulasi_penyusutan'], 0, ',', '.') }}</td>
+                                <td class="text-end">Rp {{ number_format($row['nilai_buku'], 0, ',', '.') }}</td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="text-center text-muted">Belum ada jadwal penyusutan</td>
+                                <td colspan="4" class="text-center text-muted">Belum ada jadwal penyusutan</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -186,107 +176,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endsection
-
-<!-- Modal Detail Per Bulan -->
-<div class="modal fade" id="monthlyDetailModal" tabindex="-1" aria-labelledby="monthlyDetailModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="monthlyDetailModalLabel">Rincian Penyusutan Per Bulan</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="monthlyDetailContent">
-                    <!-- Content will be loaded here -->
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-@push('scripts')
-<script>
-function showMonthlyDetail(tahun, penyusutanTahunan) {
-    const monthlyDepreciation = penyusutanTahunan / 12;
-    const modal = new bootstrap.Modal(document.getElementById('monthlyDetailModal'));
-    const content = document.getElementById('monthlyDetailContent');
-    
-    // Tentukan jumlah bulan berdasarkan tahun
-    const startYear = {{ $aset->tanggal_akuisisi ? \Carbon\Carbon::parse($aset->tanggal_akuisisi)->year : \Carbon\Carbon::parse($aset->tanggal_beli)->year }};
-    const startMonth = {{ $aset->tanggal_akuisisi ? \Carbon\Carbon::parse($aset->tanggal_akuisisi)->month : \Carbon\Carbon::parse($aset->tanggal_beli)->month }};
-    
-    let monthsToShow = 12; // Default 12 bulan
-    
-    if (tahun === startYear) {
-        // Tahun pertama: hitung dari bulan perolehan
-        monthsToShow = 12 - startMonth + 1;
-    }
-    
-    // Generate HTML untuk rincian per bulan
-    let html = `
-        <div class="mb-3">
-            <h6>Tahun ${tahun}</h6>
-            <p><strong>Penyusutan per tahun:</strong> Rp ${numberFormat(penyusutanTahunan)}</p>
-            <p><strong>Penyusutan per bulan:</strong> Rp ${numberFormat(monthlyDepreciation)}</p>
-            <p><strong>Jumlah bulan:</strong> ${monthsToShow} bulan</p>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Bulan</th>
-                        <th class="text-end">Penyusutan</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-    
-    const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
-                       'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    
-    if (tahun === startYear) {
-        // Tahun pertama: mulai dari bulan perolehan
-        for (let i = startMonth - 1; i < 12; i++) {
-            html += `
-                <tr>
-                    <td>${monthNames[i]} ${tahun}</td>
-                    <td class="text-end">Rp ${numberFormat(monthlyDepreciation)}</td>
-                </tr>
-            `;
-        }
-    } else {
-        // Tahun-tahun berikutnya: 12 bulan penuh
-        for (let i = 0; i < 12; i++) {
-            html += `
-                <tr>
-                    <td>${monthNames[i]} ${tahun}</td>
-                    <td class="text-end">Rp ${numberFormat(monthlyDepreciation)}</td>
-                </tr>
-            `;
-        }
-    }
-    
-    html += `
-                </tbody>
-                <tfoot>
-                    <tr class="table-primary">
-                        <th>Total ${monthsToShow} bulan</th>
-                        <th class="text-end">Rp ${numberFormat(monthlyDepreciation * monthsToShow)}</th>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>
-    `;
-    
-    content.innerHTML = html;
-    modal.show();
-}
-
-function numberFormat(num) {
-    return num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&.');
-}
-</script>
-@endpush

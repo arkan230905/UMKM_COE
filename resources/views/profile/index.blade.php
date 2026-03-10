@@ -41,12 +41,6 @@
                                        style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                                     <i class="fas fa-camera" style="font-size: 14px;"></i>
                                 </label>
-                                <input type="file" 
-                                       id="profile_photo" 
-                                       name="profile_photo" 
-                                       class="d-none" 
-                                       accept="image/*"
-                                       onchange="handlePhotoSelect(event)">
                             </div>
                         </div>
                         <h5 class="mt-3 mb-1">{{ Auth::user()->name }}</h5>
@@ -76,6 +70,14 @@
                     <form action="{{ route('profil-admin.update') }}" method="POST" enctype="multipart/form-data" id="profileForm">
                         @csrf
                         @method('PATCH')
+                        
+                        <!-- Hidden file input inside form -->
+                        <input type="file" 
+                               id="profile_photo" 
+                               name="profile_photo" 
+                               class="d-none" 
+                               accept="image/*"
+                               onchange="handlePhotoSelect(event)">
 
                         <div class="row">
                             <div class="col-md-6">
@@ -132,7 +134,7 @@
                             <a href="{{ route('dashboard') }}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left me-2"></i>Kembali
                             </a>
-                            <button type="submit" class="btn btn-primary" onclick="validateAndSubmit(event)">
+                            <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save me-2"></i>Simpan Perubahan
                             </button>
                         </div>
@@ -184,28 +186,6 @@ function handlePhotoSelect(event) {
         };
         reader.readAsDataURL(file);
     }
-}
-
-function validateAndSubmit(event) {
-    console.log('Form submission triggered');
-    
-    const photoInput = document.getElementById('profile_photo');
-    const photoFile = photoInput.files[0];
-    
-    console.log('Photo file on submit:', photoFile);
-    
-    if (photoFile) {
-        console.log('Photo file info:', {
-            name: photoFile.name,
-            type: photoFile.type,
-            size: photoFile.size
-        });
-    } else {
-        console.log('No photo file selected on submit');
-    }
-    
-    // Let the form submit normally
-    return true;
 }
 
 // Debug on page load

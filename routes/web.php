@@ -307,8 +307,7 @@ Route::middleware('auth')->group(function () {
         Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generate-kode');
         Route::resource('aset', AsetController::class);
         Route::get('aset-kategori-by-jenis', [AsetController::class, 'getKategoriByJenis'])->name('aset.kategori-by-jenis');
-        Route::resource('kualifikasi-tenaga-kerja', JabatanController::class)->except(['update']);
-        Route::post('kualifikasi-tenaga-kerja/{kualifikasi_tenaga_kerja}', [JabatanController::class, 'update'])->name('master-data.kualifikasi-tenaga-kerja.update');
+        Route::resource('kualifikasi-tenaga-kerja', JabatanController::class);
         Route::resource('pegawai', PegawaiController::class);
         Route::resource('vendor', VendorController::class);
         Route::get('satuan-dashboard', [SatuanController::class, 'dashboard'])->name('satuan.dashboard');
@@ -374,6 +373,15 @@ Route::middleware('auth')->group(function () {
             Route::put('/update-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProses'])->name('update-proses');
             Route::put('/update-proses-simple/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProsesSimple'])->name('update-proses-simple');
             Route::delete('/destroy-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroyProses'])->name('destroy-proses');
+            
+            // Beban Operasional Routes
+            Route::prefix('beban-operasional')->name('beban-operasional.')->group(function () {
+                Route::post('/store', [\App\Http\Controllers\MasterData\BopController::class, 'storeBebanOperasional'])->name('store');
+                Route::get('/get/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'getBebanOperasional'])->name('get');
+                Route::put('/update/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateBebanOperasional'])->name('update');
+                Route::delete('/delete/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'deleteBebanOperasional'])->name('delete');
+                Route::get('/data', [\App\Http\Controllers\MasterData\BopController::class, 'getBebanOperasionalData'])->name('data');
+            });
             
             // Utilities
             Route::get('/sync-kapasitas', [\App\Http\Controllers\MasterData\BopController::class, 'syncKapasitas'])->name('sync-kapasitas');
@@ -634,6 +642,8 @@ Route::middleware('auth')->group(function () {
         
         // Laporan Kartu Stok
         Route::get('/kartu-stok', [LaporanKartuStokController::class, 'index'])->name('kartu-stok');
+        Route::get('/kartu-stok/reset', [LaporanKartuStokController::class, 'createResetForm'])->name('kartu-stok.reset');
+        Route::post('/reset-produk-stok', [LaporanKartuStokController::class, 'resetProdukStok'])->name('reset-produk-stok');
         
         // Laporan Stok Real-Time
         Route::get('/stock-realtime', [\App\Http\Controllers\StockReportController::class, 'index'])->name('stock-realtime');

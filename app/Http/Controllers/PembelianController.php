@@ -507,16 +507,16 @@ class PembelianController extends Controller
                         
                         // Credit: Persediaan (barang masuk)
                         // Ambil COA persediaan dari detail pembelian
-                        $details = PembelianDetail::with(['bahanBaku.coa', 'bahanPendukung.coa'])
+                        $details = PembelianDetail::with(['bahanBaku.coaPersediaan', 'bahanPendukung.coaPersediaan'])
                             ->where('pembelian_id', $pembelian->id)
                             ->get();
                             
                         foreach ($details as $detail) {
                             $coa = null;
-                            if ($detail->bahanBaku && $detail->bahanBaku->coa) {
-                                $coa = $detail->bahanBaku->coa;
-                            } elseif ($detail->bahanPendukung && $detail->bahanPendukung->coa) {
-                                $coa = $detail->bahanPendukung->coa;
+                            if ($detail->bahanBaku && $detail->bahanBaku->coaPersediaan) {
+                                $coa = $detail->bahanBaku->coaPersediaan;
+                            } elseif ($detail->bahanPendukung && $detail->bahanPendukung->coaPersediaan) {
+                                $coa = $detail->bahanPendukung->coaPersediaan;
                             }
                             
                             if ($coa) {
@@ -531,7 +531,45 @@ class PembelianController extends Controller
                         
                         // Buat jurnal
                         try {
-                            $journal->create($journalData);
+                            // Convert journalData ke format yang dibutuhkan JournalService::post()
+                            $journalLines = [];
+                            
+                            // Kredit: Kas/Bank (uang keluar) - gunakan account code dari COA
+                            if ($debitCoa) {
+                                $journalLines[] = [
+                                    'code' => $debitCoa->kode_akun,
+                                    'debit' => 0,
+                                    'credit' => $computedTotal
+                                ];
+                            }
+                            
+                            // Debit: Persediaan (barang masuk) - gunakan account code dari COA
+                            foreach ($details as $detail) {
+                                $coa = null;
+                                if ($detail->bahanBaku && $detail->bahanBaku->coaPersediaan) {
+                                    $coa = $detail->bahanBaku->coaPersediaan;
+                                } elseif ($detail->bahanPendukung && $detail->bahanPendukung->coaPersediaan) {
+                                    $coa = $detail->bahanPendukung->coaPersediaan;
+                                }
+                                
+                                if ($coa) {
+                                    $journalLines[] = [
+                                        'code' => $coa->kode_akun,
+                                        'debit' => $detail->subtotal, // langsung dari subtotal pembelian
+                                        'credit' => 0
+                                    ];
+                                }
+                            }
+                            
+                            // Post journal menggunakan JournalService
+                            $journal->post(
+                                $request->tanggal,
+                                'purchase',
+                                $pembelian->id,
+                                'Pembelian ' . ucfirst($paymentMethod) . ' - ' . $pembelian->nomor_pembelian,
+                                $journalLines
+                            );
+                            
                             \Log::info('Jurnal pembelian berhasil dibuat', [
                                 'pembelian_id' => $pembelian->id,
                                 'payment_method' => $paymentMethod,

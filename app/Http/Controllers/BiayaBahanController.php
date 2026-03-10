@@ -17,6 +17,7 @@ use App\Services\BomSyncService;
 use App\Services\BiayaBahanConversionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class BiayaBahanController extends Controller
 {
@@ -81,13 +82,20 @@ class BiayaBahanController extends Controller
                             ];
                         }
                         
+                        // Cek apakah bahan ini dihapus
+                        $isDeleted = $detail->harga_satuan == 0 && !empty($detail->catatan_hapus);
+                        
                         return [
                             'nama_bahan' => is_string($bahanBaku->nama_bahan) ? $bahanBaku->nama_bahan : 'Unknown',
                             'qty' => $detail->jumlah ?? 0,
                             'satuan' => $detail->satuan ?? 'unit',
                             'harga_satuan' => $detail->harga_satuan ?? 0, // SUDAH HARGA KONVERSI
                             'subtotal' => $detail->subtotal ?? 0,
-                            'tipe' => 'Bahan Baku'
+                            'tipe' => 'Bahan Baku',
+                            'status' => $isDeleted ? 'dihapus' : 'aktif',
+                            'catatan_hapus' => $detail->catatan_hapus ?? null,
+                            'nama_bahan_terhapus' => $detail->nama_bahan_terhapus ?? null,
+                            'harga_terakhir' => $detail->harga_terakhir ?? null
                         ];
                     })->toArray() ?? [];
                 } elseif ($bom && $bom->details && $bom->details->count() > 0) {
@@ -116,38 +124,59 @@ class BiayaBahanController extends Controller
                     })->toArray() ?? [];
                 }
                 
-                // Hitung total dari Bahan Pendukung
+                // 2. Hitung biaya dari Bahan Pendukung
                 $totalBiayaBahanPendukung = 0;
                 $detailBahanPendukung = [];
                 
+                // Cek apakah ada data bahan pendukung yang valid
                 if ($bomJobCosting && $bomJobCosting->detailBahanPendukung && $bomJobCosting->detailBahanPendukung->count() > 0) {
                     $totalBiayaBahanPendukung = $bomJobCosting->detailBahanPendukung->sum('subtotal') ?? 0;
                     $detailBahanPendukung = $bomJobCosting->detailBahanPendukung->map(function($pendukung) {
                         $bahanPendukung = $pendukung->bahanPendukung;
                         if (!$bahanPendukung) {
-                            return [
-                                'nama_bahan' => 'Unknown',
-                                'qty' => $pendukung->jumlah ?? 0,
-                                'satuan' => $pendukung->satuan ?? 'unit',
-                                'harga_satuan' => $pendukung->harga_satuan ?? 0, // SUDAH HARGA KONVERSI
-                                'subtotal' => $pendukung->subtotal ?? 0,
-                                'tipe' => 'Bahan Pendukung'
-                            ];
+                            // Skip jika bahan pendukung tidak ada
+                            Log::warning('Bahan pendukung tidak ditemukan untuk ID: ' . $pendukung->id);
+                            return null;
                         }
                         
                         return [
                             'nama_bahan' => is_string($bahanPendukung->nama_bahan) ? $bahanPendukung->nama_bahan : 'Unknown',
                             'qty' => $pendukung->jumlah ?? 0,
                             'satuan' => $pendukung->satuan ?? 'unit',
-                            'harga_satuan' => $pendukung->harga_satuan ?? 0, // SUDAH HARGA KONVERSI
+                            'harga_satuan' => $pendukung->harga_satuan ?? 0, // SUDAH HARGA KONVERSI YANG BENAR
                             'subtotal' => $pendukung->subtotal ?? 0,
-                            'tipe' => 'Bahan Pendukung'
+                            'tipe' => 'Bahan Pendukung',
+                            'status' => $pendukung->harga_satuan == 0 && !empty($pendukung->catatan_hapus) ? 'dihapus' : 'aktif',
+                            'catatan_hapus' => $pendukung->catatan_hapus ?? null,
+                            'nama_bahan_terhapus' => $pendukung->nama_bahan_terhapus ?? null,
+                            'harga_terakhir' => $pendukung->harga_terakhir ?? null
                         ];
-                    })->toArray() ?? [];
+                    })->filter()->toArray() ?? []; // Filter out null values
                 }
                 
-                // Total biaya bahan
-                $totalBiayaBahan = $totalBiayaBahanBaku + $totalBiayaBahanPendukung;
+                // Total biaya bahan - HANYA HITUNG YANG HARGANYA > 0
+                $totalBiayaBahan = 0;
+                
+                // Hitung dari BBB yang tidak dihapus (harga > 0)
+                if ($bomJobCosting && $bomJobCosting->detailBBB) {
+                    $totalBiayaBahan += $bomJobCosting->detailBBB
+                        ->where('harga_satuan', '>', 0)
+                        ->sum('subtotal') ?? 0;
+                }
+                
+                // Hitung dari Bahan Pendukung yang tidak dihapus (harga > 0)
+                if ($bomJobCosting && $bomJobCosting->detailBahanPendukung) {
+                    $totalBiayaBahan += $bomJobCosting->detailBahanPendukung
+                        ->where('harga_satuan', '>', 0)
+                        ->sum('subtotal') ?? 0;
+                }
+                
+                // Fallback ke BOM lama jika perlu
+                if ($totalBiayaBahan == 0 && $bom && $bom->details) {
+                    $totalBiayaBahan = $bom->details
+                        ->where('harga_per_satuan', '>', 0)
+                        ->sum('total_harga') ?? 0;
+                }
                 
                 // Calculate complete HPP (Biaya Bahan + BTKL + BOP)
                 $totalHPP = $totalBiayaBahan;
@@ -242,15 +271,7 @@ class BiayaBahanController extends Controller
     {
         $produk = Produk::with(['satuan'])->findOrFail($id);
         
-        // Get BOM details
-        $bom = Bom::where('produk_id', $produk->id)->first();
-        
-        if (!$bom) {
-            return redirect()->route('master-data.biaya-bahan.index')
-                ->with('error', 'Produk ini belum memiliki BOM. Silakan buat BOM terlebih dahulu.');
-        }
-        
-        // Get BOM job costing
+        // Get BOM job costing (this is where biaya bahan data is stored)
         $bomJobCosting = BomJobCosting::where('produk_id', $produk->id)
             ->with(['detailBBB.bahanBaku.satuan', 'detailBahanPendukung.bahanPendukung.satuan'])
             ->first();
@@ -267,14 +288,22 @@ class BiayaBahanController extends Controller
         if ($bomJobCosting && $bomJobCosting->detailBBB && $bomJobCosting->detailBBB->count() > 0) {
             $detailBahanBaku = $bomJobCosting->detailBBB->map(function($detail) {
                 $bahanBaku = $detail->bahanBaku;
+                
+                // Cek apakah bahan ini dihapus atau tidak ada di database
+                $isDeleted = !$bahanBaku || ($detail->harga_satuan == 0 && !empty($detail->catatan_hapus));
+                
                 return [
                     'id' => $detail->id,
-                    'nama_bahan' => $bahanBaku->nama_bahan ?? 'Unknown',
+                    'nama_bahan' => $bahanBaku ? $bahanBaku->nama_bahan : ($detail->nama_bahan_terhapus ?? 'Unknown'),
                     'qty' => $detail->jumlah ?? 0,
                     'satuan' => $detail->satuan ?? 'unit',
                     'harga_satuan' => $detail->harga_satuan ?? 0, // SUDAH HARGA KONVERSI YANG BENAR
                     'subtotal' => $detail->subtotal ?? 0, // SUDAH PERHITUNGAN YANG BENAR
-                    'tipe' => 'Bahan Baku'
+                    'tipe' => 'Bahan Baku',
+                    'status' => $isDeleted ? 'dihapus' : 'aktif',
+                    'catatan_hapus' => $detail->catatan_hapus ?? null,
+                    'nama_bahan_terhapus' => $detail->nama_bahan_terhapus ?? null,
+                    'harga_terakhir' => $detail->harga_terakhir ?? null
                 ];
             })->toArray() ?? [];
         } else {
@@ -291,7 +320,8 @@ class BiayaBahanController extends Controller
                             'satuan' => $detail->satuan ?? 'unit',
                             'harga_satuan' => $detail->harga_per_satuan ?? 0,
                             'subtotal' => $detail->total_harga ?? 0,
-                            'tipe' => 'Bahan Baku'
+                            'tipe' => 'Bahan Baku',
+                            'status' => 'aktif' // Default status untuk fallback data
                         ];
                     })->toArray() ?? [];
                 }
@@ -302,14 +332,22 @@ class BiayaBahanController extends Controller
         if ($bomJobCosting && $bomJobCosting->detailBahanPendukung && $bomJobCosting->detailBahanPendukung->count() > 0) {
             $detailBahanPendukung = $bomJobCosting->detailBahanPendukung->map(function($detail) {
                 $bahanPendukung = $detail->bahanPendukung;
+                
+                // Cek apakah bahan ini dihapus atau tidak ada di database
+                $isDeleted = !$bahanPendukung || ($detail->harga_satuan == 0 && !empty($detail->catatan_hapus));
+                
                 return [
                     'id' => $detail->id,
-                    'nama_bahan' => $bahanPendukung->nama_bahan ?? 'Unknown',
+                    'nama_bahan' => $bahanPendukung ? $bahanPendukung->nama_bahan : ($detail->nama_bahan_terhapus ?? 'Unknown'),
                     'qty' => $detail->jumlah ?? 0,
                     'satuan' => $detail->satuan ?? 'unit',
                     'harga_satuan' => $detail->harga_satuan ?? 0, // SUDAH HARGA KONVERSI YANG BENAR
                     'subtotal' => $detail->subtotal ?? 0, // SUDAH PERHITUNGAN YANG BENAR
-                    'tipe' => 'Bahan Pendukung'
+                    'tipe' => 'Bahan Pendukung',
+                    'status' => $isDeleted ? 'dihapus' : 'aktif',
+                    'catatan_hapus' => $detail->catatan_hapus ?? null,
+                    'nama_bahan_terhapus' => $detail->nama_bahan_terhapus ?? null,
+                    'harga_terakhir' => $detail->harga_terakhir ?? null
                 ];
             })->toArray() ?? [];
         }
@@ -326,7 +364,6 @@ class BiayaBahanController extends Controller
         
         return view('master-data.biaya-bahan.show', compact(
             'produk',
-            'bom',
             'bomJobCosting',
             'detailBahanBaku',
             'detailBahanPendukung',

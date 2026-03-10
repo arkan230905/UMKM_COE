@@ -30,7 +30,13 @@ class RealTimeStockService
             $qty = $pembelianDetail->jumlah;
             $satuan = $pembelianDetail->satuan;
             $unitCost = $pembelianDetail->harga_satuan;
-            $tanggal = $pembelianDetail->pembelian->tanggal->format('Y-m-d');
+            
+            // Handle tanggal field - ensure it's a proper date
+            if ($pembelianDetail->pembelian->tanggal instanceof \Carbon\Carbon) {
+                $tanggal = $pembelianDetail->pembelian->tanggal->format('Y-m-d');
+            } else {
+                $tanggal = is_string($pembelianDetail->pembelian->tanggal) ? $pembelianDetail->pembelian->tanggal : date('Y-m-d');
+            }
             
             // Add stock layer
             $this->addStockLayer(
@@ -76,9 +82,15 @@ class RealTimeStockService
             DB::beginTransaction();
             
             $produksi = $produksiDetail->produksi;
-            $produk = $produksiDetail->produk;
-            $qtyProduksi = $produksiDetail->jumlah_produksi;
-            $tanggal = $produksi->tanggal->format('Y-m-d');
+            $produk = $produksi->produk;
+            $qtyProduksi = $produksi->qty_produksi;
+            
+            // Handle tanggal field - ensure it's a proper date
+            if ($produksi->tanggal instanceof \Carbon\Carbon) {
+                $tanggal = $produksi->tanggal->format('Y-m-d');
+            } else {
+                $tanggal = is_string($produksi->tanggal) ? $produksi->tanggal : date('Y-m-d');
+            }
             
             // 1. Consume materials based on BOM
             $this->consumeMaterialsForProduction($produk->id, $qtyProduksi, $tanggal, $produksi->id);
@@ -126,7 +138,13 @@ class RealTimeStockService
             
             $produk = $penjualanDetail->produk;
             $qty = $penjualanDetail->jumlah;
-            $tanggal = $penjualanDetail->penjualan->tanggal->format('Y-m-d');
+            
+            // Handle tanggal field - ensure it's a proper date
+            if ($penjualanDetail->penjualan->tanggal instanceof \Carbon\Carbon) {
+                $tanggal = $penjualanDetail->penjualan->tanggal->format('Y-m-d');
+            } else {
+                $tanggal = is_string($penjualanDetail->penjualan->tanggal) ? $penjualanDetail->penjualan->tanggal : date('Y-m-d');
+            }
             
             // Consume product stock
             $totalCost = $this->consumeStock(
@@ -428,10 +446,20 @@ class RealTimeStockService
      */
     private function getAveragePrice($itemType, $itemId)
     {
-        $layer = StockLayer::where('item_type', $itemType)
+        $layers = StockLayer::where('item_type', $itemType)
             ->where('item_id', $itemId)
-            ->first();
+            ->where('remaining_qty', '>', 0)
+            ->get();
         
-        return $layer ? $layer->unit_cost : 0;
+        if ($layers->isEmpty()) {
+            return 0;
+        }
+        
+        $totalQty = $layers->sum('remaining_qty');
+        $totalValue = $layers->sum(function($layer) {
+            return $layer->remaining_qty * $layer->unit_cost;
+        });
+        
+        return $totalQty > 0 ? $totalValue / $totalQty : 0;
     }
 }

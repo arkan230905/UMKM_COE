@@ -60,9 +60,9 @@
             <i class="fas fa-list-ul me-2"></i>Bill of Materials (BOM)
         </h2>
         <div class="btn-group">
-            <a href="{{ route('master-data.bom.create') }}" class="btn btn-icon btn-add">
-                <i class="fas fa-plus me-2"></i>Tambah BOM Baru
-            </a>
+            <button onclick="createHargaPokokProduksi()" class="btn btn-icon btn-add">
+                <i class="fas fa-plus me-2"></i>+ Buat Harga Pokok Produksi Baru
+            </button>
             <button class="btn btn-icon btn-edit" onclick="updateBomCosts()">
                 <i class="fas fa-sync me-2"></i>Update Biaya BOM
             </button>
@@ -200,6 +200,43 @@ function deleteBom(id) {
             showAlert('danger', 'Terjadi kesalahan');
         });
     }
+}
+
+function createHargaPokokProduksi() {
+    // Show loading state
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Memeriksa...';
+    button.disabled = true;
+    
+    // Check if there are any products available for BOM creation
+    fetch('{{ route('master-data.harga-pokok-produksi.create') }}', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Products available, navigate to create page
+            window.location.href = data.redirect;
+        } else {
+            // No products available, show message
+            showAlert('info', data.message || 'Tidak dapat membuat Harga Pokok Produksi baru.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Fallback: direct navigation for non-AJAX scenarios
+        window.location.href = '{{ route('master-data.harga-pokok-produksi.create') }}';
+    })
+    .finally(() => {
+        // Restore button state
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
 }
 
 function updateBomCosts() {

@@ -259,8 +259,8 @@
                                     @endif
                                 </td>
                                 <td>Pembelian {{ $pembelian->vendor->nama_vendor ?? 'Vendor' }}</td>
-                                <td class="text-end">Rp {{ number_format($pembelian->total_harga ?? 0, 0, ',', '.') }}</td>
                                 <td class="text-end">-</td>
+                                <td class="text-end">Rp {{ number_format($pembelian->total_harga ?? 0, 0, ',', '.') }}</td>
                             </tr>
                             
                             <!-- Detail Bahan Baku -->
@@ -271,16 +271,16 @@
                             <tr>
                                 <td>{{ $pembelian->tanggal?->format('d-m-Y') }}</td>
                                 <td>
-                                    @if($d->bahanBaku && $d->bahanBaku->coaPembelian)
-                                        <span class="badge bg-success">{{ $d->bahanBaku->coaPembelian->nama_akun }}</span><br>
-                                        <small class="text-muted">{{ $d->bahanBaku->coaPembelian->kode_akun }}</small>
+                                    @if($d->bahanBaku && $d->bahanBaku->coaPersediaan)
+                                        <span class="badge bg-success">{{ $d->bahanBaku->coaPersediaan->nama_akun }}</span><br>
+                                        <small class="text-muted">{{ $d->bahanBaku->coaPersediaan->kode_akun }}</small>
                                     @else
                                         <span class="badge bg-secondary">Tidak ada COA</span>
                                     @endif
                                 </td>
                                 <td>Pembelian {{ $d->bahanBaku ? $d->bahanBaku->nama_bahan : 'Unknown' }}</td>
-                                <td class="text-end">-</td>
                                 <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                                <td class="text-end">-</td>
                             </tr>
                             @endforeach
                             
@@ -292,16 +292,16 @@
                             <tr>
                                 <td>{{ $pembelian->tanggal?->format('d-m-Y') }}</td>
                                 <td>
-                                    @if($d->bahanPendukung && $d->bahanPendukung->coaPembelian)
-                                        <span class="badge bg-success">{{ $d->bahanPendukung->coaPembelian->nama_akun }}</span><br>
-                                        <small class="text-muted">{{ $d->bahanPendukung->coaPembelian->kode_akun }}</small>
+                                    @if($d->bahanPendukung && $d->bahanPendukung->coaPersediaan)
+                                        <span class="badge bg-success">{{ $d->bahanPendukung->coaPersediaan->nama_akun }}</span><br>
+                                        <small class="text-muted">{{ $d->bahanPendukung->coaPersediaan->kode_akun }}</small>
                                     @else
                                         <span class="badge bg-secondary">Tidak ada COA</span>
                                     @endif
                                 </td>
                                 <td>Pembelian {{ $d->bahanPendukung ? $d->bahanPendukung->nama_bahan : 'Unknown' }}</td>
-                                <td class="text-end">-</td>
                                 <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                                <td class="text-end">-</td>
                             </tr>
                             @endforeach
                         </tbody>
