@@ -270,7 +270,7 @@
                     <span>PENGATURAN</span>
                 </div>
             </li>
-            @if(auth()->user()->role === 'owner')
+            @if(auth()->check() && auth()->user()->role === 'owner')
             <li class="nav-item">
                 <a class="nav-link-rounded {{ request()->is('tentang-perusahaan/detail') ? 'active' : '' }}" href="/tentang-perusahaan/detail">
                     <i class="fas fa-building"></i>

@@ -12,17 +12,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Update existing pegawai records to copy data from old fields to new fields
-        DB::table('pegawais')
-            ->whereNull('gaji_pokok')
-            ->whereNotNull('gaji')
-            ->update(['gaji_pokok' => DB::raw('gaji')]);
-            
-        // The tarif_lembur column doesn't exist, so skip this update
-        // DB::table('pegawais')
-        //     ->whereNull('tarif_lembur')
-        //     ->whereNotNull('tarif')
-        //     ->update(['tarif_lembur' => DB::raw('tarif')]);
+        // Check if columns exist before updating
+        if (Schema::hasColumn('pegawais', 'gaji_pokok') && Schema::hasColumn('pegawais', 'gaji')) {
+            DB::table('pegawais')
+                ->whereNull('gaji_pokok')
+                ->whereNotNull('gaji')
+                ->update(['gaji_pokok' => DB::raw('gaji')]);
+        }
+        
+        if (Schema::hasColumn('pegawais', 'tarif_lembur') && Schema::hasColumn('pegawais', 'tarif')) {
+            DB::table('pegawais')
+                ->whereNull('tarif_lembur')
+                ->whereNotNull('tarif')
+                ->update(['tarif_lembur' => DB::raw('tarif')]);
+        }
     }
 
     /**
@@ -36,10 +39,9 @@ return new class extends Migration
             ->whereNotNull('gaji_pokok')
             ->update(['gaji' => DB::raw('gaji_pokok')]);
             
-        // The tarif_lembur column doesn't exist, so skip this update
-        // DB::table('pegawais')
-        //     ->whereNull('tarif')
-        //     ->whereNotNull('tarif_lembur')
-        //     ->update(['tarif' => DB::raw('tarif_lembur')]);
+        DB::table('pegawais')
+            ->whereNull('tarif')
+            ->whereNotNull('tarif_lembur')
+            ->update(['tarif' => DB::raw('tarif_lembur')]);
     }
 };

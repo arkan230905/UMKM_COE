@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pegawais', function (Blueprint $table) {
-            // Add new columns after the existing ones, but only if they don't exist
+            // Add new columns only if they don't exist
             if (!Schema::hasColumn('pegawais', 'gaji_pokok')) {
                 $table->decimal('gaji_pokok', 15, 2)->nullable()->after('gaji');
             }
