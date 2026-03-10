@@ -14,15 +14,18 @@ class PresensiController extends Controller
 {
     public function index(Request $request)
     {
-        $today = Carbon::today();
         $search = $request->get('search');
-        $pegawais = Pegawai::all();
+        $dateFilter = $request->get('date_filter') ?? Carbon::today()->toDateString();
         
-        // Get presensi with search
-        $query = Presensi::with('pegawai')
-            ->whereDate('tgl_presensi', $today)
-            ->orderBy('jam_masuk', 'desc');
-            
+        // Build query
+        $query = Presensi::with('pegawai')->orderBy('tgl_presensi', 'desc')->orderBy('jam_masuk', 'desc');
+        
+        // Apply date filter
+        if ($dateFilter) {
+            $query->whereDate('tgl_presensi', $dateFilter);
+        }
+        
+        // Apply search
         if ($search) {
             $query->whereHas('pegawai', function($q) use ($search) {
                 $q->where('nama', 'like', "%{$search}%")
@@ -30,42 +33,12 @@ class PresensiController extends Controller
             });
         }
         
-        $presensis = $query->paginate(10);
-        
-        // Get pegawais without face verification (only if table exists)
-        $pegawaiTanpaVerifikasi = [];
-        try {
-            // Check if verifikasi_wajah table exists
-            if (\Schema::hasTable('verifikasi_wajah')) {
-                foreach ($pegawais as $pegawai) {
-                    $hasVerifikasi = VerifikasiWajah::where('kode_pegawai', $pegawai->kode_pegawai)
-                        ->where('aktif', true)
-                        ->exists();
-                    
-                    if (!$hasVerifikasi) {
-                        $pegawaiTanpaVerifikasi[] = $pegawai;
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            // Silently ignore if table doesn't exist
-            \Log::info('Verifikasi wajah table not found, skipping verification check');
-        }
-        
-        // Get today's presensi without face verification
-        $presensiTanpaVerifikasi = [];
-        foreach ($presensis as $presensi) {
-            if (!$presensi->verifikasi_wajah) {
-                $presensiTanpaVerifikasi[] = $presensi;
-            }
-        }
+        $presensis = $query->paginate(15);
         
         return view('transaksi.presensi.index', compact(
             'presensis', 
-            'pegawaiTanpaVerifikasi', 
-            'presensiTanpaVerifikasi',
-            'today',
-            'search'
+            'search',
+            'dateFilter'
         ));
     }
     
@@ -379,310 +352,372 @@ class PresensiController extends Controller
             ->with('success', 'Verifikasi wajah berhasil dihapus');
     }
     
-    // API for face verification (for mobile app and web)
-    public function apiVerifikasiWajah(Request $request)
+    // API untuk proses absen wajah otomatis (Sederhana - Berbasis Login)
+    public function apiAbsenWajah(Request $request)
     {
-        \Log::info('=== API VERIFIKASI WAJAH START ===');
-        \Log::info('Request input:', $request->all());
-        
-        $request->validate([
-            'nomor_induk_pegawai' => 'required|exists:pegawais,nomor_induk_pegawai',
-            'foto_wajah' => 'required|string', // Accept base64 string
-        ]);
-        
-        \Log::info('Validation passed');
-        
-        $pegawai = Pegawai::where('nomor_induk_pegawai', $request->nomor_induk_pegawai)->first();
-        
-        if (!$pegawai) {
-            \Log::error('Pegawai tidak ditemukan: ' . $request->nomor_induk_pegawai);
-            return response()->json(['success' => false, 'message' => 'Pegawai tidak ditemukan'], 404);
-        }
-        
-        \Log::info('Pegawai found: ' . $pegawai->nama . ' (ID: ' . $pegawai->nomor_induk_pegawai . ')');
-        
-        if (!$pegawai->nomor_induk_pegawai) {
-            \Log::error('Pegawai NIP is null for: ' . $pegawai->nama);
-            return response()->json(['success' => false, 'message' => 'NIP pegawai tidak valid'], 400);
-        }
-        
-        // Check if employee has active face verification
-        $verifikasi = VerifikasiWajah::where('nomor_induk_pegawai', $request->nomor_induk_pegawai)
-            ->where('aktif', true)
-            ->first();
-        
-        if (!$verifikasi) {
-            \Log::error('Verifikasi wajah tidak aktif untuk pegawai: ' . $request->nomor_induk_pegawai);
-            return response()->json(['success' => false, 'message' => 'Pegawai belum memiliki verifikasi wajah aktif'], 400);
-        }
-        
-        \Log::info('Verifikasi wajah aktif ditemukan');
-
-        // Process attendance logic
-        $today = Carbon::today();
-        $now = Carbon::now();
-        
-        \Log::info('Processing attendance for date: ' . $today->format('Y-m-d'));
-        \Log::info('Current time: ' . $now->format('H:i:s'));
-
-        // Check existing attendance for today
-        $presensi = Presensi::where('pegawai_id', $pegawai->nomor_induk_pegawai)
-            ->whereDate('tgl_presensi', $today)
-            ->first();
-        
-        \Log::info('Existing attendance found: ' . ($presensi ? 'Yes' : 'No'));
-        
-        if (!$presensi) {
-            // First attendance today - CLOCK IN
-            \Log::info('Creating new attendance record (CLOCK IN)');
-            \Log::info('Pegawai ID for presensi: ' . $pegawai->nomor_induk_pegawai);
-            
-            $presensiData = [
-                'pegawai_id' => $pegawai->nomor_induk_pegawai,
-                'tgl_presensi' => $today,
-                'jam_masuk' => $now->format('H:i:s'),
-                'status' => 'hadir',
-                'verifikasi_wajah' => true,
-                'foto_wajah' => $verifikasi->foto_wajah,
-                'waktu_verifikasi' => $now,
-                'latitude_masuk' => $request->latitude ?? null,
-                'longitude_masuk' => $request->longitude ?? null,
-                'jumlah_jam' => 0
-            ];
-            
-            \Log::info('Presensi data to create:', $presensiData);
-            
-            $presensi = Presensi::create($presensiData);
-            
-            \Log::info('Attendance record created with ID: ' . $presensi->id);
-            
-            return response()->json([
-                'success' => true, 
-                'message' => 'Presensi jam masuk berhasil dicatat',
-                'type' => 'clock_in',
-                'presensi' => [
-                    'jam_masuk' => $presensi->jam_masuk,
-                    'tgl_presensi' => $presensi->tgl_presensi->format('d/m/Y'),
-                    'pegawai' => [
-                        'nama' => $pegawai->nama,
-                        'nip' => $pegawai->nomor_induk_pegawai
-                    ]
-                ]
-            ]);
-
-        } elseif (!$presensi->jam_keluar) {
-            // Second attendance today - CLOCK OUT
-            \Log::info('Updating attendance record (CLOCK OUT)');
-            
-            // Parse jam masuk dengan benar
-            $jamMasukString = $presensi->tgl_presensi->format('Y-m-d') . ' ' . $presensi->jam_masuk;
-            \Log::info('Jam masuk string to parse: ' . $jamMasukString);
-            
-            $jamMasuk = Carbon::parse($jamMasukString);
-            $jumlahJam = $jamMasuk->diffInMinutes($now) / 60; // Convert to hours
-            
-            \Log::info('Calculated working hours: ' . $jumlahJam);
-            
-            $presensi->update([
-                'jam_keluar' => $now->format('H:i:s'),
-                'verifikasi_wajah_keluar' => true,
-                'foto_wajah_keluar' => $verifikasi->foto_wajah,
-                'waktu_verifikasi_keluar' => $now,
-                'latitude_keluar' => $request->latitude ?? null,
-                'longitude_keluar' => $request->longitude ?? null,
-                'jumlah_jam' => round($jumlahJam, 2)
-            ]);
-            
-            \Log::info('Attendance record updated');
-            
-            return response()->json([
-                'success' => true, 
-                'message' => 'Presensi jam keluar berhasil dicatat',
-                'type' => 'clock_out',
-                'presensi' => [
-                    'jam_masuk' => $presensi->jam_masuk,
-                    'jam_keluar' => $presensi->jam_keluar,
-                    'jumlah_jam' => $presensi->jumlah_jam,
-                    'tgl_presensi' => $presensi->tgl_presensi->format('d/m/Y'),
-                    'pegawai' => [
-                        'nama' => $pegawai->nama,
-                        'nip' => $pegawai->nomor_induk_pegawai
-                    ]
-                ]
-            ]);
-
-        } else {
-            // Already clocked in and out today
-            \Log::info('Attendance already complete for today');
-            
-            return response()->json([
-                'success' => false, 
-                'message' => 'Anda sudah melakukan presensi masuk dan keluar hari ini',
-                'type' => 'already_complete',
-                'presensi' => [
-                    'jam_masuk' => $presensi->jam_masuk,
-                    'jam_keluar' => $presensi->jam_keluar,
-                    'jumlah_jam' => $presensi->jumlah_jam,
-                    'tgl_presensi' => $presensi->tgl_presensi->format('d/m/Y')
-                ]
-            ]);
-        }
-    }
-    
-    // API untuk face recognition
-    public function apiFaceRecognize(Request $request)
-    {
-        $request->validate([
-            'foto_wajah' => 'required|image|mimes:jpeg,png,jpg|max:2048',
-            'kode_pegawai' => 'required|exists:pegawais,kode_pegawai',
-            'encoding_wajah' => 'nullable|string|max:5000', // Batasi max 5000 chars
-        ]);
-        
-        \Log::info('Face recognition request:', [
-            'kode_pegawai' => $request->kode_pegawai,
-            'has_encoding' => !empty($request->encoding_wajah),
-            'encoding_length' => strlen($request->encoding_wajah ?? '')
-        ]);
+        \Log::info('=== ABSEN WAJAH LOGIN-BASED START ===');
+        \Log::info('User ID: ' . (auth()->check() ? auth()->id() : 'Not logged in'));
         
         try {
-            // Upload temporary photo
-            if ($request->hasFile('foto_wajah')) {
-                $file = $request->file('foto_wajah');
-                $tempPath = $file->store('temp/faces', 'public');
-                
-                // Get face verification data for specific pegawai
-                $verifikasiWajah = VerifikasiWajah::with('pegawai')
-                    ->where('kode_pegawai', $request->kode_pegawai)
-                    ->where('aktif', true)
-                    ->first();
-                
-                if (!$verifikasiWajah) {
-                    \Log::info('STEP 2: No existing face data - AUTO ENROLLMENT MODE', [
-                        'kode_pegawai' => $request->kode_pegawai
-                    ]);
-                    
-                    // AUTO-ENROLLMENT: Save new face data
-                    $pegawai = \App\Models\Pegawai::where('kode_pegawai', $request->kode_pegawai)->first();
-                    
-                    // Move temp file to permanent location
-                    $permanentPath = 'foto-wajah/' . uniqid() . '_' . $request->kode_pegawai . '.jpg';
-                    Storage::disk('public')->move($tempPath, $permanentPath);
-                    
-                    // Create new face verification record
-                    $newVerifikasi = VerifikasiWajah::create([
-                        'kode_pegawai' => $request->kode_pegawai,
-                        'foto_wajah' => $permanentPath,
-                        'encoding_wajah' => $request->encoding_wajah,
-                        'aktif' => true,
-                        'tanggal_verifikasi' => now()->toDateString(),
-                    ]);
-                    
-                    \Log::info('STEP 2: AUTO ENROLLMENT SUCCESS', [
-                        'pegawai_nama' => $pegawai->nama,
-                        'verification_id' => $newVerifikasi->id,
-                        'photo_path' => $permanentPath,
-                        'has_encoding' => !empty($request->encoding_wajah)
-                    ]);
-                    
-                    return response()->json([
-                        'success' => true,
-                        'recognized' => true,
-                        'pegawai' => $pegawai,
-                        'confidence' => 100.00,
-                        'message' => 'Pendaftaran wajah berhasil! Wajah telah terdaftar untuk ' . $pegawai->nama,
-                        'action' => 'enrollment', // Indicate this was enrollment
-                        'is_new_registration' => true
-                    ]);
-                }
-                
-                \Log::info('STEP 2: Existing face data found - VERIFICATION MODE', [
-                    'pegawai_id' => $verifikasiWajah->id,
-                    'pegawai_nama' => $verifikasiWajah->pegawai->nama,
-                    'has_stored_encoding' => !empty($verifikasiWajah->encoding_wajah)
+            // 1️⃣ VALIDASI LOGIN PEGAWAI
+            if (!auth()->check()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Anda harus login terlebih dahulu'
+                ], 401);
+            }
+            
+            $user = auth()->user();
+            if (!$user->pegawai_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun Anda tidak terhubung dengan data pegawai'
+                ], 400);
+            }
+            
+            // 2️⃣ AMBIL DATA PEGAWAI (Tanpa Face Recognition)
+            $pegawai = Pegawai::where('nomor_induk_pegawai', $user->pegawai_id)
+                ->orWhere('id', $user->pegawai_id)
+                ->first();
+            
+            if (!$pegawai) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data pegawai tidak ditemukan'
+                ], 404);
+            }
+            
+            $pegawaiId = $pegawai->nomor_induk_pegawai;
+            \Log::info('Processing attendance for: ' . $pegawai->nama . ' (ID: ' . $pegawaiId . ')');
+            
+            // 3️⃣ CEK PRESENSI HARI INI
+            $today = now()->toDateString();
+            $presensi = Presensi::where('pegawai_id', $pegawaiId)
+                ->whereDate('tgl_presensi', $today)
+                ->first();
+            
+            $currentTime = now()->format('H:i:s');
+            $now = now();
+            
+            \Log::info('Attendance check:', [
+                'pegawai_id' => $pegawaiId,
+                'today' => $today,
+                'existing_presensi' => $presensi ? 'YES' : 'NO',
+                'jam_masuk' => $presensi ? $presensi->jam_masuk : null,
+                'jam_keluar' => $presensi ? $presensi->jam_keluar : null
+            ]);
+            
+            // 4️⃣ PROSES FOTO (Optional - Tanpa Face Recognition)
+            $fotoPath = null;
+            if ($request->has('foto_wajah')) {
+                $base64Image = $request->foto_wajah;
+                \Log::info('Processing attendance photo...', [
+                    'has_photo' => !empty($base64Image),
+                    'photo_length' => strlen($base64Image)
                 ]);
                 
-                // VERIFICATION MODE: Compare with existing face
-                $similarity = $this->compareFaces(
-                    $tempPath, 
-                    $verifikasiWajah->foto_wajah,
-                    $request->encoding_wajah,
-                    $verifikasiWajah->encoding_wajah
-                );
+                // Decode dan simpan foto
+                $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $base64Image));
+                if ($imageData) {
+                    $filename = 'absen_' . $pegawaiId . '_' . now()->format('Ymd_His') . '.jpg';
+                    $path = 'presensi-foto/' . $filename;
+                    Storage::disk('public')->put($path, $imageData);
+                    $fotoPath = $path;
+                    \Log::info('Attendance photo saved: ' . $path);
+                }
+            }
+            
+            // 5️⃣ LOGIKA PRESENSI SEDERHANA
+            if (!$presensi) {
+                // CREATE NEW ATTENDANCE (JAM MASUK)
+                \Log::info('Creating new attendance (JAM MASUK)...');
                 
-                // Clean up temp file
-                Storage::disk('public')->delete($tempPath);
+                $newPresensi = Presensi::create([
+                    'pegawai_id' => $pegawaiId,
+                    'tgl_presensi' => $today,
+                    'jam_masuk' => $currentTime,
+                    'status' => 'hadir',
+                    'verifikasi_wajah' => !empty($fotoPath), // True jika ada foto
+                    'foto_wajah' => $fotoPath,
+                    'waktu_verifikasi' => $now,
+                    'latitude_masuk' => $request->latitude,
+                    'longitude_masuk' => $request->longitude,
+                ]);
                 
-                // Return results
-                if ($similarity > 0.7) { // 70% threshold
-                    \Log::info('STEP 2: VERIFICATION SUCCESS', [
-                        'pegawai_nama' => $verifikasiWajah->pegawai->nama,
-                        'similarity' => $similarity,
-                        'confidence' => round($similarity * 100, 2)
+                \Log::info('New attendance created successfully:', [
+                    'id' => $newPresensi->id,
+                    'pegawai' => $pegawai->nama,
+                    'jam_masuk' => $currentTime,
+                    'has_photo' => !empty($fotoPath)
+                ]);
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Absen masuk berhasil! Selamat bekerja, ' . $pegawai->nama,
+                    'action' => 'clock_in',
+                    'presensi' => [
+                        'id' => $newPresensi->id,
+                        'pegawai_nama' => $pegawai->nama,
+                        'pegawai_id' => $pegawaiId,
+                        'tanggal' => $today,
+                        'jam_masuk' => $currentTime,
+                        'jam_keluar' => null,
+                        'status' => 'hadir',
+                        'verifikasi_wajah' => $newPresensi->verifikasi_wajah,
+                        'foto_wajah' => $fotoPath
+                    ],
+                    'pegawai' => [
+                        'nama' => $pegawai->nama,
+                        'nomor_induk_pegawai' => $pegawai->nomor_induk_pegawai,
+                        'jabatan' => $pegawai->jabatan ?? '-',
+                    ],
+                    'time' => $currentTime
+                ]);
+                
+            } else {
+                // UPDATE EXISTING ATTENDANCE
+                if (empty($presensi->jam_keluar)) {
+                    // UPDATE JAM KELUAR
+                    \Log::info('Updating jam keluar...');
+                    
+                    // Update foto jika ada (opsional)
+                    $updateData = [
+                        'jam_keluar' => $currentTime,
+                        'latitude_keluar' => $request->latitude,
+                        'longitude_keluar' => $request->longitude,
+                    ];
+                    
+                    if ($fotoPath) {
+                        $updateData['foto_wajah'] = $fotoPath;
+                    }
+                    
+                    $presensi->update($updateData);
+                    
+                    \Log::info('Jam keluar updated successfully:', [
+                        'id' => $presensi->id,
+                        'pegawai' => $pegawai->nama,
+                        'jam_keluar' => $currentTime
                     ]);
                     
                     return response()->json([
                         'success' => true,
-                        'recognized' => true,
-                        'pegawai' => $verifikasiWajah->pegawai,
-                        'confidence' => round($similarity * 100, 2),
-                        'message' => 'Verifikasi Berhasil! Wajah dikenali.',
-                        'action' => 'verification', // Indicate this was verification
-                        'is_new_registration' => false
+                        'message' => 'Absen keluar berhasil! Terima kasih, ' . $pegawai->nama,
+                        'action' => 'clock_out',
+                        'presensi' => [
+                            'id' => $presensi->id,
+                            'pegawai_nama' => $pegawai->nama,
+                            'pegawai_id' => $pegawaiId,
+                            'tanggal' => $today,
+                            'jam_masuk' => $presensi->jam_masuk,
+                            'jam_keluar' => $currentTime,
+                            'status' => 'hadir',
+                            'verifikasi_wajah' => $presensi->verifikasi_wajah
+                        ],
+                        'pegawai' => [
+                            'nama' => $pegawai->nama,
+                            'nomor_induk_pegawai' => $pegawai->nomor_induk_pegawai,
+                            'jabatan' => $pegawai->jabatan ?? '-',
+                        ],
+                        'time' => $currentTime
                     ]);
+                    
                 } else {
-                    \Log::info('STEP 2: VERIFICATION FAILED', [
-                        'pegawai_nama' => $verifikasiWajah->pegawai->nama,
-                        'similarity' => $similarity,
-                        'confidence' => round($similarity * 100, 2)
-                    ]);
+                    // ALREADY COMPLETE
+                    \Log::info('Attendance already complete for today');
                     
                     return response()->json([
-                        'success' => true,
-                        'recognized' => false,
-                        'pegawai' => $verifikasiWajah->pegawai,
-                        'confidence' => round($similarity * 100, 2),
-                        'message' => 'Verifikasi Gagal. Wajah tidak cocok dengan data yang terdaftar.',
-                        'action' => 'verification_failed',
-                        'is_new_registration' => false
+                        'success' => false,
+                        'message' => 'Anda sudah lengkap absen hari ini (jam masuk: ' . $presensi->jam_masuk . ', jam keluar: ' . $presensi->jam_keluar . ')',
+                        'action' => 'already_complete',
+                        'presensi' => [
+                            'id' => $presensi->id,
+                            'pegawai_nama' => $pegawai->nama,
+                            'pegawai_id' => $pegawaiId,
+                            'tanggal' => $today,
+                            'jam_masuk' => $presensi->jam_masuk,
+                            'jam_keluar' => $presensi->jam_keluar,
+                            'status' => 'hadir'
+                        ],
+                        'pegawai' => [
+                            'nama' => $pegawai->nama,
+                            'nomor_induk_pegawai' => $pegawai->nomor_induk_pegawai,
+                            'jabatan' => $pegawai->jabatan ?? '-',
+                        ]
                     ]);
                 }
             }
             
-            return response()->json(['success' => false, 'message' => 'No face image provided'], 400);
+        } catch (\Exception $e) {
+            \Log::error('Error in absen wajah: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
             
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false, 
-                'message' => 'Error: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-    
-    public function apiFaceCompare(Request $request)
-    {
-        $request->validate([
-            'face1' => 'required|string',
-            'face2' => 'required|string',
-        ]);
-        
-        try {
-            $similarity = $this->compareFaces($request->face1, $request->face2);
-            
-            return response()->json([
-                'success' => true,
-                'similarity' => round($similarity * 100, 2),
-                'match' => $similarity > 0.7
-            ]);
-            
-        } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error comparing faces: ' . $e->getMessage()
+                'message' => 'Terjadi kesalahan sistem. Silakan coba lagi.'
             ], 500);
         }
     }
     
-    // API for recent attendance
+    // Halaman absen wajah untuk pegawai yang sedang login
+    public function pegawaiAbsenWajah()
+    {
+        $user = auth()->user();
+        $pegawai = $user->pegawai;
+
+        if (!$pegawai) {
+            return redirect()->route('login')->with('error', 'Akun Anda belum terhubung dengan data pegawai.');
+        }
+
+        $today = now()->toDateString();
+        $attendances = Presensi::where('pegawai_id', $pegawai->kode_pegawai)
+            ->whereDate('tgl_presensi', $today)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('pegawai.presensi.absen-wajah', compact('pegawai', 'attendances'));
+    }
+
+    // API absen wajah berbasis user login (tanpa cari pegawai dari face recognition global)
+    public function pegawaiApiAbsenWajah(Request $request)
+    {
+        try {
+            $user = auth()->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User tidak terautentikasi.'
+                ], 401);
+            }
+            
+            $pegawai = $user->pegawai;
+
+            if (!$pegawai) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun ini belum terhubung dengan data pegawai.'
+                ], 400);
+            }
+
+            // Validasi minimal
+            $request->validate([
+                'foto_wajah' => 'nullable|string',
+                'latitude'   => 'nullable|numeric',
+                'longitude'  => 'nullable|numeric',
+            ]);
+
+            $today = now()->toDateString();
+            $now = now();
+            $currentTime = $now->format('H:i:s');
+
+            // Simpan foto jika dikirim
+            $fotoPath = null;
+            if ($request->filled('foto_wajah')) {
+                try {
+                    $base64Image = $request->foto_wajah;
+                    $imageData = base64_decode(preg_replace('#^data:image/\w+;base64,#i', '', $base64Image));
+                    
+                    if ($imageData === false) {
+                        throw new \Exception('Invalid base64 image data');
+                    }
+                    
+                    $fileName = 'presensi/' . $pegawai->kode_pegawai . '_' . now()->format('Ymd_His') . '.jpg';
+                    Storage::disk('public')->put($fileName, $imageData);
+                    $fotoPath = $fileName;
+                    
+                    // Update foto pegawai jika belum ada
+                    if (empty($pegawai->foto_wajah)) {
+                        $pegawai->update([
+                            'foto_wajah' => $fotoPath,
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    \Log::error('Error saving photo: ' . $e->getMessage());
+                    // Continue without photo
+                }
+            }
+
+            $presensi = Presensi::where('pegawai_id', $pegawai->kode_pegawai)
+                ->whereDate('tgl_presensi', $today)
+                ->first();
+
+            if (!$presensi) {
+                // Jam masuk
+                $newPresensi = Presensi::create([
+                    'pegawai_id'        => $pegawai->kode_pegawai,
+                    'tgl_presensi'      => $today,
+                    'jam_masuk'         => $currentTime,
+                    'status'            => 'hadir',
+                    'verifikasi_wajah'  => true,
+                    'foto_wajah'        => $fotoPath,
+                    'waktu_verifikasi'  => $now,
+                    'latitude_masuk'    => $request->latitude,
+                    'longitude_masuk'   => $request->longitude,
+                ]);
+
+                return response()->json([
+                    'success'   => true,
+                    'message'   => 'Absen masuk berhasil.',
+                    'action'    => 'clock_in',
+                    'presensi'  => $newPresensi,
+                    'pegawai'   => [
+                        'nama'                => $pegawai->nama,
+                        'kode_pegawai'        => $pegawai->kode_pegawai,
+                        'jabatan'             => $pegawai->jabatan ?? '-',
+                        'foto_wajah'          => $fotoPath,
+                    ],
+                    'time'      => $currentTime,
+                ]);
+            }
+
+            if (empty($presensi->jam_keluar)) {
+                // Jam keluar
+                $presensi->update([
+                    'jam_keluar'       => $currentTime,
+                    'latitude_keluar'  => $request->latitude,
+                    'longitude_keluar' => $request->longitude,
+                ]);
+
+                return response()->json([
+                    'success'   => true,
+                    'message'   => 'Absen keluar berhasil.',
+                    'action'    => 'clock_out',
+                    'presensi'  => $presensi->fresh(),
+                    'pegawai'   => [
+                        'nama'                => $pegawai->nama,
+                        'kode_pegawai'        => $pegawai->kode_pegawai,
+                        'jabatan'             => $pegawai->jabatan ?? '-',
+                        'foto_wajah'          => $presensi->foto_wajah,
+                    ],
+                    'time'      => $currentTime,
+                ]);
+            }
+
+            // Sudah lengkap
+            return response()->json([
+                'success'  => false,
+                'message'  => 'Presensi hari ini sudah lengkap (masuk & keluar).',
+                'action'   => 'already_complete',
+                'presensi' => $presensi,
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal: ' . implode(', ', $e->errors())
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error pegawaiApiAbsenWajah: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memproses presensi.'
+            ], 500);
+        }
+    }
+    
+    // API untuk recent attendance
     public function apiRecentAttendance()
     {
         try {
@@ -695,9 +730,6 @@ class PresensiController extends Controller
             $data = $attendances->map(function ($attendance) {
                 return [
                     'id' => $attendance->id,
-                    'waktu' => $attendance->jam_masuk ? $attendance->jam_masuk : ($attendance->jam_keluar ?? ''),
-                    'nama' => $attendance->pegawai->nama ?? 'Unknown',
-                    'nip' => $attendance->pegawai->nomor_induk_pegawai ?? 'Unknown',
                     'jam_masuk' => $attendance->jam_masuk,
                     'jam_keluar' => $attendance->jam_keluar,
                     'status' => $attendance->status,

@@ -59,17 +59,17 @@ a:active {
     text-decoration: none !important;
 }
 
-/* Custom Styles untuk Presensi Page */
+/* Custom Styles untuk Presensi Page - Konsisten dengan tema cokelat */
 .presensi-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--secondary-gold) 0%, var(--primary-gold) 100%);
     border-radius: 15px;
     padding: 2rem;
     margin-bottom: 2rem;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 30px var(--shadow);
 }
 
 .presensi-header h1 {
-    color: white !important;
+    color: var(--white) !important;
     font-weight: 700;
     margin: 0;
     font-size: 2rem;
@@ -83,35 +83,28 @@ a:active {
     border-radius: 25px;
     padding: 0.6rem 1.5rem;
     font-weight: 600;
-    border: none;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(00,0,0,0.1);
+    box-shadow: 0 4px 15px var(--shadow);
     text-decoration: none !important;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     outline: none;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
 .presensi-header .btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    box-shadow: 0 6px 20px var(--shadow);
 }
 
 .presensi-header .btn:focus {
     outline: none;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 15px var(--shadow);
 }
 
 .presensi-header .btn:active {
     outline: none;
     transform: translateY(0);
-}
-
-.presensi-header .btn:visited {
-    text-decoration: none !important;
-    color: inherit !important;
 }
 
 .presensi-header .btn i {
@@ -120,19 +113,43 @@ a:active {
     text-decoration: none !important;
 }
 
+.presensi-header .btn-primary {
+    background: linear-gradient(135deg, var(--light-gold) 0%, var(--accent-gold) 100%);
+    color: var(--dark) !important;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.presensi-header .btn-primary:hover {
+    background: linear-gradient(135deg, var(--accent-gold) 0%, var(--secondary-gold) 100%);
+    color: var(--white) !important;
+}
+
 .presensi-header .btn-success {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white !important;
+    background: linear-gradient(135deg, var(--light-gold) 0%, var(--secondary-gold) 100%);
+    color: var(--white) !important;
 }
 
 .presensi-header .btn-warning {
-    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
-    color: #212529 !important;
+    background: linear-gradient(135deg, var(--light-gold) 0%, var(--accent-gold) 100%);
+    color: var(--dark) !important;
 }
 
-.presensi-header .btn-primary {
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-    color: white !important;
+.presensi-header .btn-danger {
+    background: linear-gradient(135deg, var(--secondary-gold) 0%, var(--primary-gold) 100%);
+    color: var(--white) !important;
+}
+
+/* Card header dengan tema cokelat */
+.card-header {
+    background: linear-gradient(135deg, var(--light-gold) 0%, var(--accent-gold) 100%) !important;
+    border-bottom: 1px solid var(--primary-gold) !important;
+    color: var(--dark) !important;
+    font-weight: 600;
+}
+
+.card-header h6 {
+    color: var(--dark) !important;
+    margin: 0;
 }
 
 .alert-custom {
@@ -327,12 +344,6 @@ a:active {
                 <p class="text-white mb-0 mt-2 opacity-75">Kelola data kehadiran pegawai</p>
             </div>
             <div class="btn-group">
-                <a href="{{ route('transaksi.presensi.face-attendance') }}" class="btn btn-success">
-                    <i class="fas fa-camera"></i> Absen Wajah
-                </a>
-                <a href="{{ route('transaksi.presensi.verifikasi-wajah.index') }}" class="btn btn-warning">
-                    <i class="fas fa-user-check"></i> Verifikasi Wajah
-                </a>
                 <a href="{{ route('transaksi.presensi.create') }}" class="btn btn-primary">
                     <i class="fas fa-plus"></i> Tambah Presensi
                 </a>
@@ -350,49 +361,6 @@ a:active {
         </div>
     @endif
 
-    <!-- Alert untuk pegawai yang belum verifikasi wajah -->
-    @if(isset($pegawaiTanpaVerifikasi) && count($pegawaiTanpaVerifikasi) > 0)
-        <div class="alert alert-warning alert-dismissible fade show alert-custom" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <strong>Peringatan:</strong> {{ count($pegawaiTanpaVerifikasi) }} pegawai belum melakukan verifikasi wajah.
-            <div class="mt-2">
-                <small class="text-muted">Pegawai yang belum verifikasi:</small>
-                <ul class="mb-0 mt-1">
-                    @foreach($pegawaiTanpaVerifikasi as $pegawai)
-                        <li>{{ $pegawai->nama_display ?? $pegawai->nama }} (NIP: {{ $pegawai->nomor_induk_pegawai }})</li>
-                    @endforeach
-                </ul>
-                <div class="mt-2">
-                    <a href="{{ route('transaksi.presensi.verifikasi-wajah.index') }}" class="btn btn-sm btn-warning">
-                        <i class="fas fa-camera"></i> Kelola Verifikasi Wajah
-                    </a>
-                </div>
-            </div>
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-    @endif
-
-    <!-- Alert untuk presensi hari ini yang belum verifikasi -->
-    @if(isset($presensiTanpaVerifikasi) && count($presensiTanpaVerifikasi) > 0)
-        <div class="alert alert-info alert-dismissible fade show alert-custom" role="alert">
-            <i class="fas fa-info-circle me-2"></i>
-            <strong>Informasi:</strong> {{ count($presensiTanpaVerifikasi) }} presensi hari ini belum diverifikasi wajah.
-            <div class="mt-2">
-                <small class="text-muted">Presensi yang belum verifikasi:</small>
-                <ul class="mb-0 mt-1">
-                    @foreach($presensiTanpaVerifikasi as $presensi)
-                        <li>{{ optional($presensi->pegawai)->nama_display ?? optional($presensi->pegawai)->nama }} - {{ $presensi->tgl_presensi->format('d/m/Y') }}</li>
-                    @endforeach
-                </ul>
-            </div>
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-    @endif
-
     <!-- Card dengan desain modern -->
     <div class="card">
         <div class="card-header py-3">
@@ -403,22 +371,34 @@ a:active {
         <div class="card-body">
             <!-- Filter Section -->
             <div class="row mb-4">
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <form method="GET" action="{{ route('transaksi.presensi.index') }}">
-                        <div class="input-group">
-                            <input type="date" name="tanggal" class="form-control" 
-                                   value="{{ request('tanggal') ?? now()->format('Y-m-d') }}">
-                            <button type="submit" class="btn btn-outline-primary">
-                                <i class="fas fa-search"></i> Filter
-                            </button>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small">Filter Tanggal</label>
+                                <input type="date" name="date_filter" class="form-control" 
+                                       value="{{ $dateFilter }}">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small">&nbsp;</label><br>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Filter
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
-                <div class="col-md-8 text-end">
-                    <span class="text-muted">
-                        <i class="fas fa-calendar"></i> 
-                        Menampilkan: <strong>{{ request('tanggal') ?? now()->format('d F Y') }}</strong>
-                    </span>
+                <div class="col-md-6">
+                    <form method="GET" action="{{ route('transaksi.presensi.index') }}">
+                        <label class="form-label small">Cari Pegawai</label>
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control" 
+                                   placeholder="Cari pegawai..." value="{{ $search }}">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -434,8 +414,7 @@ a:active {
                             <th class="text-center" width="8%">Jam Keluar</th>
                             <th class="text-center" width="8%">Jumlah Jam</th>
                             <th class="text-center" width="10%">Status</th>
-                            <th class="text-center" width="12%">Verifikasi</th>
-                            <th class="text-center" width="12%">Aksi</th>
+                            <th class="text-center" width="15%">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -467,9 +446,9 @@ a:active {
                             <td class="text-center">
                                 <span class="jam-keluar">{{ $presensi->jam_keluar ?? '-' }}</span>
                             </td>
-                            <td class="text-center fw-bold">
-                                @if($presensi->status === 'Hadir')
-                                    <span class="jumlah-jam">{{ number_format($presensi->jumlah_jam, 1) }} jam</span>
+                            <td class="text-center">
+                                @if($presensi->jumlah_jam !== null)
+                                    <span class="jumlah-jam">{{ $presensi->jumlah_jam }} jam</span>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
@@ -494,17 +473,6 @@ a:active {
                                     @default
                                         <span class="badge badge-secondary">{{ $presensi->status }}</span>
                                 @endswitch
-                            </td>
-                            <td class="text-center">
-                                @if($presensi->verifikasi_wajah)
-                                    <span class="badge badge-success">
-                                        <i class="fas fa-check-circle"></i> Terverifikasi
-                                    </span>
-                                @else
-                                    <span class="badge badge-danger" title="Pegawai harus verifikasi wajah dulu">
-                                        <i class="fas fa-times-circle"></i> Belum Verifikasi
-                                    </span>
-                                @endif
                             </td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">

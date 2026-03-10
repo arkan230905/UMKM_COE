@@ -281,6 +281,7 @@
                         <option value="" selected disabled>Pilih halaman</option>
                         <option value="owner">Owner</option>
                         <option value="admin">Admin</option>
+                        <option value="pegawai">Pegawai</option>
                         <option value="pegawai_pembelian">Pegawai Gudang</option>
                         <option value="kasir">Kasir</option>
                     </select>
@@ -290,7 +291,7 @@
                 </div>
 
                 <div id="login-fields" style="display: none;">
-                    <!-- Field Email (hanya untuk owner, admin, pegawai, kasir) -->
+                    <!-- Field Email (hanya untuk owner, admin, pegawai, pegawai_pembelian, kasir) -->
                     <div id="email_field" class="mb-3" style="display: none;">
                         <label for="email" class="form-label">Email</label>
                         <input id="email" type="email" name="email" value="{{ old('email') }}" class="form-control">
@@ -299,7 +300,7 @@
                         @enderror
                     </div>
 
-                    <!-- Field Password (hanya untuk owner, admin) -->
+                    <!-- Field Password (hanya untuk owner) -->
                     <div id="password_field" class="mb-3" style="display: none;">
                         <label for="password" class="form-label">Password</label>
                         <input id="password" type="password" name="password" class="form-control">
@@ -373,7 +374,7 @@
                     }
 
                     // Role admin, pegawai, kasir: tanpa password
-                    if (role === 'admin' || role === 'pegawai_pembelian' || role === 'kasir') {
+                    if (role === 'admin' || role === 'pegawai' || role === 'pegawai_pembelian' || role === 'kasir') {
                         // no extra fields
                     }
                     // Role owner: dengan password

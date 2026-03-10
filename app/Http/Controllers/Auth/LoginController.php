@@ -58,6 +58,8 @@ class LoginController extends Controller
             case 'owner':
             case 'admin':
                 return '/dashboard';
+            case 'pegawai':
+                return route('pegawai.presensi.absen-wajah');
             case 'pegawai_pembelian':
                 return route('pegawai-pembelian.dashboard');
             case 'kasir':
@@ -80,7 +82,7 @@ class LoginController extends Controller
         
         // Validasi role terlebih dahulu
         $request->validate([
-            'login_role' => 'required|string|in:owner,admin,pegawai_pembelian,kasir,pelanggan',
+            'login_role' => 'required|string|in:owner,admin,pegawai,pegawai_pembelian,kasir,pelanggan',
         ], [
             'login_role.required' => 'Silakan pilih role terlebih dahulu.',
             'login_role.in' => 'Role yang dipilih tidak valid.',
@@ -134,6 +136,31 @@ class LoginController extends Controller
             $request->session()->regenerate();
             
             return redirect()->intended('/dashboard');
+        }
+
+        // Login tanpa password untuk pegawai
+        if ($role === 'pegawai') {
+            $pegawai = Pegawai::where('email', $email)->first();
+            
+            if (!$pegawai) {
+                return back()->withInput()->withErrors(['email' => 'Data pegawai tidak ditemukan di sistem. Email: ' . $email]);
+            }
+            
+            // Cek apakah user sudah ada untuk pegawai ini
+            $user = User::where('email', $email)->first();
+            if (!$user) {
+                return back()->withInput()->withErrors(['email' => 'Akun user untuk pegawai ini belum dibuat. Email pegawai: ' . $email . ' tapi tidak ada di tabel users.']);
+            }
+            
+            if ($user->role !== 'pegawai') {
+                return back()->withInput()->withErrors(['email' => 'Role user tidak sesuai dengan pegawai. Role user saat ini: ' . $user->role]);
+            }
+            
+            // Login otomatis tanpa password untuk pegawai
+            auth()->login($user);
+            $request->session()->regenerate();
+            
+            return redirect()->intended(route('pegawai.presensi.absen-wajah'));
         }
 
         // Login tanpa password untuk pegawai pembelian (sebenarnya bagian gudang)

@@ -327,18 +327,34 @@ document.getElementById('saveBtn').addEventListener('click', function() {
         
         const formData = new FormData();
         formData.append('kode_pegawai', currentPegawai);
-        formData.append('foto_wajah', blob, 'face_' + Date.now() + '.jpg');
-        formData.append('encoding_wajah', JSON.stringify(faceEncoding));
-        formData.append('aktif', true);
-        formData.append('tanggal_verifikasi', new Date().toISOString().split('T')[0]);
-        
-        fetch('{{ route("transaksi.presensi.verifikasi-wajah.store") }}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            }
-        })
+        // Convert blob to base64
+        const reader = new FileReader();
+        reader.onloadend = function() {
+            const base64Image = reader.result;
+            
+            // Create JSON payload
+            const payload = {
+                kode_pegawai: currentPegawai,
+                foto_wajah: base64Image, // Send as base64 string
+                encoding_wajah: JSON.stringify(faceEncoding),
+                aktif: true,
+                tanggal_verifikasi: new Date().toISOString().split('T')[0]
+            };
+            
+            console.log('JSON payload:', payload);
+            
+            const url = '{{ route("transaksi.presensi.verifikasi-wajah.store") }}';
+            console.log('Sending request to:', url);
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(payload)
+            })
         .then(response => response.json())
         .then(data => {
             console.log('Save response:', data);
