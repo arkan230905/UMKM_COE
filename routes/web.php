@@ -42,6 +42,7 @@ use App\Http\Controllers\HargaController;
 use App\Http\Controllers\PembelianController;
 use App\Http\Controllers\PenjualanController;
 use App\Http\Controllers\ReturController;
+use App\Http\Controllers\ReturPenjualanController;
 use App\Http\Controllers\PenggajianController;
 use App\Http\Controllers\ExpensePaymentController;
 use App\Http\Controllers\ApSettlementController;
@@ -594,12 +595,17 @@ Route::middleware('auth')->group(function () {
         });
         
         // Retur Penjualan
-        Route::prefix('retur-penjualan')->name('retur-penjualan.')->group(function() {
-            Route::get('/', [ReturController::class, 'indexPenjualan'])->name('index');
-            Route::get('/create', [ReturController::class, 'createPenjualan'])->name('create');
-            Route::post('/', [ReturController::class, 'storePenjualan'])->name('store');
-            Route::get('/{id}', [ReturController::class, 'showPenjualan'])->name('show');
-            Route::delete('/{id}', [ReturController::class, 'destroyPenjualan'])->name('destroy');
+        Route::prefix('retur-penjualan')->name('retur-penjualan')->group(function() {
+            Route::get('/', [ReturPenjualanController::class, 'index']);
+            Route::get('/create', [ReturPenjualanController::class, 'create']);
+            Route::post('/', [ReturPenjualanController::class, 'store']);
+            Route::get('/{returPenjualan}', [ReturPenjualanController::class, 'show']);
+            Route::get('/{returPenjualan}/edit', [ReturPenjualanController::class, 'edit']);
+            Route::put('/{returPenjualan}', [ReturPenjualanController::class, 'update']);
+            Route::delete('/{returPenjualan}', [ReturPenjualanController::class, 'destroy']);
+            Route::get('/laporan', [ReturPenjualanController::class, 'laporan']);
+            Route::get('/get-penjualan-details/{penjualanId}', [ReturPenjualanController::class, 'getPenjualanDetails']);
+            Route::post('/{returPenjualan}/bayar-kredit', [ReturPenjualanController::class, 'bayarKredit']);
         });
 
 

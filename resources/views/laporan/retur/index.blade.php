@@ -77,20 +77,20 @@
                         @forelse ($salesReturns as $index => $return)
                             <tr>
                                 <td>{{ $salesReturns->firstItem() + $index }}</td>
-                                <td><strong>{{ $return->return_number ?? '-' }}</strong></td>
-                                <td>{{ $return->return_date ? $return->return_date->format('d/m/Y') : '-' }}</td>
+                                <td><strong>{{ $return->memo ?? 'RET-' . str_pad($return->id, 4, '0', STR_PAD_LEFT) }}</strong></td>
+                                <td>{{ $return->tanggal ? \Carbon\Carbon::parse($return->tanggal)->format('d/m/Y') : '-' }}</td>
                                 <td>{{ $return->penjualan->nomor_penjualan ?? '-' }}</td>
                                 <td>
-                                    @if($return->items && $return->items->count() > 0)
+                                    @if($return->details && $return->details->count() > 0)
                                         <div class="small">
-                                            @foreach($return->items as $item)
+                                            @foreach($return->details as $detail)
                                                 <div class="mb-1">
-                                                    • {{ $item->penjualanDetail->produk->nama_produk ?? 'Produk' }}
+                                                    • {{ $detail->produk->nama_produk ?? 'Produk' }}
                                                     <span class="text-muted">
-                                                        ({{ number_format($item->quantity ?? 0, 0, ',', '.') }} pcs)
+                                                        ({{ number_format($detail->qty ?? 0, 0, ',', '.') }} pcs)
                                                     </span>
-                                                    - Rp {{ number_format($item->unit_price ?? 0, 0, ',', '.') }}
-                                                    = <strong>Rp {{ number_format($item->subtotal ?? 0, 0, ',', '.') }}</strong>
+                                                    - Rp {{ number_format($detail->harga_satuan_asal ?? 0, 0, ',', '.') }}
+                                                    = <strong>Rp {{ number_format(($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0), 0, ',', '.') }}</strong>
                                                 </div>
                                             @endforeach
                                         </div>
@@ -99,10 +99,10 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <span class="badge bg-warning text-dark">{{ $return->reason ?? '-' }}</span>
+                                    <span class="badge bg-warning text-dark">{{ $return->alasan ?? '-' }}</span>
                                 </td>
                                 <td class="text-end">
-                                    <strong>Rp {{ number_format($return->total_return_amount ?? 0, 0, ',', '.') }}</strong>
+                                    <strong>Rp {{ number_format($return->details->sum(function($detail) { return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0); }), 0, ',', '.') }}</strong>
                                 </td>
                                 <td>
                                     <span class="badge {{ $return->status === 'approved' ? 'bg-success' : ($return->status === 'pending' ? 'bg-warning' : 'bg-secondary') }}">
@@ -204,21 +204,21 @@
                         @forelse ($purchaseReturns as $index => $return)
                             <tr>
                                 <td>{{ $purchaseReturns->firstItem() + $index }}</td>
-                                <td><strong>{{ $return->return_number ?? '-' }}</strong></td>
-                                <td>{{ $return->return_date ? $return->return_date->format('d/m/Y') : '-' }}</td>
+                                <td><strong>{{ $return->memo ?? 'RET-' . str_pad($return->id, 4, '0', STR_PAD_LEFT) }}</strong></td>
+                                <td>{{ $return->tanggal ? \Carbon\Carbon::parse($return->tanggal)->format('d/m/Y') : '-' }}</td>
                                 <td>{{ $return->pembelian->nomor_pembelian ?? '-' }}</td>
                                 <td>{{ $return->pembelian->vendor->nama_vendor ?? '-' }}</td>
                                 <td>
-                                    @if($return->items && $return->items->count() > 0)
+                                    @if($return->details && $return->details->count() > 0)
                                         <div class="small">
-                                            @foreach($return->items as $item)
+                                            @foreach($return->details as $detail)
                                                 <div class="mb-1">
-                                                    • {{ $item->pembelianDetail->bahanBaku->nama_bahan ?? 'Bahan Baku' }}
+                                                    • {{ $detail->produk->nama_produk ?? 'Bahan Baku' }}
                                                     <span class="text-muted">
-                                                        ({{ number_format($item->quantity ?? 0, 0, ',', '.') }} {{ $item->pembelianDetail->bahanBaku->satuan->nama ?? 'unit' }})
+                                                        ({{ number_format($detail->qty ?? 0, 0, ',', '.') }})
                                                     </span>
-                                                    - Rp {{ number_format($item->unit_price ?? 0, 0, ',', '.') }}
-                                                    = <strong>Rp {{ number_format($item->subtotal ?? 0, 0, ',', '.') }}</strong>
+                                                    - Rp {{ number_format($detail->harga_satuan_asal ?? 0, 0, ',', '.') }}
+                                                    = <strong>Rp {{ number_format(($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0), 0, ',', '.') }}</strong>
                                                 </div>
                                             @endforeach
                                         </div>
@@ -227,10 +227,10 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <span class="badge bg-warning text-dark">{{ $return->reason ?? '-' }}</span>
+                                    <span class="badge bg-warning text-dark">{{ $return->alasan ?? '-' }}</span>
                                 </td>
                                 <td class="text-end">
-                                    <strong>Rp {{ number_format($return->total_return_amount ?? 0, 0, ',', '.') }}</strong>
+                                    <strong>Rp {{ number_format($return->details->sum(function($detail) { return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0); }), 0, ',', '.') }}</strong>
                                 </td>
                                 <td>
                                     <span class="badge {{ $return->status === 'approved' ? 'bg-success' : ($return->status === 'pending' ? 'bg-warning' : 'bg-secondary') }}">

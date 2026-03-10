@@ -12,7 +12,9 @@ class Retur extends Model
     protected $fillable = [
         'type',
         'ref_id',
+        'tanggal',
         'kompensasi',
+        'status',
         'created_by',
         'alasan',
         'memo',
@@ -53,15 +55,13 @@ class Retur extends Model
     // Relasi ke penjualan (jika retur penjualan)
     public function penjualan()
     {
-        return $this->belongsTo(Penjualan::class, 'referensi_id')
-                    ->where('tipe_retur', 'penjualan');
+        return $this->belongsTo(Penjualan::class, 'ref_id');
     }
 
     // Relasi ke pembelian (jika retur pembelian)
     public function pembelian()
     {
-        return $this->belongsTo(Pembelian::class, 'referensi_id')
-                    ->where('tipe_retur', 'pembelian');
+        return $this->belongsTo(Pembelian::class, 'ref_id');
     }
 
     // Generate kode retur otomatis (fallback ke memo)

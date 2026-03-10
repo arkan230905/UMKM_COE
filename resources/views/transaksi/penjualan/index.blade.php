@@ -1,5 +1,199 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+/* Horizontal Tabs Style - Mengikuti gaya Satuan | Konversi */
+.horizontal-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #f0e6dc;
+    padding-bottom: 0;
+    background: linear-gradient(to bottom, #faf8f6, transparent);
+    padding: 1rem 0 0;
+    margin: -1rem -1rem 1.5rem -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #8B7355;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    border-radius: 8px 8px 0 0;
+    position: relative;
+}
+
+.tab-btn:hover {
+    color: #7a6348;
+    background: rgba(139, 115, 85, 0.05);
+    transform: translateY(-1px);
+}
+
+.tab-btn.active {
+    color: #8B7355;
+    font-weight: 600;
+    border-bottom-color: #8B7355;
+    background: rgba(139, 115, 85, 0.08);
+}
+
+.tab-separator {
+    color: #d4c4b0;
+    font-size: 1.2rem;
+    margin: 0 0.75rem;
+    user-select: none;
+    font-weight: 300;
+}
+
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.show.active {
+    display: block;
+}
+
+/* Summary Cards Style */
+.summary-card {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: #8B7355;
+}
+
+.summary-label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.summary-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+/* Action Layout Style - Detail on Left, Others on Right */
+.action-layout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.action-left {
+    display: flex;
+    align-items: center;
+}
+
+.action-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.action-row {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-minimal {
+    font-size: 0.7rem !important;
+    text-decoration: none;
+    padding: 4px 10px !important;
+    border-radius: 0.2rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: 1px solid;
+    background: white;
+    font-weight: 500;
+    white-space: nowrap;
+    width: 60px !important;
+    min-width: 60px !important;
+    max-width: 60px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-sizing: border-box;
+}
+
+.btn-minimal:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.btn-minimal.btn-warning {
+    color: #f59e0b;
+    border-color: #f59e0b;
+}
+
+.btn-minimal.btn-warning:hover {
+    background: #fef3c7;
+    border-color: #d97706;
+    color: #d97706;
+}
+
+.btn-minimal.btn-primary {
+    color: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    background: white !important;
+}
+
+.btn-minimal.btn-primary:hover {
+    background: #dbeafe !important;
+    border-color: #2563eb !important;
+    color: #2563eb !important;
+}
+
+.btn-minimal.btn-info {
+    color: #06b6d4;
+    border-color: #06b6d4;
+}
+
+.btn-minimal.btn-info:hover {
+    background: #cffafe;
+    border-color: #0891b2;
+    color: #0891b2;
+}
+
+.btn-minimal.btn-danger {
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+.btn-minimal.btn-danger:hover {
+    background: #fee2e2;
+    border-color: #dc2626;
+    color: #dc2626;
+}
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -9,6 +203,43 @@
         <a href="{{ route('transaksi.penjualan.create') }}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Tambah Penjualan
         </a>
+    </div>
+
+    <!-- Ringkasan Penjualan Harian -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0">
+                <i class="fas fa-chart-line me-2"></i>Ringkasan Penjualan Harian
+            </h6>
+        </div>
+        <div class="card-body py-3">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <div class="summary-card">
+                        <div class="summary-label">Total Penjualan</div>
+                        <div class="summary-value text-primary">Rp {{ number_format($totalPenjualan, 0, ',', '.') }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="summary-card">
+                        <div class="summary-label">Jumlah Transaksi</div>
+                        <div class="summary-value text-info">{{ number_format($jumlahTransaksi, 0, ',', '.') }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="summary-card">
+                        <div class="summary-label">Produk Terjual</div>
+                        <div class="summary-value text-warning">{{ number_format($totalProdukTerjual, 0, ',', '.') }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="summary-card">
+                        <div class="summary-label">Total Profit</div>
+                        <div class="summary-value {{ $totalProfit >= 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($totalProfit, 0, ',', '.') }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Filter Section -->
@@ -69,15 +300,27 @@
     </div>
 
     <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">
-                <i class="fas fa-list me-2"></i>Riwayat Penjualan
-                @if(request()->hasAny(['nomor_transaksi', 'tanggal_mulai', 'tanggal_selesai', 'payment_method', 'status']))
-                    <small class="text-muted">(Filter Aktif)</small>
-                @endif
-            </h5>
-        </div>
         <div class="card-body">
+            <!-- Custom Tabs Navigation -->
+            <div class="horizontal-tabs">
+                <button class="tab-btn active" onclick="showTab('penjualan-list', this)">
+                    <i class="fas fa-shopping-cart me-2"></i>Penjualan
+                </button>
+                <span class="tab-separator">|</span>
+                <button class="tab-btn" onclick="showTab('retur-list', this)">
+                    <i class="fas fa-undo me-2"></i>Retur
+                </button>
+            </div>
+            
+            <div class="tab-content" id="penjualanTabContent">
+                <div class="tab-pane fade show active" id="penjualan-list" role="tabpanel">
+                    <!-- Konten Penjualan -->
+                    <h5 class="mb-3">
+                        <i class="fas fa-list me-2"></i>Riwayat Penjualan
+                        @if(request()->hasAny(['nomor_transaksi', 'tanggal_mulai', 'tanggal_selesai', 'payment_method', 'status']))
+                            <small class="text-muted">(Filter Aktif)</small>
+                        @endif
+                    </h5>
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
@@ -90,9 +333,8 @@
                             <th class="text-end">Qty</th>
                             <th class="text-end">Harga/Satuan</th>
                             <th class="text-end">HPP</th>
-                            <th class="text-end">Margin</th>
-                            <th class="text-end">Diskon %</th>
-                            <th class="text-end">Diskon (Rp)</th>
+                            <th class="text-end">Profit</th>
+                            <th class="text-end">Diskon</th>
                             <th class="text-end">Total</th>
                             <th>Status Retur</th>
                             <th class="text-center">Aksi</th>
@@ -181,25 +423,14 @@
                                     @if($detailCount > 1)
                                         @foreach($penjualan->details as $d)
                                             @php $sub = (float)$d->jumlah * (float)$d->harga_satuan; $disc = (float)($d->diskon_nominal ?? 0); $pct = $sub>0 ? ($disc/$sub*100) : 0; @endphp
-                                            <div>{{ number_format($pct, 2, ',', '.') }}%</div>
+                                            <div>{{ number_format($pct, 2, ',', '.') }}% (Rp {{ number_format($disc, 0, ',', '.') }})</div>
                                         @endforeach
                                     @elseif($detailCount === 1)
                                         @php $d=$penjualan->details[0]; $sub=(float)$d->jumlah*(float)$d->harga_satuan; $disc=(float)($d->diskon_nominal??0); $pct=$sub>0?($disc/$sub*100):0; @endphp
-                                        {{ number_format($pct, 2, ',', '.') }}%
+                                        {{ number_format($pct, 2, ',', '.') }}% (Rp {{ number_format($disc, 0, ',', '.') }})
                                     @else
-                                        @php $pct=0; if(($penjualan->jumlah??0)>0){ $hdrHarga=$penjualan->harga_satuan; if(is_null($hdrHarga)){ $hdrHarga=((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0))/(float)$penjualan->jumlah; } $subtotal=$penjualan->jumlah*$hdrHarga; $pct=$subtotal>0?(((float)($penjualan->diskon_nominal ?? 0))/$subtotal*100):0; } @endphp
-                                        {{ number_format($pct, 2, ',', '.') }}%
-                                    @endif
-                                </td>
-                                <td class="text-end">
-                                    @if($detailCount > 1)
-                                        @foreach($penjualan->details as $d)
-                                            <div>Rp {{ number_format($d->diskon_nominal ?? 0, 0, ',', '.') }}</div>
-                                        @endforeach
-                                    @elseif($detailCount === 1)
-                                        Rp {{ number_format($penjualan->details[0]->diskon_nominal ?? 0, 0, ',', '.') }}
-                                    @else
-                                        Rp {{ number_format($penjualan->diskon_nominal ?? 0, 0, ',', '.') }}
+                                        @php $pct=0; $disc=(float)($penjualan->diskon_nominal ?? 0); if(($penjualan->jumlah??0)>0){ $hdrHarga=$penjualan->harga_satuan; if(is_null($hdrHarga)){ $hdrHarga=((float)$penjualan->total + $disc)/(float)$penjualan->jumlah; } $subtotal=$penjualan->jumlah*$hdrHarga; $pct=$subtotal>0?($disc/$subtotal*100):0; } @endphp
+                                        {{ number_format($pct, 2, ',', '.') }}% (Rp {{ number_format($disc, 0, ',', '.') }})
                                     @endif
                                 </td>
                                 <td class="text-end fw-semibold">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</td>
@@ -215,23 +446,34 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn btn-outline-warning">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a href="{{ route('transaksi.retur-penjualan.create', ['penjualan_id' => $penjualan->id]) }}" class="btn btn-outline-info">
-                                            <i class="fas fa-undo"></i>
-                                        </a>
-                                        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn btn-outline-primary">
-                                            <i class="fas fa-book"></i> Jurnal
-                                        </a>
-                                        <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="btn btn-outline-danger">
-                                                <i class="fas fa-trash"></i>
+                                    <div class="action-layout">
+                                        <div class="action-left">
+                                            <button type="button" class="btn-minimal btn-primary w-100" data-bs-toggle="modal" data-bs-target="#detailModal{{ $penjualan->id }}" title="Detail Transaksi">
+                                                Detail
                                             </button>
-                                        </form>
+                                        </div>
+                                        <div class="action-right">
+                                            <div class="action-row">
+                                                <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Transaksi">
+                                                    Edit
+                                                </a>
+                                                <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn-minimal btn-primary w-100" data-bs-toggle="tooltip" title="Lihat Jurnal">
+                                                    Jurnal
+                                                </a>
+                                            </div>
+                                            <div class="action-row">
+                                                <a href="{{ route('retur-penjualan.create', ['penjualan_id' => $penjualan->id]) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Proses Retur">
+                                                    Retur
+                                                </a>
+                                                <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn-minimal btn-danger" data-bs-toggle="tooltip" title="Hapus Transaksi">
+                                                        Hapus
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
                                     </div>
                                 </td>
                             </tr>
@@ -239,7 +481,433 @@
                     </tbody>
                 </table>
             </div>
+                    <!-- Akhir Konten Penjualan -->
+                </div>
+                <div class="tab-pane fade" id="retur-list" role="tabpanel" aria-labelledby="retur-list-tab">
+                    <!-- Konten Retur -->
+                    <h5 class="mb-3">
+                        <i class="fas fa-undo me-2"></i>Riwayat Retur Penjualan
+                    </h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-center" style="width: 50px">#</th>
+                                    <th>Tanggal</th>
+                                    <th>Nomor Penjualan</th>
+                                    <th>Alasan</th>
+                                    <th>Kompensasi</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Total Retur</th>
+                                    <th>Produk</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($salesReturns as $key => $retur)
+                                    <tr>
+                                        <td class="text-center">{{ $key + 1 }}</td>
+                                        <td>{{ optional($retur->return_date)->format('d-m-Y') ?? '-' }}</td>
+                                        <td><strong>{{ $retur->penjualan?->nomor_penjualan ?? '-' }}</strong></td>
+                                        <td>{{ $retur->reason ?? '-' }}</td>
+                                        <td>
+                                            @if($retur->items->count() > 0)
+                                                @foreach($retur->items as $item)
+                                                    <div>{{ $item->jumlah ?? 0 }} {{ $item->produk?->satuan->nama_satuan ?? 'unit' }} {{ $item->produk?->nama_produk ?? '' }}</div>
+                                                @endforeach
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <span class="badge {{ $retur->status === 'completed' ? 'bg-success' : ($retur->status === 'pending' ? 'bg-warning' : 'bg-danger') }}">
+                                                {{ ucfirst($retur->status ?? '-') }}
+                                            </span>
+                                        </td>
+                                        <td class="text-end fw-semibold">Rp {{ number_format($retur->total_return_amount ?? 0, 0, ',', '.') }}</td>
+                                        <td>
+                                            @if($retur->items->count() > 0)
+                                                @foreach($retur->items as $item)
+                                                    <div>{{ $item->produk?->nama_produk ?? '-' }}</div>
+                                                @endforeach
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="action-layout">
+                                                <div class="action-left">
+                                                    <button type="button" class="btn-minimal btn-primary w-100" data-bs-toggle="modal" data-bs-target="#returDetailModal{{ $retur->id }}" title="Detail Retur">
+                                                        Detail
+                                                    </button>
+                                                </div>
+                                                <div class="action-right">
+                                                    <div class="action-row">
+                                                        <a href="{{ route('retur-penjualan.edit', $retur->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Retur">
+                                                            Edit
+                                                        </a>
+                                                        <form action="{{ route('retur-penjualan.destroy', $retur->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus retur ini?')">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn-minimal btn-danger" data-bs-toggle="tooltip" title="Hapus Retur">
+                                                                Hapus
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="9" class="text-center text-muted">
+                                            <i class="fas fa-info-circle me-2"></i>Belum ada data retur penjualan
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Akhir Konten Retur -->
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Detail Modal -->
+@foreach($penjualans as $penjualan)
+<div class="modal fade" id="detailModal{{ $penjualan->id }}" tabindex="-1" aria-labelledby="detailModalLabel{{ $penjualan->id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailModalLabel{{ $penjualan->id }}">
+                    <i class="fas fa-eye me-2"></i>Detail Transaksi Penjualan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @php
+                    // Calculate summary data
+                    $totalSubtotal = 0;
+                    $totalHPP = 0;
+                    $totalProfit = 0;
+                    $detailCount = $penjualan->details->count();
+                    
+                    if($detailCount > 1) {
+                        foreach($penjualan->details as $d) {
+                            $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal);
+                            $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah;
+                            $subtotal = $d->jumlah * $d->harga_satuan;
+                            
+                            $totalSubtotal += $subtotal;
+                            $totalHPP += $actualHPP * $d->jumlah;
+                            $totalProfit += $margin;
+                        }
+                    } elseif($detailCount === 1) {
+                        $d = $penjualan->details[0];
+                        $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal);
+                        $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah;
+                        $subtotal = $d->jumlah * $d->harga_satuan;
+                        
+                        $totalSubtotal = $subtotal;
+                        $totalHPP = $actualHPP * $d->jumlah;
+                        $totalProfit = $margin;
+                    } else {
+                        $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
+                        $hdrHarga = $penjualan->harga_satuan;
+                        if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
+                            $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                        }
+                        $margin = ($hdrHarga - $actualHPP) * ($penjualan->jumlah ?? 0);
+                        $subtotal = ($penjualan->jumlah ?? 0) * $hdrHarga;
+                        
+                        $totalSubtotal = $subtotal;
+                        $totalHPP = $actualHPP * ($penjualan->jumlah ?? 0);
+                        $totalProfit = $margin;
+                    }
+                    
+                    // Check return status
+                    $hasRetur = \App\Models\SalesReturn::where('penjualan_id', $penjualan->id)->exists();
+                    $returnCount = \App\Models\SalesReturn::where('penjualan_id', $penjualan->id)->count();
+                @endphp
+                
+                <!-- Informasi Transaksi -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Nomor Transaksi:</strong> {{ $penjualan->nomor_penjualan ?? '-' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Tanggal:</strong> {{ optional($penjualan->tanggal)->format('d-m-Y') ?? $penjualan->tanggal }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Kasir:</strong> {{ $penjualan->user?->name ?? '-' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Pelanggan:</strong> Umum
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Metode Pembayaran:</strong> 
+                        <span class="badge {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'bg-warning' : 'bg-success' }}">
+                            {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'Kredit' : 'Tunai' }}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Status Transaksi:</strong> 
+                        <span class="badge {{ ($penjualan->status ?? 'lunas') === 'lunas' ? 'bg-success' : 'bg-warning' }}">
+                            {{ ucfirst($penjualan->status ?? 'lunas') }}
+                        </span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Status Retur:</strong> 
+                        @if($hasRetur)
+                            @if($returnCount > 1)
+                                <span class="badge bg-info">Retur {{ $returnCount }}x</span>
+                            @else
+                                <span class="badge bg-info">Retur Sebagian</span>
+                            @endif
+                        @else
+                            <span class="badge bg-success">Tidak Ada Retur</span>
+                        @endif
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Catatan:</strong> {{ $penjualan->catatan ?? '-' }}
+                    </div>
+                </div>
+                
+                <h6 class="mb-3"><i class="fas fa-box me-2"></i>Detail Produk</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Produk</th>
+                                <th class="text-end">Qty</th>
+                                <th class="text-end">Harga</th>
+                                <th class="text-end">HPP</th>
+                                <th class="text-end">Profit</th>
+                                <th class="text-end">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if($detailCount > 1)
+                                @foreach($penjualan->details as $d)
+                                    @php 
+                                    $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal); 
+                                    $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah;
+                                    $subtotal = $d->jumlah * $d->harga_satuan;
+                                    @endphp
+                                    <tr>
+                                        <td>{{ $d->produk->nama_produk ?? '-' }}</td>
+                                        <td class="text-end">{{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}</td>
+                                        <td class="text-end">Rp {{ number_format($d->harga_satuan ?? 0, 0, ',', '.') }}</td>
+                                        <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
+                                        <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">
+                                            Rp {{ number_format($margin, 0, ',', '.') }}
+                                        </td>
+                                        <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                                    </tr>
+                                @endforeach
+                            @elseif($detailCount === 1)
+                                @php 
+                                $d = $penjualan->details[0];
+                                $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal); 
+                                $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah;
+                                $subtotal = $d->jumlah * $d->harga_satuan;
+                                @endphp
+                                <tr>
+                                    <td>{{ $d->produk->nama_produk ?? '-' }}</td>
+                                    <td class="text-end">{{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}</td>
+                                    <td class="text-end">Rp {{ number_format($d->harga_satuan ?? 0, 0, ',', '.') }}</td>
+                                    <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
+                                    <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">
+                                        Rp {{ number_format($margin, 0, ',', '.') }}
+                                    </td>
+                                    <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                                </tr>
+                            @else
+                                @php 
+                                $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
+                                $hdrHarga = $penjualan->harga_satuan;
+                                if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
+                                    $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                                }
+                                $margin = ($hdrHarga - $actualHPP) * ($penjualan->jumlah ?? 0);
+                                $subtotal = ($penjualan->jumlah ?? 0) * $hdrHarga;
+                                @endphp
+                                <tr>
+                                    <td>{{ $penjualan->produk?->nama_produk ?? '-' }}</td>
+                                    <td class="text-end">{{ rtrim(rtrim(number_format($penjualan->jumlah,4,',','.'),'0'),',') }}</td>
+                                    <td class="text-end">Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}</td>
+                                    <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
+                                    <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">
+                                        Rp {{ number_format($margin, 0, ',', '.') }}
+                                    </td>
+                                    <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                                </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Ringkasan Transaksi -->
+                <h6 class="mb-3 mt-4"><i class="fas fa-calculator me-2"></i>Ringkasan Transaksi</h6>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded">
+                            <small class="text-muted d-block">Subtotal Produk</small>
+                            <strong class="text-primary">Rp {{ number_format($totalSubtotal, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded">
+                            <small class="text-muted d-block">Total HPP</small>
+                            <strong class="text-info">Rp {{ number_format($totalHPP, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded">
+                            <small class="text-muted d-block">Total Profit</small>
+                            <strong class="{{ $totalProfit >= 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($totalProfit, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded">
+                            <small class="text-muted d-block">Total Penjualan</small>
+                            <strong class="text-dark">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
+<!-- Retur Detail Modal -->
+@foreach($salesReturns as $retur)
+<div class="modal fade" id="returDetailModal{{ $retur->id }}" tabindex="-1" aria-labelledby="returDetailModalLabel{{ $retur->id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="returDetailModalLabel{{ $retur->id }}">
+                    <i class="fas fa-undo me-2"></i>Detail Retur Penjualan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Informasi Retur -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Nomor Retur:</strong> {{ $retur->return_number ?? '-' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Tanggal Retur:</strong> {{ optional($retur->return_date)->format('d-m-Y') ?? '-' }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Nomor Penjualan:</strong> {{ $retur->penjualan?->nomor_penjualan ?? '-' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Tanggal Penjualan:</strong> {{ optional($retur->penjualan?->tanggal)->format('d-m-Y') ?? '-' }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Status:</strong> 
+                        <span class="badge {{ $retur->status === 'completed' ? 'bg-success' : ($retur->status === 'pending' ? 'bg-warning' : 'bg-danger') }}">
+                            {{ ucfirst($retur->status ?? '-') }}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Total Nilai Retur:</strong> 
+                        <span class="text-danger fw-semibold">Rp {{ number_format($retur->total_return_amount ?? 0, 0, ',', '.') }}</span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <strong>Alasan Retur:</strong> {{ $retur->reason ?? '-' }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <strong>Catatan:</strong> {{ $retur->notes ?? '-' }}
+                    </div>
+                </div>
+                
+                <h6 class="mb-3"><i class="fas fa-box me-2"></i>Detail Produk Diretur</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Produk</th>
+                                <th class="text-end">Qty Diretur</th>
+                                <th class="text-end">Harga Satuan</th>
+                                <th class="text-end">Subtotal Retur</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if($retur->items->count() > 0)
+                                @foreach($retur->items as $item)
+                                    <tr>
+                                        <td>{{ $item->produk?->nama_produk ?? '-' }}</td>
+                                        <td class="text-end">{{ number_format($item->jumlah ?? 0, 2, ',', '.') }} {{ $item->produk?->satuan?->nama_satuan ?? 'unit' }}</td>
+                                        <td class="text-end">Rp {{ number_format($item->harga_satuan ?? 0, 0, ',', '.') }}</td>
+                                        <td class="text-end">Rp {{ number_format(($item->jumlah ?? 0) * ($item->harga_satuan ?? 0), 0, ',', '.') }}</td>
+                                    </tr>
+                                @endforeach
+                            @else
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Tidak ada detail produk</td>
+                                </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+});
+
+function showTab(tabId, buttonElement) {
+    // Hide all tabs
+    var tabs = document.querySelectorAll('.tab-pane');
+    tabs.forEach(function(tab) {
+        tab.classList.remove('show', 'active');
+    });
+    
+    // Remove active class from all buttons
+    var buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(function(btn) {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(tabId).classList.add('show', 'active');
+    
+    // Add active class to clicked button
+    buttonElement.classList.add('active');
+}
+</script>
 @endsection

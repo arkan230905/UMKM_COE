@@ -30,6 +30,40 @@ class ReturController extends Controller
         return view('transaksi.retur.create', compact('produks', 'bahanBakus', 'pembelians','penjualans'));
     }
 
+    public function indexPembelian()
+    {
+        $returs = Retur::where('type', 'purchase')
+            ->with(['details'])
+            ->orderBy('id', 'desc')
+            ->get();
+        
+        return view('transaksi.retur-pembelian.index', compact('returs'));
+    }
+
+    public function indexPenjualan()
+    {
+        $returs = Retur::where('type', 'sale')
+            ->with(['details.produk', 'penjualan'])
+            ->orderBy('id', 'desc')
+            ->get();
+        
+        return view('transaksi.retur-penjualan.index', compact('returs'));
+    }
+
+    public function createPenjualan(Request $request)
+    {
+        $penjualanId = $request->query('penjualan_id');
+        
+        if (!$penjualanId) {
+            return redirect()->route('transaksi.penjualan.index')
+                ->with('error', 'Silakan pilih penjualan yang ingin diretur dari daftar penjualan.');
+        }
+        
+        $penjualan = Penjualan::with(['details.produk'])->findOrFail($penjualanId);
+        
+        return view('transaksi.retur-penjualan.create', compact('penjualan'));
+    }
+
     public function createPembelian(Request $request)
     {
         $pembelianId = $request->query('pembelian_id');
@@ -44,14 +78,86 @@ class ReturController extends Controller
         return view('transaksi.retur-pembelian.create', compact('pembelian'));
     }
 
-    public function indexPembelian()
+    public function storePenjualan(Request $request, StockService $stock, JournalService $journal)
     {
-        $returs = Retur::where('type', 'purchase')
-            ->with(['details'])
-            ->orderBy('id', 'desc')
-            ->get();
+        $request->validate([
+            'penjualan_id' => 'required|exists:penjualans,id',
+            'tanggal' => 'required|date',
+            'alasan' => 'required|string',
+            'kompensasi' => 'required|in:refund,credit,replace',
+            'items' => 'required|array|min:1',
+            'items.*.qty' => 'required|numeric|min:0.01',
+            'items.*.produk_id' => 'required|exists:produks,id',
+        ]);
+
+        $items = collect($request->items)->filter(function($item) {
+            return isset($item['qty']) && isset($item['selected']) && (float)$item['qty'] > 0;
+        });
+
+        if ($items->isEmpty()) {
+            return back()->withInput()->withErrors(['items' => 'Minimal satu item harus diisi qty retur lebih dari 0.']);
+        }
+
+        $tanggalRetur = $request->tanggal;
+
+        $penjualan = Penjualan::with(['details'])->findOrFail($request->penjualan_id);
         
-        return view('transaksi.retur-pembelian.index', compact('returs'));
+        DB::transaction(function() use ($request, $penjualan, $items, $stock, $journal, $tanggalRetur) {
+            $retur = Retur::create([
+                'type' => 'sale',
+                'ref_id' => $penjualan->id,
+                'tanggal' => $tanggalRetur,
+                'kompensasi' => $request->kompensasi,
+                'status' => 'approved',
+                'alasan' => $request->alasan,
+                'memo' => $request->catatan,
+            ]);
+
+            $totalNominal = 0;
+            $totalHpp = 0;
+
+            foreach ($items as $itemData) {
+                $detail = $penjualan->details()->where('produk_id', $itemData['produk_id'])->first();
+                
+                if (!$detail) continue;
+
+                $qty = (float)$itemData['qty'];
+                $actualHPP = $detail->produk->getHPPForSaleDate($penjualan->tanggal);
+                $margin = ($detail->harga_satuan - $actualHPP) * $qty;
+                $subtotal = $qty * $detail->harga_satuan;
+
+                ReturDetail::create([
+                    'retur_id' => $retur->id,
+                    'produk_id' => $itemData['produk_id'],
+                    'qty' => $qty,
+                    'harga_satuan_asal' => $detail->harga_satuan,
+                    'hpp_asal' => $actualHPP,
+                    'margin' => $margin,
+                    'subtotal' => $subtotal,
+                ]);
+
+                $stock->addLayer('product', (int)$itemData['produk_id'], $qty, 'pcs', $actualHPP, 'sale_return', (int)$retur->id, $tanggalRetur);
+
+                $totalNominal += $subtotal;
+                $totalHpp += $actualHPP * $qty;
+            }
+
+            $cashOrReceivable = $request->kompensasi === 'credit' ? '1102' : '1101';
+            if ($totalNominal > 0) {
+                $journal->post($tanggalRetur, 'sale_return', (int)$retur->id, 'Retur Penjualan', [
+                    ['code' => '4101', 'debit' => (float)$totalNominal, 'credit' => 0],
+                    ['code' => $cashOrReceivable, 'debit' => 0, 'credit' => (float)$totalNominal],
+                ]);
+            }
+            if ($totalHpp > 0) {
+                $journal->post($tanggalRetur, 'sale_return_cogs', (int)$retur->id, 'Retur Penjualan - Pembalik HPP', [
+                    ['code' => '1107', 'debit' => (float)$totalHpp, 'credit' => 0],
+                    ['code' => '5001', 'debit' => 0, 'credit' => (float)$totalHpp],
+                ]);
+            }
+        });
+
+        return redirect()->route('transaksi.retur-penjualan.index')->with('success', 'Retur penjualan berhasil dibuat dan diposting.');
     }
 
     public function storePembelian(Request $request, StockService $stock, JournalService $journal)
@@ -64,12 +170,10 @@ class ReturController extends Controller
             'items.*.qty' => 'required|numeric|min:0.01',
         ]);
 
-        // Tanggal retur otomatis hari ini
         $tanggalRetur = date('Y-m-d');
 
         $pembelian = Pembelian::with('details')->findOrFail($request->pembelian_id);
         
-        // Filter items dengan qty > 0
         $items = collect($request->items)->filter(function($item) {
             return isset($item['qty']) && (float)$item['qty'] > 0;
         });
@@ -79,12 +183,11 @@ class ReturController extends Controller
         }
 
         DB::transaction(function() use ($request, $pembelian, $items, $stock, $journal, $tanggalRetur) {
-            // Buat retur
             $retur = Retur::create([
                 'type' => 'purchase',
                 'ref_id' => $pembelian->id,
                 'tanggal' => $tanggalRetur,
-                'kompensasi' => 'refund', // default refund
+                'kompensasi' => 'refund',
                 'status' => 'approved',
                 'alasan' => $request->alasan,
                 'memo' => $request->memo,
@@ -98,38 +201,48 @@ class ReturController extends Controller
                 if (!$detail) continue;
 
                 $qty = (float)$itemData['qty'];
-                $hargaSatuan = (float)$detail->harga_satuan;
-                $subtotal = $qty * $hargaSatuan;
+                $avg = $detail->bahanBaku->averagePurchasePrice($pembelian->tanggal);
+                if ($avg <= 0) $avg = (float)($d->harga_satuan_asal ?? $prod->harga ?? 0);
 
-                // Simpan detail retur
-                ReturDetail::create([
-                    'retur_id' => $retur->id,
-                    'produk_id' => $detail->bahan_baku_id, // Untuk retur pembelian, ini bahan_baku_id
-                    'ref_detail_id' => $detail->id,
-                    'qty' => $qty,
-                    'harga_satuan_asal' => $hargaSatuan,
-                ]);
-
-                // Kurangi stok bahan baku
-                $bahanBaku = \App\Models\BahanBaku::find($detail->bahan_baku_id);
-                if ($bahanBaku) {
-                    $bahanBaku->stok -= $qty;
-                    $bahanBaku->save();
+                if ($retur->type === 'sale') {
+                    $stock->addLayer('product', (int)$prod->id, $qty, 'pcs', (float)$avg, 'sale_return', (int)$retur->id, $tanggal);
+                    $lineNominal = (float)($d->harga_satuan_asal ?? 0) * $qty;
+                    $lineHpp = $avg * $qty;
+                } else {
+                    $stock->remove('bahan_baku', (int)$itemData['bahan_baku_id'], $qty, 'kg', (float)$avg, 'purchase_return', (int)$retur->id, $tanggal);
+                    $lineNominal = (float)($detail->harga_satuan ?? 0) * $qty;
+                    $lineHpp = $avg * $qty;
                 }
 
-                $totalNominal += $subtotal;
-            }
-
-            // Posting jurnal
-            if ($totalNominal > 0) {
-                $journal->post($tanggalRetur, 'purchase_return', $retur->id, 'Retur Pembelian', [
-                    ['code' => '1101', 'debit' => $totalNominal, 'credit' => 0],  // Kas (refund dari vendor)
-                    ['code' => '1104', 'debit' => 0, 'credit' => $totalNominal],  // Persediaan Bahan Baku (berkurang)
+                ReturDetail::create([
+                    'retur_id' => $retur->id,
+                    'produk_id' => $itemData['produk_id'] ?? null,
+                    'bahan_baku_id' => $itemData['bahan_baku_id'] ?? null,
+                    'qty' => $qty,
+                    'harga_satuan_asal' => $detail->harga_satuan ?? $detail->harga_satuan_asal ?? 0,
+                    'hpp_asal' => $avg,
+                    'margin' => $lineNominal - $lineHpp,
+                    'subtotal' => $lineNominal,
                 ]);
+
+                $totalNominal += $lineNominal;
             }
 
-            $retur->status = 'posted';
-            $retur->save();
+            if ($retur->type === 'sale') {
+                $cashOrReceivable = $retur->kompensasi === 'credit' ? '1102' : '1101';
+                if ($totalNominal > 0) {
+                    $journal->post($tanggal, 'sale_return', (int)$retur->id, 'Retur Penjualan', [
+                        ['code' => '4101', 'debit' => (float)$totalNominal, 'credit' => 0],
+                        ['code' => $cashOrReceivable, 'debit' => 0, 'credit' => (float)$totalNominal],
+                    ]);
+                }
+                if ($totalHpp > 0) {
+                    $journal->post($tanggal, 'sale_return_cogs', (int)$retur->id, 'Retur Penjualan - Pembalik HPP', [
+                        ['code' => '1107', 'debit' => (float)$totalHpp, 'credit' => 0],
+                        ['code' => '5001', 'debit' => 0, 'credit' => (float)$totalHpp],
+                    ]);
+                }
+            }
         });
 
         return redirect()->route('transaksi.retur.index')->with('success', 'Retur pembelian berhasil dibuat dan diposting.');
@@ -137,54 +250,56 @@ class ReturController extends Controller
 
     public function store(Request $request)
     {
-        // Validasi dasar
         $request->validate([
-            'type' => 'required|in:sale,purchase',
             'tanggal' => 'required|date',
-            'kompensasi' => 'required|in:refund,credit',
-            'details' => 'required|array|min:1',
-            'details.*.produk_id' => 'required|integer',
-            'details.*.qty' => 'required|numeric|min:0.0001',
+            'type' => 'required|in:sale,purchase',
+            'alasan' => 'required|string',
+            'kompensasi' => 'required|in:refund,credit,replace',
         ]);
 
-        // Validasi tambahan berdasarkan tipe
         if ($request->type === 'sale') {
-            // Retur penjualan: validasi produk_id ada di tabel produks
             foreach ($request->details as $detail) {
                 if (!Produk::find($detail['produk_id'])) {
                     return back()->withErrors(['details' => 'Produk tidak ditemukan'])->withInput();
                 }
             }
-        } else {
-            // Retur pembelian: validasi produk_id (sebenarnya bahan_baku_id) ada di tabel bahan_bakus
+        } elseif ($request->type === 'purchase') {
             foreach ($request->details as $detail) {
-                if (!\App\Models\BahanBaku::find($detail['produk_id'])) {
+                if (!\App\Models\BahanBaku::find($detail['bahan_baku_id'])) {
                     return back()->withErrors(['details' => 'Bahan baku tidak ditemukan'])->withInput();
                 }
             }
         }
 
-        $retur = Retur::create([
-            'type' => $request->type,
-            'ref_id' => $request->ref_id ?? 0,
-            'tanggal' => $request->tanggal,
-            'kompensasi' => $request->kompensasi,
-            'status' => 'approved',
-            'alasan' => $request->input('alasan'),
-            'memo' => $request->input('memo'),
-        ]);
+        $tanggalRetur = $request->tanggal;
 
-        foreach ($request->details as $d) {
-            ReturDetail::create([
-                'retur_id' => $retur->id,
-                'produk_id' => (int)$d['produk_id'], // Untuk retur pembelian, ini sebenarnya bahan_baku_id
-                'ref_detail_id' => $d['ref_detail_id'] ?? null,
-                'qty' => (float)$d['qty'],
-                'harga_satuan_asal' => $d['harga_satuan_asal'] ?? null,
+        DB::transaction(function() use ($request, $tanggalRetur) {
+            $retur = Retur::create([
+                'type' => $request->type,
+                'ref_id' => $request->ref_id,
+                'tanggal' => $tanggalRetur,
+                'kompensasi' => $request->kompensasi,
+                'status' => 'draft',
+                'alasan' => $request->alasan,
+                'memo' => $request->memo,
+                'details' => $request->details,
             ]);
-        }
 
-        return redirect()->route('transaksi.retur.index')->with('success', 'Retur dibuat (Approved). Lakukan Posting untuk menjurnal & stok.');
+            foreach ($request->details as $detail) {
+                ReturDetail::create([
+                    'retur_id' => $retur->id,
+                    'produk_id' => $detail['produk_id'] ?? null,
+                    'bahan_baku_id' => $detail['bahan_baku_id'] ?? null,
+                    'qty' => $detail['qty'],
+                    'harga_satuan_asal' => $detail['harga_satuan_asal'],
+                    'hpp_asal' => $detail['hpp_asal'],
+                    'margin' => $detail['margin'],
+                    'subtotal' => $detail['subtotal'],
+                ]);
+            }
+        });
+
+        return redirect()->route('transaksi.retur.index')->with('success', 'Retur dibuat (Approved). Lakukan Posting untuk menjurnal dan stok.');
     }
 
     public function edit(Retur $retur)
@@ -198,9 +313,18 @@ class ReturController extends Controller
     {
         $request->validate([
             'tanggal' => 'required|date',
-            'status' => 'required|in:draft,approved,posted',
+            'alasan' => 'required|string',
+            'kompensasi' => 'required|in:refund,credit,replace',
+            'memo' => 'nullable|string',
         ]);
-        $retur->update($request->only('tanggal','status','alasan','memo'));
+
+        $retur->update([
+            'tanggal' => $request->tanggal,
+            'alasan' => $request->alasan,
+            'kompensasi' => $request->kompensasi,
+            'memo' => $request->memo,
+        ]);
+
         return redirect()->route('transaksi.retur.index')->with('success', 'Retur diperbarui.');
     }
 
@@ -214,10 +338,10 @@ class ReturController extends Controller
     {
         $retur = Retur::findOrFail($id);
         if ($retur->status !== 'draft') {
-            return back()->with('success', 'Retur sudah di-approve.');
+            return back()->with('error', 'Hanya retur dengan status draft yang bisa di-approve.');
         }
-        $retur->status = 'approved';
-        $retur->save();
+
+        $retur->update(['status' => 'approved']);
         return back()->with('success', 'Retur di-approve.');
     }
 
@@ -225,82 +349,83 @@ class ReturController extends Controller
     {
         $retur = Retur::with(['details.produk'])->findOrFail($id);
         if ($retur->status === 'posted') {
-            return back()->with('success', 'Retur sudah posted.');
+            return back()->with('error', 'Retur sudah diposting.');
         }
 
-        DB::transaction(function () use ($retur, $stock, $journal) {
-            $tanggal = $retur->tanggal;
-            $totalNominal = 0.0; $totalHpp = 0.0;
+        $tanggal = $retur->tanggal;
+        $totalNominal = 0;
+        $totalHpp = 0;
 
+        DB::transaction(function() use ($retur, $stock, $journal, $tanggal, &$totalNominal, &$totalHpp) {
             foreach ($retur->details as $d) {
+                $qty = $d->qty;
+                $avg = $d->hpp_asal;
                 $prod = $d->produk;
-                $qty = (float)$d->qty;
-                // Ambil average cost saat ini (fallback harga produk jika belum ada layer)
-                $avg = (float) StockLayer::where('item_type','product')
-                    ->where('item_id', $prod->id)
-                    ->selectRaw('CASE WHEN SUM(remaining_qty) > 0 THEN SUM(remaining_qty*unit_cost)/SUM(remaining_qty) ELSE 0 END as avg')
-                    ->value('avg');
-                if ($avg <= 0) $avg = (float)($d->harga_satuan_asal ?? $prod->harga ?? 0);
 
                 if ($retur->type === 'sale') {
-                    // Retur penjualan: stok IN barang jadi, nominal retur gunakan harga jual asal jika ada, hpp dari average
                     $stock->addLayer('product', (int)$prod->id, $qty, 'pcs', (float)$avg, 'sale_return', (int)$retur->id, $tanggal);
                     $lineNominal = (float)($d->harga_satuan_asal ?? 0) * $qty;
                     $lineHpp = $avg * $qty;
-                    $totalNominal += $lineNominal;
-                    $totalHpp += $lineHpp;
                 } else {
-                    // Retur pembelian: stok OUT (keluar) dengan biaya average
-                    $lineHpp = $stock->consume('product', (int)$prod->id, $qty, 'pcs', 'purchase_return', (int)$retur->id, $tanggal);
-                    $totalHpp += (float)$lineHpp;
-                    $lineNominal = $avg * $qty; // sebagai nilai retur ke vendor
-                    $totalNominal += $lineNominal;
+                    $stock->remove('bahan_baku', (int)$d->bahan_baku_id, $qty, 'kg', (float)$avg, 'purchase_return', (int)$retur->id, $tanggal);
+                    $lineNominal = (float)($detail->harga_satuan ?? 0) * $qty;
+                    $lineHpp = $avg * $qty;
                 }
+
+                $totalNominal += $lineNominal;
+                $totalHpp += $lineHpp;
             }
 
             if ($retur->type === 'sale') {
-                // Pembalikan penjualan
-                $cashOrReceivable = $retur->kompensasi === 'credit' ? '1102' : '1101';  // Bank atau Kas
+                $cashOrReceivable = $retur->kompensasi === 'credit' ? '1102' : '1101';
                 if ($totalNominal > 0) {
                     $journal->post($tanggal, 'sale_return', (int)$retur->id, 'Retur Penjualan', [
-                        ['code' => '4101', 'debit' => (float)$totalNominal, 'credit' => 0],  // Penjualan (pembalik)
-                        ['code' => $cashOrReceivable, 'debit' => 0, 'credit' => (float)$totalNominal],  // Kas/Bank
+                        ['code' => '4101', 'debit' => (float)$totalNominal, 'credit' => 0],
+                        ['code' => $cashOrReceivable, 'debit' => 0, 'credit' => (float)$totalNominal],
                     ]);
                 }
                 if ($totalHpp > 0) {
                     $journal->post($tanggal, 'sale_return_cogs', (int)$retur->id, 'Retur Penjualan - Pembalik HPP', [
-                        ['code' => '1107', 'debit' => (float)$totalHpp, 'credit' => 0],  // Persediaan Barang Jadi
-                        ['code' => '5001', 'debit' => 0, 'credit' => (float)$totalHpp],  // HPP (pembalik)
-                    ]);
-                }
-            } else {
-                // Pembalikan pembelian
-                if ($retur->kompensasi === 'refund') {
-                    // Vendor mengembalikan uang ke kita: kas bertambah, hutang berkurang (atau langsung kas)
-                    $journal->post($tanggal, 'purchase_return', (int)$retur->id, 'Retur Pembelian (Refund)', [
-                        ['code' => '2101', 'debit' => (float)$totalNominal, 'credit' => 0],  // Hutang Usaha (berkurang)
-                        ['code' => '1101', 'debit' => 0, 'credit' => (float)$totalNominal],  // Kas (berkurang karena refund)
-                    ]);
-                } else {
-                    // Credit note supplier: kurangi hutang usaha
-                    $journal->post($tanggal, 'purchase_return', (int)$retur->id, 'Retur Pembelian (Credit)', [
-                        ['code' => '2101', 'debit' => (float)$totalNominal, 'credit' => 0],  // Hutang Usaha (berkurang)
-                        ['code' => '2101', 'debit' => 0, 'credit' => (float)$totalNominal],  // Credit Note (netting)
-                    ]);
-                }
-                if ($totalHpp > 0) {
-                    // Persediaan keluar (sisi persediaan sudah dicatat lewat consume di stock movements); jurnal balancing persediaan
-                    $journal->post($tanggal, 'purchase_return_inv', (int)$retur->id, 'Retur Pembelian - Persediaan', [
-                        ['code' => '1104', 'debit' => 0, 'credit' => (float)$totalHpp],  // Persediaan Bahan Baku (berkurang)
-                        ['code' => '2101', 'debit' => (float)$totalHpp, 'credit' => 0],  // Hutang Usaha (berkurang)
+                        ['code' => '1107', 'debit' => (float)$totalHpp, 'credit' => 0],
+                        ['code' => '5001', 'debit' => 0, 'credit' => (float)$totalHpp],
                     ]);
                 }
             }
-
-            $retur->status = 'posted';
-            $retur->save();
         });
 
+        $retur->update(['status' => 'posted']);
         return back()->with('success', 'Retur berhasil diposting.');
+    }
+
+    public function showPembelian($id)
+    {
+        $retur = Retur::with(['details.bahanBaku'])->findOrFail($id);
+        return view('transaksi.retur-pembelian.show', compact('retur'));
+    }
+
+    public function showPenjualan($id)
+    {
+        $retur = Retur::with(['details.produk', 'penjualan'])->findOrFail($id);
+        return view('transaksi.retur-penjualan.show', compact('retur'));
+    }
+
+    public function destroyPembelian($id)
+    {
+        $retur = Retur::findOrFail($id);
+        if ($retur->type !== 'purchase') {
+            return back()->with('error', 'Ini bukan retur pembelian.');
+        }
+        $retur->delete();
+        return redirect()->route('transaksi.retur-pembelian.index')->with('success', 'Data retur pembelian berhasil dihapus.');
+    }
+
+    public function destroyPenjualan($id)
+    {
+        $retur = Retur::findOrFail($id);
+        if ($retur->type !== 'sale') {
+            return back()->with('error', 'Ini bukan retur penjualan.');
+        }
+        $retur->delete();
+        return redirect()->route('transaksi.retur-penjualan.index')->with('success', 'Data retur penjualan berhasil dihapus.');
     }
 }
