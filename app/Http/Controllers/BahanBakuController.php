@@ -158,7 +158,7 @@ class BahanBakuController extends Controller
         $bahanBaku->nama_bahan = $request->nama_bahan;
         $bahanBaku->satuan_id = $request->satuan_id;
         $bahanBaku->stok = $request->stok ?? 0;
-        $bahanBaku->harga_satuan = $request->harga_satuan;
+        $bahanBaku->harga_satuan = $request->harga_satuan ?: $bahanBaku->harga_rata_rata;
         $bahanBaku->stok_minimum = $request->stok_minimum ?? 0;
         $bahanBaku->deskripsi = $request->deskripsi;
         $bahanBaku->sub_satuan_1_id = $request->sub_satuan_1_id;

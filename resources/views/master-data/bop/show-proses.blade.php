@@ -29,247 +29,145 @@
     </div>
 @endif
 
-<div class="row g-4">
-    <!-- Informasi Proses BTKL -->
-    <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header" style="background-color: #8B7355; color: white;">
-                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informasi Proses BTKL</h6>
-                <small>Data BTKL terkait dengan BOP proses produksi</small>
-            </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-12 col-sm-6">
-                        <div class="mb-3">
-                            <strong class="text-muted">Kode Proses:</strong><br>
-                            <span class="text-primary fw-bold fs-5">{{ $bopProses->prosesProduksi->kode_proses }}</span>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6">
-                        <div class="mb-3">
-                            <strong class="text-muted">Nama Proses:</strong><br>
-                            <span class="text-dark fw-semibold">{{ $bopProses->prosesProduksi->nama_proses }}</span>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6">
-                        <div class="mb-3">
-                            <strong class="text-muted">Tarif BTKL:</strong><br>
-                            <span class="text-success fw-bold fs-6">Rp {{ number_format($btkl->tarif_per_jam ?? 45000, 0, ',', '.') }}/jam</span>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6">
-                        <div class="mb-3">
-                            <strong class="text-muted">Kapasitas:</strong><br>
-                            <span class="badge bg-info fs-6">{{ $bopProses->prosesProduksi->kapasitas_per_jam }} unit/jam</span>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6">
-                        <div class="mb-3">
-                            <strong class="text-muted">BTKL / pcs:</strong><br>
-                            <span class="text-success fw-bold">Rp {{ number_format($btkl->biaya_per_produk ?? (($btkl->tarif_per_jam ?? 45000) / ($bopProses->prosesProduksi->kapasitas_per_jam ?? 1)), 0, ',', '.') }}</span>
-                        </div>
-                    </div>
-                    <div class="col-12 col-sm-6">
-                        <div class="mb-3">
-                            <strong class="text-muted">Deskripsi:</strong><br>
-                            <span class="text-muted">{{ $btkl->deskripsi ?? 'Proses ' . strtolower($bopProses->prosesProduksi->nama_proses) . ' makanan' }}</span>
-                        </div>
-                    </div>
+@php
+    // Calculate variables
+    $kapasitas = $bopProses->kapasitas_per_jam ?? 0;
+    $totalBop = $bopProses->total_bop_per_jam ?? 0;
+    $btklPerJam = $bopProses->prosesProduksi->tarif_btkl ?? 0;
+    $btklPerPcs = $kapasitas > 0 ? $btklPerJam / $kapasitas : 0;
+    $bopPerPcs = $kapasitas > 0 ? $totalBop / $kapasitas : 0;
+    $biayaPerProduk = $btklPerPcs + $bopPerPcs;
+    $biayaPerJam = $btklPerJam + $totalBop;
+    
+    $komponenBop = is_array($bopProses->komponen_bop) ? $bopProses->komponen_bop : json_decode($bopProses->komponen_bop, true);
+    if (!is_array($komponenBop)) $komponenBop = [];
+@endphp
+
+<!-- Header Information -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h5 class="mb-3">Informasi Proses</h5>
+        
+        <!-- Simple Info Grid -->
+        <div class="row g-2">
+            <div class="col-md-3">
+                <div class="d-flex justify-content-between border-bottom pb-2">
+                    <strong>Proses:</strong>
+                    <span>{{ $bopProses->prosesProduksi->nama_proses ?? 'N/A' }}</span>
                 </div>
             </div>
-        </div>
-    </div>
-
-        <!-- Ringkasan BOP -->
-        <div class="col-lg-6">
-            @php
-                // Calculate variables needed for Ringkasan BOP
-                $totalBop = $bopProses->total_bop_per_jam ?? 42000;
-                $kapasitas = $bopProses->prosesProduksi->kapasitas_per_jam ?? 50;
-            @endphp
-            
-            <div class="card shadow-sm h-100">
-                <div class="card-header" style="background-color: #8B7355; color: white;">
-                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Ringkasan BOP</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
-                                <div>
-                                    <strong class="text-muted">Total BOP per Jam:</strong>
-                                </div>
-                                <div>
-                                    <span class="fs-4 text-primary fw-bold">Rp {{ number_format($totalBop, 0, ',', '.') }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
-                                <div>
-                                    <strong class="text-muted">BOP per Unit:</strong>
-                                </div>
-                                <div>
-                                    <span class="fs-4 text-success fw-bold">Rp {{ number_format($totalBop / $kapasitas, 0, ',', '.') }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12">
-                            <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
-                                <div>
-                                    <strong class="text-muted">Efisiensi BOP:</strong>
-                                </div>
-                                <div>
-                                    <span class="badge bg-info fs-6">{{ $kapasitas }} unit per jam</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <div class="col-md-3">
+                <div class="d-flex justify-content-between border-bottom pb-2">
+                    <strong>Kapasitas:</strong>
+                    <span>{{ $kapasitas }} pcs/jam</span>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Detail Komponen BOP per Jam -->
-    <div class="card shadow-sm mt-4">
-        <div class="card-header" style="background-color: #8B7355; color: white;">
-            <h6 class="mb-0"><i class="fas fa-list me-2"></i>Detail Komponen BOP per Jam</h6>
-        </div>
-        <div class="card-body">
-            @php
-                // Get komponen BOP from the actual data structure
-                $komponenBop = [];
-                
-                // First try to get from the raw database field
-                $rawKomponen = null;
-                if (isset($bopProses->attributes['komponen_bop'])) {
-                    $rawKomponen = $bopProses->attributes['komponen_bop'];
-                } else {
-                    // Fallback to the casted attribute
-                    $rawKomponen = $bopProses->getAttributes()['komponen_bop'] ?? null;
-                }
-                
-                if (!$rawKomponen) {
-                    // If no JSON data, get from individual fields (old structure)
-                    $rawKomponen = [
-                        'listrik_per_jam' => $bopProses->listrik_per_jam ?? 0,
-                        'gas_bbm_per_jam' => $bopProses->gas_bbm_per_jam ?? 0,
-                        'penyusutan_mesin_per_jam' => $bopProses->penyusutan_mesin_per_jam ?? 0,
-                        'maintenance_per_jam' => $bopProses->maintenance_per_jam ?? 0,
-                        'gaji_mandor_per_jam' => $bopProses->gaji_mandor_per_jam ?? 0,
-                        'lain_lain_per_jam' => $bopProses->lain_lain_per_jam ?? 0,
-                    ];
-                }
-                
-                // Convert to array if it's JSON string
-                if (is_string($rawKomponen)) {
-                    $rawKomponen = json_decode($rawKomponen, true);
-                }
-                
-                // Convert from old format to new format for display
-                if (is_array($rawKomponen)) {
-                    // Check if it's the old format (with keys like 'listrik_per_jam')
-                    if (isset($rawKomponen['listrik_per_jam'])) {
-                        $komponenBop = [
-                            ['component' => 'Listrik Mesin', 'rate_per_hour' => floatval($rawKomponen['listrik_per_jam'] ?? 0)],
-                            ['component' => 'Gas / BBM', 'rate_per_hour' => floatval($rawKomponen['gas_bbm_per_jam'] ?? 0)],
-                            ['component' => 'Penyusutan Mesin', 'rate_per_hour' => floatval($rawKomponen['penyusutan_mesin_per_jam'] ?? 0)],
-                            ['component' => 'Maintenance', 'rate_per_hour' => floatval($rawKomponen['maintenance_per_jam'] ?? 0)],
-                            ['component' => 'Gaji Mandor', 'rate_per_hour' => floatval($rawKomponen['gaji_mandor_per_jam'] ?? 0)],
-                            ['component' => 'Lain-lain', 'rate_per_hour' => floatval($rawKomponen['lain_lain_per_jam'] ?? 0)]
-                        ];
-                        // Filter out components with 0 value
-                        $komponenBop = array_filter($komponenBop, function($item) {
-                            return $item['rate_per_hour'] > 0;
-                        });
-                    } else {
-                        // New format (with 'component' and 'rate_per_hour' keys)
-                        $komponenBop = $rawKomponen;
-                    }
-                }
-                
-                // Default components if empty
-                if (empty($komponenBop)) {
-                    $komponenBop = [
-                        ['component' => 'Listrik Mesin', 'rate_per_hour' => 5000],
-                        ['component' => 'Gas / BBM', 'rate_per_hour' => 20000],
-                        ['component' => 'Penyusutan Mesin', 'rate_per_hour' => 10000],
-                        ['component' => 'Maintenance', 'rate_per_hour' => 5000],
-                        ['component' => 'Lain-lain', 'rate_per_hour' => 2000]
-                    ];
-                }
-                
-                // Calculate total from components if total_bop_per_jam is 0 or incorrect
-                $calculatedTotal = array_sum(array_column($komponenBop, 'rate_per_hour'));
-                
-                // Use the already defined variables from above, but recalculate if needed
-                if ($totalBop == 0 || abs($totalBop - $calculatedTotal) > 1) {
-                    $totalBop = $calculatedTotal;
-                }
-            @endphp
-
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 30%">Komponen BOP</th>
-                            <th class="text-end" style="width: 20%">Biaya per Jam</th>
-                            <th class="text-center" style="width: 25%">Persentase</th>
-                            <th class="text-end" style="width: 25%">Biaya per Unit</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($komponenBop as $index => $component)
-                            @php
-                                $biayaPerJam = $component['rate_per_hour'] ?? 0;
-                                $percentage = $totalBop > 0 ? ($biayaPerJam / $totalBop) * 100 : 0;
-                                $biayaPerUnit = $kapasitas > 0 ? $biayaPerJam / $kapasitas : 0;
-                                
-                                // Color scheme for progress bars
-                                $colors = ['primary', 'danger', 'warning', 'info', 'success', 'secondary'];
-                                $colorIndex = is_numeric($index) ? intval($index) : array_search($index, array_keys($komponenBop));
-                                $colorIndex = $colorIndex === false ? 0 : $colorIndex;
-                                $color = $colors[$colorIndex % count($colors)];
-                            @endphp
-                            <tr>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-circle text-{{ $color }} me-2"></i>
-                                        <span class="fw-semibold">{{ $component['component'] }}</span>
-                                    </div>
-                                </td>
-                                <td class="text-end">
-                                    <span class="fw-bold text-dark">Rp {{ number_format($biayaPerJam, 0, ',', '.') }}</span>
-                                </td>
-                                <td class="text-center">
-                                    <div class="progress mb-1" style="height: 20px;">
-                                        <div class="progress-bar bg-{{ $color }}" 
-                                             role="progressbar" 
-                                             style="width: {{ $percentage }}%"
-                                             aria-valuenow="{{ $percentage }}" 
-                                             aria-valuemin="0" 
-                                             aria-valuemax="100">
-                                            {{ number_format($percentage, 1) }}%
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-end">
-                                    <span class="text-success fw-semibold">Rp {{ number_format($biayaPerUnit, 0, ',', '.') }}</span>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                    <tfoot class="table-warning">
-                        <tr>
-                            <th><strong>Total BOP</strong></th>
-                            <th class="text-end"><strong>Rp {{ number_format($totalBop, 0, ',', '.') }}</strong></th>
-                            <th class="text-center"><strong>100%</strong></th>
-                            <th class="text-end"><strong>Rp {{ number_format($totalBop / $kapasitas, 0, ',', '.') }}</strong></th>
-                        </tr>
-                    </tfoot>
-                </table>
+            <div class="col-md-3">
+                <div class="d-flex justify-content-between border-bottom pb-2">
+                    <strong>BTKL / jam:</strong>
+                    <span>Rp {{ number_format($btklPerJam, 0, ',', '.') }}</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex justify-content-between border-bottom pb-2">
+                    <strong>BTKL / pcs:</strong>
+                    <span>Rp {{ number_format($btklPerPcs, 0, ',', '.') }}</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Components Table -->
+@if(!empty($komponenBop))
+<div class="row mb-4">
+    <div class="col-12">
+        <h5 class="mb-3">Komponen BOP</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 5%">#</th>
+                        <th style="width: 45%">Komponen</th>
+                        <th style="width: 20%" class="text-end">Rp / Jam</th>
+                        <th style="width: 30%">Keterangan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($komponenBop as $index => $komponen)
+                        @php
+                            $rate = floatval($komponen['rate_per_hour'] ?? 0);
+                        @endphp
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td>{{ $komponen['component'] ?? 'N/A' }}</td>
+                            <td class="text-end">Rp {{ number_format($rate, 0, ',', '.') }}</td>
+                            <td>{{ $komponen['description'] ?? $komponen['keterangan'] ?? '-' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+                <tfoot class="table-secondary">
+                    <tr class="fw-bold">
+                        <td colspan="2">Total BOP / jam</td>
+                        <td class="text-end">Rp {{ number_format($totalBop, 0, ',', '.') }}</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+@else
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-info">
+            Belum ada komponen BOP yang didefinisikan untuk proses ini.
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- Summary -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h5 class="mb-3">Ringkasan Biaya</h5>
+        <div class="row g-2">
+            <div class="col-md-3">
+                <div class="d-flex justify-content-between border-bottom pb-2">
+                    <strong>Total BOP / jam:</strong>
+                    <span class="text-primary">Rp {{ number_format($totalBop, 0, ',', '.') }}</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex justify-content-between border-bottom pb-2">
+                    <strong>BOP / pcs:</strong>
+                    <span class="text-success">Rp {{ number_format($bopPerPcs, 0, ',', '.') }}</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex justify-content-between border-bottom pb-2">
+                    <strong>Biaya / produk:</strong>
+                    <span class="text-warning">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="d-flex justify-content-between border-bottom pb-2">
+                    <strong>Biaya / jam:</strong>
+                    <span class="text-danger">Rp {{ number_format($biayaPerJam, 0, ',', '.') }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Information -->
+@if(!empty($bopProses->keterangan))
+<div class="row mb-4">
+    <div class="col-12">
+        <h5 class="mb-3">Keterangan</h5>
+        <p>{{ $bopProses->keterangan }}</p>
+    </div>
+</div>
+@endif
+
 @endsection

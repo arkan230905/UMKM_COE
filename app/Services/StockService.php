@@ -145,13 +145,16 @@ class StockService
     private function getPrimarySatuan(string $itemType, int $itemId): string
     {
         // Get the primary satuan from the item
+        $item = null;
         if ($itemType === 'material') {
             $item = \App\Models\BahanBaku::find($itemId);
         } elseif ($itemType === 'support') {
             $item = \App\Models\BahanPendukung::find($itemId);
+        } elseif ($itemType === 'product') {
+            $item = \App\Models\Produk::find($itemId);
         }
         
-        return $item->satuan->nama ?? 'Unit';
+        return $item?->satuan?->nama ?? 'Unit';
     }
     
     /**
@@ -196,10 +199,13 @@ class StockService
     private function getItemSpecificConversionRatio(string $itemType, int $itemId, string $fromSatuan): float
     {
         // Get the item and its conversion data
+        $item = null;
         if ($itemType === 'material') {
             $item = \App\Models\BahanBaku::find($itemId);
         } elseif ($itemType === 'support') {
             $item = \App\Models\BahanPendukung::find($itemId);
+        } elseif ($itemType === 'product') {
+            $item = \App\Models\Produk::find($itemId);
         }
         
         if (!$item) {
@@ -214,40 +220,43 @@ class StockService
             return 1.0;
         }
         
-        // Check sub satuan 1
-        if ($item->sub_satuan_1_id) {
-            $subSatuan1 = \App\Models\Satuan::find($item->sub_satuan_1_id);
-            if ($subSatuan1 && str_contains(strtolower($subSatuan1->nama), $fromSatuanLower)) {
-                // sub_satuan_1_konversi: berapa primary unit = 1 sub unit
-                // sub_satuan_1_nilai: berapa sub unit = 1 primary unit
-                if ($item->sub_satuan_1_konversi > 0) {
-                    return 1 / $item->sub_satuan_1_konversi; // Convert sub unit to primary
-                } elseif ($item->sub_satuan_1_nilai > 0) {
-                    return $item->sub_satuan_1_nilai; // Convert sub unit to primary
+        // Only check sub-satuan for materials and supports (products don't have sub-satuan)
+        if ($itemType !== 'product') {
+            // Check sub satuan 1
+            if ($item->sub_satuan_1_id) {
+                $subSatuan1 = \App\Models\Satuan::find($item->sub_satuan_1_id);
+                if ($subSatuan1 && str_contains(strtolower($subSatuan1->nama), $fromSatuanLower)) {
+                    // sub_satuan_1_konversi: berapa primary unit = 1 sub unit
+                    // sub_satuan_1_nilai: berapa sub unit = 1 primary unit
+                    if ($item->sub_satuan_1_konversi > 0) {
+                        return 1 / $item->sub_satuan_1_konversi; // Convert sub unit to primary
+                    } elseif ($item->sub_satuan_1_nilai > 0) {
+                        return $item->sub_satuan_1_nilai; // Convert sub unit to primary
+                    }
                 }
             }
-        }
-        
-        // Check sub satuan 2
-        if ($item->sub_satuan_2_id) {
-            $subSatuan2 = \App\Models\Satuan::find($item->sub_satuan_2_id);
-            if ($subSatuan2 && str_contains(strtolower($subSatuan2->nama), $fromSatuanLower)) {
-                if ($item->sub_satuan_2_konversi > 0) {
-                    return 1 / $item->sub_satuan_2_konversi;
-                } elseif ($item->sub_satuan_2_nilai > 0) {
-                    return $item->sub_satuan_2_nilai;
+            
+            // Check sub satuan 2
+            if ($item->sub_satuan_2_id) {
+                $subSatuan2 = \App\Models\Satuan::find($item->sub_satuan_2_id);
+                if ($subSatuan2 && str_contains(strtolower($subSatuan2->nama), $fromSatuanLower)) {
+                    if ($item->sub_satuan_2_konversi > 0) {
+                        return 1 / $item->sub_satuan_2_konversi;
+                    } elseif ($item->sub_satuan_2_nilai > 0) {
+                        return $item->sub_satuan_2_nilai;
+                    }
                 }
             }
-        }
-        
-        // Check sub satuan 3
-        if ($item->sub_satuan_3_id) {
-            $subSatuan3 = \App\Models\Satuan::find($item->sub_satuan_3_id);
-            if ($subSatuan3 && str_contains(strtolower($subSatuan3->nama), $fromSatuanLower)) {
-                if ($item->sub_satuan_3_konversi > 0) {
-                    return 1 / $item->sub_satuan_3_konversi;
-                } elseif ($item->sub_satuan_3_nilai > 0) {
-                    return $item->sub_satuan_3_nilai;
+            
+            // Check sub satuan 3
+            if ($item->sub_satuan_3_id) {
+                $subSatuan3 = \App\Models\Satuan::find($item->sub_satuan_3_id);
+                if ($subSatuan3 && str_contains(strtolower($subSatuan3->nama), $fromSatuanLower)) {
+                    if ($item->sub_satuan_3_konversi > 0) {
+                        return 1 / $item->sub_satuan_3_konversi;
+                    } elseif ($item->sub_satuan_3_nilai > 0) {
+                        return $item->sub_satuan_3_nilai;
+                    }
                 }
             }
         }

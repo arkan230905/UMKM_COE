@@ -32,7 +32,7 @@
         </div>
     <div class="card border-0 shadow-sm">
         <div class="card-body jabatan-form">
-            <form method="POST" action="{{ route('master-data.kualifikasi-tenaga-kerja.update', $jabatan->id) }}">
+            <form method="POST" action="{{ route('master-data.kualifikasi-tenaga-kerja.update', $jabatan) }}">
                 @csrf
                 @method('PUT')
 

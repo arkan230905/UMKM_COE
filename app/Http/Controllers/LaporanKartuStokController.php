@@ -37,4 +37,62 @@ class LaporanKartuStokController extends Controller
             'stockMovements'
         ));
     }
+
+    /**
+     * Reset product stock to zero before new production
+     */
+    public function resetProdukStok(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'produk_id' => 'required|exists:produks,id',
+                'konfirmasi' => 'required|boolean'
+            ]);
+
+            if (!$validated['konfirmasi']) {
+                return back()->with('error', 'Anda harus mencentang konfirmasi untuk mereset stok produk.');
+            }
+
+            $produk = \App\Models\Produk::findOrFail($validated['produk_id']);
+            
+            // Reset stock to zero
+            $produk->stok = 0;
+            $produk->save();
+
+            // Clear all stock layers for this product
+            \App\Models\StockLayer::where('item_type', 'product')
+                ->where('item_id', $produk->id)
+                ->delete();
+
+            // Create stock movement record for audit trail
+            \App\Models\StockMovement::create([
+                'item_type' => 'product',
+                'item_id' => $produk->id,
+                'tanggal' => now()->format('Y-m-d'),
+                'direction' => 'reset',
+                'qty' => $produk->stok,
+                'satuan' => $produk->satuan->nama ?? 'Unit',
+                'unit_cost' => 0,
+                'total_cost' => 0,
+                'ref_type' => 'stock_reset',
+                'ref_id' => 0,
+                'keterangan' => 'Reset stok produk sebelum produksi: ' . $produk->nama_produk,
+            ]);
+
+            return back()->with('success', 'Stok produk "' . $produk->nama_produk . '" berhasil direset ke 0. Siap untuk produksi baru.');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal mereset stok: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Show reset stock form
+     */
+    public function createResetForm()
+    {
+        $products = \App\Models\Produk::orderBy('nama_produk')->get();
+        
+        return view('laporan.kartu-stok.reset', compact('products'));
+    }
 }

@@ -751,4 +751,38 @@ class BahanBaku extends Model
         
         return $result;
     }
+    
+    /**
+     * Konversi berdasarkan data produksi yang sudah ada
+     * Menggunakan konversi dari tabel KonversiProduksi jika ada, fallback ke konversi standar
+     */
+    public function konversiBerdasarkanProduksi($jumlah, $dariSatuan, $keSatuan)
+    {
+        // Cek apakah ada konversi produksi yang sudah tercatat
+        $konversiProduksi = \App\Models\KonversiProduksi::where('bahan_baku_id', $this->id)
+            ->where('satuan_asli', $dariSatuan)
+            ->where('satuan_hasil', $keSatuan)
+            ->where('is_active', true)
+            ->first();
+            
+        if ($konversiProduksi && $konversiProduksi->faktor_konversi > 0) {
+            // Gunakan konversi dari data produksi yang sudah ada
+            return $jumlah * $konversiProduksi->faktor_konversi;
+        }
+        
+        // Fallback: gunakan konversi standar jika tidak ada data produksi
+        return $this->convertFromKg($jumlah, $keSatuan);
+    }
+    
+    /**
+     * Get active konversi for this bahan baku
+     */
+    public function getActiveKonversi($dariSatuan, $keSatuan)
+    {
+        return \App\Models\KonversiProduksi::where('bahan_baku_id', $this->id)
+            ->where('satuan_asli', $dariSatuan)
+            ->where('satuan_hasil', $keSatuan)
+            ->where('is_active', true)
+            ->first();
+    }
 }

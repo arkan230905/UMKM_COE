@@ -12,20 +12,26 @@
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label">Proses Produksi</label>
-                            <select name="proses_produksi_id" class="form-select" required onchange="updateProcessData()">
+                            <select name="proses_produksi_id" id="proses_produksi_id" class="form-select" required>
                                 <option value="">Pilih Proses</option>
                                 @foreach($prosesProduksis as $proses)
                                     <option value="{{ $proses->id }}" 
                                             data-kapasitas="{{ $proses->kapasitas_per_jam ?? 0 }}"
-                                            data-nama="{{ $proses->nama_proses }}">
+                                            data-tarif="{{ $proses->tarif_btkl ?? 0 }}"
+                                            data-nama="{{ $proses->nama_proses }}"
+                                            data-jabatan="{{ $proses->jabatan->nama_jabatan ?? 'Tidak diketahui' }}">
                                         {{ $proses->nama_proses }}
                                     </option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Budget</label>
-                            <input type="number" name="budget" class="form-control" min="0" step="0.01" required>
+                            <div id="btklInfo" class="alert alert-info d-none">
+                                <small>
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    <span id="btklInfoText"></span>
+                                </small>
+                            </div>
                         </div>
                     </div>
                     
@@ -99,10 +105,6 @@
                             <label class="form-label">Biaya / jam</label>
                             <input type="number" id="biaya_per_jam" class="form-control" readonly>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Aktual</label>
-                            <input type="number" name="aktual" class="form-control" min="0" step="0.01">
-                        </div>
                     </div>
                     
                     <div class="row mt-3">
@@ -136,20 +138,39 @@
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label">Proses Produksi</label>
-                            <input type="text" id="editNamaProses" class="form-control" readonly>
+                            <select name="proses_produksi_id" id="editProsesProduksiId" class="form-select" readonly>
+                                <option value="">Pilih Proses</option>
+                                @foreach($prosesProduksis as $proses)
+                                    <option value="{{ $proses->id }}" 
+                                            data-kapasitas="{{ $proses->kapasitas_per_jam ?? 0 }}"
+                                            data-tarif="{{ $proses->tarif_btkl ?? 0 }}"
+                                            data-nama="{{ $proses->nama_proses }}"
+                                            data-jabatan="{{ $proses->jabatan->nama_jabatan ?? 'Tidak diketahui' }}">
+                                        {{ $proses->nama_proses }}
+                                    </option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Kapasitas (pcs/jam)</label>
-                            <input type="number" id="editKapasitas" class="form-control" readonly>
+                            <div id="editBtklInfo" class="alert alert-info d-none">
+                                <small>
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    <span id="editBtklInfoText"></span>
+                                </small>
+                            </div>
                         </div>
                     </div>
                     
                     <div class="row mt-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label">Kapasitas (pcs/jam)</label>
+                            <input type="number" id="editKapasitas" class="form-control" readonly>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label">BTKL / Jam</label>
                             <input type="number" id="editBtklPerJam" class="form-control" readonly>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">BTKL / pcs</label>
                             <input type="number" id="editBtklPerPcs" class="form-control" readonly>
                         </div>
@@ -174,64 +195,19 @@
                                     </tbody>
                                 </table>
                             </div>
+                            <button type="button" class="btn btn-sm btn-success mt-2" onclick="addEditKomponenRow()">
+                                <i class="fas fa-plus"></i> Tambah Komponen
+                            </button>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-primary" onclick="saveEditedBop()">Update Data</button>
-                </div>
-            </form>
-                            <label class="form-label">Kapasitas (pcs/jam)</label>
-                            <input type="number" id="editKapasitas" class="form-control" readonly>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">BTKL / Jam</label>
-                            <input type="number" id="editBtklPerJam" name="btkl_per_jam" class="form-control" min="0" step="0.01" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">BTKL / pcs</label>
-                            <input type="number" id="editBtklPerPcs" class="form-control" readonly>
-                        </div>
-                    </div>
                     
-                    <!-- BOP Components -->
+                    <!-- Edit Calculated Values -->
                     <div class="row mt-3">
-                        <div class="col-12">
-                            <h6 class="mb-3">Komponen BOP</h6>
-                            <div id="editKomponenContainer">
-                                <div class="table-responsive">
-                                    <table class="table table-bordered" id="editKomponenTable">
-                                        <thead>
-                                            <tr>
-                                                <th>Komponen</th>
-                                                <th>Rp / Jam</th>
-                                                <th>Keterangan</th>
-                                                <th>Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="editKomponenRows">
-                                            <!-- Komponen rows will be added dynamically -->
-                                        </tbody>
-                                        <tfoot>
-                                            <tr class="table-primary fw-bold">
-                                                <td>Total BOP /jam</td>
-                                                <td><input type="number" id="editTotalBopPerJam" name="total_bop_per_jam" class="form-control" min="0" step="0.01" readonly></td>
-                                                <td></td>
-                                                <td></td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                                <button type="button" class="btn btn-sm btn-success mt-2" onclick="addEditKomponenRow()">
-                                    <i class="fas fa-plus"></i> Tambah Komponen
-                                </button>
-                            </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Total BOP / jam</label>
+                            <input type="number" id="editTotalBopPerJam" class="form-control" readonly>
                         </div>
-                    </div>
-                    
-                    <!-- Calculated Values -->
-                    <div class="row mt-3">
                         <div class="col-md-3">
                             <label class="form-label">BOP / pcs</label>
                             <input type="number" id="editBopPerPcs" class="form-control" readonly>
@@ -244,10 +220,6 @@
                             <label class="form-label">Biaya / jam</label>
                             <input type="number" id="editBiayaPerJam" class="form-control" readonly>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Aktual</label>
-                            <input type="number" id="editAktualProses" name="aktual" class="form-control" min="0" step="0.01">
-                        </div>
                     </div>
                     
                     <div class="row mt-3">
@@ -259,7 +231,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-primary" onclick="updateBopProses()">Update</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEditedBop()">Update Data</button>
                 </div>
             </form>
         </div>
@@ -268,19 +240,16 @@
 
 <!-- Detail BOP Modal -->
 <div class="modal fade" id="detailBopModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Detail BOP Proses</h5>
+            <div class="modal-header bg-light border-bottom">
+                <h5 class="modal-title fw-semibold">Detail BOP Proses</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-4">
                 <div id="detailBopContent">
                     <!-- Content will be loaded via AJAX -->
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
