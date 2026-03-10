@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BopProses;
 use App\Models\ProsesProduksi;
 use App\Models\Bop;
+use App\Models\BebanOperasional;
 use App\Models\Coa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -71,6 +72,11 @@ class BopController extends Controller
             $totalBopLainnya = $bopLainnya->sum('budget') ?? 0;
             $jumlahBopLainnya = $bopLainnya->count() ?? 0;
 
+            // Get Beban Operasional master data
+            $bebanOperasional = BebanOperasional::query()
+                ->orderBy('kode', 'asc')
+                ->get();
+
             return view('master-data.bop.index', compact(
                 'bopProses',
                 'prosesProduksis',
@@ -78,7 +84,8 @@ class BopController extends Controller
                 'totalBopLainnya',
                 'jumlahBopLainnya',
                 'akunBeban',
-                'btklData'
+                'btklData',
+                'bebanOperasional'
             ));
             
         } catch (\Exception $e) {
@@ -90,6 +97,7 @@ class BopController extends Controller
             $jumlahBopLainnya = 0;
             $akunBeban = collect([]);
             $btklData = [];
+            $bebanOperasional = collect([]);
             
             return view('master-data.bop.index', compact(
                 'bopProses',
@@ -98,7 +106,8 @@ class BopController extends Controller
                 'totalBopLainnya',
                 'jumlahBopLainnya',
                 'akunBeban',
-                'btklData'
+                'btklData',
+                'bebanOperasional'
             ))->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -757,6 +766,224 @@ class BopController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal memuat data BOP Proses: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Store Beban Operasional
+     */
+    public function storeBebanOperasional(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'kategori' => 'required|in:Administrasi,Marketing,Utilitas,Distribusi,Lain-lain',
+                'nama_beban' => 'required|string|max:255',
+                'budget_bulanan' => 'nullable|numeric|min:0',
+                'keterangan' => 'nullable|string|max:500',
+                'status' => 'required|in:aktif,nonaktif'
+            ]);
+
+            $validated['created_by'] = auth()->id();
+            $validated['kode'] = BebanOperasional::generateKode();
+            
+            $bebanOperasional = BebanOperasional::create($validated);
+
+            // Add formatted fields for response
+            $bebanOperasional->budget_bulanan_formatted = $bebanOperasional->budget_bulanan_formatted;
+            $bebanOperasional->status_badge = $bebanOperasional->status_badge;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Master Beban Operasional berhasil ditambahkan',
+                'data' => $bebanOperasional,
+                'debug' => [
+                    'saved_data' => $validated,
+                    'created_id' => $bebanOperasional->id,
+                    'kode' => $bebanOperasional->kode
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            \Log::error('BebanOperasional Store Error: ' . $e->getMessage(), [
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menambahkan Beban Operasional: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get Beban Operasional for editing
+     */
+    public function getBebanOperasional($id)
+    {
+        try {
+            $bebanOperasional = BebanOperasional::findOrFail($id);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $bebanOperasional
+            ]);
+            
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data Beban Operasional tidak ditemukan'
+            ], 404);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat data Beban Operasional: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update Beban Operasional
+     */
+    public function updateBebanOperasional(Request $request, $id)
+    {
+        try {
+            $bebanOperasional = BebanOperasional::findOrFail($id);
+
+            $validated = $request->validate([
+                'kategori' => 'required|in:Administrasi,Marketing,Utilitas,Distribusi,Lain-lain',
+                'nama_beban' => 'required|string|max:255',
+                'budget_bulanan' => 'nullable|numeric|min:0',
+                'keterangan' => 'nullable|string|max:500',
+                'status' => 'required|in:aktif,nonaktif'
+            ]);
+
+            $bebanOperasional->update($validated);
+
+            // Add formatted fields for response
+            $bebanOperasional->budget_bulanan_formatted = $bebanOperasional->budget_bulanan_formatted;
+            $bebanOperasional->status_badge = $bebanOperasional->status_badge;
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Master Beban Operasional berhasil diperbarui',
+                'data' => $bebanOperasional
+            ]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data Beban Operasional tidak ditemukan'
+            ], 404);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memperbarui Beban Operasional: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete Beban Operasional
+     */
+    public function deleteBebanOperasional($id)
+    {
+        try {
+            $bebanOperasional = BebanOperasional::findOrFail($id);
+            
+            // TODO: Add validation for usage in transactions
+            // For now, allow delete but in production should check if used in transactions
+            // if ($bebanOperasional->transaksiPembayaran()->count() > 0) {
+            //     return response()->json([
+            //         'success' => false,
+            //         'message' => 'Data tidak bisa dihapus karena sudah digunakan pada transaksi pembayaran beban.'
+            //     ], 422);
+            // }
+            
+            // Soft delete by setting status to nonaktif instead of hard delete
+            $bebanOperasional->update(['status' => 'nonaktif']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Master Beban Operasional berhasil dinonaktifkan'
+            ]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data Master Beban Operasional tidak ditemukan'
+            ], 404);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menonaktifkan Master Beban Operasional: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get Beban Operasional data with filters
+     */
+    public function getBebanOperasionalData(Request $request)
+    {
+        try {
+            $query = BebanOperasional::query();
+
+            // Filter by kategori
+            if ($request->filled('kategori')) {
+                $query->kategori($request->kategori);
+            }
+
+            // Filter by status
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+
+            // Search by nama beban
+            if ($request->filled('search')) {
+                $query->search($request->search);
+            }
+
+            $bebanOperasional = $query->orderBy('kode', 'asc')->get();
+            
+            // Add formatted fields for each item
+            $bebanOperasional->each(function ($item) {
+                $item->budget_bulanan_formatted = $item->budget_bulanan_formatted;
+                $item->status_badge = $item->status_badge;
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $bebanOperasional,
+                'current_filter' => [
+                    'kategori' => $request->kategori,
+                    'status' => $request->status,
+                    'search' => $request->search
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memuat data Beban Operasional: ' . $e->getMessage()
             ], 500);
         }
     }
