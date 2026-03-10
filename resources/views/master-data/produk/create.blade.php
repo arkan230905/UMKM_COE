@@ -23,6 +23,8 @@
         <div class="card-body">
             <form action="{{ route('master-data.produk.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
+                <input type="hidden" name="hpp" id="hpp" value="0">
+                <input type="hidden" name="margin_percent" id="margin_percent" value="0">
                 <div class="mb-3">
                     <label for="nama_produk" class="form-label">Nama Produk</label>
                     <input type="text" name="nama_produk" id="nama_produk" 
@@ -35,7 +37,7 @@
                         <span class="input-group-text"><i class="fas fa-barcode"></i></span>
                         <input type="text" class="form-control" value="Auto-generate (EAN-13)" disabled readonly>
                     </div>
-                    <small style="color: #ffffff;">Barcode akan dibuat otomatis saat produk disimpan dengan format EAN-13.</small>
+                    <small class="form-text text-muted">Barcode akan dibuat otomatis saat produk disimpan dengan format EAN-13.</small>
                 </div>
 
                 <div class="mb-3">
@@ -47,10 +49,10 @@
                 <div class="mb-3">
                     <label for="foto" class="form-label">Foto Produk</label>
                     <input type="file" name="foto" id="foto" class="form-control" accept="image/jpeg,image/png,image/jpg" onchange="previewImage(event)">
-                    <small style="color: #000000;">Format: JPG, JPEG, PNG. Maksimal 10MB.</small>
+                    <small class="form-text text-muted">Format: JPG, JPEG, PNG. Maksimal 10MB.</small>
                     
                     <div id="preview-container" class="mt-3" style="display: none;">
-                        <p style="color: #ffffff;" class="small mb-2">Preview foto:</p>
+                        <p class="small mb-2 text-muted">Preview foto:</p>
                         <div class="preview-image-wrapper">
                             <img id="preview-image" src="" alt="Preview" class="preview-img">
                             <button type="button" class="btn-remove-preview" onclick="removePreview()" title="Hapus foto">
@@ -61,10 +63,10 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="margin_percent" class="form-label">Presentase Keuntungan (%)</label>
-                    <input type="number" step="0.01" name="margin_percent" 
-                           class="form-control" value="{{ old('margin_percent', 30) }}">
-                    <small style="color: #ffffff;">Harga jual dihitung otomatis dari Harga Pokok Produksi × (1 + Margin%).</small>
+                    <label for="harga_jual" class="form-label">Harga Jual</label>
+                    <input type="text" name="harga_jual" id="harga_jual" 
+                           class="form-control" value="{{ old('harga_jual') }}" required>
+                    <small class="form-text text-muted">Presentase keuntungan: <span id="profit_percentage">0</span>%</small>
                 </div>
 
                 <div class="d-flex justify-content-end gap-2">
@@ -121,7 +123,7 @@ function removePreview() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('produkForm');
+    const form = document.querySelector('form[action*="store"]');
     
     if (form) {
         form.addEventListener('submit', function() {
@@ -133,51 +135,138 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    const marginInput = document.querySelector('input[name="margin_percent"]');
+    const hargaJualInput = document.getElementById('harga_jual');
     
-    // Contoh fungsi untuk menghitung harga jual
-    function hitungHargaJual() {
-        // Logika perhitungan harga jual bisa ditambahkan di sini
-        // Misalnya: harga_jual = harga_bom * (1 + (margin_percent / 100))
+    // Format harga jual input as user types
+    function formatHargaJualInput() {
+        let value = hargaJualInput.value;
+        
+        // Remove all non-digit characters
+        let numericValue = value.replace(/\D/g, '');
+        
+        // Format with dots
+        let formattedValue = formatNumberWithDots(numericValue);
+        
+        // Update the input value
+        hargaJualInput.value = formattedValue;
+        
+        // Calculate profit percentage
+        calculateProfitPercentage();
     }
     
-    // Panggil fungsi saat nilai margin berubah
-    if (marginInput) {
-        marginInput.addEventListener('change', hitungHargaJual);
-        marginInput.addEventListener('keyup', hitungHargaJual);
+    // Format number with thousand separators
+    function formatNumberWithDots(number) {
+        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+    
+    // Parse formatted number back to pure number
+    function parseFormattedNumber(formattedString) {
+        return parseInt(formattedString.replace(/\./g, '')) || 0;
+    }
+    
+    // Calculate profit percentage when harga_jual changes
+    function calculateProfitPercentage() {
+        const hppInput = document.getElementById('hpp');
+        const hargaJualInput = document.getElementById('harga_jual');
+        const profitPercentageSpan = document.getElementById('profit_percentage');
+        const marginPercentInput = document.getElementById('margin_percent');
+        
+        // Get HPP value (default 0 for new products)
+        let hpp = parseFloat(hppInput.value) || 0;
+        
+        // Get the actual numeric values
+        const hargaJual = parseFormattedNumber(hargaJualInput.value);
+        
+        if (hpp > 0 && hargaJual > 0) {
+            const profitPercentage = ((hargaJual - hpp) / hpp) * 100;
+            profitPercentageSpan.textContent = profitPercentage.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            marginPercentInput.value = profitPercentage.toFixed(2);
+        } else {
+            profitPercentageSpan.textContent = '0';
+            marginPercentInput.value = '0';
+        }
+    }
+    
+    // Add event listeners
+    if (hargaJualInput) {
+        // Format initial value
+        const initialValue = hargaJualInput.value;
+        if (initialValue && !isNaN(initialValue)) {
+            hargaJualInput.value = formatNumberWithDots(parseInt(initialValue));
+        }
+        
+        // Calculate initial profit percentage
+        calculateProfitPercentage();
+        
+        // Add event listeners
+        hargaJualInput.addEventListener('input', formatHargaJualInput);
+        hargaJualInput.addEventListener('blur', calculateProfitPercentage);
+        
+        // Prevent non-numeric input
+        hargaJualInput.addEventListener('keypress', function(e) {
+            // Allow backspace, delete, tab, escape, enter
+            if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
+                // Allow: Ctrl+A, Command+A
+                (e.keyCode === 65 && (e.ctrlKey === true || e.metaKey === true)) ||
+                // Allow: home, end, left, right, down, up
+                (e.keyCode >= 35 && e.keyCode <= 40)) {
+                // let it happen, don't do anything
+                return;
+            }
+            // Ensure that it is a number and stop the keypress
+            if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                e.preventDefault();
+            }
+        });
     }
 });
 </script>
 @endpush
 
 <style>
-    .form-control, .form-select, .form-control:focus, .form-select:focus {
-        background-color: #1e1e2f !important;
-        border-color: #2d2d3a !important;
-        color: #ffffff !important;
+    /* Form text color improvements */
+    .form-control {
+        color: #212529 !important;
+        background-color: #ffffff !important;
+        border: 1px solid #ced4da;
     }
     
-    .form-control:focus, .form-select:focus {
-        box-shadow: 0 0 0 0.25rem rgba(108, 99, 255, 0.25) !important;
+    .form-control:focus {
+        color: #212529 !important;
+        background-color: #ffffff !important;
+        border-color: #8B7355 !important;
+        box-shadow: 0 0 0 0.2rem rgba(139, 115, 85, 0.25) !important;
     }
     
     .form-label {
-        font-weight: 500;
-        margin-bottom: 0.5rem;
+        color: #212529 !important;
+        font-weight: 600;
     }
     
-    option {
-        background-color: #1e1e2f;
-        color: #ffffff;
+    .form-text {
+        color: #6c757d !important;
+    }
+    
+    .container {
+        color: #212529 !important;
+    }
+    
+    h1 {
+        color: #212529 !important;
     }
     
     .card {
-        background-color: #222232;
-        border: 1px solid #2d2d3a;
+        background-color: #ffffff !important;
+        border: 1px solid #dee2e6 !important;
     }
     
     .text-muted {
-        color: #8a8a9a !important;
+        color: #6c757d !important;
+    }
+    
+    option {
+        background-color: #ffffff;
+        color: #212529;
     }
     
     /* Preview Image Styling */

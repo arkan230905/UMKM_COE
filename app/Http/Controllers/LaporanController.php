@@ -624,26 +624,36 @@ class LaporanController extends Controller
     public function laporanRetur(Request $request)
     {
         // Filter untuk Retur Penjualan
-        $salesReturnQuery = \App\Models\SalesReturn::with(['penjualan', 'items.penjualanDetail.produk'])
+        $salesReturnQuery = \App\Models\Retur::with(['penjualan', 'details.produk'])
+            ->where('type', 'sale')
             ->when($request->sales_start_date && $request->sales_end_date, function($q) use ($request) {
-                return $q->whereBetween('return_date', [$request->sales_start_date, $request->sales_end_date]);
+                return $q->whereBetween('tanggal', [$request->sales_start_date, $request->sales_end_date]);
             })
-            ->orderBy('return_date', 'desc');
+            ->orderBy('tanggal', 'desc');
 
         // Filter untuk Retur Pembelian  
-        $purchaseReturnQuery = \App\Models\PurchaseReturn::with(['pembelian.vendor', 'items.pembelianDetail.bahanBaku'])
+        $purchaseReturnQuery = \App\Models\Retur::with(['pembelian.vendor', 'details.produk'])
+            ->where('type', 'purchase')
             ->when($request->purchase_start_date && $request->purchase_end_date, function($q) use ($request) {
-                return $q->whereBetween('return_date', [$request->purchase_start_date, $request->purchase_end_date]);
+                return $q->whereBetween('tanggal', [$request->purchase_start_date, $request->purchase_end_date]);
             })
-            ->orderBy('return_date', 'desc');
+            ->orderBy('tanggal', 'desc');
 
         // Get data
         $salesReturns = $salesReturnQuery->paginate(10, ['*'], 'sales_page');
         $purchaseReturns = $purchaseReturnQuery->paginate(10, ['*'], 'purchase_page');
 
         // Calculate totals
-        $totalSalesReturns = $salesReturnQuery->sum('total_return_amount');
-        $totalPurchaseReturns = $purchaseReturnQuery->sum('total_return_amount');
+        $totalSalesReturns = $salesReturnQuery->get()->sum(function($retur) {
+            return $retur->details->sum(function($detail) {
+                return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0);
+            });
+        });
+        $totalPurchaseReturns = $purchaseReturnQuery->get()->sum(function($retur) {
+            return $retur->details->sum(function($detail) {
+                return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0);
+            });
+        });
 
         return view('laporan.retur.index', compact(
             'salesReturns', 

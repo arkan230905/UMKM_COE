@@ -170,6 +170,8 @@ class ProdukController extends Controller
             'nama_produk' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
+            'harga_jual' => 'required|numeric|min:0',
+            'hpp' => 'nullable|numeric|min:0',
             'margin_percent' => 'nullable|numeric|min:0',
             'bopb_method' => 'nullable|in:per_unit,per_hour',
             'bopb_rate' => 'nullable|numeric|min:0',
@@ -182,13 +184,16 @@ class ProdukController extends Controller
             $fotoPath = $request->file('foto')->store('produk', 'public');
         }
 
-        // Harga jual kosong dulu; akan dihitung dari BOM
+        // Parse harga_jual from formatted string (remove dots)
+        $hargaJual = (int) str_replace('.', '', $request->input('harga_jual'));
+
         Produk::create([
             'nama_produk' => $request->nama_produk,
             'deskripsi' => $request->deskripsi,
             'foto' => $fotoPath,
-            'harga_jual' => null,
-            'margin_percent' => $request->input('margin_percent'),
+            'harga_jual' => $hargaJual,
+            'hpp' => $request->input('hpp', 0),
+            'margin_percent' => $request->input('margin_percent', 0),
             'bopb_method' => $request->input('bopb_method'),
             'bopb_rate' => $request->input('bopb_rate'),
             'labor_hours_per_unit' => $request->input('labor_hours_per_unit'),

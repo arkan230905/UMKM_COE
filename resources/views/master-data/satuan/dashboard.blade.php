@@ -421,6 +421,47 @@
     </div>
 </div>
 
+<!-- Modal Edit Satuan -->
+<div class="modal fade" id="editSatuanModal" tabindex="-1" aria-labelledby="editSatuanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-brown text-white">
+                <h5 class="modal-title" id="editSatuanModalLabel">
+                    <i class="fas fa-edit me-2"></i>Edit Satuan
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editSatuanForm">
+                    <input type="hidden" id="editSatuanId">
+                    <div class="mb-3">
+                        <label for="editKodeSatuan" class="form-label fw-bold">
+                            Kode Satuan
+                        </label>
+                        <input type="text" class="form-control" id="editKodeSatuan" placeholder="Contoh: BOX, PCS, KG" required>
+                        <div class="form-text">Kode unik untuk identifikasi satuan</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editNamaSatuan" class="form-label fw-bold">
+                            Nama Satuan
+                        </label>
+                        <input type="text" class="form-control" id="editNamaSatuan" placeholder="Contoh: Box, Pieces, Kilogram" required>
+                        <div class="form-text">Nama lengkap satuan yang akan ditampilkan</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Batal
+                </button>
+                <button type="button" class="btn btn-brown" onclick="updateSatuan()">
+                    <i class="fas fa-save me-2"></i>Update
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Tambah Satuan -->
 <div class="modal fade" id="addSatuanModal" tabindex="-1" aria-labelledby="addSatuanModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -681,13 +722,138 @@ function formatNumber(num) {
     }
 }
 
-// Dummy functions for edit/delete (not implemented in this view)
+// Edit Satuan - Show modal with existing data
 function editSatuan(id) {
-    alert('Fitur edit satuan tidak tersedia di halaman ini. Gunakan halaman master data satuan.');
+    // Find satuan data from the satuanData array
+    const satuan = satuanData.find(s => s.id == id);
+    
+    if (satuan) {
+        // Populate form with existing data
+        document.getElementById('editSatuanId').value = satuan.id;
+        document.getElementById('editKodeSatuan').value = satuan.kode;
+        document.getElementById('editNamaSatuan').value = satuan.nama;
+        
+        // Show edit modal
+        const modal = new bootstrap.Modal(document.getElementById('editSatuanModal'));
+        modal.show();
+    } else {
+        alert('Data satuan tidak ditemukan!');
+    }
 }
 
+// Update Satuan - Save changes via AJAX
+function updateSatuan() {
+    const id = document.getElementById('editSatuanId').value;
+    const kode = document.getElementById('editKodeSatuan').value.trim();
+    const nama = document.getElementById('editNamaSatuan').value.trim();
+    
+    if (!kode || !nama) {
+        alert('Mohon lengkapi semua field!');
+        return;
+    }
+    
+    // Send AJAX request to update
+    fetch(`/master-data/satuan/${id}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            kode: kode,
+            nama: nama
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the table row
+            const row = document.querySelector(`tr:has(button[onclick="editSatuan(${id})"])`);
+            if (row) {
+                row.cells[0].innerHTML = `<span class="badge bg-primary">${kode.toUpperCase()}</span>`;
+                row.cells[1].innerHTML = `<strong>${nama}</strong>`;
+            }
+            
+            // Update satuanData array
+            const satuanIndex = satuanData.findIndex(s => s.id == id);
+            if (satuanIndex !== -1) {
+                satuanData[satuanIndex].kode = kode.toUpperCase();
+                satuanData[satuanIndex].nama = nama;
+            }
+            
+            // Close modal and show success
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editSatuanModal'));
+            modal.hide();
+            
+            showSuccessMessage('Data satuan berhasil diperbarui!');
+        } else {
+            alert('Gagal memperbarui data: ' + (data.message || 'Terjadi kesalahan'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Gagal memperbarui data. Silakan coba lagi.');
+    });
+}
+
+// Delete Satuan - Confirm and delete via AJAX
 function deleteSatuan(id) {
-    alert('Fitur hapus satuan tidak tersedia di halaman ini. Gunakan halaman master data satuan.');
+    const satuan = satuanData.find(s => s.id == id);
+    
+    if (!satuan) {
+        alert('Data satuan tidak ditemukan!');
+        return;
+    }
+    
+    // Confirm deletion
+    if (confirm(`Apakah Anda yakin ingin menghapus satuan "${satuan.nama}"?`)) {
+        // Send AJAX request to delete
+        fetch(`/master-data/satuan/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the table row
+                const row = document.querySelector(`tr:has(button[onclick="editSatuan(${id})"])`);
+                if (row) {
+                    row.remove();
+                }
+                
+                // Remove from satuanData array
+                const satuanIndex = satuanData.findIndex(s => s.id == id);
+                if (satuanIndex !== -1) {
+                    satuanData.splice(satuanIndex, 1);
+                }
+                
+                // Show success message
+                showSuccessMessage('Satuan berhasil dihapus!');
+                
+                // Check if table is empty and show empty state
+                const tbody = document.querySelector('#satuan-panel tbody');
+                if (tbody.children.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p class="mb-0">Belum ada data satuan</p>
+                            </td>
+                        </tr>
+                    `;
+                }
+            } else {
+                alert('Gagal menghapus data: ' + (data.message || 'Terjadi kesalahan'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Gagal menghapus data. Silakan coba lagi.');
+        });
+    }
 }
 
 // Event listeners

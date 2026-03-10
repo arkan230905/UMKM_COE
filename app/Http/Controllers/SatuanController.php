@@ -85,20 +85,60 @@ class SatuanController extends Controller
                 'nama' => $validated['nama'],
             ]);
 
+            // Check if request expects JSON (AJAX)
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data satuan berhasil diperbarui!'
+                ]);
+            }
+
             return redirect()->route('master-data.satuan.index')
                 ->with('success', 'Data satuan berhasil diperbarui!');
                 
         } catch (\Exception $e) {
+            // Check if request expects JSON (AJAX)
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal memperbarui data: ' . $e->getMessage()
+                ], 500);
+            }
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Gagal memperbarui data: ' . $e->getMessage());
         }
     }
 
-    public function destroy(Satuan $satuan)
+    public function destroy(Request $request, Satuan $satuan)
     {
-        $satuan->delete();
+        try {
+            $satuanName = $satuan->nama;
+            $satuan->delete();
 
-        return redirect()->route('master-data.satuan.index')->with('success', 'Satuan berhasil dihapus!');
+            // Check if request expects JSON (AJAX)
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Satuan berhasil dihapus!'
+                ]);
+            }
+
+            return redirect()->route('master-data.satuan.index')
+                ->with('success', 'Satuan berhasil dihapus!');
+                
+        } catch (\Exception $e) {
+            // Check if request expects JSON (AJAX)
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghapus data: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->back()
+                ->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+        }
     }
 }

@@ -64,7 +64,7 @@
         <h5>Detail Penjualan</h5>
         <div class="table-responsive">
             <table class="table table-bordered align-middle" id="detailTableJual">
-                <thead class="table-dark">
+                <thead class="table-light">
                     <tr>
                         <th>Produk</th>
                         <th class="text-end">Qty</th>
@@ -81,7 +81,7 @@
                                 <option value="">-- Pilih Produk --</option>
                                 @foreach($produks as $p)
                                     <option value="{{ $p->id }}" 
-                                            data-price="{{ $p->harga_jual ?? 0 }}"
+                                            data-price="{{ round($p->harga_jual ?? 0) }}"
                                             data-stok="{{ $p->stok_tersedia ?? 0 }}">
                                         {{ $p->nama_produk ?? $p->nama }} (Stok: {{ number_format($p->stok_tersedia ?? 0, 0, ',', '.') }})
                                     </option>
@@ -90,7 +90,7 @@
                             <small class="text-muted stok-info"></small>
                         </td>
                         <td><input type="number" step="0.0001" min="0.0001" name="jumlah[]" class="form-control jumlah" value="1" required></td>
-                        <td><input type="number" step="0.01" min="0" name="harga_satuan[]" class="form-control harga" value="0" readonly required></td>
+                        <td><input type="number" step="1" min="0" name="harga_satuan[]" class="form-control harga" value="0" readonly required></td>
                         <td><input type="number" step="0.01" min="0" max="100" name="diskon_persen[]" class="form-control diskon" value="0"></td>
                         <td><input type="text" class="form-control subtotal" value="0" readonly></td>
                         <td><button type="button" class="btn btn-danger btn-sm removeRow">-</button></td>
@@ -146,7 +146,7 @@ const productData = {
     '{{ $p->barcode ?? '' }}': {
         id: {{ $p->id }},
         nama: '{{ addslashes($p->nama_produk ?? $p->nama) }}',
-        harga: {{ $p->harga_jual ?? 0 }},
+        harga: {{ round($p->harga_jual ?? 0) }},
         stok: {{ $p->stok_tersedia ?? 0 }}
     },
     @endforeach
@@ -228,7 +228,7 @@ function addProductByBarcode(product) {
             const clone = firstRow.cloneNode(true);
             clone.querySelectorAll('input').forEach(inp => {
                 if (inp.classList.contains('jumlah')) inp.value = 1;
-                else if (inp.classList.contains('harga')) inp.value = product.harga.toFixed(2);
+                else if (inp.classList.contains('harga')) inp.value = product.harga;
                 else if (inp.classList.contains('diskon')) inp.value = 0;
                 else if (inp.classList.contains('subtotal')) inp.value = product.harga.toLocaleString();
             });
@@ -408,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const price = parseFloat(opt?.getAttribute('data-price') || '0') || 0;
         const stok = parseFloat(opt?.getAttribute('data-stok') || '0') || 0;
         
-        tr.querySelector('.harga').value = price.toFixed(2);
+        tr.querySelector('.harga').value = price;
         
         // Update stok info
         const stokInfo = tr.querySelector('.stok-info');

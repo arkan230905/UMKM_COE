@@ -78,7 +78,12 @@ class PenjualanController extends Controller
         
         $jumlahTransaksi = $penjualans->count();
         
-        return view('transaksi.penjualan.index', compact('penjualans', 'totalPenjualan', 'jumlahTransaksi', 'totalProdukTerjual', 'totalProfit'));
+        // Get return data for the return tab
+        $salesReturns = \App\Models\SalesReturn::with(['penjualan', 'items.produk'])
+            ->orderBy('return_date', 'desc')
+            ->get();
+        
+        return view('transaksi.penjualan.index', compact('penjualans', 'totalPenjualan', 'jumlahTransaksi', 'totalProdukTerjual', 'totalProfit', 'salesReturns'));
     }
 
     public function create()
