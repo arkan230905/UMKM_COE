@@ -13,7 +13,6 @@ class User extends Authenticatable
     // Role constants
     const ROLE_ADMIN = 'admin';
     const ROLE_OWNER = 'owner';
-    const ROLE_PEGAWAI = 'pegawai';
     const ROLE_PELANGGAN = 'pelanggan';
     const ROLE_PEGAWAI_PEMBELIAN = 'pegawai_pembelian';
     const ROLE_KASIR = 'kasir';
@@ -21,7 +20,6 @@ class User extends Authenticatable
     const VALID_ROLES = [
         self::ROLE_ADMIN,
         self::ROLE_OWNER,
-        self::ROLE_PEGAWAI,
         self::ROLE_PELANGGAN,
         self::ROLE_PEGAWAI_PEMBELIAN,
         self::ROLE_KASIR,
@@ -36,7 +34,7 @@ class User extends Authenticatable
         'role',
         'perusahaan_id',
         'profile_photo',
-        'pegawai_id', // Tambahkan pegawai_id
+        'plain_password'
     ];
 
     protected $hidden = [
@@ -134,21 +132,5 @@ class User extends Authenticatable
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
-    }
-
-    /**
-     * Get pegawai associated with this user
-     */
-    public function pegawai()
-    {
-        return $this->belongsTo(Pegawai::class, 'pegawai_id', 'id');
-    }
-
-    /**
-     * Check if user is pegawai
-     */
-    public function isPegawai(): bool
-    {
-        return $this->role === self::ROLE_PEGAWAI;
     }
 }

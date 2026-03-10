@@ -661,8 +661,8 @@ class BomController extends Controller
                     }
                 }
                 
-                // Use standard BOP values if no BomJobCosting
-                $totalBiayaBOP = 1740 + 290 + 1160; // Total = 3.190
+                // BOP should be 0 if no data exists
+                $totalBiayaBOP = 0;
             }
 
             $totalBiayaBOM = $totalBiayaBahan + $totalBiayaBTKL + $totalBiayaBOP;

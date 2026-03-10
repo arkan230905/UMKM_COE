@@ -505,7 +505,7 @@ class BiayaBahanController extends Controller
                     $hargaPerSatuanDipakai = $result['harga_per_satuan'];
                     
                     $totalBiaya += $subtotal;
-                    $totalBiayaBahanBaku += $subtotal;
+                    $totalBiayaBahanPendukung += $subtotal;
                     
                     $pendukungDetail = new BomJobBahanPendukung();
                     $pendukungDetail->bom_job_costing_id = $bomJobCosting->id;
@@ -734,7 +734,7 @@ class BiayaBahanController extends Controller
                     $hargaPerSatuanDipakai = $result['harga_per_satuan'];
                     
                     $totalBiaya += $subtotal;
-                    $totalBiayaBahanBaku += $subtotal;
+                    $totalBiayaBahanPendukung += $subtotal;
                     
                     $pendukungDetail = new BomJobBahanPendukung();
                     $pendukungDetail->bom_job_costing_id = $bomJobCosting->id;

@@ -7,11 +7,11 @@
 <div class="container-fluid px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0 text-dark">
-            <i class="fas fa-edit me-2"></i>Edit Perhitungan Biaya Bahan
+            <i class="fas fa-plus me-2"></i>Edit Biaya Bahan
             <small class="text-muted fw-normal">- {{ $produk->nama_produk }}</small>
         </h2>
         <div class="btn-group">
-            <a href="{{ route('master-data.biaya-bahan.show', $produk->id) }}" class="btn btn-secondary">
+            <a href="{{ route('master-data.biaya-bahan.index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Kembali
             </a>
         </div>
@@ -51,10 +51,6 @@
                     <p class="mb-1"><strong>Jumlah Produk yang Dibuat:</strong></p>
                     <p class="text-muted">{{ number_format($produk->stok, 0, ',', '.') }}</p>
                 </div>
-                <div class="col-md-4">
-                    <p class="mb-1"><strong>Total Biaya Bahan Saat Ini:</strong></p>
-                    <p class="text-muted">Rp {{ number_format($produk->harga_bom, 0, ',', '.') }}</p>
-                </div>
             </div>
         </div>
     </div>
@@ -68,7 +64,6 @@
             <div class="card-header text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <h6 class="mb-0">
                     <i class="fas fa-cube me-2"></i>1. Biaya Bahan Baku (BBB)
-                    <small>({{ count($bomJobBBB) }} item)</small>
                 </h6>
             </div>
             <div class="card-body" style="background-color: #f8f4ff;">
@@ -85,6 +80,7 @@
                             </tr>
                         </thead>
                         <tbody>
+                            {{-- Existing Bahan Baku Rows --}}
                             @foreach($bomJobBBB as $index => $detail)
                                 <tr>
                                     <td>
@@ -149,12 +145,10 @@
                                         </select>
                                     </td>
                                     <td class="text-end harga-display" style="width: 200px;">
-                                        <div class="harga-utama">Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}</div>
+                                        <div class="harga-utama">-</div>
                                         <div class="harga-konversi mt-1" style="font-size: 0.75rem; color: #666;"></div>
                                     </td>
-                                    <td class="text-end subtotal-display" style="width: 150px;">
-                                        <strong>Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</strong>
-                                    </td>
+                                    <td class="text-end subtotal-display" style="width: 150px;">-</td>
                                     <td class="text-center" style="width: 80px;">
                                         <button type="button" class="btn btn-sm btn-danger remove-item">
                                             <i class="fas fa-trash"></i>
@@ -162,6 +156,8 @@
                                     </td>
                                 </tr>
                             @endforeach
+                            
+                            {{-- Template Row for New Items --}}
                             <tr id="newBahanBakuRow" class="d-none">
                                 <td>
                                     <select name="bahan_baku[new][id]" class="form-select form-select-sm bahan-baku-select">
@@ -251,7 +247,6 @@
             <div class="card-header text-white" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
                 <h6 class="mb-0">
                     <i class="fas fa-flask me-2"></i>2. Bahan Pendukung/Penolong
-                    <small>({{ count($bomJobBahanPendukung) }} item)</small>
                 </h6>
             </div>
             <div class="card-body" style="background-color: #ecfeff;">
@@ -268,7 +263,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($bomJobBahanPendukung as $index => $pendukung)
+                            {{-- Existing Bahan Pendukung Rows --}}
+                            @foreach($bomJobBahanPendukung as $index => $detail)
                                 <tr>
                                     <td>
                                         <select name="bahan_pendukung[{{ $index }}][id]" class="form-select form-select-sm bahan-pendukung-select">
@@ -308,7 +304,7 @@
                                                         data-harga="{{ $bahanPendukung->harga_rata_rata ?? $bahanPendukung->harga_satuan }}"
                                                         data-satuan="{{ $satuanBP }}"
                                                         data-sub-satuan="{{ json_encode($subSatuanData) }}"
-                                                        {{ $pendukung->bahan_pendukung_id == $bahanPendukung->id ? 'selected' : '' }}>
+                                                        {{ $detail->bahan_pendukung_id == $bahanPendukung->id ? 'selected' : '' }}>
                                                     {{ $bahanPendukung->nama_bahan }} - Rp {{ number_format($bahanPendukung->harga_rata_rata ?? $bahanPendukung->harga_satuan, 0, ',', '.') }}/{{ $satuanBP }}
                                                 </option>
                                             @endforeach
@@ -317,7 +313,7 @@
                                     <td style="width: 120px;">
                                         <input type="number" name="bahan_pendukung[{{ $index }}][jumlah]" 
                                                class="form-control form-control-sm qty-input text-center" 
-                                               value="{{ $pendukung->jumlah }}" 
+                                               value="{{ $detail->jumlah }}" 
                                                step="0.01" min="0">
                                     </td>
                                     <td style="width: 120px;">
@@ -325,19 +321,17 @@
                                             <option value="">-- Satuan --</option>
                                             @foreach($satuans as $satuan)
                                                 <option value="{{ $satuan->nama }}" 
-                                                        {{ $pendukung->satuan == $satuan->nama ? 'selected' : '' }}>
+                                                        {{ $detail->satuan == $satuan->nama ? 'selected' : '' }}>
                                                     {{ $satuan->nama }}
                                                 </option>
                                             @endforeach
                                         </select>
                                     </td>
                                     <td class="text-end harga-display" style="width: 200px;">
-                                        <div class="harga-utama">Rp {{ number_format($pendukung->harga_satuan, 0, ',', '.') }}</div>
+                                        <div class="harga-utama">-</div>
                                         <div class="harga-konversi mt-1" style="font-size: 0.75rem; color: #666;"></div>
                                     </td>
-                                    <td class="text-end subtotal-display" style="width: 150px;">
-                                        <strong>Rp {{ number_format($pendukung->subtotal, 0, ',', '.') }}</strong>
-                                    </td>
+                                    <td class="text-end subtotal-display" style="width: 150px;">-</td>
                                     <td class="text-center" style="width: 80px;">
                                         <button type="button" class="btn btn-sm btn-danger remove-item">
                                             <i class="fas fa-trash"></i>
@@ -345,6 +339,8 @@
                                     </td>
                                 </tr>
                             @endforeach
+                            
+                            {{-- Template Row for New Items --}}
                             <tr id="newBahanPendukungRow" class="d-none">
                                 <td>
                                     <select name="bahan_pendukung[new][id]" class="form-select form-select-sm bahan-pendukung-select">
@@ -434,16 +430,17 @@
             <div class="card-body">
                 <!-- DEBUG TEST BUTTON -->
                 <div class="mb-3 p-2 bg-light border rounded">
-                    <h6 class="text-primary mb-2">🔍 DEBUG TESTING</h6>
-                    <button type="button" class="btn btn-sm btn-warning me-2" onclick="testAddBahanPendukung()">
-                        🧪 Test Add Bahan Pendukung
+                    <small class="text-muted">Debug Test:</small>
+                    <button type="button" class="btn btn-sm btn-warning ms-2" onclick="testConversionFunction()">
+                        🧪 Test Conversion Function
                     </button>
-                    <button type="button" class="btn btn-sm btn-danger me-2" onclick="checkElements()">
-                        🔍 Check Elements
+                    <button type="button" class="btn btn-sm btn-info ms-2" onclick="testSubtotalCalculation()">
+                        🧮 Test Subtotal Calculation
                     </button>
-                    <button type="button" class="btn btn-sm btn-success me-2" onclick="clearConsole()">
-                        🗑️ Clear Console
+                    <button type="button" class="btn btn-sm btn-danger ms-2" onclick="emergencyDebug()">
+                        🚨 Emergency Debug
                     </button>
+                    <div id="testResult" class="mt-1 text-small"></div>
                 </div>
                 
                 <div class="d-flex justify-content-between align-items-center">
@@ -455,8 +452,8 @@
                         </small>
                     </div>
                     <div>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-2"></i>Simpan Perubahan
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-2"></i>Simpan Biaya Bahan
                         </button>
                         <a href="{{ route('master-data.biaya-bahan.index') }}" class="btn btn-secondary">
                             <i class="fas fa-times me-2"></i>Batal
@@ -471,7 +468,7 @@
 @push('scripts')
 <script>
 // BIAYA BAHAN FINAL FIXED VERSION - 2026-02-06 12:00:00
-console.log("🚀 BIAYA BAHAN EDIT LOADED - " + new Date().toISOString());
+console.log("🚀 BIAYA BAHAN LOADED - " + new Date().toISOString());
 
 // Global flag
 window.biayaBahanReady = true;
@@ -568,7 +565,7 @@ function updateConversionDisplay(row, option) {
             return;
         }
         
-        // Show all conversions if same unit
+        // Show all conversions if same unit or no match
         if (satuanDipilih === satuanUtama) {
             console.log("📋 Same unit - showing all conversions");
             
@@ -827,6 +824,7 @@ function addRowEventListeners(row) {
         });
     }
 }
+
 // Add new row functions
 function addBahanBakuRow() {
     console.log("➕ Adding Bahan Baku row");
@@ -871,41 +869,71 @@ function addBahanPendukungRow() {
     clone.classList.remove("d-none");
     clone.id = "bahanPendukung_" + Date.now();
     
-    console.log("📋 Template row found:", newRow);
-    console.log("📋 Clone created:", clone);
-    
     // Update name attributes
     const timestamp = Date.now();
     clone.querySelectorAll('[name^="bahan_pendukung[new]"]').forEach(input => {
         const fieldName = input.name.match(/\[new\]\[(\w+)\]/)[1];
         input.name = `bahan_pendukung[${timestamp}][${fieldName}]`;
         input.value = "";
-        console.log(`📝 Updated input name: ${input.name}`);
     });
     
     tbody.insertBefore(clone, newRow);
     addRowEventListeners(clone);
     
-    console.log("✅ Bahan Pendukung row added successfully");
+    console.log("✅ Bahan Pendukung row added");
+    return false;
+}
+
+// Test functions for debugging
+function testConversionFunction() {
+    console.log("🧪 Testing conversion function");
+    const testResult = document.getElementById("testResult");
+    
+    try {
+        // Test data
+        const testData = [
+            {
+                "nama": "Kilogram",
+                "konversi": "1.0000",
+                "nilai": "1.5000"
+            },
+            {
+                "nama": "Potong", 
+                "konversi": "1.0000",
+                "nilai": "6.0000"
+            }
+        ];
         
-        const newRow = document.getElementById("newBahanBakuRow");
-        if (!newRow) {
-            console.error("❌ Template row not found");
-            return false;
+        const hargaUtama = 45000;
+        const satuanUtama = "Ekor";
+        
+        let results = [];
+        results.push(`Harga Utama: ${formatRupiah(hargaUtama)}/${satuanUtama}`);
+        
+        testData.forEach(sub => {
+            const konversi = parseFloat(sub.konversi);
+            const nilai = parseFloat(sub.nilai);
+            const hargaKonversi = (hargaUtama * konversi) / nilai;
+            
+            results.push(`${sub.nama}: ${formatRupiah(hargaKonversi)} (${konversi}÷${nilai})`);
+        });
+        
+        if (testResult) {
+            testResult.innerHTML = `<div class="alert alert-success">✅ Test Results:<br>${results.join('<br>')}</div>`;
         }
         
-        const tbody = newRow.parentElement;
-        const clone = newRow.cloneNode(true);
-        clone.classList.remove("d-none");
-        clone.id = "bahanBaku_" + Date.now();
+        console.log("✅ Conversion test passed");
         
-        // Update name attributes
-        const timestamp = Date.now();
-        clone.querySelectorAll('[name^="bahan_baku[new]"]').forEach(input => {
-            const fieldName = input.name.match(/\[new\]\[(\w+)\]/)[1];
-            input.name = `bahan_baku[${timestamp}][${fieldName}]`;
-            input.value = "";
-        });
+    } catch (error) {
+        if (testResult) {
+            testResult.innerHTML = `<div class="alert alert-danger">❌ Test Error: ${error.message}</div>`;
+        }
+        console.error("❌ Conversion test failed:", error);
+    }
+}
+
+function testSubtotalCalculation() {
+    console.log("🧮 Testing subtotal calculation");
     const testResult = document.getElementById("testResult");
     
     try {
@@ -1024,7 +1052,7 @@ window.calculateTotals = calculateTotals;
 
 // Initialize when DOM ready
 document.addEventListener("DOMContentLoaded", function() {
-    console.log("🎯 DOM Ready - Initializing");
+    console.log("🎯 DOM Ready - Initializing EDIT PAGE");
     
     // Attach button listeners
     const addBBBtn = document.getElementById("addBahanBaku");
@@ -1040,64 +1068,87 @@ document.addEventListener("DOMContentLoaded", function() {
     
     if (addBPBtn) {
         addBPBtn.addEventListener("click", function(e) {
-            console.log("🔘 Bahan Pendukung button clicked!");
             e.preventDefault();
-            const result = addBahanPendukungRow();
-            console.log("🎯 Function result:", result);
+            addBahanPendukungRow();
         });
-        console.log("✅ BP button attached successfully");
-    } else {
-        console.error("❌ Bahan Pendukung button not found!");
+        console.log("✅ BP button attached");
     }
     
-    // Initialize existing rows with event listeners
-    document.querySelectorAll("#bahanBakuTable tbody tr:not(#newBahanBakuRow):not(.d-none)").forEach(row => {
-        addRowEventListeners(row);
-        
-        // Trigger initial calculation for existing rows
-        const bahanSelect = row.querySelector(".bahan-baku-select");
-        if (bahanSelect && bahanSelect.value) {
-            const option = bahanSelect.options[bahanSelect.selectedIndex];
-            if (option && option.dataset.harga) {
-                updateConversionDisplay(row, option);
-                calculateRowSubtotal(row);
-            }
-        }
-    });
-    
-    document.querySelectorAll("#bahanPendukungTable tbody tr:not(#newBahanPendukungRow):not(.d-none)").forEach(row => {
-        addRowEventListeners(row);
-        
-        // Trigger initial calculation for existing rows
-        const bahanSelect = row.querySelector(".bahan-pendukung-select");
-        if (bahanSelect && bahanSelect.value) {
-            const option = bahanSelect.options[bahanSelect.selectedIndex];
-            if (option && option.dataset.harga) {
-                updateConversionDisplay(row, option);
-                calculateRowSubtotal(row);
-            }
-        }
-    });
-    
-    // Calculate totals after initialization
+    // CRITICAL: Initialize existing rows from database
     setTimeout(() => {
-        calculateTotals();
+        console.log("🔄 Initializing existing rows...");
         
-        // Auto-add first row if no existing data
+        // Initialize existing Bahan Baku rows
         const existingBBRows = document.querySelectorAll("#bahanBakuTable tbody tr:not(#newBahanBakuRow):not(.d-none)");
+        console.log(`📦 Found ${existingBBRows.length} existing Bahan Baku rows`);
+        
+        existingBBRows.forEach((row, index) => {
+            console.log(`🔧 Initializing BB row ${index + 1}`);
+            
+            // Add event listeners to the row
+            addRowEventListeners(row);
+            
+            // Trigger initial calculations
+            const bahanSelect = row.querySelector(".bahan-baku-select");
+            const satuanSelect = row.querySelector(".satuan-select");
+            
+            if (bahanSelect && bahanSelect.value) {
+                const option = bahanSelect.options[bahanSelect.selectedIndex];
+                if (option && option.dataset.harga) {
+                    // Update conversion display
+                    updateConversionDisplay(row, option);
+                    
+                    // Calculate subtotal
+                    calculateRowSubtotal(row);
+                }
+            }
+        });
+        
+        // Initialize existing Bahan Pendukung rows
+        const existingBPRows = document.querySelectorAll("#bahanPendukungTable tbody tr:not(#newBahanPendukungRow):not(.d-none)");
+        console.log(`📦 Found ${existingBPRows.length} existing Bahan Pendukung rows`);
+        
+        existingBPRows.forEach((row, index) => {
+            console.log(`🔧 Initializing BP row ${index + 1}`);
+            
+            // Add event listeners to the row
+            addRowEventListeners(row);
+            
+            // Trigger initial calculations
+            const bahanSelect = row.querySelector(".bahan-pendukung-select");
+            const satuanSelect = row.querySelector(".satuan-select");
+            
+            if (bahanSelect && bahanSelect.value) {
+                const option = bahanSelect.options[bahanSelect.selectedIndex];
+                if (option && option.dataset.harga) {
+                    // Update conversion display
+                    updateConversionDisplay(row, option);
+                    
+                    // Calculate subtotal
+                    calculateRowSubtotal(row);
+                }
+            }
+        });
+        
+        // Calculate totals after all rows initialized
+        setTimeout(() => {
+            calculateTotals();
+            console.log("✅ All existing rows initialized and totals calculated");
+        }, 100);
+        
+        // Auto-add first row only if no existing rows
         if (existingBBRows.length === 0) {
             console.log("🚀 Auto-adding first Bahan Baku row");
             addBahanBakuRow();
         }
         
-        const existingBPRows = document.querySelectorAll("#bahanPendukungTable tbody tr:not(#newBahanPendukungRow):not(.d-none)");
         if (existingBPRows.length === 0) {
             console.log("🚀 Auto-adding first Bahan Pendukung row");
             addBahanPendukungRow();
         }
-        
-        console.log("✅ Initialization complete");
     }, 500);
+    
+    console.log("✅ Initialization complete");
 });
 
 console.log("🎉 BIAYA BAHAN SCRIPT LOADED SUCCESSFULLY");
@@ -1145,3 +1196,4 @@ console.log("🎉 BIAYA BAHAN SCRIPT LOADED SUCCESSFULLY");
 </style>
 @endpush
 @endsection
+

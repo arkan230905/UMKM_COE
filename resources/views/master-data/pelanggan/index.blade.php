@@ -1,6 +1,18 @@
 @extends('layouts.app')
 
 @section('content')
+<style>
+.password-text {
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    color: #6c757d;
+    background: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 140px;
+    display: inline-block;
+}
+</style>
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
@@ -62,12 +74,22 @@
                                     </div>
                                 </td>
                                 <td>{{ $pelanggan->email ?? '-' }}</td>
-                                <td>{{ $pelanggan->no_telepon ?? '-' }}</td>
+                                <td>{{ $pelanggan->phone ?? '-' }}</td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check-circle me-1"></i>Active
-                                        </span>
+                                        <span class="password-text" data-password="{{ $pelanggan->plain_password ?? $pelanggan->password }}">••••••••</span>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-secondary toggle-password" 
+                                                onclick="togglePassword(this)"
+                                                title="Lihat/sembunyikan password">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-info" 
+                                                onclick="copyPassword('{{ $pelanggan->plain_password ?? $pelanggan->password }}')"
+                                                title="Copy password">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
                                         <button type="button" 
                                                 class="btn btn-sm btn-outline-warning" 
                                                 onclick="resetPassword({{ $pelanggan->id }}, '{{ $pelanggan->name }}')"
@@ -158,6 +180,65 @@
 </div>
 
 <script>
+function togglePassword(button) {
+    const passwordText = button.parentElement.querySelector('.password-text');
+    const icon = button.querySelector('i');
+    const actualPassword = passwordText.getAttribute('data-password');
+    
+    if (passwordText.textContent === '••••••••') {
+        // Show actual password
+        passwordText.textContent = actualPassword;
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        // Hide password
+        passwordText.textContent = '••••••••';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+function copyPassword(password) {
+    // Copy to clipboard
+    navigator.clipboard.writeText(password).then(function() {
+        // Show success message
+        const btn = event.target.closest('button');
+        const originalIcon = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        btn.classList.remove('btn-outline-info');
+        btn.classList.add('btn-success');
+        
+        setTimeout(function() {
+            btn.innerHTML = originalIcon;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-info');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Failed to copy password: ', err);
+        
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = password;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        // Show success message
+        const btn = event.target.closest('button');
+        const originalIcon = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        btn.classList.remove('btn-outline-info');
+        btn.classList.add('btn-success');
+        
+        setTimeout(function() {
+            btn.innerHTML = originalIcon;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-info');
+        }, 2000);
+    });
+}
+
 function resetPassword(pelangganId, pelangganName) {
     document.getElementById('resetPelangganName').textContent = pelangganName;
     document.getElementById('resetPasswordForm').action = `/master-data/pelanggan/${pelangganId}/reset-password`;

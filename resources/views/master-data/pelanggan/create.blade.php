@@ -80,17 +80,17 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label for="no_telepon" class="form-label fw-bold">
+                                    <label for="phone" class="form-label fw-bold">
                                         <i class="fas fa-phone me-1"></i> No. Telepon
                                     </label>
                                     <input type="tel" 
-                                           class="form-control @error('no_telepon') is-invalid @enderror" 
-                                           id="no_telepon" 
-                                           name="no_telepon" 
-                                           value="{{ old('no_telepon') }}" 
+                                           class="form-control @error('phone') is-invalid @enderror" 
+                                           id="phone" 
+                                           name="phone" 
+                                           value="{{ old('phone') }}" 
                                            placeholder="Masukkan nomor telepon pelanggan" 
                                            required>
-                                    @error('no_telepon')
+                                    @error('phone')
                                         <div class="invalid-feedback">
                                             {{ $message }}
                                         </div>
@@ -103,12 +103,17 @@
                                     <label for="password" class="form-label fw-bold">
                                         <i class="fas fa-lock me-1"></i> Password
                                     </label>
-                                    <input type="password" 
-                                           class="form-control @error('password') is-invalid @enderror" 
-                                           id="password" 
-                                           name="password" 
-                                           placeholder="Masukkan password minimal 6 karakter" 
-                                           required>
+                                    <div class="input-group">
+                                        <input type="password" 
+                                               class="form-control @error('password') is-invalid @enderror" 
+                                               id="password" 
+                                               name="password" 
+                                               placeholder="Masukkan password minimal 6 karakter" 
+                                               required>
+                                        <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                            <i class="fas fa-eye" id="passwordIcon"></i>
+                                        </button>
+                                    </div>
                                     @error('password')
                                         <div class="invalid-feedback">
                                             {{ $message }}
@@ -124,12 +129,17 @@
                                     <label for="password_confirmation" class="form-label fw-bold">
                                         <i class="fas fa-lock me-1"></i> Konfirmasi Password
                                     </label>
-                                    <input type="password" 
-                                           class="form-control @error('password_confirmation') is-invalid @enderror" 
-                                           id="password_confirmation" 
-                                           name="password_confirmation" 
-                                           placeholder="Ulangi password" 
-                                           required>
+                                    <div class="input-group">
+                                        <input type="password" 
+                                               class="form-control @error('password_confirmation') is-invalid @enderror" 
+                                               id="password_confirmation" 
+                                               name="password_confirmation" 
+                                               placeholder="Ulangi password" 
+                                               required>
+                                        <button class="btn btn-outline-secondary" type="button" id="togglePasswordConfirm">
+                                            <i class="fas fa-eye" id="passwordConfirmIcon"></i>
+                                        </button>
+                                    </div>
                                     @error('password_confirmation')
                                         <div class="invalid-feedback">
                                             {{ $message }}
@@ -158,3 +168,49 @@
     </div>
 </div>
 @endsection
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle password visibility for password field
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    const passwordIcon = document.getElementById('passwordIcon');
+    
+    if (togglePassword && passwordInput && passwordIcon) {
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // Toggle icon
+            if (type === 'text') {
+                passwordIcon.classList.remove('fa-eye');
+                passwordIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordIcon.classList.remove('fa-eye-slash');
+                passwordIcon.classList.add('fa-eye');
+            }
+        });
+    }
+    
+    // Toggle password visibility for password confirmation field
+    const togglePasswordConfirm = document.getElementById('togglePasswordConfirm');
+    const passwordConfirmInput = document.getElementById('password_confirmation');
+    const passwordConfirmIcon = document.getElementById('passwordConfirmIcon');
+    
+    if (togglePasswordConfirm && passwordConfirmInput && passwordConfirmIcon) {
+        togglePasswordConfirm.addEventListener('click', function() {
+            const type = passwordConfirmInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordConfirmInput.setAttribute('type', type);
+            
+            // Toggle icon
+            if (type === 'text') {
+                passwordConfirmIcon.classList.remove('fa-eye');
+                passwordConfirmIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordConfirmIcon.classList.remove('fa-eye-slash');
+                passwordConfirmIcon.classList.add('fa-eye');
+            }
+        });
+    }
+});
+</script>

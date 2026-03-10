@@ -1,0 +1,30 @@
+// Copy and paste these commands to browser console on edit page
+
+// Check existing rows
+console.log('BB Rows:', document.querySelectorAll('#bahanBakuTable tbody tr:not(#newBahanBakuRow):not(.d-none)').length);
+console.log('BP Rows:', document.querySelectorAll('#bahanPendukungTable tbody tr:not(#newBahanPendukungRow):not(.d-none)').length);
+
+// Check subtotal displays
+document.querySelectorAll('.subtotal-display').forEach((el, i) => {
+    console.log(`Row ${i}: ${el.textContent}`);
+});
+
+// Manual calculate totals
+let bbTotal = 0;
+document.querySelectorAll('#bahanBakuTable .subtotal-display').forEach(el => {
+    const text = el.textContent.replace(/[Rp\s.]/g, '').replace(',', '.');
+    bbTotal += parseFloat(text) || 0;
+});
+console.log('Manual BB Total:', bbTotal);
+
+let bpTotal = 0;
+document.querySelectorAll('#bahanPendukungTable .subtotal-display').forEach(el => {
+    const text = el.textContent.replace(/[Rp\s.]/g, '').replace(',', '.');
+    bpTotal += parseFloat(text) || 0;
+});
+console.log('Manual BP Total:', bpTotal);
+
+// Test calculateTotals function
+console.log('Before calculateTotals:');
+calculateTotals();
+console.log('After calculateTotals:');
