@@ -15,7 +15,14 @@
 
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show">
-            {{ session('success') }}
+            {!! session('success') !!}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show">
+            {!! session('error') !!}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
@@ -94,18 +101,16 @@
                             <td class="fw-semibold">Rp {{ number_format($row->gaji,0,',','.') }}</td>
                             <td class="fw-semibold">Rp {{ number_format($row->tarif,0,',','.') }}</td>
                             <td class="text-center">
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('master-data.kualifikasi-tenaga-kerja.edit',$row->id) }}" class="btn btn-outline-primary">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <form action="{{ route('master-data.kualifikasi-tenaga-kerja.destroy',$row->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus kualifikasi ini?')">
-                                        @csrf
-                                        <input type="hidden" name="_method" value="DELETE">
-                                        <button type="submit" class="btn btn-outline-danger">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </div>
+                                <a href="{{ route('master-data.kualifikasi-tenaga-kerja.edit',$row->id) }}" class="btn btn-outline-primary btn-sm me-1">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form action="{{ route('master-data.kualifikasi-tenaga-kerja.destroy',$row->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus kualifikasi {{ $row->nama }}?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             </td>
                         </tr>
                         @empty
@@ -122,7 +127,7 @@
         </div>
         @if($jabatans->hasPages())
         <div class="card-footer">
-            {{ $jabatans->links() }}
+            {{ $jabatans->links('pagination::bootstrap-5') }}
         </div>
         @endif
     </div>

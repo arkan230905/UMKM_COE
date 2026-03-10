@@ -90,6 +90,9 @@ use App\Http\Controllers\AssetController;
 // Presensi
 use App\Http\Controllers\PresensiController;
 
+// Pegawai Dashboard
+use App\Http\Controllers\PegawaiDashboardController;
+
 // ====================================================================
 // HALAMAN UTAMA
 // ====================================================================
@@ -308,7 +311,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('aset', AsetController::class);
         Route::get('aset-kategori-by-jenis', [AsetController::class, 'getKategoriByJenis'])->name('aset.kategori-by-jenis');
         Route::resource('kualifikasi-tenaga-kerja', JabatanController::class)->except(['update']);
-        Route::post('kualifikasi-tenaga-kerja/{kualifikasi_tenaga_kerja}', [JabatanController::class, 'update'])->name('master-data.kualifikasi-tenaga-kerja.update');
+        Route::match(['PUT', 'PATCH'], 'kualifikasi-tenaga-kerja/{kualifikasi_tenaga_kerja}', [JabatanController::class, 'update'])->name('kualifikasi-tenaga-kerja.update');
         Route::resource('pegawai', PegawaiController::class);
         Route::resource('vendor', VendorController::class);
         Route::get('satuan-dashboard', [SatuanController::class, 'dashboard'])->name('satuan.dashboard');
@@ -727,6 +730,26 @@ Route::middleware('auth')->group(function () {
     // ================================================================
     Route::get('/tentang-perusahaan', [PerusahaanController::class, 'edit'])->name('tentang-perusahaan');
     Route::post('/tentang-perusahaan/update', [PerusahaanController::class, 'update'])->name('tentang-perusahaan.update');
+});
+
+// ================================================================
+// ROUTE PEGAWAI (Khusus untuk pegawai login)
+// ================================================================
+Route::middleware(['auth', 'role:pegawai'])->prefix('pegawai')->name('pegawai.')->group(function () {
+    // Dashboard sederhana pegawai (optional)
+    Route::get('/dashboard', [PegawaiDashboardController::class, 'index'])->name('dashboard');
+
+    // Halaman absen wajah pegawai
+    Route::get('/presensi/absen-wajah', [PresensiController::class, 'pegawaiAbsenWajah'])->name('presensi.absen-wajah');
+
+    // API absen wajah berbasis user login
+    Route::post('/presensi/api/absen-wajah', [PresensiController::class, 'pegawaiApiAbsenWajah'])->name('presensi.api.absen-wajah');
+
+    // Riwayat presensi pegawai (pribadi)
+    Route::get('/riwayat-presensi', [PegawaiDashboardController::class, 'riwayatPresensi'])->name('riwayat-presensi');
+    
+    // Rekap harian presensi (semua pegawai yang hadir hari ini)
+    Route::get('/rekap-harian', [PegawaiDashboardController::class, 'rekapHarian'])->name('rekap-harian');
 });
 
 // ====================================================================

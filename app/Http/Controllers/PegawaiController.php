@@ -30,10 +30,8 @@ class PegawaiController extends Controller
             });
         }
         
-        // Paginasi dengan 10 item per halaman - use direct DB query to avoid model cache
-        $pegawais = \Illuminate\Support\Facades\DB::table('pegawais')
-            ->orderBy('nama')
-            ->paginate(10);
+        // Paginasi dengan 10 item per halaman
+        $pegawais = $query->orderBy('nama')->paginate(10);
         
         return view('master-data.pegawai.index', compact('pegawais', 'jenis', 'search'));
     }

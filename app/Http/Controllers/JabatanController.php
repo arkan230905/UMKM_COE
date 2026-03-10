@@ -45,12 +45,16 @@ class JabatanController extends Controller
         $data = $request->validate([
             'nama' => 'required|string|max:255|unique:jabatans,nama',
             'kategori' => 'required|in:btkl,btktl',
-            'tunjangan' => 'nullable|numeric|min:0',
-            'asuransi' => 'nullable|numeric|min:0',
-            'gaji' => 'nullable|numeric|min:0',
-            'tarif' => 'nullable|numeric|min:0',
+            'tunjangan' => 'nullable|numeric|min:0|max:999999999',
+            'asuransi' => 'nullable|numeric|min:0|max:999999999',
+            'gaji' => 'nullable|numeric|min:0|max:999999999',
+            'tarif' => 'nullable|numeric|min:0|max:999999999',
         ], [
             'nama.unique' => 'Nama kualifikasi sudah ada. Silakan gunakan nama yang berbeda.',
+            'tunjangan.max' => 'Tunjangan maksimal adalah Rp 999.999.999',
+            'asuransi.max' => 'Asuransi maksimal adalah Rp 999.999.999',
+            'gaji.max' => 'Gaji maksimal adalah Rp 999.999.999',
+            'tarif.max' => 'Tarif maksimal adalah Rp 999.999.999',
         ]);
 
         // Normalisasi nilai default
@@ -77,13 +81,16 @@ class JabatanController extends Controller
         return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')->with('success','Jabatan berhasil ditambahkan');
     }
 
-    public function edit(Jabatan $jabatan)
+    public function edit($id)
     {
+        $jabatan = Jabatan::findOrFail($id);
         return view('master-data.jabatan.edit', compact('jabatan'));
     }
 
-    public function update(Request $request, Jabatan $jabatan)
+    public function update(Request $request, $id)
     {
+        $jabatan = Jabatan::findOrFail($id);
+        
         // Normalisasi angka berformat (1.234,56 atau 1,234.56) -> 1234.56
         $request->merge([
             'tunjangan' => $this->normalizeMoney($request->input('tunjangan')),
@@ -94,18 +101,38 @@ class JabatanController extends Controller
         $data = $request->validate([
             'nama' => 'required|string|max:255|unique:jabatans,nama,' . $jabatan->id,
             'kategori' => 'required|in:btkl,btktl',
-            'tunjangan' => 'nullable|numeric|min:0',
-            'asuransi' => 'nullable|numeric|min:0',
-            'gaji' => 'nullable|numeric|min:0',
-            'tarif' => 'nullable|numeric|min:0',
+            'tunjangan' => 'nullable|numeric|min:0|max:999999999',
+            'asuransi' => 'nullable|numeric|min:0|max:999999999',
+            'gaji' => 'nullable|numeric|min:0|max:999999999',
+            'tarif' => 'nullable|numeric|min:0|max:999999999',
         ], [
             'nama.unique' => 'Nama kualifikasi sudah ada. Silakan gunakan nama yang berbeda.',
+            'tunjangan.max' => 'Tunjangan maksimal adalah Rp 999.999.999',
+            'asuransi.max' => 'Asuransi maksimal adalah Rp 999.999.999',
+            'gaji.max' => 'Gaji maksimal adalah Rp 999.999.999',
+            'tarif.max' => 'Tarif maksimal adalah Rp 999.999.999',
         ]);
 
         $data['tunjangan'] = $data['tunjangan'] ?? 0;
         $data['asuransi'] = $data['asuransi'] ?? 0;
         $data['gaji'] = $data['gaji'] ?? 0;
         $data['tarif'] = $data['tarif'] ?? 0;
+
+        // Update kode_jabatan jika kategori berubah
+        if ($jabatan->kategori !== $data['kategori']) {
+            $prefix = strtoupper(substr($data['kategori'], 0, 2));
+            $lastJabatan = Jabatan::where('kode_jabatan', 'like', $prefix . '%')
+                ->orderBy('kode_jabatan', 'desc')
+                ->first();
+                
+            $nextNumber = 1;
+            if ($lastJabatan) {
+                $lastNumber = (int) substr($lastJabatan->kode_jabatan, 2);
+                $nextNumber = $lastNumber + 1;
+            }
+            
+            $data['kode_jabatan'] = $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        }
 
         $jabatan->update($data);
         
@@ -117,8 +144,10 @@ class JabatanController extends Controller
         return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')->with('success','Jabatan berhasil diperbarui');
     }
 
-    public function destroy(Jabatan $jabatan)
+    public function destroy($id)
     {
+        $jabatan = Jabatan::findOrFail($id);
+        
         // Log untuk debugging
         \Log::info('Attempting to delete jabatan', [
             'jabatan_id' => $jabatan->id,
