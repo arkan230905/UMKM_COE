@@ -206,10 +206,11 @@
     </div>
 
     <!-- Ringkasan Penjualan Harian -->
-    <div class="card mb-4">
-        <div class="card-header">
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
             <h6 class="mb-0">
                 <i class="fas fa-chart-line me-2"></i>Ringkasan Penjualan Harian
+                <small class="text-white ms-2">(Hari Ini: {{ now()->format('d/m/Y') }})</small>
             </h6>
         </div>
         <div class="card-body py-3">
@@ -223,7 +224,7 @@
                 <div class="col-md-3">
                     <div class="summary-card">
                         <div class="summary-label">Jumlah Transaksi</div>
-                        <div class="summary-value text-info">{{ number_format($jumlahTransaksi, 0, ',', '.') }}</div>
+                        <div class="summary-value text-info">{{ number_format($jumlahTransaksiHariIni, 0, ',', '.') }}</div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -437,12 +438,16 @@
                                 <td>
                                     @php
                                         // Cek apakah ada retur untuk penjualan ini
-                                        $hasRetur = \App\Models\SalesReturn::where('penjualan_id', $penjualan->id)->exists();
+                                        $hasRetur = $penjualan->returs()->exists();
                                     @endphp
                                     @if($hasRetur)
-                                        <span class="badge bg-danger">Ada Retur</span>
+                                        <span class="badge bg-danger animate-pulse">
+                                            <i class="fas fa-undo me-1"></i>Ada Retur
+                                        </span>
                                     @else
-                                        <span class="badge bg-success">Tidak Ada Retur</span>
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>Tidak Ada Retur
+                                        </span>
                                     @endif
                                 </td>
                                 <td class="text-center">
@@ -462,7 +467,7 @@
                                                 </a>
                                             </div>
                                             <div class="action-row">
-                                                <a href="{{ route('retur-penjualan.create', ['penjualan_id' => $penjualan->id]) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Proses Retur">
+                                                <a href="{{ route('transaksi.retur-penjualan.create', ['penjualan_id' => $penjualan->id]) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Proses Retur">
                                                     Retur
                                                 </a>
                                                 <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
@@ -628,8 +633,8 @@
                     }
                     
                     // Check return status
-                    $hasRetur = \App\Models\SalesReturn::where('penjualan_id', $penjualan->id)->exists();
-                    $returnCount = \App\Models\SalesReturn::where('penjualan_id', $penjualan->id)->count();
+                    $hasRetur = $penjualan->returs()->exists();
+                    $returnCount = $penjualan->returs()->count();
                 @endphp
                 
                 <!-- Informasi Transaksi -->
@@ -667,11 +672,7 @@
                     <div class="col-md-6">
                         <strong>Status Retur:</strong> 
                         @if($hasRetur)
-                            @if($returnCount > 1)
-                                <span class="badge bg-info">Retur {{ $returnCount }}x</span>
-                            @else
-                                <span class="badge bg-info">Retur Sebagian</span>
-                            @endif
+                            <span class="badge bg-info">Retur Sebagian</span>
                         @else
                             <span class="badge bg-success">Tidak Ada Retur</span>
                         @endif
@@ -909,5 +910,23 @@ function showTab(tabId, buttonElement) {
     // Add active class to clicked button
     buttonElement.classList.add('active');
 }
-</script>
+
+// CSS untuk animasi pulse
+<style>
+.animate-pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+}
+</style>
 @endsection

@@ -14,9 +14,6 @@ class PenjualanController extends Controller
     {
         $query = Penjualan::with(['produk','details']);
         
-        // Filter untuk hari ini
-        $query->whereDate('tanggal', today());
-        
         // Filter by nomor transaksi
         if ($request->filled('nomor_transaksi')) {
             $query->where('nomor_penjualan', 'like', '%' . $request->nomor_transaksi . '%');
@@ -35,19 +32,17 @@ class PenjualanController extends Controller
             $query->where('payment_method', $request->payment_method);
         }
         
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
+        $penjualans = $query->with(['produk','details','returs'])->orderBy('tanggal','desc')->get();
         
-        $penjualans = $query->orderBy('tanggal','desc')->get();
+        // Hitung ringkasan penjualan HARI INI saja
+        $today = now()->format('Y-m-d');
+        $penjualansHariIni = Penjualan::whereDate('tanggal', $today)->get();
         
-        // Hitung ringkasan penjualan
         $totalPenjualan = 0;
         $totalProdukTerjual = 0;
         $totalProfit = 0;
         
-        foreach ($penjualans as $penjualan) {
+        foreach ($penjualansHariIni as $penjualan) {
             $totalPenjualan += (float)($penjualan->total ?? 0);
             
             $detailCount = $penjualan->details->count();
@@ -76,14 +71,14 @@ class PenjualanController extends Controller
             }
         }
         
-        $jumlahTransaksi = $penjualans->count();
+        $jumlahTransaksiHariIni = $penjualansHariIni->count();
         
         // Get return data for the return tab
         $salesReturns = \App\Models\SalesReturn::with(['penjualan', 'items.produk'])
             ->orderBy('return_date', 'desc')
             ->get();
         
-        return view('transaksi.penjualan.index', compact('penjualans', 'totalPenjualan', 'jumlahTransaksi', 'totalProdukTerjual', 'totalProfit', 'salesReturns'));
+        return view('transaksi.penjualan.index', compact('penjualans', 'totalPenjualan', 'jumlahTransaksiHariIni', 'totalProdukTerjual', 'totalProfit', 'salesReturns'));
     }
 
     public function create()
