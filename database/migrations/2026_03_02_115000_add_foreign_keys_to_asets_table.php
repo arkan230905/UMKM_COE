@@ -12,6 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('asets', function (Blueprint $table) {
+            // Drop existing foreign keys if they exist
+            $table->dropForeign(['coa_id']);
+            $table->dropForeign(['created_by']);
+            $table->dropForeign(['updated_by']);
+            
             // Add foreign key constraints
             $table->foreign('coa_id')->references('id')->on('coas')->onDelete('set null');
             $table->foreign('created_by')->references('id')->on('users')->onDelete('set null');

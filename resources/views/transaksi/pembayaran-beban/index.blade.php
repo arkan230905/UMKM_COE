@@ -21,33 +21,55 @@
         <div class="card-body">
             <form method="GET" action="{{ route('transaksi.pembayaran-beban.index') }}">
                 <div class="row g-3">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Tanggal Mulai</label>
                         <input type="date" name="tanggal_mulai" class="form-control" 
                                value="{{ request('tanggal_mulai') }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Tanggal Selesai</label>
                         <input type="date" name="tanggal_selesai" class="form-control" 
                                value="{{ request('tanggal_selesai') }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
+                        <label class="form-label">Beban Operasional</label>
+                        <select name="beban_operasional_id" class="form-select">
+                            <option value="">Semua Beban</option>
+                            @foreach($bebanOperasional ?? [] as $bo)
+                                <option value="{{ $bo->id }}" {{ request('beban_operasional_id') == $bo->id ? 'selected' : '' }}>
+                                    {{ $bo->nama_beban }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Kategori</label>
+                        <select name="kategori" class="form-select">
+                            <option value="">Semua Kategori</option>
+                            <option value="Administrasi" {{ request('kategori') == 'Administrasi' ? 'selected' : '' }}>Administrasi</option>
+                            <option value="Marketing" {{ request('kategori') == 'Marketing' ? 'selected' : '' }}>Marketing</option>
+                            <option value="Utilitas" {{ request('kategori') == 'Utilitas' ? 'selected' : '' }}>Utilitas</option>
+                            <option value="Distribusi" {{ request('kategori') == 'Distribusi' ? 'selected' : '' }}>Distribusi</option>
+                            <option value="Lain-lain" {{ request('kategori') == 'Lain-lain' ? 'selected' : '' }}>Lain-lain</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label">Akun Beban</label>
                         <select name="akun_beban_id" class="form-select">
                             <option value="">Semua Akun Beban</option>
                             @foreach($coaBebans ?? [] as $coa)
-                                <option value="{{ $coa->id }}" {{ request('akun_beban_id') == $coa->id ? 'selected' : '' }}>
+                                <option value="{{ $coa->kode_akun }}" {{ request('akun_beban_id') == $coa->kode_akun ? 'selected' : '' }}>
                                     {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Akun Kas</label>
+                    <div class="col-md-2">
+                        <label class="form-label">Akun Kas/Bank</label>
                         <select name="akun_kas_id" class="form-select">
-                            <option value="">Semua Akun Kas</option>
+                            <option value="">Semua Kas/Bank</option>
                             @foreach($coaKas ?? [] as $coa)
-                                <option value="{{ $coa->id }}" {{ request('akun_kas_id') == $coa->id ? 'selected' : '' }}>
+                                <option value="{{ $coa->kode_akun }}" {{ request('akun_kas_id') == $coa->kode_akun ? 'selected' : '' }}>
                                     {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
                                 </option>
                             @endforeach
@@ -84,10 +106,11 @@
                         <tr>
                             <th class="text-center" style="width: 50px">#</th>
                             <th>Tanggal</th>
-                            <th>Keterangan</th>
+                            <th>Beban Operasional</th>
+                            <th>Kategori</th>
                             <th>Akun Beban</th>
-                            <th>Akun Kas</th>
-                            <th class="text-end">Jumlah</th>
+                            <th>Akun Kas/Bank</th>
+                            <th class="text-end">Jumlah Pembayaran</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -96,7 +119,12 @@
                             <tr>
                                 <td class="text-center">{{ $key + 1 }}</td>
                                 <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d-m-Y') }}</td>
-                                <td>{{ $item->keterangan }}</td>
+                                <td>
+                                    <div class="fw-semibold">{{ $item->nama_beban_operasional }}</div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark">{{ $item->kategori_beban }}</span>
+                                </td>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
@@ -119,7 +147,7 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="text-end fw-semibold">Rp {{ number_format($item->nominal, 0, ',', '.') }}</td>
+                                <td class="text-end fw-semibold text-info">{{ $item->nominal_pembayaran_formatted }}</td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
                                         <a href="{{ route('transaksi.pembayaran-beban.show', $item->id) }}" class="btn btn-outline-primary">
@@ -140,7 +168,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center py-4">
+                                <td colspan="8" class="text-center py-4">
                                     <i class="fas fa-money-check-alt fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data pembayaran beban</p>
                                 </td>
