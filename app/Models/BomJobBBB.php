@@ -14,7 +14,11 @@ class BomJobBBB extends Model
 
     protected static function booted()
     {
-        static::saving(function ($m) { $m->subtotal = $m->jumlah * $m->harga_satuan; });
+        // DISABLED: Subtotal sudah dihitung dengan benar di BiayaBahanConversionService
+        // Event saving ini malah menghitung ulang dengan salah karena harga_satuan yang disimpan
+        // sudah harga konversi, bukan harga base
+        // static::saving(function ($m) { $m->subtotal = $m->jumlah * $m->harga_satuan; });
+        
         static::saved(function ($m) { $m->bomJobCosting?->recalculate(); });
         static::deleted(function ($m) { $m->bomJobCosting?->recalculate(); });
     }

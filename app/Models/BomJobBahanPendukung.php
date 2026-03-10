@@ -15,6 +15,10 @@ class BomJobBahanPendukung extends Model
 
     protected static function booted()
     {
+        // DISABLED: Subtotal sudah dihitung dengan benar di BiayaBahanConversionService
+        // Event saving ini malah menghitung ulang dengan salah karena harga_satuan yang disimpan
+        // sudah harga konversi, bukan harga base
+        /*
         static::saving(function ($m) {
             $jumlah = (float)($m->jumlah ?? 0);
             $harga = (float)($m->harga_satuan ?? 0);
@@ -39,6 +43,8 @@ class BomJobBahanPendukung extends Model
 
             $m->subtotal = $qtyBase * $harga;
         });
+        */
+        
         static::saved(function ($m) { $m->bomJobCosting?->recalculate(); });
         static::deleted(function ($m) { $m->bomJobCosting?->recalculate(); });
     }

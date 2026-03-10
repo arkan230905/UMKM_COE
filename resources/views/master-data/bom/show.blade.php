@@ -259,323 +259,44 @@
             <h5 class="mb-0 fw-bold"><i class="fas fa-cogs me-2"></i>BOP (Biaya Overhead Pabrik)</h5>
         </div>
         <div class="card-body">
-            <!-- Membumbui Process -->
-            <div class="mb-4">
-                <h6 class="text-warning mb-3">
-                    <i class="fas fa-gear"></i> Biaya per Proses:
-                </h6>
-                
-                <!-- Process Info Table -->
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered">
-                        <thead class="table-light">
+            @if(!empty($bopData) && count($bopData) > 0)
+                <!-- Display BOP Data -->
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped">
+                        <thead class="table-warning">
                             <tr>
                                 <th>Proses</th>
-                                <th></th>
-                                <th>Kapasitas</th>
-                                <th></th>
-                                <th>BTKL / jam</th>
-                                <th></th>
-                                <th>BTKL / pcs</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>Membumbui</strong></td>
-                                <td></td>
-                                <td>200 pcs/jam</td>
-                                <td></td>
-                                <td>48.000</td>
-                                <td></td>
-                                <td>240</td>
-                                <td></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- BOP Components Table -->
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Komponen</th>
-                                <th>Rp / Jam</th>
+                                <th>Komponen BOP</th>
+                                <th class="text-end">Tarif</th>
                                 <th>Keterangan</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>Listrik Mixer</td>
-                                <td>4.000</td>
-                                <td>Mesin Ringan</td>
-                            </tr>
-                            <tr>
-                                <td>Penyusutan Alat</td>
-                                <td>3.000</td>
-                                <td>Drum / Mixer</td>
-                            </tr>
-                            <tr>
-                                <td>Maintenace</td>
-                                <td>2.000</td>
-                                <td>Rutin</td>
-                            </tr>
-                            <tr>
-                                <td>Kebersihan</td>
-                                <td>1.000</td>
-                                <td>Rutin</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Summary Table -->
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Total BOP /jam</th>
-                                <th>BOP / pcs</th>
-                                <th>Biaya / produk</th>
-                                <th>Biaya / jam</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>10.000</td>
-                                <td>50</td>
-                                <td>290</td>
-                                <td>58.000</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Menggoreng Process -->
-            <div class="mb-4">
-                <h6 class="text-warning mb-3">
-                    <i class="fas fa-gear"></i> Biaya per Proses:
-                </h6>
-                
-                <!-- Process Info Table -->
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Proses</th>
-                                <th></th>
-                                <th>Kapasitas</th>
-                                <th></th>
-                                <th>BTKL / jam</th>
-                                <th></th>
-                                <th>BTKL / pcs</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>Menggoreng</strong></td>
-                                <td></td>
-                                <td>50 pcs/jam</td>
-                                <td></td>
-                                <td>45.000</td>
-                                <td></td>
-                                <td>900</td>
-                                <td></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- BOP Components Table -->
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Komponen</th>
-                                <th>Rp / Jam</th>
-                                <th>Keterangan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Listrik Mesin</td>
-                                <td>5.000</td>
-                                <td>Pemanas Minyak</td>
-                            </tr>
-                            <tr>
-                                <td>Gas / BBM</td>
-                                <td>20.000</td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td>Maintenace</td>
-                                <td>5.000</td>
-                                <td>Mesin Goreng</td>
-                            </tr>
-                            <tr>
-                                <td>Penyusutan Mesin</td>
-                                <td>10.000</td>
-                                <td>Rutin</td>
-                            </tr>
-                            <tr>
-                                <td>Air & Kebersihan</td>
-                                <td>2.000</td>
-                                <td>Cuci alat</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Summary Table -->
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Total BOP /jam</th>
-                                <th>BOP / pcs</th>
-                                <th>Biaya / produk</th>
-                                <th>Biaya / jam</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>42.000</td>
-                                <td>840</td>
-                                <td>1.740</td>
-                                <td>87.000</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Packing Process -->
-            <div class="mb-4">
-                <h6 class="text-warning mb-3">
-                    <i class="fas fa-gear"></i> Biaya per Proses:
-                </h6>
-                
-                <!-- Process Info Table -->
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Proses</th>
-                                <th></th>
-                                <th>Kapasitas</th>
-                                <th></th>
-                                <th>BTKL / jam</th>
-                                <th></th>
-                                <th>BTKL / pcs</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><strong>Packing</strong></td>
-                                <td></td>
-                                <td>50 pcs/jam</td>
-                                <td></td>
-                                <td>45.000</td>
-                                <td></td>
-                                <td>900</td>
-                                <td></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- BOP Components Table -->
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Komponen</th>
-                                <th>Rp / Jam</th>
-                                <th>Keterangan</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Listrik</td>
-                                <td>3.000</td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td>Penyusutan Alat</td>
-                                <td>4.000</td>
-                                <td>Alat Packing</td>
-                            </tr>
-                            <tr>
-                                <td>Plastik Kemasan</td>
-                                <td>5.000</td>
-                                <td>Penunjang</td>
-                            </tr>
-                            <tr>
-                                <td>Kebersihan</td>
-                                <td>1.000</td>
-                                <td>Area</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Summary Table -->
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Total BOP /jam</th>
-                                <th>BOP / pcs</th>
-                                <th>Biaya / produk</th>
-                                <th>Biaya / jam</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>13.000</td>
-                                <td>260</td>
-                                <td>1.160</td>
-                                <td>58.000</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Final Summary BOP -->
-            <div class="card mt-4">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">Biaya Per Produk</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead class="table-light">
+                            @foreach($bopData as $bop)
                                 <tr>
-                                    <th>Biaya Per produk</th>
-                                    <th>Penggorengan</th>
-                                    <th>Perbumbuan</th>
-                                    <th>Pengemasan</th>
-                                    <th>Total</th>
+                                    <td>{{ $bop['nama_proses'] ?? '-' }}</td>
+                                    <td>{{ $bop['nama_komponen'] ?? '-' }}</td>
+                                    <td class="text-end">Rp {{ number_format($bop['tarif'] ?? 0, 0, ',', '.') }}</td>
+                                    <td>{{ $bop['keterangan'] ?? '-' }}</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>Biaya Per produk</strong></td>
-                                    <td>RP1.740,00</td>
-                                    <td>RP290,00</td>
-                                    <td>RP1.160,00</td>
-                                    <td><strong>RP3.190,00</strong></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                            @endforeach
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="2" class="text-end">Total BOP:</th>
+                                <th class="text-end">Rp {{ number_format($totalBiayaBOP, 0, ',', '.') }}</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
-            </div>
+            @else
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Belum ada data BOP (Biaya Overhead Pabrik) untuk produk ini. 
+                    Silakan tambahkan data BOP di menu <a href="{{ route('master-data.bop.index') }}" class="alert-link">Master Data BOP</a>.
+                </div>
+            @endif
         </div>
     </div>
 
@@ -684,7 +405,7 @@ function updateTotalData() {
     // Calculate totals from PHP variables
     const totalBiayaBahan = {{ $totalBiayaBahan ?? 0 }};
     const totalBiayaBTKL = {{ $totalBiayaBTKL ?? 0 }};
-    const totalBiayaBOP = {{ 1740 + 290 + 1160 }}; // Fixed BOP values
+    const totalBiayaBOP = {{ $totalBiayaBOP ?? 0 }}; // Use actual BOP from database
     const grandTotal = totalBiayaBahan + totalBiayaBTKL + totalBiayaBOP;
     
     // Update display elements
@@ -703,7 +424,11 @@ function updateTotalData() {
     }
     
     if (totalBopElement) {
-        totalBopElement.textContent = `Rp ${totalBiayaBOP.toLocaleString('id-ID')}`;
+        if (totalBiayaBOP > 0) {
+            totalBopElement.textContent = `Rp ${totalBiayaBOP.toLocaleString('id-ID')}`;
+        } else {
+            totalBopElement.innerHTML = '<span class="text-muted">-</span>';
+        }
     }
     
     if (grandTotalElement) {
@@ -759,68 +484,9 @@ function refreshData() {
         });
 }
 
-// Function to save BOP data to database
-function saveBOPToDatabase() {
-    const productId = {{ $produk->id }};
-    const bomJobCostingId = @php echo $bomJobCosting->id ?? 'null' @endphp;
-    
-    // Fixed BOP values
-    const totalBOP = 3190; // Rp 3.190,00 - sesuai dengan data yang diminta
-    
-    console.log('=== DEBUG BOP SAVE ===');
-    console.log('Product ID:', productId);
-    console.log('BomJobCosting ID:', bomJobCostingId);
-    console.log('Total BOP to save:', totalBOP);
-    console.log('========================');
-    
-    if (bomJobCostingId) {
-        // Update existing BOP data
-        fetch(`/master-data/bom/update-bop-from-detail`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify({
-                produk_id: productId,
-                total_bop: totalBOP
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log('=== RESPONSE FROM SERVER ===');
-            console.log('Success:', data.success);
-            console.log('Message:', data.message);
-            console.log('Total BOP saved:', data.total_bop);
-            console.log('Total HPP:', data.total_hpp);
-            console.log('========================');
-            
-            if (data.success) {
-                console.log('BOP data saved successfully:', data);
-                // Update display
-                updateTotalData();
-                // Show success notification
-                showNotification('BOP berhasil disimpan ke database', 'success');
-            } else {
-                console.error('Failed to save BOP data:', data.message);
-                showNotification('Gagal menyimpan BOP: ' + data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error saving BOP data:', error);
-            showNotification('Error menyimpan BOP', 'error');
-        });
-    } else {
-        console.log('No BomJobCosting ID found');
-        showNotification('Data BOM tidak ditemukan', 'error');
-    }
-}
-
 // Initialize totals on page load
 document.addEventListener('DOMContentLoaded', function() {
     updateTotalData();
-    // Save BOP data to database
-    saveBOPToDatabase();
 });
 
 // Function to update BTKL data

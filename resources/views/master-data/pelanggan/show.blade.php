@@ -1,6 +1,9 @@
 @extends('layouts.app')
 
+@section('title', 'Detail Pelanggan')
+
 @section('content')
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="text-white">
@@ -38,6 +41,21 @@
                             <td>{{ $pelanggan->phone ?? '-' }}</td>
                         </tr>
                         <tr>
+                            <td><strong>Password:</strong></td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span id="passwordDisplay" class="font-monospace">••••••••</span>
+                                    <button class="btn btn-sm btn-outline-light" onclick="togglePassword()">
+                                        <i class="fas fa-eye" id="passwordToggleIcon"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info" onclick="copyPassword()">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <input type="hidden" id="actualPassword" value="{{ $pelanggan->plain_password ?? $pelanggan->password }}">
+                            </td>
+                        </tr>
+                        <tr>
                             <td><strong>Terdaftar:</strong></td>
                             <td>{{ $pelanggan->created_at->format('d M Y H:i') }}</td>
                         </tr>
@@ -51,6 +69,9 @@
                         <a href="{{ route('master-data.pelanggan.edit', $pelanggan->id) }}" class="btn btn-warning">
                             <i class="bi bi-pencil"></i> Edit Data
                         </a>
+                        <button class="btn btn-danger" onclick="resetPassword()">
+                            <i class="fas fa-key"></i> Reset Password
+                        </button>
                     </div>
                 </div>
             </div>
@@ -121,3 +142,102 @@
     </div>
 </div>
 @endsection
+
+<script>
+let isPasswordVisible = false;
+
+function togglePassword() {
+    const passwordDisplay = document.getElementById('passwordDisplay');
+    const passwordToggleIcon = document.getElementById('passwordToggleIcon');
+    const actualPassword = document.getElementById('actualPassword').value;
+    
+    if (isPasswordVisible) {
+        // Hide password
+        passwordDisplay.textContent = '••••••••';
+        passwordToggleIcon.classList.remove('fa-eye-slash');
+        passwordToggleIcon.classList.add('fa-eye');
+        isPasswordVisible = false;
+    } else {
+        // Show actual password
+        passwordDisplay.textContent = actualPassword;
+        passwordToggleIcon.classList.remove('fa-eye');
+        passwordToggleIcon.classList.add('fa-eye-slash');
+        isPasswordVisible = true;
+    }
+}
+
+function copyPassword() {
+    const actualPassword = document.getElementById('actualPassword').value;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(actualPassword).then(function() {
+        // Show success message
+        const btn = event.target.closest('button');
+        const originalIcon = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        btn.classList.remove('btn-outline-info');
+        btn.classList.add('btn-success');
+        
+        setTimeout(function() {
+            btn.innerHTML = originalIcon;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-info');
+        }, 2000);
+    }).catch(function(err) {
+        console.error('Failed to copy password: ', err);
+        
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = actualPassword;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        // Show success message
+        const btn = event.target.closest('button');
+        const originalIcon = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        btn.classList.remove('btn-outline-info');
+        btn.classList.add('btn-success');
+        
+        setTimeout(function() {
+            btn.innerHTML = originalIcon;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-info');
+        }, 2000);
+    });
+}
+
+// Add password reset functionality
+function resetPassword() {
+    if (confirm('Apakah Anda yakin ingin mereset password pelanggan ini?')) {
+        const pelangganId = {{ $pelanggan->id }};
+        
+        fetch(`/master-data/pelanggan/${pelangganId}/reset-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                password: 'password123', // Default password
+                password_confirmation: 'password123'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Password berhasil direset ke: password123');
+                location.reload();
+            } else {
+                alert('Gagal mereset password: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat mereset password');
+        });
+    }
+}
+</script>

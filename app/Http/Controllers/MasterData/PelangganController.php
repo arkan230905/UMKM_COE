@@ -29,15 +29,16 @@ class PelangganController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'no_telepon' => 'required|string|max:20',
+            'phone' => 'required|string|max:20',
             'password' => 'required|min:6|confirmed',
         ]);
 
         User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'no_telepon' => $request->no_telepon,
+            'phone' => $request->phone,
             'password' => Hash::make($request->password),
+            'plain_password' => $request->password, // Store plain password for admin view
             'role' => 'pelanggan',
             'email_verified_at' => now(),
         ]);
@@ -77,6 +78,7 @@ class PelangganController extends Controller
 
         $pelanggan->update([
             'password' => Hash::make($request->password),
+            'plain_password' => $request->password, // Update plain password too
         ]);
 
         return response()->json([
@@ -98,19 +100,20 @@ class PelangganController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $id,
-            'no_telepon' => 'required|string|max:20',
+            'phone' => 'required|string|max:20',
             'password' => 'nullable|min:6|confirmed',
         ]);
 
         $data = [
             'name' => $request->name,
             'email' => $request->email,
-            'no_telepon' => $request->no_telepon,
+            'phone' => $request->phone,
         ];
 
         // Update password jika diisi
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
+            $data['plain_password'] = $request->password; // Update plain password too
         }
 
         $pelanggan->update($data);

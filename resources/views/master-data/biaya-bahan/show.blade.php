@@ -24,6 +24,20 @@
         </div>
     @endif
 
+    @if(session('info'))
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="fas fa-info-circle me-2"></i>{{ session('info') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <!-- Info Alert for Edit -->
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Informasi Penting:</strong> Untuk mengubah data biaya bahan, silakan hapus data yang ada terlebih dahulu, kemudian buat ulang dengan data yang benar melalui tombol "Tambah Biaya Bahan" di halaman utama.
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
     <!-- Product Info -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white">
