@@ -96,4 +96,22 @@ class ExpensePayment extends Model
     {
         return $this->bebanOperasional ? $this->bebanOperasional->kategori : '-';
     }
+    
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::created(function ($expensePayment) {
+            // Create automatic journal entries
+            \App\Services\JournalService::createJournalFromExpensePayment($expensePayment);
+        });
+        
+        static::updated(function ($expensePayment) {
+            // Recreate journal entries if transaction is updated
+            \App\Services\JournalService::createJournalFromExpensePayment($expensePayment);
+        });
+    }
 }

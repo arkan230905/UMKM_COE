@@ -56,18 +56,9 @@
           </select>
         </div>
         <div class="col-md-2">
-          <label class="form-label fw-semibold">ID Transaksi</label>
-          <input type="number" name="ref_id" value="{{ $refId ?? '' }}" class="form-control" placeholder="ID">
-        </div>
-        <div class="col-md-2">
           <button type="submit" class="btn btn-primary w-100">
             <i class="bi bi-search me-1"></i> Filter
           </button>
-        </div>
-        <div class="col-md-2">
-          <a href="{{ route('akuntansi.jurnal-umum') }}" class="btn btn-outline-secondary w-100">
-            <i class="bi bi-arrow-clockwise me-1"></i> Reset
-          </a>
         </div>
       </form>
     </div>
@@ -132,13 +123,13 @@
           <thead class="table-light sticky-top">
             <tr>
               <th class="border-end" style="width:8%; border-bottom: 2px solid #dee2e6;">Tanggal</th>
-              <th class="border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Ref</th>
+              <th class="border-end" style="width:0%; border-bottom: 2px solid #dee2e6; display: none;">Ref</th>
               <th class="border-end" style="width:25%; border-bottom: 2px solid #dee2e6;">Deskripsi</th>
               <th class="border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Kode Akun</th>
               <th class="border-end" style="width:20%; border-bottom: 2px solid #dee2e6;">Nama Akun</th>
               <th class="text-end border-end" style="width:12%; border-bottom: 2px solid #dee2e6;">Debit</th>
               <th class="text-end" style="width:12%; border-bottom: 2px solid #dee2e6;">Kredit</th>
-              <th class="text-center" style="width:5%; border-bottom: 2px solid #dee2e6;">D/K</th>
+              <th class="text-center" style="width:0%; border-bottom: 2px solid #dee2e6; display: none;">D/K</th>
             </tr>
           </thead>
           <tbody>
@@ -149,10 +140,9 @@
                     <td rowspan="{{ $e->lines->count() }}" class="align-middle" style="border-right: 2px solid #dee2e6;">
                       <div class="text-center">
                         <div class="fw-bold">{{ \Carbon\Carbon::parse($e->tanggal)->format('d/m/Y') }}</div>
-                        <small class="text-muted">{{ \Carbon\Carbon::parse($e->tanggal)->format('H:i') }}</small>
                       </div>
                     </td>
-                    <td rowspan="{{ $e->lines->count() }}" class="align-middle" style="border-right: 2px solid #dee2e6;">
+                    <td rowspan="{{ $e->lines->count() }}" class="align-middle" style="border-right: 2px solid #dee2e6; display: none;">
                       <div>
                         @php
                           $badgeColor = match($e->ref_type) {
@@ -208,11 +198,9 @@
                     <code class="text-primary">{{ $l->account->code ?? '-' }}</code>
                   </td>
                   <td class="align-middle" style="border-right: 1px solid #dee2e6;">
-                    <div>
+                    <div class="{{ $l->credit > 0 ? 'ms-4' : '' }}">
                       <div class="fw-semibold">{{ $l->account->name ?? 'Akun tidak ditemukan' }}</div>
                       @if($l->account)
-                        <small class="text-muted">{{ $l->account->type ?? '' }}</small>
-                        
                         @if($e->ref_type === 'sale' && $l->account->code === '5101')
                           <div class="mt-1">
                             <small class="badge bg-warning text-dark">
@@ -245,7 +233,7 @@
                       <span class="text-muted">-</span>
                     @endif
                   </td>
-                  <td class="align-middle text-center">
+                  <td class="align-middle text-center" style="display: none;">
                     @if($l->debit > 0)
                       <span class="badge bg-primary text-white">D</span>
                     @else

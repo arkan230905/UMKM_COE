@@ -62,9 +62,18 @@ class Penjualan extends Model
                 // Hitung jumlah penjualan hari ini
                 $count = static::whereDate('tanggal', $tanggal)->count() + 1;
                 
-                // Format: PJ-YYYYMMDD-0001
-                $penjualan->nomor_penjualan = 'PJ-' . $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+                $penjualan->nomor_penjualan = 'SJ-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
             }
+        });
+        
+        static::created(function ($penjualan) {
+            // Create automatic journal entries
+            \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+        });
+        
+        static::updated(function ($penjualan) {
+            // Recreate journal entries if transaction is updated
+            \App\Services\JournalService::createJournalFromPenjualan($penjualan);
         });
     }
 }
