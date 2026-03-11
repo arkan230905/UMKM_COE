@@ -36,6 +36,19 @@ class Penjualan extends Model
         return $this->hasMany(PenjualanDetail::class);
     }
 
+    // Relasi ke retur (untuk mengecek status retur)
+    public function returs()
+    {
+        return $this->hasMany(Retur::class, 'ref_id');
+    }
+
+    // Accessor untuk status retur
+    public function getStatusReturAttribute()
+    {
+        $hasReturn = $this->returs()->exists();
+        return $hasReturn ? 'Ada Retur' : 'Tidak Ada Retur';
+    }
+
     protected static function boot()
     {
         parent::boot();
@@ -49,9 +62,18 @@ class Penjualan extends Model
                 // Hitung jumlah penjualan hari ini
                 $count = static::whereDate('tanggal', $tanggal)->count() + 1;
                 
-                // Format: PJ-YYYYMMDD-0001
-                $penjualan->nomor_penjualan = 'PJ-' . $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+                $penjualan->nomor_penjualan = 'SJ-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
             }
+        });
+        
+        static::created(function ($penjualan) {
+            // Create automatic journal entries
+            \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+        });
+        
+        static::updated(function ($penjualan) {
+            // Recreate journal entries if transaction is updated
+            \App\Services\JournalService::createJournalFromPenjualan($penjualan);
         });
     }
 }

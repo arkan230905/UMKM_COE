@@ -74,6 +74,14 @@ class ExpensePayment extends Model
     }
 
     /**
+     * Accessor untuk backward compatibility - alias nominal_pembayaran
+     */
+    public function getNominalAttribute()
+    {
+        return $this->nominal_pembayaran;
+    }
+
+    /**
      * Accessor untuk nama beban operasional
      */
     public function getNamaBebanOperasionalAttribute()
@@ -87,5 +95,23 @@ class ExpensePayment extends Model
     public function getKategoriBebanAttribute()
     {
         return $this->bebanOperasional ? $this->bebanOperasional->kategori : '-';
+    }
+    
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::created(function ($expensePayment) {
+            // Create automatic journal entries
+            \App\Services\JournalService::createJournalFromExpensePayment($expensePayment);
+        });
+        
+        static::updated(function ($expensePayment) {
+            // Recreate journal entries if transaction is updated
+            \App\Services\JournalService::createJournalFromExpensePayment($expensePayment);
+        });
     }
 }

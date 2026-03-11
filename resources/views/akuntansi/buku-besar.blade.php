@@ -81,48 +81,6 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <h5 class="mb-1">Informasi Akun</h5>
-              @php
-                $selectedCoa = $coas->where('id', $accountId)->first();
-                $tipeAkun = $selectedCoa->tipe_akun ?? '';
-                $tipeAkunLabel = match($tipeAkun) {
-                  'Asset' => 'Aset',
-                  'Liability' => 'Kewajiban',
-                  'Equity' => 'Modal',
-                  'Revenue' => 'Pendapatan',
-                  'Expense' => 'Beban',
-                  default => 'Lainnya'
-                };
-                
-                $badgeColor = match($tipeAkun) {
-                  'Asset' => 'primary',
-                  'Liability' => 'warning',
-                  'Equity' => 'info',
-                  'Revenue' => 'success',
-                  'Expense' => 'danger',
-                  default => 'secondary'
-                };
-                
-                // Debug info
-                $account = \App\Models\Account::where('code', $selectedCoa->kode_akun)->first();
-              @endphp
-              <span class="badge bg-{{ $badgeColor }} text-white">
-                {{ $tipeAkunLabel }}
-              </span>
-              <br>
-              <small class="text-muted">
-                COA ID: {{ $selectedCoa->id }}, Kode: {{ $selectedCoa->kode_akun }}<br>
-                Account ID: {{ $account ? $account->id : 'NOT FOUND' }}, Code: {{ $account ? $account->code : 'NOT FOUND' }}<br>
-                Lines Count: {{ $lines->count() }}<br>
-                Saldo Awal: {{ $saldoAwal }}<br>
-                Period: {{ $month ? $month . '/' . $year : 'NOT SELECTED' }}<br>
-                @if($from && $to)
-                  From: {{ $from }}, To: {{ $to }}<br>
-                @endif
-                @if($lines->count() > 0)
-                  First Line Date: {{ $lines->first()->entry->tanggal ?? 'N/A' }}<br>
-                  Last Line Date: {{ $lines->last()->entry->tanggal ?? 'N/A' }}
-                @endif
-              </small>
             </div>
             <div class="text-end">
               <h6 class="mb-0">Saldo Awal</h6>
@@ -142,13 +100,11 @@
         <table class="table table-hover mb-0">
           <thead class="table-light sticky-top">
             <tr>
-              <th class="border-end" style="width:10%">Tanggal</th>
-              <th class="border-end" style="width:12%">Ref</th>
-              <th class="border-end" style="width:25%">Deskripsi</th>
-              <th class="text-end border-end" style="width:12%">Debit</th>
-              <th class="text-end border-end" style="width:12%">Kredit</th>
-              <th class="text-end" style="width:12%">Saldo</th>
-              <th class="text-center" style="width:5%">D/K</th>
+              <th class="border-end" style="width:15%">Tanggal</th>
+              <th class="border-end" style="width:45%">Deskripsi</th>
+              <th class="text-end border-end" style="width:15%">Debit</th>
+              <th class="text-end border-end" style="width:15%">Kredit</th>
+              <th class="text-end" style="width:10%">Saldo</th>
             </tr>
           </thead>
           <tbody>
@@ -164,59 +120,24 @@
                 $credit = $l->credit ?? 0;
               @endphp
               <tr class="{{ $loop->index % 2 === 0 ? 'bg-light' : '' }}">
-                <td>
-                  <div class="text-center">
-                    <div class="fw-bold">{{ \Carbon\Carbon::parse($tanggal)->format('d/m/Y') }}</div>
-                    <small class="text-muted">{{ \Carbon\Carbon::parse($tanggal)->format('H:i') }}</small>
-                  </div>
-                </td>
-                <td>
-                  <div>
-                    @php
-                      $badgeColor = match($refType) {
-                        'purchase' => 'danger',
-                        'sale' => 'success',
-                        'production' => 'warning',
-                        'saldo_awal' => 'info',
-                        default => 'secondary'
-                      };
-                    @endphp
-                    <span class="badge bg-{{ $badgeColor }} text-white">
-                      {{ $refType }}
-                    </span>
-                    <div class="small text-muted">#{{ $refId }}</div>
-                  </div>
-                </td>
-                <td>
-                  <div class="text-truncate" style="max-width: 200px;" title="{{ $memo }}">
-                    {{ $memo }}
-                  </div>
-                </td>
+                <td>{{ \Carbon\Carbon::parse($tanggal)->format('d/m/Y') }}</td>
+                <td>{{ $memo }}</td>
                 <td class="text-end">
                   @if($debit > 0)
-                    <span class="text-primary fw-semibold">Rp {{ number_format($debit,0,',','.') }}</span>
+                    Rp {{ number_format($debit,0,',','.') }}
                   @else
-                    <span class="text-muted">-</span>
+                    -
                   @endif
                 </td>
                 <td class="text-end">
                   @if($credit > 0)
-                    <span class="text-success fw-semibold">Rp {{ number_format($credit,0,',','.') }}</span>
+                    Rp {{ number_format($credit,0,',','.') }}
                   @else
-                    <span class="text-muted">-</span>
+                    -
                   @endif
                 </td>
-                <td class="text-end">
-                  <span class="{{ $saldo >= 0 ? 'text-primary' : 'text-danger' }} fw-semibold">
-                    Rp {{ number_format($saldo,0,',','.') }}
-                  </span>
-                </td>
-                <td class="text-center">
-                  @if($debit > 0)
-                    <span class="badge bg-primary rounded-circle p-1" style="font-size: 8px;">D</span>
-                  @else
-                    <span class="badge bg-success rounded-circle p-1" style="font-size: 8px;">K</span>
-                  @endif
+                <td class="text-end {{ $saldo >= 0 ? 'text-primary' : 'text-danger' }}">
+                  Rp {{ number_format($saldo,0,',','.') }}
                 </td>
               </tr>
             @endforeach

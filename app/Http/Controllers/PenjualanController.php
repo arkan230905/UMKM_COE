@@ -32,14 +32,53 @@ class PenjualanController extends Controller
             $query->where('payment_method', $request->payment_method);
         }
         
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        $penjualans = $query->with(['produk','details','returs'])->orderBy('tanggal','desc')->get();
+        
+        // Hitung ringkasan penjualan HARI INI saja
+        $today = now()->format('Y-m-d');
+        $penjualansHariIni = Penjualan::whereDate('tanggal', $today)->get();
+        
+        $totalPenjualan = 0;
+        $totalProdukTerjual = 0;
+        $totalProfit = 0;
+        
+        foreach ($penjualansHariIni as $penjualan) {
+            $totalPenjualan += (float)($penjualan->total ?? 0);
+            
+            $detailCount = $penjualan->details->count();
+            if ($detailCount > 1) {
+                foreach ($penjualan->details as $d) {
+                    $totalProdukTerjual += (float)($d->jumlah ?? 0);
+                    $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal);
+                    $margin = ((float)($d->harga_satuan ?? 0) - $actualHPP) * (float)($d->jumlah ?? 0);
+                    $totalProfit += $margin;
+                }
+            } elseif ($detailCount === 1) {
+                $d = $penjualan->details[0];
+                $totalProdukTerjual += (float)($d->jumlah ?? 0);
+                $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal);
+                $margin = ((float)($d->harga_satuan ?? 0) - $actualHPP) * (float)($d->jumlah ?? 0);
+                $totalProfit += $margin;
+            } else {
+                $totalProdukTerjual += (float)($penjualan->jumlah ?? 0);
+                $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
+                $hdrHarga = $penjualan->harga_satuan;
+                if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
+                    $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                }
+                $margin = ($hdrHarga - $actualHPP) * ($penjualan->jumlah ?? 0);
+                $totalProfit += $margin;
+            }
         }
         
-        $penjualans = $query->orderBy('tanggal','desc')->get();
+        $jumlahTransaksiHariIni = $penjualansHariIni->count();
         
-        return view('transaksi.penjualan.index', compact('penjualans'));
+        // Get return data for the return tab
+        $salesReturns = \App\Models\SalesReturn::with(['penjualan', 'items.produk'])
+            ->orderBy('return_date', 'desc')
+            ->get();
+        
+        return view('transaksi.penjualan.index', compact('penjualans', 'totalPenjualan', 'jumlahTransaksiHariIni', 'totalProdukTerjual', 'totalProfit', 'salesReturns'));
     }
 
     public function create()

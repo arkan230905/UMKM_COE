@@ -58,7 +58,6 @@
                     <thead class="table-light">
                         <tr>
                             <th class="text-center" style="width: 50px">#</th>
-                            <th class="text-center" style="width: 80px">Foto</th>
                             <th>Kode</th>
                             <th>Nama</th>
                             <th>Email</th>
@@ -81,20 +80,6 @@
                         @forelse($pegawais as $index => $pegawai)
                         <tr>
                             <td class="text-center text-muted">{{ ($pegawais->currentPage() - 1) * $pegawais->perPage() + $loop->iteration }}</td>
-                            <td class="text-center">
-                                @if($pegawai->foto_wajah)
-                                    <img src="{{ asset('storage/' . $pegawai->foto_wajah) }}" 
-                                         alt="Foto {{ $pegawai->nama }}" 
-                                         class="rounded-circle"
-                                         style="width: 50px; height: 50px; object-fit: cover;"
-                                         onerror="this.onerror=null; this.src='{{ asset('images/default-avatar.png') }}';">
-                                @else
-                                    <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center" 
-                                         style="width: 50px; height: 50px;">
-                                        <i class="fas fa-user text-white"></i>
-                                    </div>
-                                @endif
-                            </td>
                             <td>{{ $pegawai->kode_pegawai }}</td>
                             <td>{{ $pegawai->nama }}</td>
                             <td>{{ $pegawai->email }}</td>

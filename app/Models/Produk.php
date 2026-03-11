@@ -55,12 +55,22 @@ class Produk extends Model
         });
         
         static::updating(function ($produk) {
-            // Auto-calculate harga_jual when margin_percent changes
-            if ($produk->isDirty('margin_percent') || $produk->isDirty('harga_bom')) {
+            // TEMPORARILY DISABLED for debugging
+            \Log::info('MODEL UPDATING EVENT TRIGGERED for ' . $produk->nama_produk);
+            \Log::info('Dirty fields: ' . json_encode($produk->getDirty()));
+            \Log::info('harga_jual in model: ' . $produk->harga_jual);
+            \Log::info('margin_percent in model: ' . $produk->margin_percent);
+            
+            // Only auto-calculate harga_jual if it's not explicitly set by user
+            // and margin_percent changes, or if harga_bom changes and harga_jual is null
+            /*
+            if (($produk->isDirty('margin_percent') && !$produk->isDirty('harga_jual')) || 
+                ($produk->isDirty('harga_bom') && is_null($produk->harga_jual))) {
                 $hpp = $produk->harga_bom ?? 0;
                 $marginPercent = $produk->margin_percent ?? 0;
                 $produk->harga_jual = $hpp + ($hpp * $marginPercent / 100);
             }
+            */
         });
     }
     

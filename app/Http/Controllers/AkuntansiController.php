@@ -260,28 +260,25 @@ class AkuntansiController extends Controller
     {
         $periode = $request->get('periode', now()->format('Y-m'));
         
-        // Get COA data for neraca
-        $aset = \App\Models\Coa::where('kategori_akun', 'ASET')->orderBy('kode_akun')->get();
-        $kewajiban = \App\Models\Coa::where('kategori_akun', 'KEWAJIBAN')->orderBy('kode_akun')->get();
-        $modal = \App\Models\Coa::where('kategori_akun', 'MODAL')->orderBy('kode_akun')->get();
+        // Get all COA accounts
+        $allCoa = \App\Models\Coa::orderBy('kode_akun')->get();
         
-        // Calculate balances for each account
+        // Calculate balances for each account from journal entries
         $calculateBalance = function($coa) use ($periode) {
             $saldo = 0;
             
-            // Get journal entries for this account up to the selected period
-            $entries = \App\Models\JurnalEntry::whereHas('details', function($q) use ($coa) {
-                $q->where('kode_akun', $coa->kode_akun);
-            })->whereDate('tanggal', '<=', $periode . '-31')->get();
+            // Get journal lines for this account up to selected period
+            $journalLines = \App\Models\JournalLine::whereHas('account', function($q) use ($coa) {
+                $q->where('code', $coa->kode_akun);
+            })->whereHas('entry', function($q) use ($periode) {
+                $q->whereDate('tanggal', '<=', $periode . '-31');
+            })->get();
             
-            foreach ($entries as $entry) {
-                $detail = $entry->details->where('kode_akun', $coa->kode_akun)->first();
-                if ($detail) {
-                    if ($coa->saldo_normal === 'debit') {
-                        $saldo += $detail->debit - $detail->kredit;
-                    } else {
-                        $saldo += $detail->kredit - $detail->debit;
-                    }
+            foreach ($journalLines as $line) {
+                if ($coa->saldo_normal === 'debit') {
+                    $saldo += $line->debit - $line->credit;
+                } else {
+                    $saldo += $line->credit - $line->debit;
                 }
             }
             
@@ -291,19 +288,100 @@ class AkuntansiController extends Controller
             return $saldo;
         };
         
-        // Calculate totals
-        $totalAset = $aset->sum(function($coa) use ($calculateBalance) {
+        // Group accounts by category based on COA fields - NO DUPLICATES
+        $asetLancar = $allCoa->filter(function($coa) {
+            // Aset Lancar: kategori contains "Aset Lancar" or "Kas & Bank" 
+            // OR specific account types that are clearly current assets
+            return (stripos($coa->kategori_akun, 'Aset Lancar') !== false || 
+                   stripos($coa->kategori_akun, 'Kas & Bank') !== false ||
+                   stripos($coa->nama_akun, 'Kas') !== false ||
+                   stripos($coa->nama_akun, 'Bank') !== false ||
+                   stripos($coa->nama_akun, 'Persediaan') !== false ||
+                   stripos($coa->nama_akun, 'Piutang') !== false ||
+                   stripos($coa->nama_akun, 'PPN Masukan') !== false ||
+                   stripos($coa->nama_akun, 'Biaya Dibayar Dimuka') !== false) &&
+                   in_array($coa->tipe_akun, ['Asset', 'asset']);
+        });
+        
+        $asetTidakLancar = $allCoa->filter(function($coa) {
+            // Aset Tidak Lancar: kategori contains "Tidak Lancar" 
+            // OR specific account types that are clearly fixed assets
+            return (stripos($coa->kategori_akun, 'Tidak Lancar') !== false ||
+                   stripos($coa->nama_akun, 'Peralatan') !== false ||
+                   stripos($coa->nama_akun, 'Mesin') !== false ||
+                   stripos($coa->nama_akun, 'Kendaraan') !== false ||
+                   stripos($coa->nama_akun, 'Inventaris') !== false ||
+                   stripos($coa->nama_akun, 'Akumulasi Penyusutan') !== false ||
+                   stripos($coa->nama_akun, 'Aset Tetap') !== false ||
+                   stripos($coa->nama_akun, 'Gedung') !== false ||
+                   stripos($coa->nama_akun, 'Tanah') !== false) &&
+                   in_array($coa->tipe_akun, ['Asset', 'asset']);
+        });
+        
+        $kewajibanPendek = $allCoa->filter(function($coa) {
+            // Kewajiban Jangka Pendek: kategori contains "Hutang" (not Jangka Panjang) 
+            // OR specific short-term liabilities
+            return (stripos($coa->kategori_akun, 'Hutang') !== false &&
+                    stripos($coa->kategori_akun, 'Jangka Panjang') === false) ||
+                   (stripos($coa->nama_akun, 'Hutang Usaha') !== false) ||
+                   (stripos($coa->nama_akun, 'Hutang Pajak') !== false);
+        });
+        
+        $kewajibanPanjang = $allCoa->filter(function($coa) {
+            // Kewajiban Jangka Panjang: kategori contains "Jangka Panjang" 
+            // OR specific long-term liabilities
+            return (stripos($coa->kategori_akun, 'Jangka Panjang') !== false) ||
+                   (stripos($coa->nama_akun, 'Hutang Bank') !== false) ||
+                   (stripos($coa->nama_akun, 'Hutang Jangka Panjang') !== false) ||
+                   (stripos($coa->nama_akun, 'Obligasi') !== false) ||
+                   (stripos($coa->nama_akun, 'PPN Masukan') !== false);
+        });
+        
+        $ekuitas = $allCoa->filter(function($coa) {
+            // Ekuitas: starts with 3xxx or tipe_akun is Equity or kategori contains "Ekuitas"
+            // OR specific equity accounts (excluding PPN Keluaran which should be liability)
+            return substr($coa->kode_akun, 0, 1) === '3' || 
+                   in_array($coa->tipe_akun, ['Equity', 'Modal']) ||
+                   stripos($coa->kategori_akun, 'Ekuitas') !== false ||
+                   (stripos($coa->nama_akun, 'Modal') !== false) ||
+                   (stripos($coa->nama_akun, 'Laba Ditahan') !== false) ||
+                   (stripos($coa->nama_akun, 'Prive') !== false);
+        });
+        
+        // Calculate totals for each group
+        $totalAsetLancar = $asetLancar->sum(function($coa) use ($calculateBalance) {
             return $calculateBalance($coa);
         });
         
-        $totalKewajiban = $kewajiban->sum(function($coa) use ($calculateBalance) {
+        $totalAsetTidakLancar = $asetTidakLancar->sum(function($coa) use ($calculateBalance) {
             return $calculateBalance($coa);
         });
         
-        $totalModal = $modal->sum(function($coa) use ($calculateBalance) {
+        $totalKewajibanPendek = $kewajibanPendek->sum(function($coa) use ($calculateBalance) {
             return $calculateBalance($coa);
         });
         
-        return view('akuntansi.neraca', compact('periode', 'aset', 'kewajiban', 'modal', 'totalAset', 'totalKewajiban', 'totalModal', 'calculateBalance'));
+        $totalKewajibanPanjang = $kewajibanPanjang->sum(function($coa) use ($calculateBalance) {
+            return $calculateBalance($coa);
+        });
+        
+        $totalEkuitas = $ekuitas->sum(function($coa) use ($calculateBalance) {
+            return $calculateBalance($coa);
+        });
+        
+        // Calculate grand totals
+        $totalAset = $totalAsetLancar + $totalAsetTidakLancar;
+        $totalKewajiban = $totalKewajibanPendek + $totalKewajibanPanjang;
+        $totalKewajibanEkuitas = $totalKewajiban + $totalEkuitas;
+        
+        return view('akuntansi.neraca', compact(
+            'periode', 
+            'asetLancar', 'asetTidakLancar', 
+            'kewajibanPendek', 'kewajibanPanjang', 'ekuitas',
+            'totalAsetLancar', 'totalAsetTidakLancar',
+            'totalKewajibanPendek', 'totalKewajibanPanjang', 'totalEkuitas',
+            'totalAset', 'totalKewajiban', 'totalKewajibanEkuitas',
+            'calculateBalance'
+        ));
     }
 }

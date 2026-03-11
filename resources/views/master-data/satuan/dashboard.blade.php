@@ -385,28 +385,27 @@
                                                 <div class="col-md-4">
                                                     <h6 class="fw-bold text-primary">Berat</h6>
                                                     <ul class="list-unstyled">
-                                                        <li>1 kg = 1.000 gram</li>
-                                                        <li>1 kg = 10 ons</li>
-                                                        <li>1 ons = 100 gram</li>
-                                                        <li>1 ton = 1.000 kg</li>
+                                                        <li>1 Kilogram = 1.000 Gram</li>
+                                                        <li>1 Kilogram = 10 Ons</li>
+                                                        <li>1 Ons = 100 Gram</li>
                                                     </ul>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <h6 class="fw-bold text-success">Volume</h6>
                                                     <ul class="list-unstyled">
-                                                        <li>1 liter = 1.000 ml</li>
-                                                        <li>1 liter = 1 kg (air)</li>
-                                                        <li>1 galon = 3,785 liter</li>
-                                                        <li>1 gelas = 250 ml</li>
+                                                        <li>1 Liter = 1.000 Mililiter</li>
+                                                        <li>1 Galon = 3,785 Liter</li>
+                                                        <li>1 Sendok Makan = 15 Mililiter</li>
+                                                        <li>1 Sendok Teh = 5 Mililiter</li>
                                                     </ul>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <h6 class="fw-bold text-warning">Pieces</h6>
                                                     <ul class="list-unstyled">
-                                                        <li>1 lusin = 12 buah</li>
-                                                        <li>1 kodi = 20 buah</li>
-                                                        <li>1 gross = 144 buah</li>
-                                                        <li>1 rim = 500 lembar</li>
+                                                        <li>1 Pieces = 1 Potong</li>
+                                                        <li>1 Bungkus = 1 unit</li>
+                                                        <li>1 Ekor = 1 unit</li>
+                                                        <li>1 Siung = 1 unit</li>
                                                     </ul>
                                                 </div>
                                             </div>
@@ -417,6 +416,47 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Satuan -->
+<div class="modal fade" id="editSatuanModal" tabindex="-1" aria-labelledby="editSatuanModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-brown text-white">
+                <h5 class="modal-title" id="editSatuanModalLabel">
+                    <i class="fas fa-edit me-2"></i>Edit Satuan
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editSatuanForm">
+                    <input type="hidden" id="editSatuanId">
+                    <div class="mb-3">
+                        <label for="editKodeSatuan" class="form-label fw-bold">
+                            Kode Satuan
+                        </label>
+                        <input type="text" class="form-control" id="editKodeSatuan" placeholder="Contoh: BOX, PCS, KG" required>
+                        <div class="form-text">Kode unik untuk identifikasi satuan</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editNamaSatuan" class="form-label fw-bold">
+                            Nama Satuan
+                        </label>
+                        <input type="text" class="form-control" id="editNamaSatuan" placeholder="Contoh: Box, Pieces, Kilogram" required>
+                        <div class="form-text">Nama lengkap satuan yang akan ditampilkan</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Batal
+                </button>
+                <button type="button" class="btn btn-brown" onclick="updateSatuan()">
+                    <i class="fas fa-save me-2"></i>Update
+                </button>
             </div>
         </div>
     </div>
@@ -570,59 +610,30 @@ function showSuccessMessage(message) {
 const satuanData = @json($satuans ?? []);
 
 // Konversi faktor ke satuan dasar (kg/gram/liter)
+// Hanya untuk satuan yang ada di database
 const konversiFaktor = {
     // Berat
-    'kg': 1,
     'kilogram': 1,
     'gram': 0.001,
-    'g': 0.001,
-    'gr': 0.001,
     'ons': 0.1,
-    'hg': 0.1,
-    'dag': 0.01,
-    'kwintal': 100,
-    'ton': 1000,
-    'lbs': 0.453592,
-    'oz': 0.0283495,
     
     // Volume
     'liter': 1,
-    'l': 1,
-    'ltr': 1,
     'mililiter': 0.001,
-    'ml': 0.001,
-    'gelas': 0.25,
-    'sendok_makan': 0.015,
-    'sendok_teh': 0.005,
     'galon': 3.785,
     
     // Pieces (diasumsikan 1:1 untuk konversi universal)
-    'pcs': 1,
-    'pc': 1,
-    'buah': 1,
-    'piece': 1,
-    'pack': 1,
-    'pak': 1,
-    'box': 1,
-    'botol': 1,
-    'dus': 1,
-    'bungkus': 1,
-    'kaleng': 1,
-    'sachet': 1,
-    'tablet': 1,
-    'kapsul': 1,
-    'tube': 1,
+    'pieces': 1,
     'potong': 1,
-    'lembar': 1,
-    'roll': 1,
-    'meter': 1,
-    'cm': 0.01,
-    'mm': 0.001,
-    'inch': 0.0254,
-    'kodi': 20,
-    'lusin': 12,
-    'gross': 144,
-    'rim': 500
+    'bungkus': 1,
+    'ekor': 1,
+    'siung': 1,
+    'tabung': 1,
+    'sendok makan': 0.015,
+    'sendok teh': 0.005,
+    
+    // Lainnya
+    'watt': 1 // Unit daya, tidak bisa dikonversi ke satuan lain
 };
 
 // Initialize dropdowns
@@ -634,22 +645,13 @@ function initializeDropdowns() {
     satuanAsal.innerHTML = '<option value="">-- Pilih Satuan --</option>';
     satuanTujuan.innerHTML = '<option value="">-- Pilih Satuan --</option>';
     
-    // Add satuan options from database
+    // Add satuan options from database ONLY
     satuanData.forEach(satuan => {
         const optionAsal = new Option(satuan.nama, satuan.nama.toLowerCase());
         const optionTujuan = new Option(satuan.nama, satuan.nama.toLowerCase());
         
         satuanAsal.add(optionAsal);
         satuanTujuan.add(optionTujuan);
-    });
-    
-    // Add common units if not in database
-    const commonUnits = ['kg', 'gram', 'liter', 'ml', 'pcs', 'buah', 'potong', 'lusin'];
-    commonUnits.forEach(unit => {
-        if (!Array.from(satuanAsal.options).some(opt => opt.value === unit)) {
-            satuanAsal.add(new Option(unit.toUpperCase(), unit));
-            satuanTujuan.add(new Option(unit.toUpperCase(), unit));
-        }
     });
 }
 
@@ -720,13 +722,138 @@ function formatNumber(num) {
     }
 }
 
-// Dummy functions for edit/delete (not implemented in this view)
+// Edit Satuan - Show modal with existing data
 function editSatuan(id) {
-    alert('Fitur edit satuan tidak tersedia di halaman ini. Gunakan halaman master data satuan.');
+    // Find satuan data from the satuanData array
+    const satuan = satuanData.find(s => s.id == id);
+    
+    if (satuan) {
+        // Populate form with existing data
+        document.getElementById('editSatuanId').value = satuan.id;
+        document.getElementById('editKodeSatuan').value = satuan.kode;
+        document.getElementById('editNamaSatuan').value = satuan.nama;
+        
+        // Show edit modal
+        const modal = new bootstrap.Modal(document.getElementById('editSatuanModal'));
+        modal.show();
+    } else {
+        alert('Data satuan tidak ditemukan!');
+    }
 }
 
+// Update Satuan - Save changes via AJAX
+function updateSatuan() {
+    const id = document.getElementById('editSatuanId').value;
+    const kode = document.getElementById('editKodeSatuan').value.trim();
+    const nama = document.getElementById('editNamaSatuan').value.trim();
+    
+    if (!kode || !nama) {
+        alert('Mohon lengkapi semua field!');
+        return;
+    }
+    
+    // Send AJAX request to update
+    fetch(`/master-data/satuan/${id}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+            kode: kode,
+            nama: nama
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the table row
+            const row = document.querySelector(`tr:has(button[onclick="editSatuan(${id})"])`);
+            if (row) {
+                row.cells[0].innerHTML = `<span class="badge bg-primary">${kode.toUpperCase()}</span>`;
+                row.cells[1].innerHTML = `<strong>${nama}</strong>`;
+            }
+            
+            // Update satuanData array
+            const satuanIndex = satuanData.findIndex(s => s.id == id);
+            if (satuanIndex !== -1) {
+                satuanData[satuanIndex].kode = kode.toUpperCase();
+                satuanData[satuanIndex].nama = nama;
+            }
+            
+            // Close modal and show success
+            const modal = bootstrap.Modal.getInstance(document.getElementById('editSatuanModal'));
+            modal.hide();
+            
+            showSuccessMessage('Data satuan berhasil diperbarui!');
+        } else {
+            alert('Gagal memperbarui data: ' + (data.message || 'Terjadi kesalahan'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Gagal memperbarui data. Silakan coba lagi.');
+    });
+}
+
+// Delete Satuan - Confirm and delete via AJAX
 function deleteSatuan(id) {
-    alert('Fitur hapus satuan tidak tersedia di halaman ini. Gunakan halaman master data satuan.');
+    const satuan = satuanData.find(s => s.id == id);
+    
+    if (!satuan) {
+        alert('Data satuan tidak ditemukan!');
+        return;
+    }
+    
+    // Confirm deletion
+    if (confirm(`Apakah Anda yakin ingin menghapus satuan "${satuan.nama}"?`)) {
+        // Send AJAX request to delete
+        fetch(`/master-data/satuan/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the table row
+                const row = document.querySelector(`tr:has(button[onclick="editSatuan(${id})"])`);
+                if (row) {
+                    row.remove();
+                }
+                
+                // Remove from satuanData array
+                const satuanIndex = satuanData.findIndex(s => s.id == id);
+                if (satuanIndex !== -1) {
+                    satuanData.splice(satuanIndex, 1);
+                }
+                
+                // Show success message
+                showSuccessMessage('Satuan berhasil dihapus!');
+                
+                // Check if table is empty and show empty state
+                const tbody = document.querySelector('#satuan-panel tbody');
+                if (tbody.children.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2"></i>
+                                <p class="mb-0">Belum ada data satuan</p>
+                            </td>
+                        </tr>
+                    `;
+                }
+            } else {
+                alert('Gagal menghapus data: ' + (data.message || 'Terjadi kesalahan'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Gagal menghapus data. Silakan coba lagi.');
+        });
+    }
 }
 
 // Event listeners

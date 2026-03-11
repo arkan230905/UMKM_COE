@@ -708,26 +708,36 @@ class LaporanController extends Controller
     public function laporanRetur(Request $request)
     {
         // Filter untuk Retur Penjualan
-        $salesReturnQuery = \App\Models\SalesReturn::with(['penjualan', 'items.penjualanDetail.produk'])
+        $salesReturnQuery = \App\Models\Retur::with(['penjualan', 'details.produk'])
+            ->where('type', 'sale')
             ->when($request->sales_start_date && $request->sales_end_date, function($q) use ($request) {
-                return $q->whereBetween('return_date', [$request->sales_start_date, $request->sales_end_date]);
+                return $q->whereBetween('tanggal', [$request->sales_start_date, $request->sales_end_date]);
             })
-            ->orderBy('return_date', 'desc');
+            ->orderBy('tanggal', 'desc');
 
         // Filter untuk Retur Pembelian  
-        $purchaseReturnQuery = \App\Models\PurchaseReturn::with(['pembelian.vendor', 'items.pembelianDetail.bahanBaku'])
+        $purchaseReturnQuery = \App\Models\Retur::with(['pembelian.vendor', 'details.produk'])
+            ->where('type', 'purchase')
             ->when($request->purchase_start_date && $request->purchase_end_date, function($q) use ($request) {
-                return $q->whereBetween('return_date', [$request->purchase_start_date, $request->purchase_end_date]);
+                return $q->whereBetween('tanggal', [$request->purchase_start_date, $request->purchase_end_date]);
             })
-            ->orderBy('return_date', 'desc');
+            ->orderBy('tanggal', 'desc');
 
         // Get data
         $salesReturns = $salesReturnQuery->paginate(10, ['*'], 'sales_page');
         $purchaseReturns = $purchaseReturnQuery->paginate(10, ['*'], 'purchase_page');
 
         // Calculate totals
-        $totalSalesReturns = $salesReturnQuery->sum('total_return_amount');
-        $totalPurchaseReturns = $purchaseReturnQuery->sum('total_return_amount');
+        $totalSalesReturns = $salesReturnQuery->get()->sum(function($retur) {
+            return $retur->details->sum(function($detail) {
+                return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0);
+            });
+        });
+        $totalPurchaseReturns = $purchaseReturnQuery->get()->sum(function($retur) {
+            return $retur->details->sum(function($detail) {
+                return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0);
+            });
+        });
 
         return view('laporan.retur.index', compact(
             'salesReturns', 
@@ -743,10 +753,10 @@ class LaporanController extends Controller
         $query = \App\Models\Penggajian::with(['pegawai'])
             ->when($request->bulan, function($q) use ($request) {
                 $bulan = \Carbon\Carbon::parse($request->bulan);
-                return $q->whereYear('periode', $bulan->year)
-                       ->whereMonth('periode', $bulan->month);
+                return $q->whereYear('tanggal_penggajian', $bulan->year)
+                       ->whereMonth('tanggal_penggajian', $bulan->month);
             })
-            ->latest();
+            ->latest('tanggal_penggajian');
 
         if ($request->has('export') && $request->export == 'pdf') {
             $penggajians = $query->get();
@@ -756,8 +766,8 @@ class LaporanController extends Controller
             return $pdf->download('laporan-penggajian-' . now()->format('Y-m-d') . '.pdf');
         }
 
-        $penggajians = $query->paginate(15);
-        $total = $query->sum('total_gaji');
+        $penggajians = $query->get();
+        $total = $penggajians->sum('total_gaji');
 
         return view('laporan.penggajian.index', compact('penggajians', 'total'));
     }
@@ -765,26 +775,74 @@ class LaporanController extends Controller
     // === LAPORAN PEMBAYARAN BEBAN ===
     public function laporanPembayaranBeban(Request $request)
     {
-        $query = \App\Models\ExpensePayment::with(['coa'])
-            ->when($request->bulan, function($q) use ($request) {
-                $bulan = \Carbon\Carbon::parse($request->bulan);
-                return $q->whereYear('tanggal', $bulan->year)
-                       ->whereMonth('tanggal', $bulan->month);
-            })
-            ->latest();
+        // Get all active Beban Operasional master data
+        $bebanOperasionalQuery = \App\Models\BebanOperasional::where('status', 'aktif')
+            ->orderBy('kategori')
+            ->orderBy('nama_beban');
+
+        // Get the selected period or default to current month
+        $selectedMonth = $request->bulan ? \Carbon\Carbon::parse($request->bulan) : now();
+        
+        // Get all beban operasional
+        $bebanOperasional = $bebanOperasionalQuery->get();
+        
+        // Build the Budget vs Actual data
+        $laporanData = collect([]);
+        $totalBudget = 0;
+        $totalAktual = 0;
+        $totalSelisih = 0;
+        
+        foreach ($bebanOperasional as $beban) {
+            // Get actual payments for this beban in the selected period
+            $aktual = \App\Models\ExpensePayment::where('beban_operasional_id', $beban->id)
+                ->whereYear('tanggal', $selectedMonth->year)
+                ->whereMonth('tanggal', $selectedMonth->month)
+                ->sum('nominal_pembayaran');
+            
+            $budget = $beban->budget_bulanan ?? 0;
+            $selisih = $budget - $aktual;
+            $status = $aktual > $budget ? 'Over Budget' : 'Aman';
+            
+            $laporanData->push((object) [
+                'id' => $beban->id,
+                'kategori' => $beban->kategori,
+                'nama_beban' => $beban->nama_beban,
+                'budget_bulanan' => $budget,
+                'aktual_bulan_ini' => $aktual,
+                'selisih' => $selisih,
+                'status' => $status,
+                'status_color' => $aktual > $budget ? 'danger' : 'success',
+                'keterangan' => $beban->keterangan,
+            ]);
+            
+            $totalBudget += $budget;
+            $totalAktual += $aktual;
+            $totalSelisih += $selisih;
+        }
+        
+        // Summary data
+        $summary = (object) [
+            'total_budget' => $totalBudget,
+            'total_aktual' => $totalAktual,
+            'total_selisih' => $totalSelisih,
+            'overall_status' => $totalAktual > $totalBudget ? 'Over Budget' : 'Aman',
+            'overall_status_color' => $totalAktual > $totalBudget ? 'danger' : 'success',
+        ];
 
         if ($request->has('export') && $request->export == 'pdf') {
-            $pembayaranBeban = $query->get();
-            $total = $pembayaranBeban->sum('nominal');
-            
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.pembayaran-beban.pdf', compact('pembayaranBeban', 'total'));
-            return $pdf->download('laporan-pembayaran-beban-' . now()->format('Y-m-d') . '.pdf');
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.pembayaran-beban.pdf', compact(
+                'laporanData', 
+                'summary', 
+                'selectedMonth'
+            ));
+            return $pdf->download('laporan-pembayaran-beban-' . $selectedMonth->format('Y-m') . '.pdf');
         }
 
-        $pembayaranBeban = $query->paginate(15);
-        $total = $query->sum('nominal');
-
-        return view('laporan.pembayaran-beban.index', compact('pembayaranBeban', 'total'));
+        return view('laporan.pembayaran-beban.index', compact(
+            'laporanData', 
+            'summary', 
+            'selectedMonth'
+        ));
     }
 
     // === LAPORAN PELUNASAN UTANG ===
