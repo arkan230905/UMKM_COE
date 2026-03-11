@@ -1006,6 +1006,9 @@ function editBebanOperasional(id) {
                 
                 const modal = new bootstrap.Modal(document.getElementById('editBebanOperasionalModal'));
                 modal.show();
+                
+                // Clear field errors when user starts typing
+                clearFieldErrorsOnInput();
             } else {
                 showAlert('danger', data.message || 'Gagal memuat data');
             }
@@ -1014,6 +1017,32 @@ function editBebanOperasional(id) {
             console.error('Error:', error);
             showAlert('danger', 'Terjadi kesalahan saat memuat data');
         });
+}
+
+// Clear field errors when user interacts with form fields
+function clearFieldErrorsOnInput() {
+    const formFields = ['editKategori', 'editNamaBeban', 'editBudgetBulanan', 'editKeterangan', 'editStatus'];
+    
+    formFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('input', function() {
+                this.classList.remove('is-invalid');
+                const errorDiv = this.parentNode.querySelector('.field-error');
+                if (errorDiv) {
+                    errorDiv.remove();
+                }
+            });
+            
+            field.addEventListener('change', function() {
+                this.classList.remove('is-invalid');
+                const errorDiv = this.parentNode.querySelector('.field-error');
+                if (errorDiv) {
+                    errorDiv.remove();
+                }
+            });
+        }
+    });
 }
 
 // Delete Beban Operasional
@@ -1139,17 +1168,28 @@ function updateBebanOperasional() {
     
     const formData = new FormData(form);
     
+    // Add CSRF token to form data if not already present
+    if (!formData.has('_token')) {
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+    }
+    
     fetch(`{{ route('master-data.bop.beban-operasional.update', ':id') }}`.replace(':id', id), {
-        method: 'PUT',
+        method: 'POST', // Use POST with _method=PUT for better compatibility
         headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
         },
         body: formData
     })
     .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            return response.text().then(text => {
+                console.log('Error response text:', text);
+                throw new Error(`HTTP ${response.status}: ${text}`);
+            });
         }
         return response.json();
     })
@@ -1169,10 +1209,31 @@ function updateBebanOperasional() {
             }, 300);
         } else {
             if (data.errors) {
+                // Clear previous errors
+                document.querySelectorAll('.field-error').forEach(el => el.remove());
+                
                 let errorMessage = 'Validasi gagal:<br>';
+                let hasFieldErrors = false;
+                
                 Object.entries(data.errors).forEach(([field, errors]) => {
                     errorMessage += `${errors.join('<br>')}<br>`;
+                    
+                    // Show error below field
+                    const fieldElement = document.getElementById('edit' + field.charAt(0).toUpperCase() + field.slice(1));
+                    if (fieldElement) {
+                        hasFieldErrors = true;
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'field-error text-danger small mt-1';
+                        errorDiv.textContent = errors[0];
+                        fieldElement.parentNode.appendChild(errorDiv);
+                        fieldElement.classList.add('is-invalid');
+                    }
                 });
+                
+                if (hasFieldErrors) {
+                    errorMessage += '<br>Silakan perbaiki field yang ditandai merah.';
+                }
+                
                 showAlert('danger', errorMessage);
             } else {
                 showAlert('danger', data.message || 'Gagal memperbarui data');
@@ -1180,8 +1241,25 @@ function updateBebanOperasional() {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
-        showAlert('danger', 'Terjadi kesalahan saat memperbarui data: ' + error.message);
+        console.error('Error details:', error);
+        
+        // Try to extract meaningful error message
+        let errorMessage = 'Terjadi kesalahan saat memperbarui data';
+        
+        if (error.message.includes('422')) {
+            errorMessage = 'Validasi gagal. Silakan periksa kembali input Anda.';
+        } else if (error.message.includes('404')) {
+            errorMessage = 'Data tidak ditemukan.';
+        } else if (error.message.includes('403')) {
+            errorMessage = 'Anda tidak memiliki izin untuk mengubah data ini.';
+        } else if (error.message.includes('500')) {
+            errorMessage = 'Terjadi kesalahan pada server. Silakan coba lagi nanti.';
+        } else if (error.message.includes('HTTP')) {
+            // Extract HTTP status and details
+            errorMessage = error.message;
+        }
+        
+        showAlert('danger', errorMessage);
     })
     .finally(() => {
         // Re-enable submit button
@@ -1310,6 +1388,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <form id="editBebanOperasionalForm" method="POST" action="javascript:void(0);" onsubmit="updateBebanOperasional(); return false;">
                 @csrf
+                @method('PUT')
                 <input type="hidden" id="editBebanOperasionalId" name="id">
                 <div class="modal-body">
                     <div class="mb-3">

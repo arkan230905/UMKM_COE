@@ -74,6 +74,14 @@ class ExpensePayment extends Model
     }
 
     /**
+     * Accessor untuk backward compatibility - alias nominal_pembayaran
+     */
+    public function getNominalAttribute()
+    {
+        return $this->nominal_pembayaran;
+    }
+
+    /**
      * Accessor untuk nama beban operasional
      */
     public function getNamaBebanOperasionalAttribute()

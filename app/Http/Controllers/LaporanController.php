@@ -693,26 +693,74 @@ class LaporanController extends Controller
     // === LAPORAN PEMBAYARAN BEBAN ===
     public function laporanPembayaranBeban(Request $request)
     {
-        $query = \App\Models\ExpensePayment::with(['coa'])
-            ->when($request->bulan, function($q) use ($request) {
-                $bulan = \Carbon\Carbon::parse($request->bulan);
-                return $q->whereYear('tanggal', $bulan->year)
-                       ->whereMonth('tanggal', $bulan->month);
-            })
-            ->latest();
+        // Get all active Beban Operasional master data
+        $bebanOperasionalQuery = \App\Models\BebanOperasional::where('status', 'aktif')
+            ->orderBy('kategori')
+            ->orderBy('nama_beban');
+
+        // Get the selected period or default to current month
+        $selectedMonth = $request->bulan ? \Carbon\Carbon::parse($request->bulan) : now();
+        
+        // Get all beban operasional
+        $bebanOperasional = $bebanOperasionalQuery->get();
+        
+        // Build the Budget vs Actual data
+        $laporanData = collect([]);
+        $totalBudget = 0;
+        $totalAktual = 0;
+        $totalSelisih = 0;
+        
+        foreach ($bebanOperasional as $beban) {
+            // Get actual payments for this beban in the selected period
+            $aktual = \App\Models\ExpensePayment::where('beban_operasional_id', $beban->id)
+                ->whereYear('tanggal', $selectedMonth->year)
+                ->whereMonth('tanggal', $selectedMonth->month)
+                ->sum('nominal_pembayaran');
+            
+            $budget = $beban->budget_bulanan ?? 0;
+            $selisih = $budget - $aktual;
+            $status = $aktual > $budget ? 'Over Budget' : 'Aman';
+            
+            $laporanData->push((object) [
+                'id' => $beban->id,
+                'kategori' => $beban->kategori,
+                'nama_beban' => $beban->nama_beban,
+                'budget_bulanan' => $budget,
+                'aktual_bulan_ini' => $aktual,
+                'selisih' => $selisih,
+                'status' => $status,
+                'status_color' => $aktual > $budget ? 'danger' : 'success',
+                'keterangan' => $beban->keterangan,
+            ]);
+            
+            $totalBudget += $budget;
+            $totalAktual += $aktual;
+            $totalSelisih += $selisih;
+        }
+        
+        // Summary data
+        $summary = (object) [
+            'total_budget' => $totalBudget,
+            'total_aktual' => $totalAktual,
+            'total_selisih' => $totalSelisih,
+            'overall_status' => $totalAktual > $totalBudget ? 'Over Budget' : 'Aman',
+            'overall_status_color' => $totalAktual > $totalBudget ? 'danger' : 'success',
+        ];
 
         if ($request->has('export') && $request->export == 'pdf') {
-            $pembayaranBeban = $query->get();
-            $total = $pembayaranBeban->sum('nominal');
-            
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.pembayaran-beban.pdf', compact('pembayaranBeban', 'total'));
-            return $pdf->download('laporan-pembayaran-beban-' . now()->format('Y-m-d') . '.pdf');
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.pembayaran-beban.pdf', compact(
+                'laporanData', 
+                'summary', 
+                'selectedMonth'
+            ));
+            return $pdf->download('laporan-pembayaran-beban-' . $selectedMonth->format('Y-m') . '.pdf');
         }
 
-        $pembayaranBeban = $query->paginate(15);
-        $total = $query->sum('nominal');
-
-        return view('laporan.pembayaran-beban.index', compact('pembayaranBeban', 'total'));
+        return view('laporan.pembayaran-beban.index', compact(
+            'laporanData', 
+            'summary', 
+            'selectedMonth'
+        ));
     }
 
     // === LAPORAN PELUNASAN UTANG ===
