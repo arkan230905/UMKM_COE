@@ -337,7 +337,7 @@
                             <th class="text-end">Profit</th>
                             <th class="text-end">Diskon</th>
                             <th class="text-end">Total</th>
-                            <th>Status Retur</th>
+                            <th>Qty Retur</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -437,16 +437,15 @@
                                 <td class="text-end fw-semibold">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</td>
                                 <td>
                                     @php
-                                        // Cek apakah ada retur untuk penjualan ini
-                                        $hasRetur = $penjualan->returs()->exists();
+                                        $totalQtyRetur = $penjualan->total_qty_retur;
                                     @endphp
-                                    @if($hasRetur)
+                                    @if($totalQtyRetur > 0)
                                         <span class="badge bg-danger animate-pulse">
-                                            <i class="fas fa-undo me-1"></i>Ada Retur
+                                            <i class="fas fa-undo me-1"></i>{{ number_format($totalQtyRetur, 4, ',', '.') }}
                                         </span>
                                     @else
                                         <span class="badge bg-success">
-                                            <i class="fas fa-check me-1"></i>Tidak Ada Retur
+                                            <i class="fas fa-check me-1"></i>0
                                         </span>
                                     @endif
                                 </td>
@@ -670,11 +669,14 @@
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <strong>Status Retur:</strong> 
-                        @if($hasRetur)
-                            <span class="badge bg-info">Retur Sebagian</span>
+                        <strong>Qty Retur:</strong> 
+                        @php
+                            $totalQtyRetur = $penjualan->total_qty_retur;
+                        @endphp
+                        @if($totalQtyRetur > 0)
+                            <span class="badge bg-info">{{ number_format($totalQtyRetur, 4, ',', '.') }}</span>
                         @else
-                            <span class="badge bg-success">Tidak Ada Retur</span>
+                            <span class="badge bg-success">0</span>
                         @endif
                     </div>
                     <div class="col-md-6">

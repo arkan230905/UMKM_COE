@@ -65,7 +65,8 @@
                 <div class="mb-3">
                     <label for="harga_jual" class="form-label">Harga Jual</label>
                     <input type="text" name="harga_jual" id="harga_jual" 
-                           class="form-control" value="{{ old('harga_jual') }}" required>
+                           class="form-control" value="0" readonly>
+                    <small class="form-text text-muted">HPP belum tersedia, harga jual akan otomatis muncul setelah HPP dihitung dan bisa diubah di bagian edit.</small>
                     <small class="form-text text-muted">Presentase keuntungan: <span id="profit_percentage">0</span>%</small>
                 </div>
 
@@ -135,89 +136,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    const hargaJualInput = document.getElementById('harga_jual');
-    
-    // Format harga jual input as user types
-    function formatHargaJualInput() {
-        let value = hargaJualInput.value;
-        
-        // Remove all non-digit characters
-        let numericValue = value.replace(/\D/g, '');
-        
-        // Format with dots
-        let formattedValue = formatNumberWithDots(numericValue);
-        
-        // Update the input value
-        hargaJualInput.value = formattedValue;
-        
-        // Calculate profit percentage
-        calculateProfitPercentage();
-    }
-    
-    // Format number with thousand separators
-    function formatNumberWithDots(number) {
-        return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    }
-    
-    // Parse formatted number back to pure number
-    function parseFormattedNumber(formattedString) {
-        return parseInt(formattedString.replace(/\./g, '')) || 0;
-    }
-    
-    // Calculate profit percentage when harga_jual changes
-    function calculateProfitPercentage() {
-        const hppInput = document.getElementById('hpp');
-        const hargaJualInput = document.getElementById('harga_jual');
-        const profitPercentageSpan = document.getElementById('profit_percentage');
-        const marginPercentInput = document.getElementById('margin_percent');
-        
-        // Get HPP value (default 0 for new products)
-        let hpp = parseFloat(hppInput.value) || 0;
-        
-        // Get the actual numeric values
-        const hargaJual = parseFormattedNumber(hargaJualInput.value);
-        
-        if (hpp > 0 && hargaJual > 0) {
-            const profitPercentage = ((hargaJual - hpp) / hpp) * 100;
-            profitPercentageSpan.textContent = profitPercentage.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-            marginPercentInput.value = profitPercentage.toFixed(2);
-        } else {
-            profitPercentageSpan.textContent = '0';
-            marginPercentInput.value = '0';
-        }
-    }
-    
-    // Add event listeners
-    if (hargaJualInput) {
-        // Format initial value
-        const initialValue = hargaJualInput.value;
-        if (initialValue && !isNaN(initialValue)) {
-            hargaJualInput.value = formatNumberWithDots(parseInt(initialValue));
-        }
-        
-        // Calculate initial profit percentage
-        calculateProfitPercentage();
-        
-        // Add event listeners
-        hargaJualInput.addEventListener('input', formatHargaJualInput);
-        hargaJualInput.addEventListener('blur', calculateProfitPercentage);
-        
-        // Prevent non-numeric input
-        hargaJualInput.addEventListener('keypress', function(e) {
-            // Allow backspace, delete, tab, escape, enter
-            if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
-                // Allow: Ctrl+A, Command+A
-                (e.keyCode === 65 && (e.ctrlKey === true || e.metaKey === true)) ||
-                // Allow: home, end, left, right, down, up
-                (e.keyCode >= 35 && e.keyCode <= 40)) {
-                // let it happen, don't do anything
-                return;
-            }
-            // Ensure that it is a number and stop the keypress
-            if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
-                e.preventDefault();
-            }
-        });
+    // For new products, harga_jual is readonly and always 0
+    // No need for input formatting or event listeners
+    const profitPercentageSpan = document.getElementById('profit_percentage');
+    if (profitPercentageSpan) {
+        profitPercentageSpan.textContent = '0';
     }
 });
 </script>
