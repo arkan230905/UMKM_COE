@@ -386,7 +386,7 @@ class ExpensePaymentController extends Controller
             }
 
             // Hitung total pembayaran beban untuk akun ini
-            $totalAktual = ExpensePayment::where('coa_beban_id', $kodeAkun)->sum('nominal');
+            $totalAktual = ExpensePayment::where('coa_beban_id', $kodeAkun)->sum('nominal_pembayaran');
 
             // Update kolom aktual
             $bopLainnya->aktual = $totalAktual;
