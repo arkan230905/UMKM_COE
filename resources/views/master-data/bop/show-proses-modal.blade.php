@@ -154,9 +154,5 @@
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
             <i class="fas fa-times me-1"></i>Tutup
         </button>
-        <a href="{{ route('master-data.bop.edit-proses', $bopProses->id) }}" 
-           class="btn btn-primary">
-            <i class="fas fa-edit me-1"></i>Edit BOP Komponen
-        </a>
     </div>
 </div>

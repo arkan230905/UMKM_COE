@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="1ylavxenT7asrsPKUC9onQIQh5CuQ2Np2QY5UEGG">
+
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    
+    <link href="http://localhost/css/modern-dashboard.css?v=1773174744" rel="stylesheet">
+
+        </head>
+<body>
+
+<div class="layout">
+
+    
+    <aside class="sidebar">
+        <div class="sidebar">
+    <!-- User Profile Card -->
+    <div class="user-profile-card">
+        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                    </div>
+        <div class="user-info">
+            <h4>Admin User</h4>
+            <small>Owner</small>
+        </div>
+    </div>
+    
+    <div class="sidebar-nav">
+        <ul class="nav">
+                            
+            <!-- Dashboard -->
+            <li class="nav-item">
+                <a href="http://localhost/dashboard" class="nav-link-rounded ">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            
+            <!-- Master Data Section -->
+            <li class="nav-item">
+                <div class="nav-section-header-rounded">
+                    <i class="fas fa-database"></i>
+                    <span>MASTER DATA</span>
+                </div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/master-data/coa">
+                    <i class="fas fa-book"></i>
+                    <span>COA</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/master-data/aset">
+                    <i class="fas fa-laptop"></i>
+                    <span>Aset</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/master-data/satuan-dashboard">
+                    <i class="fas fa-balance-scale"></i>
+                    <span>Satuan</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/master-data/kualifikasi-tenaga-kerja">
+                    <i class="fas fa-user-tie"></i>
+                    <span>Kualifikasi Tenaga Kerja</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/master-data/pegawai">
+                    <i class="fas fa-users"></i>
+                    <span>Pegawai</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/master-data/vendor">
+                    <i class="fas fa-truck"></i>
+                    <span>Vendor</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/master-data/pelanggan">
+                    <i class="fas fa-users"></i>
+                    <span>Pelanggan</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/master-data/bahan-baku">
+                    <i class="fas fa-cubes"></i>
+                    <span>Bahan Baku</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/master-data/bahan-pendukung">
+                    <i class="fas fa-flask"></i>
+                    <span>Bahan Pendukung</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/master-data/produk">
+                    <i class="fas fa-box"></i>
+                    <span>Produk</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/master-data/biaya-bahan">
+                    <i class="fas fa-calculator"></i>
+                    <span>Biaya Bahan</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/master-data/btkl">
+                    <i class="fas fa-industry"></i>
+                    <span>BTKL (Proses Produksi)</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded active" href="http://localhost/master-data/bop">
+                    <i class="fas fa-chart-pie"></i>
+                    <span>BOP (Biaya Overhead Pabrik)</span>
+                </a>
+            </li>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/master-data/harga-pokok-produksi">
+                    <i class="fas fa-sitemap"></i>
+                    <span>Harga Pokok Produksi</span>
+                </a>
+            </li>
+            
+            <!-- Transaksi Section -->
+            <li class="nav-item">
+                <div class="nav-section-header-rounded">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>TRANSAKSI</span>
+                </div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/transaksi/pembelian">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Pembelian</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/transaksi/penjualan">
+                    <i class="fas fa-store"></i>
+                    <span>Penjualan</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/transaksi/produksi">
+                    <i class="fas fa-industry"></i>
+                    <span>Produksi</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/transaksi/presensi">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Presensi</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/transaksi/penggajian">
+                    <i class="fas fa-money-bill"></i>
+                    <span>Penggajian</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/transaksi/pembayaran-beban">
+                    <i class="fas fa-money-check-alt"></i>
+                    <span>Pembayaran Beban</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/transaksi/pelunasan-utang">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Pelunasan Utang</span>
+                </a>
+            </li>
+            
+            <!-- Laporan Section -->
+            <li class="nav-item">
+                <div class="nav-section-header-rounded">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>LAPORAN</span>
+                </div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/laporan/pembelian">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Laporan Pembelian</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/laporan/stok">
+                    <i class="fas fa-boxes"></i>
+                    <span>Laporan Stok</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/laporan/stock-realtime">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Stok Real-Time</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/laporan/penjualan">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span>Laporan Penjualan</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/laporan/retur">
+                    <i class="fas fa-undo"></i>
+                    <span>Laporan Retur</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/laporan/penggajian">
+                    <i class="fas fa-money-bill"></i>
+                    <span>Laporan Penggajian</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/laporan/pembayaran-beban">
+                    <i class="fas fa-money-check-alt"></i>
+                    <span>Laporan Pembayaran Beban</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/laporan/pelunasan-utang">
+                    <i class="fas fa-credit-card"></i>
+                    <span>Laporan Pelunasan Utang</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/laporan/kas-bank">
+                    <i class="fas fa-university"></i>
+                    <span>Laporan Kas dan Bank</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/akuntansi/jurnal-umum">
+                    <i class="fas fa-book-open"></i>
+                    <span>Jurnal Umum</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/akuntansi/buku-besar">
+                    <i class="fas fa-book"></i>
+                    <span>Buku Besar</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/akuntansi/neraca-saldo">
+                    <i class="fas fa-balance-scale-right"></i>
+                    <span>Neraca Saldo</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/akuntansi/neraca">
+                    <i class="fas fa-balance-scale"></i>
+                    <span>Neraca</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/akuntansi/laba-rugi">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Laba Rugi</span>
+                </a>
+            </li>
+            
+            <!-- Pengaturan Section -->
+            <li class="nav-item">
+                <div class="nav-section-header-rounded">
+                    <i class="fas fa-cog"></i>
+                    <span>PENGATURAN</span>
+                </div>
+            </li>
+                        <li class="nav-item">
+                <a class="nav-link-rounded " href="/tentang-perusahaan/detail">
+                    <i class="fas fa-building"></i>
+                    <span>Tentang Perusahaan</span>
+                </a>
+            </li>
+                        <li class="nav-item">
+                <a class="nav-link-rounded " href="http://localhost/profile">
+                    <i class="fas fa-user"></i>
+                    <span>Profil</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <form method="POST" action="http://localhost/logout" style="margin: 0; padding: 0; display: block;">
+                    <input type="hidden" name="_token" value="1ylavxenT7asrsPKUC9onQIQh5CuQ2Np2QY5UEGG" autocomplete="off">                    <button type="submit" class="nav-link-rounded logout-btn" style="width: 100%; border: none; cursor: pointer;">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </button>
+                </form>
+            </li>
+                    </ul>
+    </div>
+</div>    </aside>
+
+    
+    <main class="content">
+        <div class="container-fluid px-4 py-4">
+    <h2 class="mb-4 text-white"><i class="fas fa-chart-pie me-2"></i>Tambah BOP Proses</h2>
+
+    
+    
+    <div class="card shadow-sm">
+        <div class="card-body" style="color: white !important;">
+            <style>
+                .card-body input, .card-body select, .card-body textarea {
+                    color: white !important;
+                    background-color: rgba(0,0,0,0.8) !important;
+                    border: 1px solid rgba(255,255,255,0.3) !important;
+                }
+                .card-body input::placeholder, .card-body textarea::placeholder {
+                    color: rgba(255,255,255,0.7) !important;
+                }
+                .card-body .input-group-text {
+                    color: white !important;
+                    background-color: rgba(0,0,0,0.6) !important;
+                    border-color: rgba(255,255,255,0.3) !important;
+                }
+                .card-body .form-control, .card-body .form-select {
+                    border-color: rgba(255,255,255,0.3) !important;
+                }
+                .card-body .form-control:focus {
+                    background-color: rgba(0,0,0,0.9) !important;
+                    border-color: #007bff !important;
+                    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25) !important;
+                }
+                .info-card {
+                    background: rgba(0,123,255,0.1);
+                    border: 1px solid rgba(0,123,255,0.3);
+                    border-radius: 8px;
+                    padding: 15px;
+                    margin-bottom: 20px;
+                }
+            </style>
+            
+            <form action="http://localhost/master-data/bop-proses" method="POST" id="createBopForm">
+                <input type="hidden" name="_token" value="1ylavxenT7asrsPKUC9onQIQh5CuQ2Np2QY5UEGG" autocomplete="off">                
+                <!-- Pilih Proses BTKL -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-12">
+                        <label for="proses_produksi_id" class="form-label text-white">Pilih Proses BTKL <span class="text-danger">*</span></label>
+                        <select name="proses_produksi_id" id="proses_produksi_id" class="form-select " required>
+                            <option value="">-- Pilih Proses BTKL --</option>
+                                                            <option value="3" 
+                                        data-kapasitas="50"
+                                        data-tarif="45000.00"
+                                        data-biaya-per-unit="900"
+                                        >
+                                    PRO-003 - Pengemasan 
+                                    (50 unit/jam)
+                                </option>
+                                                            <option value="1" 
+                                        data-kapasitas="50"
+                                        data-tarif="50000.00"
+                                        data-biaya-per-unit="1000"
+                                        >
+                                    PRO-001 - Penggorengan 
+                                    (50 unit/jam)
+                                </option>
+                                                            <option value="2" 
+                                        data-kapasitas="200"
+                                        data-tarif="48000.00"
+                                        data-biaya-per-unit="240"
+                                        >
+                                    PRO-002 - Perbumbuan 
+                                    (200 unit/jam)
+                                </option>
+                                                    </select>
+                                                <small class="text-light">Hanya proses BTKL yang memiliki kapasitas per jam dan belum memiliki BOP</small>
+                    </div>
+                </div>
+
+                <!-- Info Proses Terpilih -->
+                <div id="prosesInfo" class="info-card" style="display: none;">
+                    <h6 class="text-info mb-3"><i class="fas fa-info-circle me-2"></i>Informasi Proses Terpilih</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <strong>Kapasitas per Jam:</strong><br>
+                            <span id="infoKapasitas" class="text-info">-</span> unit/jam
+                        </div>
+                        <div class="col-md-4">
+                            <strong>Tarif BTKL:</strong><br>
+                            Rp <span id="infoTarif" class="text-info">-</span>/jam
+                        </div>
+                        <div class="col-md-4">
+                            <strong>BTKL per Unit:</strong><br>
+                            Rp <span id="infoBiayaPerUnit" class="text-info">-</span>/unit
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Komponen BOP per Jam -->
+                <div class="row g-3">
+                    <div class="col-12">
+                        <h5 class="text-white mb-3">
+                            <i class="fas fa-cogs me-2"></i>Komponen BOP per Jam Mesin
+                        </h5>
+                        <small class="text-light">Masukkan biaya overhead pabrik per jam operasi mesin</small>
+                    </div>
+
+                    <div class="col-12">
+                        <div id="komponenBopContainer">
+                            <!-- Dynamic rows will be inserted here -->
+                        </div>
+                        
+                        <button type="button" id="addKomponenBtn" class="btn btn-success btn-sm mt-3">
+                            <i class="fas fa-plus"></i> Tambah Komponen
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ringkasan Perhitungan -->
+                <div class="info-card mt-4">
+                    <h6 class="text-warning mb-3"><i class="fas fa-calculator me-2"></i>Ringkasan Perhitungan</h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Total BOP per Jam:</strong><br>
+                            <span class="fs-5 text-warning">Rp <span id="totalBopPerJam">0</span></span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Budget per Shift (8 jam):</strong><br>
+                            <span class="fs-5 text-info">Rp <span id="budgetShift">0</span></span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Kapasitas per Jam:</strong><br>
+                            <span class="fs-5 text-info"><span id="kapasitasPerJam">0</span> unit</span>
+                        </div>
+                        <div class="col-md-3">
+                            <strong>BOP per Unit:</strong><br>
+                            <span class="fs-5 text-success">Rp <span id="bopPerUnit">0.00</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Simpan BOP Proses
+                    </button>
+                    <a href="http://localhost/master-data/bop-proses" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Kembali
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const prosesSelect = document.getElementById('proses_produksi_id');
+    const prosesInfo = document.getElementById('prosesInfo');
+    const komponenContainer = document.getElementById('komponenBopContainer');
+    const addKomponenBtn = document.getElementById('addKomponenBtn');
+    
+    // Static list of BOP components
+    const komponenOptions = [
+        'Listrik Mesin',
+        'Gas / BBM',
+        'Penyusutan Mesin',
+        'Maintenance',
+        'Air & Kebersihan',
+        'Bahan Penolong',
+        'Gaji Mandor',
+        'Lain-lain'
+    ];
+    
+    let komponenCount = 0;
+    
+    // Add initial empty row
+    addKomponenRow();
+    
+    // Add component row function
+    function addKomponenRow(component = '', rate = '') {
+        komponenCount++;
+        const rowId = `komponen_${komponenCount}`;
+        
+        const rowHtml = `
+            <div class="row g-3 mb-3 komponen-row" id="${rowId}">
+                <div class="col-md-5">
+                    <label class="form-label text-white">Komponen BOP</label>
+                    <select name="komponen_bop[${komponenCount}][component]" 
+                            class="form-select komponen-select" 
+                            data-row-id="${rowId}"
+                            required>
+                        <option value="">-- Pilih Komponen --</option>
+                        ${komponenOptions.map(opt => 
+                            `<option value="${opt}" ${component === opt ? 'selected' : ''}>${opt}</option>`
+                        ).join('')}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label text-white">Nominal per Jam (Rp)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Rp</span>
+                        <input type="number" 
+                               name="komponen_bop[${komponenCount}][rate_per_hour]" 
+                               class="form-control rate-input" 
+                               data-row-id="${rowId}"
+                               value="${rate}"
+                               min="0" 
+                               step="0.01" 
+                               placeholder="0"
+                               required>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label text-white">&nbsp;</label><br>
+                    <button type="button" class="btn btn-danger btn-sm w-100 delete-row" data-row-id="${rowId}">
+                        <i class="fas fa-trash"></i> Hapus
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        komponenContainer.insertAdjacentHTML('beforeend', rowHtml);
+        
+        // Add event listeners to new row
+        const newRow = document.getElementById(rowId);
+        const select = newRow.querySelector('.komponen-select');
+        const input = newRow.querySelector('.rate-input');
+        const deleteBtn = newRow.querySelector('.delete-row');
+        
+        select.addEventListener('change', updateCalculation);
+        input.addEventListener('input', updateCalculation);
+        deleteBtn.addEventListener('click', function() {
+            deleteRow(rowId);
+        });
+        
+        updateCalculation();
+    }
+    
+    // Delete row function
+    function deleteRow(rowId) {
+        const row = document.getElementById(rowId);
+        if (row) {
+            row.remove();
+            updateCalculation();
+        }
+    }
+    
+    // Add component button event
+    addKomponenBtn.addEventListener('click', function() {
+        addKomponenRow();
+    });
+    
+    // Update info when process is selected
+    prosesSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        
+        if (this.value) {
+            const kapasitas = selectedOption.dataset.kapasitas;
+            const tarif = selectedOption.dataset.tarif;
+            const biayaPerUnit = selectedOption.dataset.biayaPerUnit;
+            
+            document.getElementById('infoKapasitas').textContent = parseInt(kapasitas).toLocaleString('id-ID');
+            document.getElementById('infoTarif').textContent = parseInt(tarif).toLocaleString('id-ID');
+            document.getElementById('infoBiayaPerUnit').textContent = formatRupiahClean(parseFloat(biayaPerUnit));
+            document.getElementById('kapasitasPerJam').textContent = parseInt(kapasitas).toLocaleString('id-ID');
+            
+            prosesInfo.style.display = 'block';
+            updateCalculation();
+        } else {
+            prosesInfo.style.display = 'none';
+        }
+    });
+    
+    // Update calculation function
+    function updateCalculation() {
+        const selectedOption = prosesSelect.options[prosesSelect.selectedIndex];
+        
+        if (!prosesSelect.value) return;
+        
+        const kapasitas = parseInt(selectedOption.dataset.kapasitas) || 0;
+        
+        // Calculate total BOP per jam from all rate inputs
+        let totalBopPerJam = 0;
+        const rateInputs = document.querySelectorAll('.rate-input');
+        rateInputs.forEach(function(input) {
+            totalBopPerJam += parseFloat(input.value) || 0;
+        });
+        
+        // Calculate budget per shift (8 jam)
+        const budgetShift = totalBopPerJam * 8;
+        
+        // Calculate BOP per unit
+        const bopPerUnit = kapasitas > 0 ? totalBopPerJam / kapasitas : 0;
+        
+        // Update display
+        document.getElementById('totalBopPerJam').textContent = totalBopPerJam.toLocaleString('id-ID');
+        document.getElementById('budgetShift').textContent = budgetShift.toLocaleString('id-ID');
+        document.getElementById('bopPerUnit').textContent = formatRupiahClean(bopPerUnit);
+    }
+    
+    // Clean number formatting function
+    function formatNumberClean(number) {
+        if (number == Math.floor(number)) {
+            return number.toLocaleString('id-ID');
+        }
+        let formatted = number.toLocaleString('id-ID', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        // Remove trailing zeros after decimal
+        if (formatted.includes(',')) {
+            formatted = formatted.replace(/,?0+$/, '');
+        }
+        return formatted;
+    }
+    
+    // Clean rupiah formatting function  
+    function formatRupiahClean(number) {
+        return 'Rp ' + formatNumberClean(number);
+    }
+    
+    // Form submission
+    const form = document.getElementById('createBopForm');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    form.addEventListener('submit', function(e) {
+        // Validate at least one component is filled
+        const rateInputs = document.querySelectorAll('.rate-input');
+        let hasValidComponent = false;
+        
+        rateInputs.forEach(function(input) {
+            if (parseFloat(input.value) > 0) {
+                hasValidComponent = true;
+            }
+        });
+        
+        if (!hasValidComponent) {
+            e.preventDefault();
+            alert('Harap isi minimal satu komponen BOP dengan nominal lebih dari 0.');
+            return;
+        }
+        
+        // Check for duplicate components
+        const selectedComponents = [];
+        const selects = document.querySelectorAll('.komponen-select');
+        let hasDuplicates = false;
+        
+        selects.forEach(function(select) {
+            const value = select.value;
+            if (value && selectedComponents.includes(value)) {
+                hasDuplicates = true;
+            } else if (value) {
+                selectedComponents.push(value);
+            }
+        });
+        
+        if (hasDuplicates) {
+            e.preventDefault();
+            alert('Komponen BOP tidak boleh duplikat.');
+            return;
+        }
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+    });
+    
+    // Initialize if there's old input
+    if (prosesSelect.value) {
+        prosesSelect.dispatchEvent(new Event('change'));
+    }
+});
+</script>
+    </main>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

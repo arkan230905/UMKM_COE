@@ -178,4 +178,102 @@ class BahanPendukung extends Model
     {
         return $query->where('kategori_id', $kategoriId);
     }
+
+    /**
+     * Convert quantity based on production requirements (similar to BahanBaku)
+     */
+    public function konversiBerdasarkanProduksi($jumlah, $dariSatuan, $keSatuan)
+    {
+        // PRIORITAS 1: Gunakan konversi dari master data bahan pendukung (sub_satuan)
+        $masterConversion = $this->convertToSubUnit($jumlah, $dariSatuan, $keSatuan);
+        if ($masterConversion !== $jumlah) {
+            // Konversi berhasil menggunakan master data
+            return $masterConversion;
+        }
+        
+        // PRIORITAS 2: Fallback ke UnitConverter untuk konversi standar
+        $converter = new \App\Support\UnitConverter();
+        $convertedQty = $converter->convert($jumlah, $dariSatuan, $keSatuan);
+        
+        // Jika UnitConverter berhasil konversi (hasil berbeda dari input), gunakan hasilnya
+        if (abs($convertedQty - $jumlah) > 0.001) {
+            return $convertedQty;
+        }
+        
+        // PRIORITAS 3: Return original jika tidak ada konversi yang cocok
+        return $jumlah;
+    }
+
+    /**
+     * Convert to sub unit using master data conversion factors
+     */
+    public function convertToSubUnit($jumlah, $dariSatuan, $keSatuan)
+    {
+        // Jika satuan sama, tidak perlu konversi
+        if (strtolower($dariSatuan) === strtolower($keSatuan)) {
+            return $jumlah;
+        }
+        
+        $dariSatuanLower = strtolower($dariSatuan);
+        $keSatuanLower = strtolower($keSatuan);
+        $satuanUtama = strtolower($this->satuan->nama ?? '');
+        
+        // Konversi dari satuan utama ke sub satuan
+        if ($dariSatuanLower === $satuanUtama || str_contains($satuanUtama, $dariSatuanLower)) {
+            // Cek sub_satuan_1
+            if ($this->sub_satuan_1_id && $this->sub_satuan_1_konversi > 0) {
+                $subSatuan1 = \App\Models\Satuan::find($this->sub_satuan_1_id);
+                if ($subSatuan1 && str_contains(strtolower($subSatuan1->nama), $keSatuanLower)) {
+                    return $jumlah * $this->sub_satuan_1_konversi;
+                }
+            }
+            
+            // Cek sub_satuan_2
+            if ($this->sub_satuan_2_id && $this->sub_satuan_2_konversi > 0) {
+                $subSatuan2 = \App\Models\Satuan::find($this->sub_satuan_2_id);
+                if ($subSatuan2 && str_contains(strtolower($subSatuan2->nama), $keSatuanLower)) {
+                    return $jumlah * $this->sub_satuan_2_konversi;
+                }
+            }
+            
+            // Cek sub_satuan_3
+            if ($this->sub_satuan_3_id && $this->sub_satuan_3_konversi > 0) {
+                $subSatuan3 = \App\Models\Satuan::find($this->sub_satuan_3_id);
+                if ($subSatuan3 && str_contains(strtolower($subSatuan3->nama), $keSatuanLower)) {
+                    return $jumlah * $this->sub_satuan_3_konversi;
+                }
+            }
+        }
+        
+        // Konversi dari sub satuan ke satuan utama (kebalikan)
+        // Cek sub_satuan_1
+        if ($this->sub_satuan_1_id && $this->sub_satuan_1_konversi > 0) {
+            $subSatuan1 = \App\Models\Satuan::find($this->sub_satuan_1_id);
+            if ($subSatuan1 && str_contains(strtolower($subSatuan1->nama), $dariSatuanLower) && 
+                ($keSatuanLower === $satuanUtama || str_contains($satuanUtama, $keSatuanLower))) {
+                return $jumlah / $this->sub_satuan_1_konversi;
+            }
+        }
+        
+        // Cek sub_satuan_2
+        if ($this->sub_satuan_2_id && $this->sub_satuan_2_konversi > 0) {
+            $subSatuan2 = \App\Models\Satuan::find($this->sub_satuan_2_id);
+            if ($subSatuan2 && str_contains(strtolower($subSatuan2->nama), $dariSatuanLower) && 
+                ($keSatuanLower === $satuanUtama || str_contains($satuanUtama, $keSatuanLower))) {
+                return $jumlah / $this->sub_satuan_2_konversi;
+            }
+        }
+        
+        // Cek sub_satuan_3
+        if ($this->sub_satuan_3_id && $this->sub_satuan_3_konversi > 0) {
+            $subSatuan3 = \App\Models\Satuan::find($this->sub_satuan_3_id);
+            if ($subSatuan3 && str_contains(strtolower($subSatuan3->nama), $dariSatuanLower) && 
+                ($keSatuanLower === $satuanUtama || str_contains($satuanUtama, $keSatuanLower))) {
+                return $jumlah / $this->sub_satuan_3_konversi;
+            }
+        }
+        
+        // Tidak ada konversi yang cocok, return jumlah asli
+        return $jumlah;
+    }
 }

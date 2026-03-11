@@ -41,7 +41,9 @@
             <option value="">Semua</option>
             <option value="purchase" {{ $refType === 'purchase' ? 'selected' : '' }}>Pembelian</option>
             <option value="sale" {{ $refType === 'sale' ? 'selected' : '' }}>Penjualan</option>
-            <option value="production" {{ $refType === 'production' ? 'selected' : '' }}>Produksi</option>
+            <option value="production_material" {{ $refType === 'production_material' ? 'selected' : '' }}>Produksi - Material</option>
+            <option value="production_labor_overhead" {{ $refType === 'production_labor_overhead' ? 'selected' : '' }}>Produksi - BTKL & BOP</option>
+            <option value="production_finish" {{ $refType === 'production_finish' ? 'selected' : '' }}>Produksi - Barang Jadi</option>
             <option value="saldo_awal" {{ $refType === 'saldo_awal' ? 'selected' : '' }}>Saldo Awal</option>
           </select>
         </div>
@@ -50,7 +52,8 @@
           <select name="account_code" class="form-select">
             <option value="">Semua Akun</option>
             <option value="5101" {{ request('account_code') === '5101' ? 'selected' : '' }}>HPP (5101)</option>
-            <option value="1107" {{ request('account_code') === '1107' ? 'selected' : '' }}>Persediaan Barang Jadi (1107)</option>
+            <option value="1106" {{ request('account_code') === '1106' ? 'selected' : '' }}>Persediaan Barang Jadi (1106)</option>
+            <option value="1105" {{ request('account_code') === '1105' ? 'selected' : '' }}>Persediaan Barang Dalam Proses (1105)</option>
             <option value="4101" {{ request('account_code') === '4101' ? 'selected' : '' }}>Penjualan (4101)</option>
             <option value="1101" {{ request('account_code') === '1101' ? 'selected' : '' }}>Kas (1101)</option>
           </select>
@@ -133,12 +136,13 @@
             <tr>
               <th class="border-end" style="width:8%; border-bottom: 2px solid #dee2e6;">Tanggal</th>
               <th class="border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Ref</th>
-              <th class="border-end" style="width:25%; border-bottom: 2px solid #dee2e6;">Deskripsi</th>
+              <th class="border-end" style="width:20%; border-bottom: 2px solid #dee2e6;">Deskripsi</th>
               <th class="border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Kode Akun</th>
-              <th class="border-end" style="width:20%; border-bottom: 2px solid #dee2e6;">Nama Akun</th>
-              <th class="text-end border-end" style="width:12%; border-bottom: 2px solid #dee2e6;">Debit</th>
-              <th class="text-end" style="width:12%; border-bottom: 2px solid #dee2e6;">Kredit</th>
-              <th class="text-center" style="width:5%; border-bottom: 2px solid #dee2e6;">D/K</th>
+              <th class="border-end" style="width:15%; border-bottom: 2px solid #dee2e6;">Nama Akun</th>
+              <th class="border-end" style="width:15%; border-bottom: 2px solid #dee2e6;">Keterangan</th>
+              <th class="text-end border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Debit</th>
+              <th class="text-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Kredit</th>
+              <th class="text-center" style="width:2%; border-bottom: 2px solid #dee2e6;">D/K</th>
             </tr>
           </thead>
           <tbody>
@@ -158,9 +162,11 @@
                           $badgeColor = match($e->ref_type) {
                             'purchase' => 'danger',
                             'sale' => 'success',
-                            'production' => 'warning',
-                            'saldo_awal' => 'info',
-                            default => 'secondary'
+                            'production_material' => 'warning',
+                            'production_labor_overhead' => 'info',
+                            'production_finish' => 'primary',
+                            'saldo_awal' => 'secondary',
+                            default => 'dark'
                           };
                         @endphp
                         <span class="badge bg-{{ $badgeColor }} text-white">
@@ -221,7 +227,7 @@
                           </div>
                         @endif
                         
-                        @if($e->ref_type === 'sale' && $l->account->code === '1107')
+                        @if($e->ref_type === 'sale' && $l->account->code === '1106')
                           <div class="mt-1">
                             <small class="badge bg-info text-dark">
                               <i class="bi bi-box-seam me-1"></i>Persediaan Keluar
@@ -229,6 +235,11 @@
                           </div>
                         @endif
                       @endif
+                    </div>
+                  </td>
+                  <td class="align-middle" style="border-right: 1px solid #dee2e6;">
+                    <div class="text-muted small">
+                      {{ $l->memo ?? '-' }}
                     </div>
                   </td>
                   <td class="align-middle text-end" style="border-right: 1px solid #dee2e6;">
@@ -256,7 +267,7 @@
               @endforeach
             @empty
               <tr>
-                <td colspan="8" class="text-center py-4">
+                <td colspan="9" class="text-center py-4">
                   <div class="text-muted">
                     <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                     <h5>Tidak ada data jurnal</h5>

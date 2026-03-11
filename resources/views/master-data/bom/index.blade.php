@@ -7,7 +7,7 @@
             <i class="fas fa-sitemap me-2"></i>Harga Pokok Produksi Per Produk
         </h2>
         <a href="{{ route('master-data.harga-pokok-produksi.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Buat Harga Pokok Produksi Baru
+            <i class="fas fa-calculator me-2"></i>Hitung Harga Pokok Produksi
         </a>
     </div>
 
@@ -35,20 +35,10 @@
         <div class="card-body">
             <form action="{{ route('master-data.harga-pokok-produksi.index') }}" method="GET">
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label for="nama_produk" class="form-label">Nama Produk</label>
                         <input type="text" class="form-control" id="nama_produk" name="nama_produk" 
                                value="{{ request('nama_produk') }}" placeholder="Cari nama produk...">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="status" class="form-label">Status Harga Pokok Produksi</label>
-                        <select class="form-select" id="status" name="status">
-                            <option value="">Semua</option>
-                            <option value="ada" {{ request('status') == 'ada' ? 'selected' : '' }}>Sudah Ada Harga Pokok Produksi</option>
-                            <option value="belum" {{ request('status') == 'belum' ? 'selected' : '' }}>Belum Ada Harga Pokok Produksi</option>
-                            <option value="lengkap" {{ request('status') == 'lengkap' ? 'selected' : '' }}>Harga Pokok Produksi Lengkap</option>
-                            <option value="tidak_lengkap" {{ request('status') == 'tidak_lengkap' ? 'selected' : '' }}>Harga Pokok Produksi Tidak Lengkap</option>
-                        </select>
                     </div>
                     <div class="col-md-3 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary me-2">
@@ -87,18 +77,11 @@
                     <tbody>
                         @forelse($produks as $produk)
                             @php
-                                // Get data from BomJobCosting (controller already calculates BOP correctly)
                                 $bomJobCosting = $produk->bomJobCosting;
-                                $totalBiayaBahan = $produk->total_biaya_bahan ?? 0;
-                                $totalBTKL = $produk->total_btkl ?? 0;
-                                $totalBOP = $produk->total_bop ?? 0;
-                                
-                                $missingColumns = [];
-                                if ($totalBiayaBahan == 0) $missingColumns[] = 'Biaya Bahan';
-                                if ($totalBTKL == 0) $missingColumns[] = 'Biaya BTKL';
-                                if ($totalBOP == 0) $missingColumns[] = 'Biaya BOP';
-                                $hasBom = $bomJobCosting || $produk->boms->isNotEmpty();
-                                $isIncomplete = !empty($missingColumns);
+                                $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
+                                $totalBTKL = $bomJobCosting->total_btkl ?? 0;
+                                $totalBOP = $bomJobCosting->total_bop ?? 0;
+                                $totalHPP = $totalBiayaBahan + $totalBTKL + $totalBOP;
                             @endphp
                             <tr>
                                 <td>
@@ -112,76 +95,47 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="@if(($produk->total_biaya_bahan ?? 0) == 0) text-warning fw-bold @endif">
-                                    <div class="fw-semibold @if(($produk->total_biaya_bahan ?? 0) == 0) text-warning @endif">
-                                        Rp {{ number_format($produk->total_biaya_bahan ?? 0, 0, ',', '.') }}
-                                        @if(($produk->total_biaya_bahan ?? 0) == 0)
-                                            <i class="fas fa-exclamation-triangle ms-1" title="Biaya bahan kosong"></i>
-                                        @endif
+                                <td>
+                                    <div class="fw-semibold">
+                                        Rp {{ number_format($totalBiayaBahan, 0, ',', '.') }}
                                     </div>
-                                    <small class="text-muted">
-                                        <i class="fas fa-info-circle"></i> Otomatis masuk sesuai dengan data halaman biaya bahan
-                                    </small>
                                 </td>
-                                <td class="@if(($produk->total_btkl ?? 0) == 0) text-warning fw-bold @endif">
-                                    <div class="fw-semibold @if(($produk->total_btkl ?? 0) == 0) text-warning @endif">
-                                        Rp {{ number_format($produk->total_btkl ?? 0, 0, ',', '.') }}
-                                        @if(($produk->total_btkl ?? 0) == 0)
-                                            <i class="fas fa-exclamation-triangle ms-1" title="Biaya BTKL kosong"></i>
-                                        @endif
+                                <td>
+                                    <div class="fw-semibold">
+                                        Rp {{ number_format($totalBTKL, 0, ',', '.') }}
                                     </div>
-                                    <small class="text-muted">
-                                        <i class="fas fa-info-circle"></i> Otomatis masuk sesuai dengan data halaman btkl
-                                    </small>
                                 </td>
-                                <td class="@if($totalBOP == 0) text-warning fw-bold @endif">
-                                    <div class="fw-semibold @if($totalBOP == 0) text-warning @endif">
+                                <td>
+                                    <div class="fw-semibold">
                                         Rp {{ number_format($totalBOP, 0, ',', '.') }}
-                                        @if($totalBOP == 0)
-                                            <i class="fas fa-exclamation-triangle ms-1" title="Biaya BOP kosong"></i>
-                                        @endif
                                     </div>
-                                    <small class="text-muted">
-                                        <i class="fas fa-info-circle"></i> Otomatis masuk sesuai dengan data halaman bop
-                                    </small>
                                 </td>
                                 <td>
                                     <div class="fw-bold text-primary">
-                                        Rp {{ number_format(($produk->total_biaya_bahan ?? 0) + ($produk->total_btkl ?? 0) + $totalBOP, 0, ',', '.') }}
+                                        Rp {{ number_format($totalHPP, 0, ',', '.') }}
                                     </div>
-                                    <small class="text-muted">
-                                        <i class="fas fa-calculator"></i> Total Biaya Bahan + BTKL + BOP, sistem otomatis menambahkan sendiri
-                                    </small>
                                 </td>
                                 <td>
-                                    @if($hasBom && !$isIncomplete)
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check-circle me-1"></i>Produk Sudah Memiliki Harga Pokok Produksi
-                                        </span>
-                                    @elseif($hasBom && $isIncomplete)
-                                        <span class="badge bg-warning" title="Harga Pokok Produksi belum lengkap: {{ implode(', ', $missingColumns) }}">
-                                            <i class="fas fa-exclamation-triangle me-1"></i>Harga Pokok Produksi Belum Lengkap
-                                        </span>
-                                        <div class="text-muted small mt-1">
-                                            <i class="fas fa-info-circle"></i> Kolom kosong: {{ implode(', ', $missingColumns) }}
-                                        </div>
-                                    @else
-                                        <span class="badge bg-danger">
-                                            <i class="fas fa-times-circle me-1"></i>Belum Ada Harga Pokok Produksi
-                                        </span>
-                                    @endif
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>Lengkap
+                                    </span>
                                 </td>
                                 <td>
-                                    <a href="{{ route('master-data.harga-pokok-produksi.show', $produk->id) }}" class="btn btn-outline-info" title="Detail">
-                                        <i class="fas fa-eye"></i> Detail
+                                    <a href="{{ route('master-data.harga-pokok-produksi.show', $produk->id) }}" class="btn btn-sm btn-outline-info me-1" title="Detail">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ route('master-data.harga-pokok-produksi.edit', $produk->id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
                                     </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center py-4">
-                                    <i class="fas fa-sitemap fa-3x text-muted mb-3"></i>
-                                    <p class="text-muted">Belum ada data BOM</p>
+                                <td colspan="7" class="border-0 p-0">
+                                    <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 400px;">
+                                        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                                        <p class="text-muted fs-5 mb-0">Belum ada Harga Pokok Produksi yang dibuat</p>
+                                    </div>
                                 </td>
                             </tr>
                         @endforelse

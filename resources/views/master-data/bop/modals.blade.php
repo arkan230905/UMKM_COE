@@ -16,14 +16,14 @@
                                 <option value="">Pilih Proses</option>
                                 @foreach($prosesProduksis as $proses)
                                     <option value="{{ $proses->id }}" 
-                                            data-kapasitas="{{ $proses->kapasitas_per_jam ?? 0 }}"
-                                            data-tarif="{{ $proses->tarif_btkl ?? 0 }}"
-                                            data-nama="{{ $proses->nama_proses }}"
-                                            data-jabatan="{{ $proses->jabatan->nama_jabatan ?? 'Tidak diketahui' }}">
+                                            data-kapasitas="{{ $proses->kapasitas_per_jam }}"
+                                            data-tarif="{{ $proses->tarif_btkl }}"
+                                            data-nama="{{ $proses->nama_proses }}">
                                         {{ $proses->nama_proses }}
                                     </option>
                                 @endforeach
                             </select>
+                            <small class="text-muted">Total proses: {{ $prosesProduksis->count() }}</small>
                         </div>
                         <div class="col-md-6">
                             <div id="btklInfo" class="alert alert-info d-none">
@@ -138,29 +138,20 @@
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label">Proses Produksi</label>
-                            <select name="proses_produksi_id" id="editProsesProduksiId" class="form-select" readonly>
-                                <option value="">Pilih Proses</option>
-                                @foreach($prosesProduksis as $proses)
-                                    <option value="{{ $proses->id }}" 
-                                            data-kapasitas="{{ $proses->kapasitas_per_jam ?? 0 }}"
-                                            data-tarif="{{ $proses->tarif_btkl ?? 0 }}"
-                                            data-nama="{{ $proses->nama_proses }}"
-                                            data-jabatan="{{ $proses->jabatan->nama_jabatan ?? 'Tidak diketahui' }}">
-                                        {{ $proses->nama_proses }}
-                                    </option>
-                                @endforeach
-                            </select>
+                            <input type="text" id="editNamaProses" class="form-control" readonly>
+                            <input type="hidden" name="proses_produksi_id" id="editProsesProduksiId">
                         </div>
                         <div class="col-md-6">
-                            <div id="editBtklInfo" class="alert alert-info d-none">
+                            <div id="editBtklInfo" class="alert alert-info">
                                 <small>
                                     <i class="bi bi-info-circle me-1"></i>
-                                    <span id="editBtklInfoText"></span>
+                                    <span id="editBtklInfoText">Data BTKL akan ditampilkan di sini</span>
                                 </small>
                             </div>
                         </div>
                     </div>
                     
+                    <!-- Process Info -->
                     <div class="row mt-3">
                         <div class="col-md-4">
                             <label class="form-label">Kapasitas (pcs/jam)</label>
@@ -168,7 +159,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">BTKL / Jam</label>
-                            <input type="number" id="editBtklPerJam" class="form-control" readonly>
+                            <input type="number" id="editBtklPerJam" name="btkl_per_jam" class="form-control" readonly>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">BTKL / pcs</label>
@@ -180,34 +171,39 @@
                     <div class="row mt-3">
                         <div class="col-12">
                             <h6 class="mb-3">Komponen BOP</h6>
-                            <div class="table-responsive">
-                                <table class="table table-bordered">
-                                    <thead>
-                                        <tr>
-                                            <th>Komponen</th>
-                                            <th>Rp / Jam</th>
-                                            <th>Keterangan</th>
-                                            <th>Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="editKomponenRows">
-                                        <!-- Components will be loaded here -->
-                                    </tbody>
-                                </table>
+                            <div id="editKomponenContainer">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered" id="editKomponenTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Komponen</th>
+                                                <th>Rp / Jam</th>
+                                                <th>Keterangan</th>
+                                                <th>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="editKomponenRows">
+                                            <!-- Components will be loaded here -->
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="table-primary fw-bold">
+                                                <td>Total BOP /jam</td>
+                                                <td><input type="number" id="editTotalBopPerJam" name="total_bop_per_jam" class="form-control" readonly></td>
+                                                <td></td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-success mt-2" onclick="addEditKomponenRow()">
+                                    <i class="fas fa-plus"></i> Tambah Komponen
+                                </button>
                             </div>
-                            <button type="button" class="btn btn-sm btn-success mt-2" onclick="addEditKomponenRow()">
-                                <i class="fas fa-plus"></i> Tambah Komponen
-                            </button>
                         </div>
                     </div>
-                </div>
                     
-                    <!-- Edit Calculated Values -->
+                    <!-- Calculated Values -->
                     <div class="row mt-3">
-                        <div class="col-md-3">
-                            <label class="form-label">Total BOP / jam</label>
-                            <input type="number" id="editTotalBopPerJam" class="form-control" readonly>
-                        </div>
                         <div class="col-md-3">
                             <label class="form-label">BOP / pcs</label>
                             <input type="number" id="editBopPerPcs" class="form-control" readonly>
@@ -231,7 +227,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-primary" onclick="saveEditedBop()">Update Data</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
                 </div>
             </form>
         </div>

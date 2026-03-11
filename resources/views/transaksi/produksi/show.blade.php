@@ -1,79 +1,332 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-    <h3 class="mb-3">Detail Produksi</h3>
-
-    <div class="card mb-3">
-        <div class="card-body">
-            <div><strong>Produk:</strong> {{ $produksi->produk->nama_produk }}</div>
-            <div><strong>Tanggal:</strong> {{ $produksi->tanggal }}</div>
-            <div><strong>Qty Produksi:</strong> {{ rtrim(rtrim(number_format($produksi->qty_produksi,4,',','.'),'0'),',') }}</div>
-            <div><strong>Total Bahan:</strong> Rp {{ number_format($produksi->total_bahan,0,',','.') }}</div>
-            <div><strong>BTKL:</strong> Rp {{ number_format($produksi->total_btkl,0,',','.') }}</div>
-            <div><strong>BOP:</strong> Rp {{ number_format($produksi->total_bop,0,',','.') }}</div>
-            <div><strong>Total Biaya:</strong> Rp {{ number_format($produksi->total_biaya,0,',','.') }}</div>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>Detail Produksi
+        </h2>
+        <div class="d-flex gap-2">
+            <a href="{{ route('transaksi.produksi.proses', $produksi->id) }}" class="btn btn-info btn-sm">
+                <i class="fas fa-tasks me-1"></i>Kelola Proses
+            </a>
+            <a href="{{ route('transaksi.produksi.index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i>Kembali
+            </a>
         </div>
     </div>
 
-    <h5>Bahan Terpakai</h5>
-    <table class="table table-bordered table-striped">
-        <thead class="table-light">
-            <tr>
-                <th>#</th>
-                <th>Nama Bahan</th>
-                <th>Resep (Total)</th>
-                <th>Konversi ke Satuan Bahan</th>
-                <th>Harga Satuan</th>
-                <th>Subtotal</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($produksi->details as $d)
-                <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td>{{ $d->bahanBaku->nama_bahan }}</td>
-                    <td>{{ rtrim(rtrim(number_format($d->qty_resep,4,',','.'),'0'),',') }} {{ $d->satuan_resep }}</td>
-                    <td>{{ rtrim(rtrim(number_format($d->qty_konversi,4,',','.'),'0'),',') }} 
-                    @php
-                        // Logic satuan yang sama dengan pegawai-pembelian
-                        $satuanItem = 'unit';
-                        
-                        // Jika item diinput sebagai bahan baku (berdasarkan relation yang ada)
-                        if ($d->bahan_baku_id && $d->bahanBaku) {
-                            // Prioritas: detail->satuan, lalu relation->satuan->nama
-                            $satuanItem = $d->satuan ?: ($d->bahanBaku->satuan->nama ?? $d->bahanBaku->satuan ?? 'unit');
-                        }
-                        // Fallback jika relation tidak ada
-                        elseif ($d->bahan_baku_id) {
-                            $satuanItem = $d->satuan ?: 'unit';
-                        }
-                    @endphp
-                    {{ $satuanItem }}</td>
-                    <td>Rp {{ number_format($d->harga_satuan,0,',','.') }} / 
-                    @php
-                        // Logic satuan yang sama untuk harga satuan
-                        $satuanHarga = 'unit';
-                        
-                        if ($d->bahan_baku_id && $d->bahanBaku) {
-                            $satuanHarga = $d->satuan ?: ($d->bahanBaku->satuan->nama ?? $d->bahanBaku->satuan ?? 'unit');
-                        }
-                        elseif ($d->bahan_baku_id) {
-                            $satuanHarga = $d->satuan ?: 'unit';
-                        }
-                    @endphp
-                    {{ $satuanHarga }}</td>
-                    <td>Rp {{ number_format($d->subtotal,0,',','.') }}</td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+    <!-- Info Produksi -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Informasi Produksi</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="fw-bold">Produk:</label>
+                    <p>{{ $produksi->produk->nama_produk }}</p>
+                </div>
+                <div class="col-md-3">
+                    <label class="fw-bold">Tanggal:</label>
+                    <p>{{ \Carbon\Carbon::parse($produksi->tanggal)->format('d/m/Y') }}</p>
+                </div>
+                <div class="col-md-3">
+                    <label class="fw-bold">Qty Produksi:</label>
+                    <p>{{ rtrim(rtrim(number_format($produksi->qty_produksi,4,',','.'),'0'),',') }} pcs</p>
+                </div>
+                <div class="col-md-3">
+                    <label class="fw-bold">Status:</label>
+                    <p>{!! $produksi->status_badge !!}</p>
+                </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="mt-3">
+                <label class="fw-bold">Progress Produksi:</label>
+                <div class="progress" style="height: 25px;">
+                    <div class="progress-bar progress-bar-striped" 
+                         role="progressbar" 
+                         style="width: {{ $produksi->progress_percentage }}%"
+                         aria-valuenow="{{ $produksi->progress_percentage }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        {{ $produksi->proses_selesai }}/{{ $produksi->total_proses }} Proses ({{ $produksi->progress_percentage }}%)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div class="d-flex justify-content-between">
-        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'production_material', 'ref_id' => $produksi->id]) }}" class="btn btn-outline-primary btn-sm">Lihat Jurnal (Material→WIP)</a>
-        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'production_labor_overhead', 'ref_id' => $produksi->id]) }}" class="btn btn-outline-primary btn-sm">Lihat Jurnal (BTKL/BOP→WIP)</a>
-        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'production_finish', 'ref_id' => $produksi->id]) }}" class="btn btn-outline-primary btn-sm">Lihat Jurnal (WIP→Barang Jadi)</a>
-        <a href="{{ route('transaksi.produksi.index') }}" class="btn btn-secondary">Kembali</a>
+    <!-- Ringkasan Biaya -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left border-success border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Bahan</h6>
+                            <h4 class="mb-0 text-success">Rp {{ number_format($produksi->total_bahan,0,',','.') }}</h4>
+                        </div>
+                        <div class="text-success">
+                            <i class="fas fa-boxes fs-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left border-warning border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">BTKL</h6>
+                            <h4 class="mb-0 text-warning">Rp {{ number_format($produksi->total_btkl,0,',','.') }}</h4>
+                        </div>
+                        <div class="text-warning">
+                            <i class="fas fa-users fs-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left border-info border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">BOP</h6>
+                            <h4 class="mb-0 text-info">Rp {{ number_format($produksi->total_bop,0,',','.') }}</h4>
+                        </div>
+                        <div class="text-info">
+                            <i class="fas fa-cogs fs-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left border-primary border-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-2">Total Biaya</h6>
+                            <h4 class="mb-0 text-primary">Rp {{ number_format($produksi->total_biaya,0,',','.') }}</h4>
+                        </div>
+                        <div class="text-primary">
+                            <i class="fas fa-calculator fs-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bahan Terpakai -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">Bahan Terpakai</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Nama Bahan</th>
+                            <th>Resep (Total)</th>
+                            <th>Konversi ke Satuan Bahan</th>
+                            <th>Harga Satuan</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($produksi->details as $d)
+                            <tr>
+                                <td>{{ $loop->iteration }}</td>
+                                <td>
+                                    @if($d->bahan_baku_id && $d->bahanBaku)
+                                        {{ $d->bahanBaku->nama_bahan }}
+                                        <small class="text-muted">(Bahan Baku)</small>
+                                    @elseif($d->bahan_pendukung_id && $d->bahanPendukung)
+                                        {{ $d->bahanPendukung->nama_bahan }}
+                                        <small class="text-muted">(Bahan Pendukung)</small>
+                                    @else
+                                        <span class="text-muted">Unknown</span>
+                                    @endif
+                                </td>
+                                <td>{{ rtrim(rtrim(number_format($d->qty_resep,4,',','.'),'0'),',') }} {{ $d->satuan_resep }}</td>
+                                <td>{{ rtrim(rtrim(number_format($d->qty_konversi_display ?? $d->qty_konversi,4,',','.'),'0'),',') }} 
+                                @php
+                                    // Use the calculated display unit
+                                    $satuanKonversi = $d->satuan_bahan_display ?? ($d->satuan ?? 'unit');
+                                @endphp
+                                {{ $satuanKonversi }}
+                                @if($d->satuan_resep !== $satuanKonversi)
+                                    <br><small class="text-info">Konversi: {{ $d->satuan_resep }} → {{ $satuanKonversi }}</small>
+                                @endif</td>
+                                <td>Rp {{ number_format($d->harga_satuan,0,',','.') }} / 
+                                @php
+                                    // Untuk harga satuan, gunakan satuan resep
+                                    $satuanHarga = $d->satuan_resep ?? 'unit';
+                                @endphp
+                                {{ $satuanHarga }}</td>
+                                <td>Rp {{ number_format($d->subtotal,0,',','.') }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="5" class="text-end fw-bold">Total Biaya Bahan:</td>
+                            <td class="fw-bold">Rp {{ number_format($produksi->total_bahan,0,',','.') }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- BTKL Detail -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">Biaya Tenaga Kerja Langsung (BTKL)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Nama Proses</th>
+                            <th>Status</th>
+                            <th>Biaya BTKL</th>
+                            <th>Waktu Mulai</th>
+                            <th>Waktu Selesai</th>
+                            <th>Durasi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($produksi->proses->sortBy('urutan') as $proses)
+                            <tr>
+                                <td>{{ $proses->urutan }}</td>
+                                <td>{{ $proses->nama_proses }}</td>
+                                <td>{!! $proses->status_badge !!}</td>
+                                <td>Rp {{ number_format($proses->biaya_btkl,0,',','.') }}</td>
+                                <td>
+                                    @if($proses->waktu_mulai)
+                                        {{ $proses->waktu_mulai->format('d/m/Y H:i') }}
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($proses->waktu_selesai)
+                                        {{ $proses->waktu_selesai->format('d/m/Y H:i') }}
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($proses->durasi_menit)
+                                        {{ $proses->durasi_menit }} menit
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">Total BTKL:</td>
+                            <td class="fw-bold">Rp {{ number_format($produksi->total_btkl,0,',','.') }}</td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOP Detail -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Biaya Overhead Pabrik (BOP)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Nama Proses</th>
+                            <th>Status</th>
+                            <th>Biaya BOP</th>
+                            <th>Total Biaya Proses</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($produksi->proses->sortBy('urutan') as $proses)
+                            <tr>
+                                <td>{{ $proses->urutan }}</td>
+                                <td>{{ $proses->nama_proses }}</td>
+                                <td>{!! $proses->status_badge !!}</td>
+                                <td>Rp {{ number_format($proses->biaya_bop,0,',','.') }}</td>
+                                <td>Rp {{ number_format($proses->total_biaya_proses,0,',','.') }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">Total BOP:</td>
+                            <td class="fw-bold">Rp {{ number_format($produksi->total_bop,0,',','.') }}</td>
+                            <td class="fw-bold">Rp {{ number_format($produksi->total_btkl + $produksi->total_bop,0,',','.') }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tombol Jurnal -->
+    <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Jurnal Akuntansi</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="d-grid">
+                        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'production_material', 'ref_id' => $produksi->id]) }}" class="btn btn-outline-success">
+                            <i class="fas fa-boxes me-2"></i>Jurnal Material → WIP
+                        </a>
+                        <small class="text-muted mt-1">Konsumsi bahan dengan COA individual per material ke Barang Dalam Proses</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-grid">
+                        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'production_labor_overhead', 'ref_id' => $produksi->id]) }}" class="btn btn-outline-warning">
+                            <i class="fas fa-users me-2"></i>Jurnal BTKL & BOP → WIP
+                        </a>
+                        <small class="text-muted mt-1">BTKL & BOP ke Barang Dalam Proses</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-grid">
+                        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'production_finish', 'ref_id' => $produksi->id]) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-check-circle me-2"></i>Jurnal WIP → Barang Jadi
+                        </a>
+                        <small class="text-muted mt-1">Selesai produksi ke Barang Jadi</small>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+<style>
+.border-left {
+    border-left: 4px solid !important;
+}
+</style>
 @endsection

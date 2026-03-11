@@ -122,12 +122,12 @@
                             
                             @forelse($movements->sortBy('created_at') as $movement)
                                 @php
-                                    if($movement->movement_type == 'in') {
-                                        $runningStock += $movement->quantity;
-                                        $runningValue += ($movement->quantity * $movement->unit_price);
+                                    if($movement->direction == 'in') {
+                                        $runningStock += $movement->qty;
+                                        $runningValue += ($movement->qty * $movement->unit_cost);
                                     } else {
-                                        $runningStock -= $movement->quantity;
-                                        $runningValue -= ($movement->quantity * $movement->unit_price);
+                                        $runningStock -= $movement->qty;
+                                        $runningValue -= ($movement->qty * $movement->unit_cost);
                                     }
                                     
                                     // Calculate sub units
@@ -140,10 +140,10 @@
                                     <td class="text-center">{{ $movement->created_at->format('d/m/Y') }}</td>
                                     
                                     <!-- Pembelian (3 columns) -->
-                                    @if($movement->movement_type == 'in' && $movement->reference_type == 'purchase')
-                                        <td class="text-center">{{ number_format($movement->quantity, 0) }} {{ $satuanUtama }}</td>
-                                        <td class="text-end">RP{{ number_format($movement->unit_price, 2, '.', ' ') }}</td>
-                                        <td class="text-end">RP{{ number_format($movement->quantity * $movement->unit_price, 2, '.', ' ') }}</td>
+                                    @if($movement->direction == 'in' && $movement->ref_type == 'purchase')
+                                        <td class="text-center">{{ number_format($movement->qty, 0) }} {{ $satuanUtama }}</td>
+                                        <td class="text-end">RP{{ number_format($movement->unit_cost, 2, '.', ' ') }}</td>
+                                        <td class="text-end">RP{{ number_format($movement->qty * $movement->unit_cost, 2, '.', ' ') }}</td>
                                     @else
                                         <td></td>
                                         <td></td>
@@ -151,10 +151,10 @@
                                     @endif
                                     
                                     <!-- Produksi (3 columns) -->
-                                    @if($movement->movement_type == 'out' && $movement->reference_type == 'production')
-                                        <td class="text-center">{{ number_format($movement->quantity, 0) }} {{ $satuanUtama }}</td>
-                                        <td class="text-end">RP{{ number_format($movement->unit_price, 2, '.', ' ') }}</td>
-                                        <td class="text-end">RP{{ number_format($movement->quantity * $movement->unit_price, 2, '.', ' ') }}</td>
+                                    @if($movement->direction == 'out' && $movement->ref_type == 'production')
+                                        <td class="text-center">{{ number_format($movement->qty, 0) }} {{ $satuanUtama }}</td>
+                                        <td class="text-end">RP{{ number_format($movement->unit_cost, 2, '.', ' ') }}</td>
+                                        <td class="text-end">RP{{ number_format($movement->qty * $movement->unit_cost, 2, '.', ' ') }}</td>
                                     @else
                                         <td></td>
                                         <td></td>

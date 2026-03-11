@@ -73,7 +73,7 @@ class JournalService
     }
 
     /**
-     * Post a balanced journal entry with given lines. Each line element: ['code'=>account_code, 'debit'=>float, 'credit'=>float]
+     * Post a balanced journal entry with given lines. Each line element: ['code'=>account_code, 'debit'=>float, 'credit'=>float, 'memo'=>string (optional)]
      */
     public function post(string $tanggal, string $refType, int $refId, string $memo, array $lines): JournalEntry
     {
@@ -89,11 +89,14 @@ class JournalService
             foreach ($lines as $ln) {
                 $aid = $this->accountId($ln['code']);
                 $debit = (float)($ln['debit'] ?? 0); $credit = (float)($ln['credit'] ?? 0);
+                $lineMemo = $ln['memo'] ?? null; // Support per-line memo
+                
                 JournalLine::create([
                     'journal_entry_id' => $entry->id,
                     'account_id' => $aid,
                     'debit' => $debit,
                     'credit' => $credit,
+                    'memo' => $lineMemo, // Add memo to journal line if supported
                 ]);
                 $totalDebit += $debit; $totalCredit += $credit;
             }

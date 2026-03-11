@@ -25,20 +25,28 @@ class BopController extends Controller
                 ->orderBy('id')
                 ->get();
 
-            // Get all production processes with capacity (for modal options)
+            // Get all production processes (BTKL data) for dropdown - simple query first
             $prosesProduksis = ProsesProduksi::where('kapasitas_per_jam', '>', 0)
-                ->with('bopProses', 'btkl', 'jabatan')
                 ->orderBy('kode_proses')
                 ->get();
 
             // Prepare BTKL data for auto-fill functionality
             $btklData = [];
             foreach ($prosesProduksis as $proses) {
+                // Get jabatan if exists
+                $jabatan = null;
+                if ($proses->jabatan_id) {
+                    $jabatan = \App\Models\Jabatan::find($proses->jabatan_id);
+                }
+                
+                // Calculate tarif BTKL from jabatan
+                $tarifBtkl = $proses->tarif_btkl ?? 0;
+                
                 $btklData[$proses->id] = [
                     'kapasitas_per_jam' => $proses->kapasitas_per_jam,
-                    'tarif_btkl_per_jam' => $proses->tarif_btkl ?? 0,
+                    'tarif_btkl_per_jam' => $tarifBtkl,
                     'nama_btkl' => $proses->nama_proses,
-                    'jabatan' => $proses->jabatan->nama_jabatan ?? 'Tidak diketahui'
+                    'jabatan' => $jabatan ? $jabatan->nama_jabatan : 'Tidak diketahui'
                 ];
             }
 
@@ -72,10 +80,13 @@ class BopController extends Controller
             $totalBopLainnya = $bopLainnya->sum('budget') ?? 0;
             $jumlahBopLainnya = $bopLainnya->count() ?? 0;
 
-            // Get Beban Operasional master data
-            $bebanOperasional = BebanOperasional::query()
-                ->orderBy('kode', 'asc')
-                ->get();
+            // Get Beban Operasional master data (if table exists)
+            $bebanOperasional = collect([]);
+            if (\Schema::hasTable('beban_operasional')) {
+                $bebanOperasional = BebanOperasional::query()
+                    ->orderBy('kode', 'asc')
+                    ->get();
+            }
 
             return view('master-data.bop.index', compact(
                 'bopProses',
@@ -89,26 +100,11 @@ class BopController extends Controller
             ));
             
         } catch (\Exception $e) {
-            // Set default values if there's an error
-            $bopProses = collect([]);
-            $prosesProduksis = collect([]);
-            $bopLainnya = collect([]);
-            $totalBopLainnya = 0;
-            $jumlahBopLainnya = 0;
-            $akunBeban = collect([]);
-            $btklData = [];
-            $bebanOperasional = collect([]);
+            \Log::error('Error in BopController@index: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
             
-            return view('master-data.bop.index', compact(
-                'bopProses',
-                'prosesProduksis',
-                'bopLainnya',
-                'totalBopLainnya',
-                'jumlahBopLainnya',
-                'akunBeban',
-                'btklData',
-                'bebanOperasional'
-            ))->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            // Show error to user instead of hiding it
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 

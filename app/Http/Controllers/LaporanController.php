@@ -137,6 +137,7 @@ class LaporanController extends Controller
         $running = [];
         $conversionData = [];
         $item = null;
+        $availableSatuans = [];
 
         try {
             // Query mutasi dalam periode (untuk kartu stok spesifik item jika item dipilih)
@@ -161,6 +162,76 @@ class LaporanController extends Controller
                         'konversi' => 1
                     ]
                 ];
+                
+                // Prepare available satuans for dropdown
+                $availableSatuans = [];
+                $mainSatuan = $tipe == 'bahan_pendukung' ? $item->satuanRelation : $item->satuan;
+                
+                if ($mainSatuan) {
+                    $availableSatuans[] = [
+                        'id' => $mainSatuan->id,
+                        'nama' => $mainSatuan->nama,
+                        'is_primary' => true,
+                        'conversion_to_primary' => 1
+                    ];
+                    
+                    // Add sub satuan 1
+                    if ($item->sub_satuan_1_id) {
+                        $subSatuan1 = \App\Models\Satuan::find($item->sub_satuan_1_id);
+                        if ($subSatuan1) {
+                            $conversionRatio = 1;
+                            if ($item->sub_satuan_1_nilai > 0) {
+                                $conversionRatio = 1 / $item->sub_satuan_1_nilai;
+                            } elseif ($item->sub_satuan_1_konversi > 0) {
+                                $conversionRatio = $item->sub_satuan_1_konversi;
+                            }
+                            $availableSatuans[] = [
+                                'id' => $subSatuan1->id,
+                                'nama' => $subSatuan1->nama,
+                                'is_primary' => false,
+                                'conversion_to_primary' => $conversionRatio
+                            ];
+                        }
+                    }
+                    
+                    // Add sub satuan 2
+                    if ($item->sub_satuan_2_id) {
+                        $subSatuan2 = \App\Models\Satuan::find($item->sub_satuan_2_id);
+                        if ($subSatuan2) {
+                            $conversionRatio = 1;
+                            if ($item->sub_satuan_2_nilai > 0) {
+                                $conversionRatio = 1 / $item->sub_satuan_2_nilai;
+                            } elseif ($item->sub_satuan_2_konversi > 0) {
+                                $conversionRatio = $item->sub_satuan_2_konversi;
+                            }
+                            $availableSatuans[] = [
+                                'id' => $subSatuan2->id,
+                                'nama' => $subSatuan2->nama,
+                                'is_primary' => false,
+                                'conversion_to_primary' => $conversionRatio
+                            ];
+                        }
+                    }
+                    
+                    // Add sub satuan 3
+                    if ($item->sub_satuan_3_id) {
+                        $subSatuan3 = \App\Models\Satuan::find($item->sub_satuan_3_id);
+                        if ($subSatuan3) {
+                            $conversionRatio = 1;
+                            if ($item->sub_satuan_3_nilai > 0) {
+                                $conversionRatio = 1 / $item->sub_satuan_3_nilai;
+                            } elseif ($item->sub_satuan_3_konversi > 0) {
+                                $conversionRatio = $item->sub_satuan_3_konversi;
+                            }
+                            $availableSatuans[] = [
+                                'id' => $subSatuan3->id,
+                                'nama' => $subSatuan3->nama,
+                                'is_primary' => false,
+                                'conversion_to_primary' => $conversionRatio
+                            ];
+                        }
+                    }
+                }
                 
                 // Add sub units if they exist
                 if ($item->sub_satuan_1_id && $item->sub_satuan_1) {
@@ -418,7 +489,8 @@ class LaporanController extends Controller
             'running',
             'dailyStock',
             'conversionData',
-            'item'
+            'item',
+            'availableSatuans'
         ));
     }
     

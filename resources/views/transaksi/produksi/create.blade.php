@@ -204,24 +204,46 @@ function calculateCostBreakdown() {
     
     // Bahan Baku
     const bahanBakuHtml = currentBomData.biaya_bahan.bahan_baku.map((bahan, index) => {
+        // harga_per_unit now contains the subtotal (total cost for the recipe)
         const totalPerProduksi = bahan.harga_per_unit * qty;
+        const totalQtyTerpakai = bahan.qty * qty;
+        
+        // Calculate stock reduction based on conversion
+        let stockReduction = totalQtyTerpakai;
+        let stockUnit = bahan.satuan;
+        
+        // If different units, show conversion
+        if (bahan.satuan !== bahan.satuan_bahan) {
+            // Show conversion info
+            const konversiInfo = bahan.konversi_info || `Konversi: ${bahan.satuan} → ${bahan.satuan_bahan}`;
+            stockReduction = `${totalQtyTerpakai} ${bahan.satuan}`;
+            stockUnit = bahan.satuan_bahan;
+        }
+        
         totalBiayaBahan += totalPerProduksi;
         return `
             <div class="mb-2">
                 <strong>${index + 1}. ${bahan.nama}:</strong> ${formatRupiah(totalPerProduksi)}
-                <br><small class="text-muted">(${formatRupiah(bahan.harga_per_unit)} per ${bahan.satuan} X ${qty} quantity produksi)</small>
+                <br><small class="text-muted">(${formatRupiah(bahan.harga_per_unit)} per produk × ${qty} qty produksi)</small>
+                <br><small class="text-info">Resep: ${totalQtyTerpakai} ${bahan.satuan}</small>
+                ${bahan.konversi_info ? `<br><small class="text-warning">${bahan.konversi_info}</small>` : ''}
+                <br><small class="text-danger">Stok berkurang: ${stockReduction} ${stockUnit}</small>
             </div>
         `;
     }).join('');
     
     // Bahan Pendukung
     const bahanPendukungHtml = currentBomData.biaya_bahan.bahan_pendukung.map((bahan, index) => {
+        // harga_per_unit now contains the subtotal (total cost for the recipe)
         const totalPerProduksi = bahan.harga_per_unit * qty;
+        const totalQtyTerpakai = bahan.qty * qty;
         totalBiayaBahan += totalPerProduksi;
         return `
             <div class="mb-2">
                 <strong>${index + 1}. ${bahan.nama}:</strong> ${formatRupiah(totalPerProduksi)}
-                <br><small class="text-muted">(${formatRupiah(bahan.harga_per_unit)} per ${bahan.satuan} X ${qty} quantity produksi)</small>
+                <br><small class="text-muted">(${formatRupiah(bahan.harga_per_unit)} per produk × ${qty} qty produksi)</small>
+                <br><small class="text-info">Resep: ${totalQtyTerpakai} ${bahan.satuan}</small>
+                <br><small class="text-danger">Stok berkurang: ${totalQtyTerpakai} ${bahan.satuan}</small>
             </div>
         `;
     }).join('');
@@ -317,7 +339,7 @@ document.getElementById('produk_id').addEventListener('change', function() {
     console.log('Fetching BOM data for product ID:', produkId);
     
     // Fetch BOM data via AJAX
-    fetch(`/master-data/harga-pokok-produksi/get-bom-details/${produkId}`)
+    fetch(`/transaksi/produksi/get-bom-details/${produkId}?t=${Date.now()}`)
         .then(response => {
             console.log('Response status:', response.status);
             return response.json();
