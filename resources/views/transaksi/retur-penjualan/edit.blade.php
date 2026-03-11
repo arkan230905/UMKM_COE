@@ -23,7 +23,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('retur-penjualan.update', $returPenjualan) }}" method="POST" id="returForm">
+            <form action="{{ route('transaksi.retur-penjualan.update', $returPenjualan) }}" method="POST" id="returForm">
                 @csrf
                 @method('PUT')
                 <div class="row">

@@ -36,6 +36,19 @@ class Penjualan extends Model
         return $this->hasMany(PenjualanDetail::class);
     }
 
+    // Relasi ke retur (untuk mengecek status retur)
+    public function returs()
+    {
+        return $this->hasMany(Retur::class, 'ref_id');
+    }
+
+    // Accessor untuk status retur
+    public function getStatusReturAttribute()
+    {
+        $hasReturn = $this->returs()->exists();
+        return $hasReturn ? 'Ada Retur' : 'Tidak Ada Retur';
+    }
+
     protected static function boot()
     {
         parent::boot();

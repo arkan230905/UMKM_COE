@@ -568,7 +568,6 @@ Route::middleware('auth')->group(function () {
             Route::get('/{pembelian}', [PembelianController::class, 'show'])->name('show');
             Route::get('/{pembelian}/edit', [PembelianController::class, 'edit'])->name('edit');
             Route::put('/{pembelian}', [PembelianController::class, 'update'])->name('update');
-            Route::patch('/{pembelian}', [PembelianController::class, 'update'])->name('update');
             Route::delete('/{pembelian}', [PembelianController::class, 'destroy'])->name('destroy');
         });
 
@@ -595,17 +594,17 @@ Route::middleware('auth')->group(function () {
         });
         
         // Retur Penjualan
-        Route::prefix('retur-penjualan')->name('retur-penjualan')->group(function() {
-            Route::get('/', [ReturPenjualanController::class, 'index']);
-            Route::get('/create', [ReturPenjualanController::class, 'create']);
-            Route::post('/', [ReturPenjualanController::class, 'store']);
-            Route::get('/{returPenjualan}', [ReturPenjualanController::class, 'show']);
-            Route::get('/{returPenjualan}/edit', [ReturPenjualanController::class, 'edit']);
-            Route::put('/{returPenjualan}', [ReturPenjualanController::class, 'update']);
-            Route::delete('/{returPenjualan}', [ReturPenjualanController::class, 'destroy']);
-            Route::get('/laporan', [ReturPenjualanController::class, 'laporan']);
-            Route::get('/get-penjualan-details/{penjualanId}', [ReturPenjualanController::class, 'getPenjualanDetails']);
-            Route::post('/{returPenjualan}/bayar-kredit', [ReturPenjualanController::class, 'bayarKredit']);
+        Route::prefix('retur-penjualan')->name('retur-penjualan.')->group(function() {
+            Route::get('/', [ReturPenjualanController::class, 'index'])->name('index');
+            Route::get('/create', [ReturPenjualanController::class, 'create'])->name('create');
+            Route::post('/', [ReturPenjualanController::class, 'store'])->name('store');
+            Route::get('/{returPenjualan}', [ReturPenjualanController::class, 'show'])->name('show');
+            Route::get('/{returPenjualan}/edit', [ReturPenjualanController::class, 'edit'])->name('edit');
+            Route::put('/{returPenjualan}', [ReturPenjualanController::class, 'update'])->name('update');
+            Route::delete('/{returPenjualan}', [ReturPenjualanController::class, 'destroy'])->name('destroy');
+            Route::get('/laporan', [ReturPenjualanController::class, 'laporan'])->name('laporan');
+            Route::get('/get-penjualan-details/{penjualanId}', [ReturPenjualanController::class, 'getPenjualanDetails'])->name('get-penjualan-details');
+            Route::post('/{returPenjualan}/bayar-kredit', [ReturPenjualanController::class, 'bayarKredit'])->name('bayar-kredit');
         });
 
 
@@ -740,12 +739,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile/photo', [ProfileController::class, 'removePhoto'])->name('profil-admin.remove-photo');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profil-admin.destroy');
 
-
-    // ================================================================
-    // TENTANG PERUSAHAAN
-    // ================================================================
-    Route::get('/tentang-perusahaan', [PerusahaanController::class, 'edit'])->name('tentang-perusahaan');
-    Route::post('/tentang-perusahaan/update', [PerusahaanController::class, 'update'])->name('tentang-perusahaan.update');
 });
 
 // ================================================================
