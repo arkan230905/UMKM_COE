@@ -260,28 +260,23 @@ class AkuntansiController extends Controller
     {
         $periode = $request->get('periode', now()->format('Y-m'));
         
-        // Get COA data for neraca
-        $aset = \App\Models\Coa::where('kategori_akun', 'ASET')->orderBy('kode_akun')->get();
-        $kewajiban = \App\Models\Coa::where('kategori_akun', 'KEWAJIBAN')->orderBy('kode_akun')->get();
-        $modal = \App\Models\Coa::where('kategori_akun', 'MODAL')->orderBy('kode_akun')->get();
+        // Get all COA accounts
+        $allCoa = \App\Models\Coa::orderBy('kode_akun')->get();
         
-        // Calculate balances for each account
+        // Calculate balances for each account from journal entries
         $calculateBalance = function($coa) use ($periode) {
             $saldo = 0;
             
-            // Get journal entries for this account up to the selected period
-            $entries = \App\Models\JurnalEntry::whereHas('details', function($q) use ($coa) {
-                $q->where('kode_akun', $coa->kode_akun);
-            })->whereDate('tanggal', '<=', $periode . '-31')->get();
+            // Get journal entries from JurnalUmum table for this account up to selected period
+            $journalEntries = \App\Models\JurnalUmum::where('coa_id', $coa->id)
+                ->whereDate('tanggal', '<=', $periode . '-31')
+                ->get();
             
-            foreach ($entries as $entry) {
-                $detail = $entry->details->where('kode_akun', $coa->kode_akun)->first();
-                if ($detail) {
-                    if ($coa->saldo_normal === 'debit') {
-                        $saldo += $detail->debit - $detail->kredit;
-                    } else {
-                        $saldo += $detail->kredit - $detail->debit;
-                    }
+            foreach ($journalEntries as $entry) {
+                if ($coa->saldo_normal === 'debit') {
+                    $saldo += $entry->debit - $entry->kredit;
+                } else {
+                    $saldo += $entry->kredit - $entry->debit;
                 }
             }
             
@@ -291,19 +286,70 @@ class AkuntansiController extends Controller
             return $saldo;
         };
         
-        // Calculate totals
-        $totalAset = $aset->sum(function($coa) use ($calculateBalance) {
+        // Group accounts by category
+        $asetLancar = $allCoa->filter(function($coa) {
+            return in_array($coa->kategori_akun, ['ASET']) && 
+                   in_array($coa->tipe_akun, ['asset']) && 
+                   (substr($coa->kode_akun, 0, 1) === '1');
+        });
+        
+        $asetTidakLancar = $allCoa->filter(function($coa) {
+            return in_array($coa->kategori_akun, ['ASET']) && 
+                   in_array($coa->tipe_akun, ['asset']) && 
+                   (substr($coa->kode_akun, 0, 1) === '1') && 
+                   !in_array(substr($coa->kode_akun, 0, 2), ['11']);
+        });
+        
+        $kewajibanPendek = $allCoa->filter(function($coa) {
+            return in_array($coa->kategori_akun, ['KEWAJIBAN', 'HUTANG']) && 
+                   substr($coa->kode_akun, 0, 1) === '2';
+        });
+        
+        $kewajibanPanjang = $allCoa->filter(function($coa) {
+            return in_array($coa->kategori_akun, ['KEWAJIBAN', 'HUTANG']) && 
+                   substr($coa->kode_akun, 0, 1) === '2' && 
+                   !in_array(substr($coa->kode_akun, 0, 2), ['21']);
+        });
+        
+        $ekuitas = $allCoa->filter(function($coa) {
+            return in_array($coa->kategori_akun, ['MODAL', 'EKUITAS']) || 
+                   substr($coa->kode_akun, 0, 1) === '3';
+        });
+        
+        // Calculate totals for each group
+        $totalAsetLancar = $asetLancar->sum(function($coa) use ($calculateBalance) {
             return $calculateBalance($coa);
         });
         
-        $totalKewajiban = $kewajiban->sum(function($coa) use ($calculateBalance) {
+        $totalAsetTidakLancar = $asetTidakLancar->sum(function($coa) use ($calculateBalance) {
             return $calculateBalance($coa);
         });
         
-        $totalModal = $modal->sum(function($coa) use ($calculateBalance) {
+        $totalKewajibanPendek = $kewajibanPendek->sum(function($coa) use ($calculateBalance) {
             return $calculateBalance($coa);
         });
         
-        return view('akuntansi.neraca', compact('periode', 'aset', 'kewajiban', 'modal', 'totalAset', 'totalKewajiban', 'totalModal', 'calculateBalance'));
+        $totalKewajibanPanjang = $kewajibanPanjang->sum(function($coa) use ($calculateBalance) {
+            return $calculateBalance($coa);
+        });
+        
+        $totalEkuitas = $ekuitas->sum(function($coa) use ($calculateBalance) {
+            return $calculateBalance($coa);
+        });
+        
+        // Calculate grand totals
+        $totalAset = $totalAsetLancar + $totalAsetTidakLancar;
+        $totalKewajiban = $totalKewajibanPendek + $totalKewajibanPanjang;
+        $totalKewajibanEkuitas = $totalKewajiban + $totalEkuitas;
+        
+        return view('akuntansi.neraca', compact(
+            'periode', 
+            'asetLancar', 'asetTidakLancar', 
+            'kewajibanPendek', 'kewajibanPanjang', 'ekuitas',
+            'totalAsetLancar', 'totalAsetTidakLancar',
+            'totalKewajibanPendek', 'totalKewajibanPanjang', 'totalEkuitas',
+            'totalAset', 'totalKewajiban', 'totalKewajibanEkuitas',
+            'calculateBalance'
+        ));
     }
 }
