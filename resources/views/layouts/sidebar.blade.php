@@ -5,8 +5,8 @@
             @if(Auth::check() && Auth::user()->profile_photo)
                 <img src="{{ asset('storage/profile-photos/' . Auth::user()->profile_photo) }}" 
                      alt="Profile Photo" 
-                     style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;"
-                     onerror="this.onerror=null; this.parentElement.innerHTML='<i class=\"fas fa-user\"></i>';">
+                     style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; position: absolute; top: 0; left: 0;"
+                     onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<i class=\"fas fa-user\"></i>';">
             @else
                 <i class="fas fa-user"></i>
             @endif
@@ -321,7 +321,7 @@
                     <span>PENGATURAN</span>
                 </div>
             </li>
-            @if(auth()->user()->role === 'owner')
+            @if(auth()->check() && auth()->user()->role === 'owner')
             <li class="nav-item">
                 <a class="nav-link-rounded {{ request()->is('tentang-perusahaan/detail') ? 'active' : '' }}" href="/tentang-perusahaan/detail">
                     <i class="fas fa-building"></i>

@@ -230,6 +230,7 @@
         </div>
     </div>
 
+    
     <!-- Kartu Stok Tables -->
     @if(request('item_id'))
         @php

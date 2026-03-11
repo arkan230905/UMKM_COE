@@ -81,13 +81,12 @@ class JabatanController extends Controller
         return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')->with('success','Jabatan berhasil ditambahkan');
     }
 
-    public function edit($id)
+    public function edit(Jabatan $kualifikasi_tenaga_kerja)
     {
-        $jabatan = Jabatan::findOrFail($id);
-        return view('master-data.jabatan.edit', compact('jabatan'));
+        return view('master-data.jabatan.edit', ['jabatan' => $kualifikasi_tenaga_kerja]);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, Jabatan $kualifikasi_tenaga_kerja)
     {
         $jabatan = Jabatan::findOrFail($id);
         
@@ -99,7 +98,7 @@ class JabatanController extends Controller
             'tarif' => $this->normalizeMoney($request->input('tarif')),
         ]);
         $data = $request->validate([
-            'nama' => 'required|string|max:255|unique:jabatans,nama,' . $jabatan->id,
+            'nama' => 'required|string|max:255|unique:jabatans,nama,' . $kualifikasi_tenaga_kerja->id,
             'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
             'asuransi' => 'nullable|numeric|min:0|max:999999999',
@@ -135,52 +134,53 @@ class JabatanController extends Controller
         }
 
         $jabatan->update($data);
+        $kualifikasi_tenaga_kerja->update($data);
         
         // Sync BOM when jabatan data changes (affects BTKL calculations)
-        if ($jabatan->kategori === 'btkl') {
-            BomSyncService::syncBomFromJabatanChange($jabatan->id);
+        if ($kualifikasi_tenaga_kerja->kategori === 'btkl') {
+            BomSyncService::syncBomFromJabatanChange($kualifikasi_tenaga_kerja->id);
         }
         
         return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')->with('success','Jabatan berhasil diperbarui');
     }
 
-    public function destroy($id)
+    public function destroy(Jabatan $kualifikasi_tenaga_kerja)
     {
         $jabatan = Jabatan::findOrFail($id);
         
         // Log untuk debugging
         \Log::info('Attempting to delete jabatan', [
-            'jabatan_id' => $jabatan->id,
-            'jabatan_nama' => $jabatan->nama,
-            'jabatan_kategori' => $jabatan->kategori,
+            'jabatan_id' => $kualifikasi_tenaga_kerja->id,
+            'jabatan_nama' => $kualifikasi_tenaga_kerja->nama,
+            'jabatan_kategori' => $kualifikasi_tenaga_kerja->kategori,
             'request_ip' => request()->ip(),
             'user_agent' => request()->userAgent()
         ]);
 
         try {
             // Cek apakah jabatan digunakan di tabel pegawai (berdasarkan ID untuk akurasi)
-            $pegawaiCount = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
+            $pegawaiCount = \App\Models\Pegawai::where('jabatan', $kualifikasi_tenaga_kerja->nama)->count();
             if ($pegawaiCount > 0) {
                 \Log::warning('Jabatan cannot be deleted - used in pegawai table', [
-                    'jabatan_id' => $jabatan->id,
+                    'jabatan_id' => $kualifikasi_tenaga_kerja->id,
                     'pegawai_count' => $pegawaiCount
                 ]);
                 
                 // Get pegawai names for better error message
-                $pegawaiNames = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->pluck('nama')->implode(', ');
+                $pegawaiNames = \App\Models\Pegawai::where('jabatan', $kualifikasi_tenaga_kerja->nama)->pluck('nama')->implode(', ');
                 
                 return back()->with('error', 
-                    "❌ Jabatan '{$jabatan->nama}' tidak dapat dihapus karena digunakan oleh {$pegawaiCount} pegawai:<br><br>" .
+                    "❌ Jabatan '{$kualifikasi_tenaga_kerja->nama}' tidak dapat dihapus karena digunakan oleh {$pegawaiCount} pegawai:<br><br>" .
                     "<strong>Pegawai:</strong> {$pegawaiNames}<br><br>" .
                     "💡 <strong>Solusi:</strong> Ubah jabatan pegawai tersebut terlebih dahulu, atau hapus pegawai jika tidak diperlukan."
                 );
             }
 
-            $jabatanName = $jabatan->nama;
-            $jabatanId = $jabatan->id;
+            $jabatanName = $kualifikasi_tenaga_kerja->nama;
+            $jabatanId = $kualifikasi_tenaga_kerja->id;
             
             // Hapus jabatan
-            $deleted = $jabatan->delete();
+            $deleted = $kualifikasi_tenaga_kerja->delete();
             
             \Log::info('Jabatan deletion result', [
                 'deleted_jabatan_id' => $jabatanId,
@@ -197,7 +197,7 @@ class JabatanController extends Controller
                 
         } catch (\Exception $e) {
             \Log::error('Error deleting jabatan', [
-                'jabatan_id' => $jabatan->id,
+                'jabatan_id' => $kualifikasi_tenaga_kerja->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);

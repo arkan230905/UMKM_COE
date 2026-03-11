@@ -68,6 +68,11 @@
                                 <input type="number" name="harga_satuan" class="form-control @error('harga_satuan') is-invalid @enderror" 
                                        value="{{ old('harga_satuan', $bahanBaku->harga_satuan) }}" min="0" step="100" required>
                             </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    Harga Rata-Rata: Rp {{ number_format($bahanBaku->harga_rata_rata, 2, ',', '.') }}
+                                </small>
+                            </div>
                             @error('harga_satuan')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -82,6 +87,10 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                             <small class="text-muted">Stok saat ini</small>
+                            <div class="alert alert-info mt-2 mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Informasi:</strong> Saldo awal ini mencatat stok per tanggal 1 bulan berjalan.
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-3">

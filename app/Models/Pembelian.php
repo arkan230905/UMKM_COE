@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Pembelian extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'pembelians';
 
@@ -26,7 +27,7 @@ class Pembelian extends Model
         'bank_id'
     ];
     
-    protected $dates = ['tanggal'];
+    protected $dates = ['tanggal', 'deleted_at'];
     
     protected $appends = ['sisa_utang', 'status_pembayaran'];
 
@@ -36,6 +37,55 @@ class Pembelian extends Model
         'terbayar' => 'float',
         'sisa_pembayaran' => 'float'
     ];
+    
+    /**
+     * Boot the model.
+     */
+    protected static function booted()
+    {
+        static::deleting(function ($pembelian) {
+            // Delete related pembelian details
+            $pembelian->pembelianDetails()->delete();
+            
+            // Delete related AP settlements
+            $pembelian->apSettlements()->delete();
+            
+            // Delete related pelunasan
+            $pembelian->pelunasan()->delete();
+            
+            // Update stock layers - reverse the stock movements
+            foreach ($pembelian->pembelianDetails as $detail) {
+                // Create reverse stock movement
+                \App\Models\StockMovement::create([
+                    'item_type' => 'material',
+                    'item_id' => $detail->bahan_baku_id ?? $detail->bahan_pendukung_id,
+                    'direction' => 'in', // Reverse direction to add stock back
+                    'qty' => $detail->jumlah,
+                    'unit_cost' => $detail->harga_satuan,
+                    'remaining_qty' => \App\Models\StockLayer::where('item_type', 'material')
+                        ->where('item_id', $detail->bahan_baku_id ?? $detail->bahan_pendukung_id)
+                        ->sum('remaining_qty') + $detail->jumlah,
+                    'tanggal' => now(),
+                    'keterangan' => 'Pembatalan pembelian #' . $pembelian->id,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+                
+                // Update stock layer
+                $stockLayer = \App\Models\StockLayer::where('item_type', 'material')
+                    ->where('item_id', $detail->bahan_baku_id ?? $detail->bahan_pendukung_id)
+                    ->first();
+                    
+                if ($stockLayer) {
+                    $stockLayer->remaining_qty += $detail->jumlah;
+                    $stockLayer->save();
+                }
+            }
+            
+            // Note: Journal entries are handled by the permanent deletion script
+            // to avoid balance issues during cascading deletes
+        });
+    }
     
     /**
      * Get the vendor that owns the pembelian.

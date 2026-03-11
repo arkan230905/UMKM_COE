@@ -68,85 +68,12 @@ class BomController extends Controller
             $bomJobCosting = $produk->bomJobCosting;
             
             if ($bomJobCosting) {
-                // Use data from BomJobCosting for bahan
+                // Use data from BomJobCosting for all components
                 $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
+                $totalBTKL = $bomJobCosting->total_btkl ?? 0;
+                $totalBOP = $bomJobCosting->total_bop ?? 0;
                 
-                // Calculate BTKL real-time from bom_job_btkl with correct formula
-                $btklData = DB::table('bom_job_btkl')
-                    ->leftJoin('btkls', 'bom_job_btkl.btkl_id', '=', 'btkls.id')
-                    ->leftJoin('jabatans', 'btkls.jabatan_id', '=', 'jabatans.id')
-                    ->where('bom_job_btkl.bom_job_costing_id', $bomJobCosting->id)
-                    ->select(
-                        'bom_job_btkl.*',
-                        'btkls.kapasitas_per_jam',
-                        'jabatans.id as jabatan_id',
-                        'jabatans.tarif as tarif_jabatan'
-                    )
-                    ->get();
-                
-                $totalBTKL = 0;
-                $btklCount = $btklData->count();
-                
-                foreach ($btklData as $btkl) {
-                    if ($btkl->jabatan_id) {
-                        // Get jumlah pegawai for this jabatan
-                        $jumlahPegawai = DB::table('pegawais')
-                            ->join('jabatans', 'pegawais.jabatan', '=', 'jabatans.nama')
-                            ->where('jabatans.id', $btkl->jabatan_id)
-                            ->count();
-                        
-                        // Calculate tarif BTKL: Jumlah Pegawai × Tarif per Jam Jabatan
-                        $tarifBtkl = $jumlahPegawai * ($btkl->tarif_jabatan ?? 0);
-                        
-                        // Calculate biaya per produk: Tarif BTKL ÷ Kapasitas per Jam
-                        $kapasitasPerJam = $btkl->kapasitas_per_jam ?? 1;
-                        $biayaPerProduk = $kapasitasPerJam > 0 ? $tarifBtkl / $kapasitasPerJam : 0;
-                        
-                        $totalBTKL += $biayaPerProduk;
-                    }
-                }
-                
-                // Calculate BOP using the same logic as show method
-                $bopData = \Illuminate\Support\Facades\DB::table('bom_job_bop')
-                    ->where('bom_job_bop.bom_job_costing_id', $bomJobCosting->id)
-                    ->select('bom_job_bop.*')
-                    ->get();
-                    
-                $totalBOP = 0;
-                if (!empty($bopData)) {
-                    // Group BOP by process and sum the tariffs directly
-                    $bopByProcess = [];
-                    foreach ($bopData as $bop) {
-                        $namaBiaya = strtolower($bop->nama_bop ?? '');
-                        $prosesName = 'Umum';
-                        
-                        if (stripos($namaBiaya, 'penggorengan') !== false) {
-                            $prosesName = 'Menggoreng';
-                        } elseif (stripos($namaBiaya, 'perbumbuan') !== false) {
-                            $prosesName = 'Perbumbuan';
-                        } elseif (stripos($namaBiaya, 'pengemasan') !== false) {
-                            $prosesName = 'Packing';
-                        }
-                        
-                        if (!isset($bopByProcess[$prosesName])) {
-                            $bopByProcess[$prosesName] = 0;
-                        }
-                        $bopByProcess[$prosesName] += $bop->tarif;
-                    }
-                    
-                    // Sum all BOP tariffs directly
-                    foreach ($bopByProcess as $prosesName => $totalTarif) {
-                        $totalBOP += $totalTarif;
-                    }
-                }
-                
-                // If BOP data is empty or incorrect, use the standard BOP values
-                if ($totalBOP == 0 || $totalBOP > 50000) {
-                    // Standard BOP values: Penggorengan + Perbumbuan + Pengemasan
-                    $totalBOP = 1740 + 290 + 1160; // Total = 3.190
-                }
-                
-                // Count BTKL processes
+                // Count BTKL processes for display
                 $btklCount = \App\Models\BomJobBTKL::where('bom_job_costing_id', $bomJobCosting->id)->count();
             } else {
                 // Fallback: Calculate from BOM details if no Job Costing
@@ -169,9 +96,12 @@ class BomController extends Controller
             
             $produk->total_bom_cost = $totalBiayaHPP;
             
-            // Update harga_pokok in produks table as patokan harga jual
+            // Update harga_pokok in produks table as patokan harga jual - TIDAK MENGHAPUS
+            // Hanya update BOM, harga pokok tetap dipertahankan
+            $currentHargaPokok = \App\Models\Produk::where('id', $produk->id)->value('harga_pokok') ?? 0;
+            
             \App\Models\Produk::where('id', $produk->id)->update([
-                'harga_pokok' => $totalBiayaHPP
+                'harga_pokok' => $currentHargaPokok // Tetap harga pokok yang ada
             ]);
         }
         
@@ -236,10 +166,12 @@ class BomController extends Controller
                 $newTotal = 0;
             }
 
-            // Update harga_pokok in produks table
-            $totalBiayaHPP = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung + $bomJobCosting->total_btkl + $bomJobCosting->total_bop;
+            // Update harga_pokok in produks table - TIDAK MENGHAPUS HARGA POKOK
+            // Hanya update BOP, harga pokok tetap dipertahankan
+            $currentHargaPokok = \App\Models\Produk::where('id', $validated['produk_id'])->value('harga_pokok') ?? 0;
+            
             \App\Models\Produk::where('id', $validated['produk_id'])->update([
-                'harga_pokok' => $totalBiayaHPP
+                'harga_pokok' => $currentHargaPokok // Tetap harga pokok yang ada
             ]);
 
             return response()->json([
@@ -565,7 +497,7 @@ class BomController extends Controller
                         'id' => $detail->id,
                         'nama_bahan' => $bahanBaku->nama_bahan,
                         'stok' => $bahanBaku->stok ?? 0,
-                        'satuan' => $bahanBaku->satuan->nama ?? '',
+                        'satuan' => $detail->satuan ?? $bahanBaku->satuan->nama ?? '', // Use BOM detail satuan first
                         'qty' => $detail->jumlah ?? 0,
                         'jumlah' => $detail->jumlah ?? 0,
                         'harga_satuan' => $detail->harga_satuan ?? 0,
@@ -583,7 +515,7 @@ class BomController extends Controller
                         'id' => $detail->id,
                         'nama_bahan' => $bahanPendukung->nama_bahan,
                         'stok' => $bahanPendukung->stok ?? 0,
-                        'satuan' => $bahanPendukung->satuan->nama ?? '',
+                        'satuan' => $detail->satuan ?? $bahanPendukung->satuan->nama ?? '', // Use BOM detail satuan first
                         'qty' => $detail->jumlah ?? 0,
                         'jumlah' => $detail->jumlah ?? 0,
                         'harga_satuan' => $detail->harga_satuan ?? 0,
@@ -709,49 +641,28 @@ class BomController extends Controller
                 }
             }
 
-            // Calculate totals
-            $totalBiayaBahan = 0;
+            // Calculate totals for BTKL and BOP
             $totalBiayaBTKL = 0;
             $totalBiayaBOP = 0;
 
             if ($bomJobCosting) {
-                $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
-                
-                // Calculate BTKL total from btklDataForDisplay (real-time calculation)
-                $totalBiayaBTKL = 0;
-                foreach ($btklDataForDisplay as $btkl) {
-                    $jumlahPegawai = $btkl['jumlah_pegawai'] ?? 0;
-                    $tarifPerJamJabatan = $btkl['tarif_per_jam'] ?? 0;
-                    $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
-                    $kapasitasPerJam = $btkl['kapasitas_per_jam'] ?? 1;
-                    $biayaPerProduk = $kapasitasPerJam > 0 ? $tarifBtkl / $kapasitasPerJam : 0;
-                    $totalBiayaBTKL += $biayaPerProduk;
-                }
-                
-                // Calculate BOP total - use the correct total from Biaya Per Produk table
-                $totalBiayaBOP = 0;
-                if (!empty($bopData)) {
-                    // Group BOP by process and sum the tariffs directly
-                    $bopByProcess = [];
-                    foreach ($bopData as $bop) {
-                        $prosesName = $bop['nama_proses'];
-                        if (!isset($bopByProcess[$prosesName])) {
-                            $bopByProcess[$prosesName] = 0;
-                        }
-                        $bopByProcess[$prosesName] += $bop['tarif'];
-                    }
-                    
-                    // Sum all BOP tariffs directly (no per-unit calculation)
-                    foreach ($bopByProcess as $prosesName => $totalTarif) {
-                        $totalBiayaBOP += $totalTarif;
+                $totalBiayaBTKL = $bomJobCosting->total_btkl ?? 0;
+                $totalBiayaBOP = $bomJobCosting->total_bop ?? 0;
+            } else {
+                // Fallback: Calculate BTKL from btklDataForDisplay if no BomJobCosting
+                if (!empty($btklDataForDisplay)) {
+                    foreach ($btklDataForDisplay as $btkl) {
+                        $jumlahPegawai = $btkl['jumlah_pegawai'] ?? 0;
+                        $tarifPerJamJabatan = $btkl['tarif_per_jam'] ?? 0;
+                        $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
+                        $kapasitasPerJam = $btkl['kapasitas_per_jam'] ?? 1;
+                        $biayaPerProduk = $kapasitasPerJam > 0 ? $tarifBtkl / $kapasitasPerJam : 0;
+                        $totalBiayaBTKL += $biayaPerProduk;
                     }
                 }
                 
-                // If BOP data is empty or incorrect, use the standard BOP values
-                if ($totalBiayaBOP == 0 || $totalBiayaBOP > 50000) {
-                    // Standard BOP values: Penggorengan + Perbumbuan + Pengemasan
-                    $totalBiayaBOP = 1740 + 290 + 1160; // Total = 3.190
-                }
+                // Use standard BOP values if no BomJobCosting
+                $totalBiayaBOP = 1740 + 290 + 1160; // Total = 3.190
             }
 
             $totalBiayaBOM = $totalBiayaBahan + $totalBiayaBTKL + $totalBiayaBOP;
@@ -837,6 +748,176 @@ class BomController extends Controller
         return $keterangan;
     }
 
+    /**
+     * Get BOM details for AJAX requests (production create page)
+     */
+    public function getBomDetails($produkId)
+    {
+        try {
+            $produk = Produk::findOrFail($produkId);
+            
+            // Get BOM data similar to show method
+            $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produkId)
+                ->with([
+                    'detailBBB' => function($query) {
+                        $query->with('bahanBaku.satuan');
+                    },
+                    'detailBTKL' => function($query) {
+                        $query->with('btkl.jabatan');
+                    },
+                    'detailBahanPendukung' => function($query) {
+                        $query->with('bahanPendukung.satuan');
+                    },
+                    'detailBOP' => function($query) {
+                        $query->with('bop');
+                    }
+                ])
+                ->first();
+
+            if (!$bomJobCosting) {
+                return response()->json(['success' => false, 'message' => 'BOM not found for this product']);
+            }
+
+            // Use the same breakdown logic as production controller
+            $breakdown = $this->getProductionCostBreakdownForProduk($produkId, $bomJobCosting);
+            
+            return response()->json(['success' => true, 'breakdown' => $breakdown]);
+            
+        } catch (\Exception $e) {
+            \Log::error('getBomDetails error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Get production cost breakdown for a product (similar to ProduksiController)
+     */
+    private function getProductionCostBreakdownForProduk($produkId, $bomJobCosting)
+    {
+        $breakdown = [
+            'biaya_bahan' => [
+                'bahan_baku' => [],
+                'bahan_pendukung' => [],
+                'total' => 0
+            ],
+            'btkl' => [],
+            'bop' => []
+        ];
+
+        // Get Bahan Baku from BOM
+        if ($bomJobCosting && $bomJobCosting->detailBBB) {
+            foreach ($bomJobCosting->detailBBB as $detail) {
+                $bahanBaku = $detail->bahanBaku;
+                $hargaPerUnit = $detail->jumlah > 0 ? $detail->subtotal / $detail->jumlah : 0;
+                
+                $breakdown['biaya_bahan']['bahan_baku'][] = [
+                    'nama' => $bahanBaku->nama_bahan,
+                    'qty' => $detail->jumlah,
+                    'satuan' => $detail->satuan ?? $bahanBaku->satuan->nama ?? 'Unit',
+                    'harga_per_unit' => $hargaPerUnit
+                ];
+                $breakdown['biaya_bahan']['total'] += $hargaPerUnit;
+            }
+        }
+
+        // Get Bahan Pendukung from BOM
+        if ($bomJobCosting && $bomJobCosting->detailBahanPendukung) {
+            foreach ($bomJobCosting->detailBahanPendukung as $detail) {
+                $bahanPendukung = $detail->bahanPendukung;
+                $hargaPerUnit = $detail->jumlah > 0 ? $detail->subtotal / $detail->jumlah : 0;
+                
+                $breakdown['biaya_bahan']['bahan_pendukung'][] = [
+                    'nama' => $bahanPendukung->nama_bahan,
+                    'qty' => $detail->jumlah,
+                    'satuan' => $detail->satuan ?? $bahanPendukung->satuan->nama ?? 'Unit',
+                    'harga_per_unit' => $hargaPerUnit
+                ];
+                $breakdown['biaya_bahan']['total'] += $hargaPerUnit;
+            }
+        }
+
+        // Get BTKL from BOM
+        if ($bomJobCosting) {
+            foreach ($bomJobCosting->detailBTKL as $detail) {
+                // Use tarif_per_jam and kapasitas_per_jam to calculate per unit cost
+                if ($detail->tarif_per_jam > 0 && $detail->kapasitas_per_jam > 0) {
+                    $hargaPerUnit = $detail->tarif_per_jam / $detail->kapasitas_per_jam;
+                } elseif ($detail->btkl && $detail->btkl->tarif_per_jam > 0 && $detail->kapasitas_per_jam > 0) {
+                    $hargaPerUnit = $detail->btkl->tarif_per_jam / $detail->kapasitas_per_jam;
+                } else {
+                    $hargaPerUnit = 0;
+                }
+                
+                $namaProses = $detail->nama_proses ?? ($detail->btkl ? $detail->btkl->nama_btkl : 'Proses Tidak Diketahui');
+                
+                $breakdown['btkl'][] = [
+                    'nama' => $namaProses,
+                    'harga_per_unit' => $hargaPerUnit
+                ];
+            }
+        }
+
+        // Get BOP from BOM
+        if ($bomJobCosting) {
+            foreach ($bomJobCosting->detailBOP as $detail) {
+                // Use tarif if available, otherwise calculate from jumlah and kapasitas
+                if ($detail->tarif > 0) {
+                    $hargaPerUnit = $detail->tarif;
+                } elseif ($detail->bop && $detail->bop->jumlah > 0) {
+                    // Calculate per unit from BOP master data
+                    $hargaPerUnit = $detail->bop->jumlah / 200; // Assuming 200 units per hour
+                } else {
+                    $hargaPerUnit = 0;
+                }
+                
+                $namaProses = $detail->nama_bop ?? ($detail->bop ? $detail->bop->nama_biaya : 'Proses Tidak Diketahui');
+                
+                $breakdown['bop'][] = [
+                    'nama' => $namaProses,
+                    'harga_per_unit' => $hargaPerUnit
+                ];
+            }
+        }
+
+        return $breakdown;
+    }
+
+    /**
+     * Get breakdown from regular BOM (fallback method)
+     */
+    private function getBreakdownFromRegularBom($bom)
+    {
+        $breakdown = [
+            'biaya_bahan' => [
+                'bahan_baku' => [],
+                'bahan_pendukung' => [],
+                'total' => 0
+            ],
+            'btkl' => [],
+            'bop' => []
+        ];
+
+        // Get materials from regular BOM details
+        if ($bom && $bom->details) {
+            foreach ($bom->details as $detail) {
+                if ($detail->bahan_baku_id) {
+                    $bahanBaku = $detail->bahanBaku;
+                    $hargaPerUnit = $detail->jumlah > 0 ? $detail->subtotal / $detail->jumlah : 0;
+                    
+                    $breakdown['biaya_bahan']['bahan_baku'][] = [
+                        'nama' => $bahanBaku->nama_bahan,
+                        'qty' => $detail->jumlah,
+                        'satuan' => $detail->satuan ?? $bahanBaku->satuan->nama ?? 'Unit',
+                        'harga_per_unit' => $hargaPerUnit
+                    ];
+                    $breakdown['biaya_bahan']['total'] += $hargaPerUnit;
+                }
+            }
+        }
+
+        return $breakdown;
+    }
+
     public function create(Request $request)
     {
         try {
@@ -845,13 +926,38 @@ class BomController extends Controller
             $produks = Produk::whereNotIn('id', $produkIdsWithBom)->get();
             
             if ($produks->isEmpty()) {
+                // Check if this is an AJAX request
+                if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Semua produk sudah memiliki BOM. Tidak ada produk yang bisa ditambahkan BOM-nya.',
+                        'redirect' => route('master-data.harga-pokok-produksi.index')
+                    ]);
+                }
+                
                 return redirect()->route('master-data.harga-pokok-produksi.index')
                     ->with('info', 'Semua produk sudah memiliki BOM. Tidak ada produk yang bisa ditambahkan BOM-nya.');
+            }
+            
+            // Check if this is an AJAX request
+            if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Products available for BOM creation',
+                    'redirect' => route('master-data.harga-pokok-produksi.create')
+                ]);
             }
             
             return view('master-data.bom.create', compact('produks'));
             
         } catch (\Exception $e) {
+            if ($request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                ], 500);
+            }
+            
             return redirect()->route('master-data.harga-pokok-produksi.index')
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
