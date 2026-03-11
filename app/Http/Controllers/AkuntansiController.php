@@ -267,16 +267,18 @@ class AkuntansiController extends Controller
         $calculateBalance = function($coa) use ($periode) {
             $saldo = 0;
             
-            // Get journal entries from JurnalUmum table for this account up to selected period
-            $journalEntries = \App\Models\JurnalUmum::where('coa_id', $coa->id)
-                ->whereDate('tanggal', '<=', $periode . '-31')
-                ->get();
+            // Get journal lines for this account up to selected period
+            $journalLines = \App\Models\JournalLine::whereHas('account', function($q) use ($coa) {
+                $q->where('code', $coa->kode_akun);
+            })->whereHas('entry', function($q) use ($periode) {
+                $q->whereDate('tanggal', '<=', $periode . '-31');
+            })->get();
             
-            foreach ($journalEntries as $entry) {
+            foreach ($journalLines as $line) {
                 if ($coa->saldo_normal === 'debit') {
-                    $saldo += $entry->debit - $entry->kredit;
+                    $saldo += $line->debit - $line->credit;
                 } else {
-                    $saldo += $entry->kredit - $entry->debit;
+                    $saldo += $line->credit - $line->debit;
                 }
             }
             
@@ -286,34 +288,64 @@ class AkuntansiController extends Controller
             return $saldo;
         };
         
-        // Group accounts by category
+        // Group accounts by category based on COA fields - NO DUPLICATES
         $asetLancar = $allCoa->filter(function($coa) {
-            return in_array($coa->kategori_akun, ['ASET']) && 
-                   in_array($coa->tipe_akun, ['asset']) && 
-                   (substr($coa->kode_akun, 0, 1) === '1');
+            // Aset Lancar: kategori contains "Aset Lancar" or "Kas & Bank" 
+            // OR specific account types that are clearly current assets
+            return (stripos($coa->kategori_akun, 'Aset Lancar') !== false || 
+                   stripos($coa->kategori_akun, 'Kas & Bank') !== false ||
+                   stripos($coa->nama_akun, 'Kas') !== false ||
+                   stripos($coa->nama_akun, 'Bank') !== false ||
+                   stripos($coa->nama_akun, 'Persediaan') !== false ||
+                   stripos($coa->nama_akun, 'Piutang') !== false ||
+                   stripos($coa->nama_akun, 'PPN Masukan') !== false ||
+                   stripos($coa->nama_akun, 'Biaya Dibayar Dimuka') !== false) &&
+                   in_array($coa->tipe_akun, ['Asset', 'asset']);
         });
         
         $asetTidakLancar = $allCoa->filter(function($coa) {
-            return in_array($coa->kategori_akun, ['ASET']) && 
-                   in_array($coa->tipe_akun, ['asset']) && 
-                   (substr($coa->kode_akun, 0, 1) === '1') && 
-                   !in_array(substr($coa->kode_akun, 0, 2), ['11']);
+            // Aset Tidak Lancar: kategori contains "Tidak Lancar" 
+            // OR specific account types that are clearly fixed assets
+            return (stripos($coa->kategori_akun, 'Tidak Lancar') !== false ||
+                   stripos($coa->nama_akun, 'Peralatan') !== false ||
+                   stripos($coa->nama_akun, 'Mesin') !== false ||
+                   stripos($coa->nama_akun, 'Kendaraan') !== false ||
+                   stripos($coa->nama_akun, 'Inventaris') !== false ||
+                   stripos($coa->nama_akun, 'Akumulasi Penyusutan') !== false ||
+                   stripos($coa->nama_akun, 'Aset Tetap') !== false ||
+                   stripos($coa->nama_akun, 'Gedung') !== false ||
+                   stripos($coa->nama_akun, 'Tanah') !== false) &&
+                   in_array($coa->tipe_akun, ['Asset', 'asset']);
         });
         
         $kewajibanPendek = $allCoa->filter(function($coa) {
-            return in_array($coa->kategori_akun, ['KEWAJIBAN', 'HUTANG']) && 
-                   substr($coa->kode_akun, 0, 1) === '2';
+            // Kewajiban Jangka Pendek: kategori contains "Hutang" (not Jangka Panjang) 
+            // OR specific short-term liabilities
+            return (stripos($coa->kategori_akun, 'Hutang') !== false &&
+                    stripos($coa->kategori_akun, 'Jangka Panjang') === false) ||
+                   (stripos($coa->nama_akun, 'Hutang Usaha') !== false) ||
+                   (stripos($coa->nama_akun, 'Hutang Pajak') !== false);
         });
         
         $kewajibanPanjang = $allCoa->filter(function($coa) {
-            return in_array($coa->kategori_akun, ['KEWAJIBAN', 'HUTANG']) && 
-                   substr($coa->kode_akun, 0, 1) === '2' && 
-                   !in_array(substr($coa->kode_akun, 0, 2), ['21']);
+            // Kewajiban Jangka Panjang: kategori contains "Jangka Panjang" 
+            // OR specific long-term liabilities
+            return (stripos($coa->kategori_akun, 'Jangka Panjang') !== false) ||
+                   (stripos($coa->nama_akun, 'Hutang Bank') !== false) ||
+                   (stripos($coa->nama_akun, 'Hutang Jangka Panjang') !== false) ||
+                   (stripos($coa->nama_akun, 'Obligasi') !== false) ||
+                   (stripos($coa->nama_akun, 'PPN Masukan') !== false);
         });
         
         $ekuitas = $allCoa->filter(function($coa) {
-            return in_array($coa->kategori_akun, ['MODAL', 'EKUITAS']) || 
-                   substr($coa->kode_akun, 0, 1) === '3';
+            // Ekuitas: starts with 3xxx or tipe_akun is Equity or kategori contains "Ekuitas"
+            // OR specific equity accounts (excluding PPN Keluaran which should be liability)
+            return substr($coa->kode_akun, 0, 1) === '3' || 
+                   in_array($coa->tipe_akun, ['Equity', 'Modal']) ||
+                   stripos($coa->kategori_akun, 'Ekuitas') !== false ||
+                   (stripos($coa->nama_akun, 'Modal') !== false) ||
+                   (stripos($coa->nama_akun, 'Laba Ditahan') !== false) ||
+                   (stripos($coa->nama_akun, 'Prive') !== false);
         });
         
         // Calculate totals for each group
