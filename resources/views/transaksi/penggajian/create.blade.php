@@ -70,14 +70,15 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-2">
+                    <div class="col-md-4">
                         <label for="coa_kasbank" class="form-label fw-bold">
-                            <i class="bi bi-wallet2"></i> Bayar dari *
+                            <i class="bi bi-wallet2"></i> Metode Pembayaran *
                         </label>
                         <select name="coa_kasbank" id="coa_kasbank" class="form-select form-select-lg" required>
+                            <option value="">-- Pilih Metode Pembayaran --</option>
                             @foreach($kasbank as $kb)
                                 <option value="{{ $kb->kode_akun }}" {{ $kb->kode_akun == '1101' ? 'selected' : '' }}>
-                                    {{ $kb->nama_akun }} ({{ $kb->kode_akun }})
+                                    {{ $kb->nama_akun }}
                                 </option>
                             @endforeach
                         </select>
@@ -179,17 +180,10 @@
                 </div>
 
                 <!-- Total Gaji -->
-                <div class="card bg-success text-white mb-4">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-md-6">
-                                <h5 class="mb-0"><i class="bi bi-wallet2"></i> Total Gaji Bersih</h5>
-                                <small id="formula-display" class="text-white-50"></small>
-                            </div>
-                            <div class="col-md-6 text-end">
-                                <h3 class="mb-0" id="display_total">Rp 0</h3>
-                            </div>
-                        </div>
+                <div class="card border-0 mb-4" style="background-color: #f8f9fa;">
+                    <div class="card-body text-center py-4">
+                        <h5 class="mb-2 text-dark fw-bold">Total Gaji</h5>
+                        <h2 class="mb-0 fw-bold" id="display_total" style="color: #333; font-size: 2rem;">Rp 0,00</h2>
                     </div>
                 </div>
 
@@ -306,21 +300,23 @@ function hitungTotal() {
     const potongan = parseFloat(document.getElementById('potongan').value) || 0;
     
     let total = 0;
-    let formula = '';
     
     if (pegawaiData.jenis === 'btkl') {
         // BTKL = (Tarif × Jam Kerja) + Asuransi + Tunjangan + Bonus - Potongan
         const gajiDasar = pegawaiData.tarif * pegawaiData.jamKerja;
         total = gajiDasar + pegawaiData.asuransi + pegawaiData.tunjangan + bonus - potongan;
-        formula = `(${pegawaiData.tarif.toLocaleString('id-ID')} × ${pegawaiData.jamKerja}) + ${pegawaiData.asuransi.toLocaleString('id-ID')} + ${pegawaiData.tunjangan.toLocaleString('id-ID')} + ${bonus.toLocaleString('id-ID')} - ${potongan.toLocaleString('id-ID')}`;
     } else {
         // BTKTL = Gaji Pokok + Asuransi + Tunjangan + Bonus - Potongan
         total = pegawaiData.gajiPokok + pegawaiData.asuransi + pegawaiData.tunjangan + bonus - potongan;
-        formula = `${pegawaiData.gajiPokok.toLocaleString('id-ID')} + ${pegawaiData.asuransi.toLocaleString('id-ID')} + ${pegawaiData.tunjangan.toLocaleString('id-ID')} + ${bonus.toLocaleString('id-ID')} - ${potongan.toLocaleString('id-ID')}`;
     }
     
-    document.getElementById('display_total').textContent = 'Rp ' + total.toLocaleString('id-ID');
-    document.getElementById('formula-display').textContent = formula;
+    // Format dengan 2 desimal dan separator Indonesia
+    const formattedTotal = new Intl.NumberFormat('id-ID', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(total);
+    
+    document.getElementById('display_total').textContent = 'Rp ' + formattedTotal;
 }
 
 // Initialize

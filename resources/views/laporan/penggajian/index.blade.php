@@ -67,7 +67,7 @@
                                     </td>
                                     <td class="text-right">
                                         @if($jenis === 'BTKL')
-                                            {{ number_format($penggajian->total_jam_kerja ?? 0, 2) }} jam
+                                            {{ number_format($penggajian->total_jam_kerja ?? 0, 0) }} Jam
                                         @else
                                             -
                                         @endif
