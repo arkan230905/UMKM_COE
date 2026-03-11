@@ -94,10 +94,11 @@
                         <thead class="table-success">
                             <tr>
                                 <th rowspan="2" class="text-center align-middle" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">Tanggal</th>
+                                <th rowspan="2" class="text-center align-middle" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">Referensi</th>
+                                <th colspan="3" class="text-center" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">Stok Awal</th>
                                 <th colspan="3" class="text-center" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">Pembelian</th>
                                 <th colspan="3" class="text-center" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">Produksi</th>
-                                <th colspan="2" class="text-center" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">Total Jika Dalam Satuan Utama</th>
-                                <th colspan="4" class="text-center" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">JUMLAH STOK</th>
+                                <th colspan="4" class="text-center" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">Total Stok</th>
                             </tr>
                             <tr style="background-color: #6c9f6c; color: white;">
                                 <th class="text-center" style="border: 1px solid #5a8a5a;">Qty</th>
@@ -107,11 +108,11 @@
                                 <th class="text-center" style="border: 1px solid #5a8a5a;">Harga</th>
                                 <th class="text-center" style="border: 1px solid #5a8a5a;">Total</th>
                                 <th class="text-center" style="border: 1px solid #5a8a5a;">Qty</th>
+                                <th class="text-center" style="border: 1px solid #5a8a5a;">Harga</th>
                                 <th class="text-center" style="border: 1px solid #5a8a5a;">Total</th>
-                                <th class="text-center" style="border: 1px solid #5a8a5a;">Stok Satuan Utama</th>
-                                <th class="text-center" style="border: 1px solid #5a8a5a;">Sub Satuan 1</th>
-                                <th class="text-center" style="border: 1px solid #5a8a5a;">Sub Satuan 2</th>
-                                <th class="text-center" style="border: 1px solid #5a8a5a;">Sub Satuan 3</th>
+                                <th class="text-center" style="border: 1px solid #5a8a5a;">Qty</th>
+                                <th class="text-center" style="border: 1px solid #5a8a5a;">Harga</th>
+                                <th class="text-center" style="border: 1px solid #5a8a5a;">Total</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -122,12 +123,12 @@
                             
                             @forelse($movements->sortBy('created_at') as $movement)
                                 @php
-                                    if($movement->movement_type == 'in') {
-                                        $runningStock += $movement->quantity;
-                                        $runningValue += ($movement->quantity * $movement->unit_price);
+                                    if($movement->direction == 'in') {
+                                        $runningStock += $movement->qty;
+                                        $runningValue += ($movement->qty * $movement->unit_cost);
                                     } else {
-                                        $runningStock -= $movement->quantity;
-                                        $runningValue -= ($movement->quantity * $movement->unit_price);
+                                        $runningStock -= $movement->qty;
+                                        $runningValue -= ($movement->qty * $movement->unit_cost);
                                     }
                                     
                                     // Calculate sub units
@@ -139,11 +140,35 @@
                                 <tr>
                                     <td class="text-center">{{ $movement->created_at->format('d/m/Y') }}</td>
                                     
+                                    <!-- Referensi -->
+                                    <td class="text-center">
+                                        @if($movement->ref_type == 'initial_stock')
+                                            Saldo Awal
+                                        @elseif($movement->ref_type == 'purchase')
+                                            Pembelian #{{ $movement->ref_id }}
+                                        @elseif($movement->ref_type == 'production')
+                                            Production #{{ $movement->ref_id }}
+                                        @else
+                                            {{ ucfirst($movement->ref_type) }}
+                                        @endif
+                                    </td>
+                                    
+                                    <!-- Stok Awal (3 columns) -->
+                                    @if($movement->direction == 'in' && $movement->ref_type == 'initial_stock')
+                                        <td class="text-center">{{ number_format($movement->qty, 0) }} {{ $satuanUtama }}</td>
+                                        <td class="text-end">Rp {{ number_format($movement->unit_cost, 2, ',', '.') }}</td>
+                                        <td class="text-end">Rp {{ number_format($movement->qty * $movement->unit_cost, 0, ',', '.') }}</td>
+                                    @else
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    @endif
+                                    
                                     <!-- Pembelian (3 columns) -->
-                                    @if($movement->movement_type == 'in' && $movement->reference_type == 'purchase')
-                                        <td class="text-center">{{ number_format($movement->quantity, 0) }} {{ $satuanUtama }}</td>
-                                        <td class="text-end">RP{{ number_format($movement->unit_price, 2, '.', ' ') }}</td>
-                                        <td class="text-end">RP{{ number_format($movement->quantity * $movement->unit_price, 2, '.', ' ') }}</td>
+                                    @if($movement->direction == 'in' && $movement->ref_type == 'purchase')
+                                        <td class="text-center">{{ number_format($movement->qty, 0) }} {{ $satuanUtama }}</td>
+                                        <td class="text-end">Rp {{ number_format($movement->unit_cost, 2, ',', '.') }}</td>
+                                        <td class="text-end">Rp {{ number_format($movement->qty * $movement->unit_cost, 0, ',', '.') }}</td>
                                     @else
                                         <td></td>
                                         <td></td>
@@ -151,29 +176,31 @@
                                     @endif
                                     
                                     <!-- Produksi (3 columns) -->
-                                    @if($movement->movement_type == 'out' && $movement->reference_type == 'production')
-                                        <td class="text-center">{{ number_format($movement->quantity, 0) }} {{ $satuanUtama }}</td>
-                                        <td class="text-end">RP{{ number_format($movement->unit_price, 2, '.', ' ') }}</td>
-                                        <td class="text-end">RP{{ number_format($movement->quantity * $movement->unit_price, 2, '.', ' ') }}</td>
+                                    @if($movement->direction == 'out' && $movement->ref_type == 'production')
+                                        <td class="text-center">{{ number_format($movement->qty, 0) }} {{ $satuanUtama }}</td>
+                                        <td class="text-end">Rp {{ number_format($movement->unit_cost, 2, ',', '.') }}</td>
+                                        <td class="text-end">Rp {{ number_format($movement->qty * $movement->unit_cost, 0, ',', '.') }}</td>
                                     @else
                                         <td></td>
                                         <td></td>
                                         <td></td>
                                     @endif
                                     
-                                    <!-- Total Jika Dalam Satuan Utama (2 columns) -->
+                                    <!-- Total Stok (4 columns) -->
                                     <td class="text-center">{{ number_format($runningStock, 0) }} {{ $satuanUtama }}</td>
-                                    <td class="text-end">RP{{ number_format($runningValue, 2, '.', ' ') }}</td>
-                                    
-                                    <!-- Jumlah Stok (4 columns) -->
-                                    <td class="text-center">{{ number_format($runningStock, 0) }} {{ $satuanUtama }}</td>
-                                    <td class="text-center">{{ number_format($subSatuan1, 0) }} {{ $subSatuans[0]['nama'] ?? 'Gram' }}</td>
-                                    <td class="text-center">{{ number_format($subSatuan2, 0) }} {{ $subSatuans[1]['nama'] ?? 'Potong' }}</td>
-                                    <td class="text-center">{{ number_format($subSatuan3, 0) }} {{ $subSatuans[2]['nama'] ?? 'Ons' }}</td>
+                                    <td class="text-end">Rp {{ number_format($runningStock > 0 ? $runningValue / $runningStock : 0, 2, ',', '.') }}</td>
+                                    <td class="text-end">Rp {{ number_format($runningValue, 0, ',', '.') }}</td>
+                                    <td class="text-center">
+                                        @if($runningStock > 0)
+                                            <span class="badge bg-success">Tersedia</span>
+                                        @else
+                                            <span class="badge bg-danger">Habis</span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="13" class="text-center py-4">
+                                    <td colspan="14" class="text-center py-4">
                                         <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                         <p class="text-muted">Belum ada pergerakan stok untuk material ini</p>
                                     </td>

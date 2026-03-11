@@ -9,7 +9,7 @@ class JournalLine extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['journal_entry_id','account_id','debit','credit'];
+    protected $fillable = ['journal_entry_id','account_id','debit','credit','memo'];
 
     public function entry()
     {

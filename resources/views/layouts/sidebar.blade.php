@@ -180,6 +180,12 @@
                 </div>
             </li>
             <li class="nav-item">
+                <a class="nav-link-rounded {{ request()->is('transaksi/produksi*') ? 'active' : '' }}" href="{{ route('transaksi.produksi.index') }}">
+                    <i class="fas fa-industry"></i>
+                    <span>Produksi</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link-rounded {{ request()->is('transaksi/pembelian*') ? 'active' : '' }}" href="{{ route('transaksi.pembelian.index') }}">
                     <i class="fas fa-shopping-cart"></i>
                     <span>Pembelian</span>
@@ -189,12 +195,6 @@
                 <a class="nav-link-rounded {{ request()->is('transaksi/penjualan*') ? 'active' : '' }}" href="{{ route('transaksi.penjualan.index') }}">
                     <i class="fas fa-store"></i>
                     <span>Penjualan</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link-rounded {{ request()->is('transaksi/produksi*') ? 'active' : '' }}" href="{{ route('transaksi.produksi.index') }}">
-                    <i class="fas fa-industry"></i>
-                    <span>Produksi</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -239,12 +239,6 @@
                 <a class="nav-link-rounded {{ request()->is('laporan/stok*') ? 'active' : '' }}" href="{{ route('laporan.stok') }}">
                     <i class="fas fa-boxes"></i>
                     <span>Laporan Stok</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link-rounded {{ request()->is('laporan/stock-realtime*') ? 'active' : '' }}" href="{{ route('laporan.stock-realtime') }}">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Stok Real-Time</span>
                 </a>
             </li>
             <li class="nav-item">

@@ -57,164 +57,17 @@
                 </div>
                 
                 <!-- Satuan Filter -->
-                @if(request('item_id'))
-                    @php
-                        if($tipe == 'material') {
-                            $selectedItem = $materials->find(request('item_id'));
-                            $namaItem = $selectedItem->nama_bahan;
-                        } elseif($tipe == 'product') {
-                            $selectedItem = $products->find(request('item_id'));
-                            $namaItem = $selectedItem->nama_produk;
-                        } elseif($tipe == 'bahan_pendukung') {
-                            $selectedItem = $bahanPendukungs->find(request('item_id'));
-                            $namaItem = $selectedItem->nama_bahan;
-                        }
-                        
-                        // Get all available satuan conversions for this item
-                        $availableSatuans = [];
-                        if($selectedItem) {
-                            $mainSatuan = $tipe == 'bahan_pendukung' ? $selectedItem->satuanRelation : $selectedItem->satuan;
-                            if($mainSatuan) {
-                                $availableSatuans[] = [
-                                    'id' => $mainSatuan->id,
-                                    'nama' => $mainSatuan->nama,
-                                    'is_primary' => true,
-                                    'conversion_to_primary' => 1
-                                ];
-                            }
-                            
-                            // Debug: Log item data
-                            \Log::info('Item Data - ID: ' . $selectedItem->id . ', Nama: ' . $selectedItem->nama_bahan);
-                            \Log::info('Main Satuan: ' . $mainSatuan->nama . ' (ID: ' . $mainSatuan->id . ')');
-                            \Log::info('Sub Satuan 1 ID: ' . ($selectedItem->sub_satuan_1_id ?? 'null'));
-                            \Log::info('Sub Satuan 1 Konversi: ' . ($selectedItem->sub_satuan_1_konversi ?? 'null'));
-                            \Log::info('Sub Satuan 1 Nilai: ' . ($selectedItem->sub_satuan_1_nilai ?? 'null'));
-                            \Log::info('Sub Satuan 2 ID: ' . ($selectedItem->sub_satuan_2_id ?? 'null'));
-                            \Log::info('Sub Satuan 2 Konversi: ' . ($selectedItem->sub_satuan_2_konversi ?? 'null'));
-                            \Log::info('Sub Satuan 2 Nilai: ' . ($selectedItem->sub_satuan_2_nilai ?? 'null'));
-                            \Log::info('Sub Satuan 3 ID: ' . ($selectedItem->sub_satuan_3_id ?? 'null'));
-                            \Log::info('Sub Satuan 3 Konversi: ' . ($selectedItem->sub_satuan_3_konversi ?? 'null'));
-                            \Log::info('Sub Satuan 3 Nilai: ' . ($selectedItem->sub_satuan_3_nilai ?? 'null'));
-                            
-                            // Try to get conversions from database table if exists
-                            try {
-                                $conversions = \App\Models\SatuanConversion::where('source_satuan_id', $mainSatuan->id)
-                                    ->orWhere('target_satuan_id', $mainSatuan->id)
-                                    ->with(['source', 'target'])
-                                    ->get();
-                                
-                                foreach($conversions as $conv) {
-                                    if($conv->source_satuan_id == $mainSatuan->id) {
-                                        $availableSatuans[] = [
-                                            'id' => $conv->target_satuan_id,
-                                            'nama' => $conv->target->nama,
-                                            'is_primary' => false,
-                                            'conversion_to_primary' => $conv->amount_target / $conv->amount_source
-                                        ];
-                                    } else {
-                                        $availableSatuans[] = [
-                                            'id' => $conv->source_satuan_id,
-                                            'nama' => $conv->source->nama,
-                                            'is_primary' => false,
-                                            'conversion_to_primary' => $conv->amount_source / $conv->amount_target
-                                            ];
-                                        }
-                                }
-                            } catch (\Exception $e) {
-                                    \Log::info('SatuanConversion table not found, using item-specific data');
-                                    // Use item-specific conversion data from bahan baku/bahan pendukung
-                                    // Add sub satuan 1
-                                    if($selectedItem->sub_satuan_1_id) {
-                                        $subSatuan1 = \App\Models\Satuan::find($selectedItem->sub_satuan_1_id);
-                                        if($subSatuan1) {
-                                            $conversionRatio = 1;
-                                            // Prioritize sub_satuan_1_nilai (sub units per primary unit)
-                                            if($selectedItem->sub_satuan_1_nilai > 0) {
-                                                // sub_satuan_1_nilai: berapa sub unit = 1 primary unit
-                                                // So 1 primary unit = X sub unit
-                                                // We want conversion_to_primary: how many primary units = 1 sub unit
-                                                $conversionRatio = 1 / $selectedItem->sub_satuan_1_nilai;
-                                                \Log::info('Sub Satuan 1 Nilai: ' . $selectedItem->sub_satuan_1_nilai . ' (sub per primary)');
-                                            } elseif($selectedItem->sub_satuan_1_konversi > 0) {
-                                                // sub_satuan_1_konversi: berapa primary unit = 1 sub unit
-                                                // So 1 sub unit = X primary unit
-                                                $conversionRatio = $selectedItem->sub_satuan_1_konversi;
-                                                \Log::info('Sub Satuan 1 Konversi: ' . $selectedItem->sub_satuan_1_konversi . ' (primary per sub)');
-                                            }
-                                            
-                                            $availableSatuans[] = [
-                                                'id' => $subSatuan1->id,
-                                                'nama' => $subSatuan1->nama,
-                                                'is_primary' => false,
-                                                'conversion_to_primary' => $conversionRatio
-                                            ];
-                                            \Log::info('Added Sub Satuan 1: ' . $subSatuan1->nama . ' with ratio: ' . $conversionRatio);
-                                        }
-                                    }
-                                    
-                                    // Add sub satuan 2
-                                    if($selectedItem->sub_satuan_2_id) {
-                                        $subSatuan2 = \App\Models\Satuan::find($selectedItem->sub_satuan_2_id);
-                                        if($subSatuan2) {
-                                            $conversionRatio = 1;
-                                            // Prioritize sub_satuan_2_nilai (sub units per primary unit)
-                                            if($selectedItem->sub_satuan_2_nilai > 0) {
-                                                $conversionRatio = 1 / $selectedItem->sub_satuan_2_nilai;
-                                                \Log::info('Sub Satuan 2 Nilai: ' . $selectedItem->sub_satuan_2_nilai . ' (sub per primary)');
-                                            } elseif($selectedItem->sub_satuan_2_konversi > 0) {
-                                                $conversionRatio = $selectedItem->sub_satuan_2_konversi;
-                                                \Log::info('Sub Satuan 2 Konversi: ' . $selectedItem->sub_satuan_2_konversi . ' (primary per sub)');
-                                            }
-                                            
-                                            $availableSatuans[] = [
-                                                'id' => $subSatuan2->id,
-                                                'nama' => $subSatuan2->nama,
-                                                'is_primary' => false,
-                                                'conversion_to_primary' => $conversionRatio
-                                            ];
-                                            \Log::info('Added Sub Satuan 2: ' . $subSatuan2->nama . ' with ratio: ' . $conversionRatio);
-                                        }
-                                    }
-                                    
-                                    // Add sub satuan 3
-                                    if($selectedItem->sub_satuan_3_id) {
-                                        $subSatuan3 = \App\Models\Satuan::find($selectedItem->sub_satuan_3_id);
-                                        if($subSatuan3) {
-                                            $conversionRatio = 1;
-                                            // Prioritize sub_satuan_3_nilai (sub units per primary unit)
-                                            if($selectedItem->sub_satuan_3_nilai > 0) {
-                                                $conversionRatio = 1 / $selectedItem->sub_satuan_3_nilai;
-                                                \Log::info('Sub Satuan 3 Nilai: ' . $selectedItem->sub_satuan_3_nilai . ' (sub per primary)');
-                                            } elseif($selectedItem->sub_satuan_3_konversi > 0) {
-                                                $conversionRatio = $selectedItem->sub_satuan_3_konversi;
-                                                \Log::info('Sub Satuan 3 Konversi: ' . $selectedItem->sub_satuan_3_konversi . ' (primary per sub)');
-                                            }
-                                            
-                                            $availableSatuans[] = [
-                                                'id' => $subSatuan3->id,
-                                                'nama' => $subSatuan3->nama,
-                                                'is_primary' => false,
-                                                'conversion_to_primary' => $conversionRatio
-                                            ];
-                                            \Log::info('Added Sub Satuan 3: ' . $subSatuan3->nama . ' with ratio: ' . $conversionRatio);
-                                        }
-                                    }
-                                }
-                            }
-                    @endphp
-                    
-                    @if(count($availableSatuans) > 1)
-                        <div class="d-flex shadow-sm" style="border-radius: 20px; overflow: hidden; background: white;">
-                            <select name="satuan_id" class="form-select border-0" style="padding: 8px 15px; background: white; border-radius: 20px; outline: none; box-shadow: none; font-size: 14px;">
-                                <option value="">Semua Satuan</option>
-                                @foreach($availableSatuans as $satuan)
-                                    <option value="{{ $satuan['id'] }}" {{ request('satuan_id') == $satuan['id'] ? 'selected' : '' }}>
-                                        {{ $satuan['nama'] }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @endif
+                @if(request('item_id') && isset($availableSatuans) && count($availableSatuans) >= 1)
+                    <div class="d-flex shadow-sm" style="border-radius: 20px; overflow: hidden; background: white;">
+                        <select name="satuan_id" class="form-select border-0" style="padding: 8px 15px; background: white; border-radius: 20px; outline: none; box-shadow: none; font-size: 14px;">
+                            <option value="">Satuan Utama ({{ $availableSatuans[0]['nama'] ?? 'Default' }})</option>
+                            @foreach($availableSatuans as $satuan)
+                                <option value="{{ $satuan['id'] }}" {{ request('satuan_id') == $satuan['id'] ? 'selected' : '' }}>
+                                    {{ $satuan['nama'] }}{{ $satuan['is_primary'] ? ' (Utama)' : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
                 @endif
                 
                 <button type="submit" class="btn shadow-sm" style="border-radius: 20px; padding: 8px 20px; background: #8B7355; color: white; border: none; font-size: 14px;">

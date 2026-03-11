@@ -101,22 +101,6 @@ class BebanOperasional extends Model
     }
 
     /**
-     * Format nominal untuk tampilan
-     */
-    public function getNominalFormattedAttribute(): string
-    {
-        return 'Rp ' . number_format($this->nominal, 0, ',', '.');
-    }
-
-    /**
-     * Format tanggal untuk tampilan
-     */
-    public function getTanggalFormattedAttribute(): string
-    {
-        return $this->tanggal->format('d-m-Y');
-    }
-
-    /**
      * Get kategori options
      */
     public static function getKategoriOptions(): array
@@ -139,22 +123,6 @@ class BebanOperasional extends Model
             'aktif' => 'Aktif',
             'nonaktif' => 'Nonaktif'
         ];
-    }
-
-    
-    /**
-     * Generate periode from tanggal
-     */
-    public static function generatePeriodeFromDate($tanggal): string
-    {
-        $date = \Carbon\Carbon::parse($tanggal);
-        $months = [
-            1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
-            5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu',
-            9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'
-        ];
-        
-        return $months[$date->month] . ' ' . $date->year;
     }
 
     /**

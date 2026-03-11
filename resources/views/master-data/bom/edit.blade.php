@@ -4,61 +4,38 @@
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>
-            <i class="fas fa-calculator me-2"></i>Hitung Harga Pokok Produksi
+            <i class="fas fa-edit me-2"></i>Edit Harga Pokok Produksi
         </h3>
         <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-2"></i>Kembali
         </a>
     </div>
 
-    <form action="{{ route('master-data.harga-pokok-produksi.store') }}" method="POST" id="hppForm">
+    <form action="{{ route('master-data.harga-pokok-produksi.update', $produk->id) }}" method="POST" id="hppForm">
         @csrf
+        @method('PUT')
         
-        @if($errors->any())
-            <div class="alert alert-danger alert-dismissible fade show">
-                <strong>Error:</strong>
-                <ul class="mb-0">
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-        
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show">
-                {{ session('error') }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-        
-        <!-- Step 1: Pilih Produk -->
+        <!-- Step 1: Produk (Read-only) -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0"><i class="fas fa-box me-2"></i>1. Pilih Produk</h5>
+                <h5 class="mb-0"><i class="fas fa-box me-2"></i>1. Produk</h5>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">Produk yang Sudah Memiliki Biaya Bahan *</label>
-                        <select name="produk_id" id="produk_id" class="form-select" required onchange="loadProdukData()">
-                            <option value="">-- Pilih Produk --</option>
-                            @foreach($produks as $produk)
-                                <option value="{{ $produk->id }}" 
-                                        data-biaya-bahan="{{ $produk->bomJobCosting->total_bbb + $produk->bomJobCosting->total_bahan_pendukung }}">
-                                    {{ $produk->nama_produk }} 
-                                    (Biaya Bahan: Rp {{ number_format($produk->bomJobCosting->total_bbb + $produk->bomJobCosting->total_bahan_pendukung, 0, ',', '.') }})
-                                </option>
-                            @endforeach
-                        </select>
-                        <small class="text-muted">Hanya produk yang sudah memiliki biaya bahan yang dapat dipilih</small>
+                        <label class="form-label fw-bold">Produk Terpilih</label>
+                        <div class="form-control-plaintext bg-light p-3 rounded border">
+                            <h5 class="mb-0">{{ $produk->nama_produk }}</h5>
+                        </div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Biaya Bahan</label>
                         <div class="form-control-plaintext bg-light p-3 rounded border">
-                            <h4 class="mb-0 text-primary" id="displayBiayaBahan">Rp 0</h4>
-                            <input type="hidden" name="biaya_bahan" id="biayaBahanInput" value="0">
+                            @php
+                                $biayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
+                            @endphp
+                            <h4 class="mb-0 text-primary" id="displayBiayaBahan">Rp {{ number_format($biayaBahan, 0, ',', '.') }}</h4>
+                            <input type="hidden" name="biaya_bahan" id="biayaBahanInput" value="{{ $biayaBahan }}">
                         </div>
                     </div>
                 </div>
@@ -102,7 +79,8 @@
                                            data-bop-per-produk="{{ $proses['bop_per_produk'] }}"
                                            data-nama="{{ $proses['nama_proses'] }}"
                                            data-komponen-bop="{{ json_encode($proses['komponen_bop']) }}"
-                                           onchange="calculateTotal()">
+                                           onchange="calculateTotal()"
+                                           {{ $proses['is_selected'] ? 'checked' : '' }}>
                                 </td>
                                 <td>{{ $proses['kode_proses'] }}</td>
                                 <td>{{ $proses['nama_proses'] }}</td>
@@ -125,17 +103,6 @@
                         </tbody>
                     </table>
                 </div>
-                
-                @if($prosesBtkl->isEmpty())
-                <div class="text-center py-4">
-                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                    <h5 class="text-warning">Belum Ada Data BTKL</h5>
-                    <p class="text-muted">Silakan buat data BTKL terlebih dahulu di halaman Master Data BTKL</p>
-                    <a href="{{ route('master-data.proses-produksi.index') }}" class="btn btn-warning">
-                        <i class="fas fa-arrow-right me-2"></i>Ke Halaman BTKL
-                    </a>
-                </div>
-                @endif
             </div>
         </div>
 
@@ -164,7 +131,7 @@
                     <div class="col-md-3">
                         <div class="text-center p-3 bg-primary text-white rounded">
                             <h6>Biaya Bahan</h6>
-                            <h4 id="summaryBiayaBahan">Rp 0</h4>
+                            <h4 id="summaryBiayaBahan">Rp {{ number_format($biayaBahan, 0, ',', '.') }}</h4>
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -197,8 +164,8 @@
             <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
                 <i class="fas fa-times me-2"></i>Batal
             </a>
-            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
-                <i class="fas fa-save me-2"></i>Simpan Harga Pokok Produksi
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                <i class="fas fa-save me-2"></i>Perbarui Harga Pokok Produksi
             </button>
         </div>
     </form>
@@ -224,26 +191,6 @@
 
 @push('scripts')
 <script>
-// Load produk data when selected
-function loadProdukData() {
-    const select = document.getElementById('produk_id');
-    const option = select.selectedOptions[0];
-    
-    if (option && option.value) {
-        const biayaBahan = parseFloat(option.dataset.biayaBahan) || 0;
-        
-        document.getElementById('displayBiayaBahan').textContent = formatRupiah(biayaBahan);
-        document.getElementById('biayaBahanInput').value = biayaBahan;
-        document.getElementById('summaryBiayaBahan').textContent = formatRupiah(biayaBahan);
-        
-        calculateTotal();
-    } else {
-        document.getElementById('displayBiayaBahan').textContent = 'Rp 0';
-        document.getElementById('biayaBahanInput').value = 0;
-        document.getElementById('summaryBiayaBahan').textContent = 'Rp 0';
-    }
-}
-
 // Calculate total when checkboxes change
 function calculateTotal() {
     const checkboxes = document.querySelectorAll('.proses-checkbox:checked');
@@ -336,9 +283,8 @@ function calculateTotal() {
     }
     
     // Enable/disable submit button
-    const produkSelected = document.getElementById('produk_id').value !== '';
     const prosesSelected = checkboxes.length > 0;
-    document.getElementById('submitBtn').disabled = !(produkSelected && prosesSelected);
+    document.getElementById('submitBtn').disabled = !prosesSelected;
 }
 
 function formatRupiah(amount) {
@@ -349,21 +295,15 @@ function formatNumber(amount) {
     return new Intl.NumberFormat('id-ID').format(Math.round(amount));
 }
 
-// Initialize
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     // Add change listeners to all checkboxes
     document.querySelectorAll('.proses-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', calculateTotal);
     });
     
-    // Add form submit listener for debugging
-    document.getElementById('hppForm').addEventListener('submit', function(e) {
-        const formData = new FormData(this);
-        console.log('Form submitting with data:');
-        for (let [key, value] of formData.entries()) {
-            console.log(key + ': ' + value);
-        }
-    });
+    // Calculate initial totals based on checked checkboxes
+    calculateTotal();
 });
 </script>
 @endpush

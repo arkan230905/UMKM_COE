@@ -2,320 +2,185 @@
 
 namespace App\Services;
 
-use App\Models\JurnalUmum;
+use App\Models\Account;
+use App\Models\JournalEntry;
+use App\Models\JournalLine;
 use App\Models\Coa;
-use App\Models\Pembelian;
-use App\Models\Penjualan;
-use App\Models\ExpensePayment;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class JournalService
 {
-    /**
-     * Create journal entries for Pembelian transaction
-     */
-    public function createJournalFromPembelian(Pembelian $pembelian)
+    protected function accountId(string $code): int
     {
-        try {
-            $tanggal = $pembelian->tanggal;
-            $keterangan = "Pembelian - No. {$pembelian->nomor_pembelian}";
-            $refId = $pembelian->id;
-            $refType = 'pembelian';
-            
-            // Get COA accounts
-            $persediaanCoa = Coa::where('kode_akun', '1511')->first(); // Persediaan Barang Dagang
-            $ppnMasukanCoa = Coa::where('kode_akun', '2111')->first(); // PPN Masukan
-            $utangUsahaCoa = Coa::where('kode_akun', '2101')->first(); // Utang Usaha
-            $kasCoa = Coa::where('kode_akun', '1101')->first(); // Kas
-            
-            if (!$persediaanCoa || !$utangUsahaCoa) {
-                Log::error('Required COA accounts not found for pembelian journal');
-                return false;
-            }
-            
-            // Calculate amounts (assuming total includes PPN)
-            $dpp = $pembelian->total_harga / 1.11; // DPP (sebelum PPN 11%)
-            $ppn = $pembelian->total_harga - $dpp; // PPN 11%
-            
-            // Delete existing journals for this transaction to avoid duplicates
-            $this->deleteExistingJournals($refType, $refId);
-            
-            // Journal Entry 1: Debit Persediaan, Debit PPN Masukan, Kredit Utang Usaha (if credit)
-            if ($pembelian->payment_method === 'credit') {
-                // Debit Persediaan
-                $this->createJournalEntry([
-                    'coa_id' => $persediaanCoa->id,
-                    'tanggal' => $tanggal,
-                    'keterangan' => $keterangan,
-                    'debit' => $dpp,
-                    'kredit' => 0,
-                    'referensi' => $refId,
-                    'tipe_referensi' => $refType,
-                ]);
-                
-                // Debit PPN Masukan
-                if ($ppn > 0 && $ppnMasukanCoa) {
-                    $this->createJournalEntry([
-                        'coa_id' => $ppnMasukanCoa->id,
-                        'tanggal' => $tanggal,
-                        'keterangan' => $keterangan,
-                        'debit' => $ppn,
-                        'kredit' => 0,
-                        'referensi' => $refId,
-                        'tipe_referensi' => $refType,
-                    ]);
-                }
-                
-                // Kredit Utang Usaha
-                $this->createJournalEntry([
-                    'coa_id' => $utangUsahaCoa->id,
-                    'tanggal' => $tanggal,
-                    'keterangan' => $keterangan,
-                    'debit' => 0,
-                    'kredit' => $pembelian->total_harga,
-                    'referensi' => $refId,
-                    'tipe_referensi' => $refType,
-                ]);
-            } 
-            // Cash purchase
-            else {
-                // Debit Persediaan
-                $this->createJournalEntry([
-                    'coa_id' => $persediaanCoa->id,
-                    'tanggal' => $tanggal,
-                    'keterangan' => $keterangan,
-                    'debit' => $dpp,
-                    'kredit' => 0,
-                    'referensi' => $refId,
-                    'tipe_referensi' => $refType,
-                ]);
-                
-                // Debit PPN Masukan
-                if ($ppn > 0 && $ppnMasukanCoa) {
-                    $this->createJournalEntry([
-                        'coa_id' => $ppnMasukanCoa->id,
-                        'tanggal' => $tanggal,
-                        'keterangan' => $keterangan,
-                        'debit' => $ppn,
-                        'kredit' => 0,
-                        'referensi' => $refId,
-                        'tipe_referensi' => $refType,
-                    ]);
-                }
-                
-                // Kredit Kas
-                if ($kasCoa) {
-                    $this->createJournalEntry([
-                        'coa_id' => $kasCoa->id,
-                        'tanggal' => $tanggal,
-                        'keterangan' => $keterangan,
-                        'debit' => 0,
-                        'kredit' => $pembelian->total_harga,
-                        'referensi' => $refId,
-                        'tipe_referensi' => $refType,
-                    ]);
-                }
-            }
-            
-            Log::info('Journal entries created for pembelian', ['pembelian_id' => $pembelian->id]);
-            return true;
-            
-        } catch (\Exception $e) {
-            Log::error('Error creating journal for pembelian: ' . $e->getMessage(), [
-                'pembelian_id' => $pembelian->id
-            ]);
-            return false;
+        $acc = Account::where('code', $code)->first();
+        if ($acc) {
+            return (int)$acc->id;
         }
-    }
-    
-    /**
-     * Create journal entries for Penjualan transaction
-     */
-    public function createJournalFromPenjualan(Penjualan $penjualan)
-    {
-        try {
-            $tanggal = $penjualan->tanggal;
-            $keterangan = "Penjualan - No. {$penjualan->nomor_penjualan}";
-            $refId = $penjualan->id;
-            $refType = 'penjualan';
-            
-            // Get COA accounts
-            $kasCoa = Coa::where('kode_akun', '1101')->first(); // Kas
-            $piutangUsahaCoa = Coa::where('kode_akun', '1301')->first(); // Piutang Usaha
-            $penjualanCoa = Coa::where('kode_akun', '4101')->first(); // Penjualan
-            $ppnKeluaranCoa = Coa::where('kode_akun', '3101')->first(); // PPN Keluaran
-            
-            if (!$penjualanCoa || (!$kasCoa && !$piutangUsahaCoa)) {
-                Log::error('Required COA accounts not found for penjualan journal');
-                return false;
-            }
-            
-            // Calculate amounts
-            $dpp = $penjualan->total / 1.11; // DPP (sebelum PPN 11%)
-            $ppn = $penjualan->total - $dpp; // PPN 11%
-            
-            // Delete existing journals for this transaction to avoid duplicates
-            $this->deleteExistingJournals($refType, $refId);
-            
-            // Cash sale
-            if ($penjualan->payment_method === 'cash') {
-                // Debit Kas
-                if ($kasCoa) {
-                    $this->createJournalEntry([
-                        'coa_id' => $kasCoa->id,
-                        'tanggal' => $tanggal,
-                        'keterangan' => $keterangan,
-                        'debit' => $penjualan->total,
-                        'kredit' => 0,
-                        'referensi' => $refId,
-                        'tipe_referensi' => $refType,
-                    ]);
-                }
-            }
-            // Credit sale
-            else {
-                // Debit Piutang Usaha
-                if ($piutangUsahaCoa) {
-                    $this->createJournalEntry([
-                        'coa_id' => $piutangUsahaCoa->id,
-                        'tanggal' => $tanggal,
-                        'keterangan' => $keterangan,
-                        'debit' => $penjualan->total,
-                        'kredit' => 0,
-                        'referensi' => $refId,
-                        'tipe_referensi' => $refType,
-                    ]);
-                }
-            }
-            
-            // Kredit Penjualan (DPP)
-            $this->createJournalEntry([
-                'coa_id' => $penjualanCoa->id,
-                'tanggal' => $tanggal,
-                'keterangan' => $keterangan,
-                'debit' => 0,
-                'kredit' => $dpp,
-                'referensi' => $refId,
-                'tipe_referensi' => $refType,
+
+        // Fallback: auto-provision from COA if available
+        $coa = Coa::where('kode_akun', $code)->first();
+        if ($coa) {
+            $type = $this->mapCoaTypeToAccountType((string)($coa->tipe_akun ?? ''));
+            $acc = Account::create([
+                'code' => (string)$code,
+                'name' => (string)($coa->nama_akun ?? $code),
+                'type' => $type,
             ]);
             
-            // Kredit PPN Keluaran
-            if ($ppn > 0 && $ppnKeluaranCoa) {
-                $this->createJournalEntry([
-                    'coa_id' => $ppnKeluaranCoa->id,
-                    'tanggal' => $tanggal,
-                    'keterangan' => $keterangan,
-                    'debit' => 0,
-                    'kredit' => $ppn,
-                    'referensi' => $refId,
-                    'tipe_referensi' => $refType,
-                ]);
-            }
-            
-            Log::info('Journal entries created for penjualan', ['penjualan_id' => $penjualan->id]);
-            return true;
-            
-        } catch (\Exception $e) {
-            Log::error('Error creating journal for penjualan: ' . $e->getMessage(), [
-                'penjualan_id' => $penjualan->id
-            ]);
-            return false;
+            // Log the auto-creation for debugging
+            \Log::info("Auto-created Account from COA: {$code} - {$coa->nama_akun}");
+            return (int)$acc->id;
         }
+
+        // Final fallback: auto-create a minimal account with inferred type from code.
+        // Mapping umum: 1=asset, 2=liability, 3=equity, 4=revenue, 5/6/7=expense
+        $inferred = $this->inferTypeFromCode((string)$code);
+        $acc = Account::create([
+            'code' => (string)$code,
+            'name' => 'Akun ' . (string)$code, // More descriptive name
+            'type' => $inferred,
+        ]);
+        
+        // Log the auto-creation for debugging
+        \Log::info("Auto-created Account from code inference: {$code} - Akun {$code}");
+        return (int)$acc->id;
     }
-    
-    /**
-     * Create journal entries for Pembayaran Beban transaction
-     */
-    public function createJournalFromExpensePayment(ExpensePayment $expensePayment)
+
+    protected function mapCoaTypeToAccountType(string $tipe): string
     {
-        try {
-            $tanggal = $expensePayment->tanggal;
-            $keterangan = "Pembayaran Beban - {$expensePayment->keterangan}";
-            $refId = $expensePayment->id;
-            $refType = 'expense_payment';
-            
-            // Get COA accounts
-            $bebanCoa = $expensePayment->coa; // Get related COA from the payment
-            $kasCoa = Coa::where('kode_akun', '1101')->first(); // Kas
-            $bankCoa = null;
-            
-            // Determine cash/bank account based on payment method
-            if ($expensePayment->metode_bayar === 'bank') {
-                $bankCoa = Coa::where('kode_akun', $expensePayment->coa_kasbank)->first();
-            }
-            
-            if (!$bebanCoa || (!$kasCoa && !$bankCoa)) {
-                Log::error('Required COA accounts not found for expense payment journal');
-                return false;
-            }
-            
-            // Delete existing journals for this transaction to avoid duplicates
-            $this->deleteExistingJournals($refType, $refId);
-            
-            // Debit Beban Account
-            $this->createJournalEntry([
-                'coa_id' => $bebanCoa->id,
+        $t = strtolower(trim($tipe));
+        return match ($t) {
+            'asset', 'assets', 'aktiva' => 'asset',
+            'liability', 'liabilities', 'utang', 'kewajiban' => 'liability',
+            'equity', 'modal' => 'equity',
+            'revenue', 'pendapatan' => 'revenue',
+            'expense', 'beban' => 'expense',
+            default => 'unknown',
+        };
+    }
+
+    protected function inferTypeFromCode(string $code): string
+    {
+        $first = substr(preg_replace('/\D+/', '', $code), 0, 1);
+        return match ($first) {
+            '1' => 'asset',
+            '2' => 'liability',
+            '3' => 'equity',
+            '4' => 'revenue',
+            '5', '6', '7' => 'expense',
+            default => 'asset', // safe default
+        };
+    }
+
+    /**
+     * Post a balanced journal entry with given lines. Each line element: ['code'=>account_code, 'debit'=>float, 'credit'=>float, 'memo'=>string (optional)]
+     */
+    public function post(string $tanggal, string $refType, int $refId, string $memo, array $lines): JournalEntry
+    {
+        return DB::transaction(function () use ($tanggal, $refType, $refId, $memo, $lines) {
+            $entry = JournalEntry::create([
                 'tanggal' => $tanggal,
-                'keterangan' => $keterangan,
-                'debit' => $expensePayment->nominal_pembayaran,
-                'kredit' => 0,
-                'referensi' => $refId,
-                'tipe_referensi' => $refType,
+                'ref_type' => $refType,
+                'ref_id' => $refId,
+                'memo' => $memo,
             ]);
-            
-            // Kredit Kas or Bank Account
-            if ($expensePayment->metode_bayar === 'bank' && $bankCoa) {
-                $this->createJournalEntry([
-                    'coa_id' => $bankCoa->id,
-                    'tanggal' => $tanggal,
-                    'keterangan' => $keterangan,
-                    'debit' => 0,
-                    'kredit' => $expensePayment->nominal_pembayaran,
-                    'referensi' => $refId,
-                    'tipe_referensi' => $refType,
+
+            $totalDebit = 0.0; $totalCredit = 0.0;
+            foreach ($lines as $ln) {
+                $aid = $this->accountId($ln['code']);
+                $debit = (float)($ln['debit'] ?? 0); $credit = (float)($ln['credit'] ?? 0);
+                $lineMemo = $ln['memo'] ?? null; // Support per-line memo
+                
+                JournalLine::create([
+                    'journal_entry_id' => $entry->id,
+                    'account_id' => $aid,
+                    'debit' => $debit,
+                    'credit' => $credit,
+                    'memo' => $lineMemo, // Add memo to journal line if supported
                 ]);
+                $totalDebit += $debit; $totalCredit += $credit;
+            }
+
+            // Optional: basic balance check
+            if (round($totalDebit - $totalCredit, 2) !== 0.0) {
+                throw new \RuntimeException('Journal not balanced: debit != credit');
+            }
+
+            return $entry;
+        });
+    }
+
+    /**
+     * Delete all journal entries for a given reference.
+     */
+    public function deleteByRef(string $refType, int $refId): void
+    {
+        DB::transaction(function () use ($refType, $refId) {
+            $entries = JournalEntry::where('ref_type', $refType)->where('ref_id', $refId)->get();
+            foreach ($entries as $e) {
+                $e->delete(); // journal_lines will cascade
+            }
+        });
+    }
+
+    /**
+     * Sync all COA accounts to Account table
+     */
+    public function syncCoaToAccounts(): array
+    {
+        $stats = ['created' => 0, 'updated' => 0, 'skipped' => 0];
+        
+        $coas = Coa::all();
+        foreach ($coas as $coa) {
+            $account = Account::where('code', $coa->kode_akun)->first();
+            
+            if (!$account) {
+                // Create new account from COA
+                $type = $this->mapCoaTypeToAccountType((string)($coa->tipe_akun ?? ''));
+                Account::create([
+                    'code' => (string)$coa->kode_akun,
+                    'name' => (string)($coa->nama_akun ?? $coa->kode_akun),
+                    'type' => $type,
+                ]);
+                $stats['created']++;
+            } elseif ($account->name === (string)$coa->kode_akun || $account->name === $coa->kode_akun) {
+                // Update account with proper name from COA
+                $account->update([
+                    'name' => (string)($coa->nama_akun ?? $coa->kode_akun),
+                    'type' => $this->mapCoaTypeToAccountType((string)($coa->tipe_akun ?? '')),
+                ]);
+                $stats['updated']++;
             } else {
-                // Default to cash
-                if ($kasCoa) {
-                    $this->createJournalEntry([
-                        'coa_id' => $kasCoa->id,
-                        'tanggal' => $tanggal,
-                        'keterangan' => $keterangan,
-                        'debit' => 0,
-                        'kredit' => $expensePayment->nominal_pembayaran,
-                        'referensi' => $refId,
-                        'tipe_referensi' => $refType,
-                    ]);
-                }
+                $stats['skipped']++;
             }
-            
-            Log::info('Journal entries created for expense payment', ['expense_payment_id' => $expensePayment->id]);
-            return true;
-            
-        } catch (\Exception $e) {
-            Log::error('Error creating journal for expense payment: ' . $e->getMessage(), [
-                'expense_payment_id' => $expensePayment->id
-            ]);
-            return false;
         }
+        
+        return $stats;
     }
-    
+
     /**
-     * Create a single journal entry
+     * Ensure all accounts used in journal lines have proper names
      */
-    private function createJournalEntry(array $data)
+    public function ensureAccountNames(): array
     {
-        $data['created_by'] = auth()->id();
-        return JurnalUmum::create($data);
-    }
-    
-    /**
-     * Delete existing journals for a transaction
-     */
-    private function deleteExistingJournals($refType, $refId)
-    {
-        return JurnalUmum::where('tipe_referensi', $refType)
-            ->where('referensi', $refId)
-            ->delete();
+        $stats = ['updated' => 0];
+        
+        // Get all accounts used in journal lines that might have generic names
+        $accounts = Account::where(function($query) {
+            $query->where('name', 'like', 'Akun %')
+                  ->orWhere('name', '=', 'code')
+                  ->orWhereRaw('name = code');
+        })->get();
+        
+        foreach ($accounts as $account) {
+            // Try to get name from COA
+            $coa = Coa::where('kode_akun', $account->code)->first();
+            if ($coa && !empty($coa->nama_akun)) {
+                $account->update(['name' => $coa->nama_akun]);
+                $stats['updated']++;
+            }
+        }
+        
+        return $stats;
     }
 }

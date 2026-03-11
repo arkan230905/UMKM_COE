@@ -494,98 +494,85 @@ function viewBopDetail(id) {
 }
 
 function editBopProses(id) {
-    // Load edit modal content or show existing modal
-    fetch(`/master-data/bop/edit-proses-modal/${id}`)
-        .then(response => response.text())
-        .then(data => {
-            document.getElementById('editBopContent').innerHTML = data;
-            const modal = new bootstrap.Modal(document.getElementById('editBopModal'));
-            modal.show();
-            
-            // Setup auto-fill for edit modal after content is loaded
-            setTimeout(() => setupEditModalAutoFill(id), 100);
-        })
-        .catch(error => {
-            alert('Terjadi kesalahan: ' + error.message);
-        });
-}
-
-function setupEditModalAutoFill(bopId) {
-    // Find the BOP data and setup edit modal fields
-    fetch(`/master-data/bop/get-proses/${bopId}`)
+    // Load BOP Proses data
+    fetch(`/master-data/bop/get-proses/${id}`)
         .then(response => response.json())
         .then(data => {
             if (data.success && data.bop) {
                 const bop = data.bop;
-                const prosesId = bop.proses_produksi_id;
                 
-                // Find the process option in edit modal
-                const editProcessSelect = document.getElementById('editProsesProduksiId');
-                if (editProcessSelect) {
-                    // Set the selected process
-                    editProcessSelect.value = prosesId;
-                    
-                    // Get the selected option data
-                    const selectedOption = editProcessSelect.options[editProcessSelect.selectedIndex];
-                    if (selectedOption && selectedOption.value) {
-                        const kapasitas = parseFloat(selectedOption.getAttribute('data-kapasitas')) || 0;
-                        const tarif = parseFloat(selectedOption.getAttribute('data-tarif')) || 0;
-                        
-                        // Fill edit modal BTKL fields
-                        const editKapasitas = document.getElementById('editKapasitas');
-                        const editBtklPerJam = document.getElementById('editBtklPerJam');
-                        const editBtklPerPcs = document.getElementById('editBtklPerPcs');
-                        
-                        if (editKapasitas) {
-                            editKapasitas.value = kapasitas;
-                            editKapasitas.readOnly = true;
-                        }
-                        
-                        if (editBtklPerJam) {
-                            editBtklPerJam.value = tarif;
-                            editBtklPerJam.readOnly = true;
-                        }
-                        
-                        if (editBtklPerPcs) {
-                            const btklPerPcs = kapasitas > 0 ? tarif / kapasitas : 0;
-                            editBtklPerPcs.value = btklPerPcs.toFixed(2);
-                            editBtklPerPcs.readOnly = true;
-                        }
-                        
-                        // Show info for edit modal
-                        const editBtklInfo = document.getElementById('editBtklInfo');
-                        const editBtklInfoText = document.getElementById('editBtklInfoText');
-                        const jabatan = selectedOption.getAttribute('data-jabatan') || '';
-                        
-                        if (editBtklInfo && editBtklInfoText) {
-                            if (kapasitas > 0 && tarif > 0) {
-                                editBtklInfo.classList.remove('d-none');
-                                editBtklInfoText.textContent = `Data BTKL tersedia: Kapasitas ${kapasitas} pcs/jam, Tarif Rp ${tarif.toLocaleString('id-ID')}/jam (${jabatan})`;
-                            } else {
-                                editBtklInfo.classList.remove('d-none');
-                                editBtklInfo.classList.remove('alert-info');
-                                editBtklInfo.classList.add('alert-warning');
-                                editBtklInfoText.textContent = 'Data BTKL untuk proses ini belum lengkap.';
-                            }
-                        }
-                    }
+                // Check if all required elements exist
+                const requiredElements = [
+                    'editBopProsesId',
+                    'editProsesProduksiId',
+                    'editNamaProses',
+                    'editKapasitas',
+                    'editBtklPerJam',
+                    'editBtklPerPcs',
+                    'editKeteranganProses'
+                ];
+                
+                const missingElements = requiredElements.filter(id => !document.getElementById(id));
+                if (missingElements.length > 0) {
+                    console.error('Missing elements:', missingElements);
+                    alert('Error: Beberapa elemen form tidak ditemukan. Silakan refresh halaman.');
+                    return;
                 }
                 
-                // Load existing components
+                // Set hidden ID
+                document.getElementById('editBopProsesId').value = bop.id;
+                document.getElementById('editProsesProduksiId').value = bop.proses_produksi_id;
+                
+                // Set nama proses (readonly)
+                document.getElementById('editNamaProses').value = bop.proses_produksi?.nama_proses || '';
+                
+                // Set BTKL data
+                const kapasitas = bop.kapasitas_per_jam || 0;
+                const tarif = bop.proses_produksi?.tarif_btkl || 0;
+                
+                document.getElementById('editKapasitas').value = kapasitas;
+                document.getElementById('editBtklPerJam').value = tarif;
+                
+                const btklPerPcs = kapasitas > 0 ? tarif / kapasitas : 0;
+                document.getElementById('editBtklPerPcs').value = btklPerPcs.toFixed(2);
+                
+                // Show BTKL info
+                const editBtklInfoText = document.getElementById('editBtklInfoText');
+                if (editBtklInfoText) {
+                    editBtklInfoText.textContent = `Kapasitas ${kapasitas} pcs/jam, Tarif Rp ${tarif.toLocaleString('id-ID')}/jam`;
+                }
+                
+                // Load components
                 loadEditComponents(bop);
                 
-                // Trigger calculation for edit modal
+                // Set keterangan
+                document.getElementById('editKeteranganProses').value = bop.keterangan || '';
+                
+                // Calculate summary
                 calculateEditBopSummary();
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('editBopProsesModal'));
+                modal.show();
+            } else {
+                alert('Gagal memuat data BOP');
             }
         })
         .catch(error => {
-            console.error('Error loading BOP data for edit:', error);
+            console.error('Error:', error);
+            alert('Terjadi kesalahan: ' + error.message);
         });
 }
 
 // Load components for edit modal
 function loadEditComponents(bop) {
     const editKomponenRows = document.getElementById('editKomponenRows');
+    
+    if (!editKomponenRows) {
+        console.error('editKomponenRows element not found');
+        return;
+    }
+    
     editKomponenRows.innerHTML = '';
     
     // Load components from bop.komponen_bop if exists
@@ -1433,6 +1420,51 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </div>
+
+// Handle edit BOP Proses form submit
+document.getElementById('editBopProsesForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const bopId = document.getElementById('editBopProsesId').value;
+    
+    // Show loading
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...';
+    
+    fetch(`/master-data/bop/update-proses-simple/${bopId}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('editBopProsesModal')).hide();
+            
+            // Show success message
+            alert(data.message || 'BOP Proses berhasil diperbarui');
+            
+            // Reload page
+            window.location.reload();
+        } else {
+            alert(data.message || 'Gagal memperbarui BOP Proses');
+        }
+    })
+    .catch(error => {
+        alert('Terjadi kesalahan: ' + error.message);
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+    });
+});
 
 @endpush
 @endsection

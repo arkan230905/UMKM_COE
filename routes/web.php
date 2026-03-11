@@ -413,6 +413,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [BomController::class, 'index'])->name('index');
             Route::get('/create', [BomController::class, 'create'])->name('create');
             Route::post('/', [BomController::class, 'store'])->name('store');
+            Route::get('/{bom}/edit', [BomController::class, 'edit'])->name('edit');
+            Route::put('/{bom}', [BomController::class, 'update'])->name('update');
             Route::get('/{bom}', [BomController::class, 'show'])->name('show');
             Route::get('/{bom}/print', [BomController::class, 'print'])->name('print');
             Route::delete('/{bom}', [BomController::class, 'destroy'])->name('destroy');
@@ -443,6 +445,10 @@ Route::middleware('auth')->group(function () {
             Route::put('/{komponenBop}', [\App\Http\Controllers\KomponenBopController::class, 'update'])->name('update');
             Route::delete('/{komponenBop}', [\App\Http\Controllers\KomponenBopController::class, 'destroy'])->name('destroy');
         });
+        
+        // BOP Proses Routes
+        Route::resource('bop-proses', \App\Http\Controllers\MasterData\BopProsesController::class);
+        Route::get('bop-proses/sync-kapasitas', [\App\Http\Controllers\MasterData\BopProsesController::class, 'syncKapasitas'])->name('bop-proses.sync-kapasitas');
 
 
     });
@@ -616,7 +622,11 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [ProduksiController::class, 'index'])->name('index');
             Route::get('/create', [ProduksiController::class, 'create'])->name('create');
             Route::post('/', [ProduksiController::class, 'store'])->name('store');
+            Route::get('/get-bom-details/{produkId}', [ProduksiController::class, 'getBomDetails'])->name('get-bom-details');
             Route::get('/{id}', [ProduksiController::class, 'show'])->name('show');
+            Route::get('/{id}/proses', [ProduksiController::class, 'proses'])->name('proses');
+            Route::post('/proses/{prosesId}/mulai', [ProduksiController::class, 'mulaiProses'])->name('proses.mulai');
+            Route::post('/proses/{prosesId}/selesai', [ProduksiController::class, 'selesaikanProses'])->name('proses.selesai');
             Route::post('/{id}/complete', [ProduksiController::class, 'complete'])->name('complete');
             Route::delete('/{id}', [ProduksiController::class, 'destroy'])->name('destroy');
         });
@@ -652,12 +662,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/kartu-stok', [LaporanKartuStokController::class, 'index'])->name('kartu-stok');
         Route::get('/kartu-stok/reset', [LaporanKartuStokController::class, 'createResetForm'])->name('kartu-stok.reset');
         Route::post('/reset-produk-stok', [LaporanKartuStokController::class, 'resetProdukStok'])->name('reset-produk-stok');
-        
-        // Laporan Stok Real-Time
-        Route::get('/stock-realtime', [\App\Http\Controllers\StockReportController::class, 'index'])->name('stock-realtime');
-        Route::get('/stock-movements', [\App\Http\Controllers\StockReportController::class, 'movements'])->name('stock-movements');
-        Route::post('/stock-sync', [\App\Http\Controllers\StockReportController::class, 'syncStock'])->name('stock-sync');
-        Route::get('/api/stock-data', [\App\Http\Controllers\StockReportController::class, 'apiStockData'])->name('api.stock-data');
         
         // Laporan Pembelian
         Route::get('/pembelian', [LaporanController::class, 'pembelian'])->name('pembelian');

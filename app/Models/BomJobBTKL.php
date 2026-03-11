@@ -9,7 +9,19 @@ class BomJobBTKL extends Model
 {
     use HasFactory;
     protected $table = 'bom_job_btkl';
-    protected $fillable = ['bom_job_costing_id', 'btkl_id', 'nama_proses', 'durasi_jam', 'tarif_per_jam', 'kapasitas_per_jam', 'subtotal', 'keterangan'];
+    protected $fillable = [
+        'bom_job_costing_id', 
+        'btkl_id', 
+        'nama_proses',
+        'nama_btkl',
+        'durasi_jam',
+        'waktu_pengerjaan',
+        'tarif_per_jam', 
+        'kapasitas_per_jam',
+        'jumlah_pegawai',
+        'subtotal', 
+        'keterangan'
+    ];
     protected $casts = ['durasi_jam' => 'decimal:4', 'tarif_per_jam' => 'decimal:2', 'kapasitas_per_jam' => 'integer', 'subtotal' => 'decimal:2'];
 
     protected static function booted()
