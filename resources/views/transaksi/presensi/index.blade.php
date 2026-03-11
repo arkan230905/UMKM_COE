@@ -318,17 +318,17 @@ a:active {
 }
 
 .jam-masuk {
-    color: #28a745;
+    color: #000000;
     font-weight: 700;
 }
 
 .jam-keluar {
-    color: #dc3545;
+    color: #000000;
     font-weight: 700;
 }
 
 .jumlah-jam {
-    color: #007bff;
+    color: #000000;
     font-weight: 700;
 }
 </style>

@@ -152,7 +152,7 @@ class PenggajianController extends Controller
                 'potongan' => $potongan,
                 'total_jam_kerja' => $totalJamKerja,
                 'total_gaji' => $totalGaji,
-                'status_pembayaran' => 'belum_lunas', // Default status
+                'status_pembayaran' => 'lunas', // Status default: Lunas
             ]);
 
             if (!$penggajian->save()) {
@@ -164,7 +164,7 @@ class PenggajianController extends Controller
                 'total_gaji' => $totalGaji,
                 'bonus' => $bonus,
                 'potongan' => $potongan,
-                'status_pembayaran' => 'belum_lunas'
+                'status_pembayaran' => 'lunas'
             ]);
 
             // Commit transaksi
@@ -339,122 +339,14 @@ class PenggajianController extends Controller
     }
 
     /**
-     * Form edit data penggajian.
+     * EDIT DAN UPDATE DIHAPUS - Transaksi penggajian tidak boleh diedit setelah disimpan
+     * Untuk koreksi, buat transaksi baru
      */
-    public function edit($id)
-    {
-        $penggajian = Penggajian::with('pegawai')->findOrFail($id);
-        $pegawais = Pegawai::all();
-        return view('transaksi.penggajian.edit', compact('penggajian', 'pegawais'));
-    }
 
     /**
-     * Update data penggajian.
+     * HAPUS DIHAPUS - Transaksi penggajian tidak boleh dihapus (audit trail)
      */
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'pegawai_id' => 'required|exists:pegawais,id',
-            'tanggal_penggajian' => 'required|date',
-            'bonus' => 'nullable|numeric|min:0',
-            'potongan' => 'nullable|numeric|min:0',
-        ]);
 
-        $penggajian = Penggajian::findOrFail($id);
-        $pegawai = Pegawai::findOrFail($request->pegawai_id);
-
-        // Ambil total jam kerja pegawai dari presensi bulan ini
-        $totalJamKerja = Presensi::where('pegawai_id', $pegawai->id)
-            ->whereMonth('tgl_presensi', Carbon::parse($request->tanggal_penggajian)->month)
-            ->whereYear('tgl_presensi', Carbon::parse($request->tanggal_penggajian)->year)
-            ->sum('jumlah_jam');
-
-        // Data dari pegawai
-        $gajiPokok = (float) ($pegawai->gaji_pokok ?? 0);
-        $tarifPerJam = (float) ($pegawai->tarif_per_jam ?? 0);
-        $tunjangan = (float) ($pegawai->tunjangan ?? 0);
-        $asuransi = (float) ($pegawai->asuransi ?? 0);
-        
-        // Input manual
-        $bonus = (float) ($request->bonus ?? 0);
-        $potongan = (float) ($request->potongan ?? 0);
-
-        // Tentukan gaji berdasarkan jenis pegawai
-        $jenis = strtolower($pegawai->jenis_pegawai ?? 'btktl');
-        
-        if ($jenis === 'btkl') {
-            // BTKL = (Tarif × Jam Kerja) + Asuransi + Tunjangan + Bonus - Potongan
-            $gajiDasar = ($tarifPerJam * (float) $totalJamKerja);
-            $totalGaji = $gajiDasar + $asuransi + $tunjangan + $bonus - $potongan;
-        } else {
-            // BTKTL = Gaji Pokok + Asuransi + Tunjangan + Bonus - Potongan
-            $totalGaji = $gajiPokok + $asuransi + $tunjangan + $bonus - $potongan;
-        }
-
-        // Cek saldo kas cukup (hitung selisih)
-        $selisih = $totalGaji - ($penggajian->total_gaji ?? 0);
-        if ($selisih > 0) {
-            $cashCode = '101';
-            $saldoAwal = (float) (\App\Models\Coa::where('kode_akun', $cashCode)->value('saldo_awal') ?? 0);
-            $acc = \App\Models\Account::where('code', $cashCode)->first();
-            $journalBalance = 0.0;
-            if ($acc) {
-                $journalBalance = (float) (\App\Models\JournalLine::where('account_id', $acc->id)
-                    ->selectRaw('COALESCE(SUM(debit - credit),0) as bal')->value('bal') ?? 0);
-            }
-            $cashBalance = $saldoAwal + $journalBalance;
-            if ($cashBalance + 1e-6 < $selisih) {
-                return back()->withErrors([
-                    'kas' => 'Nominal kas tidak cukup untuk melakukan transaksi. Saldo kas saat ini: Rp '.number_format($cashBalance,0,',','.').' ; Selisih nominal: Rp '.number_format($selisih,0,',','.'),
-                ])->withInput();
-            }
-        }
-
-        // Hapus jurnal lama
-        \App\Models\JournalEntry::where('ref_type', 'penggajian')
-            ->where('ref_id', $penggajian->id)
-            ->delete();
-
-        $penggajian->update([
-            'pegawai_id' => $request->pegawai_id,
-            'tanggal_penggajian' => $request->tanggal_penggajian,
-            'gaji_pokok' => $gajiPokok,
-            'tarif_per_jam' => $tarifPerJam,
-            'tunjangan' => $tunjangan,
-            'asuransi' => $asuransi,
-            'bonus' => $bonus,
-            'potongan' => $potongan,
-            'total_jam_kerja' => $totalJamKerja,
-            'total_gaji' => $totalGaji,
-        ]);
-
-        // Buat jurnal entry baru
-        $this->createJournalEntry($penggajian, $pegawai);
-
-        // Update BOP
-        $this->updateBopBebanGaji($request->tanggal_penggajian);
-
-        return redirect()->route('transaksi.penggajian.index')
-            ->with('success', 'Data penggajian berhasil diperbarui!');
-    }
-
-    /**
-     * Hapus data penggajian.
-     */
-    public function destroy($id)
-    {
-        $penggajian = Penggajian::findOrFail($id);
-        
-        // Hapus jurnal terkait jika ada
-        \App\Models\JournalEntry::where('ref_type', 'penggajian')
-            ->where('ref_id', $penggajian->id)
-            ->delete();
-        
-        $penggajian->delete();
-
-        return redirect()->route('transaksi.penggajian.index')
-            ->with('success', 'Data penggajian berhasil dihapus.');
-    }
 
     /**
      * Generate slip gaji HTML
@@ -463,8 +355,8 @@ class PenggajianController extends Controller
     {
         $penggajian = Penggajian::with('pegawai')->findOrFail($id);
         
-        // Check permission: admin atau pegawai yang bersangkutan
-        if (auth()->user()->role !== 'admin' && auth()->user()->pegawai_id !== $penggajian->pegawai_id) {
+        // Check permission: admin, owner, atau pegawai yang bersangkutan
+        if (!in_array(auth()->user()->role, ['admin', 'owner']) && auth()->user()->pegawai_id !== $penggajian->pegawai_id) {
             abort(403, 'Anda tidak memiliki akses ke slip gaji ini');
         }
 
@@ -478,8 +370,8 @@ class PenggajianController extends Controller
     {
         $penggajian = Penggajian::with('pegawai')->findOrFail($id);
         
-        // Check permission
-        if (auth()->user()->role !== 'admin' && auth()->user()->pegawai_id !== $penggajian->pegawai_id) {
+        // Check permission: admin, owner, atau pegawai yang bersangkutan
+        if (!in_array(auth()->user()->role, ['admin', 'owner']) && auth()->user()->pegawai_id !== $penggajian->pegawai_id) {
             abort(403, 'Anda tidak memiliki akses ke slip gaji ini');
         }
 
