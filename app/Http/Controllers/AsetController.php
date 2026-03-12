@@ -54,8 +54,8 @@ class AsetController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Get paginated results
-        $asets = $query->latest()->paginate(10)->withQueryString();
+        // Get paginated results - oldest first by creation date (newest at bottom)
+        $asets = $query->orderBy('created_at', 'asc')->paginate(10)->withQueryString();
         
         // Get filter options
         $jenisAsets = JenisAset::with('kategories')->get();
@@ -274,22 +274,18 @@ class AsetController extends Controller
         $kategori = KategoriAset::find($request->kategori_aset_id);
         $disusutkan = $kategori ? $kategori->disusutkan : true;
         
-        // Validation rules untuk field yang boleh diedit saja
+        // Validation rules untuk semua field yang bisa diedit
         $rules = [
             'nama_aset' => 'required|string|max:255',
             'kategori_aset_id' => 'required|exists:kategori_asets,id',
-            'keterangan' => 'nullable|string',
-        ];
-        
-        // Field financial tidak boleh diubah, tapi tetap divalidasi untuk keamanan
-        $financialRules = [
             'harga_perolehan' => 'required|numeric|min:0',
             'biaya_perolehan' => 'required|numeric|min:0',
             'tanggal_beli' => 'required|date',
             'tanggal_akuisisi' => 'nullable|date|after_or_equal:tanggal_beli',
+            'keterangan' => 'nullable|string',
         ];
         
-        // Field penyusutan tidak boleh diubah, tapi tetap divalidasi untuk keamanan
+        // Field penyusutan
         if ($disusutkan) {
             $depreciationRules = [
                 'nilai_residu' => 'required|numeric|min:0',
@@ -299,6 +295,7 @@ class AsetController extends Controller
                 'bulan_mulai' => 'nullable|integer|min:1|max:12',
                 'tanggal_perolehan' => 'nullable|date',
             ];
+            $rules = array_merge($rules, $depreciationRules);
         }
         
         $validated = $request->validate($rules);
@@ -306,21 +303,76 @@ class AsetController extends Controller
         try {
             DB::beginTransaction();
             
-            // Update hanya field yang boleh diedit
+            // Calculate total perolehan
+            $hargaPerolehan = (float) $request->harga_perolehan;
+            $biayaPerolehan = (float) $request->biaya_perolehan;
+            $totalPerolehan = $hargaPerolehan + $biayaPerolehan;
+            
+            // Initialize penyusutan variables
+            $penyusutanPerTahun = 0;
+            $penyusutanPerBulan = 0;
+            $nilaiResidu = 0;
+            $umurManfaat = 0;
+            $metodePenyusutan = null;
+            
+            // Calculate depreciation only if asset is depreciable
+            if ($disusutkan) {
+                $nilaiResidu = (float) $request->nilai_residu;
+                $umurManfaat = (int) $request->umur_manfaat;
+                $metodePenyusutan = $request->metode_penyusutan;
+                
+                $nilaiTerdepresiasi = $totalPerolehan - $nilaiResidu;
+                
+                if ($metodePenyusutan === 'garis_lurus') {
+                    // Straight line method: (Harga Perolehan - Nilai Residu) / Umur Manfaat
+                    $penyusutanPerTahun = $nilaiTerdepresiasi / $umurManfaat;
+                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
+                } elseif ($metodePenyusutan === 'saldo_menurun') {
+                    // Declining balance method: tarif × harga perolehan
+                    $tarif = $request->tarif_penyusutan ? ($request->tarif_penyusutan / 100) : (2 / $umurManfaat);
+                    $penyusutanPerTahun = $totalPerolehan * $tarif;
+                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
+                } else {
+                    // Sum of years digits: (Nilai yang Disusutkan × Tahun Sisa) / Jumlah Angka Tahun
+                    $sumOfYears = ($umurManfaat * ($umurManfaat + 1)) / 2;
+                    $penyusutanPerTahun = ($nilaiTerdepresiasi * $umurManfaat) / $sumOfYears;
+                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
+                }
+            }
+            
+            // Update semua field
             $aset->nama_aset = $request->nama_aset;
             $aset->kategori_aset_id = $request->kategori_aset_id;
+            $aset->harga_perolehan = $hargaPerolehan;
+            $aset->biaya_perolehan = $biayaPerolehan;
+            $aset->tanggal_beli = $request->tanggal_beli;
+            $aset->tanggal_akuisisi = $request->tanggal_akuisisi;
             $aset->keterangan = $request->keterangan;
             $aset->updated_by = auth()->id();
             
-            // Field financial dan penyusutan TIDAK diubah, gunakan nilai yang sudah ada
-            // Ini untuk menjaga konsistensi perhitungan penyusutan
+            if ($disusutkan) {
+                $aset->umur_manfaat = $umurManfaat;
+                $aset->metode_penyusutan = $metodePenyusutan;
+                $aset->tarif_penyusutan = $request->tarif_penyusutan;
+                $aset->nilai_residu = $nilaiResidu;
+                $aset->penyusutan_per_tahun = round($penyusutanPerTahun, 2);
+                $aset->penyusutan_per_bulan = round($penyusutanPerBulan, 2);
+                
+                // Update optional fields jika ada
+                if (Schema::hasColumn('asets', 'bulan_mulai')) {
+                    $aset->bulan_mulai = $request->bulan_mulai ?? 1;
+                }
+                if (Schema::hasColumn('asets', 'tanggal_perolehan')) {
+                    $aset->tanggal_perolehan = $request->tanggal_perolehan;
+                }
+            }
             
             $aset->save();
             
             DB::commit();
             
             return redirect()->route('master-data.aset.index')
-                ->with('success', 'Aset berhasil diperbarui. Hanya data umum yang dapat diubah untuk menjaga konsistensi perhitungan penyusutan.');
+                ->with('success', 'Aset berhasil diperbarui.');
                 
         } catch (\Exception $e) {
             DB::rollBack();

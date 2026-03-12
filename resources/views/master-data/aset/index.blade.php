@@ -91,6 +91,7 @@
                             <th>Kategori</th>
                             <th>Harga Perolehan (Rp)</th>
                             <th>Tanggal Beli</th>
+                            <th>Metode Penyusutan</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -105,6 +106,7 @@
                                 <td>{{ $aset->kategori->nama ?? '-' }}</td>
                                 <td class="text-end">{{ number_format($aset->harga_perolehan, 0, ',', '.') }}</td>
                                 <td>{{ is_string($aset->tanggal_beli) ? \Carbon\Carbon::parse($aset->tanggal_beli)->format('d/m/Y') : $aset->tanggal_beli->format('d/m/Y') }}</td>
+                                <td>{{ $aset->metode_penyusutan ? ucfirst(str_replace('_', ' ', $aset->metode_penyusutan)) : '-' }}</td>
                                 <td>
                                     @php
                                         $badgeClass = [
@@ -138,7 +140,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="text-center py-4">Tidak ada data aset</td>
+                                <td colspan="10" class="text-center py-4">Tidak ada data aset</td>
                             </tr>
                         @endforelse
                     </tbody>

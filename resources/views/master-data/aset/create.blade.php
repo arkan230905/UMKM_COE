@@ -559,7 +559,7 @@ function hitungPenyusutan() {
     
     if (metode === 'saldo_menurun') {
         tarifContainer.style.display = 'block';
-        bulanMulaiContainer.style.display = 'block';
+        bulanMulaiContainer.style.display = 'none';
         tanggalPerolehanContainer.style.display = 'none';
         // Auto-fill tarif saat umur manfaat diubah
         const tarifInput = document.getElementById('tarif_penyusutan');
@@ -570,12 +570,12 @@ function hitungPenyusutan() {
         }
     } else if (metode === 'garis_lurus') {
         tarifContainer.style.display = 'none';
-        bulanMulaiContainer.style.display = 'block';
+        bulanMulaiContainer.style.display = 'none';
         tanggalPerolehanContainer.style.display = 'none';
     } else if (metode === 'sum_of_years_digits') {
         tarifContainer.style.display = 'none';
         bulanMulaiContainer.style.display = 'none';
-        tanggalPerolehanContainer.style.display = 'block';
+        tanggalPerolehanContainer.style.display = 'none';
     } else {
         tarifContainer.style.display = 'none';
         bulanMulaiContainer.style.display = 'none';
@@ -589,11 +589,6 @@ function hitungPenyusutan() {
         // Metode garis lurus
         penyusutanTahunan = nilaiDisusutkan / umur;
         
-        // Tambahkan perhitungan proporsional untuk bulan pertama
-        const bulanMulai = parseInt(document.getElementById('bulan_mulai').value) || 1;
-        const sisaBulanTahun1 = 13 - bulanMulai;
-        const penyusutanTahunPertama = (penyusutanTahunan / 12) * sisaBulanTahun1;
-        
         // Tampilkan info metode garis lurus
         const infoDiv = document.getElementById('info_metode_penyusutan');
         infoDiv.style.display = 'block';
@@ -601,7 +596,6 @@ function hitungPenyusutan() {
             <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Detail Metode Penyusutan</h6>
             <div><strong>Rumus:</strong> (Harga Perolehan - Nilai Residu) / Umur Manfaat</div>
             <div><strong>Perhitungan:</strong> (Rp ${formatRupiah(total)} - Rp ${formatRupiah(residu)}) / ${umur} tahun = Rp ${formatRupiah(penyusutanTahunan)} per tahun</div>
-            <div><strong>Penyusutan tahun pertama (${sisaBulanTahun1} bulan):</strong> Rp ${formatRupiah(penyusutanTahunPertama)}</div>
         `;
         
         document.getElementById('tabel_perhitungan_tahunan').style.display = 'none';
@@ -612,29 +606,19 @@ function hitungPenyusutan() {
     } else if (metode === 'saldo_menurun') {
         // Metode saldo menurun (double declining balance) - gunakan tarif yang diinput
         const tarifPersen = parseFloat(document.getElementById('tarif_penyusutan').value) || 0;
-        const bulanMulai = parseInt(document.getElementById('bulan_mulai').value) || 1;
         const rate = tarifPersen / 100; // Konversi persen ke desimal
         
         // Sembunyikan perhitungan jumlah angka tahun
         document.getElementById('perhitungan_jumlah_angka_tahun').style.display = 'none';
         
-        // Hitung sisa bulan di tahun pertama
-        const sisaBulanTahun1 = 13 - bulanMulai;
-        
-        // First year depreciation (sesuai rumus partial year)
-        if (sisaBulanTahun1 < 12) {
-            // Partial year: (Tarif% * sisa bulan) / 12 * nilai buku awal
-            penyusutanTahunan = (rate * sisaBulanTahun1) / 12 * total;
-        } else {
-            // Full year
-            penyusutanTahunan = total * rate;
-        }
+        // Full year calculation (tanpa partial year)
+        penyusutanTahunan = total * rate;
         
         // Pastikan tidak melebihi nilai yang bisa disusutkan
         penyusutanTahunan = Math.min(penyusutanTahunan, nilaiDisusutkan);
         
-        // Tampilkan perhitungan per tahun
-        hitungPerhitunganTahunan(total, residu, umur, tarifPersen, bulanMulai);
+        // Tampilkan perhitungan per tahun (default ke bulan 1)
+        hitungPerhitunganTahunan(total, residu, umur, tarifPersen, 1);
         
         // Tampilkan rumus dan tarif penyusutan
         updateDepreciationInfo('saldo_menurun', tarifPersen);
@@ -683,8 +667,6 @@ function updateDepreciationInfo(metode, ratePersen = 0) {
         infoDiv.style.display = 'block';
         const umur = parseFloat(document.getElementById('umur_manfaat').value) || 1;
         const tarifInput = parseFloat(document.getElementById('tarif_penyusutan').value) || ratePersen;
-        const bulanMulai = parseInt(document.getElementById('bulan_mulai').value) || 1;
-        const sisaBulan = 13 - bulanMulai;
         
         infoDiv.innerHTML = `
             <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Detail Metode Penyusutan</h6>
@@ -698,10 +680,7 @@ function updateDepreciationInfo(metode, ratePersen = 0) {
                     <span class="text-dark">${tarifInput.toFixed(1)}% per tahun</span>
                 </div>
             </div>
-            ${sisaBulan < 12 ? 
-                `<div><small class="text-muted">Metode Saldo Menurun Ganda dengan partial year. Tahun pertama hanya ${sisaBulan} bulan.</small></div>` : 
-                `<div><small class="text-muted">Metode Saldo Menurun Ganda menghitung penyusutan berdasarkan tarif persentase otomatis dari nilai buku awal setiap tahun.</small></div>`
-            }
+            <div><small class="text-muted">Metode Saldo Menurun Ganda menghitung penyusutan berdasarkan tarif persentase otomatis dari nilai buku awal setiap tahun.</small></div>
         `;
     } else if (metode === 'garis_lurus') {
         // Sembunyikan info untuk metode garis lurus (rumus berbeda)
