@@ -166,10 +166,10 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="harga_perolehan" class="form-label text-white">Harga Perolehan (Rp)</label>
-                        <input type="number" step="0.01" class="form-control bg-secondary text-white" 
+                        <label for="harga_perolehan" class="form-label text-white">Harga Perolehan (Rp) <span class="text-danger">*</span></label>
+                        <input type="number" step="0.01" class="form-control bg-dark text-white @error('harga_perolehan') is-invalid @enderror" 
                                id="harga_perolehan" name="harga_perolehan" value="{{ old('harga_perolehan', $aset->harga_perolehan) }}" 
-                               readonly oninput="hitungTotal()" title="Tidak dapat diubah">
+                               required oninput="hitungTotal()">
                         @error('harga_perolehan')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -177,9 +177,10 @@
 
                     <div class="col-md-6 mb-3">
                         <label for="biaya_perolehan" class="form-label text-white">Biaya Perolehan (Rp)</label>
-                        <input type="number" step="0.01" class="form-control bg-secondary text-white" 
+                        <input type="number" step="0.01" class="form-control bg-dark text-white @error('biaya_perolehan') is-invalid @enderror" 
                                id="biaya_perolehan" name="biaya_perolehan" value="{{ old('biaya_perolehan', $aset->biaya_perolehan ?? 0) }}" 
-                               readonly oninput="hitungTotal()" title="Tidak dapat diubah">
+                               oninput="hitungTotal()">
+                        <small class="text-white">Biaya tambahan seperti ongkir, instalasi, dll</small>
                         @error('biaya_perolehan')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -188,14 +189,14 @@
 
                 <div class="mb-3">
                     <label class="form-label text-white">Total Perolehan</label>
-                    <div class="form-control bg-secondary text-white" id="total_perolehan_display">Rp 0</div>
+                    <div class="form-control bg-light text-dark" id="total_perolehan_display">Rp 0</div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label for="metode_penyusutan" class="form-label text-white">Metode Penyusutan</label>
-                        <select class="form-select bg-secondary text-white" 
-                                id="metode_penyusutan" name="metode_penyusutan" required onchange="hitungPenyusutan()" title="Tidak dapat diubah">
+                        <label for="metode_penyusutan" class="form-label text-white">Metode Penyusutan <span class="text-danger">*</span></label>
+                        <select class="form-select bg-dark text-white @error('metode_penyusutan') is-invalid @enderror" 
+                                id="metode_penyusutan" name="metode_penyusutan" required onchange="hitungPenyusutan()">
                             <option value="" disabled selected>-- Pilih Metode --</option>
                             @foreach($metodePenyusutan as $key => $value)
                                 <option value="{{ $key }}" {{ old('metode_penyusutan', $aset->metode_penyusutan) == $key ? 'selected' : '' }}>
@@ -209,10 +210,11 @@
                     </div>
 
                     <div class="col-md-4 mb-3">
-                        <label for="umur_manfaat" class="form-label text-white">Umur Manfaat (tahun)</label>
-                        <input type="number" class="form-control bg-secondary text-white" 
+                        <label for="umur_manfaat" class="form-label text-white">Umur Manfaat (tahun) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control bg-dark text-white @error('umur_manfaat') is-invalid @enderror" 
                                id="umur_manfaat" name="umur_manfaat" value="{{ old('umur_manfaat', $aset->umur_manfaat) }}" 
-                               min="1" max="100" required oninput="hitungPenyusutan()" readonly title="Tidak dapat diubah">
+                               min="1" max="100" required oninput="hitungPenyusutan()">
+                        <small class="text-white">Perkiraan umur ekonomis aset</small>
                         @error('umur_manfaat')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -221,9 +223,9 @@
                     <!-- Tarif Penyusutan Per Tahun (hanya untuk saldo menurun) -->
                     <div class="col-md-4 mb-3" id="tarif_penyusutan_container" style="display: none;">
                         <label for="tarif_penyusutan" class="form-label text-white">Tarif Penyusutan Per Tahun (%)</label>
-                        <input type="number" step="0.01" min="0" max="200" class="form-control bg-secondary text-white" 
+                        <input type="number" step="0.01" min="0" max="200" class="form-control bg-dark text-white @error('tarif_penyusutan') is-invalid @enderror" 
                                id="tarif_penyusutan" name="tarif_penyusutan" value="{{ old('tarif_penyusutan', $aset->metode_penyusutan === 'saldo_menurun' ? '' : $aset->tarif_penyusutan) }}" 
-                               oninput="hitungPenyusutan()" readonly title="Tidak dapat diubah">
+                               oninput="hitungPenyusutan()">
                         <small class="text-white">Tarif penyusutan dalam persen (contoh: 50 untuk 50%)</small>
                         @error('tarif_penyusutan')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -233,8 +235,8 @@
                     <!-- Bulan Mulai (hanya untuk saldo menurun) -->
                     <div class="col-md-4 mb-3" id="bulan_mulai_container" style="display: none;">
                         <label for="bulan_mulai" class="form-label text-white">Bulan Mulai</label>
-                        <select class="form-select bg-secondary text-white" 
-                                id="bulan_mulai" name="bulan_mulai" onchange="hitungPenyusutan()" readonly title="Tidak dapat diubah">
+                        <select class="form-select bg-dark text-white @error('bulan_mulai') is-invalid @enderror" 
+                                id="bulan_mulai" name="bulan_mulai" onchange="hitungPenyusutan()">
                             <option value="1">Januari</option>
                             <option value="2">Februari</option>
                             <option value="3">Maret</option>
@@ -248,6 +250,7 @@
                             <option value="11">November</option>
                             <option value="12">Desember</option>
                         </select>
+                        <small class="text-white">Bulan pembelian aset</small>
                         @error('bulan_mulai')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -255,9 +258,10 @@
 
                     <div class="col-md-4 mb-3">
                         <label for="nilai_residu" class="form-label text-white">Nilai Residu (Rp)</label>
-                        <input type="number" step="0.01" class="form-control bg-secondary text-white" 
+                        <input type="number" step="0.01" class="form-control bg-dark text-white @error('nilai_residu') is-invalid @enderror" 
                                id="nilai_residu" name="nilai_residu" value="{{ old('nilai_residu', $aset->nilai_residu ?? 0) }}" 
-                               required oninput="hitungPenyusutan()" readonly title="Tidak dapat diubah">
+                               oninput="hitungPenyusutan()">
+                        <small class="text-white">Nilai sisa di akhir umur manfaat</small>
                         @error('nilai_residu')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -305,9 +309,9 @@
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="tanggal_beli" class="form-label text-white">Tanggal Pembelian</label>
-                        <input type="date" class="form-control bg-secondary text-white" 
-                               id="tanggal_beli" name="tanggal_beli" value="{{ old('tanggal_beli', $aset->tanggal_beli instanceof \Carbon\Carbon ? $aset->tanggal_beli->format('Y-m-d') : $aset->tanggal_beli) }}" required readonly title="Tidak dapat diubah">
+                        <label for="tanggal_beli" class="form-label text-white">Tanggal Pembelian <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control bg-dark text-white @error('tanggal_beli') is-invalid @enderror" 
+                               id="tanggal_beli" name="tanggal_beli" value="{{ old('tanggal_beli', $aset->tanggal_beli instanceof \Carbon\Carbon ? $aset->tanggal_beli->format('Y-m-d') : $aset->tanggal_beli) }}" required>
                         @error('tanggal_beli')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -315,8 +319,8 @@
 
                     <div class="col-md-6 mb-3">
                         <label for="tanggal_akuisisi" class="form-label text-white">Tanggal Mulai Penyusutan</label>
-                        <input type="date" class="form-control bg-secondary text-white" 
-                               id="tanggal_akuisisi" name="tanggal_akuisisi" value="{{ old('tanggal_akuisisi', $aset->tanggal_akuisisi instanceof \Carbon\Carbon ? $aset->tanggal_akuisisi->format('Y-m-d') : $aset->tanggal_akuisisi) }}" readonly title="Tidak dapat diubah">
+                        <input type="date" class="form-control bg-dark text-white @error('tanggal_akuisisi') is-invalid @enderror" 
+                               id="tanggal_akuisisi" name="tanggal_akuisisi" value="{{ old('tanggal_akuisisi', $aset->tanggal_akuisisi instanceof \Carbon\Carbon ? $aset->tanggal_akuisisi->format('Y-m-d') : $aset->tanggal_akuisisi) }}">
                         <small class="text-white">Kosongkan jika sama dengan tanggal pembelian</small>
                         @error('tanggal_akuisisi')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -400,7 +404,7 @@ function hitungPenyusutan() {
     
     if (metode === 'saldo_menurun') {
         tarifContainer.style.display = 'block';
-        bulanMulaiContainer.style.display = 'block';
+        bulanMulaiContainer.style.display = 'none';
         // Auto-fill tarif saat umur manfaat diubah
         const tarifInput = document.getElementById('tarif_penyusutan');
         if (umur > 0 && document.getElementById('umur_manfaat').value !== '') {
@@ -408,6 +412,12 @@ function hitungPenyusutan() {
             tarifInput.value = Math.min(calculatedTarif, 100); // Maksimal 100%
             updateDepreciationInfo();
         }
+    } else if (metode === 'garis_lurus') {
+        tarifContainer.style.display = 'none';
+        bulanMulaiContainer.style.display = 'none';
+    } else if (metode === 'sum_of_years_digits') {
+        tarifContainer.style.display = 'none';
+        bulanMulaiContainer.style.display = 'none';
     } else {
         tarifContainer.style.display = 'none';
         bulanMulaiContainer.style.display = 'none';

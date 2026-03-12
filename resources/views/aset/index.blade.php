@@ -74,6 +74,7 @@
                             <th>Kategori</th>
                             <th>Harga (Rp)</th>
                             <th>Tanggal Beli</th>
+                            <th>Metode Penyusutan</th>
                             <th>Nilai Buku (Rp)</th>
                             <th>Status</th>
                             <th>Aksi</th>
@@ -84,10 +85,13 @@
                             <tr>
                                 <td>{{ $loop->iteration + (($asets->currentPage() - 1) * $asets->perPage()) }}</td>
                                 <td>{{ $aset->nama_asset ?? $aset->nama_aset }}</td>
-                                <td>{{ optional($aset->tanggal_beli)->format('d/m/Y') }}</td>
+                                <td>{{ optional($aset->kategori->jenisAset)->jenis_aset ?? '-' }}</td>
+                                <td>{{ optional($aset->kategori)->kategori ?? '-' }}</td>
                                 <td class="text-end">{{ number_format((float)$aset->harga_perolehan, 2, ',', '.') }}</td>
-                                <td class="text-end">{{ number_format((float)$aset->nilai_sisa, 2, ',', '.') }}</td>
-                                <td>{{ $aset->umur_ekonomis }}</td>
+                                <td>{{ optional($aset->tanggal_beli)->format('d/m/Y') ?? optional($aset->tanggal_perolehan)->format('d/m/Y') }}</td>
+                                <td>{{ $aset->metode_penyusutan ? ucfirst(str_replace('_', ' ', $aset->metode_penyusutan)) : '-' }}</td>
+                                <td class="text-end">{{ number_format((float)$aset->nilai_buku, 2, ',', '.') }}</td>
+                                <td>{{ $aset->status }}</td>
                                 <td>
                                     <div class="btn-group" role="group">
                                         <a href="{{ route('aset.show', $aset->id) }}" class="btn btn-sm btn-info" title="Detail">
@@ -108,7 +112,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center">Tidak ada data aset</td>
+                                <td colspan="9" class="text-center">Tidak ada data aset</td>
                             </tr>
                         @endforelse
                     </tbody>
