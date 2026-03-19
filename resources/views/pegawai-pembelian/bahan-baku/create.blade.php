@@ -61,7 +61,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="harga_satuan" class="form-label">Harga Satuan (Rp) <span class="text-danger">*</span></label>
+                        <label for="harga_satuan" class="form-label">Harga/Satuan <span class="text-danger">*</span></label>
                         <input type="number" step="0.01" class="form-control @error('harga_satuan') is-invalid @enderror" 
                                id="harga_satuan" name="harga_satuan" value="{{ old('harga_satuan', 0) }}" required>
                         @error('harga_satuan')

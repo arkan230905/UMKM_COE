@@ -90,7 +90,7 @@
                             <small class="text-muted stok-info"></small>
                         </td>
                         <td><input type="number" step="0.0001" min="0.0001" name="jumlah[]" class="form-control jumlah" value="1" required></td>
-                        <td><input type="number" step="1" min="0" name="harga_satuan[]" class="form-control harga" value="0" readonly required></td>
+                        <td><input type="text" name="harga_satuan[]" class="form-control harga" value="0" readonly required></td>
                         <td><input type="number" step="0.01" min="0" max="100" name="diskon_persen[]" class="form-control diskon" value="0"></td>
                         <td><input type="text" class="form-control subtotal" value="0" readonly></td>
                         <td><button type="button" class="btn btn-danger btn-sm removeRow">-</button></td>
@@ -228,9 +228,9 @@ function addProductByBarcode(product) {
             const clone = firstRow.cloneNode(true);
             clone.querySelectorAll('input').forEach(inp => {
                 if (inp.classList.contains('jumlah')) inp.value = 1;
-                else if (inp.classList.contains('harga')) inp.value = product.harga;
+                else if (inp.classList.contains('harga')) inp.value = formatCurrency(product.harga);
                 else if (inp.classList.contains('diskon')) inp.value = 0;
-                else if (inp.classList.contains('subtotal')) inp.value = product.harga.toLocaleString();
+                else if (inp.classList.contains('subtotal')) inp.value = formatCurrency(product.harga);
             });
             
             const select = clone.querySelector('.produk-select');
@@ -354,27 +354,36 @@ document.addEventListener('DOMContentLoaded', function() {
     // Listen to payment method changes
     document.getElementById('payment_method_jual').addEventListener('change', toggleSumberDana);
 
+    function formatCurrency(value) {
+        const roundedValue = Math.round(parseFloat(value) * 1000) / 1000;
+        return 'Rp ' + roundedValue.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+    }
+    
+    function parseCurrency(formattedValue) {
+        return parseFloat(formattedValue.replace(/[^\d]/g, '')) || 0;
+    }
+
     function recalcRow(tr) {
         const q = parseFloat(tr.querySelector('.jumlah').value) || 0;
-        const p = parseFloat(tr.querySelector('.harga').value) || 0;
+        const p = parseCurrency(tr.querySelector('.harga').value) || 0;
         const dPct = Math.min(Math.max(parseFloat(tr.querySelector('.diskon').value) || 0, 0), 100);
         const sub = q * p;
         const dNom = sub * (dPct/100.0);
         const line = Math.max(sub - dNom, 0);
-        tr.querySelector('.subtotal').value = line.toLocaleString();
+        tr.querySelector('.subtotal').value = formatCurrency(line);
     }
 
     function recalcTotal() {
         let sum = 0;
         table.querySelectorAll('tbody tr').forEach(tr => {
-            const val = (tr.querySelector('.subtotal').value || '0').replace(/,/g,'');
+            const val = (tr.querySelector('.subtotal').value || 'Rp 0').replace(/[^\d]/g,'');
             sum += parseFloat(val) || 0;
         });
         
         // Update subtotal produk
         const subtotalProdukInput = document.querySelector('input[name="subtotal_produk"]');
         if (subtotalProdukInput) {
-            subtotalProdukInput.value = sum.toLocaleString();
+            subtotalProdukInput.value = formatCurrency(sum);
         }
         
         // Get additional costs
@@ -389,7 +398,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update PPN
         const totalPPNInput = document.getElementById('total_ppn');
         if (totalPPNInput) {
-            totalPPNInput.value = totalPPN.toLocaleString();
+            totalPPNInput.value = formatCurrency(totalPPN);
         }
         
         // Calculate final total
@@ -398,7 +407,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update total
         const totalInput = document.getElementById('total_final');
         if (totalInput) {
-            totalInput.value = finalTotal.toLocaleString();
+            totalInput.value = formatCurrency(finalTotal);
         }
     }
 
@@ -408,7 +417,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const price = parseFloat(opt?.getAttribute('data-price') || '0') || 0;
         const stok = parseFloat(opt?.getAttribute('data-stok') || '0') || 0;
         
-        tr.querySelector('.harga').value = price;
+        tr.querySelector('.harga').value = formatCurrency(price);
         
         // Update stok info
         const stokInfo = tr.querySelector('.stok-info');
@@ -445,9 +454,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const clone = tbody.rows[0].cloneNode(true);
         clone.querySelectorAll('input').forEach(inp => {
             if (inp.classList.contains('jumlah')) inp.value = 1;
-            else if (inp.classList.contains('harga')) inp.value = 0;
+            else if (inp.classList.contains('harga')) inp.value = 'Rp 0';
             else if (inp.classList.contains('diskon')) inp.value = 0;
-            else if (inp.classList.contains('subtotal')) inp.value = 0;
+            else if (inp.classList.contains('subtotal')) inp.value = 'Rp 0';
         });
         clone.querySelectorAll('select').forEach(sel => sel.selectedIndex = 0);
         table.querySelector('tbody').appendChild(clone);
