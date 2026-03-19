@@ -548,42 +548,81 @@ function saveSatuan() {
         return;
     }
     
-    // Simulate saving (in real implementation, this would be an AJAX call)
-    const newRow = `
-        <tr>
-            <td>
-                <span class="badge bg-primary">
-                    ${kode.toUpperCase()}
-                </span>
-            </td>
-            <td>
-                <strong>${nama}</strong>
-            </td>
-            <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary" onclick="editSatuan('new')">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteSatuan('new')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        </tr>
-    `;
-    
-    // Add to table
-    const tbody = document.querySelector('#satuan-panel tbody');
-    if (tbody.querySelector('tr td[colspan="3"]')) {
-        // Remove empty state if exists
-        tbody.innerHTML = '';
-    }
-    tbody.insertAdjacentHTML('beforeend', newRow);
-    
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('addSatuanModal'));
-    modal.hide();
-    
-    // Show success message
-    showSuccessMessage('Satuan berhasil ditambahkan!');
+    // Send AJAX request to save
+    fetch('/master-data/satuan', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            kode: kode,
+            nama: nama
+        })
+    })
+    .then(response => {
+        console.log('Save response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Save response data:', data);
+        if (data.success) {
+            // Add to table
+            const newRow = `
+                <tr>
+                    <td>
+                        <span class="badge bg-primary">
+                            ${kode.toUpperCase()}
+                        </span>
+                    </td>
+                    <td>
+                        <strong>${nama}</strong>
+                    </td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editSatuan(${data.id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteSatuan(${data.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+            
+            // Add to table
+            const tbody = document.querySelector('#satuan-panel tbody');
+            if (tbody.querySelector('tr td[colspan="3"]')) {
+                // Remove empty state if exists
+                tbody.innerHTML = '';
+            }
+            tbody.insertAdjacentHTML('beforeend', newRow);
+            
+            // Add to satuanData array
+            satuanData.push({
+                id: data.id,
+                kode: kode.toUpperCase(),
+                nama: nama
+            });
+            
+            // Update dropdowns
+            initializeDropdowns();
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('addSatuanModal'));
+            modal.hide();
+            
+            // Show success message
+            showSuccessMessage('Satuan berhasil ditambahkan!');
+        } else {
+            alert('Gagal menambahkan data: ' + (data.message || 'Terjadi kesalahan'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Gagal menambahkan data. Silakan coba lagi.');
+    });
 }
 
 // Show success message
@@ -754,18 +793,25 @@ function updateSatuan() {
     
     // Send AJAX request to update
     fetch(`/master-data/satuan/${id}`, {
-        method: 'PUT',
+        method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
         },
         body: JSON.stringify({
+            _method: 'PUT',
             kode: kode,
             nama: nama
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
     .then(data => {
+        console.log('Response data:', data);
         if (data.success) {
             // Update the table row
             const row = document.querySelector(`tr:has(button[onclick="editSatuan(${id})"])`);
@@ -809,14 +855,23 @@ function deleteSatuan(id) {
     if (confirm(`Apakah Anda yakin ingin menghapus satuan "${satuan.nama}"?`)) {
         // Send AJAX request to delete
         fetch(`/master-data/satuan/${id}`, {
-            method: 'DELETE',
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            }
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                _method: 'DELETE'
+            })
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Delete response status:', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('Delete response data:', data);
             if (data.success) {
                 // Remove the table row
                 const row = document.querySelector(`tr:has(button[onclick="editSatuan(${id})"])`);

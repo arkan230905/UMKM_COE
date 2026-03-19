@@ -29,6 +29,9 @@ class SatuanController extends Controller
 
     public function store(Request $request)
     {
+        // Check if this is an AJAX request
+        $isAjax = $request->ajax() || $request->wantsJson();
+        
         $validated = $request->validate([
             'kode' => 'required|string|max:10|unique:satuans,kode',
             'nama' => 'required|string|max:50|unique:satuans,nama',
@@ -43,15 +46,32 @@ class SatuanController extends Controller
 
         try {
             // Simpan data
-            Satuan::create([
+            $satuan = Satuan::create([
                 'kode' => strtoupper($validated['kode']),
                 'nama' => $validated['nama'],
             ]);
+
+            // Check if request is AJAX
+            if ($isAjax) {
+                return response()->json([
+                    'success' => true,
+                    'id' => $satuan->id,
+                    'message' => 'Data satuan berhasil ditambahkan!'
+                ]);
+            }
 
             return redirect()->route('master-data.satuan.index')
                 ->with('success', 'Data satuan berhasil ditambahkan!');
                 
         } catch (\Exception $e) {
+            // Check if request is AJAX
+            if ($isAjax) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menambahkan data: ' . $e->getMessage()
+                ], 500);
+            }
+
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Gagal menambahkan data: ' . $e->getMessage());
@@ -66,6 +86,9 @@ class SatuanController extends Controller
 
     public function update(Request $request, Satuan $satuan)
     {
+        // Check if this is an AJAX request
+        $isAjax = $request->ajax() || $request->wantsJson();
+        
         $validated = $request->validate([
             'kode' => 'required|string|max:10|unique:satuans,kode,' . $satuan->id,
             'nama' => 'required|string|max:50|unique:satuans,nama,' . $satuan->id,
@@ -85,8 +108,8 @@ class SatuanController extends Controller
                 'nama' => $validated['nama'],
             ]);
 
-            // Check if request expects JSON (AJAX)
-            if ($request->expectsJson()) {
+            // Check if request is AJAX
+            if ($isAjax) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Data satuan berhasil diperbarui!'
@@ -97,8 +120,8 @@ class SatuanController extends Controller
                 ->with('success', 'Data satuan berhasil diperbarui!');
                 
         } catch (\Exception $e) {
-            // Check if request expects JSON (AJAX)
-            if ($request->expectsJson()) {
+            // Check if request is AJAX
+            if ($isAjax) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Gagal memperbarui data: ' . $e->getMessage()
@@ -113,12 +136,15 @@ class SatuanController extends Controller
 
     public function destroy(Request $request, Satuan $satuan)
     {
+        // Check if this is an AJAX request
+        $isAjax = $request->ajax() || $request->wantsJson();
+        
         try {
             $satuanName = $satuan->nama;
             $satuan->delete();
 
-            // Check if request expects JSON (AJAX)
-            if ($request->expectsJson()) {
+            // Check if request is AJAX
+            if ($isAjax) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Satuan berhasil dihapus!'
@@ -129,8 +155,8 @@ class SatuanController extends Controller
                 ->with('success', 'Satuan berhasil dihapus!');
                 
         } catch (\Exception $e) {
-            // Check if request expects JSON (AJAX)
-            if ($request->expectsJson()) {
+            // Check if request is AJAX
+            if ($isAjax) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Gagal menghapus data: ' . $e->getMessage()
