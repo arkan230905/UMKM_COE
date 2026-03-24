@@ -26,8 +26,8 @@ class CoaResource extends Resource
                     'Aset'=>'Aset','Kewajiban'=>'Kewajiban','Modal'=>'Modal','Pendapatan'=>'Pendapatan','Beban'=>'Beban'
                 ]),
             Forms\Components\Toggle::make('is_akun_header'),
-            Forms\Components\Select::make('parent_id')->label('Akun Induk')
-                ->options(fn() => Coa::pluck('nama_akun','id')->toArray()),
+            Forms\Components\Select::make('kode_induk')->label('Akun Induk')
+                ->options(fn() => Coa::where('is_akun_header', 1)->pluck('nama_akun', 'kode_akun')->toArray()),
             Forms\Components\TextInput::make('saldo_awal')->numeric()->label('Saldo Awal')
                 ->disabled(fn ($record) => $record?->posted_saldo_awal),
             Forms\Components\DatePicker::make('tanggal_saldo_awal')->label('Tanggal Saldo Awal')

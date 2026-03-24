@@ -77,17 +77,17 @@
                             class="form-select bg-dark text-white border-dark @error('status') is-invalid @enderror" 
                             required>
                             <option value="">-- Pilih Status --</option>
-                            <option value="Hadir" {{ old('status', $presensi->status) == 'Hadir' ? 'selected' : '' }} class="text-white">
+                            <option value="hadir" {{ old('status', $presensi->status) == 'hadir' ? 'selected' : '' }} class="text-white">
                                 Hadir
                             </option>
-                            <option value="Izin" {{ old('status', $presensi->status) == 'Izin' ? 'selected' : '' }} class="text-white">
+                            <option value="izin" {{ old('status', $presensi->status) == 'izin' ? 'selected' : '' }} class="text-white">
                                 Izin
                             </option>
-                            <option value="Sakit" {{ old('status', $presensi->status) == 'Sakit' ? 'selected' : '' }} class="text-white">
+                            <option value="sakit" {{ old('status', $presensi->status) == 'sakit' ? 'selected' : '' }} class="text-white">
                                 Sakit
                             </option>
-                            <option value="Alpa" {{ old('status', $presensi->status) == 'Alpa' ? 'selected' : '' }} class="text-white">
-                                Alpa
+                            <option value="alpha" {{ old('status', $presensi->status) == 'alpha' ? 'selected' : '' }} class="text-white">
+                                Alpha
                             </option>
                         </select>
                         @error('status')
@@ -102,8 +102,8 @@
                         </label>
                         <input type="time" name="jam_masuk" id="jam_masuk" 
                                class="form-control bg-dark text-white border-dark @error('jam_masuk') is-invalid @enderror" 
-                               value="{{ old('jam_masuk', $presensi->status == 'Hadir' && $presensi->jam_masuk ? \Carbon\Carbon::parse($presensi->jam_masuk)->format('H:i') : '08:00') }}" 
-                               {{ old('status', $presensi->status) == 'Hadir' ? 'required' : '' }}
+                               value="{{ old('jam_masuk', $presensi->status == 'hadir' && $presensi->jam_masuk ? \Carbon\Carbon::parse($presensi->jam_masuk)->format('H:i') : '08:00') }}" 
+                               {{ old('status', $presensi->status) == 'hadir' ? 'required' : '' }}
                                pattern="[0-9]{2}:[0-9]{2}">
                         @error('jam_masuk')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -117,8 +117,8 @@
                         </label>
                         <input type="time" name="jam_keluar" id="jam_keluar" 
                                class="form-control bg-dark text-white border-dark @error('jam_keluar') is-invalid @enderror" 
-                               value="{{ old('jam_keluar', $presensi->status == 'Hadir' && $presensi->jam_keluar ? \Carbon\Carbon::parse($presensi->jam_keluar)->format('H:i') : '17:00') }}" 
-                               {{ old('status', $presensi->status) == 'Hadir' ? 'required' : '' }}
+                               value="{{ old('jam_keluar', $presensi->status == 'hadir' && $presensi->jam_keluar ? \Carbon\Carbon::parse($presensi->jam_keluar)->format('H:i') : '17:00') }}" 
+                               {{ old('status', $presensi->status) == 'hadir' ? 'required' : '' }}
                                pattern="[0-9]{2}:[0-9]{2}">
                         @error('jam_keluar')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -141,7 +141,7 @@
                     <!-- Tombol Aksi -->
                     <div class="col-12 mt-4">
                         <div class="d-flex justify-content-end gap-2">
-                            <button type="button" class="btn btn-outline-light" onclick="window.history.back()">
+                            <button type="button" class="btn btn-secondary" onclick="window.history.back()">
                                 <i class="bi bi-x-circle me-1"></i> Batal
                             </button>
                             <button type="submit" class="btn btn-primary" id="submitBtn">
@@ -197,7 +197,7 @@
             const status = statusSelect.value;
             console.log('toggleJamFields called, status:', status);
             
-            if (status === 'Hadir') {
+            if (status === 'hadir') {
                 // Tampilkan field jam
                 if (jamMasukField) {
                     jamMasukField.classList.remove('jam-field-hidden');
@@ -259,7 +259,7 @@
     // Auto-set jam keluar when jam masuk changes
     if (jamMasuk) {
         jamMasuk.addEventListener('change', function() {
-            if (statusSelect && statusSelect.value === 'Hadir' && jamKeluar) {
+            if (statusSelect && statusSelect.value === 'hadir' && jamKeluar) {
                 const [hours, minutes] = this.value.split(':').map(Number);
                 const date = new Date();
                 date.setHours(hours + 9, minutes, 0); // Default +9 jam
@@ -282,7 +282,7 @@
             let isValid = true;
             
             // Validasi jam keluar harus setelah jam masuk
-            if (statusSelect.value === 'Hadir' && jamMasuk && jamMasuk.value && jamKeluar && jamKeluar.value) {
+            if (statusSelect.value === 'hadir' && jamMasuk && jamMasuk.value && jamKeluar && jamKeluar.value) {
                 const masuk = new Date('2000-01-01T' + jamMasuk.value);
                 const keluar = new Date('2000-01-01T' + jamKeluar.value);
                 
@@ -352,13 +352,16 @@
     }
     
     /* Style untuk tombol */
-    .btn-outline-light {
-        border-color: #4a4a5a;
+    .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        color: #ffffff;
     }
     
-    .btn-outline-light:hover {
-        background-color: #2d2d3a;
-        border-color: #4a4a5a;
+    .btn-secondary:hover {
+        background-color: #5a6268;
+        border-color: #545b62;
+        color: #ffffff;
     }
     
     /* Style untuk alert */

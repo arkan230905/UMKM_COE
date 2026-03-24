@@ -17,6 +17,13 @@
         </div>
     @endif
 
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-white py-3">
             <h5 class="mb-1">
@@ -78,13 +85,14 @@
                     </thead>
                     <tbody>
                         @forelse($pegawais as $index => $pegawai)
+                        @php($rowKey = $pegawai->getKey())
                         <tr>
                             <td class="text-center text-muted">{{ ($pegawais->currentPage() - 1) * $pegawais->perPage() + $loop->iteration }}</td>
                             <td>{{ $pegawai->kode_pegawai }}</td>
                             <td>{{ $pegawai->nama }}</td>
                             <td>{{ $pegawai->email }}</td>
                             <td>{{ $pegawai->no_telepon }}</td>
-                            <td class="col-alamat"><small class="text-muted">{{ Str::limit($pegawai->alamat, 40) }}</small></td>
+                            <td class="col-alamat">{{ Str::limit($pegawai->alamat, 40) }}</td>
                             <td>{{ $pegawai->jenis_kelamin == 'L' ? 'Laki-laki' : 'Perempuan' }}</td>
                             <td>{{ $pegawai->jabatan }}</td>
                             <td class="text-center">
@@ -101,42 +109,21 @@
                             <td class="text-end">Rp {{ number_format($pegawai->asuransi, 0, ',', '.') }}</td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('master-data.pegawai.edit', $pegawai->id) }}" 
+                                    <a href="{{ route('master-data.pegawai.edit', $pegawai) }}" 
                                        class="btn btn-outline-primary" 
                                        data-bs-toggle="tooltip" 
                                        title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <button type="button" 
-                                            class="btn btn-outline-danger" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#deleteModal{{ $pegawai->id }}"
-                                            title="Hapus">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                                
-                                <!-- Delete Modal -->
-                                <div class="modal fade" id="deleteModal{{ $pegawai->id }}" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Konfirmasi Hapus</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                Apakah Anda yakin ingin menghapus data pegawai <strong>{{ $pegawai->nama }}</strong>?
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                <form action="{{ route('master-data.pegawai.destroy', $pegawai->id) }}" method="POST">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-danger">Hapus</button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <form action="{{ route('master-data.pegawai.destroy', $pegawai) }}" method="POST" class="d-inline delete-form" data-pegawai-nama="{{ $pegawai->nama }}">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button" 
+                                                class="btn btn-outline-danger delete-btn" 
+                                                title="Hapus">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>
@@ -176,21 +163,59 @@
     </div>
 </div>
 
+
 @push('scripts')
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     // Inisialisasi tooltip
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+
+    // Handle delete button dengan SweetAlert2
+    document.addEventListener('DOMContentLoaded', function() {
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+        
+        deleteButtons.forEach(function(button) {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const form = this.closest('.delete-form');
+                const pegawaiNama = form.getAttribute('data-pegawai-nama');
+                
+                Swal.fire({
+                    title: 'Konfirmasi Hapus',
+                    html: `Apakah Anda yakin ingin menghapus pegawai:<br><strong>${pegawaiNama}</strong><br><small class="text-muted">Data yang sudah dihapus tidak dapat dikembalikan.</small>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Ya, Hapus!',
+                    cancelButtonText: 'Batal',
+                    showLoaderOnConfirm: true,
+                    preConfirm: () => {
+                        return new Promise((resolve) => {
+                            form.submit();
+                            resolve();
+                        });
+                    },
+                    allowOutsideClick: () => !Swal.isLoading()
+                });
+            });
+        });
+    });
     
     // Auto close alert setelah 5 detik
     setTimeout(function() {
-        var alert = document.querySelector('.alert');
-        if (alert) {
-            var bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
-        }
+        document.querySelectorAll('.alert.alert-success, .alert.alert-danger').forEach(function (alertEl) {
+            try {
+                var bsAlert = bootstrap.Alert.getOrCreateInstance(alertEl);
+                bsAlert.close();
+            } catch (e) {
+                // ignore
+            }
+        });
     }, 5000);
 </script>
 @endpush

@@ -84,7 +84,9 @@ class CoaController extends Controller
 
     public function create()
     {
-        $coas = Coa::orderBy('kode_akun')->get(['kode_akun','nama_akun']);
+        $coas = Coa::where('is_akun_header', 1)
+            ->orderBy('kode_akun')
+            ->get(['kode_akun', 'nama_akun']);
         return view('master-data.coa.create', compact('coas'));
     }
 
@@ -147,7 +149,9 @@ class CoaController extends Controller
 
     public function edit(Coa $coa)
     {
-        $coas = Coa::orderBy('kode_akun')->get(['kode_akun','nama_akun']);
+        $coas = Coa::where('is_akun_header', 1)
+            ->orderBy('kode_akun')
+            ->get(['kode_akun', 'nama_akun']);
         return view('master-data.coa.edit', compact('coa','coas'));
     }
 

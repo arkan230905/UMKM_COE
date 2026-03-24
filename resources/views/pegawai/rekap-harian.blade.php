@@ -68,33 +68,20 @@
                                 <tr>
                                     <td class="text-center">{{ $index + 1 }}</td>
                                     <td>
-                                        <div class="d-flex align-items-center">
-                                            @if($attendance->pegawai && $attendance->pegawai->foto_wajah)
-                                                <img src="{{ asset('storage/' . $attendance->pegawai->foto_wajah) }}" 
-                                                     alt="Foto" 
-                                                     class="rounded-circle me-2"
-                                                     style="width: 35px; height: 35px; object-fit: cover;">
-                                            @else
-                                                <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center me-2" 
-                                                     style="width: 35px; height: 35px;">
-                                                    <i class="bi bi-person text-white"></i>
-                                                </div>
-                                            @endif
-                                            <strong>{{ $attendance->pegawai->nama ?? 'N/A' }}</strong>
-                                        </div>
+                                        <strong>{{ $attendance->pegawai->nama ?? 'N/A' }}</strong>
                                     </td>
                                     <td>{{ $attendance->pegawai->kode_pegawai ?? '-' }}</td>
                                     <td class="text-center">
                                         <span class="badge bg-success">
                                             <i class="bi bi-clock-fill me-1"></i>
-                                            {{ $attendance->jam_masuk }}
+                                            {{ date('H.i', strtotime($attendance->jam_masuk)) }}
                                         </span>
                                     </td>
                                     <td class="text-center">
                                         @if($attendance->jam_keluar)
                                             <span class="badge bg-danger">
                                                 <i class="bi bi-clock-fill me-1"></i>
-                                                {{ $attendance->jam_keluar }}
+                                                {{ date('H.i', strtotime($attendance->jam_keluar)) }}
                                             </span>
                                         @else
                                             <span class="badge bg-secondary">

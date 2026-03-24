@@ -6,20 +6,11 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="mb-4">
                 <h4>
                     <i class="bi bi-clock-history me-2"></i>
                     Riwayat Presensi
                 </h4>
-                <div class="d-flex align-items-center">
-                    <img src="{{ $pegawai->foto_wajah ? Storage::url($pegawai->foto_wajah) : '/images/default-avatar.png' }}" 
-                         class="rounded-circle me-2" 
-                         style="width: 40px; height: 40px; object-fit: cover;">
-                    <div>
-                        <h6 class="mb-0">{{ $pegawai->nama }}</h6>
-                        <small class="text-muted">{{ $pegawai->jabatan ?? '-' }}</small>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
@@ -95,14 +86,14 @@
                                         <td>
                                             <span class="badge bg-success">
                                                 <i class="bi bi-clock-fill me-1"></i>
-                                                {{ $attendance->jam_masuk }}
+                                                {{ date('H.i', strtotime($attendance->jam_masuk)) }}
                                             </span>
                                         </td>
                                         <td>
                                             @if($attendance->jam_keluar)
                                                 <span class="badge bg-danger">
                                                     <i class="bi bi-clock-fill me-1"></i>
-                                                    {{ $attendance->jam_keluar }}
+                                                    {{ date('H.i', strtotime($attendance->jam_keluar)) }}
                                                 </span>
                                             @else
                                                 <span class="badge bg-secondary">
@@ -118,13 +109,11 @@
                                         </td>
                                         <td>
                                             @if($attendance->jam_keluar)
-                                                <span class="text-success">
-                                                    <i class="bi bi-check-circle me-1"></i>
-                                                    Presensi Lengkap
+                                                <span class="badge bg-success">
+                                                    Lengkap
                                                 </span>
                                             @else
-                                                <span class="text-warning">
-                                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                                <span class="badge bg-warning">
                                                     Belum Absen Keluar
                                                 </span>
                                             @endif

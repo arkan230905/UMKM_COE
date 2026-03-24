@@ -196,7 +196,7 @@ a:active {
 }
 
 .table thead th {
-    background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+    background: linear-gradient(135deg, var(--secondary-gold) 0%, var(--primary-gold) 100%);
     color: white;
     font-weight: 600;
     border: none;
@@ -217,6 +217,8 @@ a:active {
 .table tbody td {
     vertical-align: middle;
     padding: 1rem 0.75rem;
+    color: #212529;
+    font-weight: 500;
 }
 
 .employee-avatar {
@@ -318,18 +320,23 @@ a:active {
 }
 
 .jam-masuk {
-    color: #000000;
+    color: #212529;
     font-weight: 700;
 }
 
 .jam-keluar {
-    color: #000000;
+    color: #212529;
     font-weight: 700;
 }
 
 .jumlah-jam {
-    color: #000000;
+    color: #212529;
     font-weight: 700;
+}
+
+.fw-bold {
+    font-weight: 700 !important;
+    color: #212529 !important;
 }
 </style>
 
@@ -352,12 +359,9 @@ a:active {
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show alert-custom" role="alert">
+        <div class="alert alert-success fade show alert-custom" role="alert">
             <i class="fas fa-check-circle me-2"></i>
             {{ session('success') }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
         </div>
     @endif
 
@@ -433,18 +437,19 @@ a:active {
                                     @endif
                                     <div>
                                         <div class="fw-bold">
-                                            {{ optional($presensi->pegawai)->nama_display ?? optional($presensi->pegawai)->nama ?? 'Pegawai Tidak Ditemukan' }}
+                                            {{ $presensi->pegawai->nama ?? 'Pegawai Tidak Ditemukan' }}
                                         </div>
-                                        <small class="text-muted">NIP: {{ optional($presensi->pegawai)->nomor_induk_pegawai ?? 'N/A' }}</small>
                                     </div>
                                 </div>
                             </td>
-                            <td class="text-center">{{ $presensi->tgl_presensi ? $presensi->tgl_presensi->format('d/m/Y') : '-' }}</td>
                             <td class="text-center">
-                                <span class="jam-masuk">{{ $presensi->jam_masuk ?? '-' }}</span>
+                                <span class="fw-bold">{{ $presensi->tgl_presensi ? $presensi->tgl_presensi->format('d/m/Y') : '-' }}</span>
                             </td>
                             <td class="text-center">
-                                <span class="jam-keluar">{{ $presensi->jam_keluar ?? '-' }}</span>
+                                <span class="jam-masuk">{{ $presensi->jam_masuk ? date('H.i', strtotime($presensi->jam_masuk)) : '-' }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="jam-keluar">{{ $presensi->jam_keluar ? date('H.i', strtotime($presensi->jam_keluar)) : '-' }}</span>
                             </td>
                             <td class="text-center">
                                 @if($presensi->jumlah_jam !== null)
@@ -454,25 +459,7 @@ a:active {
                                 @endif
                             </td>
                             <td class="text-center">
-                                @switch($presensi->status)
-                                    @case('Hadir')
-                                        <span class="badge badge-success">Hadir</span>
-                                        @break
-                                    @case('Terlambat')
-                                        <span class="badge badge-warning">Terlambat</span>
-                                        @break
-                                    @case('Izin')
-                                        <span class="badge badge-warning">Izin</span>
-                                        @break
-                                    @case('Sakit')
-                                        <span class="badge badge-warning">Sakit</span>
-                                        @break
-                                    @case('Alpha')
-                                        <span class="badge badge-danger">Alpha</span>
-                                        @break
-                                    @default
-                                        <span class="badge badge-secondary">{{ $presensi->status }}</span>
-                                @endswitch
+                                <span class="fw-bold">{{ ucfirst($presensi->status) }}</span>
                             </td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
@@ -495,7 +482,7 @@ a:active {
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="9" class="empty-state">
+                            <td colspan="8" class="empty-state">
                                 <i class="fas fa-inbox"></i>
                                 <h5>Belum ada data presensi</h5>
                                 <p class="mb-0">Klik tombol "Tambah Presensi" untuk menambahkan data baru</p>
@@ -522,6 +509,10 @@ a:active {
 </div>
 
 @push('scripts')
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 $(document).ready(function() {
     // Initialize tooltips

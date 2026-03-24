@@ -57,6 +57,11 @@ class Pegawai extends Model
         'updated_at'
     ];
 
+    public function getNoTeleponAttribute()
+    {
+        return $this->attributes['no_telepon'] ?? $this->attributes['no_telp'] ?? null;
+    }
+
     public function presensis(): HasMany
     {
         return $this->hasMany(Presensi::class, 'pegawai_id');

@@ -23,16 +23,19 @@
                                     <video id="video" width="100%" height="360" autoplay class="rounded"></video>
                                     <canvas id="canvas" width="100%" height="360" style="display: none;"></canvas>
                                 </div>
-                                <div class="d-flex gap-2 justify-content-center">
+                                <div class="d-flex gap-2 justify-content-center flex-wrap">
                                     <button id="startCameraBtn" class="btn btn-primary" type="button">
                                         <i class="bi bi-camera-video me-1"></i> Mulai Kamera
                                     </button>
-                                    <button id="captureBtn" class="btn btn-success btn-lg" style="display: none;" type="button">
-                                        <i class="bi bi-camera-fill me-1"></i> ABSEN SEKARANG
+                                    <button id="clockInBtn" class="btn btn-success btn-lg" style="display: none;" type="button" disabled>
+                                        <i class="bi bi-box-arrow-in-right me-1"></i> Clock in
                                     </button>
-                                    <button id="stopCameraBtn" class="btn btn-danger" style="display: none;" type="button">
-                                        <i class="bi bi-stop-circle me-1"></i> Stop Kamera
+                                    <button id="clockOutBtn" class="btn btn-danger btn-lg" style="display: none;" type="button" disabled>
+                                        <i class="bi bi-box-arrow-right me-1"></i> Clock out
                                     </button>
+                                </div>
+                                <div class="mt-3">
+                                    <small class="text-muted" id="cameraStatus">Klik "Mulai Kamera" untuk memulai</small>
                                 </div>
                             </div>
                         </div>
@@ -77,13 +80,13 @@
                                         <div class="col-6">
                                             <small class="text-muted">Jam Masuk</small>
                                             <div class="fw-bold text-success">
-                                                <i class="bi bi-clock-fill me-1"></i> {{ $attendance->jam_masuk }}
+                                                <i class="bi bi-clock-fill me-1"></i> {{ date('H.i', strtotime($attendance->jam_masuk)) }}
                                             </div>
                                         </div>
                                         <div class="col-6">
                                             <small class="text-muted">Jam Keluar</small>
                                             <div class="fw-bold text-{{ $attendance->jam_keluar ? 'danger' : 'muted' }}">
-                                                <i class="bi bi-clock-fill me-1"></i> {{ $attendance->jam_keluar ?: 'Belum' }}
+                                                <i class="bi bi-clock-fill me-1"></i> {{ $attendance->jam_keluar ? date('H.i', strtotime($attendance->jam_keluar)) : 'Belum' }}
                                             </div>
                                         </div>
                                     </div>
@@ -97,44 +100,6 @@
                             </div>
                             @endif
 
-                            <!-- Recent Attendance -->
-                            <div class="card">
-                                <div class="card-body">
-                                    <h6 class="mb-3">Riwayat Presensi Hari Ini</h6>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th>Jam Masuk</th>
-                                                    <th>Jam Keluar</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @if($attendances->count() > 0)
-                                                    @foreach($attendances as $attendance)
-                                                    <tr>
-                                                        <td class="text-success">{{ $attendance->jam_masuk }}</td>
-                                                        <td class="text-danger">{{ $attendance->jam_keluar ?: '-' }}</td>
-                                                        <td>
-                                                            <span class="badge bg-{{ $attendance->jam_keluar ? 'success' : 'warning' }}">
-                                                                {{ $attendance->jam_keluar ? 'Lengkap' : 'Masuk' }}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                    @endforeach
-                                                @else
-                                                    <tr>
-                                                        <td colspan="3" class="text-center text-muted">
-                                                            Belum ada presensi hari ini
-                                                        </td>
-                                                    </tr>
-                                                @endif
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -164,23 +129,55 @@
 let video = null;
 let canvas = null;
 let stream = null;
+let attendanceStatus = {
+    hasClockIn: {{ $attendances->count() > 0 && $attendances->first()->jam_masuk ? 'true' : 'false' }},
+    hasClockOut: {{ $attendances->count() > 0 && $attendances->first()->jam_keluar ? 'true' : 'false' }}
+};
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Absen Wajah Pegawai page loaded');
+    console.log('Attendance status:', attendanceStatus);
     
     video = document.getElementById('video');
     canvas = document.getElementById('canvas');
     
     // Event listeners
     const startBtn = document.getElementById('startCameraBtn');
-    const stopBtn = document.getElementById('stopCameraBtn');
-    const captureBtn = document.getElementById('captureBtn');
+    const clockInBtn = document.getElementById('clockInBtn');
+    const clockOutBtn = document.getElementById('clockOutBtn');
     
     if (startBtn) startBtn.addEventListener('click', startCamera);
-    if (stopBtn) stopBtn.addEventListener('click', stopCamera);
-    if (captureBtn) captureBtn.addEventListener('click', processAttendance);
+    if (clockInBtn) clockInBtn.addEventListener('click', () => processAttendance('clock_in'));
+    if (clockOutBtn) clockOutBtn.addEventListener('click', () => processAttendance('clock_out'));
+    
+    // Update button states based on attendance status
+    updateButtonStates();
 });
+
+// Update button states based on attendance
+function updateButtonStates() {
+    const clockInBtn = document.getElementById('clockInBtn');
+    const clockOutBtn = document.getElementById('clockOutBtn');
+    const statusDiv = document.getElementById('attendanceStatus');
+    
+    if (attendanceStatus.hasClockIn && attendanceStatus.hasClockOut) {
+        // Both done - disable both
+        if (clockInBtn) clockInBtn.disabled = true;
+        if (clockOutBtn) clockOutBtn.disabled = true;
+        updateStatus('✅ Presensi hari ini sudah lengkap', 'success');
+    } else if (attendanceStatus.hasClockIn && !attendanceStatus.hasClockOut) {
+        // Clock in done, waiting for clock out
+        if (clockInBtn) clockInBtn.disabled = true;
+        if (clockOutBtn) clockOutBtn.disabled = false;
+        updateStatus('⏰ Menunggu Clock out', 'warning');
+    } else {
+        // No clock in yet
+        if (clockInBtn) clockInBtn.disabled = false;
+        if (clockOutBtn) clockOutBtn.disabled = true;
+        updateStatus('Siap untuk Clock in', 'info');
+    }
+}
 
 // Start camera
 async function startCamera() {
@@ -191,37 +188,40 @@ async function startCamera() {
         video.srcObject = stream;
         
         document.getElementById('startCameraBtn').style.display = 'none';
-        document.getElementById('captureBtn').style.display = 'inline-block';
-        document.getElementById('stopCameraBtn').style.display = 'inline-block';
+        document.getElementById('clockInBtn').style.display = 'inline-block';
+        document.getElementById('clockOutBtn').style.display = 'inline-block';
         
-        updateStatus('Kamera aktif. Siap untuk absen.', 'info');
+        // Update button states after camera starts
+        updateButtonStates();
+        
+        document.getElementById('cameraStatus').textContent = '✅ Kamera aktif';
+        document.getElementById('cameraStatus').classList.remove('text-muted');
+        document.getElementById('cameraStatus').classList.add('text-success');
         
     } catch (error) {
         console.error('Error accessing camera:', error);
         updateStatus('Tidak dapat mengakses kamera. Silakan izinkan akses kamera.', 'danger');
+        document.getElementById('cameraStatus').textContent = '❌ Gagal mengakses kamera';
+        document.getElementById('cameraStatus').classList.add('text-danger');
     }
 }
 
-// Stop camera
-function stopCamera() {
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-        stream = null;
-    }
-    
-    document.getElementById('startCameraBtn').style.display = 'inline-block';
-    document.getElementById('captureBtn').style.display = 'none';
-    document.getElementById('stopCameraBtn').style.display = 'none';
-    
-    updateStatus('Kamera dimatikan.', 'info');
-}
 
 // Process attendance (Login-based - Tanpa Face Recognition)
-async function processAttendance() {
-    const captureBtn = document.getElementById('captureBtn');
-    captureBtn.disabled = true;
-    captureBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Memproses...';
+async function processAttendance(action) {
+    // Check if camera is active
+    if (!stream) {
+        updateStatus('⚠️ Silakan mulai kamera terlebih dahulu', 'warning');
+        return;
+    }
+    
+    const clockInBtn = document.getElementById('clockInBtn');
+    const clockOutBtn = document.getElementById('clockOutBtn');
+    const activeBtn = action === 'clock_in' ? clockInBtn : clockOutBtn;
+    
+    activeBtn.disabled = true;
+    const originalHtml = activeBtn.innerHTML;
+    activeBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Memproses...';
     
     updateStatus('Memproses presensi...', 'info');
     
@@ -265,11 +265,13 @@ async function processAttendance() {
             // Success
             updateStatus(data.message, 'success');
             
-            // Show success animation
+            // Update attendance status
             if (data.action === 'clock_in') {
-                showSuccessAnimation('✅ Absen Masuk Berhasil!');
+                attendanceStatus.hasClockIn = true;
+                showSuccessAnimation('✅ Clock in Berhasil!');
             } else if (data.action === 'clock_out') {
-                showSuccessAnimation('✅ Absen Keluar Berhasil!');
+                attendanceStatus.hasClockOut = true;
+                showSuccessAnimation('✅ Clock out Berhasil!');
             }
             
             // Show photo preview
@@ -289,14 +291,16 @@ async function processAttendance() {
             if (data.action === 'already_complete') {
                 showWarningAnimation('⚠️ Presensi Hari Ini Lengkap');
             }
+            
+            activeBtn.disabled = false;
+            activeBtn.innerHTML = originalHtml;
         }
         
     } catch (error) {
         console.error('Error processing attendance:', error);
         updateStatus('Terjadi kesalahan. Silakan coba lagi.', 'danger');
-    } finally {
-        captureBtn.disabled = false;
-        captureBtn.innerHTML = '<i class="bi bi-camera-fill me-1"></i> ABSEN SEKARANG';
+        activeBtn.disabled = false;
+        activeBtn.innerHTML = originalHtml;
     }
 }
 
@@ -369,7 +373,9 @@ function showPhotoPreview(base64Image) {
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', function() {
-    stopCamera();
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
 });
 </script>
 @endpush
