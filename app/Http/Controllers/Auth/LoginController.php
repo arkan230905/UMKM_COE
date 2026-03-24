@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use App\Models\Pegawai;
 use App\Models\Kasir;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class LoginController extends Controller
 {
@@ -149,7 +151,19 @@ class LoginController extends Controller
             // Cek apakah user sudah ada untuk pegawai ini
             $user = User::where('email', $email)->first();
             if (!$user) {
-                return back()->withInput()->withErrors(['email' => 'Akun user untuk pegawai ini belum dibuat. Email pegawai: ' . $email . ' tapi tidak ada di tabel users.']);
+                $user = User::create([
+                    'name' => $pegawai->nama,
+                    'email' => $pegawai->email,
+                    'password' => Hash::make(Str::random(32)),
+                    'role' => User::ROLE_PEGAWAI,
+                    'pegawai_id' => $pegawai->id,
+                    'email_verified_at' => now(),
+                ]);
+            }
+
+            // Pastikan user terhubung ke pegawai
+            if (!$user->pegawai_id) {
+                $user->update(['pegawai_id' => $pegawai->id]);
             }
             
             if ($user->role !== 'pegawai') {
@@ -180,7 +194,19 @@ class LoginController extends Controller
             // Cek apakah user sudah ada untuk pegawai ini
             $user = User::where('email', $email)->first();
             if (!$user) {
-                return back()->withInput()->withErrors(['email' => 'Akun user untuk pegawai ini belum dibuat. Email pegawai: ' . $email . ' tapi tidak ada di tabel users.']);
+                $user = User::create([
+                    'name' => $pegawai->nama,
+                    'email' => $pegawai->email,
+                    'password' => Hash::make(Str::random(32)),
+                    'role' => User::ROLE_PEGAWAI_PEMBELIAN,
+                    'pegawai_id' => $pegawai->id,
+                    'email_verified_at' => now(),
+                ]);
+            }
+
+            // Pastikan user terhubung ke pegawai
+            if (!$user->pegawai_id) {
+                $user->update(['pegawai_id' => $pegawai->id]);
             }
             
             if ($user->role !== 'pegawai_pembelian') {

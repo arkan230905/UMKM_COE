@@ -11,9 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('pembelians', function (Blueprint $table) {
-            $table->softDeletes();
-        });
+        if (!Schema::hasTable('pembelians')) {
+            return;
+        }
+
+        if (!Schema::hasColumn('pembelians', 'deleted_at')) {
+            Schema::table('pembelians', function (Blueprint $table) {
+                $table->softDeletes();
+            });
+        }
     }
 
     /**
@@ -21,8 +27,14 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('pembelians', function (Blueprint $table) {
-            $table->dropSoftDeletes();
-        });
+        if (!Schema::hasTable('pembelians')) {
+            return;
+        }
+
+        if (Schema::hasColumn('pembelians', 'deleted_at')) {
+            Schema::table('pembelians', function (Blueprint $table) {
+                $table->dropSoftDeletes();
+            });
+        }
     }
 };

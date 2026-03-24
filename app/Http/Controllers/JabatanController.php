@@ -88,7 +88,7 @@ class JabatanController extends Controller
 
     public function update(Request $request, Jabatan $kualifikasi_tenaga_kerja)
     {
-        $jabatan = Jabatan::findOrFail($id);
+        $jabatan = $kualifikasi_tenaga_kerja;
         
         // Normalisasi angka berformat (1.234,56 atau 1,234.56) -> 1234.56
         $request->merge([
@@ -134,11 +134,10 @@ class JabatanController extends Controller
         }
 
         $jabatan->update($data);
-        $kualifikasi_tenaga_kerja->update($data);
         
         // Sync BOM when jabatan data changes (affects BTKL calculations)
-        if ($kualifikasi_tenaga_kerja->kategori === 'btkl') {
-            BomSyncService::syncBomFromJabatanChange($kualifikasi_tenaga_kerja->id);
+        if ($jabatan->kategori === 'btkl') {
+            BomSyncService::syncBomFromJabatanChange($jabatan->id);
         }
         
         return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')->with('success','Jabatan berhasil diperbarui');
@@ -146,8 +145,6 @@ class JabatanController extends Controller
 
     public function destroy(Jabatan $kualifikasi_tenaga_kerja)
     {
-        $jabatan = Jabatan::findOrFail($id);
-        
         // Log untuk debugging
         \Log::info('Attempting to delete jabatan', [
             'jabatan_id' => $kualifikasi_tenaga_kerja->id,

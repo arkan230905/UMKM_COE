@@ -97,21 +97,21 @@
                             required
                             onchange="toggleJamFieldsInline(this.value)">
                             <option value="" style="color: #ffffff !important; background-color: #2c2c54 !important;">-- Pilih Status --</option>
-                            <option value="Hadir" {{ old('status') == 'Hadir' ? 'selected' : '' }} class="text-white"
+                            <option value="hadir" {{ old('status') == 'hadir' ? 'selected' : '' }} class="text-white"
                                     style="color: #ffffff !important; background-color: #2c2c54 !important;">
                                 Hadir
                             </option>
-                            <option value="Izin" {{ old('status') == 'Izin' ? 'selected' : '' }} class="text-white"
+                            <option value="izin" {{ old('status') == 'izin' ? 'selected' : '' }} class="text-white"
                                     style="color: #ffffff !important; background-color: #2c2c54 !important;">
                                 Izin
                             </option>
-                            <option value="Sakit" {{ old('status') == 'Sakit' ? 'selected' : '' }} class="text-white"
+                            <option value="sakit" {{ old('status') == 'sakit' ? 'selected' : '' }} class="text-white"
                                     style="color: #ffffff !important; background-color: #2c2c54 !important;">
                                 Sakit
                             </option>
-                            <option value="Alpa" {{ old('status') == 'Alpa' ? 'selected' : '' }} class="text-white"
+                            <option value="alpha" {{ old('status') == 'alpha' ? 'selected' : '' }} class="text-white"
                                     style="color: #ffffff !important; background-color: #2c2c54 !important;">
-                                Alpa
+                                Alpha
                             </option>
                         </select>
                         @error('status')
@@ -198,7 +198,7 @@ function toggleJamFieldsInline(status) {
         jamKeluar: jamKeluar ? 'FOUND' : 'NOT FOUND'
     });
     
-    if (status === 'Hadir') {
+    if (status === 'hadir') {
         console.log('✅ Status HADIR - Menampilkan field jam');
         if (jamMasukField) {
             jamMasukField.style.display = '';
@@ -280,7 +280,7 @@ function toggleJamFieldsInline(status) {
             const status = statusSelect.value;
             console.log('toggleJamFields called, status:', status);
             
-            if (status === 'Hadir') {
+            if (status === 'hadir') {
                 // Tampilkan field jam
                 if (jamMasukField) {
                     jamMasukField.classList.remove('jam-field-hidden');
@@ -366,7 +366,7 @@ function toggleJamFieldsInline(status) {
     // Auto-set jam keluar when jam masuk changes
     if (jamMasuk) {
         jamMasuk.addEventListener('change', function() {
-            if (statusSelect && statusSelect.value === 'Hadir' && jamKeluar) {
+            if (statusSelect && statusSelect.value === 'hadir' && jamKeluar) {
                 const [hours, minutes] = this.value.split(':').map(Number);
                 const date = new Date();
                 date.setHours(hours + 9, minutes, 0); // Default +9 jam
@@ -389,7 +389,7 @@ function toggleJamFieldsInline(status) {
             let isValid = true;
             
             // Validasi jam keluar harus setelah jam masuk
-            if (statusSelect.value === 'Hadir' && jamMasuk && jamMasuk.value && jamKeluar && jamKeluar.value) {
+            if (statusSelect.value === 'hadir' && jamMasuk && jamMasuk.value && jamKeluar && jamKeluar.value) {
                 const masuk = new Date('2000-01-01T' + jamMasuk.value);
                 const keluar = new Date('2000-01-01T' + jamKeluar.value);
                 

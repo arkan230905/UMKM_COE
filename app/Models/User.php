@@ -2,6 +2,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -13,6 +14,7 @@ class User extends Authenticatable
     // Role constants
     const ROLE_ADMIN = 'admin';
     const ROLE_OWNER = 'owner';
+    const ROLE_PEGAWAI = 'pegawai';
     const ROLE_PELANGGAN = 'pelanggan';
     const ROLE_PEGAWAI_PEMBELIAN = 'pegawai_pembelian';
     const ROLE_KASIR = 'kasir';
@@ -20,12 +22,14 @@ class User extends Authenticatable
     const VALID_ROLES = [
         self::ROLE_ADMIN,
         self::ROLE_OWNER,
+        self::ROLE_PEGAWAI,
         self::ROLE_PELANGGAN,
         self::ROLE_PEGAWAI_PEMBELIAN,
         self::ROLE_KASIR,
     ];
 
     protected $fillable = [
+        'pegawai_id',
         'name',
         'username',
         'email',
@@ -60,6 +64,11 @@ class User extends Authenticatable
     public function isOwner(): bool
     {
         return $this->role === self::ROLE_OWNER;
+    }
+
+    public function pegawai(): BelongsTo
+    {
+        return $this->belongsTo(Pegawai::class, 'pegawai_id', 'id');
     }
 
     /**

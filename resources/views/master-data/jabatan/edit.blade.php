@@ -86,8 +86,27 @@
                 let v = String(val).replace(/[^0-9,.]/g, '');
                 if (!v) return '';
                 const commaIndex = v.indexOf(',');
-                let rawInt = commaIndex >= 0 ? v.slice(0, commaIndex) : v;
-                let rawDec = commaIndex >= 0 ? v.slice(commaIndex + 1) : '';
+                const dotIndex = v.indexOf('.');
+
+                let rawInt;
+                let rawDec;
+
+                if (commaIndex >= 0) {
+                    rawInt = v.slice(0, commaIndex);
+                    rawDec = v.slice(commaIndex + 1);
+                } else if (dotIndex >= 0 && v.indexOf('.', dotIndex + 1) === -1) {
+                    const decCandidate = v.slice(dotIndex + 1);
+                    if (decCandidate.length > 0 && decCandidate.length <= 2) {
+                        rawInt = v.slice(0, dotIndex);
+                        rawDec = decCandidate;
+                    } else {
+                        rawInt = v;
+                        rawDec = '';
+                    }
+                } else {
+                    rawInt = v;
+                    rawDec = '';
+                }
                 rawInt = rawInt.replace(/\D/g, '');
                 rawDec = rawDec.replace(/\D/g, '').slice(0, 2);
                 let intPart = rawInt.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
@@ -98,7 +117,18 @@
             const toNumber = (formatted) => {
                 if (!formatted) return 0;
                 let s = String(formatted).trim();
-                s = s.replace(/\./g,'').replace(',', '.');
+                if (s.includes(',')) {
+                    s = s.replace(/\./g,'').replace(',', '.');
+                } else if (s.includes('.') && s.indexOf('.') === s.lastIndexOf('.')) {
+                    const dec = s.split('.')[1] ?? '';
+                    if (dec.length > 0 && dec.length <= 2) {
+                        // keep dot as decimal separator
+                    } else {
+                        s = s.replace(/\./g, '');
+                    }
+                } else {
+                    s = s.replace(/\./g, '');
+                }
                 let n = parseFloat(s);
                 return isNaN(n) ? 0 : n;
             };

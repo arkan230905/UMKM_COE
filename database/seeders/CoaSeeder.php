@@ -9,7 +9,17 @@ class CoaSeeder extends Seeder
 {
     public function run(): void
     {
-        $coas = [
+        $jsonPath = database_path('seeders/coa_data.json');
+        $coasFromFile = null;
+
+        if (file_exists($jsonPath)) {
+            $decoded = json_decode(file_get_contents($jsonPath), true);
+            if (is_array($decoded)) {
+                $coasFromFile = $decoded;
+            }
+        }
+
+        $coas = $coasFromFile ?? [
             // AKTIVA LANCAR (11xx)
             [
                 'kode_akun' => '1101',
@@ -215,6 +225,9 @@ class CoaSeeder extends Seeder
 
         // Insert or update COA data
         foreach ($coas as $coa) {
+            if (!is_array($coa) || empty($coa['kode_akun'])) {
+                continue;
+            }
             Coa::updateOrCreate(['kode_akun' => $coa['kode_akun']], $coa);
         }
     }

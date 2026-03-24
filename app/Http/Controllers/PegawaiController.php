@@ -3,7 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pegawai;
+use App\Models\Presensi;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class PegawaiController extends Controller
 {
@@ -61,11 +67,13 @@ class PegawaiController extends Controller
         $jab = \App\Models\Jabatan::find($validated['jabatan_id']);
         $jenisPegawai = strtolower($jab->kategori ?? 'btkl');
         
+        $phoneColumn = Schema::hasColumn('pegawais', 'no_telepon') ? 'no_telepon' : 'no_telp';
+
         // Prepare data for creation
         $pegawaiData = [
             'nama' => $validated['nama'],
             'email' => $validated['email'],
-            'no_telp' => $validated['no_telepon'],
+            $phoneColumn => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'jabatan' => $jab->nama,
@@ -87,7 +95,30 @@ class PegawaiController extends Controller
         \Log::info('Creating new Pegawai:', $pegawaiData);
         
         // Create the pegawai record
-        Pegawai::create($pegawaiData);
+        $pegawai = Pegawai::create($pegawaiData);
+
+        // Auto-create/update user account for this pegawai
+        $user = User::where('pegawai_id', $pegawai->id)->first();
+        if (!$user) {
+            $user = User::where('email', $pegawai->email)->first();
+        }
+        if ($user) {
+            $user->update([
+                'name' => $pegawai->nama,
+                'email' => $pegawai->email,
+                'role' => User::ROLE_PEGAWAI,
+                'pegawai_id' => $pegawai->id,
+            ]);
+        } else {
+            User::create([
+                'name' => $pegawai->nama,
+                'email' => $pegawai->email,
+                'password' => Hash::make(Str::random(32)),
+                'role' => User::ROLE_PEGAWAI,
+                'pegawai_id' => $pegawai->id,
+                'email_verified_at' => now(),
+            ]);
+        }
         
         // Sync BOM when pegawai changes (affects BTKL calculations)
         if (strtolower($jenisPegawai) === 'btkl') {
@@ -107,6 +138,7 @@ class PegawaiController extends Controller
     // Update data pegawai
     public function update(Request $request, Pegawai $pegawai)
     {
+        $oldEmail = $pegawai->email;
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
             'email' => 'required|email|unique:pegawais,email,'.$pegawai->id,
@@ -122,11 +154,13 @@ class PegawaiController extends Controller
         $jab = \App\Models\Jabatan::find($validated['jabatan_id']);
         $jenisPegawai = strtolower($jab->kategori ?? 'btkl');
         
+        $phoneColumn = Schema::hasColumn('pegawais', 'no_telepon') ? 'no_telepon' : 'no_telp';
+
         // Prepare data for update
         $updateData = [
             'nama' => $validated['nama'],
             'email' => $validated['email'],
-            'no_telp' => $validated['no_telepon'],
+            $phoneColumn => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
             'jabatan' => $jab->nama,
@@ -142,27 +176,219 @@ class PegawaiController extends Controller
         
         // Update the pegawai record
         $pegawai->update($updateData);
+
+        // Auto-create/update user account for this pegawai (keep it linked by pegawai_id)
+        $user = User::where('pegawai_id', $pegawai->id)->first();
+        if (!$user && $oldEmail) {
+            $user = User::where('email', $oldEmail)->first();
+        }
+        if (!$user) {
+            $user = User::where('email', $pegawai->email)->first();
+        }
+
+        if ($user) {
+            $user->update([
+                'name' => $pegawai->nama,
+                'email' => $pegawai->email,
+                'role' => User::ROLE_PEGAWAI,
+                'pegawai_id' => $pegawai->id,
+            ]);
+        } else {
+            User::create([
+                'name' => $pegawai->nama,
+                'email' => $pegawai->email,
+                'password' => Hash::make(Str::random(32)),
+                'role' => User::ROLE_PEGAWAI,
+                'pegawai_id' => $pegawai->id,
+                'email_verified_at' => now(),
+            ]);
+        }
         
         // Sync BOM when pegawai changes (affects BTKL calculations)
-        if (strtolower($jenisPegawai) === 'btkl') {
-            \App\Services\BomSyncService::syncBomFromJabatanChange($jab->id);
-        }
+        // Disabled to prevent timeout - will be synced in background or manually
+        // if (strtolower($jenisPegawai) === 'btkl') {
+        //     try {
+        //         \App\Services\BomSyncService::syncBomFromJabatanChange($jab->id);
+        //     } catch (\Exception $e) {
+        //         \Log::warning('BOM sync failed during pegawai update: ' . $e->getMessage());
+        //     }
+        // }
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil diperbarui.');
     }
 
     // Hapus pegawai
-    public function destroy(Pegawai $pegawai)
+    public function destroy(Request $request, Pegawai $pegawai)
     {
         // Get jabatan before deleting
         $jabatanNama = $pegawai->jabatan;
         $jabatan = \App\Models\Jabatan::where('nama', $jabatanNama)->first();
-        
-        $pegawai->delete();
-        
+
+        \Log::info('Pegawai destroy started', [
+            'pegawai_key' => $pegawai->getKey(),
+            'pegawai_id' => $pegawai->id ?? null,
+            'kode_pegawai' => $pegawai->kode_pegawai ?? null,
+            'nomor_induk_pegawai' => $pegawai->nomor_induk_pegawai ?? null,
+            'expects_json' => $request->expectsJson(),
+        ]);
+
+        $pegawaiIdCandidates = [];
+        if (!empty($pegawai->kode_pegawai)) {
+            $pegawaiIdCandidates[] = (string) $pegawai->kode_pegawai;
+        }
+        if (!empty($pegawai->id)) {
+            $pegawaiIdCandidates[] = (string) $pegawai->id;
+        }
+        if (Schema::hasColumn('pegawais', 'nomor_induk_pegawai') && !empty($pegawai->nomor_induk_pegawai)) {
+            $pegawaiIdCandidates[] = (string) $pegawai->nomor_induk_pegawai;
+        }
+        $pegawaiIdCandidates = array_values(array_unique(array_filter($pegawaiIdCandidates)));
+
+        $blockedBy = [];
+        $blockedMessage = null;
+
+        try {
+            if (!empty($pegawaiIdCandidates)) {
+                if (Schema::hasTable('presensis') && Schema::hasColumn('presensis', 'pegawai_id')) {
+                    $count = Presensi::whereIn('pegawai_id', $pegawaiIdCandidates)->count();
+                    if ($count > 0) {
+                        $blockedBy['presensis'] = $count;
+                    }
+                }
+
+                if (Schema::hasTable('penggajians') && Schema::hasColumn('penggajians', 'pegawai_id')) {
+                    $count = DB::table('penggajians')->whereIn('pegawai_id', $pegawaiIdCandidates)->count();
+                    if ($count > 0) {
+                        $blockedBy['penggajians'] = $count;
+                    }
+                }
+
+                if (Schema::hasTable('pegawai_produk_allocations') && Schema::hasColumn('pegawai_produk_allocations', 'pegawai_id')) {
+                    $count = DB::table('pegawai_produk_allocations')->whereIn('pegawai_id', $pegawaiIdCandidates)->count();
+                    if ($count > 0) {
+                        $blockedBy['pegawai_produk_allocations'] = $count;
+                    }
+                }
+
+                if (Schema::hasTable('users') && Schema::hasColumn('users', 'pegawai_id')) {
+                    $count = DB::table('users')->whereIn('pegawai_id', $pegawaiIdCandidates)->count();
+                    if ($count > 0) {
+                        $blockedBy['users'] = $count;
+                    }
+                }
+            }
+
+            if (Schema::hasTable('verifikasi_wajah') && Schema::hasColumn('verifikasi_wajah', 'kode_pegawai') && !empty($pegawai->kode_pegawai)) {
+                $count = DB::table('verifikasi_wajah')->where('kode_pegawai', $pegawai->kode_pegawai)->count();
+                if ($count > 0) {
+                    $blockedBy['verifikasi_wajah'] = $count;
+                }
+            }
+
+            if (Schema::hasTable('produksi_proses') && Schema::hasColumn('produksi_proses', 'pegawai_ids') && !empty($pegawai->id)) {
+                $pidStr = (string) $pegawai->id;
+                $pidInt = is_numeric($pegawai->id) ? (int) $pegawai->id : null;
+
+                $query = DB::table('produksi_proses');
+                $count = 0;
+                try {
+                    $q = clone $query;
+                    $q->whereJsonContains('pegawai_ids', $pidStr);
+                    if ($pidInt !== null) {
+                        $q->orWhereJsonContains('pegawai_ids', $pidInt);
+                    }
+                    $count = $q->count();
+                } catch (\Throwable $e) {
+                    $count = 0;
+                }
+
+                if ($count > 0) {
+                    $blockedBy['produksi_proses'] = $count;
+                }
+            }
+
+            // Hapus user dari blockedBy karena akan dihapus otomatis
+            if (isset($blockedBy['users'])) {
+                unset($blockedBy['users']);
+            }
+            
+            if (!empty($blockedBy)) {
+                $tableNames = [
+                    'presensis' => 'Data Presensi',
+                    'penggajians' => 'Data Penggajian',
+                    'pegawai_produk_allocations' => 'Alokasi Produk',
+                    'verifikasi_wajah' => 'Verifikasi Wajah',
+                    'produksi_proses' => 'Proses Produksi',
+                ];
+                
+                $blockedList = [];
+                foreach ($blockedBy as $table => $count) {
+                    $tableName = $tableNames[$table] ?? $table;
+                    $blockedList[] = "$tableName ($count data)";
+                }
+                
+                $blockedMessage = 'Pegawai tidak dapat dihapus karena masih terhubung dengan: ' . implode(', ', $blockedList) . '. Silakan hapus data terkait terlebih dahulu atau nonaktifkan pegawai.';
+
+                \Log::warning('Pegawai destroy blocked', [
+                    'pegawai_key' => $pegawai->getKey(),
+                    'blocked_by' => $blockedBy,
+                ]);
+
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $blockedMessage,
+                        'blocked_by' => $blockedBy,
+                    ], 409);
+                }
+
+                return redirect()
+                    ->route('master-data.pegawai.index')
+                    ->with('error', $blockedMessage);
+            }
+
+            $deleted = DB::transaction(function () use ($pegawai, $pegawaiIdCandidates) {
+                // Hapus user terkait terlebih dahulu
+                if (!empty($pegawaiIdCandidates)) {
+                    DB::table('users')->whereIn('pegawai_id', $pegawaiIdCandidates)->delete();
+                }
+                
+                // Hapus pegawai
+                $ok = $pegawai->delete();
+                return $ok ? 1 : 0;
+            });
+
+            if ($deleted < 1) {
+                throw new \RuntimeException('Pegawai tidak terhapus (0 rows affected).');
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Gagal menghapus pegawai', [
+                'pegawai_key' => $pegawai->getKey(),
+                'message' => $e->getMessage(),
+            ]);
+
+            $message = 'Gagal menghapus pegawai: ' . $e->getMessage();
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $message], 500);
+            }
+
+            return redirect()
+                ->route('master-data.pegawai.index')
+                ->with('error', $message);
+        }
+
         // Sync BOM when pegawai changes (affects BTKL calculations)
         if ($jabatan && strtolower($jabatan->kategori) === 'btkl') {
             \App\Services\BomSyncService::syncBomFromJabatanChange($jabatan->id);
+        }
+
+        \Log::info('Pegawai destroy finished', [
+            'pegawai_key' => $pegawai->getKey(),
+            'result' => ['pegawais' => 1],
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Pegawai berhasil dihapus.', 'result' => ['pegawais' => 1]]);
         }
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil dihapus.');
