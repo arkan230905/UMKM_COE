@@ -1,107 +1,55 @@
 @extends('layouts.app')
 
-@section('title', 'Bill of Materials (BOM)')
-
-@push('styles')
-<style>
-.btn-icon {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 500;
-    border-radius: 6px;
-    transition: all 0.3s ease;
-}
-
-.btn-icon:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-
-.btn-view {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    border: none;
-    color: white;
-}
-
-.btn-edit {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    color: white;
-}
-
-.btn-delete {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    border: none;
-    color: white;
-}
-
-.btn-add {
-    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-    border: none;
-    color: white;
-}
-
-.card {
-    transition: all 0.3s ease;
-}
-
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-</style>
-@endpush
-
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
-            <i class="fas fa-list-ul me-2"></i>Bill of Materials (BOM)
+            <i class="fas fa-sitemap me-2"></i>Harga Pokok Produksi Per Produk
         </h2>
-        <div class="btn-group">
-            <button onclick="createHargaPokokProduksi()" class="btn btn-icon btn-add">
-                <i class="fas fa-plus me-2"></i>+ Buat Harga Pokok Produksi Baru
-            </button>
-            <button class="btn btn-icon btn-edit" onclick="updateBomCosts()">
-                <i class="fas fa-sync me-2"></i>Update Biaya BOM
-            </button>
-        </div>
+        <a href="{{ route('master-data.harga-pokok-produksi.create') }}" class="btn btn-primary">
+            <i class="fas fa-calculator me-2"></i>Hitung Harga Pokok Produksi
+        </a>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5 class="text-primary">{{ count($bomData) }}</h5>
-                    <small class="text-muted">Total BOM Items</small>
-                </div>
-            </div>
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5 class="text-info">{{ $produks->count() }}</h5>
-                    <small class="text-muted">Total Produk</small>
-                </div>
-            </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5 class="text-success">{{ collect($bomData)->where('status', 'active')->count() }}</h5>
-                    <small class="text-muted">Aktif</small>
-                </div>
-            </div>
+    @endif
+
+    <!-- Filter Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h6 class="mb-0">
+                <i class="fas fa-filter me-2"></i>Filter Produk
+            </h6>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5 class="text-warning">Rp {{ number_format(collect($bomData)->sum('subtotal'), 0, ',', '.') }}</h5>
-                    <small class="text-muted">Total Nilai</small>
+        <div class="card-body">
+            <form action="{{ route('master-data.harga-pokok-produksi.index') }}" method="GET">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="nama_produk" class="form-label">Nama Produk</label>
+                        <input type="text" class="form-control" id="nama_produk" name="nama_produk" 
+                               value="{{ request('nama_produk') }}" placeholder="Cari nama produk...">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i> Cari
+                        </button>
+                        <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-refresh"></i> Reset
+                        </a>
+                    </div>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 
@@ -109,174 +57,435 @@
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">
-                <i class="fas fa-list-ul me-2"></i>Daftar BOM
+                <i class="fas fa-list me-2"></i>Daftar Harga Pokok Produksi Per Produk
             </h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead>
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <th>Produk</th>
-                            <th>Nama Bahan</th>
-                            <th>Jumlah</th>
-                            <th>Satuan</th>
-                            <th>Harga/Satuan</th>
-                            <th>Subtotal</th>
+                            <th>Nama Produk</th>
+                            <th>Biaya Bahan</th>
+                            <th>Biaya BTKL</th>
+                            <th>Biaya BOP</th>
+                            <th>Total Biaya Harga Pokok Produksi</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($bomData as $item)
+                        @forelse($produks as $produk)
+                            @php
+                                $bomJobCosting = $produk->bomJobCosting;
+                                $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
+                                $totalBTKL = $bomJobCosting->total_btkl ?? 0;
+                                $totalBOP = $bomJobCosting->total_bop ?? 0;
+                                $totalHPP = $totalBiayaBahan + $totalBTKL + $totalBOP;
+                            @endphp
                             <tr>
-                                <td>{{ $item['produk'] }}</td>
-                                <td>{{ $item['nama_bahan'] }}</td>
-                                <td>{{ number_format($item['jumlah'], 2, ',', '.') }}</td>
-                                <td>{{ $item['satuan_pembelian'] }}</td>
-                                <td>Rp {{ number_format($item['harga_satuan_pembelian'], 0, ',', '.') }}</td>
-                                <td>Rp {{ number_format($item['subtotal'], 0, ',', '.') }}</td>
                                 <td>
-                                    <span class="badge {{ $item['status'] === 'active' ? 'bg-success' : 'bg-secondary' }}">
-                                        {{ $item['status'] === 'active' ? 'Aktif' : 'Tidak Aktif' }}
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                                            <i class="fas fa-box text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold">{{ $produk->nama_produk }}</div>
+                                            <small class="text-muted">ID: {{ $produk->id }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">
+                                        Rp {{ number_format($totalBiayaBahan, 0, ',', '.') }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">
+                                        Rp {{ number_format($totalBTKL, 0, ',', '.') }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">
+                                        Rp {{ number_format($totalBOP, 0, ',', '.') }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-primary">
+                                        Rp {{ number_format($totalHPP, 0, ',', '.') }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>Lengkap
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="d-flex gap-1">
-                                        <button class="btn btn-sm btn-icon btn-view" onclick="viewBom({{ $item['id'] }})" title="Lihat Detail">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-icon btn-edit" onclick="editBom({{ $item['id'] }})" title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-icon btn-delete" onclick="deleteBom({{ $item['id'] }})" title="Hapus">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
+                                    <a href="{{ route('master-data.harga-pokok-produksi.show', $produk->id) }}" class="btn btn-sm btn-outline-info me-1" title="Detail">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ route('master-data.harga-pokok-produksi.edit', $produk->id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center text-muted">
-                                    <i class="fas fa-inbox me-2"></i>Belum ada data BOM
+                                <td colspan="7" class="border-0 p-0">
+                                    <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 400px;">
+                                        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                                        <p class="text-muted fs-5 mb-0">Belum ada Harga Pokok Produksi yang dibuat</p>
+                                    </div>
                                 </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
+            
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="text-muted">
+                    Menampilkan {{ $produks->firstItem() }} - {{ $produks->lastItem() }} dari {{ $produks->total() }} data
+                </div>
+                {{ $produks->links() }}
+            </div>
         </div>
     </div>
 </div>
 
+@push('styles')
+<style>
+    .text-warning {
+        background-color: rgba(255, 193, 7, 0.1);
+        border-radius: 4px;
+        padding: 2px 4px;
+    }
+    
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    .table th {
+        border-top: 2px solid #dee2e6 !important;
+        border-bottom: 2px solid #dee2e6 !important;
+        font-weight: 600;
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+    
+    .table td {
+        border-bottom: 1px solid #dee2e6;
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+    
+    .table td:first-child {
+        text-align: left !important;
+    }
+    
+    .table td:nth-child(5),
+    .table td:nth-child(6),
+    .table td:nth-child(7) {
+        text-align: center !important;
+    }
+</style>
+@endpush
+@endsection
+
+@section('scripts')
 <script>
-function viewBom(id) {
-    window.open('{{ route('master-data.bom.show', ':id') }}'.replace(':id', id), '_blank');
-}
-
-function editBom(id) {
-    window.location.href = '{{ route('master-data.bom.edit', ':id') }}'.replace(':id', id);
-}
-
-function deleteBom(id) {
-    if (confirm('Apakah Anda yakin ingin menghapus BOM ini?')) {
-        fetch('{{ route('master-data.bom.destroy', ':id') }}'.replace(':id', id), {
-            method: 'DELETE',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showAlert('success', 'BOM berhasil dihapus!');
-                location.reload();
-            } else {
-                showAlert('danger', data.message || 'Gagal menghapus BOM');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showAlert('danger', 'Terjadi kesalahan');
-        });
-    }
-}
-
-function createHargaPokokProduksi() {
-    // Show loading state
-    const button = event.target;
-    const originalText = button.innerHTML;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Memeriksa...';
-    button.disabled = true;
-    
-    // Check if there are any products available for BOM creation
-    fetch('{{ route('master-data.harga-pokok-produksi.create') }}', {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Products available, navigate to create page
-            window.location.href = data.redirect;
-        } else {
-            // No products available, show message
-            showAlert('info', data.message || 'Tidak dapat membuat Harga Pokok Produksi baru.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        // Fallback: direct navigation for non-AJAX scenarios
-        window.location.href = '{{ route('master-data.harga-pokok-produksi.create') }}';
-    })
-    .finally(() => {
-        // Restore button state
-        button.innerHTML = originalText;
-        button.disabled = false;
-    });
-}
-
-function updateBomCosts() {
-    if (confirm('Apakah Anda yakin ingin memperbarui biaya BOM berdasarkan harga bahan terbaru?')) {
-        showAlert('info', 'Sedang memperbarui biaya BOM...');
+// Auto-refresh BOP data from localStorage
+function refreshBOPData() {
+    @foreach($produks as $produk)
+        const productId{{ $produk->id }} = {{ $produk->id }};
+        const storedHPP{{ $produk->id }} = localStorage.getItem(`hpp_produk_${productId{{ $produk->id }}}`);
         
-        fetch('{{ route('master-data.bom.updateCosts') }}', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Content-Type': 'application/json'
+        if (storedHPP{{ $produk->id }}) {
+            console.log(`Found HPP for product ${productId{{ $produk->id }}}:`, storedHPP{{ $produk->id }});
+            
+            // Update the display if different
+            const hppElement{{ $produk->id }} = document.querySelector(`#hpp-display-${productId{{ $produk->id }}}`);
+            if (hppElement{{ $produk->id }}) {
+                hppElement{{ $produk->id }}.textContent = `Rp ${parseInt(storedHPP{{ $produk->id }}).toLocaleString('id-ID')}`;
             }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showAlert('success', data.message);
-                location.reload();
-            } else {
-                showAlert('danger', data.message || 'Gagal memperbarui biaya BOM');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showAlert('danger', 'Terjadi kesalahan');
-        });
-    }
+        }
+    @endforeach
 }
 
-function showAlert(type, message) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-' + type + ' alert-dismissible fade show';
-    alertDiv.innerHTML = message + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+// Listen for storage events from detail page
+window.addEventListener('storage', function(e) {
+    if (e.key && e.key.startsWith('hpp_produk_')) {
+        console.log('Storage event detected:', e.key, e.newValue);
+        refreshBOPData();
+        // Refresh page after 1 second to show updated data
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
+    }
+});
+
+// Auto-refresh every 10 seconds
+setInterval(function() {
+    refreshBOPData();
+}, 10000);
+
+// Initial refresh on page load
+document.addEventListener('DOMContentLoaded', function() {
+    refreshBOPData();
+});
+
+// Force refresh button
+function forceRefreshBOP() {
+    console.log('Force refreshing BOP data...');
+    localStorage.clear();
+    location.reload();
+}
+</script>
+@endsection@extends('layouts.app')
+
+@section('content')
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">
+            <i class="fas fa-sitemap me-2"></i>Harga Pokok Produksi Per Produk
+        </h2>
+        <a href="{{ route('master-data.harga-pokok-produksi.create') }}" class="btn btn-primary">
+            <i class="fas fa-calculator me-2"></i>Hitung Harga Pokok Produksi
+        </a>
+    </div>
+
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    <!-- Filter Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h6 class="mb-0">
+                <i class="fas fa-filter me-2"></i>Filter Produk
+            </h6>
+        </div>
+        <div class="card-body">
+            <form action="{{ route('master-data.harga-pokok-produksi.index') }}" method="GET">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="nama_produk" class="form-label">Nama Produk</label>
+                        <input type="text" class="form-control" id="nama_produk" name="nama_produk" 
+                               value="{{ request('nama_produk') }}" placeholder="Cari nama produk...">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i> Cari
+                        </button>
+                        <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-refresh"></i> Reset
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- BOM Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Daftar Harga Pokok Produksi Per Produk
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nama Produk</th>
+                            <th>Biaya Bahan</th>
+                            <th>Biaya BTKL</th>
+                            <th>Biaya BOP</th>
+                            <th>Total Biaya Harga Pokok Produksi</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($produks as $produk)
+                            @php
+                                $bomJobCosting = $produk->bomJobCosting;
+                                $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
+                                $totalBTKL = $bomJobCosting->total_btkl ?? 0;
+                                $totalBOP = $bomJobCosting->total_bop ?? 0;
+                                $totalHPP = $totalBiayaBahan + $totalBTKL + $totalBOP;
+                            @endphp
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                                            <i class="fas fa-box text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold">{{ $produk->nama_produk }}</div>
+                                            <small class="text-muted">ID: {{ $produk->id }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">
+                                        Rp {{ number_format($totalBiayaBahan, 0, ',', '.') }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">
+                                        Rp {{ number_format($totalBTKL, 0, ',', '.') }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">
+                                        Rp {{ number_format($totalBOP, 0, ',', '.') }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-primary">
+                                        Rp {{ number_format($totalHPP, 0, ',', '.') }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>Lengkap
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{{ route('master-data.harga-pokok-produksi.show', $produk->id) }}" class="btn btn-sm btn-outline-info me-1" title="Detail">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ route('master-data.harga-pokok-produksi.edit', $produk->id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="7" class="border-0 p-0">
+                                    <div class="d-flex flex-column align-items-center justify-content-center" style="min-height: 400px;">
+                                        <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                                        <p class="text-muted fs-5 mb-0">Belum ada Harga Pokok Produksi yang dibuat</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="text-muted">
+                    Menampilkan {{ $produks->firstItem() }} - {{ $produks->lastItem() }} dari {{ $produks->total() }} data
+                </div>
+                {{ $produks->links() }}
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('styles')
+<style>
+    .text-warning {
+        background-color: rgba(255, 193, 7, 0.1);
+        border-radius: 4px;
+        padding: 2px 4px;
+    }
     
-    const container = document.querySelector('.container-fluid');
-    container.insertBefore(alertDiv, container.firstChild);
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
     
-    setTimeout(() => {
-        alertDiv.remove();
-    }, 5000);
+    .table th {
+        border-top: 2px solid #dee2e6 !important;
+        border-bottom: 2px solid #dee2e6 !important;
+        font-weight: 600;
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+    
+    .table td {
+        border-bottom: 1px solid #dee2e6;
+        text-align: center !important;
+        vertical-align: middle !important;
+    }
+    
+    .table td:first-child {
+        text-align: left !important;
+    }
+    
+    .table td:nth-child(5),
+    .table td:nth-child(6),
+    .table td:nth-child(7) {
+        text-align: center !important;
+    }
+</style>
+@endpush
+@endsection
+
+@section('scripts')
+<script>
+// Auto-refresh BOP data from localStorage
+function refreshBOPData() {
+    @foreach($produks as $produk)
+        const productId{{ $produk->id }} = {{ $produk->id }};
+        const storedHPP{{ $produk->id }} = localStorage.getItem(`hpp_produk_${productId{{ $produk->id }}}`);
+        
+        if (storedHPP{{ $produk->id }}) {
+            console.log(`Found HPP for product ${productId{{ $produk->id }}}:`, storedHPP{{ $produk->id }});
+            
+            // Update the display if different
+            const hppElement{{ $produk->id }} = document.querySelector(`#hpp-display-${productId{{ $produk->id }}}`);
+            if (hppElement{{ $produk->id }}) {
+                hppElement{{ $produk->id }}.textContent = `Rp ${parseInt(storedHPP{{ $produk->id }}).toLocaleString('id-ID')}`;
+            }
+        }
+    @endforeach
+}
+
+// Listen for storage events from detail page
+window.addEventListener('storage', function(e) {
+    if (e.key && e.key.startsWith('hpp_produk_')) {
+        console.log('Storage event detected:', e.key, e.newValue);
+        refreshBOPData();
+        // Refresh page after 1 second to show updated data
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
+    }
+});
+
+// Auto-refresh every 10 seconds
+setInterval(function() {
+    refreshBOPData();
+}, 10000);
+
+// Initial refresh on page load
+document.addEventListener('DOMContentLoaded', function() {
+    refreshBOPData();
+});
+
+// Force refresh button
+function forceRefreshBOP() {
+    console.log('Force refreshing BOP data...');
+    localStorage.clear();
+    location.reload();
 }
 </script>
 @endsection

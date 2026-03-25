@@ -249,7 +249,7 @@
                     <div class="text-center">
                         <p class="mb-0">
                             Belum punya akun? 
-                            <a href="#" class="text-decoration-none fw-bold">
+                            <a href="{{ route('pelanggan.register') }}" class="text-decoration-none fw-bold">
                                 Daftar sekarang
                             </a>
                         </p>
@@ -259,6 +259,33 @@
                                 Kembali ke Katalog
                             </a>
                         </p>
+                        
+                        <!-- Contact Information -->
+                        <div class="mt-4 p-3 border rounded" style="background-color: #f8f9fa; border-color: #e9ecef !important;">
+                            <h6 class="mb-3 text-center fw-bold">
+                                <i class="fas fa-headset me-2"></i>Hubungi Kami
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-12">
+                                    <small class="d-block mb-2">
+                                        <i class="fas fa-phone me-2 text-primary"></i>
+                                        <strong>Telepon:</strong> +62 812-3456-7890
+                                    </small>
+                                </div>
+                                <div class="col-12">
+                                    <small class="d-block mb-2">
+                                        <i class="fas fa-envelope me-2 text-primary"></i>
+                                        <strong>Email:</strong> support@umkmcoe.com
+                                    </small>
+                                </div>
+                                <div class="col-12">
+                                    <small class="d-block">
+                                        <i class="fab fa-whatsapp me-2 text-success"></i>
+                                        <strong>WhatsApp:</strong> +62 812-3456-7890
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
