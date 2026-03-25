@@ -56,15 +56,9 @@
     </div>
     
     <!-- Info Otomatis -->
-    <div class="row g-3 mb-3">
-      <div class="col-md-6">
-        <label class="form-label">Kategori</label>
-        <input type="text" id="kategoriDisplay" class="form-control" readonly placeholder="Akan muncul otomatis">
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Budget Bulanan</label>
-        <input type="text" id="budgetDisplay" class="form-control" readonly placeholder="Akan muncul otomatis">
-      </div>
+    <div class="mb-3">
+      <label class="form-label">Budget Bulanan</label>
+      <input type="text" id="budgetDisplay" class="form-control" readonly placeholder="Akan muncul otomatis">
     </div>
     
     <div class="mb-3">
@@ -133,17 +127,14 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const bebanOperasionalSelect = document.getElementById('bebanOperasionalSelect');
-    const kategoriDisplay = document.getElementById('kategoriDisplay');
     const budgetDisplay = document.getElementById('budgetDisplay');
     
     bebanOperasionalSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
         
         if (this.value) {
-            kategoriDisplay.value = selectedOption.dataset.kategori || '';
             budgetDisplay.value = selectedOption.dataset.budget || '';
         } else {
-            kategoriDisplay.value = '';
             budgetDisplay.value = '';
         }
     });
