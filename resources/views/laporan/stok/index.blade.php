@@ -135,110 +135,26 @@
                     
                     // Calculate biaya bahan per unit using BomJobCosting (same as produksi)
                     $biayaBahanPerUnit = 0;
+                @endphp
+                
+                @php
+                    // Initialize variables - no production usage calculations
+                    $usageQty = 0;
+                    $convertedUsageQty = 0;
+                    
+                    // No production calculations needed since no production transactions exist yet
+                    // Just initialize biayaBahanPerUnit for material types
                     if ($tipe == 'material') {
                         $biayaBahanPerUnit = \App\Http\Controllers\LaporanController::getBiayaBahanPerUnit($selectedItem->id);
-                    } else {
-                        // For non-material types, use existing logic
-                        $usageQty = 0; // Initialize to prevent undefined variable error
-                        
-                        if($selectedItem->id == 2 && $tipe == 'material') { // Ayam Kampung
-                            if($unit['name'] == 'Ekor') {
-                                $usageQty = 1.6667; // From Excel: 1.6667 Ekor
-                                $convertedUsageQty = $usageQty; // Already in correct unit
-                            } elseif($unit['name'] == 'Potong') {
-                                $usageQty = 1.6667; // Base usage in Ekor
-                                $convertedUsageQty = $usageQty * 6; // Convert to Potong: 10 Potong
-                            } elseif($unit['name'] == 'Kilogram') {
-                                $usageQty = 1.6667; // Base usage in Ekor
-                                $convertedUsageQty = $usageQty * 1.5; // Convert to Kilogram: 2.5 Kilogram
-                            } elseif($unit['name'] == 'Gram') {
-                                $usageQty = 1.6667; // Base usage in Ekor
-                                $convertedUsageQty = $usageQty * 1500; // Convert to Gram: 2,500 Gram
-                            } else {
-                                $usageQty = $baseQty * 0.1; // Default 10%
-                                $convertedUsageQty = $usageQty * $unit['conversion'];
-                            }
-                        } elseif($selectedItem->id == 1 && $tipe == 'material') { // Ayam Potong
-                            $usageQty = 0; // From Excel: No usage for Ayam Potong
-                            $convertedUsageQty = 0;
-                        } elseif($tipe == 'bahan_pendukung') {
-                            // BAHAN PENDUKUNG: Use specific usage data from production
-                            if($selectedItem->id == 2) { // Minyak Goreng
-                                if($unit['name'] == 'Liter') {
-                                    $usageQty = 0.5; // Base usage in Liter
-                                    $convertedUsageQty = 0.5; // 0.5 Liter
-                                } elseif($unit['name'] == 'Mililiter') {
-                                    $usageQty = 0.5; // Base usage in Liter
-                                    $convertedUsageQty = 500; // 500 Mililiter
-                                } else {
-                                    $usageQty = 0.5; // Base usage in Liter
-                                    $convertedUsageQty = $usageQty * $unit['conversion'];
-                                }
-                            } elseif($selectedItem->id == 3) { // Gas 30 Kg
-                                if($unit['name'] == 'Tabung') {
-                                    $usageQty = 0.016667; // Base usage in Tabung
-                                    $convertedUsageQty = 0.016667; // 0.016667 Tabung
-                                } elseif($unit['name'] == 'Gram') {
-                                    $usageQty = 0.016667; // Base usage in Tabung
-                                    $convertedUsageQty = 500; // 500 Gram
-                                } else {
-                                    $usageQty = 0.016667; // Base usage in Tabung
-                                    $convertedUsageQty = $usageQty * $unit['conversion'];
-                                }
-                            } elseif($selectedItem->id == 10) { // Kemasan
-                                $usageQty = 10; // Base usage in Pieces
-                                $convertedUsageQty = 10; // 10 Pieces (all units same)
-                            } elseif($selectedItem->id == 4) { // Ketumbar Bubuk
-                                if($unit['name'] == 'Bungkus') {
-                                    $usageQty = 6; // Base usage in Bungkus
-                                    $convertedUsageQty = 6; // 6 Bungkus
-                                } elseif($unit['name'] == 'Sendok Teh') {
-                                    $usageQty = 6; // Base usage in Bungkus
-                                    $convertedUsageQty = 30; // 30 Sendok Teh
-                                } else {
-                                    $usageQty = 6; // Base usage in Bungkus
-                                    $convertedUsageQty = $usageQty * $unit['conversion'];
-                                }
-                            } elseif($selectedItem->id == 9) { // Bawang Merah
-                                if($unit['name'] == 'Kilogram') {
-                                    $usageQty = 0.04; // Base usage in Kilogram
-                                    $convertedUsageQty = $usageQty * $unit['conversion'];
-                                } else {
-                                    $usageQty = $baseQty * 0.1; // Default 10%
-                                    $convertedUsageQty = $usageQty * $unit['conversion'];
-                                }
-                            } else {
-                                // Default 5% usage for other bahan pendukung
-                                $usageQty = $baseQty * 0.05;
-                                $convertedUsageQty = $usageQty * $unit['conversion'];
-                            }
-                        }
                     }
                     
-                    $usageQty = $biayaBahanPerUnit > 0 ? $biayaBahanPerUnit : $usageQty;
-                        } elseif($selectedItem->id == 7) { // Merica Bubuk
-                            if($unit['name'] == 'Bungkus') {
-                                $usageQty = 4; // Base usage in Bungkus
-                                $convertedUsageQty = 4; // 4 Bungkus
-                            } elseif($unit['name'] == 'Sendok Makan') {
-                                $usageQty = 4; // Base usage in Bungkus
-                                $convertedUsageQty = 10; // 10 Sendok Makan
-                            } else {
-                                $usageQty = 4; // Base usage in Bungkus
-                                $convertedUsageQty = $usageQty * $unit['conversion'];
-                            }
-                        } else {
-                            // Default 5% usage for other bahan pendukung
-                            $usageQty = $baseQty * 0.05;
-                            $convertedUsageQty = $usageQty * $unit['conversion'];
-                        }
-                    } else {
-                        // Other bahan baku items
-                        $usageQty = $baseQty * 0.1; // 10% usage for other bahan baku
-                        $convertedUsageQty = $usageQty * $unit['conversion'];
+                    // Apply biaya bahan per unit if available
+                    if ($biayaBahanPerUnit > 0) {
+                        $usageQty = $biayaBahanPerUnit;
                     }
                     $usageTotal = $usageQty * $basePrice;
                     
+                    // Stock data with only initial stock - no production usage
                     $stockData = [
                         [
                             'tanggal' => '01/03/2026',
@@ -248,34 +164,16 @@
                             'pembelian_qty' => 0,
                             'pembelian_harga' => 0,
                             'pembelian_total' => 0,
-                            'produksi_qty' => 0,
+                            'produksi_qty' => 0, // No production usage
                             'produksi_harga' => 0,
                             'produksi_total' => 0,
-                            'saldo_akhir_qty' => $convertedQty,
+                            'saldo_akhir_qty' => $convertedQty, // Same as initial stock
                             'saldo_akhir_harga' => $convertedPrice,
-                            'saldo_akhir_total' => $baseTotal
+                            'saldo_akhir_total' => $baseTotal // Same as initial stock
                         ]
                     ];
                     
-                    // Only add 11/03/2026 transaction for items that have usage
-                    if(($selectedItem->id == 2 && $tipe == 'material') || $tipe == 'bahan_pendukung') { 
-                        // Ayam Kampung (has usage) OR Bahan Pendukung (has 5% usage)
-                        $stockData[] = [
-                            'tanggal' => '11/03/2026',
-                            'saldo_awal_qty' => 0,
-                            'saldo_awal_harga' => 0,
-                            'saldo_awal_total' => 0,
-                            'pembelian_qty' => 0,
-                            'pembelian_harga' => 0,
-                            'pembelian_total' => 0,
-                            'produksi_qty' => $convertedUsageQty, // Usage from calculation
-                            'produksi_harga' => $convertedPrice,
-                            'produksi_total' => $usageTotal,
-                            'saldo_akhir_qty' => $convertedQty - $convertedUsageQty, // Stock decreases
-                            'saldo_akhir_harga' => $convertedPrice,
-                            'saldo_akhir_total' => $baseTotal - $usageTotal
-                        ];
-                    }
+                    // No additional production transactions since production hasn't occurred
                 @endphp
                 
                 <div class="card mb-4">

@@ -20,94 +20,35 @@ class ProdukController extends Controller
         // Get all products
         $produks = Produk::with(['bomJobCosting'])->get();
         
-        // Calculate HPP using the same logic as HPP page (BomController@index)
+        // Calculate HPP using ONLY data from BomJobCosting (same as harga-pokok-produksi page)
         $hargaBom = [];
         foreach ($produks as $produk) {
-            $totalBiayaBahan = 0;
-            $totalBTKL = 0;
-            $totalBOP = 0;
+            $totalBiayaHPP = 0;
             
             $bomJobCosting = $produk->bomJobCosting;
             
+            // Only use data if BomJobCosting exists AND has complete data
+            // This matches the logic in BomController@index for harga-pokok-produksi page
             if ($bomJobCosting) {
-                // Use data from BomJobCosting for bahan
-                $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
+                // Check if this product would appear in harga-pokok-produksi page
+                // Complete means: has biaya bahan AND has BTKL AND has BOP
+                $hasBiayaBahan = ($bomJobCosting->total_bbb > 0) || ($bomJobCosting->total_bahan_pendukung > 0);
+                $hasBTKL = $bomJobCosting->total_btkl > 0;
+                $hasBOP = $bomJobCosting->total_bop > 0;
                 
-                // Calculate BTKL real-time from bom_job_btkl with correct formula
-                $btklData = DB::table('bom_job_btkl')
-                    ->leftJoin('btkls', 'bom_job_btkl.btkl_id', '=', 'btkls.id')
-                    ->leftJoin('jabatans', 'btkls.jabatan_id', '=', 'jabatans.id')
-                    ->where('bom_job_btkl.bom_job_costing_id', $bomJobCosting->id)
-                    ->select(
-                        'bom_job_btkl.*',
-                        'btkls.kapasitas_per_jam',
-                        'jabatans.id as jabatan_id',
-                        'jabatans.tarif as tarif_jabatan'
-                    )
-                    ->get();
-                
-                $totalBTKL = 0;
-                foreach ($btklData as $btkl) {
-                    if ($btkl->jabatan_id) {
-                        // Get jumlah pegawai for this jabatan
-                        $jumlahPegawai = DB::table('pegawais')
-                            ->join('jabatans', 'pegawais.jabatan', '=', 'jabatans.nama')
-                            ->where('jabatans.id', $btkl->jabatan_id)
-                            ->count();
-                        
-                        // Calculate tarif BTKL: Jumlah Pegawai × Tarif per Jam Jabatan
-                        $tarifBtkl = $jumlahPegawai * ($btkl->tarif_jabatan ?? 0);
-                        
-                        // Calculate biaya per produk: Tarif BTKL ÷ Kapasitas per Jam
-                        $kapasitasPerJam = $btkl->kapasitas_per_jam ?? 1;
-                        $biayaPerProduk = $kapasitasPerJam > 0 ? $tarifBtkl / $kapasitasPerJam : 0;
-                        
-                        $totalBTKL += $biayaPerProduk;
-                    }
-                }
-                
-                // Calculate BOP using the same logic as HPP page
-                $bopData = DB::table('bom_job_bop')
-                    ->where('bom_job_bop.bom_job_costing_id', $bomJobCosting->id)
-                    ->select('bom_job_bop.*')
-                    ->get();
+                // Only calculate HPP if product has complete data (same as harga-pokok-produksi page)
+                if ($hasBiayaBahan && $hasBTKL && $hasBOP) {
+                    // Use stored values from BomJobCosting table
+                    $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
+                    $totalBTKL = $bomJobCosting->total_btkl;
+                    $totalBOP = $bomJobCosting->total_bop;
                     
-                $totalBOP = 0;
-                if (!empty($bopData) && count($bopData) > 0) {
-                    // Group BOP by process and sum the tariffs
-                    $bopByProcess = [];
-                    foreach ($bopData as $bop) {
-                        $namaBiaya = strtolower($bop->nama_bop ?? '');
-                        $prosesName = 'Umum';
-                        
-                        if (stripos($namaBiaya, 'penggorengan') !== false) {
-                            $prosesName = 'Menggoreng';
-                        } elseif (stripos($namaBiaya, 'perbumbuan') !== false) {
-                            $prosesName = 'Perbumbuan';
-                        } elseif (stripos($namaBiaya, 'pengemasan') !== false) {
-                            $prosesName = 'Packing';
-                        }
-                        
-                        if (!isset($bopByProcess[$prosesName])) {
-                            $bopByProcess[$prosesName] = 0;
-                        }
-                        $bopByProcess[$prosesName] += $bop->tarif;
-                    }
-                    
-                    // Sum all BOP tariffs
-                    foreach ($bopByProcess as $prosesName => $totalTarif) {
-                        $totalBOP += $totalTarif;
-                    }
-                }
-                
-                // If BOP data is empty or incorrect, use standard BOP values
-                if ($totalBOP == 0 || $totalBOP > 50000) {
-                    $totalBOP = 0; // Set to 0 instead of 3.190
+                    // Calculate total HPP: Biaya Bahan + BTKL + BOP
+                    $totalBiayaHPP = $totalBiayaBahan + $totalBTKL + $totalBOP;
                 }
             }
             
-            // Calculate total HPP: Biaya Bahan + BTKL + BOP
-            $totalBiayaHPP = $totalBiayaBahan + $totalBTKL + $totalBOP;
+            // If no complete BomJobCosting data, HPP = 0 (same as harga-pokok-produksi page)
             $hargaBom[$produk->id] = $totalBiayaHPP;
             
             // Update harga_pokok in produks table if different
