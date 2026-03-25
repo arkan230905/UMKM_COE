@@ -569,7 +569,7 @@ class PresensiController extends Controller
         }
 
         $today = now()->toDateString();
-        $attendances = Presensi::where('pegawai_id', $pegawai->kode_pegawai)
+        $attendances = Presensi::where('pegawai_id', $pegawai->id)
             ->whereDate('tgl_presensi', $today)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -637,14 +637,14 @@ class PresensiController extends Controller
                 }
             }
 
-            $presensi = Presensi::where('pegawai_id', $pegawai->kode_pegawai)
+            $presensi = Presensi::where('pegawai_id', $pegawai->id)
                 ->whereDate('tgl_presensi', $today)
                 ->first();
 
             if (!$presensi) {
                 // Jam masuk
                 $newPresensi = Presensi::create([
-                    'pegawai_id'        => $pegawai->kode_pegawai,
+                    'pegawai_id'        => $pegawai->id,
                     'tgl_presensi'      => $today,
                     'jam_masuk'         => $currentTime,
                     'status'            => 'hadir',
