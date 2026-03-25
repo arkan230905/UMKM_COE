@@ -876,10 +876,10 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [BomController::class, 'index'])->name('index');
             Route::get('/create', [BomController::class, 'create'])->name('create');
             Route::post('/', [BomController::class, 'store'])->name('store');
-            Route::get('/{bom}/edit', [BomController::class, 'edit'])->name('edit');
+            Route::get('/{id}/edit', [BomController::class, 'edit'])->name('edit');
             Route::put('/{bom}', [BomController::class, 'update'])->name('update');
-            Route::get('/{bom}', [BomController::class, 'show'])->name('show');
-            Route::get('/{bom}/print', [BomController::class, 'print'])->name('print');
+            Route::get('/{id}', [BomController::class, 'show'])->name('show');
+            Route::get('/{id}/print', [BomController::class, 'print'])->name('print');
             Route::delete('/{bom}', [BomController::class, 'destroy'])->name('destroy');
             Route::post('/update-bop', [BomController::class, 'updateBOP'])->name('update-bop');
             Route::post('/update-bop-from-detail', [BomController::class, 'updateBOPFromDetail'])->name('update-bop-from-detail');
