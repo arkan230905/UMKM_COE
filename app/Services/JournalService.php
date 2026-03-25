@@ -14,7 +14,8 @@ class JournalService
         // Langsung gunakan COA saja, tidak perlu tabel accounts
         $coa = Coa::where('kode_akun', $code)->first();
         if ($coa) {
-            return (int)$coa->id;
+            // Return the actual ID column, not the primary key
+            return (int)$coa->getAttribute('id');
         }
 
         // Jika COA tidak ditemukan, buat error yang informatif
@@ -150,12 +151,12 @@ class JournalService
         }
         
         $lines = [];
-        $totalAmount = 0;
+        $subtotalAmount = 0;
         
         // Create debit entries for each purchased item (Persediaan)
         foreach ($pembelian->details as $detail) {
             $amount = ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
-            $totalAmount += $amount;
+            $subtotalAmount += $amount;
             
             // Determine COA account based on item type
             $coaAccount = null;
@@ -191,29 +192,53 @@ class JournalService
             ];
         }
         
+        // Add PPN Masukan entry if there's PPN
+        $ppnNominal = (float) ($pembelian->ppn_nominal ?? 0);
+        if ($ppnNominal > 0) {
+            $lines[] = [
+                'code' => '1130', // PPN Masukan
+                'debit' => $ppnNominal,
+                'credit' => 0,
+                'memo' => 'PPN Masukan ' . ($pembelian->ppn_persen ?? 0) . '%'
+            ];
+        }
+        
+        // Add Biaya Kirim entry if there's shipping cost
+        $biayaKirim = (float) ($pembelian->biaya_kirim ?? 0);
+        if ($biayaKirim > 0) {
+            $lines[] = [
+                'code' => '511', // Biaya Kirim/Angkut
+                'debit' => $biayaKirim,
+                'credit' => 0,
+                'memo' => 'Biaya kirim pembelian'
+            ];
+        }
+        
+        // Calculate total amount (subtotal + PPN + biaya kirim)
+        $totalAmount = $subtotalAmount + $ppnNominal + $biayaKirim;
+        
         // Create credit entry based on payment method
         $creditAccount = null;
         $creditMemo = '';
         
         switch ($pembelian->payment_method) {
             case 'cash':
-                $creditAccount = '101'; // Kas
+                $creditAccount = '1101'; // Kas
                 $creditMemo = 'Pembayaran tunai pembelian';
                 break;
                 
             case 'transfer':
-                // Use specific bank account if available
-                $creditAccount = $pembelian->bank_id ?? '102'; // Bank
+                $creditAccount = '1102'; // Kas di Bank
                 $creditMemo = 'Pembayaran transfer pembelian';
                 break;
                 
             case 'credit':
-                $creditAccount = '201'; // Utang Usaha
+                $creditAccount = '2101'; // Utang Usaha
                 $creditMemo = 'Pembelian kredit';
                 break;
                 
             default:
-                $creditAccount = '201'; // Default to Utang Usaha
+                $creditAccount = '2101'; // Default to Utang Usaha
                 $creditMemo = 'Pembelian';
         }
         

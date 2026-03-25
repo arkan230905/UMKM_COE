@@ -103,7 +103,7 @@
                                         <input type="hidden" name="items[{{ $index }}][bahan_baku_id]" value="{{ $detail->bahan_baku_id }}">
                                     </td>
                                     <td>
-                                        <input type="text" class="form-control" value="{{ $detail->jumlah }} {{ $detail->satuan }}" readonly>
+                                        <input type="text" class="form-control" value="{{ $detail->jumlah }} {{ $detail->satuan_nama }}" readonly>
                                     </td>
                                     <td>
                                         <input type="number" step="0.01" name="items[{{ $index }}][qty]" 
@@ -113,7 +113,7 @@
                                     </td>
                                     <td>
                                         <input type="text" name="items[{{ $index }}][satuan]" class="form-control" 
-                                               value="{{ $detail->satuan }}" readonly>
+                                               value="{{ $detail->satuan_nama }}" readonly>
                                     </td>
                                     <td>
                                         <input type="text" class="form-control" 

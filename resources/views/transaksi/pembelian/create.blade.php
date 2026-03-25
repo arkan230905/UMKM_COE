@@ -80,6 +80,7 @@
 
     @if ($errors->any())
         <div class="alert alert-danger">
+            <h6><i class="fas fa-exclamation-triangle me-2"></i>Terjadi kesalahan:</h6>
             <ul class="mb-0">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -88,7 +89,7 @@
         </div>
     @endif
 
-    <form action="{{ route('transaksi.pembelian.store') }}" method="POST">
+    <form action="{{ route('transaksi.pembelian.store') }}" method="POST" onsubmit="debugFormData(this)">
         @csrf
         
         <!-- Header Information -->
@@ -100,10 +101,10 @@
             <div class="row g-3">
                 <div class="col-md-3">
                     <label class="form-label">Vendor <span class="text-danger">*</span></label>
-                    <select name="vendor_id" class="form-select" required>
+                    <select name="vendor_id" class="form-select" required onchange="updateItemsBasedOnVendor(this)">
                         <option value="">-- Pilih Vendor --</option>
                         @foreach ($vendors as $vendor)
-                            <option value="{{ $vendor->id }}">{{ $vendor->nama_vendor }}</option>
+                            <option value="{{ $vendor->id }}" data-kategori="{{ $vendor->kategori }}">{{ $vendor->nama_vendor }} ({{ $vendor->kategori }})</option>
                         @endforeach
                     </select>
                 </div>
@@ -200,24 +201,27 @@
                 <div class="item-row" data-row="0">
                     <div class="row g-3">
                         <div class="col-md-2">
-                            <label class="form-label">Barang Baku</label>
-                            <select name="tipe_item[]" class="form-select" onchange="updateItemOptions(this)">
-                                <option value="">-- Pilih Barang Baku --</option>
-                                <option value="bahan_baku">Bahan Baku</option>
-                                <option value="bahan_pendukung">Bahan Pendukung</option>
+                            <label class="form-label">Nama Item</label>
+                            <select name="item_id[]" class="form-select item-select" disabled>
+                                <option value="">-- Pilih Vendor Dulu --</option>
                             </select>
+                            <!-- Hidden input untuk menyimpan tipe item -->
+                            <input type="hidden" name="tipe_item[]" class="tipe-item-input" value="">
                         </div>
                         
                         <div class="col-md-2">
                             <label class="form-label">Jumlah</label>
-                            <select name="item_id[]" class="form-select item-select" disabled>
-                                <option value="">-- Pilih Item --</option>
-                            </select>
+                            <input type="number" name="jumlah[]" class="form-control" placeholder="0" min="0.01" step="0.01" onchange="calculateRowTotal(this)">
                         </div>
                         
                         <div class="col-md-2">
                             <label class="form-label">Satuan Pembelian</label>
-                            <input type="number" name="jumlah[]" class="form-control" placeholder="0" min="0.01" step="0.01" onchange="calculateRowTotal(this)">
+                            <select name="satuan_pembelian[]" class="form-select satuan-select" onchange="calculateRowTotal(this)">
+                                <option value="">-- Pilih Satuan --</option>
+                                @foreach($satuans as $satuan)
+                                    <option value="{{ $satuan->id }}" data-nama="{{ $satuan->nama }}">{{ $satuan->nama }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         
                         <div class="col-md-2">
@@ -227,7 +231,7 @@
                         
                         <div class="col-md-2">
                             <label class="form-label">Harga Total</label>
-                            <input type="number" name="subtotal[]" class="form-control" placeholder="0" readonly>
+                            <input type="number" name="subtotal[]" class="form-control" placeholder="0" readonly style="background-color: #f8f9fa;">
                         </div>
                         
                         <div class="col-md-2">
@@ -241,20 +245,20 @@
                     <!-- Conversion Section -->
                     <div class="row g-3 mt-2">
                         <div class="col-md-3">
-                            <label class="form-label small">Satuan</label>
-                            <input type="text" name="satuan[]" class="form-control form-control-sm" readonly>
+                            <label class="form-label small">Satuan Utama Item</label>
+                            <input type="text" name="satuan_utama[]" class="form-control form-control-sm" readonly>
                         </div>
                         
                         <div class="col-md-3">
-                            <label class="form-label small">Konversi ke Satuan Utama (Manual)</label>
+                            <label class="form-label small">Faktor Konversi (Manual)</label>
                             <input type="number" name="faktor_konversi[]" class="form-control form-control-sm" placeholder="1" step="0.0001" value="1" onchange="calculateRowTotal(this)">
-                            <small class="text-muted">1 unit pembelian = berapa satuan utama</small>
+                            <small class="text-muted">1 satuan pembelian = berapa satuan utama</small>
                         </div>
                         
                         <div class="col-md-3">
-                            <label class="form-label small">Estimasi Isi Satuan Utama (Manual)</label>
+                            <label class="form-label small">Jumlah dalam Satuan Utama</label>
                             <div class="form-control form-control-sm bg-light" style="min-height: 31px; display: flex; align-items: center;">
-                                <span class="conversion-result">0 Kg Bahan baku yang dipilih</span>
+                                <span class="conversion-result">0 Kg (dari 0 Unit)</span>
                             </div>
                         </div>
                         
@@ -279,7 +283,7 @@
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Subtotal</label>
-                        <input type="number" name="subtotal" id="subtotal" class="form-control" readonly>
+                        <input type="number" name="subtotal_display" id="subtotal" class="form-control" readonly>
                     </div>
                     
                     <div class="col-md-3">
@@ -344,18 +348,66 @@ function addItemRow() {
     
     newRow.setAttribute('data-row', rowCount);
     newRow.querySelectorAll('input, select').forEach(input => {
-        input.value = '';
+        if (input.type === 'number') {
+            input.value = '';
+        } else if (input.tagName === 'SELECT' && !input.classList.contains('satuan-select')) {
+            input.selectedIndex = 0;
+        }
         if (input.name === 'faktor_konversi[]') {
             input.value = '1';
         }
+        if (input.name === 'subtotal[]') {
+            input.value = '0';
+        }
     });
+    
+    // Reset item select based on current vendor selection
+    const vendorSelect = document.querySelector('select[name="vendor_id"]');
+    const itemSelect = newRow.querySelector('.item-select');
+    const tipeItemInput = newRow.querySelector('input[name="tipe_item[]"]');
+    
+    if (vendorSelect.value) {
+        // If vendor is already selected, populate items for new row
+        const selectedVendorOption = vendorSelect.options[vendorSelect.selectedIndex];
+        const kategori = selectedVendorOption.getAttribute('data-kategori');
+        
+        itemSelect.innerHTML = '<option value="">-- Pilih Item --</option>';
+        
+        if (kategori === 'Bahan Baku') {
+            itemSelect.disabled = false;
+            tipeItemInput.value = 'bahan_baku';
+            @foreach ($bahanBakus as $bb)
+                itemSelect.innerHTML += '<option value="{{ $bb->id }}" data-satuan="{{ $bb->satuan->nama ?? 'Unit' }}" data-tipe="bahan_baku">{{ $bb->nama_bahan }}</option>';
+            @endforeach
+        } else if (kategori === 'Bahan Pendukung') {
+            itemSelect.disabled = false;
+            tipeItemInput.value = 'bahan_pendukung';
+            @foreach ($bahanPendukungs as $bp)
+                itemSelect.innerHTML += '<option value="{{ $bp->id }}" data-satuan="{{ $bp->satuanRelation->nama ?? 'Unit' }}" data-tipe="bahan_pendukung">{{ $bp->nama_bahan }}</option>';
+            @endforeach
+        }
+        
+        // Set up onchange handler
+        const row = newRow;
+        const satuanUtamaInput = row.querySelector('input[name="satuan_utama[]"]');
+        itemSelect.onchange = function() {
+            const selectedItemOption = this.options[this.selectedIndex];
+            const satuan = selectedItemOption.getAttribute('data-satuan') || 'Unit';
+            satuanUtamaInput.value = satuan;
+            calculateRowTotal(this);
+        };
+    } else {
+        itemSelect.disabled = true;
+        itemSelect.innerHTML = '<option value="">-- Pilih Vendor Dulu --</option>';
+        tipeItemInput.value = '';
+    }
     
     // Show delete button for new rows
     const deleteBtn = newRow.querySelector('button[onclick="removeItemRow(this)"]');
     deleteBtn.style.display = 'block';
     
     // Reset conversion displays
-    newRow.querySelector('.conversion-result').textContent = '0 Kg Bahan baku yang dipilih';
+    newRow.querySelector('.conversion-result').textContent = '0 Unit (dari 0 Unit)';
     newRow.querySelector('.price-per-unit').textContent = 'Rp 0';
     
     itemRows.appendChild(newRow);
@@ -377,48 +429,72 @@ function updateDeleteButtons() {
     });
 }
 
-// Update item options based on type selection
-function updateItemOptions(select) {
-    const row = select.closest('.item-row');
-    const itemSelect = row.querySelector('.item-select');
-    const satuanInput = row.querySelector('input[name="satuan[]"]');
+// Update items based on selected vendor category
+function updateItemsBasedOnVendor(vendorSelect) {
+    const selectedOption = vendorSelect.options[vendorSelect.selectedIndex];
+    const kategori = selectedOption.getAttribute('data-kategori');
     
-    itemSelect.innerHTML = '<option value="">-- Pilih Item --</option>';
-    itemSelect.disabled = false;
-    
-    if (select.value === 'bahan_baku') {
-        @foreach ($bahanBakus as $bb)
-            itemSelect.innerHTML += '<option value="{{ $bb->id }}" data-satuan="{{ $bb->satuan->nama ?? 'Unit' }}">{{ $bb->nama_bahan }}</option>';
-        @endforeach
-    } else if (select.value === 'bahan_pendukung') {
-        @foreach ($bahanPendukungs as $bp)
-            itemSelect.innerHTML += '<option value="{{ $bp->id }}" data-satuan="{{ $bp->satuanRelation->nama ?? 'Unit' }}">{{ $bp->nama_bahan }}</option>';
-        @endforeach
-    }
-    
-    itemSelect.onchange = function() {
-        const selectedOption = this.options[this.selectedIndex];
-        const satuan = selectedOption.getAttribute('data-satuan') || 'Unit';
-        satuanInput.value = satuan;
-        calculateRowTotal(this);
-    };
+    // Update all item selects in all rows
+    document.querySelectorAll('.item-select').forEach(itemSelect => {
+        const row = itemSelect.closest('.item-row');
+        const satuanUtamaInput = row.querySelector('input[name="satuan_utama[]"]');
+        const tipeItemInput = row.querySelector('input[name="tipe_item[]"]');
+        
+        itemSelect.innerHTML = '<option value="">-- Pilih Item --</option>';
+        
+        if (kategori === 'Bahan Baku') {
+            itemSelect.disabled = false;
+            tipeItemInput.value = 'bahan_baku';
+            @foreach ($bahanBakus as $bb)
+                itemSelect.innerHTML += '<option value="{{ $bb->id }}" data-satuan="{{ $bb->satuan->nama ?? 'Unit' }}" data-tipe="bahan_baku">{{ $bb->nama_bahan }}</option>';
+            @endforeach
+        } else if (kategori === 'Bahan Pendukung') {
+            itemSelect.disabled = false;
+            tipeItemInput.value = 'bahan_pendukung';
+            @foreach ($bahanPendukungs as $bp)
+                itemSelect.innerHTML += '<option value="{{ $bp->id }}" data-satuan="{{ $bp->satuanRelation->nama ?? 'Unit' }}" data-tipe="bahan_pendukung">{{ $bp->nama_bahan }}</option>';
+            @endforeach
+        } else {
+            itemSelect.disabled = true;
+            tipeItemInput.value = '';
+        }
+        
+        // Set up onchange handler for item selection
+        itemSelect.onchange = function() {
+            const selectedItemOption = this.options[this.selectedIndex];
+            const satuan = selectedItemOption.getAttribute('data-satuan') || 'Unit';
+            satuanUtamaInput.value = satuan;
+            calculateRowTotal(this);
+        };
+    });
 }
+
+// Remove the old updateItemOptions function since we don't need it anymore
 
 // Calculate row total
 function calculateRowTotal(input) {
     const row = input.closest('.item-row');
     const jumlah = parseFloat(row.querySelector('input[name="jumlah[]"]').value) || 0;
     const harga = parseFloat(row.querySelector('input[name="harga_satuan[]"]').value) || 0;
-    const faktor = parseFloat(row.querySelector('input[name="faktor_konversi[]"]').value) || 1;
     
+    // Calculate subtotal: jumlah × harga per satuan
     const subtotal = jumlah * harga;
-    row.querySelector('input[name="subtotal[]"]').value = subtotal;
+    row.querySelector('input[name="subtotal[]"]').value = subtotal.toFixed(2);
     
     // Update conversion displays
+    const faktor = parseFloat(row.querySelector('input[name="faktor_konversi[]"]').value) || 1;
     const konversiHasil = jumlah * faktor;
     const hargaPerUnit = faktor > 0 ? harga / faktor : 0;
     
-    row.querySelector('.conversion-result').textContent = formatNumber(konversiHasil.toFixed(4)) + ' Kg Bahan baku yang dipilih';
+    // Get selected satuan pembelian name for display
+    const satuanSelect = row.querySelector('select[name="satuan_pembelian[]"]');
+    const selectedSatuan = satuanSelect.options[satuanSelect.selectedIndex];
+    const satuanPembelianName = selectedSatuan ? selectedSatuan.getAttribute('data-nama') : 'Unit';
+    
+    // Get satuan utama name
+    const satuanUtama = row.querySelector('input[name="satuan_utama[]"]').value || 'Unit';
+    
+    row.querySelector('.conversion-result').textContent = formatNumber(konversiHasil.toFixed(4)) + ' ' + satuanUtama + ' (dari ' + formatNumber(jumlah) + ' ' + satuanPembelianName + ')';
     row.querySelector('.price-per-unit').textContent = 'Rp ' + formatNumber(Math.round(hargaPerUnit));
     
     calculateTotal();
@@ -443,6 +519,51 @@ function calculateTotal() {
     document.getElementById('ppn_nominal').value = ppnNominal;
     document.getElementById('total_harga').textContent = 'Rp ' + formatNumber(Math.round(totalHarga));
     document.getElementById('total_harga_input').value = totalHarga;
+}
+
+// Debug form data before submission
+function debugFormData(form) {
+    const formData = new FormData(form);
+    console.log('Form data being submitted:');
+    
+    // Log all form data
+    for (let [key, value] of formData.entries()) {
+        console.log(key + ': ' + value);
+    }
+    
+    // Specifically check arrays
+    const itemIds = formData.getAll('item_id[]');
+    const tipeItems = formData.getAll('tipe_item[]');
+    const jumlahs = formData.getAll('jumlah[]');
+    const satuanPembelians = formData.getAll('satuan_pembelian[]');
+    const hargaSatuans = formData.getAll('harga_satuan[]');
+    const subtotals = formData.getAll('subtotal[]');
+    const faktorKonversis = formData.getAll('faktor_konversi[]');
+    
+    console.log('Arrays:');
+    console.log('item_id[]:', itemIds);
+    console.log('tipe_item[]:', tipeItems);
+    console.log('jumlah[]:', jumlahs);
+    console.log('satuan_pembelian[]:', satuanPembelians);
+    console.log('harga_satuan[]:', hargaSatuans);
+    console.log('subtotal[]:', subtotals);
+    console.log('faktor_konversi[]:', faktorKonversis);
+    
+    // Check if any required fields are empty
+    let hasValidItems = false;
+    for (let i = 0; i < itemIds.length; i++) {
+        if (itemIds[i] && tipeItems[i] && jumlahs[i] && satuanPembelians[i] && hargaSatuans[i]) {
+            hasValidItems = true;
+            break;
+        }
+    }
+    
+    if (!hasValidItems) {
+        alert('Peringatan: Tidak ada item yang valid terdeteksi!');
+        console.error('No valid items found!');
+    }
+    
+    return true; // Allow form submission
 }
 
 // Initialize

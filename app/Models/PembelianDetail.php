@@ -24,13 +24,13 @@ class PembelianDetail extends Model
     ];
 
     protected $casts = [
-        'jumlah' => 'decimal:2',
-        'harga_satuan' => 'decimal:2',
-        'subtotal' => 'decimal:2',
+        'jumlah' => 'float',
+        'harga_satuan' => 'float',
+        'subtotal' => 'float',
         'faktor_konversi' => 'decimal:4',
     ];
 
-    protected $appends = ['nama_bahan', 'tipe_bahan', 'jumlah_satuan_utama', 'satuan_utama'];
+    protected $appends = ['nama_bahan', 'tipe_bahan', 'jumlah_satuan_utama', 'satuan_utama', 'satuan_nama'];
 
     /**
      * Relasi ke Pembelian
@@ -54,6 +54,14 @@ class PembelianDetail extends Model
     public function bahanPendukung()
     {
         return $this->belongsTo(BahanPendukung::class, 'bahan_pendukung_id');
+    }
+
+    /**
+     * Relasi ke Satuan
+     */
+    public function satuanRelation()
+    {
+        return $this->belongsTo(Satuan::class, 'satuan', 'id');
     }
 
     /**
@@ -106,6 +114,17 @@ class PembelianDetail extends Model
     public function getJumlahSatuanUtamaAttribute()
     {
         return $this->jumlah * ($this->faktor_konversi ?? 1);
+    }
+    
+    /**
+     * Get nama satuan pembelian
+     */
+    public function getSatuanNamaAttribute()
+    {
+        if ($this->satuanRelation) {
+            return $this->satuanRelation->nama;
+        }
+        return $this->satuan ?? 'unit';
     }
     
     /**
