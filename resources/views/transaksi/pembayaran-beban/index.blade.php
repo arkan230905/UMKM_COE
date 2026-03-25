@@ -31,7 +31,7 @@
                         <input type="date" name="tanggal_selesai" class="form-control" 
                                value="{{ request('tanggal_selesai') }}">
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label">Beban Operasional</label>
                         <select name="beban_operasional_id" class="form-select">
                             <option value="">Semua Beban</option>
@@ -42,18 +42,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label">Kategori</label>
-                        <select name="kategori" class="form-select">
-                            <option value="">Semua Kategori</option>
-                            <option value="Administrasi" {{ request('kategori') == 'Administrasi' ? 'selected' : '' }}>Administrasi</option>
-                            <option value="Marketing" {{ request('kategori') == 'Marketing' ? 'selected' : '' }}>Marketing</option>
-                            <option value="Utilitas" {{ request('kategori') == 'Utilitas' ? 'selected' : '' }}>Utilitas</option>
-                            <option value="Distribusi" {{ request('kategori') == 'Distribusi' ? 'selected' : '' }}>Distribusi</option>
-                            <option value="Lain-lain" {{ request('kategori') == 'Lain-lain' ? 'selected' : '' }}>Lain-lain</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label">Akun Beban</label>
                         <select name="akun_beban_id" class="form-select">
                             <option value="">Semua Akun Beban</option>
@@ -64,7 +53,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label class="form-label">Akun Kas/Bank</label>
                         <select name="akun_kas_id" class="form-select">
                             <option value="">Semua Kas/Bank</option>
@@ -104,10 +93,9 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 50px">#</th>
+                            <th class="text-center" style="width: 50px">No</th>
                             <th>Tanggal</th>
                             <th>Beban Operasional</th>
-                            <th>Kategori</th>
                             <th>Akun Beban</th>
                             <th>Akun Kas/Bank</th>
                             <th class="text-end">Jumlah Pembayaran</th>
@@ -121,9 +109,6 @@
                                 <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d-m-Y') }}</td>
                                 <td>
                                     <div class="fw-semibold">{{ $item->nama_beban_operasional }}</div>
-                                </td>
-                                <td>
-                                    <span class="badge bg-light text-dark">{{ $item->kategori_beban }}</span>
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center">
@@ -168,7 +153,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4">
+                                <td colspan="7" class="text-center py-4">
                                     <i class="fas fa-money-check-alt fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data pembayaran beban</p>
                                 </td>
@@ -199,9 +184,9 @@
             responsive: true,
             order: [[1, 'desc']],
             columnDefs: [
-                { orderable: false, targets: [0, 6] },
-                { className: 'text-right', targets: [5] },
-                { width: '100px', targets: [6] }
+                { orderable: false, targets: [0, 5] },
+                { className: 'text-right', targets: [4] },
+                { width: '100px', targets: [5] }
             ]
         });
     });
