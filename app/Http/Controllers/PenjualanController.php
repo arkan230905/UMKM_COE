@@ -119,7 +119,7 @@ class PenjualanController extends Controller
                 'produk_id' => 'required|array|min:1',
                 'produk_id.*' => 'required|exists:produks,id',
                 'jumlah' => 'required|array',
-                'jumlah.*' => 'required|numeric|min:0.0001',
+                'jumlah.*' => 'required|integer|min:1',
                 'harga_satuan' => 'required|array',
                 'harga_satuan.*' => 'required|numeric|min:0',
                 'diskon_persen' => 'nullable|array',
@@ -140,7 +140,7 @@ class PenjualanController extends Controller
             // Validasi stok cukup per item
             foreach ($produkIds as $i => $pid) {
                 $p = Produk::findOrFail($pid);
-                $qty = (float)($jumlahArr[$i] ?? 0);
+                $qty = (int)($jumlahArr[$i] ?? 0); // Cast to integer
                 
                 // Hitung stok tersedia
                 $stokMasuk = \DB::table('stock_movements')
@@ -166,9 +166,9 @@ class PenjualanController extends Controller
             $errors = [];
             foreach ($produkIds as $i => $pid) {
                 $prod = Produk::findOrFail($pid);
-                $qty = (float)($jumlahArr[$i] ?? 0);
-                if ((float)($prod->stok ?? 0) < $qty) {
-                    $errors[] = "Stok produk {$prod->nama_produk} tidak cukup. Butuh $qty, tersedia " . (float)($prod->stok ?? 0);
+                $qty = (int)($jumlahArr[$i] ?? 0); // Cast to integer
+                if ((int)($prod->stok ?? 0) < $qty) {
+                    $errors[] = "Stok produk {$prod->nama_produk} tidak cukup. Butuh $qty, tersedia " . (int)($prod->stok ?? 0);
                 }
             }
             if (!empty($errors)) {
@@ -178,7 +178,7 @@ class PenjualanController extends Controller
             // Hitung total header
             $grand = 0; $totalQtyHeader = 0; $totalDiscHeader = 0;
             foreach ($produkIds as $i => $pid) {
-                $qty = (float)($jumlahArr[$i] ?? 0);
+                $qty = (int)($jumlahArr[$i] ?? 0); // Cast to integer
                 $price = (float)($hargaArr[$i] ?? 0);
                 $pct = (float)($diskonPctArr[$i] ?? 0);
                 $sub = $qty * $price;
@@ -215,7 +215,7 @@ class PenjualanController extends Controller
             $errorsBelowCost = [];
             foreach ($produkIds as $i => $pid) {
                 $prod = Produk::findOrFail($pid);
-                $qty = (float)($jumlahArr[$i] ?? 0);
+                $qty = (int)($jumlahArr[$i] ?? 0); // Cast to integer
                 $price = (float)($hargaArr[$i] ?? 0);
                 $pct = (float)($diskonPctArr[$i] ?? 0);
                 $sub = $qty * $price;
@@ -294,13 +294,13 @@ class PenjualanController extends Controller
             'produk_id' => 'required|exists:produks,id',
             'tanggal' => 'required|date',
             'payment_method' => 'required|in:cash,transfer,credit',
-            'jumlah' => 'required|numeric|min:0.0001',
+            'jumlah' => 'required|integer|min:1',
             'harga_satuan' => 'required|numeric|min:0',
             'diskon_nominal' => 'nullable|numeric|min:0',
             'diskon_persen' => 'nullable|numeric|min:0|max:100',
         ]);
 
-        $qty = (float)$request->jumlah;
+        $qty = (int)$request->jumlah; // Cast to integer
         // Override harga jual dengan harga_jual dari master produk
         $produk = Produk::findOrFail($request->produk_id);
         $price = (float) ($produk->harga_jual ?? 0);
@@ -311,8 +311,8 @@ class PenjualanController extends Controller
         $total = max(($qty * $price) - $disc, 0);
 
         // Validasi stok cukup
-        if ((float)($produk->stok ?? 0) < $qty) {
-            return back()->withErrors(["Stok produk {$produk->nama_produk} tidak cukup. Butuh $qty, tersedia " . (float)($produk->stok ?? 0)])->withInput();
+        if ((int)($produk->stok ?? 0) < $qty) {
+            return back()->withErrors(["Stok produk {$produk->nama_produk} tidak cukup. Butuh $qty, tersedia " . (int)($produk->stok ?? 0)])->withInput();
         }
 
         // Guard: jangan jual di bawah HPP FIFO (estimasi tanpa konsumsi)

@@ -27,7 +27,7 @@
                 <label class="form-label">Terima di</label>
                 <select name="sumber_dana" id="sumber_dana_jual" class="form-select">
                     @foreach($kasbank as $kb)
-                        <option value="{{ $kb->kode_akun }}" {{ $kb->kode_akun == '1101' ? 'selected' : '' }}>
+                        <option value="{{ $kb->kode_akun }}">
                             {{ $kb->nama_akun }} ({{ $kb->kode_akun }})
                         </option>
                     @endforeach
@@ -89,7 +89,7 @@
                             </select>
                             <small class="text-muted stok-info"></small>
                         </td>
-                        <td><input type="number" step="0.0001" min="0.0001" name="jumlah[]" class="form-control jumlah" value="1" required></td>
+                        <td><input type="number" step="1" min="1" name="jumlah[]" class="form-control jumlah" value="1" required></td>
                         <td><input type="text" name="harga_satuan[]" class="form-control harga" value="0" readonly required></td>
                         <td><input type="number" step="0.01" min="0" max="100" name="diskon_persen[]" class="form-control diskon" value="0"></td>
                         <td><input type="text" class="form-control subtotal" value="0" readonly></td>
@@ -207,7 +207,7 @@ function addProductByBarcode(product) {
             return;
         }
         
-        qtyInput.value = newQty;
+        qtyInput.value = Math.round(newQty);
         recalcRow(existingRow);
         recalcTotal();
         
@@ -330,6 +330,9 @@ document.addEventListener('DOMContentLoaded', function() {
             sumberDanaWrapper.style.display = 'block';
             sumberDana.required = true;
             
+            // Get recent pick from localStorage
+            const recentPick = localStorage.getItem('recent_sumber_dana_' + paymentMethod);
+            
             // Update options based on payment method
             if (paymentMethod === 'cash') {
                 sumberDana.innerHTML = `
@@ -342,6 +345,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     <option value="102">Bank (102)</option>
                 `;
             }
+            
+            // Set recent pick if exists and valid
+            if (recentPick && sumberDana.querySelector(`option[value="${recentPick}"]`)) {
+                sumberDana.value = recentPick;
+            }
         } else {
             sumberDanaWrapper.style.display = 'none';
             sumberDana.required = false;
@@ -353,6 +361,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Listen to payment method changes
     document.getElementById('payment_method_jual').addEventListener('change', toggleSumberDana);
+    
+    // Listen to sumber dana changes and save to localStorage
+    document.getElementById('sumber_dana_jual').addEventListener('change', function() {
+        const paymentMethod = document.getElementById('payment_method_jual').value;
+        if (paymentMethod === 'cash' || paymentMethod === 'transfer') {
+            localStorage.setItem('recent_sumber_dana_' + paymentMethod, this.value);
+        }
+    });
 
     function formatCurrency(value) {
         const roundedValue = Math.round(parseFloat(value) * 1000) / 1000;
@@ -364,7 +380,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function recalcRow(tr) {
-        const q = parseFloat(tr.querySelector('.jumlah').value) || 0;
+        const q = Math.round(parseFloat(tr.querySelector('.jumlah').value) || 0);
+        tr.querySelector('.jumlah').value = q; // Ensure integer display
         const p = parseCurrency(tr.querySelector('.harga').value) || 0;
         const dPct = Math.min(Math.max(parseFloat(tr.querySelector('.diskon').value) || 0, 0), 100);
         const sub = q * p;
@@ -435,7 +452,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function validateStock(tr) {
         const qtyInput = tr.querySelector('.jumlah');
-        const qty = parseFloat(qtyInput.value) || 0;
+        let qty = parseFloat(qtyInput.value) || 0;
+        qty = Math.round(qty); // Round to nearest integer
+        qtyInput.value = qty; // Update display
+        
         const maxStok = parseFloat(qtyInput.getAttribute('data-max-stok') || '0') || 0;
         
         if (qty > maxStok) {
