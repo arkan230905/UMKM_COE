@@ -115,7 +115,7 @@
         
                             @empty
                             <tr>
-                                <td colspan="6" class="text-center py-4">
+                                <td colspan="5" class="text-center py-4">
                                     <div class="text-muted">
                                         <i class="bi bi-inbox display-4 d-block mb-2"></i>
                                         <p>Belum ada data BOP</p>
@@ -127,18 +127,18 @@
                             </tr>
                             @endforelse
                             
-                            <!-- Total Row - Only for Biaya/Produk -->
+                            <!-- Total Row - Only for BOP/pcs -->
                             @if($bopProses->count() > 0)
                             <tr class="table-active fw-bold">
                                 <td colspan="4" class="text-end">
-                                    <span class="text-muted">Total Biaya/Produk:</span>
+                                    <span class="text-muted">Total BOP/pcs:</span>
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center justify-content-end">
                                         @php
-                                            $totalBiayaPerProduk = $bopProses->sum('biaya_per_produk');
+                                            $totalBopPcs = $bopProses->sum('bop_per_unit');
                                         @endphp
-                                        <span class="fw-bold text-success fs-6">Rp {{ number_format($totalBiayaPerProduk, 2, ',', '.') }}</span>
+                                        <span class="fw-bold text-warning fs-6">Rp {{ number_format($totalBopPcs, 2, ',', '.') }}</span>
                                     </div>
                                 </td>
                                 <td>-</td>
@@ -158,17 +158,6 @@
             <div class="card-body">
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        <label for="filterKategori" class="form-label">Kategori</label>
-                        <select class="form-select" id="filterKategori" onchange="filterBebanOperasional()">
-                            <option value="">Semua Kategori</option>
-                            <option value="Administrasi">Administrasi</option>
-                            <option value="Marketing">Marketing</option>
-                            <option value="Utilitas">Utilitas</option>
-                            <option value="Distribusi">Distribusi</option>
-                            <option value="Lain-lain">Lain-lain</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4">
                         <label for="filterStatus" class="form-label">Status</label>
                         <select class="form-select" id="filterStatus" onchange="filterBebanOperasional()">
                             <option value="">Semua Status</option>
@@ -176,7 +165,7 @@
                             <option value="nonaktif">Nonaktif</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-8">
                         <label for="filterSearch" class="form-label">Cari Beban</label>
                         <input type="text" class="form-control" id="filterSearch" placeholder="Nama beban..." onkeyup="filterBebanOperasional()">
                     </div>
@@ -192,11 +181,10 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="text-center" style="width: 5%">No</th>
-                                <th style="width: 15%">Kategori</th>
-                                <th style="width: 30%">Nama Beban</th>
+                                <th style="width: 35%">Nama Beban</th>
                                 <th style="width: 20%" class="text-end">Budget Bulanan</th>
                                 <th style="width: 10%">Status</th>
-                                <th style="width: 20%">Aksi</th>
+                                <th style="width: 30%">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="bebanOperasionalTableBody">
@@ -779,8 +767,7 @@ function switchTab(tab) {
         const url = new URL(window.location);
         // Clear all existing search params
         url.searchParams.delete('tab');
-        url.searchParams.delete('tanggal');
-        url.searchParams.delete('kategori');
+        url.searchParams.delete('status');
         url.searchParams.delete('nama_beban');
         url.searchParams.delete('nominal');
         url.searchParams.delete('keterangan');
@@ -802,8 +789,7 @@ function switchTab(tab) {
         // Clear all existing search params except tab
         const tabValue = url.searchParams.get('tab');
         url.searchParams.delete('tab');
-        url.searchParams.delete('tanggal');
-        url.searchParams.delete('kategori');
+        url.searchParams.delete('status');
         url.searchParams.delete('nama_beban');
         url.searchParams.delete('nominal');
         url.searchParams.delete('keterangan');
@@ -829,12 +815,10 @@ function openBebanOperasionalModal() {
 
 // Load Beban Operasional data
 function loadBebanOperasionalData() {
-    const kategori = document.getElementById('filterKategori').value;
     const status = document.getElementById('filterStatus').value;
     const search = document.getElementById('filterSearch').value;
     
     const params = new URLSearchParams();
-    if (kategori) params.append('kategori', kategori);
     if (status) params.append('status', status);
     if (search) params.append('search', search);
     
@@ -843,7 +827,7 @@ function loadBebanOperasionalData() {
     if (tbody) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="text-center py-4">
+                <td colspan="5" class="text-center py-4">
                     <div class="text-muted">
                         <i class="fas fa-spinner fa-spin display-4 d-block mb-2"></i>
                         <p>Memuat data...</p>
@@ -870,7 +854,7 @@ function loadBebanOperasionalData() {
                 if (tbody) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="6" class="text-center py-4">
+                            <td colspan="5" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="bi bi-exclamation-triangle display-4 d-block mb-2"></i>
                                     <p>Gagal memuat data</p>
@@ -888,7 +872,7 @@ function loadBebanOperasionalData() {
             if (tbody) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="text-center py-4">
+                        <td colspan="5" class="text-center py-4">
                             <div class="text-muted">
                                 <i class="bi bi-exclamation-triangle display-4 d-block mb-2"></i>
                                 <p>Terjadi kesalahan saat memuat data</p>
@@ -907,7 +891,7 @@ function renderBebanOperasionalTable(data) {
     if (data.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="text-center py-4">
+                <td colspan="5" class="text-center py-4">
                     <div class="text-muted">
                         <i class="bi bi-inbox display-4 d-block mb-2"></i>
                         <p>Belum ada data Beban Operasional</p>
@@ -926,7 +910,6 @@ function renderBebanOperasionalTable(data) {
             <td class="text-center">
                 ${index + 1}
             </td>
-            <td>${item.kategori}</td>
             <td>
                 <div class="fw-semibold">${item.nama_beban}</div>
             </td>
@@ -985,7 +968,6 @@ function editBebanOperasional(id) {
             if (data.success) {
                 const item = data.data;
                 document.getElementById('editBebanOperasionalId').value = item.id;
-                document.getElementById('editKategori').value = item.kategori;
                 document.getElementById('editNamaBeban').value = item.nama_beban;
                 document.getElementById('editBudgetBulanan').value = item.budget_bulanan || '';
                 document.getElementById('editKeterangan').value = item.keterangan || '';
@@ -1008,7 +990,7 @@ function editBebanOperasional(id) {
 
 // Clear field errors when user interacts with form fields
 function clearFieldErrorsOnInput() {
-    const formFields = ['editKategori', 'editNamaBeban', 'editBudgetBulanan', 'editKeterangan', 'editStatus'];
+    const formFields = ['editNamaBeban', 'editBudgetBulanan', 'editKeterangan', 'editStatus'];
     
     formFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
@@ -1283,7 +1265,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let hasUnwantedParams = false;
     
     // Check for form field parameters and clean them
-    ['tanggal', 'kategori', 'nama_beban', 'nominal', 'keterangan'].forEach(param => {
+    ['status', 'nama_beban', 'nominal', 'keterangan'].forEach(param => {
         if (url.searchParams.has(param)) {
             url.searchParams.delete(param);
             hasUnwantedParams = true;
@@ -1320,17 +1302,6 @@ document.addEventListener('DOMContentLoaded', function() {
             <form id="addBebanOperasionalForm" method="POST" action="javascript:void(0);" onsubmit="saveBebanOperasional(); return false;">
                 @csrf
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="addKategori" class="form-label">Kategori <span class="text-danger">*</span></label>
-                        <select name="kategori" id="addKategori" class="form-select" required>
-                            <option value="">Pilih Kategori</option>
-                            <option value="Administrasi">Administrasi</option>
-                            <option value="Marketing">Marketing</option>
-                            <option value="Utilitas">Utilitas</option>
-                            <option value="Distribusi">Distribusi</option>
-                            <option value="Lain-lain">Lain-lain</option>
-                        </select>
-                    </div>
                     <div class="mb-3">
                         <label for="addNamaBeban" class="form-label">Nama Beban <span class="text-danger">*</span></label>
                         <input type="text" name="nama_beban" id="addNamaBeban" class="form-control" placeholder="Contoh: Gaji Karyawan" required>
@@ -1378,17 +1349,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 @method('PUT')
                 <input type="hidden" id="editBebanOperasionalId" name="id">
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="editKategori" class="form-label">Kategori <span class="text-danger">*</span></label>
-                        <select name="kategori" id="editKategori" class="form-select" required>
-                            <option value="">Pilih Kategori</option>
-                            <option value="Administrasi">Administrasi</option>
-                            <option value="Marketing">Marketing</option>
-                            <option value="Utilitas">Utilitas</option>
-                            <option value="Distribusi">Distribusi</option>
-                            <option value="Lain-lain">Lain-lain</option>
-                        </select>
-                    </div>
                     <div class="mb-3">
                         <label for="editNamaBeban" class="form-label">Nama Beban <span class="text-danger">*</span></label>
                         <input type="text" name="nama_beban" id="editNamaBeban" class="form-control" placeholder="Contoh: Gaji Karyawan" required>
