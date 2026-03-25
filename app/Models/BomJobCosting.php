@@ -62,18 +62,15 @@ class BomJobCosting extends Model
             $totalBiayaBahan = $this->total_bbb + $this->total_bahan_pendukung;
             $biayaBahanPerUnit = $this->jumlah_produk > 0 ? $totalBiayaBahan / $this->jumlah_produk : 0;
             
-            // Update harga_bom dengan total HPP (lengkap) dan harga_jual dengan margin
-            $margin = $this->produk->margin_percent ?? 30;
-            $hargaJual = $this->total_hpp * (1 + ($margin / 100));
-            
             // Use DB::table to avoid triggering observers and prevent infinite loop
+            // Hanya update HPP dan biaya bahan, jangan ubah harga_jual yang sudah diset manual
             DB::table('produks')
                 ->where('id', $this->produk->id)
                 ->update([
                     'biaya_bahan' => $biayaBahanPerUnit,
                     'harga_bom' => $this->total_hpp,  // Total HPP lengkap
-                    'harga_pokok' => $this->total_hpp,  // Update harga_pokok untuk harga jual
-                    'harga_jual' => $hargaJual,
+                    'harga_pokok' => $this->total_hpp,  // Update harga_pokok untuk referensi HPP
+                    // 'harga_jual' DIHAPUS agar tidak mengubah harga jual manual
                     'updated_at' => now()
                 ]);
         }
