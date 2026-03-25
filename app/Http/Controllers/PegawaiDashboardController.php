@@ -67,7 +67,7 @@ class PegawaiDashboardController extends Controller
             return redirect()->route('login')->with('error', 'Akun Anda belum terhubung dengan data pegawai.');
         }
 
-        $query = Presensi::where('pegawai_id', $pegawai->kode_pegawai);
+        $query = Presensi::where('pegawai_id', $pegawai->id);
         
         // Filter by month/year if provided
         if ($request->has('month') && $request->has('year')) {
