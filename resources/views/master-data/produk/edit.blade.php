@@ -145,7 +145,7 @@
         <div class="mb-3">
             <label for="harga_jual" class="form-label">Harga Jual</label>
             <div class="input-group">
-                <input type="text" name="harga_jual" id="harga_jual" class="form-control" value="{{ old('harga_jual', $produk->harga_jual ?? ($produk->hpp ?? $produk->getActualHPP())) }}" required>
+                <input type="text" name="harga_jual" id="harga_jual" class="form-control" value="{{ old('harga_jual', $produk->harga_jual) }}" required>
                 <button type="button" class="btn btn-outline-secondary" onclick="resetToHPP()" title="Reset ke HPP">
                     <i class="fas fa-undo"></i>
                 </button>

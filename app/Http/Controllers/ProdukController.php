@@ -416,16 +416,18 @@ class ProdukController extends Controller
             // Formula: Harga Jual = HPP * (1 + margin/100)
             $hargaJual = $totalBiayaHPP * (1 + ($margin / 100));
             
-            // Set calculated harga_jual to the product object
-            $produk->harga_jual = $hargaJual;
+            // Gunakan harga_jual yang sudah ada di database, jangan override dengan calculated
+            // Jika harga_jual kosong atau 0, maka gunakan calculated harga_jual
+            if (empty($produk->harga_jual) || $produk->harga_jual == 0) {
+                $produk->harga_jual = $hargaJual;
+            }
             
-            // Update harga_pokok and harga_jual in database if different
-            if ($produk->harga_pokok != $totalBiayaHPP || $produk->getOriginal('harga_jual') != $hargaJual) {
+            // Update harga_pokok saja, jangan update harga_jual yang sudah diset manual
+            if ($produk->harga_pokok != $totalBiayaHPP) {
                 DB::table('produks')
                     ->where('id', $produk->id)
                     ->update([
                         'harga_pokok' => $totalBiayaHPP,
-                        'harga_jual' => $hargaJual,
                         'updated_at' => now()
                     ]);
             }
