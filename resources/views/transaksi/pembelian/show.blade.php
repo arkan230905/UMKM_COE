@@ -35,7 +35,7 @@
                             <th style="width:5%">#</th>
                             <th>Nama Bahan Baku</th>
                             <th class="text-end">Kuantitas</th>
-                            <th>Satuan</th>
+                            <th>Satuan Pembelian</th>
                             <th class="text-end">Harga per Satuan</th>
                             <th class="text-end">Subtotal</th>
                         </tr>
@@ -50,23 +50,60 @@
                         <tr>
                             <td>{{ $i+1 }}</td>
                             <td>{{ $d->bahanBaku ? $d->bahanBaku->nama_bahan : 'Unknown' }}</td>
-                            <td class="text-end">{{ number_format($d->jumlah, 0, '.', '') }}</td>
-                            <td>
-                                @php
-                                    // Logic satuan yang sama dengan pegawai-pembelian
-                                    $satuanItem = 'unit';
+                            <td class="text-end">
+                                {{ number_format($d->jumlah, 0, '.', '') }}
+                                @if($d->faktor_konversi && abs($d->faktor_konversi - 1) > 0.001)
+                                    <br><small class="text-muted">
+                                        (= {{ number_format($d->jumlah_satuan_utama, 2, ',', '.') }} {{ $d->satuan_utama }})
+                                    </small>
+                                @endif
+                                
+                                @if($d->konversiManual && $d->konversiManual->count() > 0)
+                                    <div class="mt-1">
+                                        <small class="text-primary"><strong>Konversi Manual:</strong></small>
+                                        @foreach($d->konversiManual as $konversi)
+                                            @php
+                                                $jumlahSatuanUtama = $d->jumlah_satuan_utama ?? ($d->jumlah * ($d->faktor_konversi ?? 1));
+                                                $faktorKonversi = $jumlahSatuanUtama > 0 ? ($konversi->jumlah_konversi / $jumlahSatuanUtama) : 0;
+                                            @endphp
+                                            <br><small class="text-success">
+                                                = {{ number_format($konversi->jumlah_konversi, 2, ',', '.') }} {{ $konversi->satuan_nama }}
+                                            </small>
+                                            <br><small class="text-muted" style="font-size: 10px;">
+                                                <em>Rumus: {{ number_format($jumlahSatuanUtama, 2, ',', '.') }} {{ $d->satuan_utama }} × {{ number_format($faktorKonversi, 4, ',', '.') }} {{ $konversi->satuan_nama }}/{{ $d->satuan_utama }} = {{ number_format($konversi->jumlah_konversi, 2, ',', '.') }} {{ $konversi->satuan_nama }}</em>
+                                            </small>
+                                        @endforeach
+                                    </div>
+                                @elseif($d->bahanBaku)
+                                    @php
+                                        $jumlahSatuanUtama = $d->jumlah_satuan_utama ?? ($d->jumlah * ($d->faktor_konversi ?? 1));
+                                        $bb = $d->bahanBaku;
+                                    @endphp
                                     
-                                    // Jika item diinput sebagai bahan baku (berdasarkan relation yang ada)
-                                    if ($d->bahan_baku_id && $d->bahanBaku) {
-                                        // Prioritas: detail->satuan, lalu relation->satuanRelation->nama
-                                        $satuanItem = $d->satuan ?: ($d->bahanBaku->satuan->nama ?? 'unit');
-                                    }
-                                    // Fallback jika relation tidak ada
-                                    elseif ($d->bahan_baku_id) {
-                                        $satuanItem = $d->satuan ?: 'unit';
-                                    }
-                                @endphp
-                                {{ $satuanItem }}
+                                    @if($bb->sub_satuan_1_konversi && $bb->subSatuan1)
+                                        <br><small class="text-success">
+                                            = {{ number_format($jumlahSatuanUtama * $bb->sub_satuan_1_konversi, 2, ',', '.') }} {{ $bb->subSatuan1->nama }} (otomatis)
+                                        </small>
+                                    @endif
+                                    
+                                    @if($bb->sub_satuan_2_konversi && $bb->subSatuan2)
+                                        <br><small class="text-info">
+                                            = {{ number_format($jumlahSatuanUtama * $bb->sub_satuan_2_konversi, 2, ',', '.') }} {{ $bb->subSatuan2->nama }} (otomatis)
+                                        </small>
+                                    @endif
+                                    
+                                    @if($bb->sub_satuan_3_konversi && $bb->subSatuan3)
+                                        <br><small class="text-warning">
+                                            = {{ number_format($jumlahSatuanUtama * $bb->sub_satuan_3_konversi, 2, ',', '.') }} {{ $bb->subSatuan3->nama }} (otomatis)
+                                        </small>
+                                    @endif
+                                @endif
+                            </td>
+                            <td>
+                                {{ $d->satuan ?? ($d->bahanBaku->satuan->nama ?? 'unit') }}
+                                @if($d->faktor_konversi && abs($d->faktor_konversi - 1) > 0.001)
+                                    <br><small class="text-muted">Konversi: 1:{{ number_format($d->faktor_konversi, 2, ',', '.') }}</small>
+                                @endif
                             </td>
                             <td class="text-end">Rp {{ number_format($d->harga_satuan,0,',','.') }}</td>
                             <td class="text-end">Rp {{ number_format($subtotal,0,',','.') }}</td>
@@ -99,7 +136,7 @@
                             <th style="width:5%">#</th>
                             <th>Nama Bahan Pendukung</th>
                             <th class="text-end">Kuantitas</th>
-                            <th>Satuan</th>
+                            <th>Satuan Pembelian</th>
                             <th class="text-end">Harga per Satuan</th>
                             <th class="text-end">Subtotal</th>
                         </tr>
@@ -114,23 +151,60 @@
                         <tr>
                             <td>{{ $i+1 }}</td>
                             <td>{{ $d->bahanPendukung ? $d->bahanPendukung->nama_bahan : 'Unknown' }}</td>
-                            <td class="text-end">{{ number_format($d->jumlah, 0, '.', '') }}</td>
-                            <td>
-                                @php
-                                    // Logic satuan yang sama dengan pegawai-pembelian
-                                    $satuanItem = 'unit';
+                            <td class="text-end">
+                                {{ number_format($d->jumlah, 0, '.', '') }}
+                                @if($d->faktor_konversi && abs($d->faktor_konversi - 1) > 0.001)
+                                    <br><small class="text-muted">
+                                        (= {{ number_format($d->jumlah_satuan_utama, 2, ',', '.') }} {{ $d->satuan_utama }})
+                                    </small>
+                                @endif
+                                
+                                @if($d->konversiManual && $d->konversiManual->count() > 0)
+                                    <div class="mt-1">
+                                        <small class="text-primary"><strong>Konversi Manual:</strong></small>
+                                        @foreach($d->konversiManual as $konversi)
+                                            @php
+                                                $jumlahSatuanUtama = $d->jumlah_satuan_utama ?? ($d->jumlah * ($d->faktor_konversi ?? 1));
+                                                $faktorKonversi = $jumlahSatuanUtama > 0 ? ($konversi->jumlah_konversi / $jumlahSatuanUtama) : 0;
+                                            @endphp
+                                            <br><small class="text-success">
+                                                = {{ number_format($konversi->jumlah_konversi, 2, ',', '.') }} {{ $konversi->satuan_nama }}
+                                            </small>
+                                            <br><small class="text-muted" style="font-size: 10px;">
+                                                <em>Rumus: {{ number_format($jumlahSatuanUtama, 2, ',', '.') }} {{ $d->satuan_utama }} × {{ number_format($faktorKonversi, 4, ',', '.') }} {{ $konversi->satuan_nama }}/{{ $d->satuan_utama }} = {{ number_format($konversi->jumlah_konversi, 2, ',', '.') }} {{ $konversi->satuan_nama }}</em>
+                                            </small>
+                                        @endforeach
+                                    </div>
+                                @elseif($d->bahanPendukung)
+                                    @php
+                                        $jumlahSatuanUtama = $d->jumlah_satuan_utama ?? ($d->jumlah * ($d->faktor_konversi ?? 1));
+                                        $bp = $d->bahanPendukung;
+                                    @endphp
                                     
-                                    // Jika item diinput sebagai bahan pendukung (berdasarkan relation yang ada)
-                                    if ($d->bahan_pendukung_id && $d->bahanPendukung) {
-                                        // Prioritas: detail->satuan, lalu relation->satuanRelation->nama
-                                        $satuanItem = $d->satuan ?: ($d->bahanPendukung->satuanRelation->nama ?? 'unit');
-                                    }
-                                    // Fallback jika relation tidak ada
-                                    elseif ($d->bahan_pendukung_id) {
-                                        $satuanItem = $d->satuan ?: 'unit';
-                                    }
-                                @endphp
-                                {{ $satuanItem }}
+                                    @if($bp->sub_satuan_1_konversi && $bp->subSatuan1)
+                                        <br><small class="text-success">
+                                            = {{ number_format($jumlahSatuanUtama * $bp->sub_satuan_1_konversi, 2, ',', '.') }} {{ $bp->subSatuan1->nama }} (otomatis)
+                                        </small>
+                                    @endif
+                                    
+                                    @if($bp->sub_satuan_2_konversi && $bp->subSatuan2)
+                                        <br><small class="text-info">
+                                            = {{ number_format($jumlahSatuanUtama * $bp->sub_satuan_2_konversi, 2, ',', '.') }} {{ $bp->subSatuan2->nama }} (otomatis)
+                                        </small>
+                                    @endif
+                                    
+                                    @if($bp->sub_satuan_3_konversi && $bp->subSatuan3)
+                                        <br><small class="text-warning">
+                                            = {{ number_format($jumlahSatuanUtama * $bp->sub_satuan_3_konversi, 2, ',', '.') }} {{ $bp->subSatuan3->nama }} (otomatis)
+                                        </small>
+                                    @endif
+                                @endif
+                            </td>
+                            <td>
+                                {{ $d->satuan ?? ($d->bahanPendukung->satuanRelation->nama ?? 'unit') }}
+                                @if($d->faktor_konversi && abs($d->faktor_konversi - 1) > 0.001)
+                                    <br><small class="text-muted">Konversi: 1:{{ number_format($d->faktor_konversi, 2, ',', '.') }}</small>
+                                @endif
                             </td>
                             <td class="text-end">Rp {{ number_format($d->harga_satuan,0,',','.') }}</td>
                             <td class="text-end">Rp {{ number_format($subtotal,0,',','.') }}</td>
@@ -164,23 +238,60 @@
                         <span>Total Bahan Pendukung:</span>
                         <strong class="text-info">Rp {{ number_format($totalBahanPendukung,0,',','.') }}</strong>
                     </div>
+                    <hr>
                     <div class="d-flex justify-content-between">
-                        <span>Total Pembelian:</span>
-                        <strong class="text-primary">Rp {{ number_format($totalBahanBaku + $totalBahanPendukung,0,',','.') }}</strong>
+                        <span>Subtotal Item:</span>
+                        <strong>Rp {{ number_format(($pembelian->subtotal ?? ($totalBahanBaku + $totalBahanPendukung)),0,',','.') }}</strong>
+                    </div>
+                    @if(($pembelian->biaya_kirim ?? 0) > 0)
+                    <div class="d-flex justify-content-between">
+                        <span>Biaya Kirim:</span>
+                        <strong class="text-warning">Rp {{ number_format($pembelian->biaya_kirim,0,',','.') }}</strong>
+                    </div>
+                    @endif
+                    @if(($pembelian->ppn_nominal ?? 0) > 0)
+                    <div class="d-flex justify-content-between">
+                        <span>PPN ({{ $pembelian->ppn_persen ?? 0 }}%):</span>
+                        <strong class="text-danger">Rp {{ number_format($pembelian->ppn_nominal,0,',','.') }}</strong>
+                    </div>
+                    @endif
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span><strong>Total Pembelian:</strong></span>
+                        <strong class="text-primary fs-5">Rp {{ number_format($pembelian->total_harga ?? ($totalBahanBaku + $totalBahanPendukung),0,',','.') }}</strong>
                     </div>
                 </div>
                 <div class="col-md-6 text-end">
+                    <h6>Status Pembayaran</h6>
+                    <div class="d-flex justify-content-between">
+                        <span>Metode Pembayaran:</span>
+                        <strong>
+                            @if($pembelian->payment_method === 'credit')
+                                <span class="badge bg-warning">Kredit</span>
+                            @elseif($pembelian->payment_method === 'transfer')
+                                <span class="badge bg-info">Transfer</span>
+                            @else
+                                <span class="badge bg-success">Tunai</span>
+                            @endif
+                        </strong>
+                    </div>
                     <div class="d-flex justify-content-between">
                         <span>Terbayar:</span>
-                        <strong>Rp {{ number_format($pembelian->terbayar ?? 0,0,',','.') }}</strong>
+                        <strong class="text-success">Rp {{ number_format($pembelian->terbayar ?? 0,0,',','.') }}</strong>
                     </div>
                     <div class="d-flex justify-content-between">
                         <span>Sisa Pembayaran:</span>
-                        <strong>Rp {{ number_format($pembelian->sisa_pembayaran ?? 0,0,',','.') }}</strong>
+                        <strong class="text-danger">Rp {{ number_format($pembelian->sisa_pembayaran ?? 0,0,',','.') }}</strong>
                     </div>
                     <div class="d-flex justify-content-between">
                         <span>Status:</span>
-                        <strong>{{ $pembelian->status ?? '-' }}</strong>
+                        <strong>
+                            @if($pembelian->status === 'lunas')
+                                <span class="badge bg-success">Lunas</span>
+                            @else
+                                <span class="badge bg-warning">Belum Lunas</span>
+                            @endif
+                        </strong>
                     </div>
                 </div>
             </div>

@@ -108,6 +108,7 @@
                             <th>Tanggal</th>
                             <th>Vendor</th>
                             <th>Item Dibeli</th>
+                            <th>Satuan Pembelian</th>
                             <th>Pembayaran</th>
                             <th>Total Harga</th>
                             <th>Status Retur</th>
@@ -145,15 +146,33 @@
                                             <div>
                                                 @if($detail->bahan_baku_id && $detail->bahanBaku)
                                                     • <span class="badge bg-primary">BB</span> {{ $detail->bahanBaku->nama_bahan }} 
-                                                    ({{ number_format($detail->jumlah, 0, '.', '') }} {{ $detail->bahanBaku->satuan->nama ?? 'unit' }})
+                                                    ({{ number_format($detail->jumlah, 0, '.', '') }})
                                                 @elseif($detail->bahan_pendukung_id && $detail->bahanPendukung)
                                                     • <span class="badge bg-info">BP</span> {{ $detail->bahanPendukung->nama_bahan }} 
-                                                    ({{ number_format($detail->jumlah, 0, '.', '') }} {{ $detail->bahanPendukung->satuanRelation->nama ?? 'unit' }})
+                                                    ({{ number_format($detail->jumlah, 0, '.', '') }})
                                                 @else
                                                     • -
                                                 @endif
                                                 @ Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}
                                                 = <strong>Rp {{ number_format(($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0), 0, ',', '.') }}</strong>
+                                                @if($detail->faktor_konversi && abs($detail->faktor_konversi - 1) > 0.001)
+                                                    <br><span class="text-muted" style="font-size: 10px;">
+                                                        Stok: +{{ number_format($detail->jumlah_satuan_utama, 1, ',', '.') }} {{ $detail->satuan_utama }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                        </small>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($pembelian->details && $pembelian->details->count() > 0)
+                                        <small>
+                                        @foreach($pembelian->details as $detail)
+                                            <div>
+                                                <span class="badge bg-secondary">{{ $detail->satuan ?? 'unit' }}</span>
                                             </div>
                                         @endforeach
                                         </small>
@@ -193,8 +212,25 @@
                                         if ($pembelian->total_harga > $totalPembelian) {
                                             $totalPembelian = $pembelian->total_harga;
                                         }
+                                        
+                                        // Cek apakah ada biaya tambahan (shipping/tax)
+                                        $hasAdditionalCosts = ($pembelian->biaya_kirim ?? 0) > 0 || ($pembelian->ppn_nominal ?? 0) > 0;
                                     @endphp
-                                    <span class="fw-semibold">Rp {{ number_format($totalPembelian, 0, ',', '.') }}</span>
+                                    
+                                    @if($hasAdditionalCosts)
+                                        <div class="small">
+                                            <div>Subtotal: <span class="fw-semibold">Rp {{ number_format($pembelian->subtotal ?? 0, 0, ',', '.') }}</span></div>
+                                            @if(($pembelian->biaya_kirim ?? 0) > 0)
+                                                <div>Biaya Kirim: <span class="text-info">Rp {{ number_format($pembelian->biaya_kirim, 0, ',', '.') }}</span></div>
+                                            @endif
+                                            @if(($pembelian->ppn_nominal ?? 0) > 0)
+                                                <div>PPN ({{ $pembelian->ppn_persen ?? 0 }}%): <span class="text-warning">Rp {{ number_format($pembelian->ppn_nominal, 0, ',', '.') }}</span></div>
+                                            @endif
+                                            <hr class="my-1">
+                                        </div>
+                                    @endif
+                                    
+                                    <span class="fw-semibold">Total: Rp {{ number_format($totalPembelian, 0, ',', '.') }}</span>
                                 </td>
                                 <td>
                                     @php
@@ -217,7 +253,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="text-center py-4">
+                                <td colspan="11" class="text-center py-4">
                                     <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data pembelian</p>
                                 </td>

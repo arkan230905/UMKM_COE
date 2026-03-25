@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Pembelians;
 use App\Filament\Resources\Pembelians\Pages\CreatePembelian;
 use App\Filament\Resources\Pembelians\Pages\EditPembelian;
 use App\Filament\Resources\Pembelians\Pages\ListPembelians;
+use App\Filament\Resources\Pembelians\Pages\ViewPembelian;
 use App\Filament\Resources\Pembelians\Schemas\PembelianForm;
 use App\Filament\Resources\Pembelians\Tables\PembeliansTable;
 use App\Models\Pembelian;
@@ -19,6 +20,14 @@ class PembelianResource extends Resource
     protected static ?string $model = Pembelian::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+
+    protected static ?string $navigationLabel = 'Pembelian';
+
+    protected static ?string $modelLabel = 'Pembelian';
+
+    protected static ?string $pluralModelLabel = 'Pembelian';
+
+    protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
     {
@@ -42,7 +51,13 @@ class PembelianResource extends Resource
         return [
             'index' => ListPembelians::route('/'),
             'create' => CreatePembelian::route('/create'),
+            'view' => ViewPembelian::route('/{record}'),
             'edit' => EditPembelian::route('/{record}/edit'),
         ];
+    }
+
+    public static function getNavigationBadge(): ?string
+    {
+        return static::getModel()::count();
     }
 }

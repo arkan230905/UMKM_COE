@@ -183,4 +183,211 @@ class JournalService
         
         return $stats;
     }
+
+    /**
+     * Create journal entries from Pembelian (Purchase)
+     * Dr. Persediaan Bahan Baku/Pendukung | Cr. Kas/Bank/Utang Usaha
+     */
+    public static function createJournalFromPembelian($pembelian): void
+    {
+        $service = new static();
+        
+        // Delete existing journal entries for this pembelian
+        $service->deleteByRef('purchase', $pembelian->id);
+        
+        // Skip if no details
+        if (!$pembelian->details || $pembelian->details->isEmpty()) {
+            return;
+        }
+        
+        $lines = [];
+        $totalAmount = 0;
+        
+        // Create debit entries for each purchased item (Persediaan)
+        foreach ($pembelian->details as $detail) {
+            $amount = ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+            $totalAmount += $amount;
+            
+            // Determine COA account based on item type
+            $coaAccount = null;
+            
+            if ($detail->bahan_baku_id && $detail->bahanBaku) {
+                // Use specific COA from bahan baku if available
+                $coaAccount = $detail->bahanBaku->coa_persediaan_id;
+                
+                // Fallback to general bahan baku account
+                if (!$coaAccount) {
+                    $coaAccount = '1104'; // Persediaan Bahan Baku
+                }
+            } elseif ($detail->bahan_pendukung_id && $detail->bahanPendukung) {
+                // Use specific COA from bahan pendukung if available
+                $coaAccount = $detail->bahanPendukung->coa_persediaan_id ?? null;
+                
+                // Fallback to general bahan pendukung account
+                if (!$coaAccount) {
+                    $coaAccount = '1107'; // Persediaan Bahan Pendukung
+                }
+            }
+            
+            // Default fallback
+            if (!$coaAccount) {
+                $coaAccount = '1104'; // Persediaan Bahan Baku
+            }
+            
+            $lines[] = [
+                'code' => $coaAccount,
+                'debit' => $amount,
+                'credit' => 0,
+                'memo' => 'Pembelian ' . ($detail->nama_bahan ?? 'Item')
+            ];
+        }
+        
+        // Create credit entry based on payment method
+        $creditAccount = null;
+        $creditMemo = '';
+        
+        switch ($pembelian->payment_method) {
+            case 'cash':
+                $creditAccount = '101'; // Kas
+                $creditMemo = 'Pembayaran tunai pembelian';
+                break;
+                
+            case 'transfer':
+                // Use specific bank account if available
+                $creditAccount = $pembelian->bank_id ?? '102'; // Bank
+                $creditMemo = 'Pembayaran transfer pembelian';
+                break;
+                
+            case 'credit':
+                $creditAccount = '201'; // Utang Usaha
+                $creditMemo = 'Pembelian kredit';
+                break;
+                
+            default:
+                $creditAccount = '201'; // Default to Utang Usaha
+                $creditMemo = 'Pembelian';
+        }
+        
+        $lines[] = [
+            'code' => $creditAccount,
+            'debit' => 0,
+            'credit' => $totalAmount,
+            'memo' => $creditMemo
+        ];
+        
+        // Create journal entry
+        $memo = 'Pembelian #' . $pembelian->nomor_pembelian . ' - ' . ($pembelian->vendor->nama_vendor ?? 'Vendor');
+        $tanggal = $pembelian->tanggal instanceof \Carbon\Carbon ? 
+                   $pembelian->tanggal->format('Y-m-d') : 
+                   $pembelian->tanggal;
+        
+        $service->post($tanggal, 'purchase', $pembelian->id, $memo, $lines);
+    }
+
+    /**
+     * Create journal entries from Penjualan (Sales)
+     * Dr. Kas/Bank/Piutang | Cr. Pendapatan Penjualan
+     * Dr. HPP | Cr. Persediaan Barang Jadi
+     */
+    public static function createJournalFromPenjualan($penjualan): void
+    {
+        $service = new static();
+        
+        // Delete existing journal entries for this penjualan
+        $service->deleteByRef('sale', $penjualan->id);
+        
+        $lines = [];
+        $totalAmount = $penjualan->total_harga ?? 0;
+        
+        // Create debit entry based on payment method (Kas/Bank/Piutang)
+        $debitAccount = null;
+        $debitMemo = '';
+        
+        switch ($penjualan->payment_method) {
+            case 'cash':
+                $debitAccount = '101'; // Kas
+                $debitMemo = 'Penerimaan tunai penjualan';
+                break;
+                
+            case 'transfer':
+                $debitAccount = '102'; // Bank
+                $debitMemo = 'Penerimaan transfer penjualan';
+                break;
+                
+            case 'credit':
+                $debitAccount = '103'; // Piutang Usaha
+                $debitMemo = 'Penjualan kredit';
+                break;
+                
+            default:
+                $debitAccount = '101'; // Default to Kas
+                $debitMemo = 'Penerimaan penjualan';
+        }
+        
+        $lines[] = [
+            'code' => $debitAccount,
+            'debit' => $totalAmount,
+            'credit' => 0,
+            'memo' => $debitMemo
+        ];
+        
+        // Create credit entry for sales revenue
+        $lines[] = [
+            'code' => '401', // Pendapatan Penjualan
+            'debit' => 0,
+            'credit' => $totalAmount,
+            'memo' => 'Pendapatan penjualan produk'
+        ];
+        
+        // Create journal entry
+        $memo = 'Penjualan #' . ($penjualan->nomor_penjualan ?? $penjualan->id);
+        $tanggal = $penjualan->tanggal instanceof \Carbon\Carbon ? 
+                   $penjualan->tanggal->format('Y-m-d') : 
+                   $penjualan->tanggal;
+        
+        $service->post($tanggal, 'sale', $penjualan->id, $memo, $lines);
+    }
+
+    /**
+     * Create journal entries from ExpensePayment
+     * Dr. Beban | Cr. Kas/Bank
+     */
+    public static function createJournalFromExpensePayment($expensePayment): void
+    {
+        $service = new static();
+        
+        // Delete existing journal entries for this expense payment
+        $service->deleteByRef('expense_payment', $expensePayment->id);
+        
+        $lines = [];
+        $amount = $expensePayment->jumlah ?? 0;
+        
+        // Create debit entry for expense
+        $expenseAccount = $expensePayment->coa_beban ?? '501'; // Default to Beban Operasional
+        
+        $lines[] = [
+            'code' => $expenseAccount,
+            'debit' => $amount,
+            'credit' => 0,
+            'memo' => 'Pembayaran beban'
+        ];
+        
+        // Create credit entry based on payment method
+        $creditAccount = ($expensePayment->coa_kasbank == '102') ? '102' : '101'; // Bank or Kas
+        
+        $lines[] = [
+            'code' => $creditAccount,
+            'debit' => 0,
+            'credit' => $amount,
+            'memo' => 'Pembayaran beban operasional'
+        ];
+        
+        // Create journal entry
+        $memo = 'Pembayaran Beban #' . $expensePayment->id;
+        $tanggal = $expensePayment->tanggal instanceof \Carbon\Carbon ? 
+                   $expensePayment->tanggal->format('Y-m-d') : 
+                   $expensePayment->tanggal;
+        
+        $service->post($tanggal, 'expense_payment', $expensePayment->id, $memo, $lines);
+    }
 }

@@ -102,7 +102,7 @@ class ProdukController extends Controller
                 
                 // If BOP data is empty or incorrect, use standard BOP values
                 if ($totalBOP == 0 || $totalBOP > 50000) {
-                    $totalBOP = 1740 + 290 + 1160; // Total = 3.190
+                    $totalBOP = 0; // Set to 0 instead of 3.190
                 }
             }
             
@@ -193,7 +193,6 @@ class ProdukController extends Controller
             'foto' => $fotoPath,
             'harga_jual' => $hargaJual,
             'hpp' => $request->input('hpp', 0),
-            'margin_percent' => $request->input('margin_percent', 0),
             'bopb_method' => $request->input('bopb_method'),
             'bopb_rate' => $request->input('bopb_rate'),
             'labor_hours_per_unit' => $request->input('labor_hours_per_unit'),
@@ -234,7 +233,6 @@ class ProdukController extends Controller
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
             'harga_jual' => 'required|string',
             'hpp' => 'nullable|numeric|min:0',
-            'margin_percent' => 'nullable|numeric|min:0',
             'bopb_method' => 'nullable|in:per_unit,per_hour',
             'bopb_rate' => 'nullable|numeric|min:0',
             'labor_hours_per_unit' => 'nullable|numeric|min:0',
@@ -250,27 +248,17 @@ class ProdukController extends Controller
         \Log::info('Raw harga_jual from form: ' . $hargaJualFormatted);
         \Log::info('Parsed harga_jual: ' . $hargaJual);
         \Log::info('HPP from request: ' . $request->input('hpp'));
-        \Log::info('Margin percent from request: ' . $request->input('margin_percent'));
 
         $data = [
             'nama_produk' => $request->nama_produk,
             'deskripsi' => $request->deskripsi,
             'harga_jual' => $hargaJual,
+            'hpp' => $request->input('hpp'),
             'bopb_method' => $request->input('bopb_method'),
             'bopb_rate' => $request->input('bopb_rate'),
             'labor_hours_per_unit' => $request->input('labor_hours_per_unit'),
             'btkl_per_unit' => $request->input('btkl_per_unit'),
         ];
-
-        // Calculate margin_percent from harga_jual and hpp
-        $hpp = $request->input('hpp', $produk->hpp ?? $produk->getActualHPP());
-        
-        if ($hpp > 0 && $hargaJual > 0) {
-            $marginPercent = (($hargaJual - $hpp) / $hpp) * 100;
-            $data['margin_percent'] = $marginPercent;
-        } else {
-            $data['margin_percent'] = 0;
-        }
 
         if ($request->hasFile('foto')) {
             $data['foto'] = $request->file('foto')->store('produk', 'public');
@@ -281,7 +269,6 @@ class ProdukController extends Controller
         // Debug: log the stored values after update
         \Log::info('ProdukController::update - After update');
         \Log::info('Stored harga_jual in database: ' . $produk->harga_jual);
-        \Log::info('Stored margin_percent in database: ' . $produk->margin_percent);
         \Log::info('Final data array: ' . json_encode($data));
 
         return redirect()->route('master-data.produk.index')
@@ -415,7 +402,7 @@ class ProdukController extends Controller
                 
                 // If BOP data is empty or incorrect, use standard BOP values
                 if ($totalBOP == 0 || $totalBOP > 50000) {
-                    $totalBOP = 1740 + 290 + 1160; // Total = 3.190
+                    $totalBOP = 0; // Set to 0 instead of 3.190
                 }
             }
             

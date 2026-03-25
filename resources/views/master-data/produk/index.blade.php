@@ -90,8 +90,7 @@
                             <th>Barcode</th>
                             <th>Nama Produk</th>
                             <th>Deskripsi</th>
-                            <th class="text-right">Harga Harga Pokok Produksi</th>
-                            <th class="text-center">Margin</th>
+                            <th class="text-right">Harga Pokok Produksi</th>
                             <th class="text-right">Harga Jual</th>
                             <th class="text-center">Stok</th>
                             <th width="12%" class="text-center">Aksi</th>
@@ -111,13 +110,6 @@
                                 error_log("DASHBOARD DEBUG - Harga Jual from DB: " . ($produk->harga_jual ?? 'NULL'));
                                 error_log("DASHBOARD DEBUG - Harga Jual variable: {$hargaJual}");
                                 error_log("DASHBOARD DEBUG - HPP: {$hargaBomProduk}");
-                                
-                                // Calculate margin percentage from stored values
-                                if ($hargaBomProduk > 0 && $hargaJual > 0) {
-                                    $margin = (($hargaJual - $hargaBomProduk) / $hargaBomProduk) * 100;
-                                } else {
-                                    $margin = 0;
-                                }
                                 
                                 $stok = (float) $produk->stok;
                             @endphp
@@ -156,7 +148,6 @@
                                 <td>{{ $produk->nama_produk }}</td>
                                 <td>{{ $produk->deskripsi ? \Illuminate\Support\Str::limit($produk->deskripsi, 50) : '-' }}</td>
                                 <td class="text-right">Rp {{ number_format($hargaBomProduk, 0, ',', '.') }}</td>
-                                <td class="text-center">{{ number_format($margin, 0, ',', '.') }}%</td>
                                 <td class="text-right font-weight-bold">Rp {{ number_format($hargaJual, 0, ',', '.') }}</td>
                                 <td class="text-center {{ $stok <= 0 ? 'text-danger font-weight-bold' : '' }}">
                                     {{ number_format($stok, 0, ',', '.') }}
@@ -193,7 +184,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="text-center">Tidak ada data produk</td>
+                                <td colspan="9" class="text-center">Tidak ada data produk</td>
                             </tr>
                         @endforelse
                     </tbody>

@@ -276,4 +276,54 @@ class BahanPendukung extends Model
         // Tidak ada konversi yang cocok, return jumlah asli
         return $jumlah;
     }
+    
+    /**
+     * Get stok dalam berbagai satuan berdasarkan konversi manual dari pembelian
+     */
+    public function getStokDalamBerbagaiSatuan()
+    {
+        $stokSatuan = [];
+        
+        // Stok dalam satuan utama
+        $stokSatuan[$this->satuanRelation->nama ?? 'unit'] = $this->stok;
+        
+        // Ambil konversi manual dari pembelian terbaru
+        $konversiManual = \App\Models\PembelianDetailKonversi::whereHas('pembelianDetail', function($query) {
+                $query->where('bahan_pendukung_id', $this->id);
+            })
+            ->with('satuan')
+            ->get()
+            ->groupBy('satuan_id');
+            
+        foreach ($konversiManual as $satuanId => $konversiList) {
+            $satuan = $konversiList->first()->satuan;
+            if ($satuan) {
+                // Hitung rata-rata konversi dari semua pembelian
+                $totalKonversi = $konversiList->sum('jumlah_konversi');
+                $totalSatuanUtama = $konversiList->sum(function($konversi) {
+                    return $konversi->pembelianDetail->jumlah_satuan_utama ?? 0;
+                });
+                
+                if ($totalSatuanUtama > 0) {
+                    $rataRataKonversi = $totalKonversi / $totalSatuanUtama;
+                    $stokSatuan[$satuan->nama] = $this->stok * $rataRataKonversi;
+                }
+            }
+        }
+        
+        // Fallback ke konversi otomatis jika tidak ada konversi manual
+        if (count($stokSatuan) === 1) {
+            if ($this->sub_satuan_1_konversi && $this->subSatuan1) {
+                $stokSatuan[$this->subSatuan1->nama] = $this->stok * $this->sub_satuan_1_konversi;
+            }
+            if ($this->sub_satuan_2_konversi && $this->subSatuan2) {
+                $stokSatuan[$this->subSatuan2->nama] = $this->stok * $this->sub_satuan_2_konversi;
+            }
+            if ($this->sub_satuan_3_konversi && $this->subSatuan3) {
+                $stokSatuan[$this->subSatuan3->nama] = $this->stok * $this->sub_satuan_3_konversi;
+            }
+        }
+        
+        return $stokSatuan;
+    }
 }
