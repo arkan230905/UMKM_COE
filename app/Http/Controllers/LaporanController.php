@@ -1167,4 +1167,161 @@ class LaporanController extends Controller
     {
         return $this->invoicePenjualan($id);
     }
+
+    /**
+     * Get item with proper relationships loaded consistently
+     * 
+     * @param string $tipe
+     * @param int $itemId
+     * @return mixed
+     */
+    private function getItemWithConversions($tipe, $itemId)
+    {
+        switch ($tipe) {
+            case 'material':
+                return BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+            case 'product':
+                return Produk::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+            case 'bahan_pendukung':
+                return \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Get available satuans with consistent conversion logic
+     * ALWAYS uses sub_satuan_X_konversi fields (not nilai fields)
+     * 
+     * @param mixed $item
+     * @param string $tipe
+     * @return array
+     */
+    private function getAvailableSatuans($item, $tipe)
+    {
+        if (!$item) {
+            return [];
+        }
+
+        $availableSatuans = [];
+        
+        // Get main satuan
+        $mainSatuan = ($tipe == 'bahan_pendukung') ? $item->satuanRelation : $item->satuan;
+        
+        if ($mainSatuan) {
+            // Add primary unit
+            $availableSatuans[] = [
+                'id' => $mainSatuan->id,
+                'nama' => $mainSatuan->nama,
+                'is_primary' => true,
+                'conversion_to_primary' => 1.0
+            ];
+            
+            // Add sub satuan 1 - ALWAYS use konversi field for consistency
+            if ($item->sub_satuan_1_id && $item->subSatuan1) {
+                $conversionRatio = $this->getConsistentConversionFactor($item, 1);
+                if ($conversionRatio > 0) {
+                    $availableSatuans[] = [
+                        'id' => $item->subSatuan1->id,
+                        'nama' => $item->subSatuan1->nama,
+                        'is_primary' => false,
+                        'conversion_to_primary' => $conversionRatio
+                    ];
+                }
+            }
+            
+            // Add sub satuan 2 - ALWAYS use konversi field for consistency
+            if ($item->sub_satuan_2_id && $item->subSatuan2) {
+                $conversionRatio = $this->getConsistentConversionFactor($item, 2);
+                if ($conversionRatio > 0) {
+                    $availableSatuans[] = [
+                        'id' => $item->subSatuan2->id,
+                        'nama' => $item->subSatuan2->nama,
+                        'is_primary' => false,
+                        'conversion_to_primary' => $conversionRatio
+                    ];
+                }
+            }
+            
+            // Add sub satuan 3 - ALWAYS use konversi field for consistency
+            if ($item->sub_satuan_3_id && $item->subSatuan3) {
+                $conversionRatio = $this->getConsistentConversionFactor($item, 3);
+                if ($conversionRatio > 0) {
+                    $availableSatuans[] = [
+                        'id' => $item->subSatuan3->id,
+                        'nama' => $item->subSatuan3->nama,
+                        'is_primary' => false,
+                        'conversion_to_primary' => $conversionRatio
+                    ];
+                }
+            }
+        }
+        
+        return $availableSatuans;
+    }
+
+    /**
+     * Get consistent conversion factor - ensures we always use the right field
+     * Priority: konversi field > nilai field > 1.0 (fallback)
+     * 
+     * @param mixed $item
+     * @param int $subSatuanNumber (1, 2, or 3)
+     * @return float
+     */
+    private function getConsistentConversionFactor($item, $subSatuanNumber)
+    {
+        $konversiField = "sub_satuan_{$subSatuanNumber}_konversi";
+        $nilaiField = "sub_satuan_{$subSatuanNumber}_nilai";
+        
+        // Priority 1: Use konversi field if it has a valid value (> 0)
+        $konversiValue = (float)($item->$konversiField ?? 0);
+        if ($konversiValue > 0) {
+            return $konversiValue;
+        }
+        
+        // Priority 2: Use nilai field if konversi is not set and nilai has valid value
+        $nilaiValue = (float)($item->$nilaiField ?? 0);
+        if ($nilaiValue > 0) {
+            // Auto-sync: Update konversi field with nilai value for future consistency
+            $item->update([$konversiField => $nilaiValue]);
+            return $nilaiValue;
+        }
+        
+        // Priority 3: Fallback to 1.0
+        return 1.0;
+    }
+
+    /**
+     * Ensure conversion consistency for new items
+     * This method should be called when new items are created
+     * 
+     * @param mixed $item
+     * @return void
+     */
+    public static function ensureConversionConsistency($item)
+    {
+        $updated = false;
+        
+        // Check and sync sub_satuan_1
+        if ($item->sub_satuan_1_id && $item->sub_satuan_1_nilai > 0 && $item->sub_satuan_1_konversi <= 0) {
+            $item->sub_satuan_1_konversi = $item->sub_satuan_1_nilai;
+            $updated = true;
+        }
+        
+        // Check and sync sub_satuan_2
+        if ($item->sub_satuan_2_id && $item->sub_satuan_2_nilai > 0 && $item->sub_satuan_2_konversi <= 0) {
+            $item->sub_satuan_2_konversi = $item->sub_satuan_2_nilai;
+            $updated = true;
+        }
+        
+        // Check and sync sub_satuan_3
+        if ($item->sub_satuan_3_id && $item->sub_satuan_3_nilai > 0 && $item->sub_satuan_3_konversi <= 0) {
+            $item->sub_satuan_3_konversi = $item->sub_satuan_3_nilai;
+            $updated = true;
+        }
+        
+        if ($updated) {
+            $item->save();
+        }
+    }
 }

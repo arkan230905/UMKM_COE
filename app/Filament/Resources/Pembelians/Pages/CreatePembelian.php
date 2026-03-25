@@ -12,6 +12,37 @@ class CreatePembelian extends CreateRecord
 {
     protected static string $resource = PembelianResource::class;
 
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        // Fix pembelian_details calculations
+        if (isset($data['pembelian_details'])) {
+            foreach ($data['pembelian_details'] as $index => &$detail) {
+                $jumlah = (float) ($detail['jumlah'] ?? 0);
+                $harga_satuan = (float) ($detail['harga_satuan'] ?? 0);
+                $detail['subtotal'] = $jumlah * $harga_satuan;
+            }
+        }
+        
+        // Recalculate totals
+        $subtotal = 0;
+        if (isset($data['pembelian_details'])) {
+            foreach ($data['pembelian_details'] as $detail) {
+                $subtotal += (float) ($detail['subtotal'] ?? 0);
+            }
+        }
+        
+        $biaya_kirim = (float) ($data['biaya_kirim'] ?? 0);
+        $ppn_persen = (float) ($data['ppn_persen'] ?? 0);
+        $ppn_nominal = ($subtotal + $biaya_kirim) * ($ppn_persen / 100);
+        $total_harga = $subtotal + $biaya_kirim + $ppn_nominal;
+        
+        $data['subtotal'] = $subtotal;
+        $data['ppn_nominal'] = $ppn_nominal;
+        $data['total_harga'] = $total_harga;
+        
+        return $data;
+    }
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');

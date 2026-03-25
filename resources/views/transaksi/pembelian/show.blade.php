@@ -44,7 +44,7 @@
                         @php $totalBahanBaku = 0; @endphp
                         @foreach(($pembelian->details ?? [])->where('bahan_baku_id', '!=', null) as $i => $d)
                         @php 
-                            $subtotal = ($d->jumlah ?? 0) * ($d->harga_satuan ?? 0);
+                            $subtotal = $d->subtotal ?? 0; // Use stored subtotal from database
                             $totalBahanBaku += $subtotal;
                         @endphp
                         <tr>
@@ -100,7 +100,7 @@
                                 @endif
                             </td>
                             <td>
-                                {{ $d->satuan ?? ($d->bahanBaku->satuan->nama ?? 'unit') }}
+                                {{ $d->satuan_nama }}
                                 @if($d->faktor_konversi && abs($d->faktor_konversi - 1) > 0.001)
                                     <br><small class="text-muted">Konversi: 1:{{ number_format($d->faktor_konversi, 2, ',', '.') }}</small>
                                 @endif
@@ -145,7 +145,7 @@
                         @php $totalBahanPendukung = 0; @endphp
                         @foreach(($pembelian->details ?? [])->where('bahan_pendukung_id', '!=', null) as $i => $d)
                         @php 
-                            $subtotal = ($d->jumlah ?? 0) * ($d->harga_satuan ?? 0);
+                            $subtotal = $d->subtotal ?? 0; // Use stored subtotal from database
                             $totalBahanPendukung += $subtotal;
                         @endphp
                         <tr>
@@ -201,7 +201,7 @@
                                 @endif
                             </td>
                             <td>
-                                {{ $d->satuan ?? ($d->bahanPendukung->satuanRelation->nama ?? 'unit') }}
+                                {{ $d->satuan_nama }}
                                 @if($d->faktor_konversi && abs($d->faktor_konversi - 1) > 0.001)
                                     <br><small class="text-muted">Konversi: 1:{{ number_format($d->faktor_konversi, 2, ',', '.') }}</small>
                                 @endif
@@ -357,72 +357,67 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Header Pembelian -->
-                            <tr>
-                                <td>{{ $pembelian->tanggal?->format('d-m-Y') }}</td>
-                                <td>
-                                    @if($pembelian->payment_method === 'credit')
-                                        <span class="badge bg-warning">Utang Dagang</span>
-                                    @elseif($pembelian->payment_method === 'transfer')
-                                        <span class="badge bg-primary">Bank</span>
-                                    @else
-                                        <span class="badge bg-success">Kas</span>
-                                    @endif
-                                </td>
-                                <td>Pembelian {{ $pembelian->vendor->nama_vendor ?? 'Vendor' }}</td>
-                                <td class="text-end">-</td>
-                                <td class="text-end">Rp {{ number_format($pembelian->total_harga ?? 0, 0, ',', '.') }}</td>
-                            </tr>
-                            
-                            <!-- Detail Bahan Baku -->
-                            @foreach(($pembelian->details ?? [])->where('bahan_baku_id', '!=', null) as $d)
-                            @php 
-                                $subtotal = ($d->jumlah ?? 0) * ($d->harga_satuan ?? 0);
+                            @php
+                                // Get actual journal entries for this purchase
+                                $journalEntries = \App\Models\JournalEntry::where('ref_type', 'purchase')
+                                    ->where('ref_id', $pembelian->id)
+                                    ->with('lines.coa')
+                                    ->orderBy('id', 'desc')
+                                    ->first();
+                                
+                                $totalDebit = 0;
+                                $totalCredit = 0;
                             @endphp
-                            <tr>
-                                <td>{{ $pembelian->tanggal?->format('d-m-Y') }}</td>
-                                <td>
-                                    @if($d->bahanBaku && $d->bahanBaku->coaPersediaan)
-                                        <span class="badge bg-success">{{ $d->bahanBaku->coaPersediaan->nama_akun }}</span><br>
-                                        <small class="text-muted">{{ $d->bahanBaku->coaPersediaan->kode_akun }}</small>
-                                    @else
-                                        <span class="badge bg-secondary">Tidak ada COA</span>
-                                    @endif
-                                </td>
-                                <td>Pembelian {{ $d->bahanBaku ? $d->bahanBaku->nama_bahan : 'Unknown' }}</td>
-                                <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
-                                <td class="text-end">-</td>
-                            </tr>
-                            @endforeach
                             
-                            <!-- Detail Bahan Pendukung -->
-                            @foreach(($pembelian->details ?? [])->where('bahan_pendukung_id', '!=', null) as $d)
-                            @php 
-                                $subtotal = ($d->jumlah ?? 0) * ($d->harga_satuan ?? 0);
-                            @endphp
-                            <tr>
-                                <td>{{ $pembelian->tanggal?->format('d-m-Y') }}</td>
-                                <td>
-                                    @if($d->bahanPendukung && $d->bahanPendukung->coaPersediaan)
-                                        <span class="badge bg-success">{{ $d->bahanPendukung->coaPersediaan->nama_akun }}</span><br>
-                                        <small class="text-muted">{{ $d->bahanPendukung->coaPersediaan->kode_akun }}</small>
-                                    @else
-                                        <span class="badge bg-secondary">Tidak ada COA</span>
-                                    @endif
-                                </td>
-                                <td>Pembelian {{ $d->bahanPendukung ? $d->bahanPendukung->nama_bahan : 'Unknown' }}</td>
-                                <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
-                                <td class="text-end">-</td>
-                            </tr>
-                            @endforeach
+                            @if($journalEntries && $journalEntries->lines)
+                                @foreach($journalEntries->lines as $line)
+                                    @php
+                                        $totalDebit += $line->debit;
+                                        $totalCredit += $line->credit;
+                                    @endphp
+                                    <tr>
+                                        <td>{{ $journalEntries->tanggal ? \Carbon\Carbon::parse($journalEntries->tanggal)->format('d-m-Y') : '-' }}</td>
+                                        <td>
+                                            @if($line->coa)
+                                                <span class="badge bg-primary">{{ $line->coa->nama_akun }}</span><br>
+                                                <small class="text-muted">{{ $line->coa->kode_akun }}</small>
+                                            @else
+                                                <span class="badge bg-secondary">COA tidak ditemukan</span>
+                                            @endif
+                                        </td>
+                                        <td>{{ $line->memo ?? $journalEntries->memo }}</td>
+                                        <td class="text-end">
+                                            @if($line->debit > 0)
+                                                Rp {{ number_format($line->debit, 0, ',', '.') }}
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        <td class="text-end">
+                                            @if($line->credit > 0)
+                                                Rp {{ number_format($line->credit, 0, ',', '.') }}
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                
+                                <!-- Total Row -->
+                                <tr class="table-secondary fw-bold">
+                                    <td colspan="3" class="text-end">Total:</td>
+                                    <td class="text-end">Rp {{ number_format($totalDebit, 0, ',', '.') }}</td>
+                                    <td class="text-end">Rp {{ number_format($totalCredit, 0, ',', '.') }}</td>
+                                </tr>
+                            @else
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        Jurnal belum dibuat untuk pembelian ini
+                                    </td>
+                                </tr>
+                            @endif
                         </tbody>
-                        <tfoot class="table-light">
-                            <tr>
-                                <th colspan="3" class="text-end">Total:</th>
-                                <th class="text-end">Rp {{ number_format($pembelian->total_harga ?? 0, 0, ',', '.') }}</th>
-                                <th class="text-end">Rp {{ number_format($pembelian->total_harga ?? 0, 0, ',', '.') }}</th>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
             </div>

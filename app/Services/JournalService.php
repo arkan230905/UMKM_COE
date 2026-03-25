@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Account;
 use App\Models\JournalEntry;
 use App\Models\JournalLine;
 use App\Models\Coa;
@@ -10,66 +9,17 @@ use Illuminate\Support\Facades\DB;
 
 class JournalService
 {
-    protected function accountId(string $code): int
+    protected function coaId(string $code): int
     {
-        $acc = Account::where('code', $code)->first();
-        if ($acc) {
-            return (int)$acc->id;
-        }
-
-        // Fallback: auto-provision from COA if available
+        // Langsung gunakan COA saja, tidak perlu tabel accounts
         $coa = Coa::where('kode_akun', $code)->first();
         if ($coa) {
-            $type = $this->mapCoaTypeToAccountType((string)($coa->tipe_akun ?? ''));
-            $acc = Account::create([
-                'code' => (string)$code,
-                'name' => (string)($coa->nama_akun ?? $code),
-                'type' => $type,
-            ]);
-            
-            // Log the auto-creation for debugging
-            \Log::info("Auto-created Account from COA: {$code} - {$coa->nama_akun}");
-            return (int)$acc->id;
+            // Return the actual ID column, not the primary key
+            return (int)$coa->getAttribute('id');
         }
 
-        // Final fallback: auto-create a minimal account with inferred type from code.
-        // Mapping umum: 1=asset, 2=liability, 3=equity, 4=revenue, 5/6/7=expense
-        $inferred = $this->inferTypeFromCode((string)$code);
-        $acc = Account::create([
-            'code' => (string)$code,
-            'name' => 'Akun ' . (string)$code, // More descriptive name
-            'type' => $inferred,
-        ]);
-        
-        // Log the auto-creation for debugging
-        \Log::info("Auto-created Account from code inference: {$code} - Akun {$code}");
-        return (int)$acc->id;
-    }
-
-    protected function mapCoaTypeToAccountType(string $tipe): string
-    {
-        $t = strtolower(trim($tipe));
-        return match ($t) {
-            'asset', 'assets', 'aktiva' => 'asset',
-            'liability', 'liabilities', 'utang', 'kewajiban' => 'liability',
-            'equity', 'modal' => 'equity',
-            'revenue', 'pendapatan' => 'revenue',
-            'expense', 'beban' => 'expense',
-            default => 'unknown',
-        };
-    }
-
-    protected function inferTypeFromCode(string $code): string
-    {
-        $first = substr(preg_replace('/\D+/', '', $code), 0, 1);
-        return match ($first) {
-            '1' => 'asset',
-            '2' => 'liability',
-            '3' => 'equity',
-            '4' => 'revenue',
-            '5', '6', '7' => 'expense',
-            default => 'asset', // safe default
-        };
+        // Jika COA tidak ditemukan, buat error yang informatif
+        throw new \RuntimeException("COA dengan kode {$code} tidak ditemukan. Silakan buat COA terlebih dahulu di master data.");
     }
 
     /**
@@ -87,13 +37,13 @@ class JournalService
 
             $totalDebit = 0.0; $totalCredit = 0.0;
             foreach ($lines as $ln) {
-                $aid = $this->accountId($ln['code']);
+                $aid = $this->coaId($ln['code']);
                 $debit = (float)($ln['debit'] ?? 0); $credit = (float)($ln['credit'] ?? 0);
                 $lineMemo = $ln['memo'] ?? null; // Support per-line memo
                 
                 JournalLine::create([
                     'journal_entry_id' => $entry->id,
-                    'account_id' => $aid,
+                    'coa_id' => $aid,
                     'debit' => $debit,
                     'credit' => $credit,
                     'memo' => $lineMemo, // Add memo to journal line if supported
@@ -201,12 +151,12 @@ class JournalService
         }
         
         $lines = [];
-        $totalAmount = 0;
+        $subtotalAmount = 0;
         
         // Create debit entries for each purchased item (Persediaan)
         foreach ($pembelian->details as $detail) {
             $amount = ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
-            $totalAmount += $amount;
+            $subtotalAmount += $amount;
             
             // Determine COA account based on item type
             $coaAccount = null;
@@ -242,29 +192,53 @@ class JournalService
             ];
         }
         
+        // Add PPN Masukan entry if there's PPN
+        $ppnNominal = (float) ($pembelian->ppn_nominal ?? 0);
+        if ($ppnNominal > 0) {
+            $lines[] = [
+                'code' => '1130', // PPN Masukan
+                'debit' => $ppnNominal,
+                'credit' => 0,
+                'memo' => 'PPN Masukan ' . ($pembelian->ppn_persen ?? 0) . '%'
+            ];
+        }
+        
+        // Add Biaya Kirim entry if there's shipping cost
+        $biayaKirim = (float) ($pembelian->biaya_kirim ?? 0);
+        if ($biayaKirim > 0) {
+            $lines[] = [
+                'code' => '511', // Biaya Kirim/Angkut
+                'debit' => $biayaKirim,
+                'credit' => 0,
+                'memo' => 'Biaya kirim pembelian'
+            ];
+        }
+        
+        // Calculate total amount (subtotal + PPN + biaya kirim)
+        $totalAmount = $subtotalAmount + $ppnNominal + $biayaKirim;
+        
         // Create credit entry based on payment method
         $creditAccount = null;
         $creditMemo = '';
         
         switch ($pembelian->payment_method) {
             case 'cash':
-                $creditAccount = '101'; // Kas
+                $creditAccount = '1101'; // Kas
                 $creditMemo = 'Pembayaran tunai pembelian';
                 break;
                 
             case 'transfer':
-                // Use specific bank account if available
-                $creditAccount = $pembelian->bank_id ?? '102'; // Bank
+                $creditAccount = '1102'; // Kas di Bank
                 $creditMemo = 'Pembayaran transfer pembelian';
                 break;
                 
             case 'credit':
-                $creditAccount = '201'; // Utang Usaha
+                $creditAccount = '2101'; // Utang Usaha
                 $creditMemo = 'Pembelian kredit';
                 break;
                 
             default:
-                $creditAccount = '201'; // Default to Utang Usaha
+                $creditAccount = '2101'; // Default to Utang Usaha
                 $creditMemo = 'Pembelian';
         }
         

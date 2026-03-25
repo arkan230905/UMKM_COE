@@ -30,6 +30,7 @@ use App\Observers\PenjualanDetailObserver;
 use App\Models\Vendor;
 use App\Models\Satuan;
 use App\Models\Coa;
+use App\Observers\ConversionConsistencyObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -54,6 +55,11 @@ class AppServiceProvider extends ServiceProvider
         Btkl::observe(BtklObserver::class);
         BopProses::observe(BopProsesObserver::class);
         Produk::observe(ProdukObserver::class);
+        
+        // Conversion consistency observers for stock report
+        BahanBaku::observe(ConversionConsistencyObserver::class);
+        BahanPendukung::observe(ConversionConsistencyObserver::class);
+        Produk::observe(ConversionConsistencyObserver::class);
         
         // Real-time stock tracking observers
         PembelianDetail::observe(PembelianDetailObserver::class);
