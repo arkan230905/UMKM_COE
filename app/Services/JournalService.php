@@ -271,7 +271,7 @@ class JournalService
         $service->deleteByRef('sale', $penjualan->id);
         
         $lines = [];
-        $totalAmount = $penjualan->total_harga ?? 0;
+        $totalAmount = $penjualan->total ?? 0;
         
         // Create debit entry based on payment method (Kas/Bank/Piutang)
         $debitAccount = null;
@@ -279,22 +279,22 @@ class JournalService
         
         switch ($penjualan->payment_method) {
             case 'cash':
-                $debitAccount = '101'; // Kas
+                $debitAccount = '1101'; // Kas
                 $debitMemo = 'Penerimaan tunai penjualan';
                 break;
                 
             case 'transfer':
-                $debitAccount = '102'; // Bank
+                $debitAccount = '1102'; // Kas di Bank
                 $debitMemo = 'Penerimaan transfer penjualan';
                 break;
                 
             case 'credit':
-                $debitAccount = '103'; // Piutang Usaha
+                $debitAccount = '1103'; // Piutang Usaha
                 $debitMemo = 'Penjualan kredit';
                 break;
                 
             default:
-                $debitAccount = '101'; // Default to Kas
+                $debitAccount = '1101'; // Default to Kas
                 $debitMemo = 'Penerimaan penjualan';
         }
         
@@ -307,7 +307,7 @@ class JournalService
         
         // Create credit entry for sales revenue
         $lines[] = [
-            'code' => '401', // Pendapatan Penjualan
+            'code' => '4101', // Pendapatan Penjualan
             'debit' => 0,
             'credit' => $totalAmount,
             'memo' => 'Pendapatan penjualan produk'

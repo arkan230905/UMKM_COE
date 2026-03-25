@@ -119,11 +119,11 @@
 
 .btn-minimal {
     font-size: 0.7rem !important;
-    text-decoration: none;
+    text-decoration: none !important;
     padding: 4px 10px !important;
     border-radius: 0.2rem;
     transition: all 0.2s ease;
-    cursor: pointer;
+    cursor: pointer !important;
     border: 1px solid;
     background: white;
     font-weight: 500;
@@ -135,11 +135,13 @@
     min-height: 28px !important;
     max-height: 28px !important;
     text-align: center;
-    display: inline-flex;
+    display: inline-flex !important;
     align-items: center;
     justify-content: center;
     line-height: 1;
     box-sizing: border-box;
+    pointer-events: auto !important;
+    z-index: 1 !important;
 }
 
 .btn-minimal:hover {
@@ -452,9 +454,9 @@
                                 <td class="text-center">
                                     <div class="action-layout">
                                         <div class="action-left">
-                                            <button type="button" class="btn-minimal btn-primary w-100" data-bs-toggle="modal" data-bs-target="#detailModal{{ $penjualan->id }}" title="Detail Transaksi">
+                                            <a href="{{ route('transaksi.penjualan.show', $penjualan->id) }}" class="btn btn-primary btn-sm">
                                                 Detail
-                                            </button>
+                                            </a>
                                         </div>
                                         <div class="action-right">
                                             <div class="action-row">
@@ -541,7 +543,7 @@
                                         <td class="text-center">
                                             <div class="action-layout">
                                                 <div class="action-left">
-                                                    <button type="button" class="btn-minimal btn-primary w-100" data-bs-toggle="modal" data-bs-target="#returDetailModal{{ $retur->id }}" title="Detail Retur">
+                                                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#returDetailModal{{ $retur->id }}">
                                                         Detail
                                                     </button>
                                                 </div>
@@ -581,7 +583,7 @@
 
 <!-- Detail Modal -->
 @foreach($penjualans as $penjualan)
-<div class="modal fade" id="detailModal{{ $penjualan->id }}" tabindex="-1" aria-labelledby="detailModalLabel{{ $penjualan->id }}" aria-hidden="true">
+<div class="modal fade" id="detailModal{{ $penjualan->id }}" tabindex="-1" aria-labelledby="detailModalLabel{{ $penjualan->id }}" aria-hidden="true" style="z-index: 1050;">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -887,10 +889,11 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
-    })
+    });
 });
 
 function showTab(tabId, buttonElement) {
