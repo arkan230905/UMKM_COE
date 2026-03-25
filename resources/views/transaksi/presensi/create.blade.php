@@ -256,6 +256,8 @@ function toggleJamFieldsInline(status) {
     function init() {
         console.log('Initializing presensi form');
         
+        const form = document.querySelector('form');
+        const submitBtn = document.getElementById('submitBtn');
         const statusSelect = document.getElementById('status');
         const jamMasukField = document.getElementById('jamMasukField');
         const jamKeluarField = document.getElementById('jamKeluarField');
@@ -343,76 +345,82 @@ function toggleJamFieldsInline(status) {
             console.log('Triggering initial toggle with status:', statusSelect.value);
             toggleJamFieldsInline(statusSelect.value);
         }
-    }
-    
-    // Set default time if empty
-    if (jamMasuk && !jamMasuk.value) {
-        const now = new Date();
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        jamMasuk.value = `${hours}:${minutes}`;
-    }
-    
-    // Set default jam keluar (1 menit setelah jam masuk)
-    if (jamKeluar && !jamKeluar.value && jamMasuk && jamMasuk.value) {
-        const [hours, minutes] = jamMasuk.value.split(':').map(Number);
-        const date = new Date();
-        date.setHours(hours + 9, minutes, 0);
-        const newHours = String(date.getHours()).padStart(2, '0');
-        const newMinutes = String(date.getMinutes()).padStart(2, '0');
-        jamKeluar.value = `${newHours}:${newMinutes}`;
-    }
-    
-    // Auto-set jam keluar when jam masuk changes
-    if (jamMasuk) {
-        jamMasuk.addEventListener('change', function() {
-            if (statusSelect && statusSelect.value === 'hadir' && jamKeluar) {
-                const [hours, minutes] = this.value.split(':').map(Number);
-                const date = new Date();
-                date.setHours(hours + 9, minutes, 0); // Default +9 jam
-                
-                // Jika melewati tengah malam, set ke jam 23:59
-                if (date.getHours() >= 24) {
-                    date.setHours(23, 59, 0);
+
+        // Set default time if empty
+        if (jamMasuk && !jamMasuk.value) {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            jamMasuk.value = `${hours}:${minutes}`;
+        }
+        
+        // Set default jam keluar (1 menit setelah jam masuk)
+        if (jamKeluar && !jamKeluar.value && jamMasuk && jamMasuk.value) {
+            const [hours, minutes] = jamMasuk.value.split(':').map(Number);
+            const date = new Date();
+            date.setHours(hours + 9, minutes, 0);
+            const newHours = String(date.getHours()).padStart(2, '0');
+            const newMinutes = String(date.getMinutes()).padStart(2, '0');
+            jamKeluar.value = `${newHours}:${newMinutes}`;
+        }
+        
+        // Auto-set jam keluar when jam masuk changes
+        if (jamMasuk) {
+            jamMasuk.addEventListener('change', function() {
+                if (statusSelect && statusSelect.value === 'hadir' && jamKeluar) {
+                    const [hours, minutes] = this.value.split(':').map(Number);
+                    const date = new Date();
+                    date.setHours(hours + 9, minutes, 0); // Default +9 jam
+                    
+                    // Jika melewati tengah malam, set ke jam 23:59
+                    if (date.getHours() >= 24) {
+                        date.setHours(23, 59, 0);
+                    }
+                    
+                    const newHours = String(date.getHours()).padStart(2, '0');
+                    const newMinutes = String(date.getMinutes()).padStart(2, '0');
+                    jamKeluar.value = `${newHours}:${newMinutes}`;
                 }
-                
-                const newHours = String(date.getHours()).padStart(2, '0');
-                const newMinutes = String(date.getMinutes()).padStart(2, '0');
-                jamKeluar.value = `${newHours}:${newMinutes}`;
-            }
-        });
-    }
-    
-    // Validasi form sebelum submit
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            let isValid = true;
-            
-            // Validasi jam keluar harus setelah jam masuk
-            if (statusSelect.value === 'hadir' && jamMasuk && jamMasuk.value && jamKeluar && jamKeluar.value) {
-                const masuk = new Date('2000-01-01T' + jamMasuk.value);
-                const keluar = new Date('2000-01-01T' + jamKeluar.value);
-                
-                if (keluar <= masuk) {
+            });
+        }
+        
+        // Validasi form sebelum submit + prevent double submit
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (form.dataset.submitted === '1') {
                     e.preventDefault();
-                    alert('Jam keluar harus setelah jam masuk');
-                    jamKeluar.focus();
-                    isValid = false;
+                    return false;
                 }
-            }
-            
-            // Jika validasi berhasil, tampilkan loading
-            if (isValid && submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="bi bi-arrow-repeat fa-spin me-1"></i> Menyimpan...';
-                return true;
-            }
-            
-            if (!isValid) {
-                e.preventDefault();
-                return false;
-            }
-        });
+
+                let isValid = true;
+                
+                // Validasi jam keluar harus setelah jam masuk
+                if (statusSelect.value === 'hadir' && jamMasuk && jamMasuk.value && jamKeluar && jamKeluar.value) {
+                    const masuk = new Date('2000-01-01T' + jamMasuk.value);
+                    const keluar = new Date('2000-01-01T' + jamKeluar.value);
+                    
+                    if (keluar <= masuk) {
+                        e.preventDefault();
+                        alert('Jam keluar harus setelah jam masuk');
+                        jamKeluar.focus();
+                        isValid = false;
+                    }
+                }
+                
+                // Jika validasi berhasil, tampilkan loading
+                if (isValid && submitBtn) {
+                    form.dataset.submitted = '1';
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="bi bi-arrow-repeat fa-spin me-1"></i> Menyimpan...';
+                    return true;
+                }
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        }
     }
 });
 </script>
