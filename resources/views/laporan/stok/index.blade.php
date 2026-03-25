@@ -138,42 +138,64 @@
                 @endphp
                 
                 @php
-                    // Initialize variables - no production usage calculations
-                    $usageQty = 0;
-                    $convertedUsageQty = 0;
+                    // Use actual transaction data from controller instead of static data
+                    $stockData = [];
                     
-                    // No production calculations needed since no production transactions exist yet
-                    // Just initialize biayaBahanPerUnit for material types
-                    if ($tipe == 'material') {
-                        $biayaBahanPerUnit = \App\Http\Controllers\LaporanController::getBiayaBahanPerUnit($selectedItem->id);
+                    if (isset($dailyStock) && count($dailyStock) > 0) {
+                        // Convert controller data to view format with unit conversions
+                        foreach ($dailyStock as $transaction) {
+                            // Convert quantities to selected unit
+                            $convertedSaldoAwalQty = $transaction['saldo_awal_qty'] * $unit['conversion'];
+                            $convertedPembelianQty = $transaction['pembelian_qty'] * $unit['conversion'];
+                            $convertedProduksiQty = $transaction['produksi_qty'] * $unit['conversion'];
+                            $convertedSaldoAkhirQty = $transaction['saldo_akhir_qty'] * $unit['conversion'];
+                            
+                            // Convert prices (inverse of quantity conversion)
+                            $convertedSaldoAwalHarga = $unit['conversion'] > 0 ? $transaction['saldo_awal_nilai'] / max($transaction['saldo_awal_qty'], 1) / $unit['conversion'] : 0;
+                            $convertedPembelianHarga = $unit['conversion'] > 0 ? $transaction['pembelian_nilai'] / max($transaction['pembelian_qty'], 1) / $unit['conversion'] : 0;
+                            $convertedProduksiHarga = $unit['conversion'] > 0 ? $transaction['produksi_nilai'] / max($transaction['produksi_qty'], 1) / $unit['conversion'] : 0;
+                            $convertedSaldoAkhirHarga = $unit['conversion'] > 0 ? $transaction['saldo_akhir_nilai'] / max($transaction['saldo_akhir_qty'], 1) / $unit['conversion'] : 0;
+                            
+                            $stockData[] = [
+                                'tanggal' => \Carbon\Carbon::parse($transaction['tanggal'])->format('d/m/Y'),
+                                'saldo_awal_qty' => $convertedSaldoAwalQty,
+                                'saldo_awal_harga' => $convertedSaldoAwalHarga,
+                                'saldo_awal_total' => $transaction['saldo_awal_nilai'],
+                                'pembelian_qty' => $convertedPembelianQty,
+                                'pembelian_harga' => $convertedPembelianHarga,
+                                'pembelian_total' => $transaction['pembelian_nilai'],
+                                'produksi_qty' => $convertedProduksiQty,
+                                'produksi_harga' => $convertedProduksiHarga,
+                                'produksi_total' => $transaction['produksi_nilai'],
+                                'saldo_akhir_qty' => $convertedSaldoAkhirQty,
+                                'saldo_akhir_harga' => $convertedSaldoAkhirHarga,
+                                'saldo_akhir_total' => $transaction['saldo_akhir_nilai'],
+                                'ref_type' => $transaction['ref_type'] ?? '',
+                                'is_opening_balance' => $transaction['is_opening_balance'] ?? false
+                            ];
+                        }
+                    } else {
+                        // Fallback: show initial stock if no transactions
+                        $stockData = [
+                            [
+                                'tanggal' => '01/03/2026',
+                                'saldo_awal_qty' => $convertedQty,
+                                'saldo_awal_harga' => $convertedPrice,
+                                'saldo_awal_total' => $baseTotal,
+                                'pembelian_qty' => 0,
+                                'pembelian_harga' => 0,
+                                'pembelian_total' => 0,
+                                'produksi_qty' => 0,
+                                'produksi_harga' => 0,
+                                'produksi_total' => 0,
+                                'saldo_akhir_qty' => $convertedQty,
+                                'saldo_akhir_harga' => $convertedPrice,
+                                'saldo_akhir_total' => $baseTotal,
+                                'ref_type' => 'initial_stock',
+                                'is_opening_balance' => false
+                            ]
+                        ];
                     }
-                    
-                    // Apply biaya bahan per unit if available
-                    if ($biayaBahanPerUnit > 0) {
-                        $usageQty = $biayaBahanPerUnit;
-                    }
-                    $usageTotal = $usageQty * $basePrice;
-                    
-                    // Stock data with only initial stock - no production usage
-                    $stockData = [
-                        [
-                            'tanggal' => '01/03/2026',
-                            'saldo_awal_qty' => $convertedQty,
-                            'saldo_awal_harga' => $convertedPrice,
-                            'saldo_awal_total' => $baseTotal,
-                            'pembelian_qty' => 0,
-                            'pembelian_harga' => 0,
-                            'pembelian_total' => 0,
-                            'produksi_qty' => 0, // No production usage
-                            'produksi_harga' => 0,
-                            'produksi_total' => 0,
-                            'saldo_akhir_qty' => $convertedQty, // Same as initial stock
-                            'saldo_akhir_harga' => $convertedPrice,
-                            'saldo_akhir_total' => $baseTotal // Same as initial stock
-                        ]
-                    ];
-                    
-                    // No additional production transactions since production hasn't occurred
                 @endphp
                 
                 <div class="card mb-4">
@@ -188,6 +210,7 @@
                                 <thead style="background-color: #6c9f6c; color: white;">
                                     <tr>
                                         <th rowspan="2" class="text-center align-middle" style="width: 80px;">Tanggal</th>
+                                        <th rowspan="2" class="text-center align-middle" style="width: 120px;">Keterangan</th>
                                         <th colspan="3" class="text-center">Stok Awal</th>
                                         <th colspan="3" class="text-center">Pembelian</th>
                                         <th colspan="3" class="text-center">Produksi</th>
@@ -210,8 +233,42 @@
                                 </thead>
                                 <tbody>
                                     @foreach($stockData as $row)
-                                        <tr>
+                                        @php
+                                            // Generate transaction description based on ref_type
+                                            $keterangan = '';
+                                            if (isset($row['is_opening_balance']) && $row['is_opening_balance']) {
+                                                $keterangan = 'Saldo Awal Bulan';
+                                            } elseif (isset($row['ref_type'])) {
+                                                switch($row['ref_type']) {
+                                                    case 'initial_stock':
+                                                        $keterangan = 'Stok Awal';
+                                                        break;
+                                                    case 'purchase':
+                                                        $keterangan = 'Pembelian';
+                                                        break;
+                                                    case 'production':
+                                                        if ($tipe === 'product') {
+                                                            $keterangan = 'Hasil Produksi';
+                                                        } else {
+                                                            $keterangan = 'Pemakaian Produksi';
+                                                        }
+                                                        break;
+                                                    case 'adjustment':
+                                                        $keterangan = 'Penyesuaian Stok';
+                                                        break;
+                                                    case 'opening_balance':
+                                                        $keterangan = 'Saldo Awal Bulan';
+                                                        break;
+                                                    default:
+                                                        $keterangan = ucfirst(str_replace('_', ' ', $row['ref_type']));
+                                                }
+                                            } else {
+                                                $keterangan = 'Transaksi';
+                                            }
+                                        @endphp
+                                        <tr class="{{ (isset($row['is_opening_balance']) && $row['is_opening_balance']) ? 'table-info' : '' }}">
                                             <td class="text-center">{{ $row['tanggal'] }}</td>
+                                            <td class="text-center">{{ $keterangan }}</td>
                                             <td class="text-end">{{ $row['saldo_awal_qty'] > 0 ? number_format($row['saldo_awal_qty'], ($unit['name'] == 'Gram' ? 0 : 2), ',', '.') . ' ' . $unit['name'] : '' }}</td>
                                             <td class="text-end">{{ $row['saldo_awal_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['saldo_awal_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
                                             <td class="text-end">{{ $row['saldo_awal_total'] > 0 ? 'RP' . number_format($row['saldo_awal_total'], 0, ',', '.') : '' }}</td>

@@ -25,15 +25,15 @@ class AkuntansiController extends Controller
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
 
-        $query = JournalEntry::with(['lines.account'])->orderBy('tanggal','asc')->orderBy('id','asc');
+        $query = JournalEntry::with(['lines.coa'])->orderBy('tanggal','asc')->orderBy('id','asc');
         if ($from) { $query->whereDate('tanggal','>=',$from); }
         if ($to)   { $query->whereDate('tanggal','<=',$to); }
         if ($refType) { $query->where('ref_type', $refType); }
         if ($refId)   { $query->where('ref_id', $refId); }
         if ($accountCode) { 
             $query->whereHas('lines', function($q) use ($accountCode) {
-                $q->whereHas('account', function($subQ) use ($accountCode) {
-                    $subQ->where('code', $accountCode);
+                $q->whereHas('coa', function($subQ) use ($accountCode) {
+                    $subQ->where('kode_akun', $accountCode);
                 });
             });
         }
@@ -49,7 +49,7 @@ class AkuntansiController extends Controller
         $refType = $request->get('ref_type');
         $refId   = $request->get('ref_id');
 
-        $query = JournalEntry::with(['lines.account'])->orderBy('tanggal','asc')->orderBy('id','asc');
+        $query = JournalEntry::with(['lines.coa'])->orderBy('tanggal','asc')->orderBy('id','asc');
         if ($from) { $query->whereDate('tanggal','>=',$from); }
         if ($to)   { $query->whereDate('tanggal','<=',$to); }
         if ($refType) { $query->where('ref_type', $refType); }

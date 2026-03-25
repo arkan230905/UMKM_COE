@@ -184,10 +184,10 @@
                             $hppTotal = 0;
                             $penjualanTotal = 0;
                             foreach($e->lines as $line) {
-                              if($line->account->code === '5101') {
+                              if($line->coa->kode_akun === '5101') {
                                 $hppTotal = $line->debit;
                               }
-                              if($line->account->code === '1101') {
+                              if($line->coa->kode_akun === '1101') {
                                 $penjualanTotal = $line->debit;
                               }
                             }
@@ -211,15 +211,15 @@
                     </td>
                   @endif
                   <td class="align-middle" style="border-right: 1px solid #dee2e6;">
-                    <code class="text-primary">{{ $l->account->code ?? '-' }}</code>
+                    <code class="text-primary">{{ $l->coa->kode_akun ?? '-' }}</code>
                   </td>
                   <td class="align-middle" style="border-right: 1px solid #dee2e6;">
                     <div>
-                      <div class="fw-semibold">{{ $l->account->name ?? 'Akun tidak ditemukan' }}</div>
-                      @if($l->account)
-                        <small class="text-muted">{{ $l->account->type ?? '' }}</small>
+                      <div class="fw-semibold">{{ $l->coa->nama_akun ?? 'COA tidak ditemukan' }}</div>
+                      @if($l->coa)
+                        <small class="text-muted">{{ $l->coa->tipe_akun ?? '' }}</small>
                         
-                        @if($e->ref_type === 'sale' && $l->account->code === '5101')
+                        @if($e->ref_type === 'sale' && $l->coa->kode_akun === '5101')
                           <div class="mt-1">
                             <small class="badge bg-warning text-dark">
                               <i class="bi bi-info-circle me-1"></i>HPP Penjualan
@@ -227,7 +227,7 @@
                           </div>
                         @endif
                         
-                        @if($e->ref_type === 'sale' && $l->account->code === '1106')
+                        @if($e->ref_type === 'sale' && $l->coa->kode_akun === '1106')
                           <div class="mt-1">
                             <small class="badge bg-info text-dark">
                               <i class="bi bi-box-seam me-1"></i>Persediaan Keluar

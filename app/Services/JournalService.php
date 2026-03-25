@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Account;
 use App\Models\JournalEntry;
 use App\Models\JournalLine;
 use App\Models\Coa;
@@ -10,66 +9,16 @@ use Illuminate\Support\Facades\DB;
 
 class JournalService
 {
-    protected function accountId(string $code): int
+    protected function coaId(string $code): int
     {
-        $acc = Account::where('code', $code)->first();
-        if ($acc) {
-            return (int)$acc->id;
-        }
-
-        // Fallback: auto-provision from COA if available
+        // Langsung gunakan COA saja, tidak perlu tabel accounts
         $coa = Coa::where('kode_akun', $code)->first();
         if ($coa) {
-            $type = $this->mapCoaTypeToAccountType((string)($coa->tipe_akun ?? ''));
-            $acc = Account::create([
-                'code' => (string)$code,
-                'name' => (string)($coa->nama_akun ?? $code),
-                'type' => $type,
-            ]);
-            
-            // Log the auto-creation for debugging
-            \Log::info("Auto-created Account from COA: {$code} - {$coa->nama_akun}");
-            return (int)$acc->id;
+            return (int)$coa->id;
         }
 
-        // Final fallback: auto-create a minimal account with inferred type from code.
-        // Mapping umum: 1=asset, 2=liability, 3=equity, 4=revenue, 5/6/7=expense
-        $inferred = $this->inferTypeFromCode((string)$code);
-        $acc = Account::create([
-            'code' => (string)$code,
-            'name' => 'Akun ' . (string)$code, // More descriptive name
-            'type' => $inferred,
-        ]);
-        
-        // Log the auto-creation for debugging
-        \Log::info("Auto-created Account from code inference: {$code} - Akun {$code}");
-        return (int)$acc->id;
-    }
-
-    protected function mapCoaTypeToAccountType(string $tipe): string
-    {
-        $t = strtolower(trim($tipe));
-        return match ($t) {
-            'asset', 'assets', 'aktiva' => 'asset',
-            'liability', 'liabilities', 'utang', 'kewajiban' => 'liability',
-            'equity', 'modal' => 'equity',
-            'revenue', 'pendapatan' => 'revenue',
-            'expense', 'beban' => 'expense',
-            default => 'unknown',
-        };
-    }
-
-    protected function inferTypeFromCode(string $code): string
-    {
-        $first = substr(preg_replace('/\D+/', '', $code), 0, 1);
-        return match ($first) {
-            '1' => 'asset',
-            '2' => 'liability',
-            '3' => 'equity',
-            '4' => 'revenue',
-            '5', '6', '7' => 'expense',
-            default => 'asset', // safe default
-        };
+        // Jika COA tidak ditemukan, buat error yang informatif
+        throw new \RuntimeException("COA dengan kode {$code} tidak ditemukan. Silakan buat COA terlebih dahulu di master data.");
     }
 
     /**
@@ -87,13 +36,13 @@ class JournalService
 
             $totalDebit = 0.0; $totalCredit = 0.0;
             foreach ($lines as $ln) {
-                $aid = $this->accountId($ln['code']);
+                $aid = $this->coaId($ln['code']);
                 $debit = (float)($ln['debit'] ?? 0); $credit = (float)($ln['credit'] ?? 0);
                 $lineMemo = $ln['memo'] ?? null; // Support per-line memo
                 
                 JournalLine::create([
                     'journal_entry_id' => $entry->id,
-                    'account_id' => $aid,
+                    'coa_id' => $aid,
                     'debit' => $debit,
                     'credit' => $credit,
                     'memo' => $lineMemo, // Add memo to journal line if supported
