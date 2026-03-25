@@ -234,7 +234,7 @@
                     <td class="amount">Rp {{ number_format($penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 <tr>
-                    <td>+ Asuransi / BPJS</td>
+                    <td>- Asuransi / BPJS</td>
                     <td class="amount">Rp {{ number_format($penggajian->asuransi ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 <tr>

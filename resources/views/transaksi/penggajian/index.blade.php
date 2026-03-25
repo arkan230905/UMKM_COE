@@ -126,6 +126,13 @@
                                     <a href="{{ route('transaksi.penggajian.show', $gaji->id) }}" class="btn btn-outline-info btn-sm" title="Detail">
                                         <i class="fas fa-eye"></i> Detail
                                     </a>
+                                    <form action="{{ route('transaksi.penggajian.destroy', $gaji->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus data penggajian ini?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         @empty

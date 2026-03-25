@@ -77,7 +77,7 @@ class PenggajianController extends Controller
                 'tarif_per_jam' => 'required|numeric|min:0',
                 'tunjangan' => 'required|numeric|min:0',
                 'asuransi' => 'required|numeric|min:0',
-                'total_jam_kerja' => 'required|numeric|min:0',
+                'total_jam_kerja' => 'nullable|numeric|min:0',
                 'jenis_pegawai' => 'required|string|in:btkl,btktl',
             ]);
 
@@ -88,8 +88,23 @@ class PenggajianController extends Controller
             $tarifPerJam = (float) $request->tarif_per_jam;
             $tunjangan = (float) $request->tunjangan;
             $asuransi = (float) $request->asuransi;
-            $totalJamKerja = (float) $request->total_jam_kerja;
             $jenisPegawai = $request->jenis_pegawai;
+
+            // Untuk BTKL: hitung total jam kerja otomatis dari presensi (bulan dari tanggal_penggajian)
+            if ($jenisPegawai === 'btkl') {
+                $tanggal = Carbon::parse($request->tanggal_penggajian);
+                $presensis = Presensi::where('pegawai_id', $pegawai->id)
+                    ->whereMonth('tgl_presensi', $tanggal->month)
+                    ->whereYear('tgl_presensi', $tanggal->year)
+                    ->get();
+
+                // Sum via accessor (handles cases where DB jumlah_jam is 0/null but can be calculated from jam_masuk/jam_keluar)
+                $totalJamKerja = (float) $presensis->sum(function ($p) {
+                    return (float) ($p->jumlah_jam ?? 0);
+                });
+            } else {
+                $totalJamKerja = (float) ($request->total_jam_kerja ?? 0);
+            }
             
             // Input manual dari user
             $bonus = (float) ($request->bonus ?? 0);
@@ -117,8 +132,8 @@ class PenggajianController extends Controller
                 $gajiDasar = $gajiPokok;
             }
 
-            // Total gaji = gaji dasar + tunjangan + asuransi + bonus - potongan
-            $totalGaji = $gajiDasar + $tunjangan + $asuransi + $bonus - $potongan;
+            // Total gaji = gaji dasar + tunjangan - asuransi + bonus - potongan
+            $totalGaji = $gajiDasar + $tunjangan - $asuransi + $bonus - $potongan;
 
             // Dapatkan akun kas/bank
             $coaKasBank = Coa::where('kode_akun', $request->coa_kasbank)->first();
@@ -188,6 +203,22 @@ class PenggajianController extends Controller
             \Log::error($e->getTraceAsString());
 
             return back()->withErrors(['error' => 'Gagal menyimpan penggajian: ' . $e->getMessage()])->withInput();
+        }
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $penggajian = Penggajian::findOrFail($id);
+            $penggajian->delete();
+
+            return redirect()->route('transaksi.penggajian.index')
+                ->with('success', 'Data penggajian berhasil dihapus!');
+        } catch (\Exception $e) {
+            \Log::error('Error deleting penggajian: ' . $e->getMessage());
+
+            return redirect()->route('transaksi.penggajian.index')
+                ->withErrors(['error' => 'Gagal menghapus penggajian: ' . $e->getMessage()]);
         }
     }
 
