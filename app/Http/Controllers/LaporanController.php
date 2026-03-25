@@ -117,18 +117,44 @@ class LaporanController extends Controller
         ));
     }
 
+    // === HELPER METHODS ===
+    
+    /**
+     * Get biaya bahan per unit from BomJobCosting (same as produksi logic)
+     * Static method that can be called from views
+     */
+    public static function getBiayaBahanPerUnit($produkId)
+    {
+        // Get BomJobCosting for this product
+        $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produkId)->first();
+        
+        if (!$bomJobCosting) {
+            return 0;
+        }
+        
+        // Calculate total biaya bahan (same as produksi create)
+        $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
+        
+        return $totalBiayaBahan > 0 ? $totalBiayaBahan : 0;
+    }
+
     // === LAPORAN STOK ===
     public function stok(Request $request)
     {
         $tipe = $request->get('tipe', 'material'); // material|product|bahan_pendukung
         $from = $request->get('from');
         $to = $request->get('to');
-        $itemId = $request->get('item_id');
+        $itemId = $request->get('item_id'); // Remove default to item_id=2
+        $satuanId = $request->get('satuan_id');
 
-        // Daftar item untuk dropdown
-        $materials = BahanBaku::with('satuan')->orderBy('nama_bahan', 'asc')->get();
+        // Daftar item untuk dropdown - pastikan data sesuai database
+        $materials = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+            ->orderBy('nama_bahan', 'asc')
+            ->get();
         $products = Produk::with('satuan')->orderBy('nama_produk', 'asc')->get();
-        $bahanPendukungs = \App\Models\BahanPendukung::with('satuanRelation')->orderBy('nama_bahan', 'asc')->get();
+        $bahanPendukungs = \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+            ->orderBy('nama_bahan', 'asc')
+            ->get();
 
         // Initialize variables
         $movements = collect();
@@ -138,9 +164,80 @@ class LaporanController extends Controller
         $conversionData = [];
         $item = null;
         $availableSatuans = [];
+        $dailyStock = [];
 
         try {
-            // Query mutasi dalam periode (untuk kartu stok spesifik item jika item dipilih)
+            // Handle any selected item
+            if ($itemId) {
+                // Get item data and conversion ratios from database
+                if ($tipe == 'material') {
+                    $item = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+                } elseif ($tipe == 'product') {
+                    $item = Produk::with('satuan')->find($itemId);
+                } elseif ($tipe == 'bahan_pendukung') {
+                    $item = \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+                }
+                
+                // Prepare available satuans for dropdown - ambil dari database
+                $availableSatuans = [];
+                if ($item) {
+                    $mainSatuan = $tipe == 'bahan_pendukung' ? $item->satuanRelation : $item->satuan;
+                    
+                    if ($mainSatuan) {
+                        $availableSatuans[] = [
+                            'id' => $mainSatuan->id,
+                            'nama' => $mainSatuan->nama ?? $mainSatuan->nama_satuan ?? 'Unit',
+                            'is_primary' => true,
+                            'conversion_to_primary' => 1
+                        ];
+                        
+                        // Add sub satuan 1 if available - USE ACTUAL DATABASE CONVERSION
+                        if (isset($item->sub_satuan_1_id) && $item->sub_satuan_1_id && $item->subSatuan1) {
+                            $conversionRatio = (float)($item->sub_satuan_1_konversi ?? 1);
+                            $availableSatuans[] = [
+                                'id' => $item->subSatuan1->id,
+                                'nama' => $item->subSatuan1->nama ?? $item->subSatuan1->nama_satuan ?? 'Sub Unit 1',
+                                'is_primary' => false,
+                                'conversion_to_primary' => $conversionRatio
+                            ];
+                        }
+                        
+                        // Add sub satuan 2 if available - USE ACTUAL DATABASE CONVERSION
+                        if (isset($item->sub_satuan_2_id) && $item->sub_satuan_2_id && $item->subSatuan2) {
+                            $conversionRatio = (float)($item->sub_satuan_2_konversi ?? 1);
+                            $availableSatuans[] = [
+                                'id' => $item->subSatuan2->id,
+                                'nama' => $item->subSatuan2->nama ?? $item->subSatuan2->nama_satuan ?? 'Sub Unit 2',
+                                'is_primary' => false,
+                                'conversion_to_primary' => $conversionRatio
+                            ];
+                        }
+                        
+                        // Add sub satuan 3 if available - USE ACTUAL DATABASE CONVERSION
+                        if (isset($item->sub_satuan_3_id) && $item->sub_satuan_3_id && $item->subSatuan3) {
+                            $conversionRatio = (float)($item->sub_satuan_3_konversi ?? 1);
+                            $availableSatuans[] = [
+                                'id' => $item->subSatuan3->id,
+                                'nama' => $item->subSatuan3->nama ?? $item->subSatuan3->nama_satuan ?? 'Sub Unit 3',
+                                'is_primary' => false,
+                                'conversion_to_primary' => $conversionRatio
+                            ];
+                        }
+                    }
+                }
+                
+                // Load actual conversion data from database relationships
+                if ($item) {
+                    // Load the item with all its relationships
+                    if ($tipe == 'material') {
+                        $item = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+                    } elseif ($tipe == 'product') {
+                        $item = Produk::with('satuan')->find($itemId);
+                    } elseif ($tipe == 'bahan_pendukung') {
+                        $item = \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+                    }
+                }
+            }
             $movQ = StockMovement::query()->where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe);
             
             if ($itemId) { 
@@ -175,16 +272,12 @@ class LaporanController extends Controller
                         'conversion_to_primary' => 1
                     ];
                     
-                    // Add sub satuan 1
+                    // Add sub satuan 1 with CORRECT conversion ratio
                     if ($item->sub_satuan_1_id) {
                         $subSatuan1 = \App\Models\Satuan::find($item->sub_satuan_1_id);
                         if ($subSatuan1) {
-                            $conversionRatio = 1;
-                            if ($item->sub_satuan_1_nilai > 0) {
-                                $conversionRatio = 1 / $item->sub_satuan_1_nilai;
-                            } elseif ($item->sub_satuan_1_konversi > 0) {
-                                $conversionRatio = $item->sub_satuan_1_konversi;
-                            }
+                            // FIXED: Use the correct conversion ratio from database
+                            $conversionRatio = (float)($item->sub_satuan_1_konversi ?? 1);
                             $availableSatuans[] = [
                                 'id' => $subSatuan1->id,
                                 'nama' => $subSatuan1->nama,
@@ -194,16 +287,11 @@ class LaporanController extends Controller
                         }
                     }
                     
-                    // Add sub satuan 2
+                    // Add sub satuan 2 with CORRECT conversion ratio
                     if ($item->sub_satuan_2_id) {
                         $subSatuan2 = \App\Models\Satuan::find($item->sub_satuan_2_id);
                         if ($subSatuan2) {
-                            $conversionRatio = 1;
-                            if ($item->sub_satuan_2_nilai > 0) {
-                                $conversionRatio = 1 / $item->sub_satuan_2_nilai;
-                            } elseif ($item->sub_satuan_2_konversi > 0) {
-                                $conversionRatio = $item->sub_satuan_2_konversi;
-                            }
+                            $conversionRatio = (float)($item->sub_satuan_2_konversi ?? 1);
                             $availableSatuans[] = [
                                 'id' => $subSatuan2->id,
                                 'nama' => $subSatuan2->nama,
@@ -213,16 +301,11 @@ class LaporanController extends Controller
                         }
                     }
                     
-                    // Add sub satuan 3
+                    // Add sub satuan 3 with CORRECT conversion ratio
                     if ($item->sub_satuan_3_id) {
                         $subSatuan3 = \App\Models\Satuan::find($item->sub_satuan_3_id);
                         if ($subSatuan3) {
-                            $conversionRatio = 1;
-                            if ($item->sub_satuan_3_nilai > 0) {
-                                $conversionRatio = 1 / $item->sub_satuan_3_nilai;
-                            } elseif ($item->sub_satuan_3_konversi > 0) {
-                                $conversionRatio = $item->sub_satuan_3_konversi;
-                            }
+                            $conversionRatio = (float)($item->sub_satuan_3_konversi ?? 1);
                             $availableSatuans[] = [
                                 'id' => $subSatuan3->id,
                                 'nama' => $subSatuan3->nama,
@@ -281,9 +364,9 @@ class LaporanController extends Controller
                         $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
                     }
                 } else {
-                    // If no date range, use master data
-                    $saldoAwalQty = (float)($item->stok ?? 0);
-                    $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
+                    // If no date range, DON'T use master data - calculate from ALL movements
+                    $saldoAwalQty = 0.0;
+                    $saldoAwalNilai = 0.0;
                 }
             }
             
@@ -376,10 +459,25 @@ class LaporanController extends Controller
                                     $dailyInNilai = 0;
                                     $dailyOutQty = (float)$m->qty; // Use produksi column for production IN
                                     $dailyOutNilai = (float)($m->total_cost ?? 0);
-                                } else {
-                                    // Regular purchase goes to pembelian column
+                                } elseif ($m->ref_type === 'initial_stock') {
+                                    // Initial stock goes to Stok Awal column
+                                    $dailyInQty = 0;
+                                    $dailyInNilai = 0;
+                                    $dailyOutQty = 0;
+                                    $dailyOutNilai = 0;
+                                    // Set saldo awal for this row
+                                    $saldoAwalQty = (float)$m->qty;
+                                    $saldoAwalNilai = (float)($m->total_cost ?? 0);
+                                } elseif ($m->ref_type === 'purchase') {
+                                    // Only actual purchases go to pembelian column
                                     $dailyInQty = (float)$m->qty;
                                     $dailyInNilai = (float)($m->total_cost ?? 0);
+                                    $dailyOutQty = 0;
+                                    $dailyOutNilai = 0;
+                                } else {
+                                    // Other IN movements - skip to avoid confusion
+                                    $dailyInQty = 0;
+                                    $dailyInNilai = 0;
                                     $dailyOutQty = 0;
                                     $dailyOutNilai = 0;
                                 }
@@ -395,12 +493,21 @@ class LaporanController extends Controller
                                 // Production IN movements should add to stock even though shown in produksi column
                                 $runningQty += $dailyOutQty; // Production IN adds to stock
                                 $runningNilai += $dailyOutNilai;
+                            } elseif ($m->ref_type === 'initial_stock') {
+                                // Initial stock should add to running totals
+                                if ($m->direction === 'in') {
+                                    $runningQty += (float)$m->qty;
+                                    $runningNilai += (float)($m->total_cost ?? 0);
+                                } else {
+                                    $runningQty -= (float)$m->qty;
+                                    $runningNilai -= (float)($m->total_cost ?? 0);
+                                }
                             } else {
                                 $runningQty += $dailyInQty - $dailyOutQty;
                                 $runningNilai += $dailyInNilai - $dailyOutNilai;
                             }
                             
-                            // Add to daily stock
+                            // Add to daily stock (including initial_stock)
                             $dailyStock[] = [
                                 'tanggal' => $dateStr,
                                 'saldo_awal_qty' => $saldoAwalQty,
@@ -473,6 +580,9 @@ class LaporanController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error in stok method: ' . $e->getMessage());
             session()->flash('error', 'Terjadi kesalahan saat memuat data stok: ' . $e->getMessage());
+            
+            // Initialize variables for error case
+            $dailyStock = [];
         }
 
         return view('laporan.stok.index', compact(

@@ -61,9 +61,16 @@ class PembelianController extends Controller
         $pembelian = Pembelian::with([
             'vendor', 
             'details.bahanBaku.satuan',
+            'details.bahanBaku.subSatuan1',
+            'details.bahanBaku.subSatuan2', 
+            'details.bahanBaku.subSatuan3',
             'details.bahanBaku.coaPembelian',
-            'details.bahanPendukung.satuan',
-            'details.bahanPendukung.coaPembelian'
+            'details.bahanPendukung.satuanRelation',
+            'details.bahanPendukung.subSatuan1',
+            'details.bahanPendukung.subSatuan2',
+            'details.bahanPendukung.subSatuan3',
+            'details.bahanPendukung.coaPembelian',
+            'details.konversiManual.satuan'
         ])->findOrFail($id);
         return view('transaksi.pembelian.show', compact('pembelian'));
     }
@@ -71,8 +78,18 @@ class PembelianController extends Controller
     public function create()
     {
         $vendors = Vendor::all();
-        $bahanBakus = BahanBaku::with('satuan')->get();
-        $bahanPendukungs = \App\Models\BahanPendukung::with('satuan')->get();
+        $bahanBakus = BahanBaku::with([
+            'satuan', 
+            'subSatuan1', 
+            'subSatuan2', 
+            'subSatuan3'
+        ])->get();
+        $bahanPendukungs = \App\Models\BahanPendukung::with([
+            'satuanRelation', 
+            'subSatuan1', 
+            'subSatuan2', 
+            'subSatuan3'
+        ])->get();
         $satuans = \App\Models\Satuan::all();
         
         // Ambil data COA untuk kas dan bank yang relevan saja
@@ -294,14 +311,16 @@ class PembelianController extends Controller
             $request->validate($rules);
 
             // Hitung total terlebih dahulu untuk validasi kas
-            $computedTotal = 0.0;
+            $subtotal = 0.0;
+            $biayaKirim = (float) ($request->biaya_kirim ?? 0);
+            $ppnPersen = (float) ($request->ppn_persen ?? 0);
             
             // Total dari bahan baku (gunakan harga total)
             if ($isBahanBaku) {
                 foreach ($request->bahan_baku_id as $i => $bbId) {
                     if (empty($bbId)) continue;
                     $hargaTotal = (float) ($request->harga_total[$i] ?? 0);
-                    $computedTotal += $hargaTotal;
+                    $subtotal += $hargaTotal;
                 }
             }
             
@@ -310,9 +329,16 @@ class PembelianController extends Controller
                 foreach ($request->bahan_pendukung_id as $i => $bpId) {
                     if (empty($bpId)) continue;
                     $hargaTotal = (float) ($request->harga_total_pendukung[$i] ?? 0);
-                    $computedTotal += $hargaTotal;
+                    $subtotal += $hargaTotal;
                 }
             }
+            
+            // Hitung PPN dari (subtotal + biaya kirim)
+            $basePPN = $subtotal + $biayaKirim;
+            $ppnNominal = $basePPN * ($ppnPersen / 100);
+            
+            // Total akhir = subtotal + biaya kirim + PPN
+            $computedTotal = $subtotal + $biayaKirim + $ppnNominal;
 
             // Cek saldo kas jika pembayaran tunai atau transfer
             if ($request->bank_id !== 'credit') {
@@ -337,7 +363,7 @@ class PembelianController extends Controller
                 }
             }
 
-            return DB::transaction(function () use ($request, $stock, $journal, $computedTotal, $isBahanBaku, $isBahanPendukung) {
+            return DB::transaction(function () use ($request, $stock, $journal, $computedTotal, $isBahanBaku, $isBahanPendukung, $subtotal, $biayaKirim, $ppnPersen, $ppnNominal) {
                 DB::beginTransaction();
 
                 try {
@@ -364,6 +390,10 @@ class PembelianController extends Controller
                         'vendor_id' => $request->vendor_id,
                         'nomor_faktur' => $request->nomor_faktur,
                         'tanggal' => $request->tanggal,
+                        'subtotal' => $subtotal,
+                        'biaya_kirim' => $biayaKirim,
+                        'ppn_persen' => $ppnPersen,
+                        'ppn_nominal' => $ppnNominal,
                         'total_harga' => $computedTotal,
                         'terbayar' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? $computedTotal : 0,
                         'sisa_pembayaran' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? 0 : $computedTotal,
@@ -394,18 +424,25 @@ class PembelianController extends Controller
                             $pricePerBaseUnit = $qtyInBaseUnit > 0 ? $hargaTotal / $qtyInBaseUnit : 0;
                             
                             // Hitung subtotal menggunakan harga total
-                            $subtotal = $hargaTotal;
-                            $totalBahanBaku += $subtotal;
+                            $itemSubtotal = $hargaTotal;
+                            $totalBahanBaku += $itemSubtotal;
                             
-                            // Simpan detail pembelian
-                            PembelianDetail::create([
+                            // Hitung faktor konversi
+                            $faktorKonversi = $qtyInBaseUnit > 0 && $qtyInput > 0 ? $qtyInBaseUnit / $qtyInput : 1;
+                            
+                            // SIMPAN DETAIL PEMBELIAN KE DATABASE
+                            $detail = PembelianDetail::create([
                                 'pembelian_id' => $pembelian->id,
                                 'bahan_baku_id' => $bbId,
-                                'jumlah' => $qtyInBaseUnit, // Simpan dalam satuan utama
-                                'satuan' => $bahanBaku->satuan->nama ?? 'KG', // Satuan utama
-                                'harga_satuan' => $pricePerBaseUnit, // Harga per satuan utama
-                                'subtotal' => $subtotal
+                                'jumlah' => $qtyInput, // Simpan dalam satuan pembelian untuk tampilan
+                                'satuan' => $request->satuan_pembelian[$i] ?? ($bahanBaku->satuan->nama ?? 'KG'), // Satuan pembelian
+                                'harga_satuan' => $qtyInput > 0 ? $hargaTotal / $qtyInput : 0, // Harga per satuan pembelian
+                                'subtotal' => $itemSubtotal,
+                                'faktor_konversi' => $faktorKonversi // Simpan faktor konversi untuk referensi
                             ]);
+                            
+                            // Simpan konversi manual sub satuan
+                            $this->simpanKonversiManual($detail->id, $request, $i, 'bahan_baku');
                             
                             // Update moving average harga bahan & stok
                             $stokLama = (float) ($bahanBaku->stok ?? 0);
@@ -438,19 +475,26 @@ class PembelianController extends Controller
                             // Hitung harga per satuan utama
                             $pricePerBaseUnit = $qtyInBaseUnit > 0 ? $hargaTotal / $qtyInBaseUnit : 0;
                             
-                            $subtotal = $hargaTotal;
-                            $totalBahanPendukung += $subtotal;
+                            $itemSubtotal = $hargaTotal;
+                            $totalBahanPendukung += $itemSubtotal;
 
+                            // Hitung faktor konversi
+                            $faktorKonversi = $qtyInBaseUnit > 0 && $qtyInput > 0 ? $qtyInBaseUnit / $qtyInput : 1;
+                            
                             // SIMPAN DETAIL PEMBELIAN KE DATABASE
                             $detail = PembelianDetail::create([
                                 'pembelian_id' => $pembelian->id,
                                 'bahan_baku_id' => null,
                                 'bahan_pendukung_id' => $bpId,
-                                'jumlah' => $qtyInBaseUnit, // Simpan dalam satuan utama
-                                'satuan' => $bahanPendukung->satuan->nama ?? 'pcs',
-                                'harga_satuan' => $pricePerBaseUnit,
-                                'subtotal' => $subtotal,
+                                'jumlah' => $qtyInput, // Simpan dalam satuan pembelian untuk tampilan
+                                'satuan' => $request->satuan_pembelian_pendukung[$i] ?? ($bahanPendukung->satuan->nama ?? 'pcs'), // Satuan pembelian
+                                'harga_satuan' => $qtyInput > 0 ? $hargaTotal / $qtyInput : 0, // Harga per satuan pembelian
+                                'subtotal' => $itemSubtotal,
+                                'faktor_konversi' => $faktorKonversi // Simpan faktor konversi untuk referensi
                             ]);
+                            
+                            // Simpan konversi manual sub satuan
+                            $this->simpanKonversiManual($detail->id, $request, $i, 'bahan_pendukung');
                             
                             // Update moving average harga bahan & stok
                             $stokLama = (float) ($bahanPendukung->stok ?? 0);
@@ -459,7 +503,7 @@ class PembelianController extends Controller
                             // Update harga rata-rata
                             if ($stokBaru > 0) {
                                 $hargaLama = (float) ($bahanPendukung->harga_satuan ?? 0);
-                                $hargaBaru = (($stokLama * $hargaLama) + $subtotal) / $stokBaru;
+                                $hargaBaru = (($stokLama * $hargaLama) + $itemSubtotal) / $stokBaru;
                                 $bahanPendukung->harga_satuan = $hargaBaru;
                             }
 
@@ -648,5 +692,68 @@ class PembelianController extends Controller
         $pembelian->delete();
 
         return redirect()->route('transaksi.pembelian.index')->with('success', 'Data pembelian dan jurnal terkait berhasil dihapus!');
+    }
+    
+    /**
+     * Helper method untuk menyimpan konversi manual sub satuan
+     */
+    private function simpanKonversiManual($detailId, $request, $index, $tipe)
+    {
+        // Tentukan prefix berdasarkan tipe
+        $prefix = $tipe === 'bahan_baku' ? '' : '_pendukung';
+        
+        // Simpan konversi sub satuan 1
+        if (isset($request->{"konversi_sub_1{$prefix}"}[$index]) && 
+            !empty($request->{"konversi_sub_1{$prefix}"}[$index]) &&
+            isset($request->{"konversi_sub_1{$prefix}_id"}[$index])) {
+            
+            $faktorKonversi = isset($request->{"faktor_konversi_1{$prefix}"}[$index]) ? 
+                (float) $request->{"faktor_konversi_1{$prefix}"}[$index] : null;
+            
+            \App\Models\PembelianDetailKonversi::create([
+                'pembelian_detail_id' => $detailId,
+                'satuan_id' => $request->{"konversi_sub_1{$prefix}_id"}[$index],
+                'satuan_nama' => $request->{"konversi_sub_1{$prefix}_nama"}[$index] ?? '',
+                'jumlah_konversi' => (float) $request->{"konversi_sub_1{$prefix}"}[$index],
+                'faktor_konversi_manual' => $faktorKonversi,
+                'keterangan' => 'Konversi manual sub satuan 1'
+            ]);
+        }
+        
+        // Simpan konversi sub satuan 2
+        if (isset($request->{"konversi_sub_2{$prefix}"}[$index]) && 
+            !empty($request->{"konversi_sub_2{$prefix}"}[$index]) &&
+            isset($request->{"konversi_sub_2{$prefix}_id"}[$index])) {
+            
+            $faktorKonversi = isset($request->{"faktor_konversi_2{$prefix}"}[$index]) ? 
+                (float) $request->{"faktor_konversi_2{$prefix}"}[$index] : null;
+            
+            \App\Models\PembelianDetailKonversi::create([
+                'pembelian_detail_id' => $detailId,
+                'satuan_id' => $request->{"konversi_sub_2{$prefix}_id"}[$index],
+                'satuan_nama' => $request->{"konversi_sub_2{$prefix}_nama"}[$index] ?? '',
+                'jumlah_konversi' => (float) $request->{"konversi_sub_2{$prefix}"}[$index],
+                'faktor_konversi_manual' => $faktorKonversi,
+                'keterangan' => 'Konversi manual sub satuan 2'
+            ]);
+        }
+        
+        // Simpan konversi sub satuan 3
+        if (isset($request->{"konversi_sub_3{$prefix}"}[$index]) && 
+            !empty($request->{"konversi_sub_3{$prefix}"}[$index]) &&
+            isset($request->{"konversi_sub_3{$prefix}_id"}[$index])) {
+            
+            $faktorKonversi = isset($request->{"faktor_konversi_3{$prefix}"}[$index]) ? 
+                (float) $request->{"faktor_konversi_3{$prefix}"}[$index] : null;
+            
+            \App\Models\PembelianDetailKonversi::create([
+                'pembelian_detail_id' => $detailId,
+                'satuan_id' => $request->{"konversi_sub_3{$prefix}_id"}[$index],
+                'satuan_nama' => $request->{"konversi_sub_3{$prefix}_nama"}[$index] ?? '',
+                'jumlah_konversi' => (float) $request->{"konversi_sub_3{$prefix}"}[$index],
+                'faktor_konversi_manual' => $faktorKonversi,
+                'keterangan' => 'Konversi manual sub satuan 3'
+            ]);
+        }
     }
 }

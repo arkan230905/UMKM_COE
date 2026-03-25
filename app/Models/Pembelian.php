@@ -18,6 +18,10 @@ class Pembelian extends Model
         'vendor_id',
         'kode_pembelian',
         'tanggal',
+        'subtotal',
+        'biaya_kirim',
+        'ppn_persen',
+        'ppn_nominal',
         'total_harga',
         'terbayar',
         'sisa_pembayaran',
@@ -33,6 +37,10 @@ class Pembelian extends Model
 
     protected $casts = [
         'tanggal' => 'date',
+        'subtotal' => 'float',
+        'biaya_kirim' => 'float',
+        'ppn_persen' => 'float',
+        'ppn_nominal' => 'float',
         'total_harga' => 'float',
         'terbayar' => 'float',
         'sisa_pembayaran' => 'float'

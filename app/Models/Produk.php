@@ -26,7 +26,6 @@ class Produk extends Model
         'stok_minimum',
         'btkl_default',
         'bop_default',
-        'margin_percent',
         'bopb_method',
         'bopb_rate',
         'labor_hours_per_unit',
@@ -117,7 +116,7 @@ class Produk extends Model
     public function calculateHargaJual()
     {
         $hpp = $this->getActualHPP();
-        $marginPercent = $this->margin_percent ?? 0;
+        $marginPercent = 0; // Fixed margin since margin_percent column was removed
         
         return $hpp + ($hpp * $marginPercent / 100);
     }
@@ -193,5 +192,13 @@ class Produk extends Model
     public function getHPPForSaleDate($tanggalPenjualan)
     {
         return $this->getActualHPP($tanggalPenjualan);
+    }
+    
+    /**
+     * Get harga pokok attribute (alias for HPP)
+     */
+    public function getHargaPokokAttribute()
+    {
+        return $this->getActualHPP();
     }
 }

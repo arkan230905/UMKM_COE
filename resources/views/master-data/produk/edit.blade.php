@@ -99,7 +99,6 @@
         
         <input type="hidden" name="hpp" id="hpp" value="{{ $produk->hpp ?? $calculatedHPP ?? 0 }}">
         <input type="hidden" name="hpp_calculated" id="hpp_calculated" value="{{ $calculatedHPP ?? 0 }}">
-        <input type="hidden" name="margin_percent" id="margin_percent" value="{{ old('margin_percent', $produk->margin_percent) }}">
         <div class="mb-3">
             <label for="nama_produk" class="form-label">Nama Produk</label>
             <input type="text" name="nama_produk" id="nama_produk" class="form-control" value="{{ $produk->nama_produk }}" required>
@@ -214,7 +213,6 @@ function calculateProfitPercentage() {
     const hppCalculatedInput = document.getElementById('hpp_calculated');
     const hargaJualInput = document.getElementById('harga_jual');
     const profitPercentageSpan = document.getElementById('profit_percentage');
-    const marginPercentInput = document.getElementById('margin_percent');
     
     // Prioritize calculated HPP (total biaya harga pokok produksi)
     let hpp = parseFloat(hppCalculatedInput.value) || 0;
@@ -238,10 +236,8 @@ function calculateProfitPercentage() {
         const profitPercentage = ((hargaJual - hpp) / hpp) * 100;
         // Format with thousand separators like dashboard
         profitPercentageSpan.textContent = profitPercentage.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-        marginPercentInput.value = profitPercentage.toFixed(2);
     } else {
         profitPercentageSpan.textContent = hpp === 0 ? 'HPP tidak tersedia' : '0';
-        marginPercentInput.value = '0';
     }
 }
 

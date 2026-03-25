@@ -30,6 +30,8 @@ class PembelianDetail extends Model
         'faktor_konversi' => 'decimal:4',
     ];
 
+    protected $appends = ['nama_bahan', 'tipe_bahan', 'jumlah_satuan_utama', 'satuan_utama'];
+
     /**
      * Relasi ke Pembelian
      */
@@ -52,6 +54,14 @@ class PembelianDetail extends Model
     public function bahanPendukung()
     {
         return $this->belongsTo(BahanPendukung::class, 'bahan_pendukung_id');
+    }
+
+    /**
+     * Relasi ke PembelianDetailKonversi
+     */
+    public function konversiManual()
+    {
+        return $this->hasMany(PembelianDetailKonversi::class, 'pembelian_detail_id');
     }
 
     /**
@@ -88,5 +98,27 @@ class PembelianDetail extends Model
             return 'Bahan Pendukung';
         }
         return '-';
+    }
+    
+    /**
+     * Get jumlah dalam satuan utama (untuk keperluan stok)
+     */
+    public function getJumlahSatuanUtamaAttribute()
+    {
+        return $this->jumlah * ($this->faktor_konversi ?? 1);
+    }
+    
+    /**
+     * Get nama satuan utama
+     */
+    public function getSatuanUtamaAttribute()
+    {
+        if ($this->bahan_baku_id && $this->bahanBaku && $this->bahanBaku->satuan) {
+            return $this->bahanBaku->satuan->nama;
+        }
+        if ($this->bahan_pendukung_id && $this->bahanPendukung && $this->bahanPendukung->satuanRelation) {
+            return $this->bahanPendukung->satuanRelation->nama;
+        }
+        return 'unit';
     }
 }

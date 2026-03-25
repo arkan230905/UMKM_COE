@@ -33,15 +33,18 @@ class PelangganController extends Controller
             'password' => 'required|min:6|confirmed',
         ]);
 
-        User::create([
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
-            'plain_password' => $request->password, // Store plain password for admin view
             'role' => 'pelanggan',
             'email_verified_at' => now(),
         ]);
+        
+        // Store plain password separately for admin view (security consideration)
+        $user->plain_password = $request->password;
+        $user->save();
 
         return redirect()->route('master-data.pelanggan.index')
             ->with('success', 'Pelanggan berhasil ditambahkan!');

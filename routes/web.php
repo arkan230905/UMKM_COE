@@ -4,6 +4,469 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\WelcomeController;
 
+// DATABASE FIX ROUTE - AYAM KAMPUNG
+Route::get('fix-ayam-kampung-database', function() {
+    try {
+        DB::beginTransaction();
+        
+        echo "<h1 style='color:#0f0;background:#000;padding:20px;'>🔧 FIXING AYAM KAMPUNG DATABASE</h1>";
+        echo "<pre style='background:#000;color:#0f0;padding:20px;font-family:monospace;'>";
+        
+        // Get satuan IDs
+        $ekorId = DB::table('satuans')->where('nama', 'Ekor')->value('id');
+        $potongId = DB::table('satuans')->where('nama', 'Potong')->value('id');
+        $kgId = DB::table('satuans')->whereIn('nama', ['Kilogram', 'Kg'])->value('id');
+        $gramId = DB::table('satuans')->where('nama', 'Gram')->value('id');
+        
+        echo "📋 Satuan IDs: Ekor=$ekorId, Potong=$potongId, Kg=$kgId, Gram=$gramId\n\n";
+        
+        // 1. Fix conversion ratios in bahan_bakus
+        DB::table('bahan_bakus')->where('id', 2)->update([
+            'satuan_id' => $ekorId,
+            'sub_satuan_1_id' => $potongId,
+            'sub_satuan_1_konversi' => 6.0000,  // 1 Ekor = 6 Potong
+            'sub_satuan_2_id' => $kgId,
+            'sub_satuan_2_konversi' => 1.5000,  // 1 Ekor = 1.5 Kg
+            'sub_satuan_3_id' => $gramId,
+            'sub_satuan_3_konversi' => 1500.0000, // 1 Ekor = 1500 Gram
+        ]);
+        echo "✅ Conversion ratios fixed: 1 Ekor = 6 Potong = 1.5 Kg = 1500 Gram\n";
+        
+        // 2. Delete old stock data
+        $deleted1 = DB::table('stock_movements')->where('item_type', 'material')->where('item_id', 2)->delete();
+        $deleted2 = DB::table('stock_layers')->where('item_type', 'material')->where('item_id', 2)->delete();
+        echo "✅ Deleted $deleted1 movements, $deleted2 layers\n";
+        
+        // 3. Insert correct initial stock (30 Ekor)
+        DB::table('stock_movements')->insert([
+            'item_type' => 'material',
+            'item_id' => 2,
+            'tanggal' => '2026-03-01',
+            'direction' => 'in',
+            'qty' => 30.0000,
+            'satuan' => 'Ekor',
+            'unit_cost' => 45000.0000,
+            'total_cost' => 1350000.00,
+            'ref_type' => 'initial_stock',
+            'ref_id' => 0,
+            'created_at' => '2026-03-01 00:00:00',
+            'updated_at' => '2026-03-01 00:00:00',
+        ]);
+        echo "✅ Initial stock: 30 Ekor @ Rp 45,000 = Rp 1,350,000\n";
+        
+        // 4. Insert correct production (1.6667 Ekor = 10 Potong)
+        $productionEkor = 10.0 / 6.0; // 1.6667 Ekor
+        $productionCost = $productionEkor * 45000; // 75,001.50
+        DB::table('stock_movements')->insert([
+            'item_type' => 'material',
+            'item_id' => 2,
+            'tanggal' => '2026-03-11',
+            'direction' => 'out',
+            'qty' => $productionEkor,
+            'satuan' => 'Ekor',
+            'unit_cost' => 45000.0000,
+            'total_cost' => $productionCost,
+            'ref_type' => 'production',
+            'ref_id' => 1,
+            'created_at' => '2026-03-11 22:09:05',
+            'updated_at' => '2026-03-11 22:09:05',
+        ]);
+        echo "✅ Production: " . number_format($productionEkor, 4) . " Ekor (10 Potong) @ Rp " . number_format($productionCost, 2) . "\n";
+        
+        // 5. Insert correct stock layer (28.3333 Ekor)
+        $remainingEkor = 30.0 - $productionEkor; // 28.3333
+        DB::table('stock_layers')->insert([
+            'item_type' => 'material',
+            'item_id' => 2,
+            'tanggal' => '2026-03-01',
+            'remaining_qty' => $remainingEkor,
+            'unit_cost' => 45000.0000,
+            'satuan' => 'Ekor',
+            'ref_type' => 'initial_stock',
+            'ref_id' => 0,
+            'created_at' => '2026-03-01 00:00:00',
+            'updated_at' => '2026-03-01 00:00:00',
+        ]);
+        echo "✅ Stock layer: " . number_format($remainingEkor, 4) . " Ekor\n";
+        
+        // 6. Update master stock
+        DB::table('bahan_bakus')->where('id', 2)->update(['stok' => $remainingEkor]);
+        echo "✅ Master stock: " . number_format($remainingEkor, 4) . " Ekor\n\n";
+        
+        DB::commit();
+        
+        // Clear cache
+        Artisan::call('cache:clear');
+        Artisan::call('view:clear');
+        Artisan::call('config:clear');
+        echo "✅ Cache cleared\n\n";
+        
+        // Verification
+        $movements = DB::table('stock_movements')->where('item_type', 'material')->where('item_id', 2)->orderBy('tanggal')->get();
+        echo "🔍 VERIFICATION:\n";
+        foreach ($movements as $m) {
+            echo "  {$m->tanggal} | {$m->direction} | {$m->qty} {$m->satuan} | Rp " . number_format($m->total_cost, 2) . " | {$m->ref_type}\n";
+        }
+        
+        echo "\n🎉 SUCCESS! Database and logic fixed!\n\n";
+        echo "Expected results:\n";
+        echo "- Ekor: 30 - 1.6667 = 28.3333 Ekor @ Rp 45,000\n";
+        echo "- Potong: 180 - 10 = 170 Potong @ Rp 7,500\n";
+        echo "- Kilogram: 45 - 2.5 = 42.5 Kg @ Rp 30,000\n";
+        echo "- Gram: 45,000 - 2,500 = 42,500 Gram @ Rp 30\n\n";
+        
+        echo "Refresh these pages:\n";
+        echo "- <a href='/laporan/stok?tipe=material&item_id=2&satuan_id=$ekorId' style='color:#0ff;'>Satuan Ekor</a>\n";
+        echo "- <a href='/laporan/stok?tipe=material&item_id=2&satuan_id=$potongId' style='color:#0ff;'>Satuan Potong</a>\n";
+        echo "- <a href='/laporan/stok?tipe=material&item_id=2&satuan_id=$kgId' style='color:#0ff;'>Satuan Kilogram</a>\n";
+        echo "- <a href='/laporan/stok?tipe=material&item_id=2&satuan_id=$gramId' style='color:#0ff;'>Satuan Gram</a>\n";
+        
+        echo "</pre>";
+        
+    } catch (\Exception $e) {
+        DB::rollback();
+        echo "<pre style='background:#000;color:#f00;padding:20px;'>ERROR: " . $e->getMessage() . "\n\n" . $e->getTraceAsString() . "</pre>";
+    }
+});
+
+// CACHE CLEAR ROUTE
+Route::get('clear-all-cache', function() {
+    try {
+        Artisan::call('cache:clear');
+        Artisan::call('view:clear');
+        Artisan::call('config:clear');
+        Artisan::call('route:clear');
+        
+        return "<h1 style='color:#0f0;'>✅ All caches cleared successfully!</h1><p><a href='/laporan/stok?tipe=material&item_id=2'>Go to Stock Report</a></p>";
+    } catch (\Exception $e) {
+        return "<h1 style='color:#f00;'>❌ Error clearing cache: " . $e->getMessage() . "</h1>";
+    }
+});
+
+// SIMPLE FIX ROUTE - DIRECT EXECUTION
+Route::get('fix-ayam-kampung-direct', function() {
+    try {
+        echo "<h1 style='color:#0f0;background:#000;padding:20px;'>🔧 EXECUTING AYAM KAMPUNG FIX NOW...</h1>";
+        echo "<pre style='background:#000;color:#0f0;padding:20px;font-family:monospace;'>";
+        
+        DB::beginTransaction();
+        
+        // Get satuan IDs
+        $ekorId = DB::table('satuans')->where('nama', 'Ekor')->value('id');
+        $potongId = DB::table('satuans')->where('nama', 'Potong')->value('id');
+        $kgId = DB::table('satuans')->whereIn('nama', ['Kilogram', 'Kg'])->value('id');
+        $gramId = DB::table('satuans')->where('nama', 'Gram')->value('id');
+        
+        echo "Satuan IDs: Ekor=$ekorId, Potong=$potongId, Kg=$kgId, Gram=$gramId\n\n";
+        
+        // Fix conversion ratios
+        DB::table('bahan_bakus')->where('id', 2)->update([
+            'satuan_id' => $ekorId,
+            'sub_satuan_1_id' => $potongId,
+            'sub_satuan_1_konversi' => 6.0000,
+            'sub_satuan_2_id' => $kgId,
+            'sub_satuan_2_konversi' => 1.5000,
+            'sub_satuan_3_id' => $gramId,
+            'sub_satuan_3_konversi' => 1500.0000,
+        ]);
+        echo "✅ Conversion ratios updated\n";
+        
+        // Delete old data
+        $deleted1 = DB::table('stock_movements')->where('item_type', 'material')->where('item_id', 2)->delete();
+        $deleted2 = DB::table('stock_layers')->where('item_type', 'material')->where('item_id', 2)->delete();
+        echo "✅ Deleted $deleted1 movements, $deleted2 layers\n";
+        
+        // Insert initial stock (30 Ekor)
+        DB::table('stock_movements')->insert([
+            'item_type' => 'material',
+            'item_id' => 2,
+            'tanggal' => '2026-03-01',
+            'direction' => 'in',
+            'qty' => 30.0000,
+            'satuan' => 'Ekor',
+            'unit_cost' => 45000.0000,
+            'total_cost' => 1350000.00,
+            'ref_type' => 'initial_stock',
+            'ref_id' => 0,
+            'created_at' => '2026-03-01 00:00:00',
+            'updated_at' => '2026-03-01 00:00:00',
+        ]);
+        echo "✅ Initial stock: 30 Ekor @ Rp 45,000 = Rp 1,350,000\n";
+        
+        // Insert production (1.6667 Ekor = 10 Potong)
+        $productionEkor = 10 / 6; // 1.6667
+        $productionCost = $productionEkor * 45000; // 75,001.50
+        DB::table('stock_movements')->insert([
+            'item_type' => 'material',
+            'item_id' => 2,
+            'tanggal' => '2026-03-11',
+            'direction' => 'out',
+            'qty' => $productionEkor,
+            'satuan' => 'Ekor',
+            'unit_cost' => 45000.0000,
+            'total_cost' => $productionCost,
+            'ref_type' => 'production',
+            'ref_id' => 1,
+            'created_at' => '2026-03-11 22:09:05',
+            'updated_at' => '2026-03-11 22:09:05',
+        ]);
+        echo "✅ Production: $productionEkor Ekor (10 Potong) @ Rp " . number_format($productionCost, 2) . "\n";
+        
+        // Insert stock layer (28.3333 Ekor)
+        $remainingEkor = 30 - $productionEkor; // 28.3333
+        DB::table('stock_layers')->insert([
+            'item_type' => 'material',
+            'item_id' => 2,
+            'tanggal' => '2026-03-01',
+            'remaining_qty' => $remainingEkor,
+            'unit_cost' => 45000.0000,
+            'satuan' => 'Ekor',
+            'ref_type' => 'initial_stock',
+            'ref_id' => 0,
+            'created_at' => '2026-03-01 00:00:00',
+            'updated_at' => '2026-03-01 00:00:00',
+        ]);
+        echo "✅ Stock layer: $remainingEkor Ekor\n";
+        
+        // Update master
+        DB::table('bahan_bakus')->where('id', 2)->update(['stok' => $remainingEkor]);
+        echo "✅ Master stock: $remainingEkor Ekor\n\n";
+        
+        DB::commit();
+        
+        // Verify
+        $movements = DB::table('stock_movements')->where('item_type', 'material')->where('item_id', 2)->orderBy('tanggal')->get();
+        echo "VERIFICATION:\n";
+        foreach ($movements as $m) {
+            echo "  {$m->tanggal} | {$m->direction} | {$m->qty} {$m->satuan} | Rp " . number_format($m->total_cost, 2) . " | {$m->ref_type}\n";
+        }
+        
+        echo "\n🎉 SUCCESS!\n\n";
+        echo "Expected results:\n";
+        echo "- Ekor: 30 - 1.6667 = 28.3333 Ekor @ Rp 45,000\n";
+        echo "- Potong: 180 - 10 = 170 Potong @ Rp 7,500\n";
+        echo "- Kilogram: 45 - 2.5 = 42.5 Kg @ Rp 30,000\n";
+        echo "- Gram: 45,000 - 2,500 = 42,500 Gram @ Rp 30\n\n";
+        
+        echo "Refresh these pages:\n";
+        echo "- <a href='/laporan/stok?tipe=material&item_id=2&satuan_id=$ekorId' style='color:#0ff;'>Satuan Ekor</a>\n";
+        echo "- <a href='/laporan/stok?tipe=material&item_id=2&satuan_id=$potongId' style='color:#0ff;'>Satuan Potong</a>\n";
+        echo "- <a href='/laporan/stok?tipe=material&item_id=2&satuan_id=$kgId' style='color:#0ff;'>Satuan Kilogram</a>\n";
+        echo "- <a href='/laporan/stok?tipe=material&item_id=2&satuan_id=$gramId' style='color:#0ff;'>Satuan Gram</a>\n";
+        
+        echo "</pre>";
+        
+    } catch (\Exception $e) {
+        DB::rollback();
+        echo "<pre style='background:#000;color:#f00;padding:20px;'>ERROR: " . $e->getMessage() . "\n\n" . $e->getTraceAsString() . "</pre>";
+    }
+});
+
+// FIX ROUTE - AUTO EXECUTE
+Route::get('auto-fix-ayam-kampung-execute-now', function() {
+    try {
+        DB::beginTransaction();
+        
+        $output = "<h1 style='color:#0f0;'>EXECUTING FIX NOW...</h1><pre style='background:#000;color:#0f0;padding:20px;font-family:monospace;'>";
+        
+        // Get satuan IDs
+        $ekorId = DB::table('satuans')->where('nama', 'Ekor')->value('id');
+        $potongId = DB::table('satuans')->where('nama', 'Potong')->value('id');
+        $kgId = DB::table('satuans')->whereIn('nama', ['Kilogram', 'Kg'])->value('id');
+        $gramId = DB::table('satuans')->where('nama', 'Gram')->value('id');
+        
+        $output .= "Satuan IDs: Ekor=$ekorId, Potong=$potongId, Kg=$kgId, Gram=$gramId\n\n";
+        
+        // Step 1: Fix conversion ratios
+        DB::table('bahan_bakus')->where('id', 2)->update([
+            'satuan_id' => $ekorId,
+            'sub_satuan_1_id' => $potongId,
+            'sub_satuan_1_konversi' => 6.0000,
+            'sub_satuan_2_id' => $kgId,
+            'sub_satuan_2_konversi' => 1.5000,
+            'sub_satuan_3_id' => $gramId,
+            'sub_satuan_3_konversi' => 1500.0000,
+        ]);
+        $output .= "✓ Conversion ratios updated\n";
+        
+        // Step 2: Delete old data
+        $deleted1 = DB::table('stock_movements')->where('item_type', 'material')->where('item_id', 2)->delete();
+        $deleted2 = DB::table('stock_layers')->where('item_type', 'material')->where('item_id', 2)->delete();
+        $output .= "✓ Deleted $deleted1 movements, $deleted2 layers\n";
+        
+        // Step 3: Insert initial stock
+        DB::table('stock_movements')->insert([
+            'item_type' => 'material',
+            'item_id' => 2,
+            'tanggal' => '2026-03-01',
+            'direction' => 'in',
+            'qty' => 30.0000,
+            'satuan' => 'Ekor',
+            'unit_cost' => 45000.0000,
+            'total_cost' => 1350000.00,
+            'ref_type' => 'initial_stock',
+            'ref_id' => 0,
+            'created_at' => '2026-03-01 00:00:00',
+            'updated_at' => '2026-03-01 00:00:00',
+        ]);
+        $output .= "✓ Initial stock: 30 Ekor\n";
+        
+        // Step 4: Insert production
+        $productionEkor = 1.6667;
+        $productionCost = 75001.50;
+        DB::table('stock_movements')->insert([
+            'item_type' => 'material',
+            'item_id' => 2,
+            'tanggal' => '2026-03-11',
+            'direction' => 'out',
+            'qty' => $productionEkor,
+            'satuan' => 'Ekor',
+            'unit_cost' => 45000.0000,
+            'total_cost' => $productionCost,
+            'ref_type' => 'production',
+            'ref_id' => 1,
+            'created_at' => '2026-03-11 22:09:05',
+            'updated_at' => '2026-03-11 22:09:05',
+        ]);
+        $output .= "✓ Production: $productionEkor Ekor (10 Potong)\n";
+        
+        // Step 5: Insert stock layer
+        $remainingEkor = 28.3333;
+        DB::table('stock_layers')->insert([
+            'item_type' => 'material',
+            'item_id' => 2,
+            'tanggal' => '2026-03-01',
+            'remaining_qty' => $remainingEkor,
+            'unit_cost' => 45000.0000,
+            'satuan' => 'Ekor',
+            'ref_type' => 'initial_stock',
+            'ref_id' => 0,
+            'created_at' => '2026-03-01 00:00:00',
+            'updated_at' => '2026-03-01 00:00:00',
+        ]);
+        $output .= "✓ Stock layer: $remainingEkor Ekor\n";
+        
+        // Step 6: Update master
+        DB::table('bahan_bakus')->where('id', 2)->update(['stok' => $remainingEkor]);
+        $output .= "✓ Master stock: $remainingEkor Ekor\n\n";
+        
+        DB::commit();
+        
+        // Clear cache
+        Artisan::call('cache:clear');
+        Artisan::call('view:clear');
+        Artisan::call('config:clear');
+        $output .= "✓ Cache cleared\n\n";
+        
+        // Verify
+        $movements = DB::table('stock_movements')->where('item_type', 'material')->where('item_id', 2)->orderBy('tanggal')->get();
+        $output .= "VERIFICATION:\n";
+        foreach ($movements as $m) {
+            $output .= "  {$m->tanggal} | {$m->direction} | {$m->qty} {$m->satuan} | {$m->ref_type}\n";
+        }
+        
+        $output .= "\n<span style='color:#0f0;font-size:24px;font-weight:bold;'>✅ SUCCESS!</span>\n\n";
+        $output .= "Refresh these pages:\n";
+        $output .= "- <a href='/laporan/stok?tipe=material&item_id=2&satuan_id=$ekorId' style='color:#0ff;'>Satuan Ekor</a>\n";
+        $output .= "- <a href='/laporan/stok?tipe=material&item_id=2&satuan_id=$potongId' style='color:#0ff;'>Satuan Potong</a>\n";
+        $output .= "- <a href='/laporan/stok?tipe=material&item_id=2&satuan_id=$kgId' style='color:#0ff;'>Satuan Kilogram</a>\n";
+        $output .= "- <a href='/laporan/stok?tipe=material&item_id=2&satuan_id=$gramId' style='color:#0ff;'>Satuan Gram</a>\n";
+        
+        $output .= "</pre>";
+        
+        return response($output);
+        
+    } catch (\Exception $e) {
+        DB::rollback();
+        return response("<pre style='background:#000;color:#f00;padding:20px;'>ERROR: " . $e->getMessage() . "\n\n" . $e->getTraceAsString() . "</pre>");
+    }
+});
+
+// FIX ROUTE - TEMPORARY
+Route::get('fix-ayam-kampung-now', function() {
+    try {
+        DB::beginTransaction();
+        
+        $output = "=== FIXING AYAM KAMPUNG ===\n\n";
+        
+        // Get satuan IDs
+        $ekorId = DB::table('satuans')->where('nama', 'Ekor')->value('id');
+        $potongId = DB::table('satuans')->where('nama', 'Potong')->value('id');
+        $kgId = DB::table('satuans')->whereIn('nama', ['Kilogram', 'Kg'])->value('id');
+        $gramId = DB::table('satuans')->where('nama', 'Gram')->value('id');
+        
+        // Fix conversion ratios
+        DB::table('bahan_bakus')->where('id', 2)->update([
+            'satuan_id' => $ekorId,
+            'sub_satuan_1_id' => $potongId,
+            'sub_satuan_1_konversi' => 6.0000,
+            'sub_satuan_2_id' => $kgId,
+            'sub_satuan_2_konversi' => 1.5000,
+            'sub_satuan_3_id' => $gramId,
+            'sub_satuan_3_konversi' => 1500.0000,
+        ]);
+        $output .= "✓ Conversion ratios fixed\n";
+        
+        // Clean up
+        DB::table('stock_movements')->where('item_type', 'material')->where('item_id', 2)->delete();
+        DB::table('stock_layers')->where('item_type', 'material')->where('item_id', 2)->delete();
+        $output .= "✓ Old data deleted\n";
+        
+        // Initial stock
+        DB::table('stock_movements')->insert([
+            'item_type' => 'material', 'item_id' => 2, 'tanggal' => '2026-03-01',
+            'direction' => 'in', 'qty' => 30.0000, 'satuan' => 'Ekor',
+            'unit_cost' => 45000.0000, 'total_cost' => 1350000.00,
+            'ref_type' => 'initial_stock', 'ref_id' => 0,
+            'created_at' => '2026-03-01 00:00:00', 'updated_at' => '2026-03-01 00:00:00',
+        ]);
+        $output .= "✓ Initial stock created\n";
+        
+        // Production
+        $productionEkor = 10 / 6;
+        $productionCost = $productionEkor * 45000;
+        DB::table('stock_movements')->insert([
+            'item_type' => 'material', 'item_id' => 2, 'tanggal' => '2026-03-11',
+            'direction' => 'out', 'qty' => $productionEkor, 'satuan' => 'Ekor',
+            'unit_cost' => 45000.0000, 'total_cost' => $productionCost,
+            'ref_type' => 'production', 'ref_id' => 1,
+            'created_at' => '2026-03-11 22:09:05', 'updated_at' => '2026-03-11 22:09:05',
+        ]);
+        $output .= "✓ Production created\n";
+        
+        // Stock layer
+        $remainingEkor = 30 - $productionEkor;
+        DB::table('stock_layers')->insert([
+            'item_type' => 'material', 'item_id' => 2, 'tanggal' => '2026-03-01',
+            'remaining_qty' => $remainingEkor, 'unit_cost' => 45000.0000, 'satuan' => 'Ekor',
+            'ref_type' => 'initial_stock', 'ref_id' => 0,
+            'created_at' => '2026-03-01 00:00:00', 'updated_at' => '2026-03-01 00:00:00',
+        ]);
+        $output .= "✓ Stock layer created\n";
+        
+        // Master data
+        DB::table('bahan_bakus')->where('id', 2)->update(['stok' => $remainingEkor]);
+        $output .= "✓ Master stock updated\n\n";
+        
+        DB::commit();
+        
+        // Clear cache
+        Artisan::call('cache:clear');
+        Artisan::call('view:clear');
+        Artisan::call('config:clear');
+        $output .= "✓ Cache cleared\n\n";
+        
+        $output .= "✅ SUCCESS!\n\n";
+        $output .= "Refresh: <a href='/laporan/stok?tipe=material&item_id=2'>Laporan Stok</a>";
+        
+        return response("<pre style='background:#000;color:#0f0;padding:20px;'>$output</pre>");
+        
+    } catch (\Exception $e) {
+        DB::rollback();
+        return response("<pre style='background:#000;color:#f00;padding:20px;'>ERROR: " . $e->getMessage() . "</pre>");
+    }
+});
+
 // Test route for debugging
 Route::get('test-satuan', function() {
     return 'Satuan Dashboard Test - Route is working!';

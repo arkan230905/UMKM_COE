@@ -119,16 +119,19 @@
                             @php
                                 $runningStock = 0;
                                 $runningValue = 0;
+                                $currentUnitCost = 0; // Track current unit cost from FIFO
                             @endphp
                             
-                            @forelse($movements->sortBy('created_at') as $movement)
+                            @forelse($movements->sortBy('tanggal') as $movement)
                                 @php
                                     if($movement->direction == 'in') {
                                         $runningStock += $movement->qty;
                                         $runningValue += ($movement->qty * $movement->unit_cost);
+                                        $currentUnitCost = $movement->unit_cost; // Set current unit cost from incoming stock
                                     } else {
-                                        $runningStock -= $movement->qty;
+                                        $runningStock -= $movement->qty; // SUBTRACT for outgoing (production)
                                         $runningValue -= ($movement->qty * $movement->unit_cost);
+                                        // Keep the same unit cost for outgoing (FIFO principle)
                                     }
                                     
                                     // Calculate sub units
@@ -138,7 +141,7 @@
                                 @endphp
                                 
                                 <tr>
-                                    <td class="text-center">{{ $movement->created_at->format('d/m/Y') }}</td>
+                                    <td class="text-center">{{ \Carbon\Carbon::parse($movement->tanggal)->format('d/m/Y') }}</td>
                                     
                                     <!-- Referensi -->
                                     <td class="text-center">
@@ -177,7 +180,7 @@
                                     
                                     <!-- Produksi (3 columns) -->
                                     @if($movement->direction == 'out' && $movement->ref_type == 'production')
-                                        <td class="text-center">{{ number_format($movement->qty, 0) }} {{ $satuanUtama }}</td>
+                                        <td class="text-center">{{ number_format($movement->qty, 4) }} {{ $satuanUtama }}</td>
                                         <td class="text-end">Rp {{ number_format($movement->unit_cost, 2, ',', '.') }}</td>
                                         <td class="text-end">Rp {{ number_format($movement->qty * $movement->unit_cost, 0, ',', '.') }}</td>
                                     @else
@@ -187,9 +190,9 @@
                                     @endif
                                     
                                     <!-- Total Stok (4 columns) -->
-                                    <td class="text-center">{{ number_format($runningStock, 0) }} {{ $satuanUtama }}</td>
-                                    <td class="text-end">Rp {{ number_format($runningStock > 0 ? $runningValue / $runningStock : 0, 2, ',', '.') }}</td>
-                                    <td class="text-end">Rp {{ number_format($runningValue, 0, ',', '.') }}</td>
+                                    <td class="text-center">{{ number_format($runningStock, 4) }} {{ $satuanUtama }}</td>
+                                    <td class="text-end">Rp {{ number_format($currentUnitCost, 2, ',', '.') }}</td>
+                                    <td class="text-end">Rp {{ number_format($runningStock * $currentUnitCost, 0, ',', '.') }}</td>
                                     <td class="text-center">
                                         @if($runningStock > 0)
                                             <span class="badge bg-success">Tersedia</span>
