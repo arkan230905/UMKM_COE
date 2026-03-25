@@ -363,10 +363,6 @@ class LaporanController extends Controller
                         $saldoAwalQty = (float)($item->stok ?? 0);
                         $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
                     }
-                } else {
-                    // If no date range, DON'T use master data - calculate from ALL movements
-                    $saldoAwalQty = 0.0;
-                    $saldoAwalNilai = 0.0;
                 }
             }
             
@@ -375,6 +371,12 @@ class LaporanController extends Controller
                 $movements = $movQ->orderBy('tanggal', 'asc')
                                  ->orderBy('id', 'asc')
                                  ->get();
+                                 
+                // Only use master data as initial stock if NO movements exist at all
+                if ($movements->isEmpty() && $item && $item->stok > 0) {
+                    $saldoAwalQty = (float)($item->stok ?? 0);
+                    $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
+                }
             } else {
                 // Get movements within date range
                 if ($from) { 
@@ -427,6 +429,8 @@ class LaporanController extends Controller
                                 'saldo_awal_nilai' => $runningNilai,
                                 'pembelian_qty' => 0,
                                 'pembelian_nilai' => 0,
+                                'penjualan_qty' => 0,
+                                'penjualan_nilai' => 0,
                                 'produksi_qty' => 0,
                                 'produksi_nilai' => 0,
                                 'saldo_akhir_qty' => $runningQty,
@@ -445,6 +449,10 @@ class LaporanController extends Controller
                             $saldoAwalQty = 0;
                             $saldoAwalNilai = 0;
                             
+                            // Initialize sales variables
+                            $dailySaleQty = 0;
+                            $dailySaleNilai = 0;
+                            
                             // Process individual movement
                             if ($m->direction === 'in') {
                                 if ($m->ref_type === 'adjustment') {
@@ -453,18 +461,24 @@ class LaporanController extends Controller
                                     $dailyInNilai = (float)($m->total_cost ?? 0);
                                     $dailyOutQty = 0;
                                     $dailyOutNilai = 0;
+                                    $dailySaleQty = 0;
+                                    $dailySaleNilai = 0;
                                 } elseif ($m->ref_type === 'production' && $tipe === 'product') {
                                     // Production IN for products goes to produksi column
                                     $dailyInQty = 0;
                                     $dailyInNilai = 0;
                                     $dailyOutQty = (float)$m->qty; // Use produksi column for production IN
                                     $dailyOutNilai = (float)($m->total_cost ?? 0);
+                                    $dailySaleQty = 0;
+                                    $dailySaleNilai = 0;
                                 } elseif ($m->ref_type === 'initial_stock') {
                                     // Initial stock goes to Stok Awal column
                                     $dailyInQty = 0;
                                     $dailyInNilai = 0;
                                     $dailyOutQty = 0;
                                     $dailyOutNilai = 0;
+                                    $dailySaleQty = 0;
+                                    $dailySaleNilai = 0;
                                     // Set saldo awal for this row
                                     $saldoAwalQty = (float)$m->qty;
                                     $saldoAwalNilai = (float)($m->total_cost ?? 0);
@@ -474,18 +488,36 @@ class LaporanController extends Controller
                                     $dailyInNilai = (float)($m->total_cost ?? 0);
                                     $dailyOutQty = 0;
                                     $dailyOutNilai = 0;
+                                    $dailySaleQty = 0;
+                                    $dailySaleNilai = 0;
                                 } else {
                                     // Other IN movements - skip to avoid confusion
                                     $dailyInQty = 0;
                                     $dailyInNilai = 0;
                                     $dailyOutQty = 0;
                                     $dailyOutNilai = 0;
+                                    $dailySaleQty = 0;
+                                    $dailySaleNilai = 0;
                                 }
                             } else {
-                                $dailyInQty = 0;
-                                $dailyInNilai = 0;
-                                $dailyOutQty = (float)$m->qty;
-                                $dailyOutNilai = (float)($m->total_cost ?? 0);
+                                // OUT movements
+                                if ($m->ref_type === 'sale' && $tipe === 'product') {
+                                    // Sales OUT for products goes to penjualan column
+                                    $dailyInQty = 0;
+                                    $dailyInNilai = 0;
+                                    $dailyOutQty = 0;
+                                    $dailyOutNilai = 0;
+                                    $dailySaleQty = (float)$m->qty;
+                                    $dailySaleNilai = (float)($m->total_cost ?? 0);
+                                } else {
+                                    // Other OUT movements (production consumption, etc.)
+                                    $dailyInQty = 0;
+                                    $dailyInNilai = 0;
+                                    $dailyOutQty = (float)$m->qty;
+                                    $dailyOutNilai = (float)($m->total_cost ?? 0);
+                                    $dailySaleQty = 0;
+                                    $dailySaleNilai = 0;
+                                }
                             }
                             
                             // Update running totals
@@ -493,6 +525,10 @@ class LaporanController extends Controller
                                 // Production IN movements should add to stock even though shown in produksi column
                                 $runningQty += $dailyOutQty; // Production IN adds to stock
                                 $runningNilai += $dailyOutNilai;
+                            } elseif ($m->ref_type === 'sale' && $tipe === 'product') {
+                                // Sales OUT movements should reduce stock
+                                $runningQty -= $dailySaleQty; // Sales OUT reduces stock
+                                $runningNilai -= $dailySaleNilai;
                             } elseif ($m->ref_type === 'initial_stock') {
                                 // Initial stock should add to running totals
                                 if ($m->direction === 'in') {
@@ -514,6 +550,8 @@ class LaporanController extends Controller
                                 'saldo_awal_nilai' => $saldoAwalNilai,
                                 'pembelian_qty' => $dailyInQty,
                                 'pembelian_nilai' => $dailyInNilai,
+                                'penjualan_qty' => $dailySaleQty ?? 0,
+                                'penjualan_nilai' => $dailySaleNilai ?? 0,
                                 'produksi_qty' => $dailyOutQty,
                                 'produksi_nilai' => $dailyOutNilai,
                                 'saldo_akhir_qty' => $runningQty,
@@ -533,6 +571,8 @@ class LaporanController extends Controller
                         'saldo_awal_nilai' => $saldoAwalNilai,
                         'pembelian_qty' => 0,
                         'pembelian_nilai' => 0,
+                        'penjualan_qty' => 0,
+                        'penjualan_nilai' => 0,
                         'produksi_qty' => 0,
                         'produksi_nilai' => 0,
                         'saldo_akhir_qty' => $saldoAwalQty,

@@ -12,7 +12,7 @@ class AccountHelper
      * STANDAR: Gunakan ini di SEMUA controller untuk konsistensi
      * Updated to match actual COA and accounts data
      */
-    const KAS_BANK_CODES = ['1110', '1120', '101', '102'];
+    const KAS_BANK_CODES = ['1101', '1102', '1110', '1120', '101', '102'];
     
     /**
      * Get semua akun Kas & Bank
@@ -37,7 +37,7 @@ class AccountHelper
         }
         
         // Fallback: cari COA dengan kode yang umum untuk kas/bank
-        $fallbackCoas = Coa::whereIn('kode_akun', ['1110', '1120', '101', '102'])
+        $fallbackCoas = Coa::whereIn('kode_akun', ['1101', '1102', '1110', '1120', '101', '102'])
             ->where('tipe_akun', 'Asset')
             ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
@@ -50,7 +50,7 @@ class AccountHelper
         // Last fallback: cari di accounts table yang memiliki transaksi
         $activeAccountCodes = DB::table('accounts')
             ->join('journal_lines', 'accounts.id', '=', 'journal_lines.account_id')
-            ->whereIn('accounts.code', ['101', '102', '1110', '1120'])
+            ->whereIn('accounts.code', ['1101', '1102', '101', '102', '1110', '1120'])
             ->distinct()
             ->pluck('accounts.code')
             ->toArray();
@@ -146,7 +146,7 @@ class AccountHelper
      */
     public static function isKasBankAccount($kodeAkun)
     {
-        return in_array($kodeAkun, ['1110', '1120', '101', '102']);
+        return in_array($kodeAkun, ['1101', '1102', '1110', '1120', '101', '102']);
     }
     
     /**
@@ -157,9 +157,9 @@ class AccountHelper
      */
     public static function getAccountCategory($kodeAkun)
     {
-        if (in_array($kodeAkun, ['1110', '101'])) {
+        if (in_array($kodeAkun, ['1101', '1110', '101'])) {
             return 'Kas';
-        } elseif (in_array($kodeAkun, ['1120', '102'])) {
+        } elseif (in_array($kodeAkun, ['1102', '1120', '102'])) {
             return 'Bank';
         }
         return 'Lainnya';

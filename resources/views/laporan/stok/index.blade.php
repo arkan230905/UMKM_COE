@@ -146,13 +146,33 @@
                         foreach ($dailyStock as $transaction) {
                             // Convert quantities to selected unit
                             $convertedSaldoAwalQty = $transaction['saldo_awal_qty'] * $unit['conversion'];
-                            $convertedPembelianQty = $transaction['pembelian_qty'] * $unit['conversion'];
                             $convertedProduksiQty = $transaction['produksi_qty'] * $unit['conversion'];
                             $convertedSaldoAkhirQty = $transaction['saldo_akhir_qty'] * $unit['conversion'];
                             
+                            // For products, use sales data instead of purchase data
+                            if($tipe == 'product') {
+                                $convertedPembelianQty = isset($transaction['penjualan_qty']) ? $transaction['penjualan_qty'] * $unit['conversion'] : 0;
+                                $convertedPembelianHarga = isset($transaction['penjualan_nilai']) && $transaction['penjualan_qty'] > 0 ? 
+                                    ($unit['conversion'] > 0 ? $transaction['penjualan_nilai'] / $transaction['penjualan_qty'] / $unit['conversion'] : 0) : 0;
+                                $convertedPembelianTotal = isset($transaction['penjualan_nilai']) ? $transaction['penjualan_nilai'] : 0;
+                                
+                                // Add separate penjualan data for products
+                                $convertedPenjualanQty = $convertedPembelianQty;
+                                $convertedPenjualanHarga = $convertedPembelianHarga;
+                                $convertedPenjualanTotal = $convertedPembelianTotal;
+                            } else {
+                                $convertedPembelianQty = $transaction['pembelian_qty'] * $unit['conversion'];
+                                $convertedPembelianHarga = $unit['conversion'] > 0 ? $transaction['pembelian_nilai'] / max($transaction['pembelian_qty'], 1) / $unit['conversion'] : 0;
+                                $convertedPembelianTotal = $transaction['pembelian_nilai'];
+                                
+                                // No sales data for non-products
+                                $convertedPenjualanQty = 0;
+                                $convertedPenjualanHarga = 0;
+                                $convertedPenjualanTotal = 0;
+                            }
+                            
                             // Convert prices (inverse of quantity conversion)
                             $convertedSaldoAwalHarga = $unit['conversion'] > 0 ? $transaction['saldo_awal_nilai'] / max($transaction['saldo_awal_qty'], 1) / $unit['conversion'] : 0;
-                            $convertedPembelianHarga = $unit['conversion'] > 0 ? $transaction['pembelian_nilai'] / max($transaction['pembelian_qty'], 1) / $unit['conversion'] : 0;
                             $convertedProduksiHarga = $unit['conversion'] > 0 ? $transaction['produksi_nilai'] / max($transaction['produksi_qty'], 1) / $unit['conversion'] : 0;
                             $convertedSaldoAkhirHarga = $unit['conversion'] > 0 ? $transaction['saldo_akhir_nilai'] / max($transaction['saldo_akhir_qty'], 1) / $unit['conversion'] : 0;
                             
@@ -163,7 +183,10 @@
                                 'saldo_awal_total' => $transaction['saldo_awal_nilai'],
                                 'pembelian_qty' => $convertedPembelianQty,
                                 'pembelian_harga' => $convertedPembelianHarga,
-                                'pembelian_total' => $transaction['pembelian_nilai'],
+                                'pembelian_total' => $convertedPembelianTotal,
+                                'penjualan_qty' => $convertedPenjualanQty ?? 0,
+                                'penjualan_harga' => $convertedPenjualanHarga ?? 0,
+                                'penjualan_total' => $convertedPenjualanTotal ?? 0,
                                 'produksi_qty' => $convertedProduksiQty,
                                 'produksi_harga' => $convertedProduksiHarga,
                                 'produksi_total' => $transaction['produksi_nilai'],
@@ -185,6 +208,9 @@
                                 'pembelian_qty' => 0,
                                 'pembelian_harga' => 0,
                                 'pembelian_total' => 0,
+                                'penjualan_qty' => 0,
+                                'penjualan_harga' => 0,
+                                'penjualan_total' => 0,
                                 'produksi_qty' => 0,
                                 'produksi_harga' => 0,
                                 'produksi_total' => 0,
@@ -212,7 +238,11 @@
                                         <th rowspan="2" class="text-center align-middle" style="width: 80px;">Tanggal</th>
                                         <th rowspan="2" class="text-center align-middle" style="width: 120px;">Keterangan</th>
                                         <th colspan="3" class="text-center">Stok Awal</th>
-                                        <th colspan="3" class="text-center">Pembelian</th>
+                                        @if($tipe == 'product')
+                                            <th colspan="3" class="text-center">Penjualan</th>
+                                        @else
+                                            <th colspan="3" class="text-center">Pembelian</th>
+                                        @endif
                                         <th colspan="3" class="text-center">Produksi</th>
                                         <th colspan="3" class="text-center">Total Stok Dalam Satuan {{ $unit['name'] }}</th>
                                     </tr>
@@ -246,6 +276,9 @@
                                                     case 'purchase':
                                                         $keterangan = 'Pembelian';
                                                         break;
+                                                    case 'sale':
+                                                        $keterangan = 'Sale';
+                                                        break;
                                                     case 'production':
                                                         if ($tipe === 'product') {
                                                             $keterangan = 'Hasil Produksi';
@@ -272,9 +305,17 @@
                                             <td class="text-end">{{ $row['saldo_awal_qty'] > 0 ? number_format($row['saldo_awal_qty'], ($unit['name'] == 'Gram' ? 0 : 2), ',', '.') . ' ' . $unit['name'] : '' }}</td>
                                             <td class="text-end">{{ $row['saldo_awal_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['saldo_awal_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
                                             <td class="text-end">{{ $row['saldo_awal_total'] > 0 ? 'RP' . number_format($row['saldo_awal_total'], 0, ',', '.') : '' }}</td>
-                                            <td class="text-end">{{ $row['pembelian_qty'] > 0 ? number_format($row['pembelian_qty'], ($unit['name'] == 'Gram' ? 0 : 2), ',', '.') . ' ' . $unit['name'] : '' }}</td>
-                                            <td class="text-end">{{ $row['pembelian_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['pembelian_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
-                                            <td class="text-end">{{ $row['pembelian_total'] > 0 ? 'RP' . number_format($row['pembelian_total'], 0, ',', '.') : '' }}</td>
+                                            @if($tipe == 'product')
+                                                <!-- For products, show sales data instead of purchase data -->
+                                                <td class="text-end">{{ isset($row['penjualan_qty']) && $row['penjualan_qty'] > 0 ? number_format($row['penjualan_qty'], ($unit['name'] == 'Gram' ? 0 : 2), ',', '.') . ' ' . $unit['name'] : '' }}</td>
+                                                <td class="text-end">{{ isset($row['penjualan_harga']) && $row['penjualan_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['penjualan_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
+                                                <td class="text-end">{{ isset($row['penjualan_total']) && $row['penjualan_total'] > 0 ? 'RP' . number_format($row['penjualan_total'], 0, ',', '.') : '' }}</td>
+                                            @else
+                                                <!-- For materials and bahan pendukung, show purchase data -->
+                                                <td class="text-end">{{ $row['pembelian_qty'] > 0 ? number_format($row['pembelian_qty'], ($unit['name'] == 'Gram' ? 0 : 2), ',', '.') . ' ' . $unit['name'] : '' }}</td>
+                                                <td class="text-end">{{ $row['pembelian_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['pembelian_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
+                                                <td class="text-end">{{ $row['pembelian_total'] > 0 ? 'RP' . number_format($row['pembelian_total'], 0, ',', '.') : '' }}</td>
+                                            @endif
                                             <td class="text-end">{{ $row['produksi_qty'] > 0 ? number_format($row['produksi_qty'], ($unit['name'] == 'Gram' ? 0 : 2), ',', '.') . ' ' . $unit['name'] : '' }}</td>
                                             <td class="text-end">{{ $row['produksi_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['produksi_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
                                             <td class="text-end">{{ $row['produksi_total'] > 0 ? 'RP' . number_format($row['produksi_total'], 0, ',', '.') : '' }}</td>
