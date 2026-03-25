@@ -381,10 +381,11 @@ a:active {
                             <div class="col-md-6">
                                 <label class="form-label small">Filter Tanggal</label>
                                 <input type="date" name="date_filter" class="form-control" 
-                                       value="{{ $dateFilter }}">
+                                       value="{{ $dateFilter ?? '' }}">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small">&nbsp;</label><br>
+                                <input type="hidden" name="search" value="{{ $search ?? '' }}">
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-search"></i> Filter
                                 </button>
@@ -396,9 +397,10 @@ a:active {
                     <form method="GET" action="{{ route('transaksi.presensi.index') }}">
                         <label class="form-label small">Cari Pegawai</label>
                         <div class="input-group">
+                            <input type="hidden" name="date_filter" value="{{ $dateFilter ?? '' }}">
                             <input type="text" name="search" class="form-control" 
                                    placeholder="Cari pegawai..." value="{{ $search }}">
-                            <button type="submit" class="btn btn-outline-primary">
+                            <button class="btn btn-outline-secondary" type="submit">
                                 <i class="fas fa-search"></i>
                             </button>
                         </div>
@@ -462,18 +464,18 @@ a:active {
                                 <span class="fw-bold">{{ ucfirst($presensi->status) }}</span>
                             </td>
                             <td class="text-center">
-                                <div class="btn-group btn-group-sm">
+                                <div class="btn-group" role="group">
                                     <a href="{{ route('transaksi.presensi.edit', $presensi->id) }}" 
-                                       class="btn btn-warning" 
-                                       title="Edit">
+                                       class="btn btn-warning btn-sm" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <form action="{{ route('transaksi.presensi.destroy', $presensi->id) }}" 
-                                          method="POST" 
-                                          class="d-inline">
+                                          method="POST" class="d-inline delete-form">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="button" class="btn btn-danger delete-btn" title="Hapus">
+                                        <input type="hidden" name="date_filter" value="{{ $dateFilter ?? '' }}">
+                                        <input type="hidden" name="search" value="{{ $search ?? '' }}">
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Hapus">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>

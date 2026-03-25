@@ -70,7 +70,7 @@ class PenggajianController extends Controller
             $request->validate([
                 'pegawai_id' => 'required|exists:pegawais,id',
                 'tanggal_penggajian' => 'required|date',
-                'coa_kasbank' => 'required|in:' . implode(',', \App\Helpers\AccountHelper::KAS_BANK_CODES),
+                'coa_kasbank' => 'required|exists:coas,kode_akun',
                 'bonus' => 'nullable|numeric|min:0',
                 'potongan' => 'nullable|numeric|min:0',
                 'gaji_pokok' => 'required|numeric|min:0',

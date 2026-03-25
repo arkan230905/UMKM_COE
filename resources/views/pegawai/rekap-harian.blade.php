@@ -13,7 +13,6 @@
                         <i class="bi bi-calendar-check me-2"></i>
                         Rekap Harian Presensi
                     </h5>
-                    <p class="mb-0 small">Daftar pegawai yang hadir pada tanggal tertentu</p>
                 </div>
                 <div class="card-body">
                     <!-- Filter Tanggal -->

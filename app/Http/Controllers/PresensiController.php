@@ -9,13 +9,14 @@ use App\Models\VerifikasiWajah;
 use App\Models\Pegawai;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 
 class PresensiController extends Controller
 {
     public function index(Request $request)
     {
         $search = $request->get('search');
-        $dateFilter = $request->get('date_filter') ?? Carbon::today()->toDateString();
+        $dateFilter = $request->get('date_filter');
         
         // Build query
         $query = Presensi::with('pegawai')->orderBy('tgl_presensi', 'desc')->orderBy('jam_masuk', 'desc');
@@ -65,6 +66,14 @@ class PresensiController extends Controller
         ]);
         
         $data = $request->all();
+
+        // Normalize empty strings to null (prevents false negatives in duplicate detection)
+        foreach (['jam_masuk', 'jam_keluar', 'keterangan'] as $key) {
+            if (array_key_exists($key, $data)) {
+                $value = is_string($data[$key]) ? trim($data[$key]) : $data[$key];
+                $data[$key] = ($value === '' ? null : $value);
+            }
+        }
         $data['jumlah_jam'] = 0;
         
         // Calculate working hours if both times are provided
@@ -73,11 +82,27 @@ class PresensiController extends Controller
             $jamKeluar = Carbon::createFromFormat('H:i', $request->jam_keluar);
             $data['jumlah_jam'] = $jamMasuk->diffInMinutes($jamKeluar) / 60;
         }
-        
-        Presensi::create($data);
-        
-        return redirect()->route('transaksi.presensi.index')
-            ->with('success', 'Data presensi berhasil ditambahkan');
+
+        // Prevent duplicate submission (allow multi-shift entries)
+        // Use idempotency key so even simultaneous double requests won't create duplicates.
+        $fingerprint = sha1(json_encode([
+            'pegawai_id' => (string) $data['pegawai_id'],
+            'tgl_presensi' => (string) $data['tgl_presensi'],
+            'jam_masuk' => (string) ($data['jam_masuk'] ?? ''),
+            'jam_keluar' => (string) ($data['jam_keluar'] ?? ''),
+            'status' => (string) ($data['status'] ?? ''),
+            'keterangan' => (string) ($data['keterangan'] ?? ''),
+        ]));
+
+        $idempotencyKey = 'presensi:store:' . $fingerprint;
+        $isFirst = Cache::add($idempotencyKey, 1, now()->addSeconds(10));
+
+        if ($isFirst) {
+            Presensi::create($data);
+        }
+
+        return redirect()->route('transaksi.presensi.index', [
+        ])->with('success', $isFirst ? 'Data presensi berhasil ditambahkan' : 'Duplikat terdeteksi: data presensi tidak ditambahkan lagi');
     }
     
     public function show($id)
@@ -117,17 +142,25 @@ class PresensiController extends Controller
         }
         
         $presensi->update($data);
-        
+
         return redirect()->route('transaksi.presensi.index')
             ->with('success', 'Data presensi berhasil diperbarui');
     }
     
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $presensi = Presensi::findOrFail($id);
         $presensi->delete();
-        
-        return redirect()->route('transaksi.presensi.index')
+
+        $params = [];
+        if ($request->filled('date_filter')) {
+            $params['date_filter'] = $request->input('date_filter');
+        }
+        if ($request->filled('search')) {
+            $params['search'] = $request->input('search');
+        }
+
+        return redirect()->route('transaksi.presensi.index', $params)
             ->with('success', 'Data presensi berhasil dihapus');
     }
     
