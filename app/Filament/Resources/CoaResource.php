@@ -15,43 +15,212 @@ class CoaResource extends Resource
     protected static ?string $model = Coa::class;
     protected static \BackedEnum|string|null $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationLabel = 'COA';
+    
+    // Disable automatic ID column
+    protected static bool $shouldRegisterNavigation = true;
 
     public static function form(Schema $form): Schema
     {
         return $form->schema([
-            Forms\Components\TextInput::make('kode_akun')->maxLength(50),
-            Forms\Components\TextInput::make('nama_akun')->required(),
-            Forms\Components\Select::make('tipe_akun')->required()
-                ->options([
-                    'Aset'=>'Aset','Kewajiban'=>'Kewajiban','Modal'=>'Modal','Pendapatan'=>'Pendapatan','Beban'=>'Beban'
+            Forms\Components\Section::make('Informasi Dasar')
+                ->schema([
+                    Forms\Components\TextInput::make('kode_akun')
+                        ->label('Kode Akun')
+                        ->maxLength(50)
+                        ->required()
+                        ->unique(Coa::class, 'kode_akun', ignoreRecord: true)
+                        ->validationMessages([
+                            'unique' => 'Kode akun sudah ada. Silakan gunakan kode akun yang berbeda.',
+                        ])
+                        ->helperText('Masukkan kode akun unik. Sistem akan mengurutkan berdasarkan kode ini.'),
+                    Forms\Components\TextInput::make('nama_akun')
+                        ->label('Nama Akun')
+                        ->required(),
+                    Forms\Components\Select::make('tipe_akun')
+                        ->label('Tipe Akun')
+                        ->required()
+                        ->options([
+                            'Asset'=>'Asset',
+                            'Liability'=>'Liability',
+                            'Equity'=>'Equity',
+                            'Revenue'=>'Revenue',
+                            'Expense'=>'Expense'
+                        ]),
+                    Forms\Components\TextInput::make('kategori_akun')
+                        ->label('Kategori Akun')
+                        ->maxLength(50)
+                        ->helperText('Kategori untuk pengelompokan akun'),
+                ])->columns(2),
+            
+            Forms\Components\Section::make('Pengaturan Akuntansi')
+                ->schema([
+                    Forms\Components\Select::make('saldo_normal')
+                        ->label('Saldo Normal')
+                        ->options([
+                            'debit' => 'Debit',
+                            'credit' => 'Credit'
+                        ])
+                        ->required()
+                        ->helperText('Pilih saldo normal untuk akun ini'),
+                    Forms\Components\TextInput::make('saldo_awal')
+                        ->label('Saldo Awal')
+                        ->numeric()
+                        ->disabled(fn ($record) => $record?->posted_saldo_awal)
+                        ->helperText('Saldo awal akun ini'),
+                    Forms\Components\DatePicker::make('tanggal_saldo_awal')
+                        ->label('Tanggal Saldo Awal')
+                        ->disabled(fn ($record) => $record?->posted_saldo_awal)
+                        ->default(now()),
+                    Forms\Components\Toggle::make('posted_saldo_awal')
+                        ->label('Saldo Awal Sudah Diposting')
+                        ->disabled()
+                        ->helperText('Menunjukkan apakah saldo awal sudah diposting ke jurnal'),
+                ])->columns(2),
+            
+            Forms\Components\Section::make('Keterangan')
+                ->schema([
+                    Forms\Components\Textarea::make('keterangan')
+                        ->label('Keterangan')
+                        ->maxLength(500)
+                        ->helperText('Keterangan tambahan untuk akun ini'),
                 ]),
-            Forms\Components\Toggle::make('is_akun_header'),
-            Forms\Components\Select::make('kode_induk')->label('Akun Induk')
-                ->options(fn() => Coa::where('is_akun_header', 1)->pluck('nama_akun', 'kode_akun')->toArray()),
-            Forms\Components\TextInput::make('saldo_awal')->numeric()->label('Saldo Awal')
-                ->disabled(fn ($record) => $record?->posted_saldo_awal),
-            Forms\Components\DatePicker::make('tanggal_saldo_awal')->label('Tanggal Saldo Awal')
-                ->disabled(fn ($record) => $record?->posted_saldo_awal),
-            Forms\Components\Toggle::make('posted_saldo_awal')->disabled(),
         ]);
     }
 
     public static function table(Table $table): Table
     {
-        return $table->columns([
-            Tables\Columns\TextColumn::make('id')->label('ID')->sortable(),
-            Tables\Columns\TextColumn::make('kode_akun')->label('Kode')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('nama_akun')->label('Nama')->sortable()->searchable(),
-            Tables\Columns\TextColumn::make('tipe_akun')->label('Tipe'),
-            Tables\Columns\TextColumn::make('kategori_akun')->label('Kategori'),
-            Tables\Columns\IconColumn::make('is_akun_header')->boolean()->label('Header'),
-            Tables\Columns\TextColumn::make('kode_induk')->label('Kode Induk')->sortable(),
-            Tables\Columns\TextColumn::make('saldo_normal')->label('Saldo Normal'),
+        return $table
+        ->columns([
+            Tables\Columns\TextColumn::make('kode_akun')->label('Kode Akun')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('nama_akun')->label('Nama Akun')->sortable()->searchable(),
+            Tables\Columns\TextColumn::make('tipe_akun')->label('Tipe Akun')
+                ->badge()
+                ->color(fn (string $state): string => match ($state) {
+                    'Asset' => 'success',
+                    'Liability' => 'warning', 
+                    'Equity' => 'info',
+                    'Revenue' => 'primary',
+                    'Expense' => 'danger',
+                    default => 'gray',
+                }),
+            Tables\Columns\TextColumn::make('kategori_akun')->label('Kategori Akun'),
+            Tables\Columns\TextColumn::make('saldo_normal')->label('Saldo Normal')
+                ->badge()
+                ->color(fn (string $state): string => match ($state) {
+                    'debit' => 'success',
+                    'credit' => 'warning',
+                    default => 'gray',
+                }),
             Tables\Columns\TextColumn::make('saldo_awal')->money('IDR')->label('Saldo Awal'),
-            Tables\Columns\TextColumn::make('keterangan')->toggleable(isToggledHiddenByDefault: true),
+            Tables\Columns\TextColumn::make('keterangan')->label('Keterangan')
+                ->limit(50)
+                ->tooltip(function (Tables\Columns\TextColumn $column): ?string {
+                    $state = $column->getState();
+                    if (strlen($state) <= 50) {
+                        return null;
+                    }
+                    return $state;
+                }),
+        ])
+        ->recordTitleAttribute('nama_akun')
+        ->defaultSort('kode_akun', 'asc') // Sort by kode_akun ascending
+        ->filters([
+            Tables\Filters\SelectFilter::make('tipe_akun')
+                ->options([
+                    'Asset' => 'Asset',
+                    'Liability' => 'Liability', 
+                    'Equity' => 'Equity',
+                    'Revenue' => 'Revenue',
+                    'Expense' => 'Expense',
+                ]),
         ])
         ->actions([
             Tables\Actions\EditAction::make(),
+            Tables\Actions\DeleteAction::make()
+                ->before(function ($record) {
+                    // Cek apakah akun ini digunakan dalam transaksi
+                    $journalCount = \App\Models\JournalLine::where('coa_id', $record->id)->count();
+                    if ($journalCount > 0) {
+                        Notification::make()
+                            ->title('Tidak dapat menghapus')
+                            ->body('Akun ini sudah digunakan dalam transaksi jurnal.')
+                            ->danger()
+                            ->send();
+                        return false;
+                    }
+                    
+                    // Cek apakah akun ini digunakan di bahan_bakus (hanya jika masih ada yang menggunakan)
+                    $bahanBakuCount = \Illuminate\Support\Facades\DB::table('bahan_bakus')
+                        ->where('coa_persediaan_id', $record->kode_akun)
+                        ->orWhere('coa_hpp_id', $record->kode_akun)
+                        ->orWhere('coa_pembelian_id', $record->kode_akun)
+                        ->count();
+                    
+                    if ($bahanBakuCount > 0) {
+                        // Ambil nama bahan yang masih menggunakan akun ini
+                        $bahanNames = \Illuminate\Support\Facades\DB::table('bahan_bakus')
+                            ->where('coa_persediaan_id', $record->kode_akun)
+                            ->orWhere('coa_hpp_id', $record->kode_akun)
+                            ->orWhere('coa_pembelian_id', $record->kode_akun)
+                            ->pluck('nama_bahan')
+                            ->take(3)
+                            ->implode(', ');
+                        
+                        Notification::make()
+                            ->title('Tidak dapat menghapus')
+                            ->body("Akun ini masih digunakan oleh bahan baku: {$bahanNames}" . ($bahanBakuCount > 3 ? ' dan lainnya' : '') . ". Ubah referensi COA di bahan baku terlebih dahulu.")
+                            ->danger()
+                            ->send();
+                        return false;
+                    }
+                    
+                    // Cek apakah akun ini digunakan di bahan_pendukungs (hanya jika masih ada yang menggunakan)
+                    $bahanPendukungCount = \Illuminate\Support\Facades\DB::table('bahan_pendukungs')
+                        ->where('coa_persediaan_id', $record->kode_akun)
+                        ->orWhere('coa_hpp_id', $record->kode_akun)
+                        ->orWhere('coa_pembelian_id', $record->kode_akun)
+                        ->count();
+                    
+                    if ($bahanPendukungCount > 0) {
+                        // Ambil nama bahan yang masih menggunakan akun ini
+                        $bahanNames = \Illuminate\Support\Facades\DB::table('bahan_pendukungs')
+                            ->where('coa_persediaan_id', $record->kode_akun)
+                            ->orWhere('coa_hpp_id', $record->kode_akun)
+                            ->orWhere('coa_pembelian_id', $record->kode_akun)
+                            ->pluck('nama_bahan')
+                            ->take(3)
+                            ->implode(', ');
+                        
+                        Notification::make()
+                            ->title('Tidak dapat menghapus')
+                            ->body("Akun ini masih digunakan oleh bahan pendukung: {$bahanNames}" . ($bahanPendukungCount > 3 ? ' dan lainnya' : '') . ". Ubah referensi COA di bahan pendukung terlebih dahulu.")
+                            ->danger()
+                            ->send();
+                        return false;
+                    }
+                    
+                    // Cek apakah akun ini digunakan di produks
+                    $produkCount = \Illuminate\Support\Facades\DB::table('produks')
+                        ->where('coa_persediaan_id', $record->id)
+                        ->orWhere('coa_hpp_id', $record->id)
+                        ->count();
+                    
+                    if ($produkCount > 0) {
+                        $produkNames = \Illuminate\Support\Facades\DB::table('produks')
+                            ->where('coa_persediaan_id', $record->id)
+                            ->orWhere('coa_hpp_id', $record->id)
+                            ->pluck('nama_produk')
+                            ->take(3)
+                            ->implode(', ');
+                        
+                        Notification::make()
+                            ->title('Tidak dapat menghapus')
+                            ->body("Akun ini masih digunakan oleh produk: {$produkNames}" . ($produkCount > 3 ? ' dan lainnya' : '') . ". Ubah referensi COA di produk terlebih dahulu.")
+                            ->danger()
+                            ->send();
+                        return false;
+                    }
+                }),
         ])
         ->bulkActions([Tables\Actions\DeleteBulkAction::make()]);
     }

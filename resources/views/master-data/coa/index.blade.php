@@ -47,8 +47,8 @@
                             <th class="text-center" style="width: 50px">#</th>
                             <th>Kode Akun</th>
                             <th>Nama Akun</th>
+                            <th>Tipe Akun</th>
                             <th>Kategori Akun</th>
-                            <th>Kode Induk</th>
                             <th>Saldo Normal</th>
                             <th>Saldo Awal</th>
                             <th>Keterangan</th>
@@ -66,24 +66,16 @@
                                             <i class="fas fa-calculator text-primary"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-semibold">
-                                                {{ $coa->nama_akun }}
-                                                @if($coa->is_akun_header)
-                                                    <span class="badge bg-secondary ms-1">Header</span>
-                                                @endif
-                                            </div>
-                                            <small class="text-muted">ID: {{ $coa->id }}</small>
+                                            <div class="fw-semibold">{{ $coa->nama_akun }}</div>
                                         </div>
                                     </div>
                                 </td>
-                                <td>{{ $coa->kategori_akun }}</td>
                                 <td>
-                                    @if($coa->kode_induk)
-                                        <span class="badge bg-secondary">{{ $coa->kode_induk }}</span>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
+                                    <span class="badge {{ $coa->tipe_akun == 'Asset' ? 'bg-success' : ($coa->tipe_akun == 'Liability' ? 'bg-warning' : ($coa->tipe_akun == 'Equity' ? 'bg-info' : ($coa->tipe_akun == 'Revenue' ? 'bg-primary' : 'bg-danger'))) }}">
+                                        {{ $coa->tipe_akun }}
+                                    </span>
                                 </td>
+                                <td>{{ $coa->kategori_akun }}</td>
                                 <td class="text-capitalize">
                                     @php
                                         $saldoNormal = strtolower($coa->saldo_normal);
