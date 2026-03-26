@@ -32,16 +32,20 @@ class Coa extends Model
         'nama_akun',
         'kategori_akun',
         'tipe_akun',
-        'kode_induk',
         'saldo_normal',
         'keterangan',
-        'is_akun_header',
         'saldo_awal',
         'tanggal_saldo_awal',
         'posted_saldo_awal',
     ];
     
     protected $appends = ['kode', 'nama'];
+
+    protected $casts = [
+        'posted_saldo_awal' => 'boolean',
+        'saldo_awal' => 'decimal:2',
+        'tanggal_saldo_awal' => 'date',
+    ];
 
     // No casts: saldo_normal stores strings like 'debit'/'kredit'
     
@@ -58,22 +62,6 @@ class Coa extends Model
         return $this->nama_akun;
     }
 
-    /**
-     * Relasi ke akun induk (hierarchical)
-     */
-    public function induk()
-    {
-        return $this->belongsTo(Coa::class, 'kode_induk', 'kode_akun');
-    }
-
-    /**
-     * Relasi ke akun anak (hierarchical)
-     */
-    public function subAkun()
-    {
-        return $this->hasMany(Coa::class, 'kode_induk', 'kode_akun');
-    }
-    
     /**
      * Cek apakah akun termasuk BOP
      */
@@ -123,9 +111,9 @@ class Coa extends Model
             }
         });
         
-        // Default order by kode_akun
-        static::addGlobalScope('orderByKode', function ($builder) {
-            $builder->orderBy('kode_akun');
+        // Default order by kode_akun untuk memastikan urutan yang konsisten
+        static::addGlobalScope('orderByKodeAkun', function ($builder) {
+            $builder->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC, kode_akun ASC');
         });
     }
     
@@ -139,5 +127,36 @@ class Coa extends Model
         $lastCoa = self::orderBy('kode_akun', 'desc')->first();
         $lastNumber = $lastCoa ? (int) substr($lastCoa->kode_akun, -3) : 0;
         return str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+    }
+    
+    /**
+     * Scope untuk mencari akun berdasarkan prefix kode
+     */
+    public function scopeByPrefix($query, $prefix)
+    {
+        return $query->where('kode_akun', 'LIKE', $prefix . '%');
+    }
+    
+    /**
+     * Get akun dengan prefix yang sama (nomor kepala yang sama)
+     */
+    public function getSameGroupAccounts()
+    {
+        $prefix = substr($this->kode_akun, 0, 1); // Ambil digit pertama
+        return self::byPrefix($prefix)->get();
+    }
+    
+    /**
+     * Validasi kode akun tidak duplikat
+     */
+    public static function validateUniqueKodeAkun($kodeAkun, $excludeId = null)
+    {
+        $query = self::where('kode_akun', $kodeAkun);
+        
+        if ($excludeId) {
+            $query->where('kode_akun', '!=', $excludeId);
+        }
+        
+        return $query->doesntExist();
     }
 }

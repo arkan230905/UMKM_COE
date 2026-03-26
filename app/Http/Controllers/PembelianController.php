@@ -224,19 +224,14 @@ class PembelianController extends Controller
         
         // Prioritas 1: Ambil dari journal lines (jurnal akuntansi)
         try {
-            $accountCode = $this->mapCoaToAccountCodeHelper($akun->kode_akun);
-            $account = DB::table('accounts')->where('code', $accountCode)->first();
-            
-            if ($account) {
-                $journalKeluar = DB::table('journal_lines')
-                    ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-                    ->where('journal_lines.account_id', $account->id)
-                    ->where('journal_lines.credit', '>', 0)
-                    ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-                    ->sum('journal_lines.credit');
-                    
-                $totalKeluar += (float) ($journalKeluar ?? 0);
-            }
+            $journalKeluar = DB::table('journal_lines')
+                ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                ->where('journal_lines.coa_id', $akun->id)
+                ->where('journal_lines.credit', '>', 0)
+                ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+                ->sum('journal_lines.credit');
+                
+            $totalKeluar += (float) ($journalKeluar ?? 0);
         } catch (\Exception $e) {
             // Skip journal errors, fallback to direct transactions
         }
@@ -368,14 +363,30 @@ class PembelianController extends Controller
                 $bank = \App\Models\Coa::find($bankId);
                 
                 if ($bank) {
-                    // Hitung saldo real-time akun yang dipilih menggunakan helper methods
-                    $startDate = now()->startOfMonth()->format('Y-m-d');
-                    $endDate = now()->endOfMonth()->format('Y-m-d');
+                    // Hitung saldo real-time menggunakan journal entries (lebih akurat)
+                    $journalLines = \App\Models\JournalLine::where('coa_id', $bank->id)
+                        ->with('entry')
+                        ->get();
                     
-                    $saldoAwal = $this->getSaldoAwalHelper($bank, $startDate);
-                    $transaksiMasuk = $this->getTransaksiMasukHelper($bank, $startDate, $endDate);
-                    $transaksiKeluar = $this->getTransaksiKeluarHelper($bank, $startDate, $endDate);
-                    $saldoRealtime = $saldoAwal + $transaksiMasuk - $transaksiKeluar;
+                    $totalDebit = $journalLines->sum('debit');
+                    $totalCredit = $journalLines->sum('credit');
+                    
+                    // Hitung saldo berdasarkan saldo normal akun
+                    if ($bank->saldo_normal == 'debit') {
+                        $saldoRealtime = $bank->saldo_awal + $totalDebit - $totalCredit;
+                    } else {
+                        $saldoRealtime = $bank->saldo_awal + $totalCredit - $totalDebit;
+                    }
+                    
+                    \Log::info('Balance validation:', [
+                        'account' => $bank->nama_akun,
+                        'initial_balance' => $bank->saldo_awal,
+                        'total_debit' => $totalDebit,
+                        'total_credit' => $totalCredit,
+                        'current_balance' => $saldoRealtime,
+                        'required_amount' => $computedTotal,
+                        'sufficient' => $saldoRealtime >= $computedTotal
+                    ]);
                     
                     if ($saldoRealtime + 1e-6 < $computedTotal) {
                         return back()->withErrors([
