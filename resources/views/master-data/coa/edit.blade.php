@@ -42,22 +42,6 @@
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Akun Induk</label>
-                <select name="kode_induk" class="form-select">
-                    <option value="">- Tidak Ada -</option>
-                    @foreach($coas as $p)
-                        <option value="{{ $p->kode_akun }}" {{ $coa->kode_induk===$p->kode_akun?'selected':'' }}>{{ $p->kode_akun }} - {{ $p->nama_akun }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Akun Header?</label>
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="is_akun_header" value="1" id="is_header" {{ $coa->is_akun_header? 'checked':'' }}>
-                    <label class="form-check-label" for="is_header">Ya</label>
-                </div>
-            </div>
-            <div class="col-md-3">
                 <label class="form-label">Saldo Awal</label>
                 <input type="text" id="saldo_awal_view" class="form-control" inputmode="decimal" placeholder="0" value="{{ $coa->saldo_awal ? number_format((float)$coa->saldo_awal,0,',','.') : '' }}">
                 <input type="hidden" name="saldo_awal" id="saldo_awal" value="{{ (float)($coa->saldo_awal ?? 0) }}">

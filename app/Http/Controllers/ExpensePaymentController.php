@@ -63,13 +63,11 @@ class ExpensePaymentController extends Controller
             ->get();
             
         $coaBebans = Coa::where('tipe_akun', 'Expense')
-            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
             ->get();
             
         $coaKas = Coa::where('tipe_akun', 'Asset')
             ->where('saldo_normal', 'debit')
-            ->where('is_akun_header', '!=', 1)
             ->where(function($query) {
                 $query->where('nama_akun', 'like', '%kas%')
                       ->orWhere('nama_akun', 'like', '%bank%');
@@ -94,14 +92,12 @@ class ExpensePaymentController extends Controller
         
         // Get COA Beban for dropdown
         $coaBebans = Coa::where('tipe_akun', 'Expense')
-            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
             ->get();
         
         // Get COA Kas/Bank for dropdown - dynamic filter based on account type and name
         $coaKas = Coa::where('tipe_akun', 'Asset')
             ->where('saldo_normal', 'debit')
-            ->where('is_akun_header', '!=', 1)
             ->where(function($query) {
                 $query->where('nama_akun', 'like', '%kas%')
                       ->orWhere('nama_akun', 'like', '%bank%');
@@ -221,14 +217,12 @@ class ExpensePaymentController extends Controller
         
         // Get COA Beban for dropdown
         $coaBebans = Coa::where('tipe_akun', 'Expense')
-            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
             ->get();
         
         // Get COA Kas/Bank for dropdown - dynamic filter based on account type and name
         $coaKas = Coa::where('tipe_akun', 'Asset')
             ->where('saldo_normal', 'debit')
-            ->where('is_akun_header', '!=', 1)
             ->where(function($query) {
                 $query->where('nama_akun', 'like', '%kas%')
                       ->orWhere('nama_akun', 'like', '%bank%');

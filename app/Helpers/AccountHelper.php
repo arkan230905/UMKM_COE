@@ -23,7 +23,6 @@ class AccountHelper
     {
         // Prioritas: Cari COA yang mengandung kata 'kas' atau 'bank'
         $coaAccounts = Coa::where('tipe_akun', 'Asset')
-            ->where('is_akun_header', '!=', 1)
             ->where(function($query) {
                 $query->where('nama_akun', 'like', '%kas%')
                       ->orWhere('nama_akun', 'like', '%bank%');
@@ -39,7 +38,6 @@ class AccountHelper
         // Fallback: cari COA dengan kode yang umum untuk kas/bank
         $fallbackCoas = Coa::whereIn('kode_akun', ['1101', '1102', '1110', '1120', '101', '102'])
             ->where('tipe_akun', 'Asset')
-            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
             ->get();
             
@@ -63,7 +61,6 @@ class AccountHelper
                 $virtualCoa->kode_akun = $accountRecord->code;
                 $virtualCoa->nama_akun = $accountRecord->name;
                 $virtualCoa->tipe_akun = 'Asset';
-                $virtualCoa->is_akun_header = 0;
                 $virtualCoa->saldo_awal = 0;
                 $virtualCoas->push($virtualCoa);
             }
@@ -82,7 +79,6 @@ class AccountHelper
         // Try COA first
         $coaAccounts = Coa::whereIn('kode_akun', ['1110'])
             ->where('tipe_akun', 'Asset')
-            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
             ->get();
             
@@ -97,7 +93,6 @@ class AccountHelper
             $virtualCoa->kode_akun = $accountRecord->code;
             $virtualCoa->nama_akun = $accountRecord->name;
             $virtualCoa->tipe_akun = 'Asset';
-            $virtualCoa->is_akun_header = 0;
             $virtualCoa->saldo_awal = 0;
             return collect([$virtualCoa]);
         }
@@ -115,7 +110,6 @@ class AccountHelper
         // Try COA first
         $coaAccounts = Coa::whereIn('kode_akun', ['1120'])
             ->where('tipe_akun', 'Asset')
-            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
             ->get();
             
@@ -130,7 +124,6 @@ class AccountHelper
             $virtualCoa->kode_akun = $accountRecord->code;
             $virtualCoa->nama_akun = $accountRecord->name;
             $virtualCoa->tipe_akun = 'Asset';
-            $virtualCoa->is_akun_header = 0;
             $virtualCoa->saldo_awal = 0;
             return collect([$virtualCoa]);
         }

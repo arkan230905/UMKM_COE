@@ -214,13 +214,13 @@ class DashboardController extends Controller
         $penjualanMasuk = \DB::table('penjualans')
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->where(function($query) use ($akun) {
-                // Jika akun adalah Kas (mengandung kata 'kas')
-                if (stripos($akun->nama_akun, 'kas') !== false) {
-                    $query->where('payment_method', 'cash');
-                }
-                // Jika akun adalah Bank (mengandung kata 'bank')
-                elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                // Jika akun adalah Bank (mengandung kata 'bank') - check this first
+                if (stripos($akun->nama_akun, 'bank') !== false) {
                     $query->where('payment_method', 'transfer');
+                }
+                // Jika akun adalah Kas (mengandung kata 'kas' tapi bukan 'bank')
+                elseif (stripos($akun->nama_akun, 'kas') !== false) {
+                    $query->where('payment_method', 'cash');
                 }
             })
             ->sum('total');
@@ -232,13 +232,13 @@ class DashboardController extends Controller
             $pelunasanUtangMasuk = \DB::table('pelunasan_utangs')
                 ->whereBetween('tanggal', [$startDate, $endDate])
                 ->where(function($query) use ($akun) {
-                    // Jika akun adalah Kas (mengandung kata 'kas')
-                    if (stripos($akun->nama_akun, 'kas') !== false) {
-                        $query->where('payment_method', 'cash');
-                    }
-                    // Jika akun adalah Bank (mengandung kata 'bank')
-                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                    // Jika akun adalah Bank (mengandung kata 'bank') - check this first
+                    if (stripos($akun->nama_akun, 'bank') !== false) {
                         $query->where('payment_method', 'transfer');
+                    }
+                    // Jika akun adalah Kas (mengandung kata 'kas' tapi bukan 'bank')
+                    elseif (stripos($akun->nama_akun, 'kas') !== false) {
+                        $query->where('payment_method', 'cash');
                     }
                 })
                 ->sum('dibayar_bersih');
@@ -254,13 +254,13 @@ class DashboardController extends Controller
                 ->whereBetween('tanggal', [$startDate, $endDate])
                 ->where(function($query) use ($akun) {
                     $query->where(function($subQuery) use ($akun) {
-                        // Jika akun adalah Kas (mengandung kata 'kas')
-                        if (stripos($akun->nama_akun, 'kas') !== false) {
-                            $subQuery->where('payment_method', 'cash');
-                        }
-                        // Jika akun adalah Bank (mengandung kata 'bank')
-                        elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                        // Jika akun adalah Bank (mengandung kata 'bank') - check this first
+                        if (stripos($akun->nama_akun, 'bank') !== false) {
                             $subQuery->where('payment_method', 'transfer');
+                        }
+                        // Jika akun adalah Kas (mengandung kata 'kas' tapi bukan 'bank')
+                        elseif (stripos($akun->nama_akun, 'kas') !== false) {
+                            $subQuery->where('payment_method', 'cash');
                         }
                     });
                 })
@@ -285,16 +285,16 @@ class DashboardController extends Controller
         $pembelianKeluar = \DB::table('pembelians')
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->where(function($query) use ($akun) {
-                // Jika akun adalah Kas (mengandung kata 'kas')
-                if (stripos($akun->nama_akun, 'kas') !== false) {
-                    $query->where('payment_method', 'cash');
-                }
-                // Jika akun adalah Bank (mengandung kata 'bank')
-                elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                // Jika akun adalah Bank (mengandung kata 'bank') - check this first
+                if (stripos($akun->nama_akun, 'bank') !== false) {
                     $query->where('payment_method', 'transfer');
                 }
+                // Jika akun adalah Kas (mengandung kata 'kas' tapi bukan 'bank')
+                elseif (stripos($akun->nama_akun, 'kas') !== false) {
+                    $query->where('payment_method', 'cash');
+                }
             })
-            ->sum('total');
+            ->sum('total_harga');
             
         $totalKeluar += (float) ($pembelianKeluar ?? 0);
         
@@ -303,13 +303,13 @@ class DashboardController extends Controller
             $penggajianKeluar = \DB::table('penggajians')
                 ->whereBetween('tanggal', [$startDate, $endDate])
                 ->where(function($query) use ($akun) {
-                    // Jika akun adalah Kas (mengandung kata 'kas')
-                    if (stripos($akun->nama_akun, 'kas') !== false) {
-                        $query->where('payment_method', 'cash');
-                    }
-                    // Jika akun adalah Bank (mengandung kata 'bank')
-                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                    // Jika akun adalah Bank (mengandung kata 'bank') - check this first
+                    if (stripos($akun->nama_akun, 'bank') !== false) {
                         $query->where('payment_method', 'transfer');
+                    }
+                    // Jika akun adalah Kas (mengandung kata 'kas' tapi bukan 'bank')
+                    elseif (stripos($akun->nama_akun, 'kas') !== false) {
+                        $query->where('payment_method', 'cash');
                     }
                 })
                 ->sum('total_gaji');
@@ -325,13 +325,13 @@ class DashboardController extends Controller
                 ->whereBetween('tanggal', [$startDate, $endDate])
                 ->where(function($query) use ($akun) {
                     $query->where(function($subQuery) use ($akun) {
-                        // Jika akun adalah Kas (mengandung kata 'kas')
-                        if (stripos($akun->nama_akun, 'kas') !== false) {
-                            $subQuery->where('payment_method', 'cash');
-                        }
-                        // Jika akun adalah Bank (mengandung kata 'bank')
-                        elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                        // Jika akun adalah Bank (mengandung kata 'bank') - check this first
+                        if (stripos($akun->nama_akun, 'bank') !== false) {
                             $subQuery->where('payment_method', 'transfer');
+                        }
+                        // Jika akun adalah Kas (mengandung kata 'kas' tapi bukan 'bank')
+                        elseif (stripos($akun->nama_akun, 'kas') !== false) {
+                            $subQuery->where('payment_method', 'cash');
                         }
                     });
                 })

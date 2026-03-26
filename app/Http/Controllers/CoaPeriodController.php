@@ -28,7 +28,7 @@ class CoaPeriodController extends Controller
             }
 
             // Get semua akun COA
-            $coas = Coa::where('is_akun_header', false)->get();
+            $coas = Coa::get();
             
             foreach ($coas as $coa) {
                 // Hitung saldo akhir berdasarkan jurnal

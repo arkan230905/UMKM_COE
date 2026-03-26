@@ -80,7 +80,7 @@ class CreateCoaPeriod extends Command
     
     private function initializeBalances($period)
     {
-        $coas = Coa::where('is_akun_header', false)->get();
+        $coas = Coa::get();
         
         // Cek periode sebelumnya
         $previousPeriod = $period->getPreviousPeriod();

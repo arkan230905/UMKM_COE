@@ -36,7 +36,7 @@ class CoaPeriodSeeder extends Seeder
         
         // Inisialisasi saldo awal untuk semua periode dari saldo_awal COA
         $allPeriods = CoaPeriod::orderBy('periode', 'asc')->get();
-        $coas = Coa::where('is_akun_header', false)->get();
+        $coas = Coa::get();
         
         foreach ($allPeriods as $period) {
             foreach ($coas as $coa) {
