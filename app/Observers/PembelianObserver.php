@@ -188,8 +188,9 @@ class PembelianObserver
                     ];
                 }
             } else {
-                // Credit Kas/Bank sesuai bank_id yang dipilih
+                // Credit Kas/Bank sesuai payment method
                 if ($pembelian->bank_id) {
+                    // Jika bank_id ada, gunakan bank yang dipilih
                     $bankCoa = \App\Models\Coa::find($pembelian->bank_id);
                     if ($bankCoa) {
                         $entries[] = [
@@ -200,22 +201,42 @@ class PembelianObserver
                         ];
                     }
                 } else {
-                    // Fallback ke kas jika bank_id tidak ada
-                    $coaKas = \App\Models\Coa::where('tipe_akun', 'Asset')
-                        ->where(function($query) {
-                            $query->where('nama_akun', 'like', '%kas%')
-                                  ->where('nama_akun', 'not like', '%bank%')
-                                  ->orWhere('kode_akun', '1101');
-                        })
-                        ->first();
-                        
-                    if ($coaKas) {
-                        $entries[] = [
-                            'code' => $coaKas->kode_akun, 
-                            'debit' => 0, 
-                            'credit' => $total,
-                            'memo' => 'Pembayaran tunai pembelian'
-                        ];
+                    // Jika bank_id tidak ada, tentukan berdasarkan payment_method
+                    if ($pembelian->payment_method === 'transfer') {
+                        // Transfer -> gunakan akun Bank
+                        $coaBank = \App\Models\Coa::where('tipe_akun', 'Asset')
+                            ->where(function($query) {
+                                $query->where('nama_akun', 'like', '%bank%')
+                                      ->orWhere('kode_akun', '1102');
+                            })
+                            ->first();
+                            
+                        if ($coaBank) {
+                            $entries[] = [
+                                'code' => $coaBank->kode_akun, 
+                                'debit' => 0, 
+                                'credit' => $total,
+                                'memo' => 'Pembayaran transfer pembelian'
+                            ];
+                        }
+                    } else {
+                        // Cash -> gunakan akun Kas
+                        $coaKas = \App\Models\Coa::where('tipe_akun', 'Asset')
+                            ->where(function($query) {
+                                $query->where('nama_akun', 'like', '%kas%')
+                                      ->where('nama_akun', 'not like', '%bank%')
+                                      ->orWhere('kode_akun', '1101');
+                            })
+                            ->first();
+                            
+                        if ($coaKas) {
+                            $entries[] = [
+                                'code' => $coaKas->kode_akun, 
+                                'debit' => 0, 
+                                'credit' => $total,
+                                'memo' => 'Pembayaran tunai pembelian'
+                            ];
+                        }
                     }
                 }
             }
