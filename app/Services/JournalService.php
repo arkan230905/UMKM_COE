@@ -337,7 +337,7 @@ class JournalService
         $amount = $expensePayment->jumlah ?? 0;
         
         // Create debit entry for expense
-        $expenseAccount = $expensePayment->coa_beban ?? '501'; // Default to Beban Operasional
+        $expenseAccount = $expensePayment->coa_beban_id; // Ambil dari database
         
         $lines[] = [
             'code' => $expenseAccount,
@@ -347,7 +347,7 @@ class JournalService
         ];
         
         // Create credit entry based on payment method
-        $creditAccount = ($expensePayment->coa_kasbank == '102') ? '102' : '101'; // Bank or Kas
+        $creditAccount = $expensePayment->coa_kasbank; // Ambil dari database
         
         $lines[] = [
             'code' => $creditAccount,
