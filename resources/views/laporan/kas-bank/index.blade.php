@@ -282,10 +282,16 @@ function showDetailMasuk(coaId, namaAkun) {
     
     const url = `/laporan/kas-bank/${coaId}/detail-masuk?start_date=${startDate}&end_date=${endDate}`;
     console.log('Fetching URL:', url);
+    console.log('COA ID:', coaId);
+    console.log('Date range:', startDate, 'to', endDate);
+    
+    // Show loading state
+    document.getElementById('tableDetailMasuk').innerHTML = '<tr><td colspan="5" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
     
     fetch(url)
         .then(response => {
             console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -293,23 +299,25 @@ function showDetailMasuk(coaId, namaAkun) {
         })
         .then(data => {
             console.log('Data received:', data);
-            console.log('Data length:', data.length);
+            console.log('Data type:', typeof data);
+            console.log('Data length:', Array.isArray(data) ? data.length : 'Not an array');
             
             let html = '';
             let total = 0;
             
-            if (!data || data.length === 0) {
+            if (!data || !Array.isArray(data) || data.length === 0) {
                 html = '<tr><td colspan="5" class="text-center">Tidak ada transaksi masuk</td></tr>';
             } else {
-                data.forEach(item => {
-                    total += parseFloat(item.nominal);
+                data.forEach((item, index) => {
+                    console.log(`Item ${index}:`, item);
+                    total += parseFloat(item.nominal || 0);
                     html += `
                         <tr>
-                            <td>${item.tanggal}</td>
-                            <td>${item.nomor_transaksi}</td>
-                            <td>${item.jenis}</td>
-                            <td>${item.keterangan}</td>
-                            <td class="text-end">Rp ${parseInt(item.nominal).toLocaleString('id-ID')}</td>
+                            <td>${item.tanggal || '-'}</td>
+                            <td>${item.nomor_transaksi || '-'}</td>
+                            <td>${item.jenis || '-'}</td>
+                            <td>${item.keterangan || '-'}</td>
+                            <td class="text-end">Rp ${parseInt(item.nominal || 0).toLocaleString('id-ID')}</td>
                         </tr>
                     `;
                 });
@@ -326,6 +334,7 @@ function showDetailMasuk(coaId, namaAkun) {
         })
         .catch(error => {
             console.error('Error:', error);
+            console.error('Error stack:', error.stack);
             document.getElementById('tableDetailMasuk').innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error: ' + error.message + '</td></tr>';
             new bootstrap.Modal(document.getElementById('modalDetailMasuk')).show();
         });
@@ -340,10 +349,16 @@ function showDetailKeluar(coaId, namaAkun) {
     
     const url = `/laporan/kas-bank/${coaId}/detail-keluar?start_date=${startDate}&end_date=${endDate}`;
     console.log('Fetching URL:', url);
+    console.log('COA ID:', coaId);
+    console.log('Date range:', startDate, 'to', endDate);
+    
+    // Show loading state
+    document.getElementById('tableDetailKeluar').innerHTML = '<tr><td colspan="5" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
     
     fetch(url)
         .then(response => {
             console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
@@ -351,23 +366,25 @@ function showDetailKeluar(coaId, namaAkun) {
         })
         .then(data => {
             console.log('Data received:', data);
-            console.log('Data length:', data.length);
+            console.log('Data type:', typeof data);
+            console.log('Data length:', Array.isArray(data) ? data.length : 'Not an array');
             
             let html = '';
             let total = 0;
             
-            if (!data || data.length === 0) {
+            if (!data || !Array.isArray(data) || data.length === 0) {
                 html = '<tr><td colspan="5" class="text-center">Tidak ada transaksi keluar</td></tr>';
             } else {
-                data.forEach(item => {
-                    total += parseFloat(item.nominal);
+                data.forEach((item, index) => {
+                    console.log(`Item ${index}:`, item);
+                    total += parseFloat(item.nominal || 0);
                     html += `
                         <tr>
-                            <td>${item.tanggal}</td>
-                            <td>${item.nomor_transaksi}</td>
-                            <td>${item.jenis}</td>
-                            <td>${item.keterangan}</td>
-                            <td class="text-end">Rp ${parseInt(item.nominal).toLocaleString('id-ID')}</td>
+                            <td>${item.tanggal || '-'}</td>
+                            <td>${item.nomor_transaksi || '-'}</td>
+                            <td>${item.jenis || '-'}</td>
+                            <td>${item.keterangan || '-'}</td>
+                            <td class="text-end">Rp ${parseInt(item.nominal || 0).toLocaleString('id-ID')}</td>
                         </tr>
                     `;
                 });
@@ -384,6 +401,7 @@ function showDetailKeluar(coaId, namaAkun) {
         })
         .catch(error => {
             console.error('Error:', error);
+            console.error('Error stack:', error.stack);
             document.getElementById('tableDetailKeluar').innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error: ' + error.message + '</td></tr>';
             new bootstrap.Modal(document.getElementById('modalDetailKeluar')).show();
         });
