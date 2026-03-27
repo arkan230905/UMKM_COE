@@ -13,6 +13,51 @@ use App\Helpers\AccountHelper;
 
 class ExpensePaymentController extends Controller
 {
+    /**
+     * Get saldo akhir akun kas/bank menggunakan data yang sama dengan halaman laporan kas-bank
+     */
+    public function getSaldoAkhir($akun, $tanggal = null)
+    {
+        // Langsung gunakan LaporanKasBankController untuk mendapatkan data yang sama
+        $laporanController = new \App\Http\Controllers\LaporanKasBankController();
+        
+        // Gunakan range tanggal yang sama dengan laporan kas-bank (bulan ini)
+        $startDate = now()->startOfMonth()->format('Y-m-d');
+        $endDate = now()->endOfMonth()->format('Y-m-d');
+        
+        // Gunakan AccountHelper untuk mendapatkan akun yang sama dengan laporan kas-bank
+        $akunKasBank = AccountHelper::getKasBankAccounts();
+        
+        // Cari akun yang sesuai dan hitung saldo menggunakan logika LaporanKasBankController
+        foreach ($akunKasBank as $kasBankAkun) {
+            if ($kasBankAkun->kode_akun === $akun->kode_akun) {
+                // Gunakan reflection untuk mengakses private methods dari LaporanKasBankController
+                $reflection = new \ReflectionClass($laporanController);
+                
+                $getSaldoAwalMethod = $reflection->getMethod('getSaldoAwal');
+                $getSaldoAwalMethod->setAccessible(true);
+                $saldoAwal = $getSaldoAwalMethod->invoke($laporanController, $kasBankAkun, $startDate);
+                
+                $getTransaksiMasukMethod = $reflection->getMethod('getTransaksiMasuk');
+                $getTransaksiMasukMethod->setAccessible(true);
+                $transaksiMasuk = $getTransaksiMasukMethod->invoke($laporanController, $kasBankAkun, $startDate, $endDate);
+                
+                $getTransaksiKeluarMethod = $reflection->getMethod('getTransaksiKeluar');
+                $getTransaksiKeluarMethod->setAccessible(true);
+                $transaksiKeluar = $getTransaksiKeluarMethod->invoke($laporanController, $kasBankAkun, $startDate, $endDate);
+                
+                // Saldo Akhir = Saldo Awal + Debit (Masuk) - Kredit (Keluar)
+                $saldoAkhir = $saldoAwal + $transaksiMasuk - $transaksiKeluar;
+                
+                return $saldoAkhir;
+            }
+        }
+        
+        return 0;
+    }
+
+
+
     public function index(Request $request)
     {
         $query = ExpensePayment::with([
@@ -93,8 +138,9 @@ class ExpensePaymentController extends Controller
         
         // Get COA Beban for dropdown
         $coaBebans = Coa::where('tipe_akun', 'Expense')
-            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
+            ->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC')
+            ->orderBy('kode_akun', 'ASC')
             ->get();
         
         // Get COA Kas/Bank for dropdown
@@ -109,7 +155,7 @@ class ExpensePaymentController extends Controller
         
         return view('transaksi.pembayaran-beban.create', compact(
             'bebanOperasional', 
-            'akunBeban',
+            'coaBebans',
             'akunKas'
         ));
     }
@@ -158,14 +204,16 @@ class ExpensePaymentController extends Controller
             }
             
             // Validasi saldo kas
-            if ($akunKas->saldo < $request->jumlah) {
+            $saldoAkhir = $this->getSaldoAkhir($akunKas, $request->tanggal);
+            
+            if ($saldoAkhir < $request->jumlah) {
                 return back()
-                    ->with('error', 'Saldo kas tidak mencukupi. Saldo tersedia: ' . format_rupiah($akunKas->saldo))
+                    ->with('error', 'Saldo kas tidak mencukupi. Saldo tersedia: ' . format_rupiah($saldoAkhir))
                     ->withInput();
             }
             
             // Generate kode transaksi
-            $lastPembayaran = \App\Models\ExpensePayment::withTrashed()->latest('id')->first();
+            $lastPembayaran = \App\Models\ExpensePayment::latest('id')->first();
             $count = $lastPembayaran ? ($lastPembayaran->id + 1) : 1;
             $kodeTransaksi = 'PB-' . date('Ymd') . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
             
@@ -288,19 +336,11 @@ class ExpensePaymentController extends Controller
         $selisih = (float)$request->nominal_pembayaran - (float)$oldNominal;
         
         if ($selisih > 0) {
-            $saldoAwal = (float) ($coaKas->saldo_awal ?? 0);
-            $acc = \App\Models\Account::where('code', $coaKas->kode_akun)->first();
+            $saldoAkhir = $this->getSaldoAkhir($coaKas, $request->tanggal);
             
-            $journalBalance = 0.0;
-            if ($acc) {
-                $journalBalance = (float) (\App\Models\JournalLine::where('account_id', $acc->id)
-                    ->selectRaw('COALESCE(SUM(debit - credit),0) as bal')->value('bal') ?? 0);
-            }
-            
-            $cashBalance = $saldoAwal + $journalBalance;
-            if ($cashBalance + 1e-6 < $selisih) {
+            if ($saldoAkhir + 1e-6 < $selisih) {
                 return back()->withErrors([
-                    'kas' => 'Nominal kas tidak cukup untuk melakukan transaksi. Saldo kas saat ini: Rp '.number_format($cashBalance,0,',','.').' ; Selisih nominal: Rp '.number_format($selisih,0,',','.'),
+                    'kas' => 'Nominal kas tidak cukup untuk melakukan transaksi. Saldo kas saat ini: Rp '.number_format($saldoAkhir,0,',','.').' ; Selisih nominal: Rp '.number_format($selisih,0,',','.'),
                 ])->withInput();
             }
         }
@@ -355,6 +395,20 @@ class ExpensePaymentController extends Controller
         }
 
         return redirect()->route('transaksi.pembayaran-beban.index')->with('success','Pembayaran beban berhasil dihapus.');
+    }
+
+    /**
+     * Print/export pembayaran beban
+     */
+    public function print($id)
+    {
+        $pembayaran = ExpensePayment::with([
+            'bebanOperasional', 
+            'coaBeban', 
+            'coaKasBank'
+        ])->findOrFail($id);
+        
+        return view('transaksi.pembayaran-beban.print', compact('pembayaran'));
     }
 
     /**
