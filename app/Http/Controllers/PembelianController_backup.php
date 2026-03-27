@@ -356,7 +356,6 @@ class PembelianController extends Controller
         
         // Ambil data COA untuk kas dan bank (sama seperti create)
         $kasbank = Coa::where('tipe_akun', 'Asset')
-            ->where('is_akun_header', '!=', 1)
             ->where(function($query) {
                 $query->where('nama_akun', 'like', '%kas%')
                       ->orWhere(function($subQuery) {

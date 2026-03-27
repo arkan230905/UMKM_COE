@@ -126,7 +126,8 @@ class DashboardController extends Controller
     }
 
     /**
-     * Calculate total cash and bank balances - menggunakan logic yang sama dengan LaporanKasBankController
+     * Get total kas dan bank menggunakan logic yang sama dengan LaporanKasBankController
+     * untuk konsistensi data realtime
      */
     private function getTotalKasBank()
     {
@@ -136,74 +137,35 @@ class DashboardController extends Controller
                 return 0; 
             }
 
-            // 1. Ambil akun Kas dan Bank langsung dari tabel COA berdasarkan kategori/tipe akun
-            $akunKasBank = Coa::where('tipe_akun', 'Asset')
-                ->where('is_akun_header', '!=', 1)
-                ->where(function($query) {
-                    // Cari berdasarkan nama akun yang mengandung 'kas' atau 'bank'
-                    $query->where('nama_akun', 'like', '%kas%')
-                          ->orWhere('nama_akun', 'like', '%bank%');
-                })
-                ->get();
-            
-            \Log::info('Dashboard: Akun Kas & Bank ditemukan (berdasarkan nama): ' . $akunKasBank->count());
-            
-            // Log akun yang ditemukan
-            foreach ($akunKasBank as $akun) {
-                \Log::info("Dashboard: Akun ditemukan - {$akun->kode_akun}: {$akun->nama_akun}, Saldo Awal: {$akun->saldo_awal}");
-            }
-            
-            // Fallback: jika tidak ada yang ditemukan berdasarkan nama, coba berdasarkan kode umum
-            if ($akunKasBank->isEmpty()) {
-                $akunKasBank = Coa::where('tipe_akun', 'Asset')
-                    ->where('is_akun_header', '!=', 1)
-                    ->whereIn('kode_akun', ['101', '102', '111', '112', '1101', '1102', '1110', '1120'])
-                    ->get();
-                    
-                \Log::info('Dashboard: Fallback berdasarkan kode, ditemukan: ' . $akunKasBank->count());
-            }
+            // Gunakan helper yang sama dengan LaporanKasBankController
+            $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts();
             
             if ($akunKasBank->isEmpty()) { 
                 \Log::info('Dashboard: Tidak ada akun Kas & Bank, return 0');
                 return 0; 
             }
 
-            // 2. Hitung total saldo awal dari COA
-            $totalSaldoAwalKasBank = $akunKasBank->sum('saldo_awal');
-            \Log::info('Dashboard: Total saldo awal Kas & Bank: ' . $totalSaldoAwalKasBank);
+            // Gunakan periode bulan ini (sama dengan default laporan kas-bank)
+            $startDate = now()->startOfMonth()->format('Y-m-d');
+            $endDate = now()->endOfMonth()->format('Y-m-d');
             
-            // 3. Ambil semua kode akun kas dan bank untuk menghitung transaksi jurnal
-            $kodeAkunKasBank = $akunKasBank->pluck('kode_akun')->toArray();
-            \Log::info('Dashboard: Kode akun Kas & Bank: ' . implode(', ', $kodeAkunKasBank));
+            $totalKasBank = 0;
             
-            // 4. Hitung transaksi kas dari jurnal
-            $totalDebitKas = 0;
-            $totalKreditKas = 0;
-            
-            try {
-                if (\Schema::hasTable('jurnal_lines')) {
-                    $totalDebitKas = \DB::table('jurnal_lines')
-                        ->whereIn('account_code', $kodeAkunKasBank)
-                        ->sum('debit');
-                        
-                    $totalKreditKas = \DB::table('jurnal_lines')
-                        ->whereIn('account_code', $kodeAkunKasBank)
-                        ->sum('kredit');
-                        
-                    \Log::info("Dashboard: Total Debit Kas: {$totalDebitKas}, Total Kredit Kas: {$totalKreditKas}");
-                } else {
-                    \Log::info('Dashboard: Table jurnal_lines tidak ada');
-                }
-            } catch (\Exception $e) {
-                \Log::error('Error menghitung jurnal: ' . $e->getMessage());
+            foreach ($akunKasBank as $akun) {
+                $saldoAwal = $this->getSaldoAwal($akun, $startDate);
+                $transaksiMasuk = $this->getTransaksiMasuk($akun, $startDate, $endDate);
+                $transaksiKeluar = $this->getTransaksiKeluar($akun, $startDate, $endDate);
+                
+                // Untuk akun Kas & Bank (Aset), saldo normal adalah Debit
+                // Saldo Akhir = Saldo Awal + Debit (Masuk) - Kredit (Keluar)
+                $saldoAkhir = $saldoAwal + $transaksiMasuk - $transaksiKeluar;
+                
+                $totalKasBank += $saldoAkhir;
+                
+                \Log::info("Dashboard: {$akun->kode_akun} - Saldo Awal: {$saldoAwal}, Masuk: {$transaksiMasuk}, Keluar: {$transaksiKeluar}, Akhir: {$saldoAkhir}");
             }
             
-            $totalTransaksiKas = $totalDebitKas - $totalKreditKas;
-            \Log::info('Dashboard: Total transaksi kas (Debit - Kredit): ' . $totalTransaksiKas);
-            
-            // 5. Total Kas & Bank = Saldo Awal + Transaksi
-            $totalKasBank = $totalSaldoAwalKasBank + $totalTransaksiKas;
-            \Log::info("Dashboard: Total Kas & Bank = {$totalSaldoAwalKasBank} + {$totalTransaksiKas} = {$totalKasBank}");
+            \Log::info("Dashboard: Total Kas & Bank (realtime): {$totalKasBank}");
             
             return $totalKasBank;
         } catch (\Exception $e) {
@@ -578,7 +540,6 @@ class DashboardController extends Controller
 
             // Ambil akun Kas dan Bank langsung dari tabel COA berdasarkan kategori/tipe akun - sama dengan getTotalKasBank
             $akunKasBank = Coa::where('tipe_akun', 'Asset')
-                ->where('is_akun_header', '!=', 1)
                 ->where(function($query) {
                     // Cari berdasarkan nama akun yang mengandung 'kas' atau 'bank'
                     $query->where('nama_akun', 'like', '%kas%')
@@ -589,7 +550,6 @@ class DashboardController extends Controller
             // Fallback: jika tidak ada yang ditemukan berdasarkan nama, coba berdasarkan kode umum
             if ($akunKasBank->isEmpty()) {
                 $akunKasBank = Coa::where('tipe_akun', 'Asset')
-                    ->where('is_akun_header', '!=', 1)
                     ->whereIn('kode_akun', ['101', '102', '111', '112', '1101', '1102', '1110', '1120'])
                     ->get();
             }

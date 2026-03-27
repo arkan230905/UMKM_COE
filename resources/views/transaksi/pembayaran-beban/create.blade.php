@@ -72,7 +72,7 @@
       <label class="form-label">Akun Beban <span class="text-danger">*</span></label>
       <select name="kode_akun_beban" class="form-select" required>
         <option value="">Pilih Akun Beban</option>
-        @foreach($akunBeban as $akun)
+        @foreach($coaBebans as $akun)
           <option value="{{ $akun->kode_akun }}" 
                   {{ old('kode_akun_beban') == $akun->kode_akun ? 'selected' : '' }}>
             {{ $akun->kode_akun }} - {{ $akun->nama_akun }}
@@ -80,7 +80,7 @@
         @endforeach
       </select>
       <small class="form-text text-muted">Akun beban diambil dari tabel COA (kategori Expense)</small>
-      @if($akunBeban->isEmpty())
+      @if($coaBebans->isEmpty())
         <div class="text-warning small mt-1">
           <strong>Info:</strong> Tidak ada akun beban dengan kategori Expense di tabel COA.
         </div>

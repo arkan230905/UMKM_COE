@@ -1,183 +1,174 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Bukti Pembayaran Beban - {{ $pembayaran->kode_transaksi }}</title>
+    <title>Print Pembayaran Beban - {{ $pembayaran->id }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             font-size: 12px;
+            margin: 20px;
             color: #333;
         }
         .header {
             text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #000;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
             padding-bottom: 10px;
         }
-        .header h1 {
-            margin: 0;
+        .company-name {
             font-size: 18px;
             font-weight: bold;
+            margin-bottom: 5px;
         }
-        .header p {
-            margin: 5px 0 0;
+        .document-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
         }
-        .info-box {
+        .info-section {
             margin-bottom: 20px;
         }
-        .info-box table {
-            width: 100%;
+        .info-row {
+            display: flex;
+            margin-bottom: 8px;
         }
-        .info-box th, .info-box td {
-            padding: 5px;
-            vertical-align: top;
+        .info-label {
+            width: 150px;
+            font-weight: bold;
         }
-        .info-box th {
-            text-align: left;
-            width: 30%;
+        .info-value {
+            flex: 1;
         }
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        .table th, .table td {
+        .amount-section {
+            background-color: #f8f9fa;
+            padding: 15px;
             border: 1px solid #ddd;
-            padding: 8px;
-        }
-        .table th {
-            background-color: #f5f5f5;
-            text-align: left;
-        }
-        .text-right {
-            text-align: right;
-        }
-        .text-center {
+            margin: 20px 0;
             text-align: center;
         }
-        .mt-4 {
-            margin-top: 1.5rem;
+        .amount-label {
+            font-size: 14px;
+            margin-bottom: 5px;
         }
-        .signature {
-            margin-top: 50px;
+        .amount-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #28a745;
         }
-        .signature div {
-            float: left;
-            width: 50%;
+        .footer {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .signature-box {
             text-align: center;
+            width: 200px;
         }
-        .clearfix::after {
-            content: "";
-            clear: both;
-            display: table;
-        }
-        @page {
-            margin: 1cm;
+        .signature-line {
+            border-top: 1px solid #333;
+            margin-top: 60px;
+            padding-top: 5px;
         }
         @media print {
             body {
-                font-size: 10pt;
+                margin: 0;
             }
             .no-print {
                 display: none;
             }
-            .page-break {
-                page-break-before: always;
-            }
+        }
+        .print-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .print-button:hover {
+            background: #0056b3;
         }
     </style>
 </head>
 <body>
+    <button class="print-button no-print" onclick="window.print()">🖨️ Print</button>
+    
     <div class="header">
-        <h1>BUKTI PEMBAYARAN BEBAN</h1>
-        <p>No. {{ $pembayaran->kode_transaksi }}</p>
+        <div class="company-name">{{ config('app.name', 'UMKM System') }}</div>
+        <div class="document-title">BUKTI PEMBAYARAN BEBAN</div>
     </div>
 
-    <div class="info-box">
-        <table>
-            <tr>
-                <th>Tanggal</th>
-                <td>:</td>
-                <td>{{ $pembayaran->tanggal->format('d/m/Y') }}</td>
-            </tr>
-            <tr>
-                <th>Akun Beban</th>
-                <td>:</td>
-                <td>{{ $pembayaran->coaBeban->kode }} - {{ $pembayaran->coaBeban->nama }}</td>
-            </tr>
-            <tr>
-                <th>Akun Kas</th>
-                <td>:</td>
-                <td>{{ $pembayaran->coaKas->kode }} - {{ $pembayaran->coaKas->nama }}</td>
-            </tr>
-            <tr>
-                <th>Keterangan</th>
-                <td>:</td>
-                <td>{{ $pembayaran->keterangan }}</td>
-            </tr>
-        </table>
-    </div>
-
-    <table class="table">
-        <thead>
-            <tr>
-                <th>No</th>
-                <th>Keterangan</th>
-                <th class="text-right">Jumlah</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="text-center">1</td>
-                <td>Pembayaran Beban {{ $pembayaran->keterangan }}</td>
-                <td class="text-right">{{ format_rupiah($pembayaran->jumlah) }}</td>
-            </tr>
-            <tr>
-                <td colspan="2" class="text-right"><strong>TOTAL</strong></td>
-                <td class="text-right"><strong>{{ format_rupiah($pembayaran->jumlah) }}</strong></td>
-            </tr>
-        </tbody>
-    </table>
-
-    <div class="info-box">
-        <p><strong>Catatan:</strong> {{ $pembayaran->catatan ?? '-' }}</p>
-    </div>
-
-    <div class="signature clearfix">
-        <div>
-            <p>Dibuat oleh,</p>
-            <br><br><br>
-            <p><u>{{ $pembayaran->user->name ?? '-' }}</u></p>
-            <p>{{ $pembayaran->created_at->format('d/m/Y H:i') }}</p>
+    <div class="info-section">
+        <div class="info-row">
+            <div class="info-label">No. Transaksi:</div>
+            <div class="info-value">PB-{{ str_pad($pembayaran->id, 6, '0', STR_PAD_LEFT) }}</div>
         </div>
-        <div>
-            <p>Mengetahui,</p>
-            <br><br><br>
-            <p><u>_________________________</u></p>
-            <p>(_________________________)</p>
+        <div class="info-row">
+            <div class="info-label">Tanggal:</div>
+            <div class="info-value">{{ $pembayaran->tanggal->format('d/m/Y') }}</div>
         </div>
+        <div class="info-row">
+            <div class="info-label">Beban Operasional:</div>
+            <div class="info-value">{{ $pembayaran->bebanOperasional->nama_beban ?? '-' }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Kategori:</div>
+            <div class="info-value">{{ $pembayaran->bebanOperasional->kategori ?? '-' }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Akun Beban:</div>
+            <div class="info-value">{{ $pembayaran->coaBeban->kode_akun ?? '-' }} - {{ $pembayaran->coaBeban->nama_akun ?? '-' }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Metode Bayar:</div>
+            <div class="info-value">{{ ucfirst($pembayaran->metode_bayar) }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Akun Kas/Bank:</div>
+            <div class="info-value">{{ $pembayaran->coaKasBank->kode_akun ?? '-' }} - {{ $pembayaran->coaKasBank->nama_akun ?? '-' }}</div>
+        </div>
+        @if($pembayaran->keterangan)
+        <div class="info-row">
+            <div class="info-label">Keterangan:</div>
+            <div class="info-value">{{ $pembayaran->keterangan }}</div>
+        </div>
+        @endif
     </div>
 
-    <div class="no-print mt-4" style="text-align: center;">
-        <button onclick="window.print()" class="btn btn-primary">Cetak</button>
-        <button onclick="window.close()" class="btn btn-secondary">Tutup</button>
+    <div class="amount-section">
+        <div class="amount-label">Nominal Pembayaran</div>
+        <div class="amount-value">Rp {{ number_format($pembayaran->nominal_pembayaran, 0, ',', '.') }}</div>
+    </div>
+
+    <div class="footer">
+        <div class="signature-box">
+            <div>Dibuat Oleh</div>
+            <div class="signature-line">
+                {{ auth()->user()->name ?? 'Admin' }}
+            </div>
+        </div>
+        <div class="signature-box">
+            <div>Disetujui Oleh</div>
+            <div class="signature-line">
+                (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)
+            </div>
+        </div>
+        <div class="signature-box">
+            <div>Penerima</div>
+            <div class="signature-line">
+                (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)
+            </div>
+        </div>
     </div>
 
     <script>
-        window.onload = function() {
-            // Auto print when the page loads
-            setTimeout(function() {
-                window.print();
-            }, 500);
-            
-            // Close the window after print
-            window.onafterprint = function() {
-                // window.close();
-            };
-        };
+        // Auto print when page loads (optional)
+        // window.onload = function() { window.print(); }
     </script>
 </body>
 </html>
