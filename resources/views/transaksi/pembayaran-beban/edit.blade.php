@@ -32,6 +32,8 @@
           <option value="{{ $bo->id }}" 
                   data-kategori="{{ $bo->kategori }}"
                   data-budget="{{ $bo->budget_bulanan_formatted }}"
+                  data-coa-kode="{{ $bo->coa ? $bo->coa->kode_akun : '' }}"
+                  data-coa-nama="{{ $bo->coa ? $bo->coa->nama_akun : '' }}"
                   {{ $row->beban_operasional_id == $bo->id ? 'selected' : '' }}>
             {{ $bo->nama_beban }}
           </option>
@@ -54,15 +56,8 @@
     
     <div class="mb-3">
       <label class="form-label">Akun Beban <span class="text-danger">*</span></label>
-      <select name="coa_beban_id" class="form-select" required>
-        <option value="">Pilih Akun Beban</option>
-        @foreach($coaBebans as $c)
-          <option value="{{ $c->kode_akun }}" {{ $row->coa_beban_id == $c->kode_akun ? 'selected' : '' }}>
-            {{ $c->kode_akun }} - {{ $c->nama_akun }}
-          </option>
-        @endforeach
-      </select>
-      <small class="form-text text-muted">Akun ini akan digunakan untuk jurnal pembayaran beban</small>
+      <input type="text" id="akunBebanDisplay" class="form-control" readonly placeholder="Akan muncul otomatis saat memilih Beban Operasional">
+      <small class="form-text text-muted">Akun beban diambil otomatis dari Beban Operasional yang dipilih</small>
     </div>
     
     <div class="row g-3">
@@ -107,12 +102,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const bebanOperasionalSelect = document.getElementById('bebanOperasionalSelect');
     const kategoriDisplay = document.getElementById('kategoriDisplay');
     const budgetDisplay = document.getElementById('budgetDisplay');
+    const akunBebanDisplay = document.getElementById('akunBebanDisplay');
     
     // Initialize with current selection
     const selectedOption = bebanOperasionalSelect.options[bebanOperasionalSelect.selectedIndex];
     if (bebanOperasionalSelect.value) {
         kategoriDisplay.value = selectedOption.dataset.kategori || '';
         budgetDisplay.value = selectedOption.dataset.budget || '';
+        
+        // Tampilkan akun COA jika ada
+        const coaKode = selectedOption.dataset.coa_kode || '';
+        const coaNama = selectedOption.dataset.coa_nama || '';
+        
+        if (coaKode && coaNama) {
+            akunBebanDisplay.value = coaKode + ' - ' + coaNama;
+        } else {
+            akunBebanDisplay.value = 'Akun COA belum diatur untuk Beban Operasional ini';
+        }
     }
     
     bebanOperasionalSelect.addEventListener('change', function() {
@@ -121,9 +127,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (this.value) {
             kategoriDisplay.value = selectedOption.dataset.kategori || '';
             budgetDisplay.value = selectedOption.dataset.budget || '';
+            
+            // Tampilkan akun COA jika ada
+            const coaKode = selectedOption.dataset.coa_kode || '';
+            const coaNama = selectedOption.dataset.coa_nama || '';
+            
+            if (coaKode && coaNama) {
+                akunBebanDisplay.value = coaKode + ' - ' + coaNama;
+            } else {
+                akunBebanDisplay.value = 'Akun COA belum diatur untuk Beban Operasional ini';
+            }
         } else {
             kategoriDisplay.value = '';
             budgetDisplay.value = '';
+            akunBebanDisplay.value = '';
         }
     });
 });

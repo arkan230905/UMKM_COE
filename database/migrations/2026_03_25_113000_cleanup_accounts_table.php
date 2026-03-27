@@ -14,6 +14,12 @@ return new class extends Migration
     {
         // Only drop if table exists and we're in production environment
         if (Schema::hasTable('accounts') && app()->environment() !== 'testing') {
+            echo "Dropping foreign key from journal_lines...\n";
+            Schema::table('journal_lines', function (Blueprint $table) {
+                $table->dropForeign(['account_id']);
+                $table->dropColumn('account_id');
+            });
+            
             echo "Dropping accounts table...\n";
             Schema::dropIfExists('accounts');
             echo "Accounts table dropped successfully.\n";

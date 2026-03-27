@@ -25,18 +25,10 @@ class PembayaranBebanController extends Controller
     public function create()
     {
         try {
-            // Cari akun beban yang sudah ada budget di BOP Lainnya
-            $akunBeban = BopLainnya::where('budget', '>', 0)
-                ->where('is_active', 1)
-                ->with(['coa'])
-                ->get()
-                ->map(function($bop) {
-                    return $bop->coa;
-                })
-                ->filter(function($coa) {
-                    return $coa; // Hanya filter yang COA-nya ada
-                })
-                ->unique('kode_akun'); // Hapus duplikat berdasarkan kode_akun
+            // Ambil akun beban langsung dari tabel COA (kode diawali angka 5)
+            $akunBeban = Coa::where('kode_akun', 'like', '5%')
+                ->orderBy('kode_akun')
+                ->get();
                 
             // Cari akun kas (kode 101-102 untuk kas dan bank)
             $akunKas = Coa::where(function ($q) {
@@ -46,12 +38,6 @@ class PembayaranBebanController extends Controller
             })
             ->orderBy('kode_akun')
             ->get();
-            
-            if ($akunBeban->isEmpty()) {
-                $error = 'Akun beban dengan budget belum diatur. ';
-                $error .= 'Tidak ada akun beban dengan budget yang aktif. ';
-                return back()->with('error', $error);
-            }
             
             if ($akunKas->isEmpty()) {
                 // Warning only, not blocking
