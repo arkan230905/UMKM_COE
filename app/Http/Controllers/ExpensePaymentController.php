@@ -91,8 +91,9 @@ class ExpensePaymentController extends Controller
             ->orderBy('nama_beban')
             ->get();
         
-        // Get akun beban langsung dari tabel COA (kategori beban)
-        $akunBeban = Coa::where('tipe_akun', 'Expense')
+        // Get COA Beban for dropdown
+        $coaBebans = Coa::where('tipe_akun', 'Expense')
+            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
             ->get();
         

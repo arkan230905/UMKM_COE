@@ -79,7 +79,7 @@ class AkuntansiController extends Controller
         $accountId = $request->get('account_id');
 
         // Ambil semua COA yang ada di sistem
-        $coas = \App\Models\Coa::where('is_akun_header', 0)->orderBy('kode_akun')->get();
+        $coas = \App\Models\Coa::orderBy('kode_akun')->get();
         $lines = collect();
         $saldoAwal = 0.0;
         $from = null;
@@ -161,8 +161,8 @@ class AkuntansiController extends Controller
         // Get semua periode untuk dropdown
         $periods = CoaPeriod::orderBy('periode', 'desc')->get();
 
-        // Get semua COA (bukan header)
-        $coas = Coa::where('is_akun_header', false)->orderBy('kode_akun')->get();
+        // Get semua COA
+        $coas = Coa::orderBy('kode_akun')->get();
         
         $totals = [];
         foreach ($coas as $coa) {
