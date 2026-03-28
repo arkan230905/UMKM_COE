@@ -140,73 +140,28 @@
                       </div>
                     </td>
                     <td rowspan="{{ $e->lines->count() }}" class="align-middle" style="border-right: 2px solid #dee2e6;">
-                      <div class="text-truncate" style="max-width: 150px;" title="{{ $e->memo }}">
+                      <div class="text-truncate" style="max-width: 200px;" title="{{ $e->memo }}">
                         {{ $e->memo }}
-                        
-                        @if($e->ref_type === 'sale')
-                          @php
-                            $hppTotal = 0;
-                            $penjualanTotal = 0;
-                            foreach($e->lines as $line) {
-                              if($line->coa->kode_akun === '5101') {
-                                $hppTotal = $line->debit;
-                              }
-                              if($line->coa->kode_akun === '1101') {
-                                $penjualanTotal = $line->debit;
-                              }
-                            }
-                            $margin = $penjualanTotal - $hppTotal;
-                            $marginPercent = $penjualanTotal > 0 ? ($margin / $penjualanTotal * 100) : 0;
-                          @endphp
-                          
-                          <div class="mt-2">
-                            <small class="text-muted d-block">Detail HPP:</small>
-                            <div class="d-flex gap-2 flex-wrap">
-                              <small class="badge bg-light text-dark">
-                                <i class="bi bi-cash-stack me-1"></i>HPP: Rp {{ number_format($hppTotal,0,',','.') }}
-                              </small>
-                              <small class="badge bg-light text-dark">
-                                <i class="bi bi-graph-up {{ $margin >= 0 ? 'text-success' : 'text-danger' }} me-1"></i>Margin: {{ $margin >= 0 ? '+' : '' }}{{ number_format($marginPercent,1,',','.') }}%
-                              </small>
-                            </div>
-                          </div>
-                        @endif
                       </div>
                     </td>
                   @endif
-                  <td class="align-middle" style="border-right: 1px solid #dee2e6;">
-                    <code class="text-primary">{{ $l->coa->kode_akun ?? '-' }}</code>
+                  <td class="align-middle" style="border-right: 2px solid #dee2e6;">
+                    <div class="fw-semibold">{{ $l->coa->kode_akun }}</div>
                   </td>
-                  <td class="align-middle" style="border-right: 1px solid #dee2e6;">
-                    <div>
-                      <div class="fw-semibold">{{ $l->coa->nama_akun ?? 'COA tidak ditemukan' }}</div>
-                      @if($l->coa)
-                        <small class="text-muted">{{ $l->coa->tipe_akun ?? '' }}</small>
-                        
-                        @if($e->ref_type === 'sale' && $l->coa->kode_akun === '5101')
-                          <div class="mt-1">
-                            <small class="badge bg-warning text-dark">
-                              <i class="bi bi-info-circle me-1"></i>HPP Penjualan
-                            </small>
-                          </div>
-                        @endif
-                        
-                        @if($e->ref_type === 'sale' && $l->coa->kode_akun === '1106')
-                          <div class="mt-1">
-                            <small class="badge bg-info text-dark">
-                              <i class="bi bi-box-seam me-1"></i>Persediaan Keluar
-                            </small>
-                          </div>
-                        @endif
-                      @endif
+                  <td class="align-middle" style="border-right: 2px solid #dee2e6;">
+                    <div class="fw-semibold text-truncate" style="max-width: 200px;" title="{{ $l->coa->nama_akun }}">
+                      {{ $l->coa->nama_akun }}
                     </div>
+                    @if($l->coa->tipe_akun)
+                      <div class="small text-muted">{{ $l->coa->tipe_akun }}</div>
+                    @endif
                   </td>
-                  <td class="align-middle" style="border-right: 1px solid #dee2e6;">
+                  <td class="align-middle" style="border-right: 2px solid #dee2e6;">
                     <div class="text-muted small">
                       {{ $l->memo ?? '-' }}
                     </div>
                   </td>
-                  <td class="align-middle text-end" style="border-right: 1px solid #dee2e6;">
+                  <td class="align-middle text-end" style="border-right: 2px solid #dee2e6;">
                     @if($l->debit > 0)
                       <span class="text-primary fw-semibold">Rp {{ number_format($l->debit,0,',','.') }}</span>
                     @else
