@@ -939,11 +939,11 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [ExpensePaymentController::class, 'index'])->name('index');
             Route::get('/create', [ExpensePaymentController::class, 'create'])->name('create');
             Route::post('/', [ExpensePaymentController::class, 'store'])->name('store');
+            Route::get('/print/{id}', [ExpensePaymentController::class, 'print'])->name('print');
             Route::get('/{id}', [ExpensePaymentController::class, 'show'])->name('show');
             Route::get('/{id}/edit', [ExpensePaymentController::class, 'edit'])->name('edit');
             Route::put('/{id}', [ExpensePaymentController::class, 'update'])->name('update');
             Route::delete('/{id}', [ExpensePaymentController::class, 'destroy'])->name('destroy');
-            Route::get('/print/{id}', [ExpensePaymentController::class, 'print'])->name('print');
         });
 
         // Alias route untuk backward compatibility - LANGSUNG KE CONTROLLER

@@ -61,7 +61,7 @@ class PostCoaPeriod extends Command
         try {
             DB::beginTransaction();
             
-            $coas = Coa::where('is_akun_header', false)->get();
+            $coas = Coa::get();
             $bar = $this->output->createProgressBar($coas->count());
             $bar->start();
             

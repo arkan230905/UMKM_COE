@@ -363,10 +363,6 @@ class LaporanController extends Controller
                         $saldoAwalQty = (float)($item->stok ?? 0);
                         $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
                     }
-                } else {
-                    // If no date range, DON'T use master data - calculate from ALL movements
-                    $saldoAwalQty = 0.0;
-                    $saldoAwalNilai = 0.0;
                 }
             }
             
@@ -375,6 +371,12 @@ class LaporanController extends Controller
                 $movements = $movQ->orderBy('tanggal', 'asc')
                                  ->orderBy('id', 'asc')
                                  ->get();
+                                 
+                // Only use master data as initial stock if NO movements exist at all
+                if ($movements->isEmpty() && $item && $item->stok > 0) {
+                    $saldoAwalQty = (float)($item->stok ?? 0);
+                    $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
+                }
             } else {
                 // Get movements within date range
                 if ($from) { 
@@ -427,6 +429,8 @@ class LaporanController extends Controller
                                 'saldo_awal_nilai' => $runningNilai,
                                 'pembelian_qty' => 0,
                                 'pembelian_nilai' => 0,
+                                'penjualan_qty' => 0,
+                                'penjualan_nilai' => 0,
                                 'produksi_qty' => 0,
                                 'produksi_nilai' => 0,
                                 'saldo_akhir_qty' => $runningQty,
@@ -445,6 +449,10 @@ class LaporanController extends Controller
                             $saldoAwalQty = 0;
                             $saldoAwalNilai = 0;
                             
+                            // Initialize sales variables
+                            $dailySaleQty = 0;
+                            $dailySaleNilai = 0;
+                            
                             // Process individual movement
                             if ($m->direction === 'in') {
                                 if ($m->ref_type === 'adjustment') {
@@ -453,18 +461,24 @@ class LaporanController extends Controller
                                     $dailyInNilai = (float)($m->total_cost ?? 0);
                                     $dailyOutQty = 0;
                                     $dailyOutNilai = 0;
+                                    $dailySaleQty = 0;
+                                    $dailySaleNilai = 0;
                                 } elseif ($m->ref_type === 'production' && $tipe === 'product') {
                                     // Production IN for products goes to produksi column
                                     $dailyInQty = 0;
                                     $dailyInNilai = 0;
                                     $dailyOutQty = (float)$m->qty; // Use produksi column for production IN
                                     $dailyOutNilai = (float)($m->total_cost ?? 0);
+                                    $dailySaleQty = 0;
+                                    $dailySaleNilai = 0;
                                 } elseif ($m->ref_type === 'initial_stock') {
                                     // Initial stock goes to Stok Awal column
                                     $dailyInQty = 0;
                                     $dailyInNilai = 0;
                                     $dailyOutQty = 0;
                                     $dailyOutNilai = 0;
+                                    $dailySaleQty = 0;
+                                    $dailySaleNilai = 0;
                                     // Set saldo awal for this row
                                     $saldoAwalQty = (float)$m->qty;
                                     $saldoAwalNilai = (float)($m->total_cost ?? 0);
@@ -474,18 +488,36 @@ class LaporanController extends Controller
                                     $dailyInNilai = (float)($m->total_cost ?? 0);
                                     $dailyOutQty = 0;
                                     $dailyOutNilai = 0;
+                                    $dailySaleQty = 0;
+                                    $dailySaleNilai = 0;
                                 } else {
                                     // Other IN movements - skip to avoid confusion
                                     $dailyInQty = 0;
                                     $dailyInNilai = 0;
                                     $dailyOutQty = 0;
                                     $dailyOutNilai = 0;
+                                    $dailySaleQty = 0;
+                                    $dailySaleNilai = 0;
                                 }
                             } else {
-                                $dailyInQty = 0;
-                                $dailyInNilai = 0;
-                                $dailyOutQty = (float)$m->qty;
-                                $dailyOutNilai = (float)($m->total_cost ?? 0);
+                                // OUT movements
+                                if ($m->ref_type === 'sale' && $tipe === 'product') {
+                                    // Sales OUT for products goes to penjualan column
+                                    $dailyInQty = 0;
+                                    $dailyInNilai = 0;
+                                    $dailyOutQty = 0;
+                                    $dailyOutNilai = 0;
+                                    $dailySaleQty = (float)$m->qty;
+                                    $dailySaleNilai = (float)($m->total_cost ?? 0);
+                                } else {
+                                    // Other OUT movements (production consumption, etc.)
+                                    $dailyInQty = 0;
+                                    $dailyInNilai = 0;
+                                    $dailyOutQty = (float)$m->qty;
+                                    $dailyOutNilai = (float)($m->total_cost ?? 0);
+                                    $dailySaleQty = 0;
+                                    $dailySaleNilai = 0;
+                                }
                             }
                             
                             // Update running totals
@@ -493,6 +525,10 @@ class LaporanController extends Controller
                                 // Production IN movements should add to stock even though shown in produksi column
                                 $runningQty += $dailyOutQty; // Production IN adds to stock
                                 $runningNilai += $dailyOutNilai;
+                            } elseif ($m->ref_type === 'sale' && $tipe === 'product') {
+                                // Sales OUT movements should reduce stock
+                                $runningQty -= $dailySaleQty; // Sales OUT reduces stock
+                                $runningNilai -= $dailySaleNilai;
                             } elseif ($m->ref_type === 'initial_stock') {
                                 // Initial stock should add to running totals
                                 if ($m->direction === 'in') {
@@ -514,6 +550,8 @@ class LaporanController extends Controller
                                 'saldo_awal_nilai' => $saldoAwalNilai,
                                 'pembelian_qty' => $dailyInQty,
                                 'pembelian_nilai' => $dailyInNilai,
+                                'penjualan_qty' => $dailySaleQty ?? 0,
+                                'penjualan_nilai' => $dailySaleNilai ?? 0,
                                 'produksi_qty' => $dailyOutQty,
                                 'produksi_nilai' => $dailyOutNilai,
                                 'saldo_akhir_qty' => $runningQty,
@@ -533,6 +571,8 @@ class LaporanController extends Controller
                         'saldo_awal_nilai' => $saldoAwalNilai,
                         'pembelian_qty' => 0,
                         'pembelian_nilai' => 0,
+                        'penjualan_qty' => 0,
+                        'penjualan_nilai' => 0,
                         'produksi_qty' => 0,
                         'produksi_nilai' => 0,
                         'saldo_akhir_qty' => $saldoAwalQty,
@@ -1166,5 +1206,162 @@ class LaporanController extends Controller
     public function invoice($id)
     {
         return $this->invoicePenjualan($id);
+    }
+
+    /**
+     * Get item with proper relationships loaded consistently
+     * 
+     * @param string $tipe
+     * @param int $itemId
+     * @return mixed
+     */
+    private function getItemWithConversions($tipe, $itemId)
+    {
+        switch ($tipe) {
+            case 'material':
+                return BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+            case 'product':
+                return Produk::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+            case 'bahan_pendukung':
+                return \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($itemId);
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Get available satuans with consistent conversion logic
+     * ALWAYS uses sub_satuan_X_konversi fields (not nilai fields)
+     * 
+     * @param mixed $item
+     * @param string $tipe
+     * @return array
+     */
+    private function getAvailableSatuans($item, $tipe)
+    {
+        if (!$item) {
+            return [];
+        }
+
+        $availableSatuans = [];
+        
+        // Get main satuan
+        $mainSatuan = ($tipe == 'bahan_pendukung') ? $item->satuanRelation : $item->satuan;
+        
+        if ($mainSatuan) {
+            // Add primary unit
+            $availableSatuans[] = [
+                'id' => $mainSatuan->id,
+                'nama' => $mainSatuan->nama,
+                'is_primary' => true,
+                'conversion_to_primary' => 1.0
+            ];
+            
+            // Add sub satuan 1 - ALWAYS use konversi field for consistency
+            if ($item->sub_satuan_1_id && $item->subSatuan1) {
+                $conversionRatio = $this->getConsistentConversionFactor($item, 1);
+                if ($conversionRatio > 0) {
+                    $availableSatuans[] = [
+                        'id' => $item->subSatuan1->id,
+                        'nama' => $item->subSatuan1->nama,
+                        'is_primary' => false,
+                        'conversion_to_primary' => $conversionRatio
+                    ];
+                }
+            }
+            
+            // Add sub satuan 2 - ALWAYS use konversi field for consistency
+            if ($item->sub_satuan_2_id && $item->subSatuan2) {
+                $conversionRatio = $this->getConsistentConversionFactor($item, 2);
+                if ($conversionRatio > 0) {
+                    $availableSatuans[] = [
+                        'id' => $item->subSatuan2->id,
+                        'nama' => $item->subSatuan2->nama,
+                        'is_primary' => false,
+                        'conversion_to_primary' => $conversionRatio
+                    ];
+                }
+            }
+            
+            // Add sub satuan 3 - ALWAYS use konversi field for consistency
+            if ($item->sub_satuan_3_id && $item->subSatuan3) {
+                $conversionRatio = $this->getConsistentConversionFactor($item, 3);
+                if ($conversionRatio > 0) {
+                    $availableSatuans[] = [
+                        'id' => $item->subSatuan3->id,
+                        'nama' => $item->subSatuan3->nama,
+                        'is_primary' => false,
+                        'conversion_to_primary' => $conversionRatio
+                    ];
+                }
+            }
+        }
+        
+        return $availableSatuans;
+    }
+
+    /**
+     * Get consistent conversion factor - ensures we always use the right field
+     * Priority: konversi field > nilai field > 1.0 (fallback)
+     * 
+     * @param mixed $item
+     * @param int $subSatuanNumber (1, 2, or 3)
+     * @return float
+     */
+    private function getConsistentConversionFactor($item, $subSatuanNumber)
+    {
+        $konversiField = "sub_satuan_{$subSatuanNumber}_konversi";
+        $nilaiField = "sub_satuan_{$subSatuanNumber}_nilai";
+        
+        // Priority 1: Use konversi field if it has a valid value (> 0)
+        $konversiValue = (float)($item->$konversiField ?? 0);
+        if ($konversiValue > 0) {
+            return $konversiValue;
+        }
+        
+        // Priority 2: Use nilai field if konversi is not set and nilai has valid value
+        $nilaiValue = (float)($item->$nilaiField ?? 0);
+        if ($nilaiValue > 0) {
+            // Auto-sync: Update konversi field with nilai value for future consistency
+            $item->update([$konversiField => $nilaiValue]);
+            return $nilaiValue;
+        }
+        
+        // Priority 3: Fallback to 1.0
+        return 1.0;
+    }
+
+    /**
+     * Ensure conversion consistency for new items
+     * This method should be called when new items are created
+     * 
+     * @param mixed $item
+     * @return void
+     */
+    public static function ensureConversionConsistency($item)
+    {
+        $updated = false;
+        
+        // Check and sync sub_satuan_1
+        if ($item->sub_satuan_1_id && $item->sub_satuan_1_nilai > 0 && $item->sub_satuan_1_konversi <= 0) {
+            $item->sub_satuan_1_konversi = $item->sub_satuan_1_nilai;
+            $updated = true;
+        }
+        
+        // Check and sync sub_satuan_2
+        if ($item->sub_satuan_2_id && $item->sub_satuan_2_nilai > 0 && $item->sub_satuan_2_konversi <= 0) {
+            $item->sub_satuan_2_konversi = $item->sub_satuan_2_nilai;
+            $updated = true;
+        }
+        
+        // Check and sync sub_satuan_3
+        if ($item->sub_satuan_3_id && $item->sub_satuan_3_nilai > 0 && $item->sub_satuan_3_konversi <= 0) {
+            $item->sub_satuan_3_konversi = $item->sub_satuan_3_nilai;
+            $updated = true;
+        }
+        
+        if ($updated) {
+            $item->save();
+        }
     }
 }

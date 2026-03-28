@@ -86,7 +86,7 @@ class JurnalUmumExport
         ]);
         
         // Get data
-        $query = JournalEntry::with(['lines.account'])->orderBy('tanggal','asc')->orderBy('id','asc');
+        $query = JournalEntry::with(['lines.coa'])->orderBy('tanggal','asc')->orderBy('id','asc');
         
         if ($this->from) { 
             $query->whereDate('tanggal', '>=', $this->from); 
@@ -114,9 +114,9 @@ class JurnalUmumExport
                 $sheet->setCellValue('B' . $row, $entry->ref_type);
                 $sheet->setCellValue('C' . $row, $entry->ref_id);
                 $sheet->setCellValue('D' . $row, $entry->memo);
-                $sheet->setCellValue('E' . $row, $line->account->code ?? '-');
-                $sheet->setCellValue('F' . $row, $line->account->name ?? 'Akun tidak ditemukan');
-                $sheet->setCellValue('G' . $row, $line->account->type ?? '-');
+                $sheet->setCellValue('E' . $row, $line->coa->kode_akun ?? '-');
+                $sheet->setCellValue('F' . $row, $line->coa->nama_akun ?? 'COA tidak ditemukan');
+                $sheet->setCellValue('G' . $row, $line->coa->tipe_akun ?? '-');
                 $sheet->setCellValue('H' . $row, $line->debit > 0 ? $line->debit : 0);
                 $sheet->setCellValue('I' . $row, $line->credit > 0 ? $line->credit : 0);
                 

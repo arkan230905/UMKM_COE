@@ -52,7 +52,6 @@ class BopController extends Controller
 
             // Get all expense accounts (kode 5) as BOP Lainnya candidates
             $akunBeban = Coa::where('kode_akun', 'LIKE', '5%')
-                ->where('is_akun_header', false) // Only show non-header accounts
                 ->orderBy('kode_akun')
                 ->get();
 
@@ -261,7 +260,6 @@ class BopController extends Controller
 
         // Get all expense accounts (kode 5) for dynamic BOP components
         $akunBeban = Coa::where('kode_akun', 'LIKE', '5%')
-            ->where('is_akun_header', false)
             ->orderBy('kode_akun')
             ->get();
 

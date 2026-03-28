@@ -40,7 +40,7 @@ class TestNeracaSaldo extends Command
         $this->info("Periode: {$from} s/d {$to}");
         
         // Get semua COA
-        $coas = Coa::where('is_akun_header', false)->orderBy('kode_akun')->get();
+        $coas = Coa::orderBy('kode_akun')->get();
         
         $totalDebit = 0;
         $totalKredit = 0;

@@ -146,10 +146,10 @@
                                             <div>
                                                 @if($detail->bahan_baku_id && $detail->bahanBaku)
                                                     • <span class="badge bg-primary">BB</span> {{ $detail->bahanBaku->nama_bahan }} 
-                                                    ({{ number_format($detail->jumlah, 0, '.', '') }})
+                                                    ({{ number_format($detail->jumlah, 0, '.', '') }} {{ $detail->satuan_nama }})
                                                 @elseif($detail->bahan_pendukung_id && $detail->bahanPendukung)
                                                     • <span class="badge bg-info">BP</span> {{ $detail->bahanPendukung->nama_bahan }} 
-                                                    ({{ number_format($detail->jumlah, 0, '.', '') }})
+                                                    ({{ number_format($detail->jumlah, 0, '.', '') }} {{ $detail->satuan_nama }})
                                                 @else
                                                     • -
                                                 @endif
@@ -172,7 +172,7 @@
                                         <small>
                                         @foreach($pembelian->details as $detail)
                                             <div>
-                                                <span class="badge bg-secondary">{{ $detail->satuan ?? 'unit' }}</span>
+                                                <span class="badge bg-secondary">{{ $detail->satuan_nama }}</span>
                                             </div>
                                         @endforeach
                                         </small>

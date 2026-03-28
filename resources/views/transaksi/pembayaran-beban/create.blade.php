@@ -42,14 +42,21 @@
         <option value="">Pilih Beban Operasional</option>
         @foreach($bebanOperasional as $bo)
           <option value="{{ $bo->id }}" 
-                  data-kategori="{{ $bo->kategori }}"
-                  data-budget="{{ $bo->budget_bulanan_formatted }}"
+                  data-coa-id="{{ $bo->coa ? $bo->coa->id : '' }}"
+                  data-coa-kode="{{ $bo->coa ? $bo->coa->kode_akun : '' }}"
+                  data-coa-nama="{{ $bo->coa ? $bo->coa->nama_akun : '' }}"
+                  data-budget="{{ $bo->budget_bulanan_formatted ?? '' }}"
                   {{ old('beban_operasional_id') == $bo->id ? 'selected' : '' }}>
-            {{ $bo->nama_beban }}
+            {{ $bo->nama_beban }} @if($bo->coa)({{ $bo->coa->kode_akun }})@endif
           </option>
         @endforeach
       </select>
       <small class="form-text text-muted">Pilih beban yang sudah terdaftar di master data Beban Operasional</small>
+      @if($bebanOperasional->isEmpty())
+        <div class="text-warning small mt-1">
+          <strong>Info:</strong> Tidak ada Beban Operasional yang aktif. Silakan tambahkan data terlebih dahulu.
+        </div>
+      @endif
       @error('beban_operasional_id')
         <div class="text-danger small">{{ $message }}</div>
       @enderror
@@ -63,16 +70,22 @@
     
     <div class="mb-3">
       <label class="form-label">Akun Beban <span class="text-danger">*</span></label>
-      <select name="coa_beban_id" class="form-select" required>
+      <select name="kode_akun_beban" class="form-select" required>
         <option value="">Pilih Akun Beban</option>
-        @foreach($coaBebans as $c)
-          <option value="{{ $c->kode_akun }}" {{ old('coa_beban_id') == $c->kode_akun ? 'selected' : '' }}>
-            {{ $c->kode_akun }} - {{ $c->nama_akun }}
+        @foreach($coaBebans as $akun)
+          <option value="{{ $akun->kode_akun }}" 
+                  {{ old('kode_akun_beban') == $akun->kode_akun ? 'selected' : '' }}>
+            {{ $akun->kode_akun }} - {{ $akun->nama_akun }}
           </option>
         @endforeach
       </select>
-      <small class="form-text text-muted">Akun ini akan digunakan untuk jurnal pembayaran beban</small>
-      @error('coa_beban_id')
+      <small class="form-text text-muted">Akun beban diambil dari tabel COA (kategori Expense)</small>
+      @if($coaBebans->isEmpty())
+        <div class="text-warning small mt-1">
+          <strong>Info:</strong> Tidak ada akun beban dengan kategori Expense di tabel COA.
+        </div>
+      @endif
+      @error('kode_akun_beban')
         <div class="text-danger small">{{ $message }}</div>
       @enderror
     </div>
@@ -90,22 +103,22 @@
       </div>
       <div class="col-md-4">
         <label class="form-label">Akun Kas/Bank <span class="text-danger">*</span></label>
-        <select name="coa_kasbank" class="form-select" required>
+        <select name="kode_akun_kas" class="form-select" required>
           <option value="">Pilih Akun Kas/Bank</option>
-          @foreach($coaKas as $k)
-            <option value="{{ $k->kode_akun }}" {{ old('coa_kasbank') == $k->kode_akun ? 'selected' : '' }}>
+          @foreach($akunKas as $k)
+            <option value="{{ $k->kode_akun }}" {{ old('kode_akun_kas') == $k->kode_akun ? 'selected' : '' }}>
               {{ $k->kode_akun }} - {{ $k->nama_akun }}
             </option>
           @endforeach
         </select>
-        @error('coa_kasbank')
+        @error('kode_akun_kas')
           <div class="text-danger small">{{ $message }}</div>
         @enderror
       </div>
       <div class="col-md-4">
         <label class="form-label">Nominal Pembayaran <span class="text-danger">*</span></label>
-        <input type="number" step="0.01" min="0" name="nominal_pembayaran" class="form-control" value="{{ old('nominal_pembayaran') }}" required placeholder="0.00">
-        @error('nominal_pembayaran')
+        <input type="number" step="0.01" min="0" name="jumlah" class="form-control" value="{{ old('jumlah') }}" required placeholder="0.00">
+        @error('jumlah')
           <div class="text-danger small">{{ $message }}</div>
         @enderror
       </div>
@@ -129,14 +142,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const bebanOperasionalSelect = document.getElementById('bebanOperasionalSelect');
     const budgetDisplay = document.getElementById('budgetDisplay');
     
+    // Event listener untuk Beban Operasional
     bebanOperasionalSelect.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
+        const budget = selectedOption.dataset.budget;
         
-        if (this.value) {
-            budgetDisplay.value = selectedOption.dataset.budget || '';
-        } else {
-            budgetDisplay.value = '';
-        }
+        // Tampilkan budget dari Beban Operasional
+        budgetDisplay.value = budget || '';
     });
 });
 </script>

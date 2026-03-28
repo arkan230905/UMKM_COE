@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\JournalEntry;
 use App\Models\JournalLine;
-use App\Models\Account;
 use App\Models\Coa;
 use App\Models\CoaPeriod;
 use App\Models\CoaPeriodBalance;
@@ -25,15 +24,15 @@ class AkuntansiController extends Controller
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
 
-        $query = JournalEntry::with(['lines.account'])->orderBy('tanggal','asc')->orderBy('id','asc');
+        $query = JournalEntry::with(['lines.coa'])->orderBy('tanggal','asc')->orderBy('id','asc');
         if ($from) { $query->whereDate('tanggal','>=',$from); }
         if ($to)   { $query->whereDate('tanggal','<=',$to); }
         if ($refType) { $query->where('ref_type', $refType); }
         if ($refId)   { $query->where('ref_id', $refId); }
         if ($accountCode) { 
             $query->whereHas('lines', function($q) use ($accountCode) {
-                $q->whereHas('account', function($subQ) use ($accountCode) {
-                    $subQ->where('code', $accountCode);
+                $q->whereHas('coa', function($subQ) use ($accountCode) {
+                    $subQ->where('kode_akun', $accountCode);
                 });
             });
         }
@@ -49,7 +48,7 @@ class AkuntansiController extends Controller
         $refType = $request->get('ref_type');
         $refId   = $request->get('ref_id');
 
-        $query = JournalEntry::with(['lines.account'])->orderBy('tanggal','asc')->orderBy('id','asc');
+        $query = JournalEntry::with(['lines.coa'])->orderBy('tanggal','asc')->orderBy('id','asc');
         if ($from) { $query->whereDate('tanggal','>=',$from); }
         if ($to)   { $query->whereDate('tanggal','<=',$to); }
         if ($refType) { $query->where('ref_type', $refType); }
@@ -80,7 +79,7 @@ class AkuntansiController extends Controller
         $accountId = $request->get('account_id');
 
         // Ambil semua COA yang ada di sistem
-        $coas = \App\Models\Coa::where('is_akun_header', 0)->orderBy('kode_akun')->get();
+        $coas = \App\Models\Coa::orderBy('kode_akun')->get();
         $lines = collect();
         $saldoAwal = 0.0;
         $from = null;
@@ -100,12 +99,12 @@ class AkuntansiController extends Controller
                 return view('akuntansi.buku-besar', compact('coas','accountId','lines','from','to','saldoAwal','month','year'));
             }
             
-            // Cari Account yang sesuai dengan COA
-            $account = \App\Models\Account::where('code', $coa->kode_akun)->first();
+            // Cari Account yang sesuai dengan COA - gunakan COA langsung karena tidak ada table accounts
+            // $account = \App\Models\Account::where('code', $coa->kode_akun)->first();
             
-            if (!$account) {
-                return view('akuntansi.buku-besar', compact('coas','accountId','lines','from','to','saldoAwal','month','year'));
-            }
+            // if (!$account) {
+            //     return view('akuntansi.buku-besar', compact('coas','accountId','lines','from','to','saldoAwal','month','year'));
+            // }
             
             // Jika bulan dan tahun dipilih, buat rentang tanggal
             if ($month && $year) {
@@ -115,9 +114,9 @@ class AkuntansiController extends Controller
                 // Get saldo awal dari COA table (proper accounting method)
                 $saldoAwal = $coa->saldo_awal ?? 0;
                 
-                // Ambil transaksi dalam periode
+                // Ambil transaksi dalam periode - gunakan coa_id
                 $query = \App\Models\JournalLine::with(['entry'])
-                    ->where('account_id', $account->id)
+                    ->where('coa_id', $coa->id)
                     ->whereHas('entry', function($q) use ($from, $to) {
                         $q->whereDate('tanggal', '>=', $from)
                           ->whereDate('tanggal', '<=', $to);
@@ -162,8 +161,8 @@ class AkuntansiController extends Controller
         // Get semua periode untuk dropdown
         $periods = CoaPeriod::orderBy('periode', 'desc')->get();
 
-        // Get semua COA (bukan header)
-        $coas = Coa::where('is_akun_header', false)->orderBy('kode_akun')->get();
+        // Get semua COA
+        $coas = Coa::orderBy('kode_akun')->get();
         
         $totals = [];
         foreach ($coas as $coa) {
@@ -174,15 +173,11 @@ class AkuntansiController extends Controller
             $journalEntryIds = JournalEntry::whereBetween('tanggal', [$from, $to])->pluck('id');
             
             $debit = JournalLine::whereIn('journal_entry_id', $journalEntryIds)
-                ->whereHas('account', function($query) use ($coa) {
-                    $query->where('code', $coa->kode_akun);
-                })
+                ->where('coa_id', $coa->id)
                 ->sum('debit');
                 
             $credit = JournalLine::whereIn('journal_entry_id', $journalEntryIds)
-                ->whereHas('account', function($query) use ($coa) {
-                    $query->where('code', $coa->kode_akun);
-                })
+                ->where('coa_id', $coa->id)
                 ->sum('credit');
             
             // Hitung saldo akhir dengan metode yang sama seperti buku besar
@@ -235,16 +230,17 @@ class AkuntansiController extends Controller
         $from = $request->get('from');
         $to   = $request->get('to');
 
-        $revenue = Account::where('type','revenue')->get();
-        $expense = Account::where('type','expense')->get();
-        $sum = function($accs) use ($from,$to) {
+        $revenue = \App\Models\Coa::where('tipe_akun','Revenue')->get();
+        $expense = \App\Models\Coa::where('tipe_akun','Expense')->get();
+        
+        $sum = function($coas) use ($from,$to) {
             $total = 0.0;
-            foreach ($accs as $acc) {
-                $q = JournalLine::where('account_id',$acc->id)->with('entry');
+            foreach ($coas as $coa) {
+                $q = \App\Models\JournalLine::where('coa_id',$coa->id)->with('entry');
                 if ($from) { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','>=',$from)); }
                 if ($to)   { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','<=',$to)); }
                 $row = $q->selectRaw('COALESCE(SUM(debit),0) as d, COALESCE(SUM(credit),0) as c')->first();
-                $balance = ($acc->type==='revenue') ? (float)($row->c - $row->d) : (float)($row->d - $row->c);
+                $balance = ($coa->tipe_akun==='Revenue') ? (float)($row->c - $row->d) : (float)($row->d - $row->c);
                 $total += $balance;
             }
             return $total;
@@ -268,11 +264,10 @@ class AkuntansiController extends Controller
             $saldo = 0;
             
             // Get journal lines for this account up to selected period
-            $journalLines = \App\Models\JournalLine::whereHas('account', function($q) use ($coa) {
-                $q->where('code', $coa->kode_akun);
-            })->whereHas('entry', function($q) use ($periode) {
-                $q->whereDate('tanggal', '<=', $periode . '-31');
-            })->get();
+            $journalLines = \App\Models\JournalLine::where('coa_id', $coa->id)
+                ->whereHas('entry', function($q) use ($periode) {
+                    $q->whereDate('tanggal', '<=', $periode . '-31');
+                })->get();
             
             foreach ($journalLines as $line) {
                 if ($coa->saldo_normal === 'debit') {

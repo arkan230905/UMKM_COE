@@ -149,15 +149,13 @@
                             // Jika item diinput sebagai bahan baku (berdasarkan relation yang ada)
                             if ($detail->bahan_baku_id && $detail->bahanBaku) {
                                 $namaItem = $detail->bahanBaku->nama_bahan;
-                                // Prioritas: detail->satuan, lalu relation->satuanRelation->nama
-                                $satuanItem = $detail->satuan ?: ($detail->bahanBaku->satuanRelation->nama ?? 'unit');
+                                $satuanItem = $detail->satuan_nama;
                                 $shouldShowInBahanBaku = true;
                             }
                             // Jika item diinput sebagai bahan pendukung (berdasarkan relation yang ada)
                             elseif ($detail->bahan_pendukung_id && $detail->bahanPendukung) {
                                 $namaItem = $detail->bahanPendukung->nama_bahan;
-                                // Prioritas: detail->satuan, lalu relation->satuanRelation->nama
-                                $satuanItem = $detail->satuan ?: ($detail->bahanPendukung->satuanRelation->nama ?? 'unit');
+                                $satuanItem = $detail->satuan_nama;
                                 $shouldShowInBahanBaku = false; // Tampilkan di bahan pendukung
                             }
                             // Fallback jika relation tidak ada

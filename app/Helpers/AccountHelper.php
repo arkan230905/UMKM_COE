@@ -3,7 +3,6 @@
 namespace App\Helpers;
 
 use App\Models\Coa;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
 class AccountHelper
@@ -13,7 +12,7 @@ class AccountHelper
      * STANDAR: Gunakan ini di SEMUA controller untuk konsistensi
      * Updated to match actual COA and accounts data
      */
-    const KAS_BANK_CODES = ['1110', '1120', '101', '102'];
+    const KAS_BANK_CODES = ['1101', '1102', '1110', '1120', '101', '102'];
     
     /**
      * Get semua akun Kas & Bank
@@ -23,12 +22,8 @@ class AccountHelper
     public static function getKasBankAccounts()
     {
         // Prioritas: Cari COA yang mengandung kata 'kas' atau 'bank'
-        $query = Coa::where('tipe_akun', 'Asset');
-        if (Schema::hasColumn('coas', 'is_akun_header')) {
-            $query->where('is_akun_header', '!=', 1);
-        }
-
-        $coaAccounts = $query->where(function($query) {
+        $coaAccounts = Coa::where('tipe_akun', 'Asset')
+            ->where(function($query) {
                 $query->where('nama_akun', 'like', '%kas%')
                       ->orWhere('nama_akun', 'like', '%bank%');
             })
@@ -41,25 +36,19 @@ class AccountHelper
         }
         
         // Fallback: cari COA dengan kode yang umum untuk kas/bank
-        $fallbackQuery = Coa::whereIn('kode_akun', ['1101', '1102', '1110', '1120', '101', '102'])
-            ->where('tipe_akun', 'Asset');
-        if (Schema::hasColumn('coas', 'is_akun_header')) {
-            $fallbackQuery->where('is_akun_header', '!=', 1);
-        }
-        $fallbackCoas = $fallbackQuery->orderBy('kode_akun')->get();
+        $fallbackCoas = Coa::whereIn('kode_akun', ['1101', '1102', '1110', '1120', '101', '102'])
+            ->where('tipe_akun', 'Asset')
+            ->orderBy('kode_akun')
+            ->get();
             
         if ($fallbackCoas->count() > 0) {
             return $fallbackCoas;
         }
         
         // Last fallback: cari di accounts table yang memiliki transaksi
-        if (!Schema::hasTable('accounts') || !Schema::hasTable('journal_lines')) {
-            return collect();
-        }
-
         $activeAccountCodes = DB::table('accounts')
             ->join('journal_lines', 'accounts.id', '=', 'journal_lines.account_id')
-            ->whereIn('accounts.code', ['101', '102', '1110', '1120'])
+            ->whereIn('accounts.code', ['1101', '1102', '101', '102', '1110', '1120'])
             ->distinct()
             ->pluck('accounts.code')
             ->toArray();
@@ -72,7 +61,6 @@ class AccountHelper
                 $virtualCoa->kode_akun = $accountRecord->code;
                 $virtualCoa->nama_akun = $accountRecord->name;
                 $virtualCoa->tipe_akun = 'Asset';
-                $virtualCoa->is_akun_header = 0;
                 $virtualCoa->saldo_awal = 0;
                 $virtualCoas->push($virtualCoa);
             }
@@ -89,12 +77,10 @@ class AccountHelper
     public static function getKasAccounts()
     {
         // Try COA first
-        $kasQuery = Coa::whereIn('kode_akun', ['1110'])
-            ->where('tipe_akun', 'Asset');
-        if (Schema::hasColumn('coas', 'is_akun_header')) {
-            $kasQuery->where('is_akun_header', '!=', 1);
-        }
-        $coaAccounts = $kasQuery->orderBy('kode_akun')->get();
+        $coaAccounts = Coa::whereIn('kode_akun', ['1110'])
+            ->where('tipe_akun', 'Asset')
+            ->orderBy('kode_akun')
+            ->get();
             
         if ($coaAccounts->count() > 0) {
             return $coaAccounts;
@@ -107,7 +93,6 @@ class AccountHelper
             $virtualCoa->kode_akun = $accountRecord->code;
             $virtualCoa->nama_akun = $accountRecord->name;
             $virtualCoa->tipe_akun = 'Asset';
-            $virtualCoa->is_akun_header = 0;
             $virtualCoa->saldo_awal = 0;
             return collect([$virtualCoa]);
         }
@@ -123,12 +108,10 @@ class AccountHelper
     public static function getBankAccounts()
     {
         // Try COA first
-        $bankQuery = Coa::whereIn('kode_akun', ['1120'])
-            ->where('tipe_akun', 'Asset');
-        if (Schema::hasColumn('coas', 'is_akun_header')) {
-            $bankQuery->where('is_akun_header', '!=', 1);
-        }
-        $coaAccounts = $bankQuery->orderBy('kode_akun')->get();
+        $coaAccounts = Coa::whereIn('kode_akun', ['1120'])
+            ->where('tipe_akun', 'Asset')
+            ->orderBy('kode_akun')
+            ->get();
             
         if ($coaAccounts->count() > 0) {
             return $coaAccounts;
@@ -141,7 +124,6 @@ class AccountHelper
             $virtualCoa->kode_akun = $accountRecord->code;
             $virtualCoa->nama_akun = $accountRecord->name;
             $virtualCoa->tipe_akun = 'Asset';
-            $virtualCoa->is_akun_header = 0;
             $virtualCoa->saldo_awal = 0;
             return collect([$virtualCoa]);
         }
@@ -157,7 +139,7 @@ class AccountHelper
      */
     public static function isKasBankAccount($kodeAkun)
     {
-        return in_array($kodeAkun, ['1110', '1120', '101', '102']);
+        return in_array($kodeAkun, ['1101', '1102', '1110', '1120', '101', '102']);
     }
     
     /**
@@ -168,9 +150,9 @@ class AccountHelper
      */
     public static function getAccountCategory($kodeAkun)
     {
-        if (in_array($kodeAkun, ['1110', '101'])) {
+        if (in_array($kodeAkun, ['1101', '1110', '101'])) {
             return 'Kas';
-        } elseif (in_array($kodeAkun, ['1120', '102'])) {
+        } elseif (in_array($kodeAkun, ['1102', '1120', '102'])) {
             return 'Bank';
         }
         return 'Lainnya';

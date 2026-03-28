@@ -126,28 +126,32 @@ class DashboardController extends Controller
     }
 
     /**
-     * Calculate total cash and bank balances - menggunakan logic yang sama dengan LaporanKasBankController
+     * Get total kas dan bank menggunakan logic yang sama dengan LaporanKasBankController
+     * untuk konsistensi data realtime
      */
     private function getTotalKasBank()
     {
         try {
-            if (!\Schema::hasTable('coas')) { return 0; }
-
-            // Ambil COA Kas dan Bank menggunakan helper - sama dengan LaporanKasBankController
-            $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts();
-            \Log::info('Dashboard: Total akun Kas & Bank: ' . $akunKasBank->count());
-            
-            if ($akunKasBank->isEmpty()) { 
-                \Log::info('Dashboard: akunKasBank kosong, return 0');
+            if (!\Schema::hasTable('coas')) { 
+                \Log::info('Dashboard: Table coas tidak ada, return 0');
                 return 0; 
             }
 
-            $total = 0;
+            // Gunakan helper yang sama dengan LaporanKasBankController
+            $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts();
+            
+            if ($akunKasBank->isEmpty()) { 
+                \Log::info('Dashboard: Tidak ada akun Kas & Bank, return 0');
+                return 0; 
+            }
+
+            // Gunakan periode bulan ini (sama dengan default laporan kas-bank)
             $startDate = now()->startOfMonth()->format('Y-m-d');
             $endDate = now()->endOfMonth()->format('Y-m-d');
             
+            $totalKasBank = 0;
+            
             foreach ($akunKasBank as $akun) {
-                // Gunakan logic yang sama dengan LaporanKasBankController
                 $saldoAwal = $this->getSaldoAwal($akun, $startDate);
                 $transaksiMasuk = $this->getTransaksiMasuk($akun, $startDate, $endDate);
                 $transaksiKeluar = $this->getTransaksiKeluar($akun, $startDate, $endDate);
@@ -155,10 +159,15 @@ class DashboardController extends Controller
                 // Untuk akun Kas & Bank (Aset), saldo normal adalah Debit
                 // Saldo Akhir = Saldo Awal + Debit (Masuk) - Kredit (Keluar)
                 $saldoAkhir = $saldoAwal + $transaksiMasuk - $transaksiKeluar;
-                $total += $saldoAkhir;
+                
+                $totalKasBank += $saldoAkhir;
+                
+                \Log::info("Dashboard: {$akun->kode_akun} - Saldo Awal: {$saldoAwal}, Masuk: {$transaksiMasuk}, Keluar: {$transaksiKeluar}, Akhir: {$saldoAkhir}");
             }
             
-            return $total;
+            \Log::info("Dashboard: Total Kas & Bank (realtime): {$totalKasBank}");
+            
+            return $totalKasBank;
         } catch (\Exception $e) {
             \Log::error('Error getTotalKasBank: ' . $e->getMessage());
             return 0;
@@ -182,6 +191,7 @@ class DashboardController extends Controller
                 ->first();
                 
             if ($periodBalance) {
+                \Log::info("Dashboard: Saldo awal dari period balance untuk {$akun->kode_akun}: " . $periodBalance->saldo_awal);
                 return is_numeric($periodBalance->saldo_awal) ? (float) $periodBalance->saldo_awal : 0;
             }
         }
@@ -195,12 +205,15 @@ class DashboardController extends Controller
                 ->first();
                 
             if ($previousBalance) {
+                \Log::info("Dashboard: Saldo awal dari previous period balance untuk {$akun->kode_akun}: " . $previousBalance->saldo_akhir);
                 return is_numeric($previousBalance->saldo_akhir) ? (float) $previousBalance->saldo_akhir : 0;
             }
         }
         
         // 4. Jika tidak ada sama sekali, gunakan saldo awal dari COA
-        return (float)$akun->saldo_awal;
+        $saldoAwalCOA = (float)$akun->saldo_awal;
+        \Log::info("Dashboard: Saldo awal dari COA untuk {$akun->kode_akun}: " . $saldoAwalCOA);
+        return $saldoAwalCOA;
     }
 
     /**
@@ -214,13 +227,13 @@ class DashboardController extends Controller
         $penjualanMasuk = \DB::table('penjualans')
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->where(function($query) use ($akun) {
-                // Jika akun adalah Kas (mengandung kata 'kas')
-                if (stripos($akun->nama_akun, 'kas') !== false) {
-                    $query->where('payment_method', 'cash');
-                }
-                // Jika akun adalah Bank (mengandung kata 'bank')
-                elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                // Jika akun adalah Bank (mengandung kata 'bank') - check this first
+                if (stripos($akun->nama_akun, 'bank') !== false) {
                     $query->where('payment_method', 'transfer');
+                }
+                // Jika akun adalah Kas (mengandung kata 'kas' tapi bukan 'bank')
+                elseif (stripos($akun->nama_akun, 'kas') !== false) {
+                    $query->where('payment_method', 'cash');
                 }
             })
             ->sum('total');
@@ -232,13 +245,13 @@ class DashboardController extends Controller
             $pelunasanUtangMasuk = \DB::table('pelunasan_utangs')
                 ->whereBetween('tanggal', [$startDate, $endDate])
                 ->where(function($query) use ($akun) {
-                    // Jika akun adalah Kas (mengandung kata 'kas')
-                    if (stripos($akun->nama_akun, 'kas') !== false) {
-                        $query->where('payment_method', 'cash');
-                    }
-                    // Jika akun adalah Bank (mengandung kata 'bank')
-                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                    // Jika akun adalah Bank (mengandung kata 'bank') - check this first
+                    if (stripos($akun->nama_akun, 'bank') !== false) {
                         $query->where('payment_method', 'transfer');
+                    }
+                    // Jika akun adalah Kas (mengandung kata 'kas' tapi bukan 'bank')
+                    elseif (stripos($akun->nama_akun, 'kas') !== false) {
+                        $query->where('payment_method', 'cash');
                     }
                 })
                 ->sum('dibayar_bersih');
@@ -254,13 +267,13 @@ class DashboardController extends Controller
                 ->whereBetween('tanggal', [$startDate, $endDate])
                 ->where(function($query) use ($akun) {
                     $query->where(function($subQuery) use ($akun) {
-                        // Jika akun adalah Kas (mengandung kata 'kas')
-                        if (stripos($akun->nama_akun, 'kas') !== false) {
-                            $subQuery->where('payment_method', 'cash');
-                        }
-                        // Jika akun adalah Bank (mengandung kata 'bank')
-                        elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                        // Jika akun adalah Bank (mengandung kata 'bank') - check this first
+                        if (stripos($akun->nama_akun, 'bank') !== false) {
                             $subQuery->where('payment_method', 'transfer');
+                        }
+                        // Jika akun adalah Kas (mengandung kata 'kas' tapi bukan 'bank')
+                        elseif (stripos($akun->nama_akun, 'kas') !== false) {
+                            $subQuery->where('payment_method', 'cash');
                         }
                     });
                 })
@@ -285,16 +298,16 @@ class DashboardController extends Controller
         $pembelianKeluar = \DB::table('pembelians')
             ->whereBetween('tanggal', [$startDate, $endDate])
             ->where(function($query) use ($akun) {
-                // Jika akun adalah Kas (mengandung kata 'kas')
-                if (stripos($akun->nama_akun, 'kas') !== false) {
-                    $query->where('payment_method', 'cash');
-                }
-                // Jika akun adalah Bank (mengandung kata 'bank')
-                elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                // Jika akun adalah Bank (mengandung kata 'bank') - check this first
+                if (stripos($akun->nama_akun, 'bank') !== false) {
                     $query->where('payment_method', 'transfer');
                 }
+                // Jika akun adalah Kas (mengandung kata 'kas' tapi bukan 'bank')
+                elseif (stripos($akun->nama_akun, 'kas') !== false) {
+                    $query->where('payment_method', 'cash');
+                }
             })
-            ->sum('total');
+            ->sum('total_harga');
             
         $totalKeluar += (float) ($pembelianKeluar ?? 0);
         
@@ -303,13 +316,13 @@ class DashboardController extends Controller
             $penggajianKeluar = \DB::table('penggajians')
                 ->whereBetween('tanggal', [$startDate, $endDate])
                 ->where(function($query) use ($akun) {
-                    // Jika akun adalah Kas (mengandung kata 'kas')
-                    if (stripos($akun->nama_akun, 'kas') !== false) {
-                        $query->where('payment_method', 'cash');
-                    }
-                    // Jika akun adalah Bank (mengandung kata 'bank')
-                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                    // Jika akun adalah Bank (mengandung kata 'bank') - check this first
+                    if (stripos($akun->nama_akun, 'bank') !== false) {
                         $query->where('payment_method', 'transfer');
+                    }
+                    // Jika akun adalah Kas (mengandung kata 'kas' tapi bukan 'bank')
+                    elseif (stripos($akun->nama_akun, 'kas') !== false) {
+                        $query->where('payment_method', 'cash');
                     }
                 })
                 ->sum('total_gaji');
@@ -319,19 +332,34 @@ class DashboardController extends Controller
             // Table might not exist
         }
         
-        // 3. Retur Penjualan (uang kembali ke kas/bank) - sama dengan LaporanKasBankController
+        // 3. Pembayaran Beban Operasional (pengeluaran kas/bank) - tambahan untuk dashboard
+        try {
+            $pembayaranBebanKeluar = \DB::table('expense_payments')
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->where(function($query) use ($akun) {
+                    // Cek apakah akun kas/bank yang digunakan sesuai dengan akun yang sedang dihitung
+                    $query->where('coa_kasbank', $akun->kode_akun);
+                })
+                ->sum('nominal_pembayaran');
+                
+            $totalKeluar += (float) ($pembayaranBebanKeluar ?? 0);
+        } catch (\Exception $e) {
+            // Table might not exist
+        }
+        
+        // 4. Retur Penjualan (uang kembali ke kas/bank) - sama dengan LaporanKasBankController
         try {
             $returPenjualanKeluar = \DB::table('returns')
                 ->whereBetween('tanggal', [$startDate, $endDate])
                 ->where(function($query) use ($akun) {
                     $query->where(function($subQuery) use ($akun) {
-                        // Jika akun adalah Kas (mengandung kata 'kas')
-                        if (stripos($akun->nama_akun, 'kas') !== false) {
-                            $subQuery->where('payment_method', 'cash');
-                        }
-                        // Jika akun adalah Bank (mengandung kata 'bank')
-                        elseif (stripos($akun->nama_akun, 'bank') !== false) {
+                        // Jika akun adalah Bank (mengandung kata 'bank') - check this first
+                        if (stripos($akun->nama_akun, 'bank') !== false) {
                             $subQuery->where('payment_method', 'transfer');
+                        }
+                        // Jika akun adalah Kas (mengandung kata 'kas' tapi bukan 'bank')
+                        elseif (stripos($akun->nama_akun, 'kas') !== false) {
+                            $subQuery->where('payment_method', 'cash');
                         }
                     });
                 })
@@ -503,15 +531,29 @@ class DashboardController extends Controller
     }
 
     /**
-     * ✅ TAMBAHAN: Get Kas & Bank details per account - menggunakan logic yang sama dengan LaporanKasBankController
+     * ✅ TAMBAHAN: Get Kas & Bank details per account - menggunakan logic yang sama dengan getTotalKasBank
      */
     private function getKasBankDetails()
     {
         try {
             if (!\Schema::hasTable('coas')) { return collect(); }
 
-            // Ambil COA Kas dan Bank menggunakan helper - sama dengan LaporanKasBankController
-            $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts();
+            // Ambil akun Kas dan Bank langsung dari tabel COA berdasarkan kategori/tipe akun - sama dengan getTotalKasBank
+            $akunKasBank = Coa::where('tipe_akun', 'Asset')
+                ->where(function($query) {
+                    // Cari berdasarkan nama akun yang mengandung 'kas' atau 'bank'
+                    $query->where('nama_akun', 'like', '%kas%')
+                          ->orWhere('nama_akun', 'like', '%bank%');
+                })
+                ->get();
+            
+            // Fallback: jika tidak ada yang ditemukan berdasarkan nama, coba berdasarkan kode umum
+            if ($akunKasBank->isEmpty()) {
+                $akunKasBank = Coa::where('tipe_akun', 'Asset')
+                    ->whereIn('kode_akun', ['101', '102', '111', '112', '1101', '1102', '1110', '1120'])
+                    ->get();
+            }
+            
             if ($akunKasBank->isEmpty()) { return collect(); }
 
             $details = [];
@@ -519,8 +561,8 @@ class DashboardController extends Controller
             $endDate = now()->endOfMonth()->format('Y-m-d');
             
             foreach ($akunKasBank as $akun) {
-                // Gunakan logic yang sama dengan LaporanKasBankController
-                $saldoAwal = $this->getSaldoAwal($akun, $startDate);
+                // Gunakan saldo awal langsung dari COA
+                $saldoAwal = (float)$akun->saldo_awal;
                 $transaksiMasuk = $this->getTransaksiMasuk($akun, $startDate, $endDate);
                 $transaksiKeluar = $this->getTransaksiKeluar($akun, $startDate, $endDate);
                 
@@ -534,7 +576,7 @@ class DashboardController extends Controller
                     'saldo_awal' => $saldoAwal,
                     'transaksi_masuk' => $transaksiMasuk,
                     'transaksi_keluar' => $transaksiKeluar,
-                    'saldo_akhir' => $saldoAkhir  // ✅ Perbaikan: gunakan key yang sama dengan LaporanKasBankController
+                    'saldo_akhir' => $saldoAkhir
                 ];
             }
             

@@ -110,15 +110,15 @@
                             <td rowspan="{{ $e->lines->count() }}">{{ $e->memo }}</td>
                         @endif
                         <td>
-                            <strong>{{ $l->account->code ?? '-' }}</strong>
+                            <strong>{{ $l->coa->kode_akun ?? '-' }}</strong>
                             <span class="badge {{ ($l->debit ?? 0) > 0 ? 'badge-debit' : 'badge-kredit' }}">
                                 {{ ($l->debit ?? 0) > 0 ? 'D' : 'K' }}
                             </span>
                         </td>
                         <td>
-                            <strong>{{ $l->account->name ?? 'Akun tidak ditemukan' }}</strong>
-                            @if($l->account)
-                                <br><small style="color: #666;">({{ $l->account->type ?? '' }})</small>
+                            <strong>{{ $l->coa->nama_akun ?? 'COA tidak ditemukan' }}</strong>
+                            @if($l->coa)
+                                <br><small style="color: #666;">({{ $l->coa->tipe_akun ?? '' }})</small>
                             @endif
                         </td>
                         <td class="text-end">{{ $l->debit > 0 ? 'Rp '.number_format($l->debit, 0, ',', '.') : '-' }}</td>

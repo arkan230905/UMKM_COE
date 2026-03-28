@@ -13,10 +13,55 @@ use App\Helpers\AccountHelper;
 
 class ExpensePaymentController extends Controller
 {
+    /**
+     * Get saldo akhir akun kas/bank menggunakan data yang sama dengan halaman laporan kas-bank
+     */
+    public function getSaldoAkhir($akun, $tanggal = null)
+    {
+        // Langsung gunakan LaporanKasBankController untuk mendapatkan data yang sama
+        $laporanController = new \App\Http\Controllers\LaporanKasBankController();
+        
+        // Gunakan range tanggal yang sama dengan laporan kas-bank (bulan ini)
+        $startDate = now()->startOfMonth()->format('Y-m-d');
+        $endDate = now()->endOfMonth()->format('Y-m-d');
+        
+        // Gunakan AccountHelper untuk mendapatkan akun yang sama dengan laporan kas-bank
+        $akunKasBank = AccountHelper::getKasBankAccounts();
+        
+        // Cari akun yang sesuai dan hitung saldo menggunakan logika LaporanKasBankController
+        foreach ($akunKasBank as $kasBankAkun) {
+            if ($kasBankAkun->kode_akun === $akun->kode_akun) {
+                // Gunakan reflection untuk mengakses private methods dari LaporanKasBankController
+                $reflection = new \ReflectionClass($laporanController);
+                
+                $getSaldoAwalMethod = $reflection->getMethod('getSaldoAwal');
+                $getSaldoAwalMethod->setAccessible(true);
+                $saldoAwal = $getSaldoAwalMethod->invoke($laporanController, $kasBankAkun, $startDate);
+                
+                $getTransaksiMasukMethod = $reflection->getMethod('getTransaksiMasuk');
+                $getTransaksiMasukMethod->setAccessible(true);
+                $transaksiMasuk = $getTransaksiMasukMethod->invoke($laporanController, $kasBankAkun, $startDate, $endDate);
+                
+                $getTransaksiKeluarMethod = $reflection->getMethod('getTransaksiKeluar');
+                $getTransaksiKeluarMethod->setAccessible(true);
+                $transaksiKeluar = $getTransaksiKeluarMethod->invoke($laporanController, $kasBankAkun, $startDate, $endDate);
+                
+                // Saldo Akhir = Saldo Awal + Debit (Masuk) - Kredit (Keluar)
+                $saldoAkhir = $saldoAwal + $transaksiMasuk - $transaksiKeluar;
+                
+                return $saldoAkhir;
+            }
+        }
+        
+        return 0;
+    }
+
+
+
     public function index(Request $request)
     {
         $query = ExpensePayment::with([
-            'bebanOperasional',
+            'bebanOperasional.coa',
             'coaBeban' => function($q) {
                 $q->select('kode_akun', 'nama_akun');
             },
@@ -58,18 +103,17 @@ class ExpensePaymentController extends Controller
         $rows = $query->orderBy('tanggal', 'desc')->paginate(20);
         
         // Get data for dropdowns
-        $bebanOperasional = BebanOperasional::where('status', 'aktif')
+        $bebanOperasional = BebanOperasional::with('coa')
+            ->where('status', 'aktif')
             ->orderBy('nama_beban')
             ->get();
             
         $coaBebans = Coa::where('tipe_akun', 'Expense')
-            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
             ->get();
             
         $coaKas = Coa::where('tipe_akun', 'Asset')
             ->where('saldo_normal', 'debit')
-            ->where('is_akun_header', '!=', 1)
             ->where(function($query) {
                 $query->where('nama_akun', 'like', '%kas%')
                       ->orWhere('nama_akun', 'like', '%bank%');
@@ -87,21 +131,21 @@ class ExpensePaymentController extends Controller
 
     public function create()
     {
-        // Get active Beban Operasional for dropdown
-        $bebanOperasional = BebanOperasional::where('status', 'aktif')
+        // Get all Beban Operasional with COA relation
+        $bebanOperasional = BebanOperasional::with('coa')
             ->orderBy('nama_beban')
             ->get();
         
         // Get COA Beban for dropdown
         $coaBebans = Coa::where('tipe_akun', 'Expense')
-            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
+            ->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC')
+            ->orderBy('kode_akun', 'ASC')
             ->get();
         
-        // Get COA Kas/Bank for dropdown - dynamic filter based on account type and name
-        $coaKas = Coa::where('tipe_akun', 'Asset')
+        // Get COA Kas/Bank for dropdown
+        $akunKas = Coa::where('tipe_akun', 'Asset')
             ->where('saldo_normal', 'debit')
-            ->where('is_akun_header', '!=', 1)
             ->where(function($query) {
                 $query->where('nama_akun', 'like', '%kas%')
                       ->orWhere('nama_akun', 'like', '%bank%');
@@ -111,8 +155,8 @@ class ExpensePaymentController extends Controller
         
         return view('transaksi.pembayaran-beban.create', compact(
             'bebanOperasional', 
-            'coaBebans', 
-            'coaKas'
+            'coaBebans',
+            'akunKas'
         ));
     }
 
@@ -121,52 +165,71 @@ class ExpensePaymentController extends Controller
         $request->validate([
             'tanggal' => 'required|date',
             'beban_operasional_id' => 'required|exists:beban_operasional,id',
-            'coa_beban_id' => 'required|exists:coas,kode_akun',
-            'metode_bayar' => 'required|in:cash,bank',
-            'coa_kasbank' => 'required|exists:coas,kode_akun',
-            'nominal_pembayaran' => 'required|numeric|min:0',
-            'keterangan' => 'nullable|string|max:500'
+            'kode_akun_beban' => 'required|exists:coas,kode_akun',
+            'kode_akun_kas' => 'required|exists:coas,kode_akun',
+            'jumlah' => 'required|numeric|min:1',
+            'keterangan' => 'nullable|string|max:255',
+            'catatan' => 'nullable|string',
         ], [
             'beban_operasional_id.required' => 'Beban Operasional wajib dipilih',
             'beban_operasional_id.exists' => 'Beban Operasional tidak valid',
-            'coa_beban_id.required' => 'Akun Beban wajib dipilih',
-            'coa_beban_id.exists' => 'Akun Beban tidak valid',
-            'coa_kasbank.required' => 'Akun Kas/Bank wajib dipilih',
-            'coa_kasbank.exists' => 'Akun Kas/Bank tidak valid',
-            'nominal_pembayaran.required' => 'Nominal Pembayaran wajib diisi',
-            'nominal_pembayaran.min' => 'Nominal Pembayaran harus lebih dari 0',
+            'kode_akun_beban.required' => 'Akun Beban wajib dipilih',
+            'kode_akun_beban.exists' => 'Akun Beban tidak valid',
+            'kode_akun_kas.required' => 'Akun Kas/Bank wajib dipilih',
+            'kode_akun_kas.exists' => 'Akun Kas/Bank tidak valid',
         ]);
 
         DB::beginTransaction();
-
+        
         try {
+            // Ambil Beban Operasional yang dipilih
+            $bebanOperasional = BebanOperasional::find($request->beban_operasional_id);
             
-            // Dapatkan data COA menggunakan kode_akun
-            $coaBeban = Coa::where('kode_akun', $request->coa_beban_id)->firstOrFail();
-            $coaKas = Coa::where('kode_akun', $request->coa_kasbank)->firstOrFail();
-
-            // Cek saldo kas/bank cukup
-            $saldoKas = (float) ($coaKas->saldo_awal ?? 0) + 
-                       (float) ($coaKas->saldo_debit ?? 0) - 
-                       (float) ($coaKas->saldo_kredit ?? 0);
-            
-            if ($saldoKas < (float)$request->nominal_pembayaran) {
-                throw new \Exception('Saldo kas/bank tidak mencukupi. Saldo tersedia: ' . number_format($saldoKas, 0, ',', '.'));
+            if (!$bebanOperasional) {
+                throw new \Exception('Beban operasional tidak ditemukan. ID: ' . $request->beban_operasional_id);
             }
-
-            // Simpan data pembayaran
-            $row = new ExpensePayment([
+            
+            // Ambil akun beban berdasarkan kode_akun dari dropdown
+            $akunBeban = Coa::where('kode_akun', $request->kode_akun_beban)->first();
+            
+            if (!$akunBeban) {
+                throw new \Exception('Akun beban tidak ditemukan. Kode akun: ' . $request->kode_akun_beban);
+            }
+            
+            // Ambil akun kas berdasarkan kode_akun dari dropdown
+            $akunKas = Coa::where('kode_akun', $request->kode_akun_kas)->first();
+            
+            if (!$akunKas) {
+                throw new \Exception('Akun kas tidak ditemukan. Kode akun: ' . $request->kode_akun_kas);
+            }
+            
+            // Validasi saldo kas
+            $saldoAkhir = $this->getSaldoAkhir($akunKas, $request->tanggal);
+            
+            if ($saldoAkhir < $request->jumlah) {
+                return back()
+                    ->with('error', 'Saldo kas tidak mencukupi. Saldo tersedia: ' . format_rupiah($saldoAkhir))
+                    ->withInput();
+            }
+            
+            // Generate kode transaksi
+            $lastPembayaran = \App\Models\ExpensePayment::latest('id')->first();
+            $count = $lastPembayaran ? ($lastPembayaran->id + 1) : 1;
+            $kodeTransaksi = 'PB-' . date('Ymd') . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+            
+            // Simpan pembayaran beban
+            $pembayaran = new \App\Models\ExpensePayment([
                 'tanggal' => $request->tanggal,
-                'beban_operasional_id' => $request->beban_operasional_id,
-                'coa_beban_id' => $coaBeban->kode_akun,
-                'metode_bayar' => $request->metode_bayar,
-                'coa_kasbank' => $coaKas->kode_akun,
-                'nominal_pembayaran' => (float)$request->nominal_pembayaran,
+                'beban_operasional_id' => $bebanOperasional->id,
+                'coa_beban_id' => $akunBeban->kode_akun,
+                'metode_bayar' => 'cash', // Default
+                'coa_kasbank' => $akunKas->kode_akun,
+                'nominal_pembayaran' => $request->jumlah,
                 'keterangan' => $request->keterangan,
                 'user_id' => auth()->id(),
             ]);
-
-            if (!$row->save()) {
+            
+            if (!$pembayaran->save()) {
                 throw new \Exception('Gagal menyimpan data pembayaran beban');
             }
 
@@ -174,20 +237,13 @@ class ExpensePaymentController extends Controller
             $journal->post(
                 $request->tanggal, 
                 'expense_payment', 
-                (int)$row->id, 
-                'Pembayaran Beban - ' . $coaBeban->nama_akun, 
+                (int)$pembayaran->id, 
+                'Pembayaran Beban: ' . $bebanOperasional->nama_beban, 
                 [
-                    ['code' => $coaBeban->kode_akun, 'debit' => (float)$request->nominal_pembayaran, 'credit' => 0],
-                    ['code' => $coaKas->kode_akun, 'debit' => 0, 'credit' => (float)$request->nominal_pembayaran],
+                    ['code' => $akunBeban->kode_akun, 'debit' => $request->jumlah, 'credit' => 0],
+                    ['code' => $akunKas->kode_akun, 'debit' => 0, 'credit' => $request->jumlah],
                 ]
             );
-
-            // Update saldo COA
-            $this->updateCoaSaldo($coaBeban->kode_akun);
-            $this->updateCoaSaldo($coaKas->kode_akun);
-            
-            // Update BOP aktual
-            $this->updateBopAktual($coaBeban->kode_akun);
 
             DB::commit();
             
@@ -197,6 +253,7 @@ class ExpensePaymentController extends Controller
                 
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Error in ExpensePaymentController@store: ' . $e->getMessage());
             
             return back()
                 ->with('error', 'Gagal menyimpan pembayaran beban: ' . $e->getMessage())
@@ -221,14 +278,12 @@ class ExpensePaymentController extends Controller
         
         // Get COA Beban for dropdown
         $coaBebans = Coa::where('tipe_akun', 'Expense')
-            ->where('is_akun_header', '!=', 1)
             ->orderBy('kode_akun')
             ->get();
         
         // Get COA Kas/Bank for dropdown - dynamic filter based on account type and name
         $coaKas = Coa::where('tipe_akun', 'Asset')
             ->where('saldo_normal', 'debit')
-            ->where('is_akun_header', '!=', 1)
             ->where(function($query) {
                 $query->where('nama_akun', 'like', '%kas%')
                       ->orWhere('nama_akun', 'like', '%bank%');
@@ -249,7 +304,6 @@ class ExpensePaymentController extends Controller
         $request->validate([
             'tanggal' => 'required|date',
             'beban_operasional_id' => 'required|exists:beban_operasional,id',
-            'coa_beban_id' => 'required|exists:coas,kode_akun',
             'metode_bayar' => 'required|in:cash,bank',
             'coa_kasbank' => 'required|exists:coas,kode_akun',
             'nominal_pembayaran' => 'required|numeric|min:0',
@@ -257,8 +311,6 @@ class ExpensePaymentController extends Controller
         ], [
             'beban_operasional_id.required' => 'Beban Operasional wajib dipilih',
             'beban_operasional_id.exists' => 'Beban Operasional tidak valid',
-            'coa_beban_id.required' => 'Akun Beban wajib dipilih',
-            'coa_beban_id.exists' => 'Akun Beban tidak valid',
             'coa_kasbank.required' => 'Akun Kas/Bank wajib dipilih',
             'coa_kasbank.exists' => 'Akun Kas/Bank tidak valid',
             'nominal_pembayaran.required' => 'Nominal Pembayaran wajib diisi',
@@ -269,27 +321,26 @@ class ExpensePaymentController extends Controller
         $oldNominal = $row->nominal_pembayaran;
         $oldCashCode = $row->coa_kasbank;
 
-        // Dapatkan data COA
-        $coaBeban = Coa::where('kode_akun', $request->coa_beban_id)->firstOrFail();
+        // Ambil Beban Operasional yang dipilih user
+        $bebanOperasional = BebanOperasional::with('coa')->findOrFail($request->beban_operasional_id);
+        
+        // Validasi COA beban
+        if (!$bebanOperasional->coa) {
+            throw new \Exception('Beban Operasional ini belum memiliki akun COA. Silakan atur terlebih dahulu.');
+        }
+        
+        // Dapatkan data COA kas/bank
         $coaKas = Coa::where('kode_akun', $request->coa_kasbank)->firstOrFail();
 
         // Cek saldo kas/bank cukup (hitung selisih jika nominal berubah)
         $selisih = (float)$request->nominal_pembayaran - (float)$oldNominal;
         
         if ($selisih > 0) {
-            $saldoAwal = (float) ($coaKas->saldo_awal ?? 0);
-            $acc = \App\Models\Account::where('code', $coaKas->kode_akun)->first();
+            $saldoAkhir = $this->getSaldoAkhir($coaKas, $request->tanggal);
             
-            $journalBalance = 0.0;
-            if ($acc) {
-                $journalBalance = (float) (\App\Models\JournalLine::where('account_id', $acc->id)
-                    ->selectRaw('COALESCE(SUM(debit - credit),0) as bal')->value('bal') ?? 0);
-            }
-            
-            $cashBalance = $saldoAwal + $journalBalance;
-            if ($cashBalance + 1e-6 < $selisih) {
+            if ($saldoAkhir + 1e-6 < $selisih) {
                 return back()->withErrors([
-                    'kas' => 'Nominal kas tidak cukup untuk melakukan transaksi. Saldo kas saat ini: Rp '.number_format($cashBalance,0,',','.').' ; Selisih nominal: Rp '.number_format($selisih,0,',','.'),
+                    'kas' => 'Nominal kas tidak cukup untuk melakukan transaksi. Saldo kas saat ini: Rp '.number_format($saldoAkhir,0,',','.').' ; Selisih nominal: Rp '.number_format($selisih,0,',','.'),
                 ])->withInput();
             }
         }
@@ -297,7 +348,7 @@ class ExpensePaymentController extends Controller
         $row->update([
             'tanggal' => $request->tanggal,
             'beban_operasional_id' => $request->beban_operasional_id,
-            'coa_beban_id' => $request->coa_beban_id,
+            'coa_beban_id' => $bebanOperasional->coa->kode_akun,
             'metode_bayar' => $request->metode_bayar,
             'coa_kasbank' => $request->coa_kasbank,
             'nominal_pembayaran' => $request->nominal_pembayaran,
@@ -313,14 +364,13 @@ class ExpensePaymentController extends Controller
         }
 
         // Jurnal baru: Dr Expense ; Cr Cash/Bank
-        $coa = Coa::findOrFail($request->coa_beban_id);
-        $journal->post($request->tanggal, 'expense_payment', (int)$row->id, 'Pembayaran Beban - '.$coa->nama_akun, [
-            ['code'=>$coa->kode_akun, 'debit'=>(float)$request->nominal_pembayaran, 'credit'=>0],
+        $journal->post($request->tanggal, 'expense_payment', (int)$row->id, 'Pembayaran Beban - '.$bebanOperasional->coa->nama_akun, [
+            ['code'=>$bebanOperasional->coa->kode_akun, 'debit'=>(float)$request->nominal_pembayaran, 'credit'=>0],
             ['code'=>$request->coa_kasbank, 'debit'=>0, 'credit'=>(float)$request->nominal_pembayaran],
         ]);
 
         // Update aktual di BOP
-        $this->updateBopAktual($coa->kode_akun);
+        $this->updateBopAktual($bebanOperasional->coa->kode_akun);
 
         return redirect()->route('transaksi.pembayaran-beban.index')->with('success','Pembayaran beban berhasil diupdate.');
     }
@@ -345,6 +395,20 @@ class ExpensePaymentController extends Controller
         }
 
         return redirect()->route('transaksi.pembayaran-beban.index')->with('success','Pembayaran beban berhasil dihapus.');
+    }
+
+    /**
+     * Print/export pembayaran beban
+     */
+    public function print($id)
+    {
+        $pembayaran = ExpensePayment::with([
+            'bebanOperasional', 
+            'coaBeban', 
+            'coaKasBank'
+        ])->findOrFail($id);
+        
+        return view('transaksi.pembayaran-beban.print', compact('pembayaran'));
     }
 
     /**

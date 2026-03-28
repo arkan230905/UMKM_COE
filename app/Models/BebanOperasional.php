@@ -18,6 +18,7 @@ class BebanOperasional extends Model
         'budget_bulanan',
         'keterangan',
         'status',
+        'coa_id',
         'created_by'
     ];
 
@@ -34,6 +35,14 @@ class BebanOperasional extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Relasi ke COA
+     */
+    public function coa()
+    {
+        return $this->belongsTo(Coa::class, 'coa_id');
     }
 
     
