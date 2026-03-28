@@ -24,19 +24,65 @@ class AkuntansiController extends Controller
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
 
-        $query = JournalEntry::with(['lines.coa'])->orderBy('tanggal','asc')->orderBy('id','asc');
-        if ($from) { $query->whereDate('tanggal','>=',$from); }
-        if ($to)   { $query->whereDate('tanggal','<=',$to); }
-        if ($refType) { $query->where('ref_type', $refType); }
-        if ($refId)   { $query->where('ref_id', $refId); }
+        // Gunakan query dengan leftJoin untuk memastikan nama akun selalu diambil
+        $query = \DB::table('journal_entries as je')
+            ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
+            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id') // Perbaikan: join berdasarkan coa_id
+            ->select([
+                'je.*',
+                'jl.id as line_id',
+                'jl.debit',
+                'jl.credit',
+                'jl.memo as line_memo',
+                'coas.kode_akun',
+                'coas.nama_akun',
+                'coas.tipe_akun'
+            ])
+            ->orderBy('je.tanggal','asc')
+            ->orderBy('je.id','asc')
+            ->orderBy('jl.id','asc');
+            
+        if ($from) { $query->whereDate('je.tanggal','>=',$from); }
+        if ($to)   { $query->whereDate('je.tanggal','<=',$to); }
+        if ($refType) { $query->where('je.ref_type', $refType); }
+        if ($refId)   { $query->where('je.ref_id', $refId); }
         if ($accountCode) { 
-            $query->whereHas('lines', function($q) use ($accountCode) {
-                $q->whereHas('coa', function($subQ) use ($accountCode) {
-                    $subQ->where('kode_akun', $accountCode);
-                });
-            });
+            $query->where('coas.kode_akun', $accountCode);
         }
-        $entries = $query->get();
+        
+        $results = $query->get();
+        
+        // Group results by journal entry
+        $entries = collect();
+        $groupedResults = $results->groupBy('id');
+        
+        foreach ($groupedResults as $entryId => $lines) {
+            $firstLine = $lines->first();
+            
+            $entry = (object) [
+                'id' => $firstLine->id,
+                'tanggal' => $firstLine->tanggal,
+                'ref_type' => $firstLine->ref_type,
+                'ref_id' => $firstLine->ref_id,
+                'memo' => $firstLine->memo,
+                'lines' => $lines->map(function($line) {
+                    return (object) [
+                        'id' => $line->line_id,
+                        'debit' => $line->debit,
+                        'credit' => $line->credit,
+                        'memo' => $line->line_memo,
+                        'account_code' => $line->kode_akun,
+                        'coa' => (object) [
+                            'kode_akun' => $line->kode_akun,
+                            'nama_akun' => $line->nama_akun ?? 'COA tidak ditemukan',
+                            'tipe_akun' => $line->tipe_akun
+                        ]
+                    ];
+                })
+            ];
+            
+            $entries->push($entry);
+        }
 
         return view('akuntansi.jurnal-umum', compact('entries','from','to','refType','refId','accountCode'));
     }
@@ -48,12 +94,62 @@ class AkuntansiController extends Controller
         $refType = $request->get('ref_type');
         $refId   = $request->get('ref_id');
 
-        $query = JournalEntry::with(['lines.coa'])->orderBy('tanggal','asc')->orderBy('id','asc');
-        if ($from) { $query->whereDate('tanggal','>=',$from); }
-        if ($to)   { $query->whereDate('tanggal','<=',$to); }
-        if ($refType) { $query->where('ref_type', $refType); }
-        if ($refId)   { $query->where('ref_id', $refId); }
-        $entries = $query->get();
+        // Gunakan query yang sama dengan jurnalUmum untuk konsistensi
+        $query = \DB::table('journal_entries as je')
+            ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
+            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
+            ->select([
+                'je.*',
+                'jl.id as line_id',
+                'jl.debit',
+                'jl.credit',
+                'jl.memo as line_memo',
+                'coas.kode_akun',
+                'coas.nama_akun',
+                'coas.tipe_akun'
+            ])
+            ->orderBy('je.tanggal','asc')
+            ->orderBy('je.id','asc')
+            ->orderBy('jl.id','asc');
+            
+        if ($from) { $query->whereDate('je.tanggal','>=',$from); }
+        if ($to)   { $query->whereDate('je.tanggal','<=',$to); }
+        if ($refType) { $query->where('je.ref_type', $refType); }
+        if ($refId)   { $query->where('je.ref_id', $refId); }
+        
+        $results = $query->get();
+        
+        // Group results by journal entry
+        $entries = collect();
+        $groupedResults = $results->groupBy('id');
+        
+        foreach ($groupedResults as $entryId => $lines) {
+            $firstLine = $lines->first();
+            
+            $entry = (object) [
+                'id' => $firstLine->id,
+                'tanggal' => $firstLine->tanggal,
+                'ref_type' => $firstLine->ref_type,
+                'ref_id' => $firstLine->ref_id,
+                'memo' => $firstLine->memo,
+                'lines' => $lines->map(function($line) {
+                    return (object) [
+                        'id' => $line->line_id,
+                        'debit' => $line->debit,
+                        'credit' => $line->credit,
+                        'memo' => $line->line_memo,
+                        'account_code' => $line->kode_akun,
+                        'coa' => (object) [
+                            'kode_akun' => $line->kode_akun,
+                            'nama_akun' => $line->nama_akun ?? 'COA tidak ditemukan',
+                            'tipe_akun' => $line->tipe_akun
+                        ]
+                    ];
+                })
+            ];
+            
+            $entries->push($entry);
+        }
 
         $pdf = Pdf::loadView('akuntansi.jurnal-umum-pdf', compact('entries','from','to','refType','refId'))
             ->setPaper('a4', 'landscape');

@@ -51,11 +51,12 @@
           <label class="form-label fw-semibold">Filter Akun</label>
           <select name="account_code" class="form-select">
             <option value="">Semua Akun</option>
-            <option value="5101" {{ request('account_code') === '5101' ? 'selected' : '' }}>HPP (5101)</option>
-            <option value="1106" {{ request('account_code') === '1106' ? 'selected' : '' }}>Persediaan Barang Jadi (1106)</option>
-            <option value="1105" {{ request('account_code') === '1105' ? 'selected' : '' }}>Persediaan Barang Dalam Proses (1105)</option>
-            <option value="4101" {{ request('account_code') === '4101' ? 'selected' : '' }}>Penjualan (4101)</option>
-            <option value="1101" {{ request('account_code') === '1101' ? 'selected' : '' }}>Kas (1101)</option>
+            @php
+              $coas = \App\Models\Coa::orderBy('kode_akun')->get();
+            @endphp
+            @foreach($coas as $coa)
+              <option value="{{ $coa->kode_akun }}" {{ request('account_code') === $coa->kode_akun ? 'selected' : '' }}>{{ $coa->kode_akun }} - {{ $coa->nama_akun }}</option>
+            @endforeach
           </select>
         </div>
         <div class="col-md-2">
@@ -109,21 +110,6 @@
         </div>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card border-left border-info border-4">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="text-muted mb-2">Balance</h6>
-              <h4 class="mb-0 text-info">Rp {{ number_format($entries->flatMap->lines->sum('debit') - $entries->flatMap->lines->sum('credit'), 0, ',', '.') }}</h4>
-            </div>
-            <div class="text-info">
-              <i class="bi bi-balance-scale fs-2"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
   @endif
 
@@ -134,15 +120,13 @@
         <table class="table table-hover mb-0" style="border: 2px solid #dee2e6;">
           <thead class="table-light sticky-top">
             <tr>
-              <th class="border-end" style="width:8%; border-bottom: 2px solid #dee2e6;">Tanggal</th>
-              <th class="border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Ref</th>
-              <th class="border-end" style="width:20%; border-bottom: 2px solid #dee2e6;">Deskripsi</th>
+              <th class="border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Tanggal</th>
+              <th class="border-end" style="width:25%; border-bottom: 2px solid #dee2e6;">Deskripsi</th>
               <th class="border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Kode Akun</th>
-              <th class="border-end" style="width:15%; border-bottom: 2px solid #dee2e6;">Nama Akun</th>
+              <th class="border-end" style="width:20%; border-bottom: 2px solid #dee2e6;">Nama Akun</th>
               <th class="border-end" style="width:15%; border-bottom: 2px solid #dee2e6;">Keterangan</th>
               <th class="text-end border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Debit</th>
               <th class="text-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Kredit</th>
-              <th class="text-center" style="width:2%; border-bottom: 2px solid #dee2e6;">D/K</th>
             </tr>
           </thead>
           <tbody>
@@ -153,26 +137,6 @@
                     <td rowspan="{{ $e->lines->count() }}" class="align-middle" style="border-right: 2px solid #dee2e6;">
                       <div class="text-center">
                         <div class="fw-bold">{{ \Carbon\Carbon::parse($e->tanggal)->format('d/m/Y') }}</div>
-                        <small class="text-muted">{{ \Carbon\Carbon::parse($e->tanggal)->format('H:i') }}</small>
-                      </div>
-                    </td>
-                    <td rowspan="{{ $e->lines->count() }}" class="align-middle" style="border-right: 2px solid #dee2e6;">
-                      <div>
-                        @php
-                          $badgeColor = match($e->ref_type) {
-                            'purchase' => 'danger',
-                            'sale' => 'success',
-                            'production_material' => 'warning',
-                            'production_labor_overhead' => 'info',
-                            'production_finish' => 'primary',
-                            'saldo_awal' => 'secondary',
-                            default => 'dark'
-                          };
-                        @endphp
-                        <span class="badge bg-{{ $badgeColor }} text-white">
-                          {{ $e->ref_type }}
-                        </span>
-                        <div class="small text-muted">#{{ $e->ref_id }}</div>
                       </div>
                     </td>
                     <td rowspan="{{ $e->lines->count() }}" class="align-middle" style="border-right: 2px solid #dee2e6;">
@@ -249,25 +213,18 @@
                       <span class="text-muted">-</span>
                     @endif
                   </td>
-                  <td class="align-middle text-end" style="border-right: 1px solid #dee2e6;">
+                  <td class="align-middle text-end">
                     @if($l->credit > 0)
                       <span class="text-success fw-semibold">Rp {{ number_format($l->credit,0,',','.') }}</span>
                     @else
                       <span class="text-muted">-</span>
                     @endif
                   </td>
-                  <td class="align-middle text-center">
-                    @if($l->debit > 0)
-                      <span class="badge bg-primary text-white">D</span>
-                    @else
-                      <span class="badge bg-success text-white">K</span>
-                    @endif
-                  </td>
                 </tr>
               @endforeach
             @empty
               <tr>
-                <td colspan="9" class="text-center py-4">
+                <td colspan="7" class="text-center py-4">
                   <div class="text-muted">
                     <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                     <h5>Tidak ada data jurnal</h5>
