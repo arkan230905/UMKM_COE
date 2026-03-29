@@ -376,8 +376,17 @@ class AkuntansiController extends Controller
         $from = $request->get('from');
         $to   = $request->get('to');
 
-        $revenue = \App\Models\Coa::where('tipe_akun','Revenue')->get();
-        $expense = \App\Models\Coa::where('tipe_akun','Expense')->get();
+        // Get accounts by category - hanya pendapatan usaha
+        $revenue = \App\Models\Coa::where('tipe_akun','Revenue')
+                                  ->where('kategori_akun', 'Pendapatan Usaha')
+                                  ->get();
+        
+        // Get HPP from production transactions instead of journal entries
+        $hppFromProduction = $this->getHppFromProductionTransactions($from, $to);
+        
+        $expense = \App\Models\Coa::where('tipe_akun','Expense')
+                                  ->where('kode_akun', 'NOT LIKE', '16%') // Non-HPP expenses
+                                  ->get();
         
         $sum = function($coas) use ($from,$to) {
             $total = 0.0;
@@ -391,11 +400,102 @@ class AkuntansiController extends Controller
             }
             return $total;
         };
+        
         $totalRevenue = $sum($revenue);
+        $totalHpp = $hppFromProduction['total'];
         $totalExpense = $sum($expense);
-        $laba = $totalRevenue - $totalExpense;
+        
+        $labaKotor = $totalRevenue - $totalHpp;
+        $labaBersih = $labaKotor - $totalExpense;
 
-        return view('akuntansi.laba-rugi', compact('from','to','totalRevenue','totalExpense','laba','revenue','expense'));
+        return view('akuntansi.laba-rugi', compact(
+            'from','to','totalRevenue','totalHpp','totalExpense',
+            'labaKotor','labaBersih','revenue','hppFromProduction','expense'
+        ));
+    }
+
+    private function getHppFromProductionTransactions($from = null, $to = null)
+    {
+        // Get sales data to determine how many units were sold
+        $salesQuery = \App\Models\Penjualan::query();
+        if ($from) {
+            $salesQuery->whereDate('tanggal', '>=', $from);
+        }
+        if ($to) {
+            $salesQuery->whereDate('tanggal', '<=', $to);
+        }
+        $sales = $salesQuery->get();
+        
+        // Calculate total units sold
+        $totalUnitsSold = $sales->sum('jumlah');
+        
+        // Get production data to determine HPP per unit
+        $productionQuery = \App\Models\Produksi::query();
+        if ($from) {
+            $productionQuery->whereDate('tanggal', '>=', $from);
+        }
+        if ($to) {
+            $productionQuery->whereDate('tanggal', '<=', $to);
+        }
+        $productions = $productionQuery->get();
+        
+        // If no sales, HPP should be 0
+        if ($totalUnitsSold == 0) {
+            return [
+                'bahan_baku' => 0,
+                'btkl' => 0,
+                'bop' => 0,
+                'total' => 0,
+                'units_sold' => 0,
+                'units_produced' => $productions->sum('qty_produksi'),
+                'productions' => $productions,
+                'sales' => $sales
+            ];
+        }
+        
+        // Calculate HPP per unit from production data
+        $totalUnitsProduced = $productions->sum('qty_produksi');
+        $totalProductionCost = $productions->sum('total_biaya');
+        $totalBahanProduction = $productions->sum('total_bahan');
+        $totalBtklProduction = $productions->sum('total_btkl');
+        $totalBopProduction = $productions->sum('total_bop');
+        
+        if ($totalUnitsProduced == 0) {
+            return [
+                'bahan_baku' => 0,
+                'btkl' => 0,
+                'bop' => 0,
+                'total' => 0,
+                'units_sold' => $totalUnitsSold,
+                'units_produced' => 0,
+                'productions' => $productions,
+                'sales' => $sales
+            ];
+        }
+        
+        // Calculate HPP per unit
+        $hppPerUnit = $totalProductionCost / $totalUnitsProduced;
+        $bahanPerUnit = $totalBahanProduction / $totalUnitsProduced;
+        $btklPerUnit = $totalBtklProduction / $totalUnitsProduced;
+        $bopPerUnit = $totalBopProduction / $totalUnitsProduced;
+        
+        // Calculate HPP for sold units only
+        $hppForSoldUnits = $hppPerUnit * $totalUnitsSold;
+        $bahanForSoldUnits = $bahanPerUnit * $totalUnitsSold;
+        $btklForSoldUnits = $btklPerUnit * $totalUnitsSold;
+        $bopForSoldUnits = $bopPerUnit * $totalUnitsSold;
+        
+        return [
+            'bahan_baku' => $bahanForSoldUnits,
+            'btkl' => $btklForSoldUnits,
+            'bop' => $bopForSoldUnits,
+            'total' => $hppForSoldUnits,
+            'units_sold' => $totalUnitsSold,
+            'units_produced' => $totalUnitsProduced,
+            'hpp_per_unit' => $hppPerUnit,
+            'productions' => $productions,
+            'sales' => $sales
+        ];
     }
 
     public function neraca(Request $request)

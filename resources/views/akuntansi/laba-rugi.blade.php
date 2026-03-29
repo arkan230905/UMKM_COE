@@ -60,8 +60,16 @@
                                 @endif
                             @endforeach
                             
+                            @if($sumRev == 0)
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted ps-4">
+                                        <em>Belum ada data penjualan</em>
+                                    </td>
+                                </tr>
+                            @endif
+                            
                             <tr class="border-bottom">
-                                <td colspan="2" class="fw-bold ps-4">Jumlah Pendapatan Usaha</td>
+                                <td colspan="2" class="fw-bold ps-4">Total Penjualan</td>
                                 <td class="text-end fw-bold">Rp {{ number_format($sumRev,0,',','.') }}</td>
                             </tr>
                             
@@ -69,9 +77,89 @@
                                 <td colspan="3" class="border-0">&nbsp;</td>
                             </tr>
                             
-                            <!-- BEBAN-BEBAN USAHA -->
+                            <!-- HPP (HARGA POKOK PENJUALAN) -->
+                            <tr class="table-warning">
+                                <th colspan="2" class="fw-bold text-uppercase">HPP (HARGA POKOK PENJUALAN)</th>
+                                <th class="text-end fw-bold"></th>
+                            </tr>
+                            
+                            @php 
+                                $sumHpp = $hppFromProduction['total'];
+                                $hppBahanBaku = $hppFromProduction['bahan_baku'];
+                                $hppBtkl = $hppFromProduction['btkl'];
+                                $hppBop = $hppFromProduction['bop'];
+                                $unitsSold = $hppFromProduction['units_sold'] ?? 0;
+                                $unitsProduced = $hppFromProduction['units_produced'] ?? 0;
+                            @endphp
+                            
+                            @if($sumHpp > 0)
+                                <tr>
+                                    <td class="ps-4">HPP - Bahan Baku & Pendukung</td>
+                                    <td class="text-muted small">{{ $unitsSold }} unit terjual</td>
+                                    <td class="text-end">Rp {{ number_format($hppBahanBaku,0,',','.') }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">HPP - BTKL (Biaya Tenaga Kerja Langsung)</td>
+                                    <td class="text-muted small">{{ $unitsSold }} unit terjual</td>
+                                    <td class="text-end">Rp {{ number_format($hppBtkl,0,',','.') }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="ps-4">HPP - BOP (Biaya Overhead Pabrik)</td>
+                                    <td class="text-muted small">{{ $unitsSold }} unit terjual</td>
+                                    <td class="text-end">Rp {{ number_format($hppBop,0,',','.') }}</td>
+                                </tr>
+                            @elseif($unitsSold == 0 && $unitsProduced > 0)
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted ps-4">
+                                        <em>Tidak ada penjualan pada periode ini.<br>
+                                        Produksi: {{ $unitsProduced }} unit (HPP = Rp 0 karena belum terjual)</em>
+                                    </td>
+                                </tr>
+                            @else
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted ps-4">
+                                        <em>Belum ada transaksi produksi dan penjualan pada periode ini.</em>
+                                    </td>
+                                </tr>
+                            @endif
+                            
+                            <tr class="border-bottom">
+                                <td colspan="2" class="fw-bold ps-4">Total HPP</td>
+                                <td class="text-end fw-bold">Rp {{ number_format($sumHpp,0,',','.') }}</td>
+                            </tr>
+                            
+                            @if($sumHpp > 0)
+                            <tr class="text-muted small">
+                                <td colspan="3" class="ps-4">
+                                    <em>👉 HPP untuk {{ $unitsSold }} unit terjual dari {{ $unitsProduced }} unit diproduksi
+                                    @if(isset($hppFromProduction['hpp_per_unit']))
+                                        (HPP per unit: Rp {{ number_format($hppFromProduction['hpp_per_unit'],0,',','.') }})
+                                    @endif
+                                    </em>
+                                </td>
+                            </tr>
+                            @endif
+                            
+                            <!-- LABA KOTOR -->
+                            <tr class="table-info fw-bold">
+                                <td colspan="2">LABA KOTOR</td>
+                                <td class="text-end">
+                                    @php $labaKotor = $sumRev - $sumHpp; @endphp
+                                    @if($labaKotor < 0)
+                                        <span class="text-danger">(Rp {{ number_format(abs($labaKotor),0,',','.') }})</span>
+                                    @else
+                                        Rp {{ number_format($labaKotor,0,',','.') }}
+                                    @endif
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td colspan="3" class="border-0">&nbsp;</td>
+                            </tr>
+                            
+                            <!-- BEBAN USAHA -->
                             <tr class="table-danger">
-                                <th colspan="2" class="fw-bold text-uppercase">BEBAN-BEBAN USAHA</th>
+                                <th colspan="2" class="fw-bold text-uppercase">BEBAN USAHA</th>
                                 <th class="text-end fw-bold"></th>
                             </tr>
                             
@@ -87,7 +175,12 @@
                                 @endphp
                                 @if($bal != 0)
                                 <tr>
-                                    <td class="ps-4">{{ $acc->nama_akun }}</td>
+                                    <td class="ps-4">
+                                        {{ $acc->nama_akun }}
+                                        @if(str_contains(strtolower($acc->nama_akun), 'gaji'))
+                                            <small class="text-muted">(BTKTL - Biaya Tenaga Kerja Tidak Langsung)</small>
+                                        @endif
+                                    </td>
                                     <td class="text-muted small">{{ $acc->kode_akun }}</td>
                                     <td class="text-end">Rp {{ number_format($bal,0,',','.') }}</td>
                                 </tr>
@@ -95,52 +188,28 @@
                             @endforeach
                             
                             <tr class="border-bottom">
-                                <td colspan="2" class="fw-bold ps-4">Jumlah Beban Usaha</td>
+                                <td colspan="2" class="fw-bold ps-4">Total Beban Usaha</td>
                                 <td class="text-end fw-bold">Rp {{ number_format($sumExp,0,',','.') }}</td>
                             </tr>
                             
-                            <!-- LABA USAHA -->
-                            <tr class="table-info fw-bold">
-                                <td colspan="2">LABA USAHA</td>
-                                <td class="text-end">Rp {{ number_format($sumRev - $sumExp,0,',','.') }}</td>
-                            </tr>
-                            
-                            <tr>
-                                <td colspan="3" class="border-0">&nbsp;</td>
-                            </tr>
-                            
-                            <!-- PENDAPATAN/BEBAN DI LUAR USAHA -->
-                            <tr class="table-secondary">
-                                <th colspan="2" class="fw-bold text-uppercase">PENDAPATAN/BEBAN DI LUAR USAHA</th>
-                                <th class="text-end fw-bold"></th>
-                            </tr>
-                            
-                            <tr class="border-bottom">
-                                <td colspan="2" class="ps-4">Pendapatan di Luar Usaha</td>
-                                <td class="text-end">Rp 0</td>
-                            </tr>
-                            
-                            <tr class="border-bottom">
-                                <td colspan="2" class="ps-4">Beban di Luar Usaha</td>
-                                <td class="text-end">Rp 0</td>
-                            </tr>
-                            
-                            <!-- LABA SEBELUM PAJAK -->
-                            <tr class="table-warning fw-bold">
-                                <td colspan="2">LABA SEBELUM PAJAK</td>
-                                <td class="text-end">Rp {{ number_format($sumRev - $sumExp,0,',','.') }}</td>
-                            </tr>
-                            
-                            <!-- PAJAK PENGHASILAN -->
-                            <tr class="table-secondary">
-                                <td colspan="2" class="fw-bold ps-4">PAJAK PENGHASILAN</td>
-                                <td class="text-end">Rp 0</td>
+                            <tr class="text-muted small">
+                                <td colspan="3" class="ps-4">
+                                    <em>👉 Catatan: Gaji di beban usaha adalah BTKTL (gaji admin, supervisor, dll), 
+                                    berbeda dengan BTKL di HPP (gaji pekerja produksi langsung)</em>
+                                </td>
                             </tr>
                             
                             <!-- LABA BERSIH -->
                             <tr class="table-primary fw-bold">
                                 <td colspan="2">LABA BERSIH</td>
-                                <td class="text-end">Rp {{ number_format($laba,0,',','.') }}</td>
+                                <td class="text-end">
+                                    @php $labaBersih = $labaKotor - $sumExp; @endphp
+                                    @if($labaBersih < 0)
+                                        <span class="text-danger">(Rp {{ number_format(abs($labaBersih),0,',','.') }})</span>
+                                    @else
+                                        <span class="text-success">Rp {{ number_format($labaBersih,0,',','.') }}</span>
+                                    @endif
+                                </td>
                             </tr>
                         </tbody>
                     </table>

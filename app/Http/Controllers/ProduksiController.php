@@ -564,6 +564,8 @@ $totalBOP = $totalBOPPerUnit * $qtyProd;
             ]);
 
             // === Posting Jurnal Produksi ===
+            // PERBAIKAN WIP ACCOUNTING: Hanya catat WIP saat produksi dimulai, bukan selesai
+            
             // 1) Konsumsi bahan: Dr WIP ; Cr COA Persediaan masing-masing bahan
             if (($totalBahan ?? 0) > 0) {
                 // Cari COA WIP (Work In Process) - biasanya kode 1105 atau sejenisnya
@@ -649,35 +651,9 @@ $totalBOP = $totalBOPPerUnit * $qtyProd;
                 $journal->post($tanggal, 'production_labor_overhead', (int)$produksi->id, 'BTKL/BOP ke WIP', $lines);
             }
             
-            // 3) Selesai produksi: Dr Persediaan Barang Jadi ; Cr WIP
-            if ((float)$totalBiaya > 0) {
-                // Cari COA Persediaan Barang Jadi
-                $coaBarangJadi = \App\Models\Coa::where('kode_akun', '1106')->first();
-                if (!$coaBarangJadi) {
-                    $coaBarangJadi = \App\Models\Coa::where('nama_akun', 'like', '%Barang Jadi%')
-                        ->orWhere('nama_akun', 'like', '%Finished Goods%')
-                        ->orWhere('nama_akun', 'like', '%Persediaan Produk%')
-                        ->first();
-                }
-                
-                // Cari COA WIP
-                $coaWIP = \App\Models\Coa::where('kode_akun', '1105')->first();
-                if (!$coaWIP) {
-                    $coaWIP = \App\Models\Coa::where('nama_akun', 'like', '%WIP%')
-                        ->orWhere('nama_akun', 'like', '%Dalam Proses%')
-                        ->orWhere('nama_akun', 'like', '%Work in Process%')
-                        ->first();
-                }
-                
-                if (!$coaBarangJadi || !$coaWIP) {
-                    throw new \RuntimeException('COA Persediaan Barang Jadi (1106) atau COA WIP (1105) tidak ditemukan. Silakan buat COA yang diperlukan.');
-                }
-                
-                $journal->post($tanggal, 'production_finish', (int)$produksi->id, 'Selesai produksi', [
-                    ['code' => $coaBarangJadi->kode_akun, 'debit' => (float)$totalBiaya, 'credit' => 0],  // Persediaan Barang Jadi
-                    ['code' => $coaWIP->kode_akun, 'debit' => 0, 'credit' => (float)$totalBiaya],  // WIP
-                ]);
-            }
+            // 3) PERBAIKAN: JANGAN langsung transfer ke Barang Jadi saat produksi dimulai
+            // Transfer ke Barang Jadi hanya dilakukan saat produksi benar-benar selesai
+            // Ini akan dipindahkan ke method selesaikanProses() atau complete()
 
             return redirect()->route('transaksi.produksi.show', $produksi->id)
                 ->with('success', 'Produksi berhasil disimpan.');
@@ -770,15 +746,56 @@ $totalBOP = $totalBOPPerUnit * $qtyProd;
             ->count();
 
         if ($totalProsesSelesai >= $produksi->total_proses) {
-            // Semua proses selesai
+            // Semua proses selesai - TRANSFER WIP KE BARANG JADI
             $produksi->status = 'selesai';
             $produksi->waktu_selesai_produksi = now();
+            
+            // PERBAIKAN WIP ACCOUNTING: Transfer WIP ke Barang Jadi saat produksi benar-benar selesai
+            $this->transferWipToFinishedGoods($produksi);
         }
 
         $produksi->save();
 
         return redirect()->route('transaksi.produksi.proses', $produksi->id)
             ->with('success', 'Proses ' . $proses->nama_proses . ' berhasil diselesaikan. Silakan pilih proses selanjutnya.');
+    }
+    
+    /**
+     * Transfer WIP ke Barang Jadi saat produksi selesai
+     */
+    private function transferWipToFinishedGoods($produksi)
+    {
+        $journal = app(\App\Services\JournalService::class);
+        $totalBiaya = (float)$produksi->total_biaya;
+        
+        if ($totalBiaya > 0) {
+            // Cari COA Persediaan Barang Jadi
+            $coaBarangJadi = \App\Models\Coa::where('kode_akun', '1106')->first();
+            if (!$coaBarangJadi) {
+                $coaBarangJadi = \App\Models\Coa::where('nama_akun', 'like', '%Barang Jadi%')
+                    ->orWhere('nama_akun', 'like', '%Finished Goods%')
+                    ->orWhere('nama_akun', 'like', '%Persediaan Produk%')
+                    ->first();
+            }
+            
+            // Cari COA WIP
+            $coaWIP = \App\Models\Coa::where('kode_akun', '1105')->first();
+            if (!$coaWIP) {
+                $coaWIP = \App\Models\Coa::where('nama_akun', 'like', '%WIP%')
+                    ->orWhere('nama_akun', 'like', '%Dalam Proses%')
+                    ->orWhere('nama_akun', 'like', '%Work in Process%')
+                    ->first();
+            }
+            
+            if (!$coaBarangJadi || !$coaWIP) {
+                throw new \RuntimeException('COA Persediaan Barang Jadi (1106) atau COA WIP (1105) tidak ditemukan. Silakan buat COA yang diperlukan.');
+            }
+            
+            $journal->post($produksi->tanggal, 'production_finish', (int)$produksi->id, 'Transfer WIP ke Barang Jadi', [
+                ['code' => $coaBarangJadi->kode_akun, 'debit' => $totalBiaya, 'credit' => 0],  // Persediaan Barang Jadi
+                ['code' => $coaWIP->kode_akun, 'debit' => 0, 'credit' => $totalBiaya],  // WIP
+            ]);
+        }
     }
 
     public function destroy($id, JournalService $journal)
@@ -807,11 +824,18 @@ $totalBOP = $totalBOPPerUnit * $qtyProd;
     {
         $produksi = Produksi::findOrFail($id);
         
-        if ($produksi->status === 'completed') {
+        if ($produksi->status === 'completed' || $produksi->status === 'selesai') {
             return redirect()->route('transaksi.produksi.index')->with('info', 'Produksi sudah ditandai selesai sebelumnya.');
         }
         
-        $produksi->update(['status' => 'completed']);
+        // Update status dan transfer WIP ke Barang Jadi
+        $produksi->update([
+            'status' => 'selesai',
+            'waktu_selesai_produksi' => now()
+        ]);
+        
+        // PERBAIKAN WIP ACCOUNTING: Transfer WIP ke Barang Jadi saat produksi selesai
+        $this->transferWipToFinishedGoods($produksi);
         
         return redirect()->route('transaksi.produksi.index')->with('success', 'Produksi berhasil ditandai selesai!');
     }
