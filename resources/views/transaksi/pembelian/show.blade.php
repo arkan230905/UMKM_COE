@@ -321,8 +321,7 @@
                 </a>
                 <form action="{{ route('transaksi.pembelian.destroy', $pembelian->id) }}" 
                       method="POST" 
-                      class="d-inline" 
-                      onsubmit="return confirm('Apakah Anda yakin ingin menghapus pembelian {{ $pembelian->nomor_pembelian }}?\n\nPerhatian: Data yang dihapus tidak dapat dikembalikan!')">
+                      class="d-inline">
                     @csrf
                     @method('DELETE')
                     <button class="btn btn-danger" 
@@ -427,4 +426,53 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add loading indicator for delete form
+    const deleteForm = document.querySelector('form[action*="destroy"]');
+    if (deleteForm) {
+        deleteForm.addEventListener('submit', function(e) {
+            const confirmed = confirm('Apakah Anda yakin ingin menghapus pembelian {{ $pembelian->nomor_pembelian }}?\n\nPerhatian: Data yang dihapus tidak dapat dikembalikan!');
+            
+            if (confirmed) {
+                // Show loading indicator
+                const submitButton = this.querySelector('button[type="submit"], button:not([type])');
+                if (submitButton) {
+                    const originalText = submitButton.innerHTML;
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menghapus...';
+                    submitButton.disabled = true;
+                    
+                    // Add overlay to prevent multiple clicks
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0,0,0,0.5);
+                        z-index: 9999;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        color: white;
+                        font-size: 18px;
+                    `;
+                    overlay.innerHTML = '<div><i class="fas fa-spinner fa-spin me-2"></i>Menghapus data pembelian...</div>';
+                    document.body.appendChild(overlay);
+                }
+                
+                return true; // Allow form submission
+            } else {
+                e.preventDefault(); // Cancel form submission
+                return false;
+            }
+        });
+    }
+});
+</script>
+@endpush
+
 @endsection

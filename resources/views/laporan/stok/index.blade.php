@@ -99,6 +99,7 @@
                         'name' => $satuan['nama'],
                         'is_primary' => $satuan['is_primary'],
                         'conversion' => $satuan['conversion_to_primary'],
+                        'price_conversion' => $satuan['price_conversion'] ?? $satuan['conversion_to_primary'], // Use price_conversion if available
                         'price' => $selectedItem->harga_satuan ?? 0 // Use actual price from database, no fallback
                     ];
                 }
@@ -131,7 +132,9 @@
                     
                     // Calculate converted quantities using ACTUAL conversion ratios from database
                     $convertedQty = $baseQty * $unit['conversion'];
-                    $convertedPrice = $unit['conversion'] > 0 ? $basePrice / $unit['conversion'] : $basePrice;
+                    $convertedPrice = isset($unit['price_conversion']) && $unit['price_conversion'] > 0 ? 
+                        $basePrice / $unit['price_conversion'] : 
+                        ($unit['conversion'] > 0 ? $basePrice / $unit['conversion'] : $basePrice);
                     
                     // Calculate biaya bahan per unit using BomJobCosting (same as produksi)
                     $biayaBahanPerUnit = 0;
@@ -152,8 +155,9 @@
                             // For products, use sales data instead of purchase data
                             if($tipe == 'product') {
                                 $convertedPembelianQty = isset($transaction['penjualan_qty']) ? $transaction['penjualan_qty'] * $unit['conversion'] : 0;
+                                $priceConversion = isset($unit['price_conversion']) ? $unit['price_conversion'] : $unit['conversion'];
                                 $convertedPembelianHarga = isset($transaction['penjualan_nilai']) && $transaction['penjualan_qty'] > 0 ? 
-                                    ($unit['conversion'] > 0 ? $transaction['penjualan_nilai'] / $transaction['penjualan_qty'] / $unit['conversion'] : 0) : 0;
+                                    ($priceConversion > 0 ? $transaction['penjualan_nilai'] / $transaction['penjualan_qty'] / $priceConversion : 0) : 0;
                                 $convertedPembelianTotal = isset($transaction['penjualan_nilai']) ? $transaction['penjualan_nilai'] : 0;
                                 
                                 // Add separate penjualan data for products
@@ -162,7 +166,8 @@
                                 $convertedPenjualanTotal = $convertedPembelianTotal;
                             } else {
                                 $convertedPembelianQty = $transaction['pembelian_qty'] * $unit['conversion'];
-                                $convertedPembelianHarga = $unit['conversion'] > 0 ? $transaction['pembelian_nilai'] / max($transaction['pembelian_qty'], 1) / $unit['conversion'] : 0;
+                                $priceConversion = isset($unit['price_conversion']) ? $unit['price_conversion'] : $unit['conversion'];
+                                $convertedPembelianHarga = $priceConversion > 0 ? $transaction['pembelian_nilai'] / max($transaction['pembelian_qty'], 1) / $priceConversion : 0;
                                 $convertedPembelianTotal = $transaction['pembelian_nilai'];
                                 
                                 // No sales data for non-products
@@ -171,10 +176,11 @@
                                 $convertedPenjualanTotal = 0;
                             }
                             
-                            // Convert prices (inverse of quantity conversion)
-                            $convertedSaldoAwalHarga = $unit['conversion'] > 0 ? $transaction['saldo_awal_nilai'] / max($transaction['saldo_awal_qty'], 1) / $unit['conversion'] : 0;
-                            $convertedProduksiHarga = $unit['conversion'] > 0 ? $transaction['produksi_nilai'] / max($transaction['produksi_qty'], 1) / $unit['conversion'] : 0;
-                            $convertedSaldoAkhirHarga = $unit['conversion'] > 0 ? $transaction['saldo_akhir_nilai'] / max($transaction['saldo_akhir_qty'], 1) / $unit['conversion'] : 0;
+                            // Convert prices using price_conversion if available, otherwise use quantity conversion
+                            $priceConversion = isset($unit['price_conversion']) ? $unit['price_conversion'] : $unit['conversion'];
+                            $convertedSaldoAwalHarga = $priceConversion > 0 ? $transaction['saldo_awal_nilai'] / max($transaction['saldo_awal_qty'], 1) / $priceConversion : 0;
+                            $convertedProduksiHarga = $priceConversion > 0 ? $transaction['produksi_nilai'] / max($transaction['produksi_qty'], 1) / $priceConversion : 0;
+                            $convertedSaldoAkhirHarga = $priceConversion > 0 ? $transaction['saldo_akhir_nilai'] / max($transaction['saldo_akhir_qty'], 1) / $priceConversion : 0;
                             
                             $stockData[] = [
                                 'tanggal' => \Carbon\Carbon::parse($transaction['tanggal'])->format('d/m/Y'),
@@ -302,24 +308,24 @@
                                         <tr class="{{ (isset($row['is_opening_balance']) && $row['is_opening_balance']) ? 'table-info' : '' }}">
                                             <td class="text-center">{{ $row['tanggal'] }}</td>
                                             <td class="text-center">{{ $keterangan }}</td>
-                                            <td class="text-end">{{ $row['saldo_awal_qty'] > 0 ? number_format($row['saldo_awal_qty'], ($unit['name'] == 'Gram' ? 0 : 2), ',', '.') . ' ' . $unit['name'] : '' }}</td>
+                                            <td class="text-end">{{ $row['saldo_awal_qty'] > 0 ? number_format($row['saldo_awal_qty'], (in_array($unit['name'], ['Potong', 'Ekor', 'Buah', 'Pcs']) ? 0 : ($unit['name'] == 'Gram' ? 0 : 2)), ',', '.') . ' ' . $unit['name'] : '' }}</td>
                                             <td class="text-end">{{ $row['saldo_awal_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['saldo_awal_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
                                             <td class="text-end">{{ $row['saldo_awal_total'] > 0 ? 'RP' . number_format($row['saldo_awal_total'], 0, ',', '.') : '' }}</td>
                                             @if($tipe == 'product')
                                                 <!-- For products, show sales data instead of purchase data -->
-                                                <td class="text-end">{{ isset($row['penjualan_qty']) && $row['penjualan_qty'] > 0 ? number_format($row['penjualan_qty'], ($unit['name'] == 'Gram' ? 0 : 2), ',', '.') . ' ' . $unit['name'] : '' }}</td>
+                                            <td class="text-end">{{ isset($row['penjualan_qty']) && $row['penjualan_qty'] > 0 ? number_format($row['penjualan_qty'], (in_array($unit['name'], ['Potong', 'Ekor', 'Buah', 'Pcs']) ? 0 : ($unit['name'] == 'Gram' ? 0 : 2)), ',', '.') . ' ' . $unit['name'] : '' }}</td>
                                                 <td class="text-end">{{ isset($row['penjualan_harga']) && $row['penjualan_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['penjualan_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
                                                 <td class="text-end">{{ isset($row['penjualan_total']) && $row['penjualan_total'] > 0 ? 'RP' . number_format($row['penjualan_total'], 0, ',', '.') : '' }}</td>
                                             @else
                                                 <!-- For materials and bahan pendukung, show purchase data -->
-                                                <td class="text-end">{{ $row['pembelian_qty'] > 0 ? number_format($row['pembelian_qty'], ($unit['name'] == 'Gram' ? 0 : 2), ',', '.') . ' ' . $unit['name'] : '' }}</td>
+                                                <td class="text-end">{{ $row['pembelian_qty'] > 0 ? number_format($row['pembelian_qty'], (in_array($unit['name'], ['Potong', 'Ekor', 'Buah', 'Pcs']) ? 0 : ($unit['name'] == 'Gram' ? 0 : 2)), ',', '.') . ' ' . $unit['name'] : '' }}</td>
                                                 <td class="text-end">{{ $row['pembelian_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['pembelian_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
                                                 <td class="text-end">{{ $row['pembelian_total'] > 0 ? 'RP' . number_format($row['pembelian_total'], 0, ',', '.') : '' }}</td>
                                             @endif
-                                            <td class="text-end">{{ $row['produksi_qty'] > 0 ? number_format($row['produksi_qty'], ($unit['name'] == 'Gram' ? 0 : 2), ',', '.') . ' ' . $unit['name'] : '' }}</td>
+                                            <td class="text-end">{{ $row['produksi_qty'] > 0 ? number_format($row['produksi_qty'], (in_array($unit['name'], ['Potong', 'Ekor', 'Buah', 'Pcs']) ? 0 : ($unit['name'] == 'Gram' ? 0 : 2)), ',', '.') . ' ' . $unit['name'] : '' }}</td>
                                             <td class="text-end">{{ $row['produksi_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['produksi_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
                                             <td class="text-end">{{ $row['produksi_total'] > 0 ? 'RP' . number_format($row['produksi_total'], 0, ',', '.') : '' }}</td>
-                                            <td class="text-end fw-bold">{{ number_format($row['saldo_akhir_qty'], ($unit['name'] == 'Gram' ? 0 : 2), ',', '.') }} {{ $unit['name'] }}</td>
+                                            <td class="text-end fw-bold">{{ number_format($row['saldo_akhir_qty'], (in_array($unit['name'], ['Potong', 'Ekor', 'Buah', 'Pcs']) ? 0 : ($unit['name'] == 'Gram' ? 0 : 2)), ',', '.') }} {{ $unit['name'] }}</td>
                                             <td class="text-end">RP{{ rtrim(rtrim(number_format($row['saldo_akhir_harga'], 2, ',', '.'), '0'), ',') }}</td>
                                             <td class="text-end">RP{{ number_format($row['saldo_akhir_total'], 0, ',', '.') }}</td>
                                         </tr>

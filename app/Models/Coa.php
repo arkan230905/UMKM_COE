@@ -12,9 +12,10 @@ class Coa extends Model
     use HasFactory;
 
     protected $table = 'coas';
-    protected $primaryKey = 'kode_akun';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    // Use the actual database primary key (id), not kode_akun
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     
     /**
      * Use 'kode_akun' for route model binding.

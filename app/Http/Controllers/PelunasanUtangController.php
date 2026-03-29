@@ -50,6 +50,41 @@ class PelunasanUtangController extends Controller
     }
 
     /**
+     * Show the form for creating a new payment.
+     */
+    public function create()
+    {
+        // Get unpaid purchases - include both credit and partially paid purchases
+        $pembayarans = Pembelian::where(function($q) {
+                // Credit purchases that are not fully paid
+                $q->where('payment_method', 'credit')
+                  ->where('status', 'belum_lunas');
+            })
+            ->orWhere(function($q) {
+                // Any purchase where terbayar < total_harga (partially paid)
+                $q->whereRaw('terbayar < total_harga')
+                  ->where('status', '!=', 'lunas');
+            })
+            ->orWhere(function($q) {
+                // Any purchase with sisa_pembayaran > 0
+                $q->where('sisa_pembayaran', '>', 0);
+            })
+            ->with('vendor')
+            ->orderBy('tanggal', 'desc')
+            ->get()
+            ->filter(function($pembelian) {
+                // Additional filter to ensure there's actually debt remaining
+                $sisaUtang = ($pembelian->total_harga ?? 0) - ($pembelian->terbayar ?? 0);
+                return $sisaUtang > 0;
+            });
+            
+        // Get kas/bank accounts using helper for consistency
+        $akunKas = \App\Helpers\AccountHelper::getKasBankAccounts();
+        
+        return view('transaksi.pelunasan-utang.create', compact('pembayarans', 'akunKas'));
+    }
+
+    /**
      * Store a newly created payment.
      */
     public function store(Request $request)
@@ -58,6 +93,7 @@ class PelunasanUtangController extends Controller
             'pembelian_id' => 'required|exists:pembelians,id',
             'tanggal' => 'required|date',
             'jumlah' => 'required|numeric|min:1',
+            'akun_kas_id' => 'required|exists:coas,id',
             'keterangan' => 'nullable|string|max:255'
         ]);
 
@@ -65,28 +101,39 @@ class PelunasanUtangController extends Controller
             // Get the purchase
             $pembelian = Pembelian::findOrFail($request->pembelian_id);
             
-            // Calculate remaining debt
-            $sisaUtang = $pembelian->total - $pembelian->terbayar;
+            // Calculate remaining debt using the correct field names
+            $sisaUtang = ($pembelian->total_harga ?? 0) - ($pembelian->terbayar ?? 0);
             
             if ($request->jumlah > $sisaUtang) {
                 return back()->with('error', 'Jumlah pembayaran melebihi sisa utang.');
             }
             
+            // Generate transaction code
+            $kodeTransaksi = 'PU-' . date('Ymd') . '-' . str_pad(PelunasanUtang::whereDate('created_at', today())->count() + 1, 4, '0', STR_PAD_LEFT);
+            
             // Create payment record
             $pelunasan = new PelunasanUtang([
+                'kode_transaksi' => $kodeTransaksi,
                 'pembelian_id' => $pembelian->id,
                 'tanggal' => $request->tanggal,
+                'akun_kas_id' => $request->akun_kas_id,
                 'jumlah' => $request->jumlah,
-                'keterangan' => $request->keterangan
+                'keterangan' => $request->keterangan,
+                'status' => 'lunas',
+                'user_id' => auth()->id()
             ]);
             
             $pelunasan->save();
             
+            // Create journal entry for kas/bank integration
+            \App\Services\JournalService::createJournalFromPelunasanUtang($pelunasan);
+            
             // Update purchase payment status
             $pembelian->terbayar += $request->jumlah;
+            $pembelian->sisa_pembayaran = ($pembelian->total_harga ?? 0) - $pembelian->terbayar;
             
             // Check if fully paid
-            if (abs($pembelian->terbayar - $pembelian->total) < 0.01) {
+            if (abs($pembelian->terbayar - ($pembelian->total_harga ?? 0)) < 0.01) {
                 $pembelian->status = 'lunas';
             } else {
                 $pembelian->status = 'belum_lunas';
@@ -108,5 +155,85 @@ class PelunasanUtangController extends Controller
             ->findOrFail($id);
             
         return view('transaksi.pelunasan-utang.show', compact('pembelian'));
+    }
+
+    /**
+     * Print payment receipt.
+     */
+    public function print($id)
+    {
+        $pelunasanUtang = PelunasanUtang::with([
+            'pembelian.vendor', 
+            'pembelian.pembelianDetails.bahanBaku'
+        ])->findOrFail($id);
+        
+        return view('transaksi.pelunasan-utang.print', compact('pelunasanUtang'));
+    }
+
+    /**
+     * Remove the specified payment from storage.
+     */
+    public function destroy($id)
+    {
+        try {
+            DB::beginTransaction();
+            
+            $pelunasan = PelunasanUtang::with('pembelian')->findOrFail($id);
+            
+            // Delete journal entries first
+            $journalService = new \App\Services\JournalService();
+            $journalService->deleteByRef('debt_payment', $pelunasan->id);
+            
+            // Restore payment status in purchase
+            $pembelian = $pelunasan->pembelian;
+            $pembelian->terbayar -= $pelunasan->jumlah;
+            
+            // Update payment status
+            if ($pembelian->terbayar < $pembelian->total_harga) {
+                $pembelian->status = 'belum_lunas';
+            }
+            $pembelian->save();
+            
+            // Delete the payment record
+            $pelunasan->delete();
+            
+            DB::commit();
+            
+            return redirect()->route('transaksi.pelunasan-utang.index')
+                ->with('success', 'Data pelunasan utang berhasil dihapus');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error saat menghapus pelunasan utang: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Get purchase details for AJAX.
+     */
+    public function getPembelian($id)
+    {
+        $pembelian = Pembelian::with('vendor')
+            ->where('id', $id)
+            ->firstOrFail();
+        
+        $sisaUtang = max(0, ($pembelian->total_harga ?? 0) - ($pembelian->terbayar ?? 0));
+        
+        if ($sisaUtang <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pembelian ini sudah lunas'
+            ], 400);
+        }
+            
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'sisa_utang' => $sisaUtang,
+                'vendor' => $pembelian->vendor->nama_vendor ?? '-',
+                'nomor_pembelian' => $pembelian->nomor_pembelian ?? 'PB-' . $pembelian->id
+            ]
+        ]);
     }
 }

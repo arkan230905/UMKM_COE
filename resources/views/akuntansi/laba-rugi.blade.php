@@ -44,7 +44,7 @@
                             @php $sumRev = 0; @endphp
                             @foreach($revenue as $acc)
                                 @php
-                                    $q = \App\Models\JournalLine::where('account_id',$acc->id)->with('entry');
+                                    $q = \App\Models\JournalLine::where('coa_id',$acc->id)->with('entry');
                                     if ($from) { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','>=',$from)); }
                                     if ($to)   { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','<=',$to)); }
                                     $row = $q->selectRaw('COALESCE(SUM(credit - debit),0) as bal')->first();
@@ -53,8 +53,8 @@
                                 @endphp
                                 @if($bal != 0)
                                 <tr>
-                                    <td class="ps-4">{{ $acc->name }}</td>
-                                    <td class="text-muted small">{{ $acc->code }}</td>
+                                    <td class="ps-4">{{ $acc->nama_akun }}</td>
+                                    <td class="text-muted small">{{ $acc->kode_akun }}</td>
                                     <td class="text-end">Rp {{ number_format($bal,0,',','.') }}</td>
                                 </tr>
                                 @endif
@@ -78,7 +78,7 @@
                             @php $sumExp = 0; @endphp
                             @foreach($expense as $acc)
                                 @php
-                                    $q = \App\Models\JournalLine::where('account_id',$acc->id)->with('entry');
+                                    $q = \App\Models\JournalLine::where('coa_id',$acc->id)->with('entry');
                                     if ($from) { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','>=',$from)); }
                                     if ($to)   { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','<=',$to)); }
                                     $row = $q->selectRaw('COALESCE(SUM(debit - credit),0) as bal')->first();
@@ -87,8 +87,8 @@
                                 @endphp
                                 @if($bal != 0)
                                 <tr>
-                                    <td class="ps-4">{{ $acc->name }}</td>
-                                    <td class="text-muted small">{{ $acc->code }}</td>
+                                    <td class="ps-4">{{ $acc->nama_akun }}</td>
+                                    <td class="text-muted small">{{ $acc->kode_akun }}</td>
                                     <td class="text-end">Rp {{ number_format($bal,0,',','.') }}</td>
                                 </tr>
                                 @endif

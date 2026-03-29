@@ -422,7 +422,7 @@ class ExpensePaymentController extends Controller
         // Hitung total debit dan kredit dari jurnal
         $saldo = \DB::table('journal_lines as jl')
             ->join('journal_entries as je', 'je.id', '=', 'jl.journal_entry_id')
-            ->where('jl.account_id', $coa->id)
+            ->where('jl.coa_id', $coa->id)
             ->selectRaw('COALESCE(SUM(jl.debit), 0) as total_debit, COALESCE(SUM(jl.credit), 0) as total_credit')
             ->first();
 
