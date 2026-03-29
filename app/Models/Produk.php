@@ -201,4 +201,20 @@ class Produk extends Model
     {
         return $this->getActualHPP();
     }
+    
+    /**
+     * Get the COA persediaan for the Produk
+     */
+    public function coaPersediaan()
+    {
+        return $this->belongsTo(Coa::class, 'coa_persediaan_id', 'kode_akun');
+    }
+    
+    /**
+     * Get the COA HPP for the Produk
+     */
+    public function coaHpp()
+    {
+        return $this->belongsTo(Coa::class, 'coa_hpp_id', 'kode_akun');
+    }
 }

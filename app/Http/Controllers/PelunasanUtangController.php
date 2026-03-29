@@ -151,10 +151,12 @@ class PelunasanUtangController extends Controller
      */
     public function show($id)
     {
-        $pembelian = Pembelian::with(['vendor', 'pelunasan'])
-            ->findOrFail($id);
-            
-        return view('transaksi.pelunasan-utang.show', compact('pembelian'));
+        $pelunasanUtang = PelunasanUtang::with([
+            'pembelian.vendor', 
+            'pembelian.pembelianDetails.bahanBaku'
+        ])->findOrFail($id);
+        
+        return view('transaksi.pelunasan-utang.show', compact('pelunasanUtang'));
     }
 
     /**

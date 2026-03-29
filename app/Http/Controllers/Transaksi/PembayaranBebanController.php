@@ -121,35 +121,30 @@ class PembayaranBebanController extends Controller
                 throw new \Exception('Gagal memperbarui saldo akun');
             }
 
-            // Generate nomor jurnal
-            $lastJurnal = Jurnal::withTrashed()->latest('id')->first();
-            $jurnalCount = $lastJurnal ? ($lastJurnal->id + 1) : 1;
-            $noJurnal = 'J-' . date('Ymd') . '-' . str_pad($jurnalCount, 5, '0', STR_PAD_LEFT);
-            
             // Data jurnal untuk beban (debit)
             $jurnalBeban = [
-                'no_jurnal' => $noJurnal,
                 'tanggal' => $request->tanggal,
                 'coa_id' => $beban->id,
                 'keterangan' => 'Pembayaran Beban: ' . $request->keterangan,
                 'debit' => $request->jumlah,
                 'kredit' => 0,
                 'referensi' => $kodeTransaksi,
-                'user_id' => auth()->id(),
+                'tipe_referensi' => 'pembayaran_beban',
+                'created_by' => auth()->id(),
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
             
             // Data jurnal untuk kas (kredit)
             $jurnalKas = [
-                'no_jurnal' => $noJurnal,
                 'tanggal' => $request->tanggal,
                 'coa_id' => $kas->id,
                 'keterangan' => 'Pembayaran Beban: ' . $request->keterangan,
                 'debit' => 0,
                 'kredit' => $request->jumlah,
                 'referensi' => $kodeTransaksi,
-                'user_id' => auth()->id(),
+                'tipe_referensi' => 'pembayaran_beban',
+                'created_by' => auth()->id(),
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
