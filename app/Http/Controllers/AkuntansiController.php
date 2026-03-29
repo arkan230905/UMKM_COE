@@ -24,63 +24,106 @@ class AkuntansiController extends Controller
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
 
-        // Gunakan query dengan leftJoin untuk memastikan nama akun selalu diambil
-        $query = \DB::table('journal_entries as je')
+        // Ambil data dari sistem baru (journal_entries + journal_lines)
+        $newJournalQuery = \DB::table('journal_entries as je')
             ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
-            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id') // Perbaikan: join berdasarkan coa_id
+            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
             ->select([
-                'je.*',
-                'jl.id as line_id',
+                'je.tanggal',
+                'je.memo',
                 'jl.debit',
-                'jl.credit',
+                'jl.credit as kredit', // Standardize to 'kredit'
                 'jl.memo as line_memo',
                 'coas.kode_akun',
                 'coas.nama_akun',
-                'coas.tipe_akun'
+                'coas.tipe_akun',
+                \DB::raw("'new' as system_type"),
+                \DB::raw("CONCAT('JE-', je.id) as ref_code"),
+                \DB::raw("je.ref_type as ref_type"),
+                \DB::raw("je.ref_id as ref_id")
             ])
             ->where(function($q) {
                 $q->where('jl.debit', '>', 0)
                   ->orWhere('jl.credit', '>', 0);
-            })
-            ->orderBy('je.tanggal','asc')
-            ->orderBy('je.id','asc')
-            ->orderBy('jl.id','asc');
+            });
             
-        if ($from) { $query->whereDate('je.tanggal','>=',$from); }
-        if ($to)   { $query->whereDate('je.tanggal','<=',$to); }
-        if ($refType) { $query->where('je.ref_type', $refType); }
-        if ($refId)   { $query->where('je.ref_id', $refId); }
+        // Ambil data dari sistem lama (jurnal_umum)
+        $oldJournalQuery = \DB::table('jurnal_umum as ju')
+            ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
+            ->select([
+                'ju.tanggal',
+                'ju.keterangan as memo',
+                'ju.debit',
+                'ju.kredit',
+                'ju.keterangan as line_memo',
+                'coas.kode_akun',
+                'coas.nama_akun',
+                'coas.tipe_akun',
+                \DB::raw("'old' as system_type"),
+                \DB::raw("CONCAT('JU-', ju.id) as ref_code"),
+                \DB::raw("ju.tipe_referensi as ref_type"),
+                \DB::raw("NULL as ref_id")
+            ])
+            ->where(function($q) {
+                $q->where('ju.debit', '>', 0)
+                  ->orWhere('ju.kredit', '>', 0);
+            });
+
+        // Gabungkan kedua query
+        $query = $oldJournalQuery->unionAll($newJournalQuery);
+
+        // Terapkan filter
+        if ($from) { 
+            $query->whereDate('tanggal','>=',$from); 
+        }
+        if ($to)   { 
+            $query->whereDate('tanggal','<=',$to); 
+        }
+        if ($refType) { 
+            $query->where('ref_type', $refType); 
+        }
+        if ($refId)   { 
+            $query->where('ref_id', $refId); 
+        }
         if ($accountCode) { 
-            $query->where('coas.kode_akun', $accountCode);
+            $query->where('kode_akun', $accountCode);
         }
         
-        $results = $query->get();
+        // Wrap query untuk memungkinkan ordering pada union
+        $wrappedQuery = \DB::table(\DB::raw("({$query->toSql()}) as combined"))
+            ->mergeBindings($query)
+            ->orderBy('tanggal','asc')
+            ->orderBy('ref_code','asc');
+
+        $results = $wrappedQuery->get();
         
-        // Group results by journal entry untuk tampilan per transaksi
+        // Group results by ref_code untuk tampilan per transaksi
         $entries = collect();
-        $groupedResults = $results->groupBy('id');
+        $groupedResults = $results->groupBy('ref_code');
         
-        foreach ($groupedResults as $entryId => $lines) {
+        foreach ($groupedResults as $refCode => $lines) {
             $firstLine = $lines->first();
             
-            // Skip jika tidak ada lines yang valid
             if ($lines->isEmpty()) continue;
             
             $entry = (object) [
-                'id' => $firstLine->id,
+                'id' => $refCode,
                 'tanggal' => $firstLine->tanggal,
                 'ref_type' => $firstLine->ref_type,
                 'ref_id' => $firstLine->ref_id,
                 'memo' => $firstLine->memo,
+                'system_type' => $firstLine->system_type,
                 'lines' => $lines->map(function($line) {
                     return (object) [
-                        'id' => $line->line_id,
+                        'id' => $line->ref_code,
+                        'tanggal' => $line->tanggal, // Add tanggal field
                         'debit' => $line->debit,
-                        'credit' => $line->credit,
+                        'kredit' => $line->kredit, // Use standardized 'kredit' field
                         'memo' => $line->line_memo,
                         'account_code' => $line->kode_akun,
                         'account_name' => $line->nama_akun,
                         'account_type' => $line->tipe_akun,
+                        'system_type' => $line->system_type, // Add system_type field
                         'coa' => (object) [
                             'kode_akun' => $line->kode_akun,
                             'nama_akun' => $line->nama_akun,
