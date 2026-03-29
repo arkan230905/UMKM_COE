@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\JournalLine;
 use App\Models\JournalEntry;
-use App\Models\Account;
+use App\Models\Coa;
 
 class DebugCashBankReport extends Command
 {
@@ -33,17 +33,17 @@ class DebugCashBankReport extends Command
         // 1. Check available cash/bank accounts
         $this->info('');
         $this->info('1. Available Cash/Bank Accounts:');
-        $cashBankAccounts = Account::whereIn('code', ['101', '102', '1101', '1102'])->get();
+        $cashBankAccounts = Coa::whereIn('kode_akun', ['101', '102', '1101', '1102'])->get();
         
-        foreach ($cashBankAccounts as $account) {
-            $this->line('  ' . $account->code . ' - ' . $account->name);
+        foreach ($cashBankAccounts as $coa) {
+            $this->line('  ' . $coa->kode_akun . ' - ' . $coa->nama_akun);
         }
         
         // 2. Check journal entries for returns
         $this->info('');
         $this->info('2. Journal Entries for Returns:');
         $returnEntries = JournalEntry::where('ref_type', 'purchase_return')
-            ->with('lines.account')
+            ->with('lines.coa')
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -52,8 +52,8 @@ class DebugCashBankReport extends Command
             $this->line('  Entry #' . $entry->id . ' - ' . $entry->memo . ' (' . $entry->tanggal . ')');
             
             foreach ($entry->lines as $line) {
-                $accountName = $line->account ? $line->account->name : 'Unknown';
-                $this->line('    ' . $line->account->code . ' - ' . $accountName . 
+                $coaName = $line->coa ? $line->coa->nama_akun : 'Unknown';
+                $this->line('    ' . $line->coa->kode_akun . ' - ' . $coaName . 
                     ' | Debit: ' . number_format($line->debit, 2) . 
                     ' | Credit: ' . number_format($line->credit, 2));
             }
@@ -63,9 +63,9 @@ class DebugCashBankReport extends Command
         $this->info('');
         $this->info('3. Cash Inflow from Returns:');
         
-        $kasAccount = Account::where('code', '101')->first();
-        if ($kasAccount) {
-            $cashInflow = JournalLine::where('account_id', $kasAccount->id)
+        $kasCoa = Coa::where('kode_akun', '101')->first();
+        if ($kasCoa) {
+            $cashInflow = JournalLine::where('coa_id', $kasCoa->id)
                 ->whereHas('entry', function($query) {
                     $query->where('ref_type', 'purchase_return');
                 })
@@ -78,8 +78,8 @@ class DebugCashBankReport extends Command
         $this->info('');
         $this->info('4. All Cash Transactions (Recent):');
         
-        if ($kasAccount) {
-            $allCashTransactions = JournalLine::where('account_id', $kasAccount->id)
+        if ($kasCoa) {
+            $allCashTransactions = JournalLine::where('coa_id', $kasCoa->id)
                 ->with('entry')
                 ->orderBy('created_at', 'desc')
                 ->limit(10)

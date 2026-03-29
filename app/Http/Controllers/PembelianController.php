@@ -559,6 +559,20 @@ class PembelianController extends Controller
                     'total_bahan_pendukung' => $totalBahanPendukung,
                 ]);
 
+                // Create journal entries for accounting integration
+                try {
+                    \App\Services\JournalService::createJournalFromPembelian($pembelian);
+                    \Log::info('Journal entries created successfully for pembelian', [
+                        'pembelian_id' => $pembelian->id,
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to create journal entries for pembelian', [
+                        'pembelian_id' => $pembelian->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    // Don't fail the transaction, just log the error
+                }
+
                 return redirect()->route('transaksi.pembelian.index')
                     ->with('success', 'Data pembelian berhasil disimpan!');
             });
@@ -671,6 +685,158 @@ class PembelianController extends Controller
                 'faktor_konversi_manual' => $faktorKonversi,
                 'keterangan' => 'Konversi manual sub satuan 3'
             ]);
+        }
+    }
+    
+    /**
+     * Remove the specified pembelian from storage.
+     * This will cascade delete all related data to maintain data integrity.
+     */
+    /**
+     * Remove the specified pembelian from storage.
+     * This will cascade delete all related data to maintain data integrity.
+     */
+    public function destroy($id)
+    {
+        try {
+            \DB::beginTransaction();
+            
+            // Find pembelian including soft deleted ones
+            $pembelian = \App\Models\Pembelian::withTrashed()->with([
+                'pembelianDetails',
+                'pelunasan',
+                'apSettlements'
+            ])->findOrFail($id);
+            
+            // Log the deletion attempt
+            \Log::info('Attempting to delete pembelian', [
+                'id' => $pembelian->id,
+                'nomor_pembelian' => $pembelian->nomor_pembelian,
+                'total_harga' => $pembelian->total_harga,
+                'user_id' => auth()->id()
+            ]);
+            
+            // 1. Delete related PelunasanUtang records using raw SQL for safety
+            \DB::table('pelunasan_utangs')->where('pembelian_id', $pembelian->id)->delete();
+            \Log::info('Deleted pelunasan utang records');
+            
+            // 2. Delete related ApSettlement records
+            \DB::table('ap_settlements')->where('pembelian_id', $pembelian->id)->delete();
+            \Log::info('Deleted AP settlement records');
+            
+            // 3. Delete related PurchaseReturn records
+            $purchaseReturnIds = \DB::table('purchase_returns')
+                ->where('pembelian_id', $pembelian->id)
+                ->pluck('id');
+            
+            if ($purchaseReturnIds->count() > 0) {
+                // Delete return items first
+                \DB::table('purchase_return_items')
+                    ->whereIn('purchase_return_id', $purchaseReturnIds)
+                    ->delete();
+                
+                // Delete returns
+                \DB::table('purchase_returns')
+                    ->where('pembelian_id', $pembelian->id)
+                    ->delete();
+                    
+                \Log::info('Deleted purchase return records', ['count' => $purchaseReturnIds->count()]);
+            }
+            
+            // 4. Delete related Retur records
+            \DB::table('returs')->where('pembelian_id', $pembelian->id)->delete();
+            \Log::info('Deleted retur records');
+            
+            // 5. Reverse stock movements for each pembelian detail
+            foreach ($pembelian->pembelianDetails as $detail) {
+                $itemId = $detail->bahan_baku_id ?? $detail->bahan_pendukung_id;
+                
+                if ($itemId) {
+                    // Update stock in bahan_bakus or bahan_pendukungs table
+                    if ($detail->bahan_baku_id) {
+                        \DB::table('bahan_bakus')
+                            ->where('id', $detail->bahan_baku_id)
+                            ->decrement('stok_tersedia', $detail->jumlah);
+                    } elseif ($detail->bahan_pendukung_id) {
+                        \DB::table('bahan_pendukungs')
+                            ->where('id', $detail->bahan_pendukung_id)
+                            ->decrement('stok_tersedia', $detail->jumlah);
+                    }
+                    
+                    // Create reverse stock movement
+                    \DB::table('stock_movements')->insert([
+                        'item_type' => 'material',
+                        'item_id' => $itemId,
+                        'direction' => 'out',
+                        'qty' => $detail->jumlah,
+                        'unit_cost' => $detail->harga_satuan,
+                        'tanggal' => now(),
+                        'keterangan' => 'Pembatalan pembelian #' . $pembelian->nomor_pembelian,
+                        'ref_type' => 'pembelian_cancellation',
+                        'ref_id' => $pembelian->id,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+            }
+            
+            // 6. Delete journal entries related to this pembelian
+            $journalEntryIds = \DB::table('journal_entries')
+                ->where('ref_type', 'pembelian')
+                ->where('ref_id', $pembelian->id)
+                ->pluck('id');
+                
+            if ($journalEntryIds->count() > 0) {
+                // Delete journal lines first
+                \DB::table('journal_lines')
+                    ->whereIn('journal_entry_id', $journalEntryIds)
+                    ->delete();
+                
+                // Delete journal entries
+                \DB::table('journal_entries')
+                    ->where('ref_type', 'pembelian')
+                    ->where('ref_id', $pembelian->id)
+                    ->delete();
+                    
+                \Log::info('Deleted journal entries', ['count' => $journalEntryIds->count()]);
+            }
+            
+            // 7. Delete pembelian detail konversi records
+            $detailIds = $pembelian->pembelianDetails->pluck('id');
+            if ($detailIds->count() > 0) {
+                \DB::table('pembelian_detail_konversis')
+                    ->whereIn('pembelian_detail_id', $detailIds)
+                    ->delete();
+            }
+            
+            // 8. Delete pembelian details
+            \DB::table('pembelian_details')->where('pembelian_id', $pembelian->id)->delete();
+            \Log::info('Deleted pembelian details');
+            
+            // 9. Finally delete the pembelian record permanently
+            \DB::table('pembelians')->where('id', $pembelian->id)->delete();
+            
+            \DB::commit();
+            
+            \Log::info('Pembelian successfully deleted', [
+                'id' => $id,
+                'nomor_pembelian' => $pembelian->nomor_pembelian
+            ]);
+            
+            return redirect()->route('transaksi.pembelian.index')
+                ->with('success', 'Pembelian berhasil dihapus beserta semua data terkaitnya.');
+                
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            
+            \Log::error('Error deleting pembelian', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->back()
+                ->with('error', 'Gagal menghapus pembelian: ' . $e->getMessage());
         }
     }
 }

@@ -41,32 +41,7 @@ class AccountHelper
             ->orderBy('kode_akun')
             ->get();
             
-        if ($fallbackCoas->count() > 0) {
-            return $fallbackCoas;
-        }
-        
-        // Last fallback: cari di accounts table yang memiliki transaksi
-        $activeAccountCodes = DB::table('accounts')
-            ->join('journal_lines', 'accounts.id', '=', 'journal_lines.account_id')
-            ->whereIn('accounts.code', ['1101', '1102', '101', '102', '1110', '1120'])
-            ->distinct()
-            ->pluck('accounts.code')
-            ->toArray();
-        
-        $virtualCoas = collect();
-        foreach ($activeAccountCodes as $code) {
-            $accountRecord = DB::table('accounts')->where('code', $code)->first();
-            if ($accountRecord) {
-                $virtualCoa = new Coa();
-                $virtualCoa->kode_akun = $accountRecord->code;
-                $virtualCoa->nama_akun = $accountRecord->name;
-                $virtualCoa->tipe_akun = 'Asset';
-                $virtualCoa->saldo_awal = 0;
-                $virtualCoas->push($virtualCoa);
-            }
-        }
-        
-        return $virtualCoas->sortBy('kode_akun');
+        return $fallbackCoas;
     }
     
     /**
@@ -76,28 +51,10 @@ class AccountHelper
      */
     public static function getKasAccounts()
     {
-        // Try COA first
-        $coaAccounts = Coa::whereIn('kode_akun', ['1110'])
+        return Coa::whereIn('kode_akun', ['1110', '101'])
             ->where('tipe_akun', 'Asset')
             ->orderBy('kode_akun')
             ->get();
-            
-        if ($coaAccounts->count() > 0) {
-            return $coaAccounts;
-        }
-        
-        // Fallback to accounts table
-        $accountRecord = DB::table('accounts')->where('code', '101')->first();
-        if ($accountRecord) {
-            $virtualCoa = new Coa();
-            $virtualCoa->kode_akun = $accountRecord->code;
-            $virtualCoa->nama_akun = $accountRecord->name;
-            $virtualCoa->tipe_akun = 'Asset';
-            $virtualCoa->saldo_awal = 0;
-            return collect([$virtualCoa]);
-        }
-        
-        return collect();
     }
     
     /**
@@ -107,28 +64,10 @@ class AccountHelper
      */
     public static function getBankAccounts()
     {
-        // Try COA first
-        $coaAccounts = Coa::whereIn('kode_akun', ['1120'])
+        return Coa::whereIn('kode_akun', ['1120', '102'])
             ->where('tipe_akun', 'Asset')
             ->orderBy('kode_akun')
             ->get();
-            
-        if ($coaAccounts->count() > 0) {
-            return $coaAccounts;
-        }
-        
-        // Fallback to accounts table
-        $accountRecord = DB::table('accounts')->where('code', '102')->first();
-        if ($accountRecord) {
-            $virtualCoa = new Coa();
-            $virtualCoa->kode_akun = $accountRecord->code;
-            $virtualCoa->nama_akun = $accountRecord->name;
-            $virtualCoa->tipe_akun = 'Asset';
-            $virtualCoa->saldo_awal = 0;
-            return collect([$virtualCoa]);
-        }
-        
-        return collect();
     }
     
     /**
@@ -166,26 +105,23 @@ class AccountHelper
      */
     public static function getCurrentBalance($kodeAkun)
     {
-        // Cari account_id yang sesuai dengan kode_akun ini
-        $account = DB::table('accounts')->where('code', $kodeAkun)->first();
-        if (!$account) {
-            // Jika tidak ada di accounts, gunakan saldo awal COA
-            $coa = Coa::where('kode_akun', $kodeAkun)->first();
-            return is_numeric($coa->saldo_awal ?? 0) ? (float) ($coa->saldo_awal ?? 0) : 0;
+        // Cari COA berdasarkan kode_akun
+        $coa = Coa::where('kode_akun', $kodeAkun)->first();
+        if (!$coa) {
+            return 0;
         }
+        
+        // Saldo awal dari COA
+        $saldoAwal = is_numeric($coa->saldo_awal ?? 0) ? (float) ($coa->saldo_awal ?? 0) : 0;
         
         // Hitung saldo dari journal lines
         $saldo = DB::table('journal_lines')
             ->join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.account_id', $account->id)
+            ->where('journal_lines.coa_id', $coa->id)
             ->selectRaw('SUM(debit) - SUM(credit) as saldo')
             ->value('saldo') ?? 0;
             
-        // Tambahkan saldo awal dari COA jika ada
-        $coa = Coa::where('kode_akun', $kodeAkun)->first();
-        $saldoAwal = is_numeric($coa->saldo_awal ?? 0) ? (float) ($coa->saldo_awal ?? 0) : 0;
-        
-        return $saldo + $saldoAwal;
+        return $saldoAwal + $saldo;
     }
     
     /**

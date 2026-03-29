@@ -132,8 +132,8 @@ class PenggajianController extends Controller
                 $gajiDasar = $gajiPokok;
             }
 
-            // Total gaji = gaji dasar + tunjangan - asuransi + bonus - potongan
-            $totalGaji = $gajiDasar + $tunjangan - $asuransi + $bonus - $potongan;
+            // Total gaji = gaji dasar + asuransi + tunjangan + bonus - potongan
+            $totalGaji = $gajiDasar + $asuransi + $tunjangan + $bonus - $potongan;
 
             // Dapatkan akun kas/bank
             $coaKasBank = Coa::where('kode_akun', $request->coa_kasbank)->first();
@@ -181,6 +181,26 @@ class PenggajianController extends Controller
                 'potongan' => $potongan,
                 'status_pembayaran' => 'lunas'
             ]);
+
+            // Create journal entries for accounting integration
+            try {
+                $journalCreated = $this->createJournalEntry($penggajian, $pegawai);
+                if ($journalCreated) {
+                    \Log::info('Journal entries created successfully for payroll', [
+                        'penggajian_id' => $penggajian->id,
+                    ]);
+                } else {
+                    \Log::warning('Failed to create journal entries for payroll', [
+                        'penggajian_id' => $penggajian->id,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to create journal entries for payroll', [
+                    'penggajian_id' => $penggajian->id,
+                    'error' => $e->getMessage(),
+                ]);
+                // Don't fail the transaction, just log the error
+            }
 
             // Commit transaksi
             DB::commit();
@@ -298,7 +318,7 @@ class PenggajianController extends Controller
             // Hitung saldo dari jurnal
             $saldo = \DB::table('journal_entries as je')
                 ->join('journal_lines as jl', 'je.id', '=', 'jl.journal_entry_id')
-                ->where('jl.account_id', $coa->id)
+                ->where('jl.coa_id', $coa->id)
                 ->selectRaw('COALESCE(SUM(jl.debit - jl.credit), 0) as saldo')
                 ->first();
                 

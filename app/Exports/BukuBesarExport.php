@@ -2,7 +2,6 @@
 
 namespace App\Exports;
 
-use App\Models\Account;
 use App\Models\JournalLine;
 use App\Models\Coa;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
@@ -22,18 +21,17 @@ class BukuBesarExport implements WithMultipleSheets
     {
         $sheets = [];
         
-        // Get all accounts
-        $accounts = Account::orderBy('code')->get();
+        // Get all COA accounts instead of Account model
+        $coas = Coa::orderBy('kode_akun')->get();
         
-        foreach ($accounts as $account) {
-            // Ambil saldo awal dari COA
-            $coa = Coa::where('kode_akun', $account->code)->first();
-            $saldoAwalCoa = $coa ? (float)($coa->saldo_awal ?? 0) : 0;
+        foreach ($coas as $coa) {
+            // Saldo awal dari COA
+            $saldoAwalCoa = (float)($coa->saldo_awal ?? 0);
             
             // Hitung mutasi sebelum periode
             $mutasiSebelumPeriode = 0.0;
             if ($this->from) {
-                $mutasiSebelumPeriode = JournalLine::where('account_id', $account->id)
+                $mutasiSebelumPeriode = JournalLine::where('coa_id', $coa->id)
                     ->whereHas('entry', function($qq) {
                         $qq->whereDate('tanggal', '<', $this->from);
                     })
@@ -46,7 +44,7 @@ class BukuBesarExport implements WithMultipleSheets
             
             // Ambil transaksi dalam periode
             $q = JournalLine::with(['entry'])
-                ->where('account_id', $account->id)
+                ->where('coa_id', $coa->id)
                 ->orderBy('id', 'asc');
             
             if ($this->from) {
@@ -68,7 +66,7 @@ class BukuBesarExport implements WithMultipleSheets
             }
             
             // Tambahkan sheet untuk akun ini
-            $sheets[] = new BukuBesarSheetExport($account, $lines, $saldoAwal, $this->from, $this->to);
+            $sheets[] = new BukuBesarSheetExport($coa, $lines, $saldoAwal, $this->from, $this->to);
         }
         
         return $sheets;
@@ -88,15 +86,15 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class BukuBesarSheetExport implements FromCollection, WithHeadings, WithStyles, WithTitle, WithColumnWidths
 {
-    protected $account;
+    protected $coa;
     protected $lines;
     protected $saldoAwal;
     protected $from;
     protected $to;
 
-    public function __construct($account, $lines, $saldoAwal, $from, $to)
+    public function __construct($coa, $lines, $saldoAwal, $from, $to)
     {
-        $this->account = $account;
+        $this->coa = $coa;
         $this->lines = $lines;
         $this->saldoAwal = $saldoAwal;
         $this->from = $from;
@@ -205,7 +203,7 @@ class BukuBesarSheetExport implements FromCollection, WithHeadings, WithStyles, 
     public function title(): string
     {
         // Nama sheet (max 31 karakter)
-        $title = $this->account->code . ' ' . $this->account->name;
+        $title = $this->coa->kode_akun . ' ' . $this->coa->nama_akun;
         return substr($title, 0, 31);
     }
 

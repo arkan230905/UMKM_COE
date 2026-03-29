@@ -46,10 +46,10 @@ class ApSettlementController extends Controller
         // Cek saldo kas/bank cukup untuk pelunasan
         $cashCode = (string)($request->coa_kasbank ?? '101');
         $saldoAwal = (float) (\App\Models\Coa::where('kode_akun', $cashCode)->value('saldo_awal') ?? 0);
-        $acc = \App\Models\Account::where('code', $cashCode)->first();
+        $coa = \App\Models\Coa::where('kode_akun', $cashCode)->first();
         $journalBalance = 0.0;
-        if ($acc) {
-            $journalBalance = (float) (\App\Models\JournalLine::where('account_id', $acc->id)
+        if ($coa) {
+            $journalBalance = (float) (\App\Models\JournalLine::where('coa_id', $coa->id)
                 ->selectRaw('COALESCE(SUM(debit - credit),0) as bal')->value('bal') ?? 0);
         }
         $cashBalance = $saldoAwal + $journalBalance;
@@ -139,10 +139,10 @@ class ApSettlementController extends Controller
         
         if ($selisih > 0) {
             $saldoAwal = (float) (\App\Models\Coa::where('kode_akun', $cashCode)->value('saldo_awal') ?? 0);
-            $acc = \App\Models\Account::where('code', $cashCode)->first();
+            $coa = \App\Models\Coa::where('kode_akun', $cashCode)->first();
             $journalBalance = 0.0;
-            if ($acc) {
-                $journalBalance = (float) (\App\Models\JournalLine::where('account_id', $acc->id)
+            if ($coa) {
+                $journalBalance = (float) (\App\Models\JournalLine::where('coa_id', $coa->id)
                     ->selectRaw('COALESCE(SUM(debit - credit),0) as bal')->value('bal') ?? 0);
             }
             $cashBalance = $saldoAwal + $journalBalance;
