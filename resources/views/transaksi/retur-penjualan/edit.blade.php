@@ -142,7 +142,7 @@
                                             <input type="number" name="details[{{ $index }}][harga_barang]" class="form-control harga-barang" step="0.01" min="0" value="{{ $detail->harga_barang }}" required>
                                         </td>
                                         <td>
-                                            <input type="text" class="form-control subtotal" readonly value="{{ $detail->subtotal }}">
+                                            <input type="text" class="form-control subtotal" readonly value="Rp {{ number_format($detail->subtotal, 0, ',', '.') }}">
                                         </td>
                                         <td class="text-center">
                                             <button type="button" class="btn btn-sm btn-danger remove-detail">
@@ -203,7 +203,7 @@ $(document).ready(function() {
     $('#penjualan_id').change(function() {
         const penjualanId = $(this).val();
         if (penjualanId) {
-            $.get(`/retur-penjualan/get-penjualan-details/${penjualanId}`, function(data) {
+            $.get(`{{ route('transaksi.retur-penjualan.get-penjualan-details', ':id') }}`.replace(':id', penjualanId), function(data) {
                 penjualanDetails = data;
                 // Clear existing details and reload
                 $('#detailTable tbody').empty();
@@ -320,7 +320,7 @@ $(document).ready(function() {
         const harga = parseFloat(row.find('.harga-barang').val()) || 0;
         const subtotal = qty * harga;
         
-        row.find('.subtotal').val(subtotal.toFixed(2));
+        row.find('.subtotal').val('Rp ' + subtotal.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
     }
 
     function updateTotals() {
@@ -328,7 +328,10 @@ $(document).ready(function() {
         let jenisRetur = $('#jenis_retur').val();
         
         $('.subtotal').each(function() {
-            totalHarga += parseFloat($(this).val()) || 0;
+            const val = $(this).val();
+            // Parse nilai dari format "Rp 150.000" ke number
+            const numVal = parseFloat(val.replace(/Rp/g, '').replace(/\./g, '').replace(/,/g, '')) || 0;
+            totalHarga += numVal;
         });
 
         let ppn = 0;
@@ -343,9 +346,9 @@ $(document).ready(function() {
             $('#totalReturInfo').hide();
         }
 
-        $('#totalHarga').text(totalHarga.toFixed(2));
-        $('#totalPPN').text(ppn.toFixed(2));
-        $('#totalRetur').text(totalRetur.toFixed(2));
+        $('#totalHarga').text(totalHarga.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
+        $('#totalPPN').text(ppn.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
+        $('#totalRetur').text(totalRetur.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
     }
 
     // Form validation

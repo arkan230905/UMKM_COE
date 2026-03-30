@@ -31,6 +31,8 @@ use App\Models\Vendor;
 use App\Models\Satuan;
 use App\Models\Coa;
 use App\Observers\ConversionConsistencyObserver;
+use App\Models\User;
+use App\Observers\PelangganUserObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -65,6 +67,9 @@ class AppServiceProvider extends ServiceProvider
         PembelianDetail::observe(PembelianDetailObserver::class);
         ProduksiDetail::observe(ProduksiDetailObserver::class);
         PenjualanDetail::observe(PenjualanDetailObserver::class);
+
+        // Sync pelanggan dari users ke pelanggans
+        User::observe(PelangganUserObserver::class);
 
         // View composer global untuk semua tampilan
         View::composer('*', function ($view) {

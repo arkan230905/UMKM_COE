@@ -240,7 +240,7 @@
                         <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn btn-primary">
                             <i class="fas fa-book me-2"></i>Lihat Jurnal
                         </a>
-                        <a href="{{ route('transaksi.retur-penjualan.create', ['penjualan_id' => $penjualan->id]) }}" class="btn btn-info">
+                        <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn btn-info">
                             <i class="fas fa-undo me-2"></i>Proses Retur
                         </a>
                         <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" onsubmit="return confirm('Yakin ingin hapus transaksi ini?')">

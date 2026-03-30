@@ -1066,6 +1066,7 @@ Route::middleware('auth')->group(function () {
         Route::prefix('retur-penjualan')->name('retur-penjualan.')->group(function() {
             Route::get('/', [ReturPenjualanController::class, 'index'])->name('index');
             Route::get('/create', [ReturPenjualanController::class, 'create'])->name('create');
+            Route::get('/detail-retur/{penjualanId}', [ReturPenjualanController::class, 'detailRetur'])->name('detail-retur');
             Route::post('/', [ReturPenjualanController::class, 'store'])->name('store');
             Route::get('/{returPenjualan}', [ReturPenjualanController::class, 'show'])->name('show');
             Route::get('/{returPenjualan}/edit', [ReturPenjualanController::class, 'edit'])->name('edit');
