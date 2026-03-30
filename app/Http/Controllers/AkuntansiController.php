@@ -24,106 +24,63 @@ class AkuntansiController extends Controller
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
 
-        // Ambil data dari sistem baru (journal_entries + journal_lines)
-        $newJournalQuery = \DB::table('journal_entries as je')
+        // Gunakan query dengan leftJoin untuk memastikan nama akun selalu diambil
+        $query = \DB::table('journal_entries as je')
             ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
-            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
+            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id') // Perbaikan: join berdasarkan coa_id
             ->select([
-                'je.tanggal',
-                'je.memo',
+                'je.*',
+                'jl.id as line_id',
                 'jl.debit',
-                'jl.credit as kredit', // Standardize to 'kredit'
+                'jl.credit',
                 'jl.memo as line_memo',
                 'coas.kode_akun',
                 'coas.nama_akun',
-                'coas.tipe_akun',
-                \DB::raw("'new' as system_type"),
-                \DB::raw("CONCAT('JE-', je.id) as ref_code"),
-                \DB::raw("je.ref_type as ref_type"),
-                \DB::raw("je.ref_id as ref_id")
+                'coas.tipe_akun'
             ])
             ->where(function($q) {
-                $q->where('jl.debit', '>', 0)
-                  ->orWhere('jl.credit', '>', 0);
-            });
+                $q->where('jl.debit', '!=', 0)
+                  ->orWhere('jl.credit', '!=', 0);
+            })
+            ->orderBy('je.tanggal','asc')
+            ->orderBy('je.id','asc')
+            ->orderBy('jl.id','asc');
             
-        // Ambil data dari sistem lama (jurnal_umum)
-        $oldJournalQuery = \DB::table('jurnal_umum as ju')
-            ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
-            ->select([
-                'ju.tanggal',
-                'ju.keterangan as memo',
-                'ju.debit',
-                'ju.kredit',
-                'ju.keterangan as line_memo',
-                'coas.kode_akun',
-                'coas.nama_akun',
-                'coas.tipe_akun',
-                \DB::raw("'old' as system_type"),
-                \DB::raw("CONCAT('JU-', ju.id) as ref_code"),
-                \DB::raw("ju.tipe_referensi as ref_type"),
-                \DB::raw("NULL as ref_id")
-            ])
-            ->where(function($q) {
-                $q->where('ju.debit', '>', 0)
-                  ->orWhere('ju.kredit', '>', 0);
-            });
-
-        // Gabungkan kedua query
-        $query = $oldJournalQuery->unionAll($newJournalQuery);
-
-        // Terapkan filter
-        if ($from) { 
-            $query->whereDate('tanggal','>=',$from); 
-        }
-        if ($to)   { 
-            $query->whereDate('tanggal','<=',$to); 
-        }
-        if ($refType) { 
-            $query->where('ref_type', $refType); 
-        }
-        if ($refId)   { 
-            $query->where('ref_id', $refId); 
-        }
+        if ($from) { $query->whereDate('je.tanggal','>=',$from); }
+        if ($to)   { $query->whereDate('je.tanggal','<=',$to); }
+        if ($refType) { $query->where('je.ref_type', $refType); }
+        if ($refId)   { $query->where('je.ref_id', $refId); }
         if ($accountCode) { 
-            $query->where('kode_akun', $accountCode);
+            $query->where('coas.kode_akun', $accountCode);
         }
         
-        // Wrap query untuk memungkinkan ordering pada union
-        $wrappedQuery = \DB::table(\DB::raw("({$query->toSql()}) as combined"))
-            ->mergeBindings($query)
-            ->orderBy('tanggal','asc')
-            ->orderBy('ref_code','asc');
-
-        $results = $wrappedQuery->get();
+        $results = $query->get();
         
-        // Group results by ref_code untuk tampilan per transaksi
+        // Group results by journal entry untuk tampilan per transaksi
         $entries = collect();
-        $groupedResults = $results->groupBy('ref_code');
+        $groupedResults = $results->groupBy('id');
         
-        foreach ($groupedResults as $refCode => $lines) {
+        foreach ($groupedResults as $entryId => $lines) {
             $firstLine = $lines->first();
             
+            // Skip jika tidak ada lines yang valid
             if ($lines->isEmpty()) continue;
             
             $entry = (object) [
-                'id' => $refCode,
+                'id' => $firstLine->id,
                 'tanggal' => $firstLine->tanggal,
                 'ref_type' => $firstLine->ref_type,
                 'ref_id' => $firstLine->ref_id,
                 'memo' => $firstLine->memo,
-                'system_type' => $firstLine->system_type,
                 'lines' => $lines->map(function($line) {
                     return (object) [
-                        'id' => $line->ref_code,
-                        'tanggal' => $line->tanggal, // Add tanggal field
+                        'id' => $line->line_id,
                         'debit' => $line->debit,
-                        'kredit' => $line->kredit, // Use standardized 'kredit' field
+                        'credit' => $line->credit,
                         'memo' => $line->line_memo,
                         'account_code' => $line->kode_akun,
                         'account_name' => $line->nama_akun,
                         'account_type' => $line->tipe_akun,
-                        'system_type' => $line->system_type, // Add system_type field
                         'coa' => (object) [
                             'kode_akun' => $line->kode_akun,
                             'nama_akun' => $line->nama_akun,
@@ -424,8 +381,10 @@ class AkuntansiController extends Controller
                                   ->where('kategori_akun', 'Pendapatan Usaha')
                                   ->get();
         
-        // Get HPP from production transactions instead of journal entries
-        $hppFromProduction = $this->getHppFromProductionTransactions($from, $to);
+        // Get HPP accounts from COA (16xx accounts)
+        $hppAccounts = \App\Models\Coa::where('tipe_akun','Expense')
+                                      ->where('kode_akun', 'LIKE', '16%') // HPP accounts
+                                      ->get();
         
         $expense = \App\Models\Coa::where('tipe_akun','Expense')
                                   ->where('kode_akun', 'NOT LIKE', '16%') // Non-HPP expenses
@@ -445,7 +404,7 @@ class AkuntansiController extends Controller
         };
         
         $totalRevenue = $sum($revenue);
-        $totalHpp = $hppFromProduction['total'];
+        $totalHpp = $sum($hppAccounts); // HPP from journal entries (neraca saldo)
         $totalExpense = $sum($expense);
         
         $labaKotor = $totalRevenue - $totalHpp;
@@ -453,92 +412,8 @@ class AkuntansiController extends Controller
 
         return view('akuntansi.laba-rugi', compact(
             'from','to','totalRevenue','totalHpp','totalExpense',
-            'labaKotor','labaBersih','revenue','hppFromProduction','expense'
+            'labaKotor','labaBersih','revenue','hppAccounts','expense'
         ));
-    }
-
-    private function getHppFromProductionTransactions($from = null, $to = null)
-    {
-        // Get sales data to determine how many units were sold
-        $salesQuery = \App\Models\Penjualan::query();
-        if ($from) {
-            $salesQuery->whereDate('tanggal', '>=', $from);
-        }
-        if ($to) {
-            $salesQuery->whereDate('tanggal', '<=', $to);
-        }
-        $sales = $salesQuery->get();
-        
-        // Calculate total units sold
-        $totalUnitsSold = $sales->sum('jumlah');
-        
-        // Get production data to determine HPP per unit
-        $productionQuery = \App\Models\Produksi::query();
-        if ($from) {
-            $productionQuery->whereDate('tanggal', '>=', $from);
-        }
-        if ($to) {
-            $productionQuery->whereDate('tanggal', '<=', $to);
-        }
-        $productions = $productionQuery->get();
-        
-        // If no sales, HPP should be 0
-        if ($totalUnitsSold == 0) {
-            return [
-                'bahan_baku' => 0,
-                'btkl' => 0,
-                'bop' => 0,
-                'total' => 0,
-                'units_sold' => 0,
-                'units_produced' => $productions->sum('qty_produksi'),
-                'productions' => $productions,
-                'sales' => $sales
-            ];
-        }
-        
-        // Calculate HPP per unit from production data
-        $totalUnitsProduced = $productions->sum('qty_produksi');
-        $totalProductionCost = $productions->sum('total_biaya');
-        $totalBahanProduction = $productions->sum('total_bahan');
-        $totalBtklProduction = $productions->sum('total_btkl');
-        $totalBopProduction = $productions->sum('total_bop');
-        
-        if ($totalUnitsProduced == 0) {
-            return [
-                'bahan_baku' => 0,
-                'btkl' => 0,
-                'bop' => 0,
-                'total' => 0,
-                'units_sold' => $totalUnitsSold,
-                'units_produced' => 0,
-                'productions' => $productions,
-                'sales' => $sales
-            ];
-        }
-        
-        // Calculate HPP per unit
-        $hppPerUnit = $totalProductionCost / $totalUnitsProduced;
-        $bahanPerUnit = $totalBahanProduction / $totalUnitsProduced;
-        $btklPerUnit = $totalBtklProduction / $totalUnitsProduced;
-        $bopPerUnit = $totalBopProduction / $totalUnitsProduced;
-        
-        // Calculate HPP for sold units only
-        $hppForSoldUnits = $hppPerUnit * $totalUnitsSold;
-        $bahanForSoldUnits = $bahanPerUnit * $totalUnitsSold;
-        $btklForSoldUnits = $btklPerUnit * $totalUnitsSold;
-        $bopForSoldUnits = $bopPerUnit * $totalUnitsSold;
-        
-        return [
-            'bahan_baku' => $bahanForSoldUnits,
-            'btkl' => $btklForSoldUnits,
-            'bop' => $bopForSoldUnits,
-            'total' => $hppForSoldUnits,
-            'units_sold' => $totalUnitsSold,
-            'units_produced' => $totalUnitsProduced,
-            'hpp_per_unit' => $hppPerUnit,
-            'productions' => $productions,
-            'sales' => $sales
-        ];
     }
 
     public function neraca(Request $request)
@@ -613,12 +488,11 @@ class AkuntansiController extends Controller
         
         $kewajibanPanjang = $allCoa->filter(function($coa) {
             // Kewajiban Jangka Panjang: kategori contains "Jangka Panjang" 
-            // OR specific long-term liabilities
+            // OR specific long-term liabilities (EXCLUDE PPN Masukan - it's an asset)
             return (stripos($coa->kategori_akun, 'Jangka Panjang') !== false) ||
                    (stripos($coa->nama_akun, 'Hutang Bank') !== false) ||
                    (stripos($coa->nama_akun, 'Hutang Jangka Panjang') !== false) ||
-                   (stripos($coa->nama_akun, 'Obligasi') !== false) ||
-                   (stripos($coa->nama_akun, 'PPN Masukan') !== false);
+                   (stripos($coa->nama_akun, 'Obligasi') !== false);
         });
         
         $ekuitas = $allCoa->filter(function($coa) {
@@ -637,21 +511,76 @@ class AkuntansiController extends Controller
             return $calculateBalance($coa);
         });
         
+        // Add negative liabilities as assets (overpayments become receivables)
+        $negativeLiabilities = 0;
+        $kewajibanPendek->each(function($coa) use ($calculateBalance, &$negativeLiabilities) {
+            $balance = $calculateBalance($coa);
+            if ($balance < 0) {
+                $negativeLiabilities += abs($balance); // Convert negative liability to positive asset
+            }
+        });
+        
+        $kewajibanPanjang->each(function($coa) use ($calculateBalance, &$negativeLiabilities) {
+            $balance = $calculateBalance($coa);
+            if ($balance < 0) {
+                $negativeLiabilities += abs($balance); // Convert negative liability to positive asset
+            }
+        });
+        
+        $totalAsetLancar += $negativeLiabilities;
+        
         $totalAsetTidakLancar = $asetTidakLancar->sum(function($coa) use ($calculateBalance) {
             return $calculateBalance($coa);
         });
         
         $totalKewajibanPendek = $kewajibanPendek->sum(function($coa) use ($calculateBalance) {
-            return $calculateBalance($coa);
+            $balance = $calculateBalance($coa);
+            // For liability accounts, if balance is negative, it should be treated as asset (overpayment)
+            // So we only count positive liability balances here
+            return $balance > 0 ? $balance : 0;
         });
         
         $totalKewajibanPanjang = $kewajibanPanjang->sum(function($coa) use ($calculateBalance) {
-            return $calculateBalance($coa);
+            $balance = $calculateBalance($coa);
+            // For liability accounts, negative balance means overpayment - should be 0 in balance sheet
+            return $coa->tipe_akun === 'Liability' && $balance < 0 ? 0 : $balance;
         });
         
         $totalEkuitas = $ekuitas->sum(function($coa) use ($calculateBalance) {
             return $calculateBalance($coa);
         });
+        
+        // Add current period P&L to equity (since we don't have closing entries)
+        $currentPeriodPL = 0;
+        
+        // Calculate revenue (credit balance)
+        $revenueAccounts = \App\Models\Coa::where('tipe_akun', 'Revenue')->get();
+        foreach ($revenueAccounts as $coa) {
+            $journalLines = \App\Models\JournalLine::where('coa_id', $coa->id)
+                ->whereHas('entry', function($q) use ($periode) {
+                    $q->whereDate('tanggal', '<=', $periode . '-31');
+                })->get();
+            
+            $debit = $journalLines->sum('debit');
+            $credit = $journalLines->sum('credit');
+            $currentPeriodPL += ($credit - $debit); // Revenue increases P&L
+        }
+        
+        // Calculate expense (debit balance)
+        $expenseAccounts = \App\Models\Coa::where('tipe_akun', 'Expense')->get();
+        foreach ($expenseAccounts as $coa) {
+            $journalLines = \App\Models\JournalLine::where('coa_id', $coa->id)
+                ->whereHas('entry', function($q) use ($periode) {
+                    $q->whereDate('tanggal', '<=', $periode . '-31');
+                })->get();
+            
+            $debit = $journalLines->sum('debit');
+            $credit = $journalLines->sum('credit');
+            $currentPeriodPL -= ($debit - $credit); // Expense decreases P&L
+        }
+        
+        // Add current period P&L to total equity
+        $totalEkuitas += $currentPeriodPL;
         
         // Calculate grand totals
         $totalAset = $totalAsetLancar + $totalAsetTidakLancar;
@@ -665,7 +594,7 @@ class AkuntansiController extends Controller
             'totalAsetLancar', 'totalAsetTidakLancar',
             'totalKewajibanPendek', 'totalKewajibanPanjang', 'totalEkuitas',
             'totalAset', 'totalKewajiban', 'totalKewajibanEkuitas',
-            'calculateBalance'
+            'calculateBalance', 'currentPeriodPL', 'negativeLiabilities'
         ));
     }
 }

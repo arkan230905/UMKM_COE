@@ -167,8 +167,8 @@
                 $kredit = $data['kredit'];
                 $saldoAkhir = $data['saldo_akhir'];
                 
-                $totalSaldoAwal -= $saldoAwal;
-                $totalSaldoAkhir -= $saldoAkhir;
+                $totalSaldoAwal += $saldoAwal;
+                $totalSaldoAkhir += $saldoAkhir;
                 $totalDebit += $debit;
                 $totalKredit += $kredit;
               @endphp
@@ -198,8 +198,8 @@
                 $kredit = $data['kredit'];
                 $saldoAkhir = $data['saldo_akhir'];
                 
-                $totalSaldoAwal -= $saldoAwal;
-                $totalSaldoAkhir -= $saldoAkhir;
+                $totalSaldoAwal += $saldoAwal;
+                $totalSaldoAkhir += $saldoAkhir;
                 $totalDebit += $debit;
                 $totalKredit += $kredit;
               @endphp
@@ -229,8 +229,8 @@
                 $kredit = $data['kredit'];
                 $saldoAkhir = $data['saldo_akhir'];
                 
-                $totalSaldoAwal -= $saldoAwal;
-                $totalSaldoAkhir -= $saldoAkhir;
+                $totalSaldoAwal += $saldoAwal;
+                $totalSaldoAkhir += $saldoAkhir;
                 $totalDebit += $debit;
                 $totalKredit += $kredit;
               @endphp
@@ -284,10 +284,10 @@
           <tfoot class="table-dark">
             <tr>
               <th colspan="3" class="text-end">TOTAL</th>
-              <th class="text-end">Rp {{ number_format(abs($totalSaldoAwal), 0, ',', '.') }}</th>
+              <th class="text-end">Rp {{ number_format($totalSaldoAwal, 0, ',', '.') }}</th>
               <th class="text-end">Rp {{ number_format($totalDebit, 0, ',', '.') }}</th>
               <th class="text-end">Rp {{ number_format($totalKredit, 0, ',', '.') }}</th>
-              <th class="text-end">Rp {{ number_format(abs($totalSaldoAkhir), 0, ',', '.') }}</th>
+              <th class="text-end">Rp {{ number_format($totalSaldoAkhir, 0, ',', '.') }}</th>
             </tr>
             <tr>
               <th colspan="6" class="text-end">BALANCE CHECK:</th>

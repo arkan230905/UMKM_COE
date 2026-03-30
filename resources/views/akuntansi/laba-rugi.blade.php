@@ -83,42 +83,29 @@
                                 <th class="text-end fw-bold"></th>
                             </tr>
                             
-                            @php 
-                                $sumHpp = $hppFromProduction['total'];
-                                $hppBahanBaku = $hppFromProduction['bahan_baku'];
-                                $hppBtkl = $hppFromProduction['btkl'];
-                                $hppBop = $hppFromProduction['bop'];
-                                $unitsSold = $hppFromProduction['units_sold'] ?? 0;
-                                $unitsProduced = $hppFromProduction['units_produced'] ?? 0;
-                            @endphp
+                            @php $sumHpp = 0; @endphp
+                            @foreach($hppAccounts as $acc)
+                                @php
+                                    $q = \App\Models\JournalLine::where('coa_id',$acc->id)->with('entry');
+                                    if ($from) { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','>=',$from)); }
+                                    if ($to)   { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','<=',$to)); }
+                                    $row = $q->selectRaw('COALESCE(SUM(debit - credit),0) as bal')->first();
+                                    $bal = (float)($row->bal ?? 0);
+                                    $sumHpp += $bal;
+                                @endphp
+                                @if($bal != 0)
+                                <tr>
+                                    <td class="ps-4">{{ $acc->nama_akun }}</td>
+                                    <td class="text-muted small">{{ $acc->kode_akun }}</td>
+                                    <td class="text-end">Rp {{ number_format($bal,0,',','.') }}</td>
+                                </tr>
+                                @endif
+                            @endforeach
                             
-                            @if($sumHpp > 0)
-                                <tr>
-                                    <td class="ps-4">HPP - Bahan Baku & Pendukung</td>
-                                    <td class="text-muted small">{{ $unitsSold }} unit terjual</td>
-                                    <td class="text-end">Rp {{ number_format($hppBahanBaku,0,',','.') }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="ps-4">HPP - BTKL (Biaya Tenaga Kerja Langsung)</td>
-                                    <td class="text-muted small">{{ $unitsSold }} unit terjual</td>
-                                    <td class="text-end">Rp {{ number_format($hppBtkl,0,',','.') }}</td>
-                                </tr>
-                                <tr>
-                                    <td class="ps-4">HPP - BOP (Biaya Overhead Pabrik)</td>
-                                    <td class="text-muted small">{{ $unitsSold }} unit terjual</td>
-                                    <td class="text-end">Rp {{ number_format($hppBop,0,',','.') }}</td>
-                                </tr>
-                            @elseif($unitsSold == 0 && $unitsProduced > 0)
+                            @if($sumHpp == 0)
                                 <tr>
                                     <td colspan="3" class="text-center text-muted ps-4">
-                                        <em>Tidak ada penjualan pada periode ini.<br>
-                                        Produksi: {{ $unitsProduced }} unit (HPP = Rp 0 karena belum terjual)</em>
-                                    </td>
-                                </tr>
-                            @else
-                                <tr>
-                                    <td colspan="3" class="text-center text-muted ps-4">
-                                        <em>Belum ada transaksi produksi dan penjualan pada periode ini.</em>
+                                        <em>Belum ada transaksi HPP pada periode ini</em>
                                     </td>
                                 </tr>
                             @endif
@@ -131,11 +118,7 @@
                             @if($sumHpp > 0)
                             <tr class="text-muted small">
                                 <td colspan="3" class="ps-4">
-                                    <em>👉 HPP untuk {{ $unitsSold }} unit terjual dari {{ $unitsProduced }} unit diproduksi
-                                    @if(isset($hppFromProduction['hpp_per_unit']))
-                                        (HPP per unit: Rp {{ number_format($hppFromProduction['hpp_per_unit'],0,',','.') }})
-                                    @endif
-                                    </em>
+                                    <em>👉 HPP berdasarkan jurnal penjualan yang telah dicatat</em>
                                 </td>
                             </tr>
                             @endif

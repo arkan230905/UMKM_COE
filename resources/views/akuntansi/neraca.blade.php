@@ -48,6 +48,13 @@
                                 </tr>
                                 @endif
                             @endforeach
+                            @if($negativeLiabilities > 0)
+                            <tr>
+                                <td class="ps-5">Piutang dari Overpayment</td>
+                                <td class="text-muted small">-</td>
+                                <td class="text-end">Rp {{ number_format($negativeLiabilities, 0, ',', '.') }}</td>
+                            </tr>
+                            @endif
                             <tr class="border-bottom">
                                 <td colspan="2" class="fw-bold ps-4">Jumlah Aset Lancar</td>
                                 <td class="text-end fw-bold">Rp {{ number_format($totalAsetLancar, 0, ',', '.') }}</td>
@@ -96,7 +103,7 @@
                             </tr>
                             @foreach($kewajibanPendek as $item)
                                 @php $saldo = $calculateBalance($item); @endphp
-                                @if($saldo != 0)
+                                @if($saldo > 0)
                                 <tr>
                                     <td class="ps-5">{{ $item->nama_akun }}</td>
                                     <td class="text-muted small">{{ $item->kode_akun }}</td>
@@ -116,7 +123,7 @@
                             </tr>
                             @foreach($kewajibanPanjang as $item)
                                 @php $saldo = $calculateBalance($item); @endphp
-                                @if($saldo != 0)
+                                @if($saldo > 0)
                                 <tr>
                                     <td class="ps-5">{{ $item->nama_akun }}</td>
                                     <td class="text-muted small">{{ $item->kode_akun }}</td>
