@@ -15,6 +15,7 @@ class Bop extends Model
     public $incrementing = true;
 
     protected $fillable = [
+        'coa_id',
         'kode_akun',
         'nama_akun',
         'budget',
@@ -34,7 +35,7 @@ class Bop extends Model
      */
     public function coa()
     {
-        return $this->belongsTo(Coa::class, 'kode_akun', 'kode_akun');
+        return $this->belongsTo(Coa::class, 'coa_id', 'id');
     }
 
     protected $appends = ['sisa_budget', 'sisa_budget_formatted'];

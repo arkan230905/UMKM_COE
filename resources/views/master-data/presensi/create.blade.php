@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid py-4" style="background-color: #1b1b28; min-height: 100vh;">
+<div class="container-fluid py-4" style="background-color: #f8f9fa; min-height: 100vh;">
     <div class="d-flex justify-content-between align-items-center mb-4 px-3">
-        <h2 class="text-white fw-bold mb-0">
+        <h2 class="text-dark fw-bold mb-0">
             <i class="bi bi-calendar-plus me-2"></i> Tambah Presensi
         </h2>
-        <a href="{{ route('master-data.presensi.index') }}" class="btn btn-outline-light">
+        <a href="{{ route('master-data.presensi.index') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i> Kembali
         </a>
     </div>
@@ -40,7 +40,7 @@
         </div>
     @endif
 
-    <div class="card border-0 shadow-sm mx-3" style="background-color: #222232; border-radius: 15px;">
+    <div class="card border-0 shadow-sm mx-3" style="border-radius: 15px;">
         <div class="card-body p-4">
             <form action="{{ route('master-data.presensi.store') }}" method="POST" id="presensiForm">
                 @csrf
@@ -48,17 +48,17 @@
                 <div class="row g-3">
                     <!-- Pilih Pegawai -->
                     <div class="col-md-6">
-                        <label for="pegawai_id" class="form-label text-white">
+                        <label for="pegawai_id" class="form-label text-dark">
                             <i class="bi bi-person-fill me-1"></i>Pegawai <span class="text-danger">*</span>
                         </label>
                         <select name="pegawai_id" id="pegawai_id" 
-                            class="form-select bg-dark text-white border-dark @error('pegawai_id') is-invalid @enderror" 
+                            class="form-select @error('pegawai_id') is-invalid @enderror" 
                             required>
                             <option value="">-- Pilih Pegawai --</option>
                             @foreach($pegawais as $pegawai)
                                 <option value="{{ $pegawai->id }}" 
                                     {{ old('pegawai_id') == $pegawai->id ? 'selected' : '' }}
-                                    class="text-white">
+                                    >
                                     {{ $pegawai->nama }} ({{ $pegawai->nomor_induk_pegawai }})
                                 </option>
                             @endforeach
@@ -70,11 +70,11 @@
 
                     <!-- Tanggal Presensi -->
                     <div class="col-md-6">
-                        <label for="tgl_presensi" class="form-label text-white">
+                        <label for="tgl_presensi" class="form-label text-dark">
                             <i class="bi bi-calendar-event me-1"></i>Tanggal <span class="text-danger">*</span>
                         </label>
                         <input type="date" name="tgl_presensi" id="tgl_presensi" 
-                               class="form-control bg-dark text-white border-dark @error('tgl_presensi') is-invalid @enderror" 
+                               class="form-control @error('tgl_presensi') is-invalid @enderror" 
                                value="{{ old('tgl_presensi', now()->format('Y-m-d')) }}" 
                                required
                                max="{{ now()->format('Y-m-d') }}">
@@ -85,24 +85,24 @@
 
                     <!-- Status -->
                     <div class="col-12">
-                        <label for="status" class="form-label text-white">
+                        <label for="status" class="form-label text-dark">
                             <i class="bi bi-info-circle me-1"></i>Status <span class="text-danger">*</span>
                         </label>
                         <select name="status" id="status" 
-                            class="form-select bg-dark text-white border-dark @error('status') is-invalid @enderror" 
+                            class="form-select @error('status') is-invalid @enderror" 
                             required
                             onchange="toggleJamFieldsInline(this.value)">
                             <option value="">-- Pilih Status --</option>
-                            <option value="Hadir" {{ old('status') == 'Hadir' ? 'selected' : '' }} class="text-white">
+                            <option value="Hadir" {{ old('status') == 'Hadir' ? 'selected' : '' }}>
                                 Hadir
                             </option>
-                            <option value="Izin" {{ old('status') == 'Izin' ? 'selected' : '' }} class="text-white">
+                            <option value="Izin" {{ old('status') == 'Izin' ? 'selected' : '' }}>
                                 Izin
                             </option>
-                            <option value="Sakit" {{ old('status') == 'Sakit' ? 'selected' : '' }} class="text-white">
+                            <option value="Sakit" {{ old('status') == 'Sakit' ? 'selected' : '' }}>
                                 Sakit
                             </option>
-                            <option value="Alpa" {{ old('status') == 'Alpa' ? 'selected' : '' }} class="text-white">
+                            <option value="Alpa" {{ old('status') == 'Alpa' ? 'selected' : '' }}>
                                 Alpa
                             </option>
                         </select>
@@ -113,11 +113,11 @@
 
                     <!-- Jam Masuk -->
                     <div class="col-md-6" id="jamMasukField">
-                        <label for="jam_masuk" class="form-label text-white">
+                        <label for="jam_masuk" class="form-label text-dark">
                             <i class="bi bi-clock-history me-1"></i>Jam Masuk <span class="text-danger">*</span>
                         </label>
                         <input type="time" name="jam_masuk" id="jam_masuk" 
-                               class="form-control bg-dark text-white border-dark @error('jam_masuk') is-invalid @enderror" 
+                               class="form-control @error('jam_masuk') is-invalid @enderror" 
                                value="{{ old('jam_masuk', '08:00') }}" 
                                pattern="[0-9]{2}:[0-9]{2}">
                         @error('jam_masuk')
@@ -127,11 +127,11 @@
 
                     <!-- Jam Keluar -->
                     <div class="col-md-6" id="jamKeluarField">
-                        <label for="jam_keluar" class="form-label text-white">
+                        <label for="jam_keluar" class="form-label text-dark">
                             <i class="bi bi-clock-fill me-1"></i>Jam Keluar <span class="text-danger">*</span>
                         </label>
                         <input type="time" name="jam_keluar" id="jam_keluar" 
-                               class="form-control bg-dark text-white border-dark @error('jam_keluar') is-invalid @enderror" 
+                               class="form-control @error('jam_keluar') is-invalid @enderror" 
                                value="{{ old('jam_keluar', '17:00') }}" 
                                pattern="[0-9]{2}:[0-9]{2}">
                         @error('jam_keluar')
@@ -141,11 +141,11 @@
 
                     <!-- Keterangan -->
                     <div class="col-12">
-                        <label for="keterangan" class="form-label text-white">
+                        <label for="keterangan" class="form-label text-dark">
                             <i class="bi bi-card-text me-1"></i>Keterangan
                         </label>
                         <textarea name="keterangan" id="keterangan" rows="2"
-                            class="form-control bg-dark text-white border-dark @error('keterangan') is-invalid @enderror"
+                            class="form-control @error('keterangan') is-invalid @enderror"
                             placeholder="Masukkan keterangan (opsional)">{{ old('keterangan') }}</textarea>
                         @error('keterangan')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -155,7 +155,7 @@
                     <!-- Tombol Aksi -->
                     <div class="col-12 mt-4">
                         <div class="d-flex justify-content-end gap-2">
-                            <button type="reset" class="btn btn-outline-light">
+                            <button type="reset" class="btn btn-secondary">
                                 <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
                             </button>
                             <button type="submit" class="btn btn-primary" id="submitBtn">
@@ -416,13 +416,13 @@ function toggleJamFieldsInline(status) {
     /* Style untuk form */
     .form-control, .form-select, 
     .form-control:focus, .form-select:focus {
-        background-color: #1e1e2f !important;
-        border-color: #2d2d3a !important;
-        color: #ffffff !important;
+        background-color: #ffffff !important;
+        border-color: #ced4da !important;
+        color: #212529 !important;
     }
     
     .form-control:focus, .form-select:focus {
-        box-shadow: 0 0 0 0.25rem rgba(108, 99, 255, 0.25) !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
     }
     
     .form-label {
@@ -432,29 +432,24 @@ function toggleJamFieldsInline(status) {
     
     /* Style untuk option di select */
     option {
-        background-color: #1e1e2f;
-        color: #ffffff;
+        background-color: #ffffff;
+        color: #212529;
     }
     
     /* Style untuk card */
     .card {
-        background-color: #222232;
-        border: 1px solid #2d2d3a;
+        background-color: #ffffff;
+        border: 1px solid rgba(0, 0, 0, 0.125);
     }
     
     /* Style untuk text muted */
     .text-muted {
-        color: #8a8a9a !important;
+        color: #6c757d !important;
     }
     
     /* Style untuk tombol */
-    .btn-outline-light {
-        border-color: #4a4a5a;
-    }
-    
-    .btn-outline-light:hover {
-        background-color: #2d2d3a;
-        border-color: #4a4a5a;
+    .btn-outline-secondary {
+        border-color: #6c757d;
     }
     
     /* Style untuk alert */
@@ -464,15 +459,15 @@ function toggleJamFieldsInline(status) {
     }
     
     .alert-danger {
-        background-color: rgba(220, 53, 69, 0.1);
+        background-color: #f8d7da;
         border-left-color: #dc3545;
-        color: #f8d7da;
+        color: #842029;
     }
     
     .alert-success {
-        background-color: rgba(25, 135, 84, 0.1);
+        background-color: #d1e7dd;
         border-left-color: #198754;
-        color: #d1e7dd;
+        color: #0f5132;
     }
     
     /* Style untuk loading */

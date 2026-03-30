@@ -302,12 +302,12 @@ function hitungTotal() {
     let total = 0;
     
     if (pegawaiData.jenis === 'btkl') {
-        // BTKL = (Tarif × Jam Kerja) + Tunjangan - Asuransi + Bonus - Potongan
+        // BTKL = (Tarif × Jam Kerja) + Tunjangan + Asuransi + Bonus - Potongan
         const gajiDasar = pegawaiData.tarif * pegawaiData.jamKerja;
-        total = gajiDasar + pegawaiData.tunjangan - pegawaiData.asuransi + bonus - potongan;
+        total = gajiDasar + pegawaiData.tunjangan + pegawaiData.asuransi + bonus - potongan;
     } else {
-        // BTKTL = Gaji Pokok + Tunjangan - Asuransi + Bonus - Potongan
-        total = pegawaiData.gajiPokok + pegawaiData.tunjangan - pegawaiData.asuransi + bonus - potongan;
+        // BTKTL = Gaji Pokok + Tunjangan + Asuransi + Bonus - Potongan
+        total = pegawaiData.gajiPokok + pegawaiData.tunjangan + pegawaiData.asuransi + bonus - potongan;
     }
     
     // Format dengan 2 desimal dan separator Indonesia

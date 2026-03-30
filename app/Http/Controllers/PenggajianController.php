@@ -132,8 +132,8 @@ class PenggajianController extends Controller
                 $gajiDasar = $gajiPokok;
             }
 
-            // Total gaji = gaji dasar + tunjangan - asuransi + bonus - potongan
-            $totalGaji = $gajiDasar + $tunjangan - $asuransi + $bonus - $potongan;
+            // Total gaji = gaji dasar + tunjangan + asuransi + bonus - potongan
+            $totalGaji = $gajiDasar + $tunjangan + $asuransi + $bonus - $potongan;
 
             // Dapatkan akun kas/bank
             $coaKasBank = Coa::where('kode_akun', $request->coa_kasbank)->first();

@@ -27,7 +27,7 @@ class CoaController extends Controller
         
         // Get semua periode untuk dropdown
         $periods = CoaPeriod::orderBy('periode', 'desc')->get();
-        
+
         // Get semua COA dengan urutan berdasarkan kode_akun
         $coas = Coa::whereNotNull('nama_akun')
             ->where('nama_akun', '!=', '')
@@ -39,7 +39,7 @@ class CoaController extends Controller
         foreach ($coas as $coa) {
             // Get saldo awal dari COA table
             $saldoAwal = $coa->saldo_awal ?? 0;
-            $saldoPeriode[$coa->kode_akun] = $saldoAwal;
+            $saldoPeriode[$coa->id] = $saldoAwal;
         }
         
         return view('master-data.coa.index', compact('coas', 'periode', 'periods', 'saldoPeriode'));
@@ -51,9 +51,16 @@ class CoaController extends Controller
     private function getSaldoAwalPeriode($coa, $periode)
     {
         // Cek apakah ada saldo periode
-        $periodBalance = CoaPeriodBalance::where('kode_akun', $coa->kode_akun)
+        $periodBalance = CoaPeriodBalance::where('coa_id', $coa->id)
             ->where('period_id', $periode->id)
             ->first();
+
+        if (!$periodBalance) {
+            // Fallback untuk data lama yang belum ter-backfill
+            $periodBalance = CoaPeriodBalance::where('kode_akun', $coa->kode_akun)
+                ->where('period_id', $periode->id)
+                ->first();
+        }
         
         if ($periodBalance) {
             return $periodBalance->saldo_awal;
@@ -62,9 +69,16 @@ class CoaController extends Controller
         // Jika tidak ada, cek periode sebelumnya
         $previousPeriod = $periode->getPreviousPeriod();
         if ($previousPeriod) {
-            $previousBalance = CoaPeriodBalance::where('kode_akun', $coa->kode_akun)
+            $previousBalance = CoaPeriodBalance::where('coa_id', $coa->id)
                 ->where('period_id', $previousPeriod->id)
                 ->first();
+
+            if (!$previousBalance) {
+                // Fallback untuk data lama yang belum ter-backfill
+                $previousBalance = CoaPeriodBalance::where('kode_akun', $coa->kode_akun)
+                    ->where('period_id', $previousPeriod->id)
+                    ->first();
+            }
             
             if ($previousBalance) {
                 return $previousBalance->saldo_akhir;
@@ -157,7 +171,7 @@ class CoaController extends Controller
         $validated = $request->validate([
             'kode_akun' => [
                 'required',
-                'unique:coas,kode_akun,' . $coa->kode_akun . ',kode_akun',
+                'unique:coas,kode_akun,' . $coa->id,
                 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',

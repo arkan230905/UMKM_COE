@@ -12,17 +12,9 @@ class Coa extends Model
     use HasFactory;
 
     protected $table = 'coas';
-    protected $primaryKey = 'kode_akun';
-    public $incrementing = false;
-    protected $keyType = 'string';
-    
-    /**
-     * Use 'kode_akun' for route model binding.
-     */
-    public function getRouteKeyName()
-    {
-        return 'kode_akun';
-    }
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
 
     // Tipe akun untuk BOP
     const TIPE_BIAYA = 'Biaya';
@@ -75,7 +67,7 @@ class Coa extends Model
      */
     public function bops()
     {
-        return $this->hasMany(Bop::class, 'kode_akun', 'kode_akun');
+        return $this->hasMany(Bop::class, 'coa_id', 'id');
     }
 
     /**
@@ -83,7 +75,7 @@ class Coa extends Model
      */
     public function periodBalances()
     {
-        return $this->hasMany(CoaPeriodBalance::class, 'kode_akun', 'kode_akun');
+        return $this->hasMany(CoaPeriodBalance::class, 'coa_id', 'id');
     }
 
     /**
@@ -122,11 +114,32 @@ class Coa extends Model
      */
     protected function generateKodeAkun()
     {
-        // Logika generate kode akun disini
-        // Contoh: Cari kode terakhir dan tambahkan 1
-        $lastCoa = self::orderBy('kode_akun', 'desc')->first();
-        $lastNumber = $lastCoa ? (int) substr($lastCoa->kode_akun, -3) : 0;
-        return str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+        $typeToGroup = [
+            'Asset' => '1',
+            'Aset' => '1',
+            'Liability' => '2',
+            'Kewajiban' => '2',
+            'Equity' => '3',
+            'Ekuitas' => '3',
+            'Revenue' => '4',
+            'Pendapatan' => '4',
+            'Expense' => '5',
+            'Beban' => '5',
+        ];
+
+        $group = $typeToGroup[$this->tipe_akun] ?? null;
+        if (!$group) {
+            $group = '1';
+        }
+
+        $prefix = $group;
+        $last = self::where('kode_akun', 'like', $prefix . '%')
+            ->whereRaw('LENGTH(kode_akun) = 4')
+            ->orderByRaw('CAST(kode_akun AS UNSIGNED) DESC')
+            ->value('kode_akun');
+
+        $next = $last ? ((int) $last + 1) : ((int) ($prefix . '101'));
+        return (string) $next;
     }
     
     /**
@@ -142,7 +155,7 @@ class Coa extends Model
      */
     public function getSameGroupAccounts()
     {
-        $prefix = substr($this->kode_akun, 0, 1); // Ambil digit pertama
+        $prefix = substr($this->kode_akun, 0, 1);
         return self::byPrefix($prefix)->get();
     }
     
@@ -154,7 +167,7 @@ class Coa extends Model
         $query = self::where('kode_akun', $kodeAkun);
         
         if ($excludeId) {
-            $query->where('kode_akun', '!=', $excludeId);
+            $query->where('id', '!=', $excludeId);
         }
         
         return $query->doesntExist();
