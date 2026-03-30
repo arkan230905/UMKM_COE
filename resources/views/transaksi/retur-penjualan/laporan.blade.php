@@ -112,7 +112,7 @@
                                                 Rp {{ number_format($retur->total_retur, 2) }}
                                             @endif
                                         </td>
-                                        <td>{{ $retur->pelanggan->nama_pelanggan ?? '-' }}</td>
+                                        <td>{{ $retur->pelanggan->name ?? '-' }}</td>
                                         <td>
                                             @switch($retur->status)
                                                 @case('belum_dibayar')

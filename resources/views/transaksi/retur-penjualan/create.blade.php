@@ -77,14 +77,14 @@
                                 <option value="">-- Pilih Pelanggan --</option>
                                 @foreach($pelanggans as $pelanggan)
                                     <option value="{{ $pelanggan->id }}" {{ old('pelanggan_id') == $pelanggan->id ? 'selected' : '' }}>
-                                        {{ $pelanggan->kode_pelanggan }} - {{ $pelanggan->nama_pelanggan }}
+                                        {{ $pelanggan->name }}
                                     </option>
                                 @endforeach
                             </select>
                             @error('pelanggan_id')
                                 <div class="text-danger">{{ $message }}</div>
                             @enderror
-                            <small class="text-muted" id="pelangganInfo">Wajib diisi untuk jenis retur Kredit</small>
+                            <small class="text-muted">Opsional</small>
                         </div>
                     </div>
                 </div>
@@ -225,21 +225,6 @@ $(document).ready(function() {
     if ($('#penjualan_id').val()) {
         $('#penjualan_id').trigger('change');
     }
-
-    // Show/hide pelanggan field based on jenis_retur
-    $('#jenis_retur').change(function() {
-        const jenisRetur = $(this).val();
-        if (jenisRetur === 'kredit') {
-            $('#pelanggan_id').prop('required', true);
-            $('#pelangganRequired').show();
-            $('#pelangganInfo').show();
-        } else {
-            $('#pelanggan_id').prop('required', false);
-            $('#pelangganRequired').hide();
-            $('#pelangganInfo').hide();
-        }
-        updateTotals();
-    });
 
     // Add detail row (manual, tanpa prefill)
     $('#addDetail').click(function() {

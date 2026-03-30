@@ -77,14 +77,14 @@
                                 <option value="">-- Pilih Pelanggan --</option>
                                 @foreach($pelanggans as $pelanggan)
                                     <option value="{{ $pelanggan->id }}" {{ old('pelanggan_id') == $pelanggan->id ? 'selected' : '' }}>
-                                        {{ $pelanggan->kode_pelanggan }} - {{ $pelanggan->nama_pelanggan }}
+                                        {{ $pelanggan->name }}
                                     </option>
                                 @endforeach
                             </select>
                             @error('pelanggan_id')
                                 <div class="text-danger">{{ $message }}</div>
                             @enderror
-                            <small class="text-muted" id="pelangganInfo">Wajib diisi untuk jenis retur Kredit</small>
+                            <small class="text-muted">Opsional</small>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -196,21 +196,6 @@ $(document).ready(function() {
     // Initialize totals on page load
     updateTotals();
 
-    // Show/hide pelanggan field based on jenis_retur
-    $('#jenis_retur').change(function() {
-        const jenisRetur = $(this).val();
-        if (jenisRetur === 'kredit') {
-            $('#pelanggan_id').prop('required', true);
-            $('#pelangganRequired').show();
-            $('#pelangganInfo').show();
-        } else {
-            $('#pelanggan_id').prop('required', false);
-            $('#pelangganRequired').hide();
-            $('#pelangganInfo').hide();
-        }
-        updateTotals();
-    });
-
     // Handle qty changes
     $(document).on('input', '.qty-retur', function() {
         const row = $(this).closest('tr');
@@ -271,7 +256,7 @@ $(document).ready(function() {
 
     // Form validation
     $('#returForm').submit(function(e) {
-        const detailRows = $('#detailTable tbody tr').length;
+        const detailRows = $('#detailTable tr').length;
         if (detailRows === 0) {
             e.preventDefault();
             alert('Tambahkan minimal satu detail retur');
