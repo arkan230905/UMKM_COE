@@ -53,7 +53,7 @@
         .badge-debit {
             background-color: #0dcaf0;
         }
-        .badge-kredit {
+        .badge-credit {
             background-color: #ffc107;
         }
     </style>
@@ -95,13 +95,13 @@
         <tbody>
             @php
                 $totalDebit = 0;
-                $totalKredit = 0;
+                $totalCredit = 0;
             @endphp
             @forelse($entries as $e)
                 @foreach($e->lines as $i => $l)
                     @php
                         $totalDebit += $l->debit ?? 0;
-                        $totalKredit += $l->credit ?? 0;
+                        $totalCredit += $l->credit ?? 0;
                     @endphp
                     <tr>
                         @if($i===0)
@@ -111,7 +111,7 @@
                         @endif
                         <td>
                             <strong>{{ $l->coa->kode_akun ?? '-' }}</strong>
-                            <span class="badge {{ ($l->debit ?? 0) > 0 ? 'badge-debit' : 'badge-kredit' }}">
+                            <span class="badge {{ ($l->debit ?? 0) > 0 ? 'badge-debit' : 'badge-credit' }}">
                                 {{ ($l->debit ?? 0) > 0 ? 'D' : 'K' }}
                             </span>
                         </td>
@@ -136,7 +136,7 @@
             <tr class="total-row">
                 <td colspan="5" class="text-end"><strong>TOTAL:</strong></td>
                 <td class="text-end"><strong>Rp {{ number_format($totalDebit, 0, ',', '.') }}</strong></td>
-                <td class="text-end"><strong>Rp {{ number_format($totalKredit, 0, ',', '.') }}</strong></td>
+                <td class="text-end"><strong>Rp {{ number_format($totalCredit, 0, ',', '.') }}</strong></td>
             </tr>
         </tfoot>
         @endif

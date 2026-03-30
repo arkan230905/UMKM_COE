@@ -103,7 +103,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <h6 class="text-muted mb-2">Total Kredit</h6>
-              <h4 class="mb-0 text-success">Rp {{ number_format($entries->flatMap->lines->sum('kredit'), 0, ',', '.') }}</h4>
+              <h4 class="mb-0 text-success">Rp {{ number_format($entries->flatMap->lines->sum('credit'), 0, ',', '.') }}</h4>
             </div>
             <div class="text-success">
               <i class="bi bi-arrow-down-circle fs-2"></i>
@@ -171,8 +171,8 @@
                     @endif
                   </td>
                   <td class="align-middle text-end">
-                    @if($l->kredit > 0)
-                      <span class="text-success fw-semibold">Rp {{ number_format($l->kredit,0,',','.') }}</span>
+                    @if($l->credit > 0)
+                      <span class="text-success fw-semibold">Rp {{ number_format($l->credit,0,',','.') }}</span>
                     @else
                       <span class="text-muted">-</span>
                     @endif
