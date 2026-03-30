@@ -123,13 +123,8 @@ class LaporanKasBankExport implements FromCollection, WithHeadings, WithStyles, 
     private function getSaldoAwal($akun)
     {
         $saldoAwalCoa = $akun->saldo_awal ?? 0;
-        $account = DB::table('accounts')->where('code', $akun->kode_akun)->first();
         
-        if (!$account) {
-            return $saldoAwalCoa;
-        }
-        
-        $mutasiSebelumPeriode = JournalLine::where('account_id', $account->id)
+        $mutasiSebelumPeriode = JournalLine::where('coa_id', $akun->id)
             ->whereHas('entry', function($query) {
                 $query->where('tanggal', '<', $this->startDate);
             })
@@ -144,13 +139,7 @@ class LaporanKasBankExport implements FromCollection, WithHeadings, WithStyles, 
 
     private function getTransaksiMasuk($akun)
     {
-        $account = DB::table('accounts')->where('code', $akun->kode_akun)->first();
-        
-        if (!$account) {
-            return 0;
-        }
-        
-        return JournalLine::where('account_id', $account->id)
+        return JournalLine::where('coa_id', $akun->id)
             ->whereHas('entry', function($query) {
                 $query->whereBetween('tanggal', [$this->startDate, $this->endDate]);
             })
@@ -159,13 +148,7 @@ class LaporanKasBankExport implements FromCollection, WithHeadings, WithStyles, 
 
     private function getTransaksiKeluar($akun)
     {
-        $account = DB::table('accounts')->where('code', $akun->kode_akun)->first();
-        
-        if (!$account) {
-            return 0;
-        }
-        
-        return JournalLine::where('account_id', $account->id)
+        return JournalLine::where('coa_id', $akun->id)
             ->whereHas('entry', function($query) {
                 $query->whereBetween('tanggal', [$this->startDate, $this->endDate]);
             })

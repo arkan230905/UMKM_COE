@@ -223,13 +223,39 @@ class JournalService
         
         switch ($pembelian->payment_method) {
             case 'cash':
-                $creditAccount = '1101'; // Kas
-                $creditMemo = 'Pembayaran tunai pembelian';
+                // Use specific bank account if provided, otherwise default to Kas
+                if ($pembelian->bank_id) {
+                    // bank_id is stored as COA ID, not code
+                    $bankCoa = \App\Models\Coa::find($pembelian->bank_id);
+                    if ($bankCoa) {
+                        $creditAccount = $bankCoa->kode_akun;
+                        $creditMemo = 'Pembayaran tunai pembelian via ' . $bankCoa->nama_akun;
+                    } else {
+                        $creditAccount = '1101'; // Kas
+                        $creditMemo = 'Pembayaran tunai pembelian';
+                    }
+                } else {
+                    $creditAccount = '1101'; // Kas
+                    $creditMemo = 'Pembayaran tunai pembelian';
+                }
                 break;
                 
             case 'transfer':
-                $creditAccount = '1102'; // Kas di Bank
-                $creditMemo = 'Pembayaran transfer pembelian';
+                // Use specific bank account if provided, otherwise default to Kas di Bank
+                if ($pembelian->bank_id) {
+                    // bank_id is stored as COA ID, not code
+                    $bankCoa = \App\Models\Coa::find($pembelian->bank_id);
+                    if ($bankCoa) {
+                        $creditAccount = $bankCoa->kode_akun;
+                        $creditMemo = 'Pembayaran transfer pembelian via ' . $bankCoa->nama_akun;
+                    } else {
+                        $creditAccount = '1102'; // Kas di Bank
+                        $creditMemo = 'Pembayaran transfer pembelian';
+                    }
+                } else {
+                    $creditAccount = '1102'; // Kas di Bank
+                    $creditMemo = 'Pembayaran transfer pembelian';
+                }
                 break;
                 
             case 'credit':
@@ -363,5 +389,46 @@ class JournalService
                    $expensePayment->tanggal;
         
         $service->post($tanggal, 'expense_payment', $expensePayment->id, $memo, $lines);
+    }
+
+    /**
+     * Create journal entry from pelunasan utang
+     */
+    public static function createJournalFromPelunasanUtang($pelunasanUtang): void
+    {
+        $service = new static();
+        
+        // Delete existing journal entries for this pelunasan utang
+        $service->deleteByRef('debt_payment', $pelunasanUtang->id);
+        
+        $lines = [];
+        $amount = $pelunasanUtang->jumlah ?? 0;
+        
+        // Debit: Utang Usaha (mengurangi utang)
+        $lines[] = [
+            'code' => '2101', // Utang Usaha
+            'debit' => $amount,
+            'credit' => 0,
+            'memo' => 'Pelunasan utang - ' . ($pelunasanUtang->pembelian->vendor->nama_vendor ?? 'Vendor')
+        ];
+        
+        // Credit: Kas/Bank account (mengurangi kas/bank)
+        $akunKas = $pelunasanUtang->akunKas;
+        $kodeAkun = $akunKas ? $akunKas->kode_akun : '1101'; // Default ke Kas jika tidak ada
+        
+        $lines[] = [
+            'code' => $kodeAkun,
+            'debit' => 0,
+            'credit' => $amount,
+            'memo' => 'Pembayaran utang via ' . ($akunKas->nama_akun ?? 'Kas')
+        ];
+        
+        // Create journal entry
+        $memo = 'Pelunasan Utang #' . $pelunasanUtang->kode_transaksi . ' - ' . ($pelunasanUtang->pembelian->vendor->nama_vendor ?? 'Vendor');
+        $tanggal = $pelunasanUtang->tanggal instanceof \Carbon\Carbon ? 
+                   $pelunasanUtang->tanggal->format('Y-m-d') : 
+                   $pelunasanUtang->tanggal;
+        
+        $service->post($tanggal, 'debt_payment', $pelunasanUtang->id, $memo, $lines);
     }
 }

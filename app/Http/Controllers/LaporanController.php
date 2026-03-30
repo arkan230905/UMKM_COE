@@ -188,39 +188,46 @@ class LaporanController extends Controller
                             'id' => $mainSatuan->id,
                             'nama' => $mainSatuan->nama ?? $mainSatuan->nama_satuan ?? 'Unit',
                             'is_primary' => true,
-                            'conversion_to_primary' => 1
+                            'conversion_to_primary' => 1,
+                            'price_conversion' => 1 // Primary unit has 1:1 price conversion
                         ];
                         
-                        // Add sub satuan 1 if available - USE ACTUAL DATABASE CONVERSION
+                        // Add sub satuan 1 if available - USE NILAI for BOTH quantity and price conversion
                         if (isset($item->sub_satuan_1_id) && $item->sub_satuan_1_id && $item->subSatuan1) {
-                            $conversionRatio = (float)($item->sub_satuan_1_konversi ?? 1);
+                            $quantityRatio = (float)($item->sub_satuan_1_nilai ?? 1); // Use nilai for quantity conversion (consistent with master data display)
+                            $priceRatio = (float)($item->sub_satuan_1_nilai ?? 1); // Use nilai for price conversion
                             $availableSatuans[] = [
                                 'id' => $item->subSatuan1->id,
                                 'nama' => $item->subSatuan1->nama ?? $item->subSatuan1->nama_satuan ?? 'Sub Unit 1',
                                 'is_primary' => false,
-                                'conversion_to_primary' => $conversionRatio
+                                'conversion_to_primary' => $quantityRatio, // Use nilai for quantity
+                                'price_conversion' => $priceRatio // Use nilai for price
                             ];
                         }
                         
-                        // Add sub satuan 2 if available - USE ACTUAL DATABASE CONVERSION
+                        // Add sub satuan 2 if available - USE NILAI for BOTH quantity and price conversion
                         if (isset($item->sub_satuan_2_id) && $item->sub_satuan_2_id && $item->subSatuan2) {
-                            $conversionRatio = (float)($item->sub_satuan_2_konversi ?? 1);
+                            $quantityRatio = (float)($item->sub_satuan_2_nilai ?? 1); // Use nilai for quantity conversion (consistent with master data display)
+                            $priceRatio = (float)($item->sub_satuan_2_nilai ?? 1); // Use nilai for price conversion
                             $availableSatuans[] = [
                                 'id' => $item->subSatuan2->id,
                                 'nama' => $item->subSatuan2->nama ?? $item->subSatuan2->nama_satuan ?? 'Sub Unit 2',
                                 'is_primary' => false,
-                                'conversion_to_primary' => $conversionRatio
+                                'conversion_to_primary' => $quantityRatio, // Use nilai for quantity
+                                'price_conversion' => $priceRatio // Use nilai for price
                             ];
                         }
                         
-                        // Add sub satuan 3 if available - USE ACTUAL DATABASE CONVERSION
+                        // Add sub satuan 3 if available - USE NILAI for BOTH quantity and price conversion
                         if (isset($item->sub_satuan_3_id) && $item->sub_satuan_3_id && $item->subSatuan3) {
-                            $conversionRatio = (float)($item->sub_satuan_3_konversi ?? 1);
+                            $quantityRatio = (float)($item->sub_satuan_3_nilai ?? 1); // Use nilai for quantity conversion (consistent with master data display)
+                            $priceRatio = (float)($item->sub_satuan_3_nilai ?? 1); // Use nilai for price conversion
                             $availableSatuans[] = [
                                 'id' => $item->subSatuan3->id,
                                 'nama' => $item->subSatuan3->nama ?? $item->subSatuan3->nama_satuan ?? 'Sub Unit 3',
                                 'is_primary' => false,
-                                'conversion_to_primary' => $conversionRatio
+                                'conversion_to_primary' => $quantityRatio, // Use nilai for quantity
+                                'price_conversion' => $priceRatio // Use nilai for price
                             ];
                         }
                     }
@@ -269,48 +276,55 @@ class LaporanController extends Controller
                         'id' => $mainSatuan->id,
                         'nama' => $mainSatuan->nama,
                         'is_primary' => true,
-                        'conversion_to_primary' => 1
+                        'conversion_to_primary' => 1,
+                        'price_conversion' => 1 // Primary unit has 1:1 price conversion
                     ];
                     
-                    // Add sub satuan 1 with CORRECT conversion ratio
+                    // Add sub satuan 1 with CORRECT conversion ratio - USE NILAI for both quantity and price
                     if ($item->sub_satuan_1_id) {
                         $subSatuan1 = \App\Models\Satuan::find($item->sub_satuan_1_id);
                         if ($subSatuan1) {
-                            // FIXED: Use the correct conversion ratio from database
-                            $conversionRatio = (float)($item->sub_satuan_1_konversi ?? 1);
+                            // Use nilai for both quantity and price conversion (consistent with master data display)
+                            $quantityRatio = (float)($item->sub_satuan_1_nilai ?? 1); // Use nilai for quantity conversion
+                            $priceRatio = (float)($item->sub_satuan_1_nilai ?? 1); // Use nilai for price conversion
                             $availableSatuans[] = [
                                 'id' => $subSatuan1->id,
                                 'nama' => $subSatuan1->nama,
                                 'is_primary' => false,
-                                'conversion_to_primary' => $conversionRatio
+                                'conversion_to_primary' => $quantityRatio, // Use nilai for quantity
+                                'price_conversion' => $priceRatio // Use nilai for price
                             ];
                         }
                     }
                     
-                    // Add sub satuan 2 with CORRECT conversion ratio
+                    // Add sub satuan 2 with CORRECT conversion ratio - USE NILAI for both quantity and price
                     if ($item->sub_satuan_2_id) {
                         $subSatuan2 = \App\Models\Satuan::find($item->sub_satuan_2_id);
                         if ($subSatuan2) {
-                            $conversionRatio = (float)($item->sub_satuan_2_konversi ?? 1);
+                            $quantityRatio = (float)($item->sub_satuan_2_nilai ?? 1); // Use nilai for quantity conversion
+                            $priceRatio = (float)($item->sub_satuan_2_nilai ?? 1); // Use nilai for price conversion
                             $availableSatuans[] = [
                                 'id' => $subSatuan2->id,
                                 'nama' => $subSatuan2->nama,
                                 'is_primary' => false,
-                                'conversion_to_primary' => $conversionRatio
+                                'conversion_to_primary' => $quantityRatio, // Use nilai for quantity
+                                'price_conversion' => $priceRatio // Use nilai for price
                             ];
                         }
                     }
                     
-                    // Add sub satuan 3 with CORRECT conversion ratio
+                    // Add sub satuan 3 with CORRECT conversion ratio - USE NILAI for both quantity and price
                     if ($item->sub_satuan_3_id) {
                         $subSatuan3 = \App\Models\Satuan::find($item->sub_satuan_3_id);
                         if ($subSatuan3) {
-                            $conversionRatio = (float)($item->sub_satuan_3_konversi ?? 1);
+                            $quantityRatio = (float)($item->sub_satuan_3_nilai ?? 1); // Use nilai for quantity conversion
+                            $priceRatio = (float)($item->sub_satuan_3_nilai ?? 1); // Use nilai for price conversion
                             $availableSatuans[] = [
                                 'id' => $subSatuan3->id,
                                 'nama' => $subSatuan3->nama,
                                 'is_primary' => false,
-                                'conversion_to_primary' => $conversionRatio
+                                'conversion_to_primary' => $quantityRatio, // Use nilai for quantity
+                                'price_conversion' => $priceRatio // Use nilai for price
                             ];
                         }
                     }
@@ -372,6 +386,15 @@ class LaporanController extends Controller
                                  ->orderBy('id', 'asc')
                                  ->get();
                                  
+                // Filter out invalid purchase movements (orphaned ones)
+                $movements = $movements->filter(function($movement) {
+                    if ($movement->ref_type === 'purchase' && $movement->ref_id) {
+                        // Check if the referenced purchase still exists
+                        return \DB::table('pembelians')->where('id', $movement->ref_id)->exists();
+                    }
+                    return true; // Keep non-purchase movements
+                });
+                                 
                 // Only use master data as initial stock if NO movements exist at all
                 if ($movements->isEmpty() && $item && $item->stok > 0) {
                     $saldoAwalQty = (float)($item->stok ?? 0);
@@ -389,6 +412,15 @@ class LaporanController extends Controller
                 $movements = $movQ->orderBy('tanggal', 'asc')
                                  ->orderBy('id', 'asc')
                                  ->get();
+                                 
+                // Filter out invalid purchase movements (orphaned ones)
+                $movements = $movements->filter(function($movement) {
+                    if ($movement->ref_type === 'purchase' && $movement->ref_id) {
+                        // Check if the referenced purchase still exists
+                        return \DB::table('pembelians')->where('id', $movement->ref_id)->exists();
+                    }
+                    return true; // Keep non-purchase movements
+                });
             }
 
             // Build daily stock card

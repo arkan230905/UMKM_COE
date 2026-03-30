@@ -29,10 +29,10 @@
       <form method="get" class="row g-3 align-items-end">
         <div class="col-md-3">
           <label class="form-label fw-semibold">Pilih Akun</label>
-          <select name="account_id" class="form-select" onchange="this.form.submit()">
+          <select name="account_code" class="form-select" onchange="this.form.submit()">
             <option value="">-- Pilih Akun --</option>
             @foreach($coas as $coa)
-              <option value="{{ $coa->id }}" {{ ($accountId==$coa->id)?'selected' : '' }}>{{ $coa->kode_akun }} - {{ $coa->nama_akun }}</option>
+              <option value="{{ $coa->kode_akun }}" {{ ($accountCode==$coa->kode_akun)?'selected' : '' }}>{{ $coa->kode_akun }} - {{ $coa->nama_akun }}</option>
             @endforeach
           </select>
         </div>
@@ -73,7 +73,7 @@
   </div>
 
   <!-- Summary Card -->
-  @if($accountId)
+  @if($accountCode)
   <div class="row mb-4">
     <div class="col-md-12">
       <div class="card border-left border-primary border-4">
@@ -93,7 +93,7 @@
   @endif
 
   <!-- Buku Besar Table -->
-  @if($accountId)
+  @if($accountCode)
   <div class="card shadow-sm">
     <div class="card-body p-0">
       <div class="table-responsive">
@@ -108,38 +108,50 @@
             </tr>
           </thead>
           <tbody>
-            @php $saldo = (float)$saldoAwal; @endphp
-            @foreach($lines as $l)
-              @php 
-                $saldo += ((float)$l->debit - (float)$l->credit); 
-                $tanggal = $l->entry->tanggal ?? '';
-                $refType = $l->entry->ref_type ?? '';
-                $refId = $l->entry->ref_id ?? '';
-                $memo = $l->entry->memo ?? '';
-                $debit = $l->debit ?? 0;
-                $credit = $l->credit ?? 0;
-              @endphp
-              <tr class="{{ $loop->index % 2 === 0 ? 'bg-light' : '' }}">
-                <td>{{ \Carbon\Carbon::parse($tanggal)->format('d/m/Y') }}</td>
-                <td>{{ $memo }}</td>
-                <td class="text-end">
-                  @if($debit > 0)
-                    Rp {{ number_format($debit,0,',','.') }}
-                  @else
-                    -
+            @php 
+              $saldo = (float)$saldoAwal;
+              $selectedAccountCode = $accountCode; // Gunakan accountCode dari controller
+            @endphp
+            @foreach($lines as $e)
+              @foreach($e->lines as $i => $l)
+                @php 
+                  $isAccountSelected = ($l->coa->kode_akun == $selectedAccountCode);
+                  if ($isAccountSelected) {
+                    $saldo += ((float)$l->debit - (float)$l->credit);
+                  }
+                @endphp
+                <tr class="{{ $i % 2 === 0 ? 'bg-light' : '' }}">
+                  @if($i===0)
+                    <td rowspan="{{ $e->lines->count() }}" class="align-middle">
+                      {{ \Carbon\Carbon::parse($e->tanggal)->format('d/m/Y') }}
+                    </td>
+                    <td rowspan="{{ $e->lines->count() }}" class="align-middle">
+                      <strong>{{ $e->memo }}</strong>
+                    </td>
                   @endif
-                </td>
-                <td class="text-end">
-                  @if($credit > 0)
-                    Rp {{ number_format($credit,0,',','.') }}
+                  <td class="text-end">
+                    @if($isAccountSelected && $l->debit > 0)
+                      Rp {{ number_format($l->debit,0,',','.') }}
+                    @else
+                      -
+                    @endif
+                  </td>
+                  <td class="text-end">
+                    @if($isAccountSelected && $l->credit > 0)
+                      Rp {{ number_format($l->credit,0,',','.') }}
+                    @else
+                      -
+                    @endif
+                  </td>
+                  @if($isAccountSelected)
+                    <td class="text-end {{ $saldo >= 0 ? 'text-primary' : 'text-danger' }}">
+                      Rp {{ number_format($saldo,0,',','.') }}
+                    </td>
                   @else
-                    -
+                    <td></td>
                   @endif
-                </td>
-                <td class="text-end {{ $saldo >= 0 ? 'text-primary' : 'text-danger' }}">
-                  Rp {{ number_format($saldo,0,',','.') }}
-                </td>
-              </tr>
+                </tr>
+              @endforeach
             @endforeach
           </tbody>
         </table>

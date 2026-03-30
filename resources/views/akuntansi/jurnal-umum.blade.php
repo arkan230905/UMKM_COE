@@ -45,17 +45,20 @@
             <option value="production_labor_overhead" {{ $refType === 'production_labor_overhead' ? 'selected' : '' }}>Produksi - BTKL & BOP</option>
             <option value="production_finish" {{ $refType === 'production_finish' ? 'selected' : '' }}>Produksi - Barang Jadi</option>
             <option value="saldo_awal" {{ $refType === 'saldo_awal' ? 'selected' : '' }}>Saldo Awal</option>
+            <option value="pembayaran_beban" {{ $refType === 'pembayaran_beban' ? 'selected' : '' }}>Pembayaran Beban</option>
+            <option value="penggajian" {{ $refType === 'penggajian' ? 'selected' : '' }}>Penggajian</option>
           </select>
         </div>
         <div class="col-md-2">
           <label class="form-label fw-semibold">Filter Akun</label>
           <select name="account_code" class="form-select">
             <option value="">Semua Akun</option>
-            <option value="5101" {{ request('account_code') === '5101' ? 'selected' : '' }}>HPP (5101)</option>
-            <option value="1106" {{ request('account_code') === '1106' ? 'selected' : '' }}>Persediaan Barang Jadi (1106)</option>
-            <option value="1105" {{ request('account_code') === '1105' ? 'selected' : '' }}>Persediaan Barang Dalam Proses (1105)</option>
-            <option value="4101" {{ request('account_code') === '4101' ? 'selected' : '' }}>Penjualan (4101)</option>
-            <option value="1101" {{ request('account_code') === '1101' ? 'selected' : '' }}>Kas (1101)</option>
+            @php
+              $coas = \App\Models\Coa::orderBy('kode_akun')->get();
+            @endphp
+            @foreach($coas as $coa)
+              <option value="{{ $coa->kode_akun }}" {{ request('account_code') === $coa->kode_akun ? 'selected' : '' }}>{{ $coa->kode_akun }} - {{ $coa->nama_akun }}</option>
+            @endforeach
           </select>
         </div>
         <div class="col-md-2">
@@ -100,25 +103,10 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <h6 class="text-muted mb-2">Total Kredit</h6>
-              <h4 class="mb-0 text-success">Rp {{ number_format($entries->flatMap->lines->sum('credit'), 0, ',', '.') }}</h4>
+              <h4 class="mb-0 text-success">Rp {{ number_format($entries->flatMap->lines->sum('kredit'), 0, ',', '.') }}</h4>
             </div>
             <div class="text-success">
               <i class="bi bi-arrow-down-circle fs-2"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card border-left border-info border-4">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="text-muted mb-2">Balance</h6>
-              <h4 class="mb-0 text-info">Rp {{ number_format($entries->flatMap->lines->sum('debit') - $entries->flatMap->lines->sum('credit'), 0, ',', '.') }}</h4>
-            </div>
-            <div class="text-info">
-              <i class="bi bi-balance-scale fs-2"></i>
             </div>
           </div>
         </div>
@@ -134,15 +122,13 @@
         <table class="table table-hover mb-0" style="border: 2px solid #dee2e6;">
           <thead class="table-light sticky-top">
             <tr>
-              <th class="border-end" style="width:8%; border-bottom: 2px solid #dee2e6;">Tanggal</th>
-              <th class="border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Ref</th>
-              <th class="border-end" style="width:20%; border-bottom: 2px solid #dee2e6;">Deskripsi</th>
+              <th class="border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Tanggal</th>
+              <th class="border-end" style="width:25%; border-bottom: 2px solid #dee2e6;">Deskripsi</th>
               <th class="border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Kode Akun</th>
-              <th class="border-end" style="width:15%; border-bottom: 2px solid #dee2e6;">Nama Akun</th>
+              <th class="border-end" style="width:20%; border-bottom: 2px solid #dee2e6;">Nama Akun</th>
               <th class="border-end" style="width:15%; border-bottom: 2px solid #dee2e6;">Keterangan</th>
               <th class="text-end border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Debit</th>
               <th class="text-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Kredit</th>
-              <th class="text-center" style="width:2%; border-bottom: 2px solid #dee2e6;">D/K</th>
             </tr>
           </thead>
           <tbody>
@@ -153,121 +139,49 @@
                     <td rowspan="{{ $e->lines->count() }}" class="align-middle" style="border-right: 2px solid #dee2e6;">
                       <div class="text-center">
                         <div class="fw-bold">{{ \Carbon\Carbon::parse($e->tanggal)->format('d/m/Y') }}</div>
-                        <small class="text-muted">{{ \Carbon\Carbon::parse($e->tanggal)->format('H:i') }}</small>
                       </div>
                     </td>
                     <td rowspan="{{ $e->lines->count() }}" class="align-middle" style="border-right: 2px solid #dee2e6;">
-                      <div>
-                        @php
-                          $badgeColor = match($e->ref_type) {
-                            'purchase' => 'danger',
-                            'sale' => 'success',
-                            'production_material' => 'warning',
-                            'production_labor_overhead' => 'info',
-                            'production_finish' => 'primary',
-                            'saldo_awal' => 'secondary',
-                            default => 'dark'
-                          };
-                        @endphp
-                        <span class="badge bg-{{ $badgeColor }} text-white">
-                          {{ $e->ref_type }}
-                        </span>
-                        <div class="small text-muted">#{{ $e->ref_id }}</div>
-                      </div>
-                    </td>
-                    <td rowspan="{{ $e->lines->count() }}" class="align-middle" style="border-right: 2px solid #dee2e6;">
-                      <div class="text-truncate" style="max-width: 150px;" title="{{ $e->memo }}">
+                      <div class="text-truncate" style="max-width: 200px;" title="{{ $e->memo }}">
                         {{ $e->memo }}
-                        
-                        @if($e->ref_type === 'sale')
-                          @php
-                            $hppTotal = 0;
-                            $penjualanTotal = 0;
-                            foreach($e->lines as $line) {
-                              if($line->coa->kode_akun === '5101') {
-                                $hppTotal = $line->debit;
-                              }
-                              if($line->coa->kode_akun === '1101') {
-                                $penjualanTotal = $line->debit;
-                              }
-                            }
-                            $margin = $penjualanTotal - $hppTotal;
-                            $marginPercent = $penjualanTotal > 0 ? ($margin / $penjualanTotal * 100) : 0;
-                          @endphp
-                          
-                          <div class="mt-2">
-                            <small class="text-muted d-block">Detail HPP:</small>
-                            <div class="d-flex gap-2 flex-wrap">
-                              <small class="badge bg-light text-dark">
-                                <i class="bi bi-cash-stack me-1"></i>HPP: Rp {{ number_format($hppTotal,0,',','.') }}
-                              </small>
-                              <small class="badge bg-light text-dark">
-                                <i class="bi bi-graph-up {{ $margin >= 0 ? 'text-success' : 'text-danger' }} me-1"></i>Margin: {{ $margin >= 0 ? '+' : '' }}{{ number_format($marginPercent,1,',','.') }}%
-                              </small>
-                            </div>
-                          </div>
-                        @endif
                       </div>
                     </td>
                   @endif
-                  <td class="align-middle" style="border-right: 1px solid #dee2e6;">
-                    <code class="text-primary">{{ $l->coa->kode_akun ?? '-' }}</code>
+                  <td class="align-middle" style="border-right: 2px solid #dee2e6;">
+                    <div class="fw-semibold">{{ $l->coa->kode_akun }}</div>
                   </td>
-                  <td class="align-middle" style="border-right: 1px solid #dee2e6;">
-                    <div>
-                      <div class="fw-semibold">{{ $l->coa->nama_akun ?? 'COA tidak ditemukan' }}</div>
-                      @if($l->coa)
-                        <small class="text-muted">{{ $l->coa->tipe_akun ?? '' }}</small>
-                        
-                        @if($e->ref_type === 'sale' && $l->coa->kode_akun === '5101')
-                          <div class="mt-1">
-                            <small class="badge bg-warning text-dark">
-                              <i class="bi bi-info-circle me-1"></i>HPP Penjualan
-                            </small>
-                          </div>
-                        @endif
-                        
-                        @if($e->ref_type === 'sale' && $l->coa->kode_akun === '1106')
-                          <div class="mt-1">
-                            <small class="badge bg-info text-dark">
-                              <i class="bi bi-box-seam me-1"></i>Persediaan Keluar
-                            </small>
-                          </div>
-                        @endif
-                      @endif
+                  <td class="align-middle" style="border-right: 2px solid #dee2e6;">
+                    <div class="fw-semibold text-truncate" style="max-width: 200px;" title="{{ $l->coa->nama_akun }}">
+                      {{ $l->coa->nama_akun }}
                     </div>
+                    @if($l->coa->tipe_akun)
+                      <div class="small text-muted">{{ $l->coa->tipe_akun }}</div>
+                    @endif
                   </td>
-                  <td class="align-middle" style="border-right: 1px solid #dee2e6;">
+                  <td class="align-middle" style="border-right: 2px solid #dee2e6;">
                     <div class="text-muted small">
                       {{ $l->memo ?? '-' }}
                     </div>
                   </td>
-                  <td class="align-middle text-end" style="border-right: 1px solid #dee2e6;">
+                  <td class="align-middle text-end" style="border-right: 2px solid #dee2e6;">
                     @if($l->debit > 0)
                       <span class="text-primary fw-semibold">Rp {{ number_format($l->debit,0,',','.') }}</span>
                     @else
                       <span class="text-muted">-</span>
                     @endif
                   </td>
-                  <td class="align-middle text-end" style="border-right: 1px solid #dee2e6;">
-                    @if($l->credit > 0)
-                      <span class="text-success fw-semibold">Rp {{ number_format($l->credit,0,',','.') }}</span>
+                  <td class="align-middle text-end">
+                    @if($l->kredit > 0)
+                      <span class="text-success fw-semibold">Rp {{ number_format($l->kredit,0,',','.') }}</span>
                     @else
                       <span class="text-muted">-</span>
-                    @endif
-                  </td>
-                  <td class="align-middle text-center">
-                    @if($l->debit > 0)
-                      <span class="badge bg-primary text-white">D</span>
-                    @else
-                      <span class="badge bg-success text-white">K</span>
                     @endif
                   </td>
                 </tr>
               @endforeach
             @empty
               <tr>
-                <td colspan="9" class="text-center py-4">
+                <td colspan="7" class="text-center py-4">
                   <div class="text-muted">
                     <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                     <h5>Tidak ada data jurnal</h5>

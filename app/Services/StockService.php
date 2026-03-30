@@ -60,6 +60,26 @@ class StockService
     public function addLayer(string $itemType, int $itemId, float $qty, string $satuan, float $unitCost, string $refType, int $refId, string $tanggal): void
     {
         DB::transaction(function () use ($itemType, $itemId, $qty, $satuan, $unitCost, $refType, $refId, $tanggal) {
+            // Check if a stock movement with the same parameters already exists to prevent duplicates
+            $existingMovement = StockMovement::where('item_type', $itemType)
+                ->where('item_id', $itemId)
+                ->where('ref_type', $refType)
+                ->where('ref_id', $refId)
+                ->where('direction', 'in')
+                ->where('tanggal', $tanggal)
+                ->first();
+            
+            if ($existingMovement) {
+                \Log::warning('Duplicate stock movement prevented', [
+                    'item_type' => $itemType,
+                    'item_id' => $itemId,
+                    'ref_type' => $refType,
+                    'ref_id' => $refId,
+                    'existing_movement_id' => $existingMovement->id
+                ]);
+                return; // Skip creating duplicate movement
+            }
+            
             // Convert input quantity to primary unit first
             $primaryQty = $this->convertToPrimaryUnit($itemType, $itemId, $qty, $satuan);
             $primaryUnitCost = $this->convertToPrimaryUnitCost($itemType, $itemId, $unitCost, $satuan);

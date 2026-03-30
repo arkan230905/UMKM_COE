@@ -528,7 +528,7 @@ class BahanBaku extends Model
      */
     public function coaPembelian()
     {
-        return $this->belongsTo(Coa::class, 'coa_pembelian_id');
+        return $this->belongsTo(Coa::class, 'coa_pembelian_id', 'kode_akun');
     }
 
     /**
@@ -536,7 +536,7 @@ class BahanBaku extends Model
      */
     public function coaPersediaan()
     {
-        return $this->belongsTo(Coa::class, 'coa_persediaan_id');
+        return $this->belongsTo(Coa::class, 'coa_persediaan_id', 'kode_akun');
     }
 
     /**
@@ -544,7 +544,7 @@ class BahanBaku extends Model
      */
     public function coaHpp()
     {
-        return $this->belongsTo(Coa::class, 'coa_hpp_id');
+        return $this->belongsTo(Coa::class, 'coa_hpp_id', 'kode_akun');
     }
 
     /**
@@ -797,40 +797,58 @@ class BahanBaku extends Model
         
         // Konversi dari satuan utama ke sub satuan
         if ($dariSatuanLower === $satuanUtama || str_contains($satuanUtama, $dariSatuanLower)) {
-            // Cek sub_satuan_1 (Potong)
-            if ($this->sub_satuan_1_id && $this->sub_satuan_1_konversi > 0) {
+            // Cek sub_satuan_1 (Potong) - USE NILAI instead of KONVERSI
+            if ($this->sub_satuan_1_id && $this->sub_satuan_1_nilai > 0) {
                 $subSatuan1 = \App\Models\Satuan::find($this->sub_satuan_1_id);
                 if ($subSatuan1 && str_contains(strtolower($subSatuan1->nama), $keSatuanLower)) {
-                    // 1 Ekor = 6 Potong, jadi sub_satuan_1_konversi = 6
-                    return $jumlah * $this->sub_satuan_1_konversi;
+                    // 1 Ekor = 6 Potong, jadi sub_satuan_1_nilai = 6
+                    return $jumlah * $this->sub_satuan_1_nilai;
                 }
             }
             
-            // Cek sub_satuan_2 (Kilogram)
-            if ($this->sub_satuan_2_id && $this->sub_satuan_2_konversi > 0) {
+            // Cek sub_satuan_2 (Kilogram) - USE NILAI instead of KONVERSI
+            if ($this->sub_satuan_2_id && $this->sub_satuan_2_nilai > 0) {
                 $subSatuan2 = \App\Models\Satuan::find($this->sub_satuan_2_id);
                 if ($subSatuan2 && str_contains(strtolower($subSatuan2->nama), $keSatuanLower)) {
-                    return $jumlah * $this->sub_satuan_2_konversi;
+                    return $jumlah * $this->sub_satuan_2_nilai;
                 }
             }
             
-            // Cek sub_satuan_3 (Gram)
-            if ($this->sub_satuan_3_id && $this->sub_satuan_3_konversi > 0) {
+            // Cek sub_satuan_3 (Gram) - USE NILAI instead of KONVERSI
+            if ($this->sub_satuan_3_id && $this->sub_satuan_3_nilai > 0) {
                 $subSatuan3 = \App\Models\Satuan::find($this->sub_satuan_3_id);
                 if ($subSatuan3 && str_contains(strtolower($subSatuan3->nama), $keSatuanLower)) {
-                    return $jumlah * $this->sub_satuan_3_konversi;
+                    return $jumlah * $this->sub_satuan_3_nilai;
                 }
             }
         }
         
-        // Konversi dari sub satuan ke satuan utama (kebalikan)
+        // Konversi dari sub satuan ke satuan utama (kebalikan) - USE NILAI instead of KONVERSI
         // Cek sub_satuan_1 (Potong ke Ekor)
-        if ($this->sub_satuan_1_id && $this->sub_satuan_1_konversi > 0) {
+        if ($this->sub_satuan_1_id && $this->sub_satuan_1_nilai > 0) {
             $subSatuan1 = \App\Models\Satuan::find($this->sub_satuan_1_id);
             if ($subSatuan1 && str_contains(strtolower($subSatuan1->nama), $dariSatuanLower) && 
                 ($keSatuanLower === $satuanUtama || str_contains($satuanUtama, $keSatuanLower))) {
                 // 6 Potong = 1 Ekor, jadi 1 Potong = 1/6 Ekor
-                return $jumlah / $this->sub_satuan_1_konversi;
+                return $jumlah / $this->sub_satuan_1_nilai;
+            }
+        }
+        
+        // Cek sub_satuan_2 (Kilogram ke Ekor)
+        if ($this->sub_satuan_2_id && $this->sub_satuan_2_nilai > 0) {
+            $subSatuan2 = \App\Models\Satuan::find($this->sub_satuan_2_id);
+            if ($subSatuan2 && str_contains(strtolower($subSatuan2->nama), $dariSatuanLower) && 
+                ($keSatuanLower === $satuanUtama || str_contains($satuanUtama, $keSatuanLower))) {
+                return $jumlah / $this->sub_satuan_2_nilai;
+            }
+        }
+        
+        // Cek sub_satuan_3 (Gram ke Ekor)
+        if ($this->sub_satuan_3_id && $this->sub_satuan_3_nilai > 0) {
+            $subSatuan3 = \App\Models\Satuan::find($this->sub_satuan_3_id);
+            if ($subSatuan3 && str_contains(strtolower($subSatuan3->nama), $dariSatuanLower) && 
+                ($keSatuanLower === $satuanUtama || str_contains($satuanUtama, $keSatuanLower))) {
+                return $jumlah / $this->sub_satuan_3_nilai;
             }
         }
         
