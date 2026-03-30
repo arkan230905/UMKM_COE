@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Pembelian;
 use App\Models\Coa;
 use App\Models\User;
-use App\Models\Jurnal;
+use App\Models\JournalEntry;
+use App\Models\JournalLine;
 
 class PelunasanUtang extends Model
 {
@@ -50,7 +51,11 @@ class PelunasanUtang extends Model
     
     public function jurnals()
     {
-        return $this->hasMany(Jurnal::class, 'referensi', 'kode_transaksi');
+        return $this->hasMany(JournalLine::class, 'journal_entry_id', 'id')
+            ->whereHas('entry', function($query) {
+                $query->where('ref_type', 'debt_payment')
+                      ->where('ref_id', $this->id);
+            });
     }
     
     public function getStatusBadgeAttribute()

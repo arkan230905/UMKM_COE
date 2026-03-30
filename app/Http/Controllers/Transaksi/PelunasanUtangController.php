@@ -162,25 +162,12 @@ class PelunasanUtangController extends Controller
     {
         $pelunasan = PelunasanUtang::with([
             'pembelian.vendor', 
-            'pembelian.details.bahanBaku',
-            'akunKas'
+            'pembelian.pembelianDetails.bahanBaku',
+            'pembelian.pembelianDetails.bahanPendukung',
+            'akunKas',
+            'jurnals.coa',
+            'user'
         ])->findOrFail($id);
-
-        // Format items for display
-        $pelunasan->pembelian->items = $pelunasan->pembelian->details->map(function($detail) {
-            if ($detail->bahanBaku) {
-                $subtotal = ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
-                return sprintf(
-                    '• %s (%s %s) - Rp %s = Rp %s',
-                    $detail->bahanBaku->nama_bahan,
-                    number_format($detail->jumlah, 0, ',', '.'),
-                    $detail->bahanBaku->satuan ?? 'unit',
-                    number_format($detail->harga_satuan, 0, ',', '.'),
-                    number_format($subtotal, 0, ',', '.')
-                );
-            }
-            return '';
-        })->filter()->toArray();
 
         return view('transaksi.pelunasan-utang.show', compact('pelunasan'));
     }

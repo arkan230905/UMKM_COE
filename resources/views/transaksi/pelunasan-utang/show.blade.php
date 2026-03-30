@@ -50,50 +50,65 @@
                                 <div class="table-responsive">
                                     <table class="table table-bordered">
                                         <tr>
-                                            <th width="5%">#</th>
+                                            <th width="5%">NO</th>
                                             <th>Item</th>
                                             <th class="text-right">Harga Satuan</th>
                                             <th class="text-right">Subtotal</th>
                                         </tr>
-                                        @foreach($pelunasan->pembelian->items as $index => $item)
+                                        @foreach($pelunasanUtang->pembelian->pembelianDetails as $index => $detail)
                                         <tr>
                                             <td>{{ $index + 1 }}</td>
-                                            <td>{!! nl2br(e($item)) !!}</td>
-                                            <td class="text-right">
-                                                @php
-                                                    // Extract price from the item string
-                                                    preg_match('/- Rp (.*?) =/', $item, $matches);
-                                                    echo isset($matches[1]) ? 'Rp ' . $matches[1] : '-';
-                                                @endphp
+                                            <td>
+                                                @if($detail->bahanBaku)
+                                                    {{ $detail->bahanBaku->nama_bahan }}
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        {{ number_format($detail->jumlah, 0, ',', '.') }} {{ $detail->satuan_nama ?? 'unit' }} × 
+                                                        Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}
+                                                    </small>
+                                                @elseif($detail->bahanPendukung)
+                                                    {{ $detail->bahanPendukung->nama_bahan }}
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        {{ number_format($detail->jumlah, 0, ',', '.') }} {{ $detail->satuan_nama ?? 'unit' }} × 
+                                                        Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}
+                                                    </small>
+                                                @else
+                                                    Item {{ $index + 1 }}
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        {{ number_format($detail->jumlah, 0, ',', '.') }} unit × 
+                                                        Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}
+                                                    </small>
+                                                @endif
                                             </td>
                                             <td class="text-right">
-                                                @php
-                                                    // Extract subtotal from the item string
-                                                    preg_match('/= Rp (.*?)$/', $item, $matches);
-                                                    echo isset($matches[1]) ? 'Rp ' . $matches[1] : '-';
-                                                @endphp
+                                                {{ $detail->harga_satuan ? 'Rp ' . number_format($detail->harga_satuan, 0, ',', '.') : '-' }}
+                                            </td>
+                                            <td class="text-right">
+                                                {{ $detail->subtotal ? 'Rp ' . number_format($detail->subtotal, 0, ',', '.') : '-' }}
                                             </td>
                                         </tr>
                                         @endforeach
                                         <tr>
                                             <td colspan="3" class="text-right"><strong>Total Pembelian</strong></td>
-                                            <td class="text-right"><strong>Rp {{ number_format($pelunasan->pembelian->total_harga, 0, ',', '.') }}</strong></td>
+                                            <td class="text-right"><strong>Rp {{ number_format($pelunasanUtang->pembelian->total_harga, 0, ',', '.') }}</strong></td>
                                         </tr>
                                         <tr>
                                             <td colspan="3" class="text-right"><strong>Sudah Dibayar</strong></td>
-                                            <td class="text-right"><strong>Rp {{ number_format($pelunasan->pembelian->terbayar, 0, ',', '.') }}</strong></td>
+                                            <td class="text-right"><strong>Rp {{ number_format($pelunasanUtang->pembelian->terbayar, 0, ',', '.') }}</strong></td>
                                         </tr>
                                         <tr>
                                             <td colspan="3" class="text-right"><strong>Sisa Utang</strong></td>
-                                            <td class="text-right"><strong>Rp {{ number_format($pelunasan->pembelian->sisa_pembayaran + $pelunasan->jumlah, 0, ',', '.') }}</strong></td>
+                                            <td class="text-right"><strong>Rp {{ number_format($pelunasanUtang->pembelian->sisa_pembayaran + $pelunasanUtang->jumlah, 0, ',', '.') }}</strong></td>
                                         </tr>
                                         <tr class="table-primary">
                                             <td colspan="3" class="text-right"><strong>Jumlah Pelunasan Ini</strong></td>
-                                            <td class="text-right"><strong>Rp {{ number_format($pelunasan->jumlah, 0, ',', '.') }}</strong></td>
+                                            <td class="text-right"><strong>Rp {{ number_format($pelunasanUtang->jumlah, 0, ',', '.') }}</strong></td>
                                         </tr>
                                         <tr class="table-success">
                                             <td colspan="3" class="text-right"><strong>Sisa Utang Setelah Pelunasan</strong></td>
-                                            <td class="text-right"><strong>Rp {{ number_format($pelunasan->pembelian->sisa_pembayaran, 0, ',', '.') }}</strong></td>
+                                            <td class="text-right"><strong>Rp {{ number_format($pelunasanUtang->pembelian->sisa_pembayaran, 0, ',', '.') }}</strong></td>
                                         </tr>
                                     </table>
                                 </div>
@@ -111,15 +126,15 @@
                             <div class="card-body">
                                 <div class="section-title">Akun Kas</div>
                                 <p class="section-lead">
-                                    <strong>{{ $pelunasan->akunKas->kode }}</strong> - {{ $pelunasan->akunKas->nama }}
+                                    <strong>{{ $pelunasanUtang->akunKas->kode_akun }}</strong> - {{ $pelunasanUtang->akunKas->nama }}
                                 </p>
                                 
                                 <div class="section-title mt-4">Tanggal Pembayaran</div>
-                                <p class="section-lead">{{ $pelunasan->tanggal->format('d F Y') }}</p>
+                                <p class="section-lead">{{ $pelunasanUtang->tanggal->format('d F Y') }}</p>
                                 
-                                @if($pelunasan->keterangan)
+                                @if($pelunasanUtang->keterangan)
                                 <div class="section-title">Keterangan</div>
-                                <p class="section-lead">{{ $pelunasan->keterangan }}</p>
+                                <p class="section-lead">{{ $pelunasanUtang->keterangan }}</p>
                                 @endif
                             </div>
                         </div>
@@ -138,7 +153,7 @@
                                 <tbody>
                                     @foreach($pelunasanUtang->jurnals as $jurnal)
                                     <tr>
-                                        <td>{{ $jurnal->coa->kode }} - {{ $jurnal->coa->nama }}</td>
+                                        <td>{{ $jurnal->coa->kode_akun }} - {{ $jurnal->coa->nama }}</td>
                                         <td class="text-right">{{ $jurnal->debit ? format_rupiah($jurnal->debit) : '-' }}</td>
                                         <td class="text-right">{{ $jurnal->kredit ? format_rupiah($jurnal->kredit) : '-' }}</td>
                                     </tr>
