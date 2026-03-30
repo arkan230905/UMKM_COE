@@ -231,17 +231,27 @@ class Aset extends Model
 
     /**
      * Accessor untuk display penyusutan per tahun (selalu penuh)
+     * Prioritas: nilai kolom DB jika ada, fallback ke kalkulasi dari tarif_penyusutan
      */
     public function getPenyusutanPerTahunAttribute(): float
     {
+        $dbValue = (float)($this->attributes['penyusutan_per_tahun'] ?? 0);
+        if ($dbValue > 0) {
+            return $dbValue;
+        }
         return $this->getDepreciationPerYearAttribute();
     }
 
     /**
      * Accessor untuk display penyusutan per bulan
+     * Prioritas: nilai kolom DB jika ada, fallback ke kalkulasi dari tarif_penyusutan
      */
     public function getPenyusutanPerBulanAttribute(): float
     {
+        $dbValue = (float)($this->attributes['penyusutan_per_bulan'] ?? 0);
+        if ($dbValue > 0) {
+            return $dbValue;
+        }
         return $this->getPenyusutanPerTahunAttribute() / 12;
     }
 
