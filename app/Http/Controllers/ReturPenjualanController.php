@@ -6,7 +6,7 @@ use App\Models\ReturPenjualan;
 use App\Models\DetailReturPenjualan;
 use App\Models\Penjualan;
 use App\Models\PenjualanDetail;
-use App\Models\Pelanggan;
+use App\Models\User;
 use App\Models\Produk;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,11 +26,10 @@ class ReturPenjualanController extends Controller
     public function create()
     {
         $penjualans = Penjualan::with(['penjualanDetails.produk'])->get();
-        $pelanggans = Pelanggan::all();
+        $pelanggans = User::where('role', 'pelanggan')->get();
         $jenisReturOptions = [
             'tukar_barang' => 'Tukar Barang',
             'refund' => 'Refund (Pengembalian Uang)',
-            'kredit' => 'Kredit'
         ];
 
         $selectedPenjualanId = request('penjualan_id');
@@ -44,11 +43,10 @@ class ReturPenjualanController extends Controller
     public function detailRetur($penjualanId)
     {
         $penjualan = Penjualan::with(['penjualanDetails.produk'])->findOrFail($penjualanId);
-        $pelanggans = Pelanggan::all();
+        $pelanggans = User::where('role', 'pelanggan')->get();
         $jenisReturOptions = [
             'tukar_barang' => 'Tukar Barang',
             'refund' => 'Refund (Pengembalian Uang)',
-            'kredit' => 'Kredit'
         ];
 
         return view('transaksi.retur-penjualan.detail-retur', compact('penjualan', 'pelanggans', 'jenisReturOptions'));
@@ -58,9 +56,9 @@ class ReturPenjualanController extends Controller
     {
         $request->validate([
             'penjualan_id' => 'required|exists:penjualans,id',
-            'jenis_retur' => 'required|in:tukar_barang,refund,kredit',
+            'jenis_retur' => 'required|in:tukar_barang,refund',
             'tanggal' => 'required|date',
-            'pelanggan_id' => 'required_if:jenis_retur,kredit|exists:pelanggans,id',
+            'pelanggan_id' => 'nullable|exists:users,id',
             'keterangan' => 'nullable|string',
             'details' => 'required|array|min:1',
             'details.*.penjualan_detail_id' => 'required|exists:penjualan_details,id',
@@ -76,7 +74,7 @@ class ReturPenjualanController extends Controller
             $returPenjualan->nomor_retur = $returPenjualan->generateNomorRetur();
             $returPenjualan->tanggal = $request->tanggal;
             $returPenjualan->penjualan_id = $request->penjualan_id;
-            $returPenjualan->pelanggan_id = $request->jenis_retur === 'kredit' ? $request->pelanggan_id : null;
+            $returPenjualan->pelanggan_id = $request->pelanggan_id ?? null;
             $returPenjualan->jenis_retur = $request->jenis_retur;
             $returPenjualan->keterangan = $request->keterangan;
             $returPenjualan->save();
@@ -136,11 +134,10 @@ class ReturPenjualanController extends Controller
 
         $returPenjualan->load(['detailReturPenjualans.penjualanDetail.produk']);
         $penjualans = Penjualan::with(['penjualanDetails.produk'])->get();
-        $pelanggans = Pelanggan::all();
+        $pelanggans = User::where('role', 'pelanggan')->get();
         $jenisReturOptions = [
             'tukar_barang' => 'Tukar Barang',
             'refund' => 'Refund (Pengembalian Uang)',
-            'kredit' => 'Kredit'
         ];
 
         return view('transaksi.retur-penjualan.edit', compact('returPenjualan', 'penjualans', 'pelanggans', 'jenisReturOptions'));
@@ -155,9 +152,9 @@ class ReturPenjualanController extends Controller
         }
 
         $request->validate([
-            'jenis_retur' => 'required|in:tukar_barang,refund,kredit',
+            'jenis_retur' => 'required|in:tukar_barang,refund',
             'tanggal' => 'required|date',
-            'pelanggan_id' => 'required_if:jenis_retur,kredit|exists:pelanggans,id',
+            'pelanggan_id' => 'nullable|exists:users,id',
             'keterangan' => 'nullable|string',
             'details' => 'required|array|min:1',
             'details.*.penjualan_detail_id' => 'required|exists:penjualan_details,id',
@@ -170,7 +167,7 @@ class ReturPenjualanController extends Controller
 
             // Update retur penjualan
             $returPenjualan->tanggal = $request->tanggal;
-            $returPenjualan->pelanggan_id = $request->jenis_retur === 'kredit' ? $request->pelanggan_id : null;
+            $returPenjualan->pelanggan_id = $request->pelanggan_id ?? null;
             $returPenjualan->jenis_retur = $request->jenis_retur;
             $returPenjualan->keterangan = $request->keterangan;
             $returPenjualan->save();

@@ -42,7 +42,7 @@
                         </tr>
                         <tr>
                             <td><strong>Pelanggan:</strong></td>
-                            <td>{{ $returPenjualan->pelanggan->nama_pelanggan ?? '-' }}</td>
+                            <td>{{ $returPenjualan->pelanggan->name ?? '-' }}</td>
                         </tr>
                         <tr>
                             <td><strong>Jenis Retur:</strong></td>

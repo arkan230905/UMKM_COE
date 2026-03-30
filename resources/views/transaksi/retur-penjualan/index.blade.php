@@ -105,7 +105,7 @@
                                     <td><strong>{{ $retur->nomor_retur }}</strong></td>
                                     <td>{{ $retur->tanggal->format('d/m/Y') }}</td>
                                     <td>{{ $retur->penjualan->nomor_penjualan ?? '-' }}</td>
-                                    <td>{{ $retur->pelanggan->nama_pelanggan ?? '-' }}</td>
+                                    <td>{{ $retur->pelanggan->name ?? '-' }}</td>
                                     <td>
                                         @switch($retur->jenis_retur)
                                             @case('tukar_barang')
