@@ -33,7 +33,25 @@ class ReturPenjualanController extends Controller
             'kredit' => 'Kredit'
         ];
 
-        return view('transaksi.retur-penjualan.create', compact('penjualans', 'pelanggans', 'jenisReturOptions'));
+        $selectedPenjualanId = request('penjualan_id');
+
+        return view('transaksi.retur-penjualan.create', compact('penjualans', 'pelanggans', 'jenisReturOptions', 'selectedPenjualanId'));
+    }
+
+    /**
+     * Halaman detail retur dengan form input
+     */
+    public function detailRetur($penjualanId)
+    {
+        $penjualan = Penjualan::with(['penjualanDetails.produk'])->findOrFail($penjualanId);
+        $pelanggans = Pelanggan::all();
+        $jenisReturOptions = [
+            'tukar_barang' => 'Tukar Barang',
+            'refund' => 'Refund (Pengembalian Uang)',
+            'kredit' => 'Kredit'
+        ];
+
+        return view('transaksi.retur-penjualan.detail-retur', compact('penjualan', 'pelanggans', 'jenisReturOptions'));
     }
 
     public function store(Request $request)

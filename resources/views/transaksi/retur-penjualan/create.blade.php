@@ -32,7 +32,7 @@
                             <select name="penjualan_id" id="penjualan_id" class="form-select" required>
                                 <option value="">-- Pilih Penjualan --</option>
                                 @foreach($penjualans as $penjualan)
-                                    <option value="{{ $penjualan->id }}" {{ old('penjualan_id') == $penjualan->id ? 'selected' : '' }}>
+                                    <option value="{{ $penjualan->id }}" {{ (old('penjualan_id', $selectedPenjualanId ?? '') == $penjualan->id) ? 'selected' : '' }}>
                                         {{ $penjualan->nomor_penjualan ?? 'PJ-' . $penjualan->id }} - {{ $penjualan->tanggal->format('d/m/Y') }}
                                     </option>
                                 @endforeach
@@ -119,7 +119,7 @@
                             </tbody>
                         </table>
                     </div>
-                    <button type="button" class="btn btn-sm btn-primary" id="addDetail">
+                    <button type="button" class="btn btn-sm btn-primary" id="addDetail" data-bs-toggle="modal" data-bs-target="#detailReturModal">
                         <i class="fas fa-plus"></i> Tambah Detail
                     </button>
                 </div>
@@ -156,6 +156,39 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Tambah Detail Retur -->
+<div class="modal fade" id="detailReturModal" tabindex="-1" aria-labelledby="detailReturModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailReturModalLabel">Tambah Detail Retur</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="modalProduk" class="form-label">Produk <span class="text-danger">*</span></label>
+                    <select id="modalProduk" class="form-select" required>
+                        <option value="">-- Pilih Produk --</option>
+                    </select>
+                    <small class="text-muted d-block mt-2">Qty Tersedia: <span id="modalQtyTersedia">0</span></small>
+                </div>
+                <div class="mb-3">
+                    <label for="modalQtyRetur" class="form-label">Quantity Retur <span class="text-danger">*</span></label>
+                    <input type="number" id="modalQtyRetur" class="form-control" step="0.0001" min="0.0001" required>
+                </div>
+                <div class="mb-3">
+                    <label for="modalHarga" class="form-label">Harga Barang <span class="text-danger">*</span></label>
+                    <input type="number" id="modalHarga" class="form-control" step="0.01" min="0" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-primary" id="modalSimpanDetail">Simpan Detail</button>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -168,11 +201,16 @@ $(document).ready(function() {
     $('#penjualan_id').change(function() {
         const penjualanId = $(this).val();
         if (penjualanId) {
-            $.get(`/retur-penjualan/get-penjualan-details/${penjualanId}`, function(data) {
+            $.get(`{{ route('transaksi.retur-penjualan.get-penjualan-details', ':id') }}`.replace(':id', penjualanId), function(data) {
                 penjualanDetails = data;
-                // Clear existing details
                 $('#detailTable tbody').empty();
                 detailIndex = 0;
+
+                // Otomatis tambahkan semua produk dari penjualan ke tabel detail
+                data.forEach(function(detail) {
+                    addDetailRow(detail);
+                });
+
                 updateTotals();
             });
         } else {
@@ -182,6 +220,11 @@ $(document).ready(function() {
             updateTotals();
         }
     });
+
+    // Auto-trigger jika penjualan_id sudah dipilih dari URL parameter
+    if ($('#penjualan_id').val()) {
+        $('#penjualan_id').trigger('change');
+    }
 
     // Show/hide pelanggan field based on jenis_retur
     $('#jenis_retur').change(function() {
@@ -198,41 +241,86 @@ $(document).ready(function() {
         updateTotals();
     });
 
-    // Add detail row
+    // Add detail row (manual, tanpa prefill)
     $('#addDetail').click(function() {
         if (!$('#penjualan_id').val()) {
             alert('Pilih nomor penjualan terlebih dahulu');
             return;
         }
-
-        addDetailRow();
+        
+        // Populate modal dropdown dengan produk dari penjualan
+        $('#modalProduk').empty().append('<option value="">-- Pilih Produk --</option>');
+        penjualanDetails.forEach(function(detail) {
+            $('#modalProduk').append(
+                `<option value="${detail.id}" data-qty="${detail.jumlah}" data-harga="${detail.harga_satuan}">
+                    ${detail.produk_nama}
+                </option>`
+            );
+        });
+        
+        // Reset form
+        $('#modalProduk').val('');
+        $('#modalQtyRetur').val('');
+        $('#modalHarga').val('');
+        $('#modalQtyTersedia').text('0');
     });
 
-    function addDetailRow() {
+    // Handle produk selection di modal
+    $('#modalProduk').on('change', function() {
+        const selectedOption = $(this).find('option:selected');
+        const qty = selectedOption.data('qty') || 0;
+        const harga = selectedOption.data('harga') || 0;
+        
+        $('#modalQtyTersedia').text(qty);
+        $('#modalQtyRetur').attr('max', qty).val(qty);
+        $('#modalHarga').val(harga);
+    });
+
+    // Simpan detail dari modal
+    $('#modalSimpanDetail').click(function() {
+        const produkId = $('#modalProduk').val();
+        const qtyRetur = parseFloat($('#modalQtyRetur').val());
+        const harga = parseFloat($('#modalHarga').val());
+
+        if (!produkId) {
+            alert('Pilih produk terlebih dahulu');
+            return;
+        }
+        if (!qtyRetur || qtyRetur <= 0) {
+            alert('Quantity retur harus lebih dari 0');
+            return;
+        }
+        if (!harga || harga < 0) {
+            alert('Harga barang tidak valid');
+            return;
+        }
+
+        // Cari detail produk dari penjualanDetails
+        const produk = penjualanDetails.find(d => d.id == produkId);
+        if (!produk) {
+            alert('Produk tidak ditemukan');
+            return;
+        }
+
+        // Tambahkan baris ke tabel
         const row = `
             <tr data-index="${detailIndex}">
                 <td class="text-center">${detailIndex + 1}</td>
+                <td>${produk.produk_nama}</td>
                 <td>
-                    <select name="details[${detailIndex}][penjualan_detail_id]" class="form-select penjualan-detail-select" required>
-                        <option value="">-- Pilih Produk --</option>
-                        ${penjualanDetails.map(detail => 
-                            `<option value="${detail.id}" data-qty="${detail.jumlah}" data-harga="${detail.harga_satuan}">
-                                ${detail.produk_nama} (Stok: ${detail.jumlah})
-                            </option>`
-                        ).join('')}
-                    </select>
+                    <input type="hidden" name="details[${detailIndex}][penjualan_detail_id]" value="${produkId}">
+                    <input type="text" class="form-control qty-penjualan" value="${produk.jumlah}" readonly>
                 </td>
                 <td>
-                    <input type="text" class="form-control qty-penjualan" readonly>
+                    <input type="number" name="details[${detailIndex}][qty_retur]" class="form-control qty-retur"
+                        step="0.0001" min="0.0001" max="${produk.jumlah}" value="${qtyRetur}" required>
                 </td>
                 <td>
-                    <input type="number" name="details[${detailIndex}][qty_retur]" class="form-control qty-retur" step="0.0001" min="0.0001" required>
+                    <input type="number" name="details[${detailIndex}][harga_barang]" class="form-control harga-barang"
+                        step="0.01" min="0" value="${harga}" required>
                 </td>
                 <td>
-                    <input type="number" name="details[${detailIndex}][harga_barang]" class="form-control harga-barang" step="0.01" min="0" required>
-                </td>
-                <td>
-                    <input type="text" class="form-control subtotal" readonly>
+                    <input type="text" class="form-control subtotal" value="Rp ${(qtyRetur * harga).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}" readonly>
                 </td>
                 <td class="text-center">
                     <button type="button" class="btn btn-sm btn-danger remove-detail">
@@ -241,24 +329,14 @@ $(document).ready(function() {
                 </td>
             </tr>
         `;
-        
+
         $('#detailTable tbody').append(row);
         detailIndex++;
-    }
-
-    // Handle events for dynamically added rows
-    $(document).on('change', '.penjualan-detail-select', function() {
-        const row = $(this).closest('tr');
-        const selectedOption = $(this).find('option:selected');
-        const qtyPenjualan = selectedOption.data('qty');
-        const harga = selectedOption.data('harga');
-        
-        row.find('.qty-penjualan').val(qtyPenjualan);
-        row.find('.harga-barang').val(harga);
-        row.find('.qty-retur').attr('max', qtyPenjualan);
-        
-        calculateRowSubtotal(row);
         updateTotals();
+
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('detailReturModal'));
+        modal.hide();
     });
 
     $(document).on('input', '.qty-retur, .harga-barang', function() {
@@ -277,7 +355,7 @@ $(document).ready(function() {
         const harga = parseFloat(row.find('.harga-barang').val()) || 0;
         const subtotal = qty * harga;
         
-        row.find('.subtotal').val(subtotal.toFixed(2));
+        row.find('.subtotal').val('Rp ' + subtotal.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
     }
 
     function updateTotals() {
@@ -285,7 +363,10 @@ $(document).ready(function() {
         let jenisRetur = $('#jenis_retur').val();
         
         $('.subtotal').each(function() {
-            totalHarga += parseFloat($(this).val()) || 0;
+            const val = $(this).val();
+            // Parse nilai dari format "Rp 150.000" ke number
+            const numVal = parseFloat(val.replace(/Rp/g, '').replace(/\./g, '').replace(/,/g, '')) || 0;
+            totalHarga += numVal;
         });
 
         let ppn = 0;
@@ -300,9 +381,9 @@ $(document).ready(function() {
             $('#totalReturInfo').hide();
         }
 
-        $('#totalHarga').text(totalHarga.toFixed(2));
-        $('#totalPPN').text(ppn.toFixed(2));
-        $('#totalRetur').text(totalRetur.toFixed(2));
+        $('#totalHarga').text(totalHarga.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
+        $('#totalPPN').text(ppn.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
+        $('#totalRetur').text(totalRetur.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }));
     }
 
     // Form validation

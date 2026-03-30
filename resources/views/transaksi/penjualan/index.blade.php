@@ -468,7 +468,7 @@
                                                 </a>
                                             </div>
                                             <div class="action-row">
-                                                <a href="{{ route('transaksi.retur-penjualan.create', ['penjualan_id' => $penjualan->id]) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Proses Retur">
+                                                <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Proses Retur">
                                                     Retur
                                                 </a>
                                                 <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
