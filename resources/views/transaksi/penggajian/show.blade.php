@@ -7,6 +7,18 @@
     @php
         $jenis = strtolower($penggajian->pegawai->jenis_pegawai ?? 'btktl');
         $coa = \App\Models\Coa::where('kode_akun', $penggajian->coa_kasbank)->first();
+
+        if ($jenis === 'btkl') {
+            $gajiDasar = (float)($penggajian->tarif_per_jam ?? 0) * (float)($penggajian->total_jam_kerja ?? 0);
+        } else {
+            $gajiDasar = (float)($penggajian->gaji_pokok ?? 0);
+        }
+
+        $totalGajiHitung = $gajiDasar
+            + (float)($penggajian->tunjangan ?? 0)
+            + (float)($penggajian->asuransi ?? 0)
+            + (float)($penggajian->bonus ?? 0)
+            - (float)($penggajian->potongan ?? 0);
     @endphp
 
     <div class="row">
@@ -98,7 +110,7 @@
         <div class="card-body text-center py-4">
             <h5 class="mb-2 text-dark fw-bold">Total Gaji</h5>
             <h2 class="mb-0 fw-bold" style="color: #333; font-size: 2.5rem;">
-                Rp {{ number_format($penggajian->total_gaji, 0, ',', '.') }}
+                Rp {{ number_format($totalGajiHitung, 0, ',', '.') }}
             </h2>
         </div>
     </div>

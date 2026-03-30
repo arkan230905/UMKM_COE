@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid py-4">
+<div class="container-fluid py-4" style="background-color: #f8f9fa; min-height: 100vh;">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="text-dark fw-bold mb-0">
             <i class="bi bi-calendar-plus me-2"></i> Tambah Presensi
@@ -425,7 +425,7 @@ function toggleJamFieldsInline(status) {
     .form-control, .form-select, 
     .form-control:focus, .form-select:focus {
         background-color: #ffffff !important;
-        border-color: #dee2e6 !important;
+        border-color: #ced4da !important;
         color: #212529 !important;
     }
     
@@ -447,7 +447,7 @@ function toggleJamFieldsInline(status) {
     /* Style untuk card */
     .card {
         background-color: #ffffff;
-        border: 1px solid rgba(0,0,0,.125);
+        border: 1px solid rgba(0, 0, 0, 0.125);
     }
     
     /* Style untuk text muted */
@@ -456,13 +456,8 @@ function toggleJamFieldsInline(status) {
     }
     
     /* Style untuk tombol */
-    .btn-outline-light {
-        border-color: #4a4a5a;
-    }
-    
-    .btn-outline-light:hover {
-        background-color: #2d2d3a;
-        border-color: #4a4a5a;
+    .btn-outline-secondary {
+        border-color: #6c757d;
     }
     
     /* Style untuk alert */
@@ -472,15 +467,15 @@ function toggleJamFieldsInline(status) {
     }
     
     .alert-danger {
-        background-color: rgba(220, 53, 69, 0.1);
+        background-color: #f8d7da;
         border-left-color: #dc3545;
-        color: inherit;
+        color: #842029;
     }
     
     .alert-success {
-        background-color: rgba(25, 135, 84, 0.1);
+        background-color: #d1e7dd;
         border-left-color: #198754;
-        color: inherit;
+        color: #0f5132;
     }
     
     /* Style untuk loading */

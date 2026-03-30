@@ -86,7 +86,7 @@
                                 </td>
                                 <td>
                                     @php
-                                        $saldo = $saldoPeriode[$coa->kode_akun] ?? 0;
+                                        $saldo = $saldoPeriode[$coa->id] ?? 0;
                                     @endphp
                                     <span class="{{ $saldo != ($coa->saldo_awal ?? 0) ? 'text-primary fw-bold' : '' }}">
                                         Rp {{ number_format((float)$saldo, 0, ',', '.') }}
@@ -98,10 +98,10 @@
                                 <td><small class="text-muted">{{ $coa->keterangan }}</small></td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{{ route('master-data.coa.edit', $coa->kode_akun) }}" class="btn btn-outline-primary">
+                                        <a href="{{ route('master-data.coa.edit', $coa->id) }}" class="btn btn-outline-primary">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form action="{{ route('master-data.coa.destroy', $coa->kode_akun) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus COA ini?')">
+                                        <form action="{{ route('master-data.coa.destroy', $coa->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus COA ini?')">
                                             @csrf
                                             @method('DELETE')
                                             <button class="btn btn-outline-danger">

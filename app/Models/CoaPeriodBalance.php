@@ -10,6 +10,7 @@ class CoaPeriodBalance extends Model
     use HasFactory;
 
     protected $fillable = [
+        'coa_id',
         'kode_akun',
         'period_id',
         'saldo_awal',
@@ -28,7 +29,7 @@ class CoaPeriodBalance extends Model
      */
     public function coa()
     {
-        return $this->belongsTo(Coa::class, 'kode_akun', 'kode_akun');
+        return $this->belongsTo(Coa::class, 'coa_id', 'id');
     }
 
     /**

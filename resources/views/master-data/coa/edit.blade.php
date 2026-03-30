@@ -6,7 +6,7 @@
         <div class="alert alert-danger"><ul class="mb-0">@foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
     @endif
 
-    <form action="{{ route('master-data.coa.update',$coa->kode_akun) }}" method="POST">
+    <form action="{{ route('master-data.coa.update',$coa->id) }}" method="POST">
         @csrf @method('PATCH')
 
         <div class="row g-3">
@@ -88,7 +88,7 @@
             hidden.value = val; view.value = raw === '' ? '' : nf.format(val);
             view.selectionStart = view.selectionEnd = view.value.length;
         });
-        document.querySelector('form[action="{{ route('master-data.coa.update',$coa->kode_akun) }}"]').addEventListener('submit', ()=>{
+        document.querySelector('form[action="{{ route('master-data.coa.update',$coa->id) }}"]').addEventListener('submit', ()=>{
             hidden.value = parseIdr(view.value);
         });
     })();
