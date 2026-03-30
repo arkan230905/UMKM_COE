@@ -12,10 +12,10 @@
     <div class="row">
         <!-- Informasi Pegawai -->
         <div class="col-md-6 mb-4">
-            <div class="card bg-dark text-white border-0 h-100">
+            <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                     <h5 class="border-bottom pb-2 mb-3">Informasi Pegawai</h5>
-                    <table class="table table-dark table-borderless mb-0">
+                    <table class="table table-borderless mb-0">
                         <tr>
                             <td width="45%">Nama Pegawai</td>
                             <td>: <strong>{{ $penggajian->pegawai->nama ?? '-' }}</strong></td>
@@ -47,10 +47,10 @@
 
         <!-- Rincian Gaji -->
         <div class="col-md-6 mb-4">
-            <div class="card bg-dark text-white border-0 h-100">
+            <div class="card border-0 shadow-sm h-100">
                 <div class="card-body">
                     <h5 class="border-bottom pb-2 mb-3">Rincian Gaji</h5>
-                    <table class="table table-dark table-borderless mb-0">
+                    <table class="table table-borderless mb-0">
                         @if($jenis === 'btkl')
                             <tr>
                                 <td width="45%">Tarif per Jam</td>

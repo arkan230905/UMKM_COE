@@ -52,21 +52,19 @@
                             <i class="bi bi-person-fill me-1"></i>Pegawai <span class="text-danger">*</span>
                         </label>
                         <select name="pegawai_id" id="pegawai_id" 
-                            class="form-select bg-dark text-white border-dark @error('pegawai_id') is-invalid @enderror" 
-                            style="color: #ffffff !important; background-color: rgba(0,0,0,0.5) !important; border-color: rgba(255,255,255,0.3) !important;"
+                            class="form-select @error('pegawai_id') is-invalid @enderror" 
                             required>
-                            <option value="" style="color: #ffffff !important; background-color: #2c2c54 !important;">-- Pilih Pegawai --</option>
+                            <option value="">-- Pilih Pegawai --</option>
                             @foreach($pegawais as $pegawai)
                                 <option value="{{ $pegawai->id }}" 
                                     {{ old('pegawai_id') == $pegawai->id ? 'selected' : '' }}
-                                    class="text-white"
-                                    style="color: #ffffff !important; background-color: #2c2c54 !important;">
+                                    >
                                     {{ $pegawai->nama }} ({{ $pegawai->nomor_induk_pegawai }})
                                 </option>
                             @endforeach
                         </select>
                         @error('pegawai_id')
-                            <div class="invalid-feedback" style="color: #ffffff !important;">{{ $message }}</div>
+                            <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
 
@@ -76,13 +74,12 @@
                             <i class="bi bi-calendar-event me-1"></i>Tanggal <span class="text-danger">*</span>
                         </label>
                         <input type="date" name="tgl_presensi" id="tgl_presensi" 
-                               class="form-control bg-dark text-white border-dark @error('tgl_presensi') is-invalid @enderror" 
-                               style="color: #ffffff !important; background-color: rgba(0,0,0,0.5) !important; border-color: rgba(255,255,255,0.3) !important;"
+                               class="form-control @error('tgl_presensi') is-invalid @enderror" 
                                value="{{ old('tgl_presensi', now()->format('Y-m-d')) }}" 
                                required
                                max="{{ now()->format('Y-m-d') }}">
                         @error('tgl_presensi')
-                            <div class="invalid-feedback" style="color: #ffffff !important;">{{ $message }}</div>
+                            <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
 
@@ -92,30 +89,25 @@
                             <i class="bi bi-info-circle me-1"></i>Status <span class="text-danger">*</span>
                         </label>
                         <select name="status" id="status" 
-                            class="form-select bg-dark text-white border-dark @error('status') is-invalid @enderror" 
-                            style="color: #ffffff !important; background-color: rgba(0,0,0,0.5) !important; border-color: rgba(255,255,255,0.3) !important;"
+                            class="form-select @error('status') is-invalid @enderror" 
                             required
                             onchange="toggleJamFieldsInline(this.value)">
-                            <option value="" style="color: #ffffff !important; background-color: #2c2c54 !important;">-- Pilih Status --</option>
-                            <option value="hadir" {{ old('status') == 'hadir' ? 'selected' : '' }} class="text-white"
-                                    style="color: #ffffff !important; background-color: #2c2c54 !important;">
+                            <option value="">-- Pilih Status --</option>
+                            <option value="hadir" {{ old('status') == 'hadir' ? 'selected' : '' }}>
                                 Hadir
                             </option>
-                            <option value="izin" {{ old('status') == 'izin' ? 'selected' : '' }} class="text-white"
-                                    style="color: #ffffff !important; background-color: #2c2c54 !important;">
+                            <option value="izin" {{ old('status') == 'izin' ? 'selected' : '' }}>
                                 Izin
                             </option>
-                            <option value="sakit" {{ old('status') == 'sakit' ? 'selected' : '' }} class="text-white"
-                                    style="color: #ffffff !important; background-color: #2c2c54 !important;">
+                            <option value="sakit" {{ old('status') == 'sakit' ? 'selected' : '' }}>
                                 Sakit
                             </option>
-                            <option value="alpha" {{ old('status') == 'alpha' ? 'selected' : '' }} class="text-white"
-                                    style="color: #ffffff !important; background-color: #2c2c54 !important;">
+                            <option value="alpha" {{ old('status') == 'alpha' ? 'selected' : '' }}>
                                 Alpha
                             </option>
                         </select>
                         @error('status')
-                            <div class="invalid-feedback" style="color: #ffffff !important;">{{ $message }}</div>
+                            <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
 
@@ -125,12 +117,11 @@
                             <i class="bi bi-clock-history me-1"></i>Jam Masuk <span class="text-danger">*</span>
                         </label>
                         <input type="time" name="jam_masuk" id="jam_masuk" 
-                               class="form-control bg-dark text-white border-dark @error('jam_masuk') is-invalid @enderror" 
-                               style="color: #ffffff !important; background-color: rgba(0,0,0,0.5) !important; border-color: rgba(255,255,255,0.3) !important;"
+                               class="form-control @error('jam_masuk') is-invalid @enderror" 
                                value="{{ old('jam_masuk', '08:00') }}" 
                                pattern="[0-9]{2}:[0-9]{2}">
                         @error('jam_masuk')
-                            <div class="invalid-feedback" style="color: #ffffff !important;">{{ $message }}</div>
+                            <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
 
@@ -140,12 +131,11 @@
                             <i class="bi bi-clock-fill me-1"></i>Jam Keluar <span class="text-danger">*</span>
                         </label>
                         <input type="time" name="jam_keluar" id="jam_keluar" 
-                               class="form-control bg-dark text-white border-dark @error('jam_keluar') is-invalid @enderror" 
-                               style="color: #ffffff !important; background-color: rgba(0,0,0,0.5) !important; border-color: rgba(255,255,255,0.3) !important;"
+                               class="form-control @error('jam_keluar') is-invalid @enderror" 
                                value="{{ old('jam_keluar', '17:00') }}" 
                                pattern="[0-9]{2}:[0-9]{2}">
                         @error('jam_keluar')
-                            <div class="invalid-feedback" style="color: #ffffff !important;">{{ $message }}</div>
+                            <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
 
@@ -155,11 +145,10 @@
                             <i class="bi bi-card-text me-1"></i>Keterangan
                         </label>
                         <textarea name="keterangan" id="keterangan" rows="2"
-                            class="form-control bg-dark text-white border-dark @error('keterangan') is-invalid @enderror"
-                            style="color: #ffffff !important; background-color: rgba(0,0,0,0.5) !important; border-color: rgba(255,255,255,0.3) !important;"
+                            class="form-control @error('keterangan') is-invalid @enderror"
                             placeholder="Masukkan keterangan (opsional)">{{ old('keterangan') }}</textarea>
                         @error('keterangan')
-                            <div class="invalid-feedback" style="color: #ffffff !important;">{{ $message }}</div>
+                            <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
 
@@ -435,13 +424,13 @@ function toggleJamFieldsInline(status) {
     /* Style untuk form */
     .form-control, .form-select, 
     .form-control:focus, .form-select:focus {
-        background-color: #1e1e2f !important;
-        border-color: #2d2d3a !important;
-        color: #ffffff !important;
+        background-color: #ffffff !important;
+        border-color: #dee2e6 !important;
+        color: #212529 !important;
     }
     
     .form-control:focus, .form-select:focus {
-        box-shadow: 0 0 0 0.25rem rgba(108, 99, 255, 0.25) !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
     }
     
     .form-label {
@@ -451,19 +440,19 @@ function toggleJamFieldsInline(status) {
     
     /* Style untuk option di select */
     option {
-        background-color: #1e1e2f;
-        color: #ffffff;
+        background-color: #ffffff;
+        color: #212529;
     }
     
     /* Style untuk card */
     .card {
-        background-color: #222232;
-        border: 1px solid #2d2d3a;
+        background-color: #ffffff;
+        border: 1px solid rgba(0,0,0,.125);
     }
     
     /* Style untuk text muted */
     .text-muted {
-        color: #8a8a9a !important;
+        color: #6c757d !important;
     }
     
     /* Style untuk tombol */
@@ -485,13 +474,13 @@ function toggleJamFieldsInline(status) {
     .alert-danger {
         background-color: rgba(220, 53, 69, 0.1);
         border-left-color: #dc3545;
-        color: #f8d7da;
+        color: inherit;
     }
     
     .alert-success {
         background-color: rgba(25, 135, 84, 0.1);
         border-left-color: #198754;
-        color: #d1e7dd;
+        color: inherit;
     }
     
     /* Style untuk loading */

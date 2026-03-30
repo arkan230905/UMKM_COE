@@ -44,7 +44,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 50px">#</th>
+                            <th class="text-center" style="width: 50px">NO</th>
                             <th>Kode Akun</th>
                             <th>Nama Akun</th>
                             <th>Tipe Akun</th>
