@@ -71,13 +71,6 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td class="fw-semibold">Efisiensi:</td>
-                                    <td>
-                                        <span class="fs-6 fw-bold text-warning">{{ number_format($prosesProduksi->efisiensi_produksi, 4, ',', '.') }}</span>
-                                        <small class="text-muted">unit/Rp</small>
-                                    </td>
-                                </tr>
-                                <tr>
                                     <td class="fw-semibold">Status:</td>
                                     <td>
                                         @if($prosesProduksi->tarif_btkl > 0 && $prosesProduksi->kapasitas_per_jam > 0)
