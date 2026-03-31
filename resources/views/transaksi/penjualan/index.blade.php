@@ -103,6 +103,31 @@
     gap: 0.5rem;
 }
 
+/* Modal fixes */
+.modal-backdrop {
+    z-index: 1050 !important;
+}
+
+.modal {
+    z-index: 1055 !important;
+}
+
+.modal-dialog {
+    z-index: 1060 !important;
+}
+
+/* Ensure modal content is clickable */
+.modal-content {
+    position: relative;
+    z-index: 1065 !important;
+    pointer-events: auto;
+}
+
+.modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
 .action-left {
     display: flex;
     align-items: center;
@@ -219,6 +244,10 @@
 .btn-minimal.btn-jurnal:hover {
     background: #dbeafe;
     color: #1d4ed8;
+}
+
+.modal-body .row.mt-4 {
+    margin-top: 10px !important;
 }
 </style>
 @endpush
@@ -481,9 +510,9 @@
                                 <td class="text-center">
                                     <div class="action-layout">
                                         <div class="action-left">
-                                            <a href="{{ route('transaksi.penjualan.show', $penjualan->id) }}" class="btn-minimal btn-detail" data-bs-toggle="tooltip" title="Detail Transaksi">
+                                            <button type="button" class="btn-minimal btn-detail" data-bs-toggle="modal" data-bs-target="#detailModal{{ $penjualan->id }}" title="Detail Transaksi">
                                                 Detail
-                                            </a>
+                                            </button>
                                         </div>
                                         <div class="action-right">
                                             <div class="action-row">
@@ -623,7 +652,7 @@
 
 <!-- Detail Modal -->
 @foreach($penjualans as $penjualan)
-<div class="modal fade" id="detailModal{{ $penjualan->id }}" tabindex="-1" aria-labelledby="detailModalLabel{{ $penjualan->id }}" aria-hidden="true" style="z-index: 1050;">
+<div class="modal fade" id="detailModal{{ $penjualan->id }}" tabindex="-1" aria-labelledby="detailModalLabel{{ $penjualan->id }}" aria-hidden="true" style="z-index: 1055;">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -689,10 +718,13 @@
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <strong>Kasir:</strong> {{ $penjualan->user?->name ?? '-' }}
+                        <strong>Pelanggan:</strong> {{ $penjualan->pelanggan?->name ?? 'Umum' }}
                     </div>
                     <div class="col-md-6">
-                        <strong>Pelanggan:</strong> Umum
+                        <strong>Status Transaksi:</strong> 
+                        <span class="badge {{ ($penjualan->status ?? 'lunas') === 'lunas' ? 'bg-success' : 'bg-warning' }}">
+                            {{ ucfirst($penjualan->status ?? 'lunas') }}
+                        </span>
                     </div>
                 </div>
                 <div class="row mb-3">
@@ -703,10 +735,7 @@
                         </span>
                     </div>
                     <div class="col-md-6">
-                        <strong>Status Transaksi:</strong> 
-                        <span class="badge {{ ($penjualan->status ?? 'lunas') === 'lunas' ? 'bg-success' : 'bg-warning' }}">
-                            {{ ucfirst($penjualan->status ?? 'lunas') }}
-                        </span>
+                        <strong>Catatan:</strong> {{ $penjualan->catatan ?? '-' }}
                     </div>
                 </div>
                 <div class="row mb-3">
@@ -721,14 +750,11 @@
                             <span class="badge bg-success">0</span>
                         @endif
                     </div>
-                    <div class="col-md-6">
-                        <strong>Catatan:</strong> {{ $penjualan->catatan ?? '-' }}
-                    </div>
                 </div>
                 
                 <h6 class="mb-3"><i class="fas fa-box me-2"></i>Detail Produk</h6>
                 <div class="table-responsive">
-                    <table class="table table-sm table-bordered">
+                    <table class="table table-sm table-bordered mb-0">
                         <thead class="table-light">
                             <tr>
                                 <th>Produk</th>
@@ -801,7 +827,7 @@
                 </div>
                 
                 <!-- Ringkasan Transaksi -->
-                <h6 class="mb-3 mt-4"><i class="fas fa-calculator me-2"></i>Ringkasan Transaksi</h6>
+                <h6 class="mb-2 mt-1"><i class="fas fa-calculator me-2"></i>Ringkasan Transaksi</h6>
                 <div class="row">
                     <div class="col-md-3">
                         <div class="p-3 bg-light rounded">
@@ -828,6 +854,68 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Detail Retur -->
+                @if($penjualan->returPenjualans && $penjualan->returPenjualans->count() > 0)
+                <h6 class="mb-3 mt-4"><i class="fas fa-undo me-2"></i>Detail Retur</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nomor Retur</th>
+                                <th>Tanggal</th>
+                                <th>Jenis</th>
+                                <th>Produk</th>
+                                <th class="text-end">Qty Retur</th>
+                                <th class="text-end">Total Retur</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($penjualan->returPenjualans as $retur)
+                            <tr>
+                                <td><strong>{{ $retur->nomor_retur }}</strong></td>
+                                <td>{{ $retur->tanggal->format('d/m/Y') }}</td>
+                                <td>
+                                    <span class="badge {{ $retur->jenis_retur === 'refund' ? 'bg-danger' : ($retur->jenis_retur === 'tukar_barang' ? 'bg-warning' : 'bg-info') }}">
+                                        {{ $retur->jenis_retur === 'tukar_barang' ? 'Tukar Barang' : ($retur->jenis_retur === 'refund' ? 'Refund' : 'Kredit') }}
+                                    </span>
+                                </td>
+                                <td>
+                                    @if($retur->detailReturPenjualans && $retur->detailReturPenjualans->count() > 0)
+                                        @foreach($retur->detailReturPenjualans as $detail)
+                                            <div>{{ $detail->produk?->nama_produk ?? '-' }}</div>
+                                        @endforeach
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    @if($retur->detailReturPenjualans && $retur->detailReturPenjualans->count() > 0)
+                                        @foreach($retur->detailReturPenjualans as $detail)
+                                            <div>{{ (int)($detail->qty_retur ?? 0) }}</div>
+                                        @endforeach
+                                    @else
+                                        -
+                                    @endif
+                                </td>
+                                <td class="text-end">Rp {{ number_format($retur->total_retur ?? 0, 0, ',', '.') }}</td>
+                                <td>
+                                    <span class="badge {{ $retur->status === 'selesai' ? 'bg-success' : ($retur->status === 'lunas' ? 'bg-info' : 'bg-warning') }}">
+                                        {{ ucfirst($retur->status ?? '-') }}
+                                    </span>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @else
+                <h6 class="mb-3 mt-4"><i class="fas fa-undo me-2"></i>Detail Retur</h6>
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-info-circle me-2"></i>Belum ada retur untuk transaksi ini
+                </div>
+                @endif
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
@@ -928,6 +1016,32 @@ document.addEventListener('DOMContentLoaded', function() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+    
+    // Fix modal backdrop issues
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal-backdrop')) {
+            // Find the active modal and close it
+            var activeModal = document.querySelector('.modal.show');
+            if (activeModal) {
+                var modal = bootstrap.Modal.getInstance(activeModal);
+                if (modal) {
+                    modal.hide();
+                }
+            }
+        }
+    });
+    
+    // Ensure modals are properly initialized
+    var modalElements = document.querySelectorAll('.modal');
+    modalElements.forEach(function(modalEl) {
+        modalEl.addEventListener('show.bs.modal', function() {
+            document.body.style.overflow = 'hidden';
+        });
+        
+        modalEl.addEventListener('hidden.bs.modal', function() {
+            document.body.style.overflow = 'auto';
+        });
     });
 });
 
