@@ -15,13 +15,37 @@
         </div>
     </div>
 
+    @php
+        $detailCount = $penjualan->details->count();
+        $totalSubtotal = 0; $totalHPP = 0; $totalProfit = 0; $totalDiskon = 0;
+        if ($detailCount > 0) {
+            foreach ($penjualan->details as $d) {
+                $hpp = $d->produk->getHPPForSaleDate($penjualan->tanggal) ?? 0;
+                $sub = $d->subtotal ?? ($d->jumlah * $d->harga_satuan - ($d->diskon_nominal ?? 0));
+                $totalSubtotal += $sub;
+                $totalHPP += $hpp * $d->jumlah;
+                $totalProfit += ($d->harga_satuan - $hpp) * $d->jumlah;
+                $totalDiskon += $d->diskon_nominal ?? 0;
+            }
+        } else {
+            $hpp = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
+            $hdrHarga = $penjualan->harga_satuan;
+            if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
+                $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+            }
+            $totalSubtotal = ($penjualan->jumlah ?? 0) * $hdrHarga;
+            $totalHPP = $hpp * ($penjualan->jumlah ?? 0);
+            $totalProfit = ($hdrHarga - $hpp) * ($penjualan->jumlah ?? 0);
+            $totalDiskon = $penjualan->diskon_nominal ?? 0;
+        }
+    @endphp
+
+    {{-- Row 1: Informasi Transaksi + Ringkasan --}}
     <div class="row">
         <div class="col-md-8">
-            <div class="card">
+            <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-info-circle me-2"></i>Informasi Transaksi
-                    </h5>
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informasi Transaksi</h5>
                 </div>
                 <div class="card-body">
                     <div class="row mb-3">
@@ -39,17 +63,10 @@
                             <strong>Metode Pembayaran:</strong><br>
                             <span class="badge {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'bg-warning' : 'bg-success' }}">
                                 @switch($penjualan->payment_method ?? 'cash')
-                                    @case('cash')
-                                        Tunai
-                                        @break
-                                    @case('transfer')
-                                        Transfer Bank
-                                        @break
-                                    @case('credit')
-                                        Kredit
-                                        @break
-                                    @default
-                                        Tunai
+                                    @case('cash') Tunai @break
+                                    @case('transfer') Transfer Bank @break
+                                    @case('credit') Kredit @break
+                                    @default Tunai
                                 @endswitch
                             </span>
                         </div>
@@ -63,11 +80,9 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <strong>Qty Retur:</strong><br>
-                            @php
-                                $totalQtyRetur = $penjualan->total_qty_retur ?? 0;
-                            @endphp
+                            @php $totalQtyRetur = $penjualan->total_qty_retur ?? 0; @endphp
                             @if($totalQtyRetur > 0)
-                                <span class="badge bg-danger">{{ number_format($totalQtyRetur, 2, ',', '.') }}</span>
+                                <span class="badge bg-danger">{{ (int)$totalQtyRetur }}</span>
                             @else
                                 <span class="badge bg-success">0</span>
                             @endif
@@ -79,117 +94,12 @@
                     </div>
                 </div>
             </div>
-
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-box me-2"></i>Detail Produk
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Produk</th>
-                                    <th class="text-end">Qty</th>
-                                    <th class="text-end">Harga Satuan</th>
-                                    <th class="text-end">HPP</th>
-                                    <th class="text-end">Profit</th>
-                                    <th class="text-end">Diskon</th>
-                                    <th class="text-end">Subtotal</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @php
-                                    $detailCount = $penjualan->details->count();
-                                    $totalSubtotal = 0;
-                                    $totalHPP = 0;
-                                    $totalProfit = 0;
-                                    $totalDiskon = 0;
-                                @endphp
-                                
-                                @if($detailCount > 0)
-                                    @foreach($penjualan->details as $detail)
-                                        @php 
-                                            $actualHPP = $detail->produk->getHPPForSaleDate($penjualan->tanggal) ?? 0;
-                                            $margin = ($detail->harga_satuan - $actualHPP) * $detail->jumlah;
-                                            $subtotal = $detail->subtotal ?? ($detail->jumlah * $detail->harga_satuan - ($detail->diskon_nominal ?? 0));
-                                            
-                                            $totalSubtotal += $subtotal;
-                                            $totalHPP += $actualHPP * $detail->jumlah;
-                                            $totalProfit += $margin;
-                                            $totalDiskon += $detail->diskon_nominal ?? 0;
-                                        @endphp
-                                        <tr>
-                                            <td>{{ $detail->produk->nama_produk ?? '-' }}</td>
-                                            <td class="text-end">{{ rtrim(rtrim(number_format($detail->jumlah,2,',','.'),'0'),',') }}</td>
-                                            <td class="text-end">Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}</td>
-                                            <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
-                                            <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">
-                                                Rp {{ number_format($margin, 0, ',', '.') }}
-                                            </td>
-                                            <td class="text-end">
-                                                @if($detail->diskon_persen > 0)
-                                                    {{ number_format($detail->diskon_persen, 2, ',', '.') }}%
-                                                @endif
-                                                @if($detail->diskon_nominal > 0)
-                                                    (Rp {{ number_format($detail->diskon_nominal, 0, ',', '.') }})
-                                                @endif
-                                                @if($detail->diskon_persen == 0 && $detail->diskon_nominal == 0)
-                                                    -
-                                                @endif
-                                            </td>
-                                            <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
-                                        </tr>
-                                    @endforeach
-                                @else
-                                    {{-- Single product (old format) --}}
-                                    @php 
-                                        $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
-                                        $hdrHarga = $penjualan->harga_satuan;
-                                        if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
-                                            $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
-                                        }
-                                        $margin = ($hdrHarga - $actualHPP) * ($penjualan->jumlah ?? 0);
-                                        $subtotal = ($penjualan->jumlah ?? 0) * $hdrHarga;
-                                        
-                                        $totalSubtotal = $subtotal;
-                                        $totalHPP = $actualHPP * ($penjualan->jumlah ?? 0);
-                                        $totalProfit = $margin;
-                                        $totalDiskon = $penjualan->diskon_nominal ?? 0;
-                                    @endphp
-                                    <tr>
-                                        <td>{{ $penjualan->produk?->nama_produk ?? '-' }}</td>
-                                        <td class="text-end">{{ rtrim(rtrim(number_format($penjualan->jumlah,2,',','.'),'0'),',') }}</td>
-                                        <td class="text-end">Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}</td>
-                                        <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
-                                        <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">
-                                            Rp {{ number_format($margin, 0, ',', '.') }}
-                                        </td>
-                                        <td class="text-end">
-                                            @if($penjualan->diskon_nominal > 0)
-                                                Rp {{ number_format($penjualan->diskon_nominal, 0, ',', '.') }}
-                                            @else
-                                                -
-                                            @endif
-                                        </td>
-                                        <td class="text-end">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</td>
-                                    </tr>
-                                @endif
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <div class="col-md-4">
-            <div class="card">
+            <div class="card h-100">
                 <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-calculator me-2"></i>Ringkasan Transaksi
-                    </h5>
+                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Ringkasan Transaksi</h5>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
@@ -225,35 +135,157 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <div class="card mt-4">
+    {{-- Row 2: Detail Produk + Aksi --}}
+    <div class="row mt-4">
+        <div class="col-md-8">
+            <div class="card">
                 <div class="card-header">
-                    <h5 class="mb-0">
-                        <i class="fas fa-cogs me-2"></i>Aksi
-                    </h5>
+                    <h5 class="mb-0"><i class="fas fa-box me-2"></i>Detail Produk</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Produk</th>
+                                    <th class="text-end">Qty</th>
+                                    <th class="text-end">Harga</th>
+                                    <th class="text-end">HPP</th>
+                                    <th class="text-end">Profit</th>
+                                    <th class="text-end">Diskon</th>
+                                    <th class="text-end">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if($detailCount > 0)
+                                    @foreach($penjualan->details as $detail)
+                                        @php
+                                            $actualHPP = $detail->produk->getHPPForSaleDate($penjualan->tanggal) ?? 0;
+                                            $margin = ($detail->harga_satuan - $actualHPP) * $detail->jumlah;
+                                            $subtotal = $detail->subtotal ?? ($detail->jumlah * $detail->harga_satuan - ($detail->diskon_nominal ?? 0));
+                                        @endphp
+                                        <tr>
+                                            <td>{{ $detail->produk->nama_produk ?? '-' }}</td>
+                                            <td class="text-end">{{ rtrim(rtrim(number_format($detail->jumlah,2,',','.'),'0'),',') }}</td>
+                                            <td class="text-end">Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}</td>
+                                            <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
+                                            <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</td>
+                                            <td class="text-end">
+                                                @if($detail->diskon_persen > 0) {{ number_format($detail->diskon_persen, 2, ',', '.') }}% @endif
+                                                @if($detail->diskon_nominal > 0) (Rp {{ number_format($detail->diskon_nominal, 0, ',', '.') }}) @endif
+                                                @if($detail->diskon_persen == 0 && $detail->diskon_nominal == 0) - @endif
+                                            </td>
+                                            <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
+                                        </tr>
+                                    @endforeach
+                                @else
+                                    @php
+                                        $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
+                                        $hdrHarga = $penjualan->harga_satuan;
+                                        if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
+                                        $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                                        }
+                                        $margin = ($hdrHarga - $actualHPP) * ($penjualan->jumlah ?? 0);
+                                    @endphp
+                                    <tr>
+                                        <td>{{ $penjualan->produk?->nama_produk ?? '-' }}</td>
+                                        <td class="text-end">{{ rtrim(rtrim(number_format($penjualan->jumlah,2,',','.'),'0'),',') }}</td>
+                                        <td class="text-end">Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}</td>
+                                        <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
+                                        <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</td>
+                                        <td class="text-end">
+                                            @if($penjualan->diskon_nominal > 0) Rp {{ number_format($penjualan->diskon_nominal, 0, ',', '.') }} @else - @endif
+                                        </td>
+                                        <td class="text-end">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</td>
+                                    </tr>
+                                @endif
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Aksi</h5>
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn btn-warning">
+                        <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn btn-outline-warning">
                             <i class="fas fa-edit me-2"></i>Edit Transaksi
                         </a>
-                        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn btn-primary">
+                        <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn btn-outline-primary">
                             <i class="fas fa-book me-2"></i>Lihat Jurnal
                         </a>
-                        <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn btn-info">
+                        <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn btn-outline-info">
                             <i class="fas fa-undo me-2"></i>Proses Retur
                         </a>
                         <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" onsubmit="return confirm('Yakin ingin hapus transaksi ini?')">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-danger w-100">
+                            <button type="submit" class="btn btn-outline-danger w-100">
                                 <i class="fas fa-trash me-2"></i>Hapus Transaksi
                             </button>
                         </form>
-                    </div>
+                  </div>
                 </div>
             </div>
         </div>
     </div>
+
+    {{-- Row 3: Riwayat Retur --}}
+    @if($penjualan->returPenjualans->count() > 0)
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-undo me-2"></i>Riwayat Retur</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nomor Retur</th>
+                                    <th>Tanggal</th>
+                                    <th>Jenis</th>
+                                    <th>Produk</th>
+                                    <th class="text-end">Total Retur</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($penjualan->returPenjualans as $retur)
+                                <tr>
+                                    <td><strong>{{ $retur->nomor_retur }}</strong></td>
+                                    <td>{{ $retur->tanggal->format('d/m/Y') }}</td>
+                                    <td>{{ $retur->jenis_retur === 'tukar_barang' ? 'Tukar Barang' : 'Refund' }}</td>
+                                    <td>
+                                        @foreach($retur->detailReturPenjualans as $d)
+                                            <div>{{ $d->produk?->nama_produk }} ({{ (int)$d->qty_retur }} pcs)</div>
+                                        @endforeach
+                                    </td>
+                                    <td class="text-end">Rp {{ number_format($retur->total_retur, 0, ',', '.') }}</td>
+                                    <td>
+                                    span class="badge {{ $retur->status === 'selesai' ? 'bg-success' : ($retur->status === 'lunas' ? 'bg-info' : 'bg-warning') }}">
+                                            {{ ucfirst($retur->status) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+        </div>
+    </div>
+    @endif
 </div>
 @endsection
+            </div>

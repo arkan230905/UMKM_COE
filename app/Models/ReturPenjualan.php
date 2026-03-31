@@ -95,15 +95,15 @@ class ReturPenjualan extends Model
 
     private function processTukarBarang()
     {
-        // Barang retur masuk ke stok sebagai Barang Retur
         foreach ($this->detailReturPenjualans as $detail) {
-            // Logika untuk menambah stok barang retur
             StockMovement::create([
-                'produk_id' => $detail->produk_id,
-                'type' => 'retur_masuk',
-                'quantity' => $detail->qty_retur,
-                'reference' => $this->nomor_retur,
-                'keterangan' => 'Barang Retur dari ' . $this->nomor_retur
+                'item_type' => 'product',
+                'item_id'   => $detail->produk_id,
+                'tanggal'   => $this->tanggal,
+                'direction' => 'in',
+                'qty'       => $detail->qty_retur,
+                'ref_type'  => 'retur_penjualan',
+                'ref_id'    => $this->id,
             ]);
         }
 
@@ -113,22 +113,22 @@ class ReturPenjualan extends Model
 
     private function processRefund()
     {
-        // Catat sebagai pengeluaran kas
         JournalEntry::create([
-            'tanggal' => $this->tanggal,
-            'keterangan' => 'Refund Penjualan - ' . $this->nomor_retur,
-            'total_debit' => $this->total_retur,
-            'total_kredit' => $this->total_retur
+            'tanggal'      => $this->tanggal,
+            'keterangan'   => 'Refund Penjualan - ' . $this->nomor_retur,
+            'total_debit'  => $this->total_retur,
+            'total_kredit' => $this->total_retur,
         ]);
 
-        // Logika untuk mengurangi stok barang retur
         foreach ($this->detailReturPenjualans as $detail) {
             StockMovement::create([
-                'produk_id' => $detail->produk_id,
-                'type' => 'retur_masuk',
-                'quantity' => $detail->qty_retur,
-                'reference' => $this->nomor_retur,
-                'keterangan' => 'Barang Retur dari ' . $this->nomor_retur
+                'item_type' => 'product',
+                'item_id'   => $detail->produk_id,
+                'tanggal'   => $this->tanggal,
+                'direction' => 'in',
+                'qty'       => $detail->qty_retur,
+                'ref_type'  => 'retur_penjualan',
+                'ref_id'    => $this->id,
             ]);
         }
 
@@ -138,26 +138,15 @@ class ReturPenjualan extends Model
 
     private function processKredit()
     {
-        if (!$this->pelanggan_id) {
-            throw new \Exception('Pelanggan wajib diisi untuk retur kredit');
-        }
-
-        // Catat sebagai utang perusahaan kepada pelanggan
-        JournalEntry::create([
-            'tanggal' => $this->tanggal,
-            'keterangan' => 'Utang Retur Penjualan - ' . $this->nomor_retur,
-            'total_debit' => $this->total_retur,
-            'total_kredit' => $this->total_retur
-        ]);
-
-        // Logika untuk mengurangi stok barang retur
         foreach ($this->detailReturPenjualans as $detail) {
             StockMovement::create([
-                'produk_id' => $detail->produk_id,
-                'type' => 'retur_masuk',
-                'quantity' => $detail->qty_retur,
-                'reference' => $this->nomor_retur,
-                'keterangan' => 'Barang Retur dari ' . $this->nomor_retur
+                'item_type' => 'product',
+                'item_id'   => $detail->produk_id,
+                'tanggal'   => $this->tanggal,
+                'direction' => 'in',
+                'qty'       => $detail->qty_retur,
+                'ref_type'  => 'retur_penjualan',
+                'ref_id'    => $this->id,
             ]);
         }
 

@@ -127,7 +127,7 @@
                                     <td>
                                         <input type="hidden" name="details[{{ $index }}][penjualan_detail_id]" value="{{ $detail->id }}">
                                         <input type="number" name="details[{{ $index }}][qty_retur]" class="form-control qty-retur"
-                                            step="1" min="0" max="{{ (int)$detail->jumlah }}" value="{{ old("details.$index.qty_retur", (int)$detail->jumlah) }}" required>
+                                            step="1" min="1" max="{{ (int)$detail->jumlah }}" value="{{ old("details.$index.qty_retur", 1) }}" required>
                                     </td>
                                     <td class="text-end">
                                         <input type="hidden" name="details[{{ $index }}][harga_barang]" class="harga-value" value="{{ $detail->harga_satuan }}">
