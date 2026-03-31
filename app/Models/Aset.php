@@ -35,7 +35,10 @@ class Aset extends Model
         'akumulasi_penyusutan',
         'keterangan',
         'updated_by',
-        'locked'
+        'locked',
+        'asset_coa_id',
+        'accum_depr_coa_id',
+        'expense_coa_id'
     ];
 
     protected $casts = [
@@ -58,6 +61,30 @@ class Aset extends Model
     public function coa(): BelongsTo
     {
         return $this->belongsTo(Coa::class);
+    }
+
+    /**
+     * Relationship ke COA Aset
+     */
+    public function assetCoa(): BelongsTo
+    {
+        return $this->belongsTo(Coa::class, 'asset_coa_id');
+    }
+
+    /**
+     * Relationship ke COA Akumulasi Penyusutan
+     */
+    public function accumDepreciationCoa(): BelongsTo
+    {
+        return $this->belongsTo(Coa::class, 'accum_depr_coa_id');
+    }
+
+    /**
+     * Relationship ke COA Beban Penyusutan
+     */
+    public function expenseCoa(): BelongsTo
+    {
+        return $this->belongsTo(Coa::class, 'expense_coa_id');
     }
 
     /**
