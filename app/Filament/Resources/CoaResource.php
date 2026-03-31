@@ -124,6 +124,10 @@ class CoaResource extends Resource
         ])
         ->recordTitleAttribute('nama_akun')
         ->defaultSort('kode_akun', 'asc') // Sort by kode_akun ascending
+        ->modifyQueryUsing(function ($query) {
+            // Use numeric sorting for kode_akun to ensure proper order (1150-1159, then 11510-11511)
+            return $query->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC');
+        })
         ->filters([
             Tables\Filters\SelectFilter::make('tipe_akun')
                 ->options([
