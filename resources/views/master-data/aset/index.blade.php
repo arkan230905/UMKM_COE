@@ -92,6 +92,9 @@
                             <th>Harga Perolehan (Rp)</th>
                             <th>Tanggal Beli</th>
                             <th>Metode Penyusutan</th>
+                            <th>COA Aset</th>
+                            <th>COA Akumulasi Penyusutan</th>
+                            <th>COA Beban Penyusutan</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -107,6 +110,30 @@
                                 <td class="text-end">{{ number_format($aset->harga_perolehan, 0, ',', '.') }}</td>
                                 <td>{{ is_string($aset->tanggal_beli) ? \Carbon\Carbon::parse($aset->tanggal_beli)->format('d/m/Y') : $aset->tanggal_beli->format('d/m/Y') }}</td>
                                 <td>{{ $aset->metode_penyusutan ? ucfirst(str_replace('_', ' ', $aset->metode_penyusutan)) : '-' }}</td>
+                                <td>
+                                    @if($aset->assetCoa)
+                                        <small class="text-muted">{{ $aset->assetCoa->kode_akun }}</small><br>
+                                        {{ $aset->assetCoa->nama_akun }}
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($aset->accumDepreciationCoa)
+                                        <small class="text-muted">{{ $aset->accumDepreciationCoa->kode_akun }}</small><br>
+                                        {{ $aset->accumDepreciationCoa->nama_akun }}
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($aset->expenseCoa)
+                                        <small class="text-muted">{{ $aset->expenseCoa->kode_akun }}</small><br>
+                                        {{ $aset->expenseCoa->nama_akun }}
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                                 <td>
                                     @php
                                         $badgeClass = [
@@ -140,7 +167,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="10" class="text-center py-4">Tidak ada data aset</td>
+                                <td colspan="13" class="text-center py-4">Tidak ada data aset</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -161,15 +188,17 @@
 <style>
     .table th {
         white-space: nowrap;
+        font-size: 0.875rem;
+    }
+    .table td {
+        font-size: 0.875rem;
+        vertical-align: middle;
     }
     .btn-sm {
         padding: 0.25rem 0.5rem;
         font-size: 0.875rem;
         border-radius: 0.375rem;
         transition: all 0.15s ease-in-out;
-    }
-    .table td {
-        vertical-align: middle;
     }
     
     /* Custom table header with brown color matching theme */
@@ -183,6 +212,24 @@
         color: white !important;
         border-color: #8B6F47 !important;
         font-weight: 600;
+        padding: 0.75rem 0.5rem;
+    }
+    
+    /* COA columns styling */
+    .table td:nth-child(9),
+    .table td:nth-child(10), 
+    .table td:nth-child(11) {
+        min-width: 180px;
+        max-width: 200px;
+        font-size: 0.8rem;
+        line-height: 1.2;
+    }
+    
+    .table th:nth-child(9),
+    .table th:nth-child(10),
+    .table th:nth-child(11) {
+        min-width: 180px;
+        text-align: center;
     }
     
     /* Standardized button styling */
@@ -230,6 +277,22 @@
     .btn-secondary:hover {
         background-color: #5a6268;
         border-color: #545b62;
+    }
+    
+    /* Make table more compact for additional columns */
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    .table td, .table th {
+        padding: 0.5rem 0.4rem;
+    }
+    
+    /* COA text styling */
+    .table td small {
+        display: block;
+        color: #6c757d;
+        font-weight: 500;
     }
 </style>
 @endpush

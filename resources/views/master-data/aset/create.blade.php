@@ -46,6 +46,9 @@
                                 {{ $jenis->nama }}
                             </option>
                         @endforeach
+                        <option value="add_new" style="border-top: 1px solid #ccc; font-style: italic; color: #007bff;">
+                            + Tambah Jenis Aset Baru
+                        </option>
                     </select>
                     @error('jenis_aset_id')
                         <div class="invalid-feedback">{{ $message }}</div>
@@ -304,6 +307,72 @@
                     @error('keterangan')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
+                </div>
+
+                <!-- Section COA -->
+                <div class="card border-0 shadow-sm mb-4 bg-white">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-journal-text me-2"></i>Akun COA untuk Jurnal</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info mb-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Pilih akun COA</strong> untuk pencatatan jurnal aset agar struktur akuntansi terdata dengan rapi.
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="asset_coa_id" class="form-label text-dark">Akun COA Aset <span class="text-danger">*</span></label>
+                                <select class="form-select bg-white text-dark @error('asset_coa_id') is-invalid @enderror" 
+                                        id="asset_coa_id" name="asset_coa_id" required>
+                                    <option value="" disabled selected>-- Pilih Akun Aset --</option>
+                                    @foreach($coaAsets as $coa)
+                                        <option value="{{ $coa->id }}" {{ old('asset_coa_id') == $coa->id ? 'selected' : '' }}>
+                                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <small class="text-muted">Pilih akun aset untuk mencatat nilai perolehan aset</small>
+                                @error('asset_coa_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label for="accum_depr_coa_id" class="form-label text-dark">Akun COA Akumulasi Penyusutan <span class="text-danger">*</span></label>
+                                <select class="form-select bg-white text-dark @error('accum_depr_coa_id') is-invalid @enderror" 
+                                        id="accum_depr_coa_id" name="accum_depr_coa_id" required>
+                                    <option value="" disabled selected>-- Pilih Akun Akumulasi --</option>
+                                    @foreach($coaAkumulasi as $coa)
+                                        <option value="{{ $coa->id }}" {{ old('accum_depr_coa_id') == $coa->id ? 'selected' : '' }}>
+                                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <small class="text-muted">Pilih akun akumulasi penyusutan aset</small>
+                                @error('accum_depr_coa_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label for="expense_coa_id" class="form-label text-dark">Akun COA Beban Penyusutan <span class="text-danger">*</span></label>
+                                <select class="form-select bg-white text-dark @error('expense_coa_id') is-invalid @enderror" 
+                                        id="expense_coa_id" name="expense_coa_id" required>
+                                    <option value="" disabled selected>-- Pilih Akun Beban --</option>
+                                    @foreach($coaBeban as $coa)
+                                        <option value="{{ $coa->id }}" {{ old('expense_coa_id') == $coa->id ? 'selected' : '' }}>
+                                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <small class="text-muted">Pilih akun beban penyusutan untuk mencatat biaya penyusutan</small>
+                                @error('expense_coa_id')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -709,6 +778,407 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Calculate initial values
     hitungTotal();
+});
+</script>
+
+<!-- Modal Tambah Jenis Aset -->
+<div class="modal fade" id="modalTambahJenisAset" tabindex="-1" aria-labelledby="modalTambahJenisAsetLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-dark" id="modalTambahJenisAsetLabel">Tambah Jenis Aset Baru</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formTambahJenisAset">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nama_jenis_aset" class="form-label text-dark">Nama Jenis Aset <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control bg-white text-dark" id="nama_jenis_aset" name="nama" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="deskripsi_jenis_aset" class="form-label text-dark">Deskripsi</label>
+                        <textarea class="form-control bg-white text-dark" id="deskripsi_jenis_aset" name="deskripsi" rows="3"></textarea>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah Kategori Aset -->
+<div class="modal fade" id="modalTambahKategoriAset" tabindex="-1" aria-labelledby="modalTambahKategoriAsetLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-dark" id="modalTambahKategoriAsetLabel">Tambah Kategori Aset Baru</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formTambahKategoriAset">
+                <div class="modal-body">
+                    <input type="hidden" id="jenis_aset_id_modal" name="jenis_aset_id">
+                    
+                    <!-- Show selected jenis aset -->
+                    <div class="alert alert-info mb-3">
+                        <small><strong>Jenis Aset:</strong> <span id="selected_jenis_name">-</span></small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="kode_kategori_aset" class="form-label text-dark">Kode Kategori</label>
+                        <input type="text" class="form-control bg-white text-dark" id="kode_kategori_aset" name="kode" placeholder="Kosongkan untuk generate otomatis">
+                        <small class="text-muted">Kosongkan untuk generate otomatis berdasarkan jenis aset</small>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nama_kategori_aset" class="form-label text-dark">Nama Kategori <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control bg-white text-dark" id="nama_kategori_aset" name="nama" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="umur_ekonomis_kategori" class="form-label text-dark">Umur Ekonomis (tahun)</label>
+                            <input type="number" class="form-control bg-white text-dark" id="umur_ekonomis_kategori" name="umur_ekonomis" min="0" max="100" value="0">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="tarif_penyusutan_kategori" class="form-label text-dark">Tarif Penyusutan (%)</label>
+                            <input type="number" class="form-control bg-white text-dark" id="tarif_penyusutan_kategori" name="tarif_penyusutan" min="0" max="100" step="0.1" value="0">
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="disusutkan_kategori" name="disusutkan" checked>
+                            <label class="form-check-label text-dark" for="disusutkan_kategori">
+                                Aset ini mengalami penyusutan
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Override loadKategoriAset function to handle "add_new" option
+function loadKategoriAset() {
+    const jenisId = document.getElementById('jenis_aset_id').value;
+    const kategoriSelect = document.getElementById('kategori_aset_id');
+    
+    // Check if "add_new" was selected
+    if (jenisId === 'add_new') {
+        // Reset dropdown
+        document.getElementById('jenis_aset_id').value = '';
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('modalTambahJenisAset'));
+        modal.show();
+        return;
+    }
+    
+    kategoriSelect.innerHTML = '<option value="" disabled selected>-- Pilih Kategori Aset --</option>';
+    
+    if (jenisId) {
+        const jenis = kategoriData.find(j => j.id == jenisId);
+        if (jenis && jenis.kategories) {
+            jenis.kategories.forEach(kategori => {
+                const option = document.createElement('option');
+                option.value = kategori.id;
+                option.textContent = kategori.nama;
+                option.dataset.disusutkan = kategori.disusutkan ? '1' : '0';
+                option.dataset.jenisNama = jenis.nama;
+                if ('{{ old("kategori_aset_id") }}' == kategori.id) {
+                    option.selected = true;
+                }
+                kategoriSelect.appendChild(option);
+            });
+            
+            // Add "Tambah Baru" option
+            const addNewOption = document.createElement('option');
+            addNewOption.value = 'add_new';
+            addNewOption.textContent = '+ Tambah Kategori Aset Baru';
+            addNewOption.style.borderTop = '1px solid #ccc';
+            addNewOption.style.fontStyle = 'italic';
+            addNewOption.style.color = '#007bff';
+            kategoriSelect.appendChild(addNewOption);
+        }
+    }
+    
+    // Check penyusutan after loading
+    checkPenyusutan();
+}
+
+// Override checkPenyusutan function to handle "add_new" option
+function checkPenyusutan() {
+    const kategoriSelect = document.getElementById('kategori_aset_id');
+    const selectedValue = kategoriSelect.value;
+    
+    // Check if "add_new" was selected
+    if (selectedValue === 'add_new') {
+        const jenisId = document.getElementById('jenis_aset_id').value;
+        if (!jenisId) {
+            alert('Pilih jenis aset terlebih dahulu');
+            kategoriSelect.value = '';
+            return;
+        }
+        
+        // Reset dropdown
+        kategoriSelect.value = '';
+        // Set jenis aset id in modal and show jenis name
+        document.getElementById('jenis_aset_id_modal').value = jenisId;
+        
+        // Update modal title and show selected jenis
+        const jenisSelect = document.getElementById('jenis_aset_id');
+        const selectedJenis = jenisSelect.options[jenisSelect.selectedIndex];
+        const jenisNama = selectedJenis ? selectedJenis.textContent : '';
+        document.getElementById('modalTambahKategoriAsetLabel').textContent = `Tambah Kategori Aset Baru`;
+        document.getElementById('selected_jenis_name').textContent = jenisNama;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('modalTambahKategoriAset'));
+        modal.show();
+        return;
+    }
+    
+    const selectedOption = kategoriSelect.options[kategoriSelect.selectedIndex];
+    
+    const sectionPenyusutan = document.getElementById('section_penyusutan');
+    const alertTidakDisusutkan = document.getElementById('alert_tidak_disusutkan');
+    const alasanTidakDisusutkan = document.getElementById('alasan_tidak_disusutkan');
+    
+    // Fields penyusutan
+    const metodePenyusutan = document.getElementById('metode_penyusutan');
+    const umurManfaat = document.getElementById('umur_manfaat');
+    const nilaiResidu = document.getElementById('nilai_residu');
+    
+    if (selectedOption && selectedOption.value) {
+        const disusutkan = selectedOption.dataset.disusutkan === '1';
+        const jenisNama = selectedOption.dataset.jenisNama || '';
+        const kategoriNama = selectedOption.textContent;
+        
+        if (disusutkan) {
+            // Aset DISUSUTKAN - tampilkan form penyusutan
+            sectionPenyusutan.style.display = 'block';
+            alertTidakDisusutkan.style.display = 'none';
+            
+            // Set required
+            metodePenyusutan.required = true;
+            umurManfaat.required = true;
+            nilaiResidu.required = true;
+            
+        } else {
+            // Aset TIDAK DISUSUTKAN - sembunyikan form penyusutan
+            sectionPenyusutan.style.display = 'none';
+            alertTidakDisusutkan.style.display = 'block';
+            
+            // Remove required
+            metodePenyusutan.required = false;
+            umurManfaat.required = false;
+            nilaiResidu.required = false;
+            
+            // Set nilai default untuk aset yang tidak disusutkan
+            metodePenyusutan.value = '';
+            umurManfaat.value = 0;
+            nilaiResidu.value = 0;
+            
+            // Tampilkan alasan
+            let alasan = '';
+            if (jenisNama.includes('Lancar')) {
+                alasan = 'Aset lancar tidak mengalami penyusutan karena bersifat likuid dan akan dikonversi menjadi kas dalam waktu dekat.';
+            } else if (kategoriNama.includes('Tanah')) {
+                alasan = 'Tanah tidak mengalami penyusutan karena memiliki umur manfaat tidak terbatas dan cenderung meningkat nilainya.';
+            } else if (jenisNama.includes('Tak Berwujud')) {
+                alasan = 'Aset tak berwujud tidak disusutkan, tetapi diamortisasi dengan metode yang berbeda.';
+            } else if (jenisNama.includes('Investasi')) {
+                alasan = 'Investasi jangka panjang tidak disusutkan karena nilainya mengikuti nilai pasar.';
+            } else {
+                alasan = 'Aset ini tidak mengalami penyusutan sesuai standar akuntansi.';
+            }
+            alasanTidakDisusutkan.textContent = alasan;
+        }
+    } else {
+        // Belum ada kategori dipilih
+        sectionPenyusutan.style.display = 'none';
+        alertTidakDisusutkan.style.display = 'none';
+    }
+}
+
+// Handle form submit for jenis aset
+document.getElementById('formTambahJenisAset').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Menyimpan...';
+    
+    // Clear previous errors
+    this.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    this.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+    
+    fetch('/master-data/aset/add-jenis-aset', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Add new option to dropdown
+            const jenisSelect = document.getElementById('jenis_aset_id');
+            const addNewOption = jenisSelect.querySelector('option[value="add_new"]');
+            
+            const newOption = document.createElement('option');
+            newOption.value = data.data.id;
+            newOption.textContent = data.data.nama;
+            newOption.selected = true;
+            
+            // Insert before "add_new" option
+            jenisSelect.insertBefore(newOption, addNewOption);
+            
+            // Update kategoriData
+            kategoriData.push({
+                id: data.data.id,
+                nama: data.data.nama,
+                kategories: []
+            });
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('modalTambahJenisAset')).hide();
+            
+            // Reset form
+            this.reset();
+            
+            // Load kategori for new jenis
+            loadKategoriAset();
+            
+            // Show success message
+            alert('Jenis aset berhasil ditambahkan!');
+        } else {
+            // Handle validation errors
+            if (data.errors) {
+                Object.keys(data.errors).forEach(field => {
+                    const input = this.querySelector(`[name="${field}"]`);
+                    const feedback = input.nextElementSibling;
+                    
+                    input.classList.add('is-invalid');
+                    feedback.textContent = data.errors[field][0];
+                });
+            } else {
+                alert('Error: ' + data.message);
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menyimpan data');
+    })
+    .finally(() => {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    });
+});
+
+// Handle form submit for kategori aset
+document.getElementById('formTambahKategoriAset').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    // Disable submit button
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Menyimpan...';
+    
+    // Clear previous errors
+    this.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    this.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
+    
+    fetch('/master-data/aset/add-kategori-aset', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Add new option to kategori dropdown
+            const kategoriSelect = document.getElementById('kategori_aset_id');
+            const addNewOption = kategoriSelect.querySelector('option[value="add_new"]');
+            
+            const newOption = document.createElement('option');
+            newOption.value = data.data.id;
+            newOption.textContent = data.data.nama;
+            newOption.dataset.disusutkan = data.data.disusutkan ? '1' : '0';
+            newOption.dataset.jenisNama = kategoriData.find(j => j.id == data.data.jenis_aset_id)?.nama || '';
+            newOption.selected = true;
+            
+            // Insert before "add_new" option
+            kategoriSelect.insertBefore(newOption, addNewOption);
+            
+            // Update kategoriData
+            const jenisIndex = kategoriData.findIndex(j => j.id == data.data.jenis_aset_id);
+            if (jenisIndex !== -1) {
+                kategoriData[jenisIndex].kategories.push({
+                    id: data.data.id,
+                    nama: data.data.nama,
+                    disusutkan: data.data.disusutkan
+                });
+            }
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('modalTambahKategoriAset')).hide();
+            
+            // Reset form
+            this.reset();
+            
+            // Check penyusutan for new kategori
+            checkPenyusutan();
+            
+            // Show success message
+            alert('Kategori aset berhasil ditambahkan!');
+        } else {
+            // Handle validation errors
+            if (data.errors) {
+                Object.keys(data.errors).forEach(field => {
+                    const input = this.querySelector(`[name="${field}"]`);
+                    const feedback = input.nextElementSibling;
+                    
+                    input.classList.add('is-invalid');
+                    feedback.textContent = data.errors[field][0];
+                });
+            } else {
+                alert('Error: ' + data.message);
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menyimpan data');
+    })
+    .finally(() => {
+        // Re-enable submit button
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    });
 });
 </script>
 @endsection

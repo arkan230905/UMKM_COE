@@ -774,6 +774,10 @@ Route::middleware('auth')->group(function () {
         Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generate-kode');
         Route::resource('aset', AsetController::class);
         Route::get('aset-kategori-by-jenis', [AsetController::class, 'getKategoriByJenis'])->name('aset.kategori-by-jenis');
+        
+        // Simple AJAX routes for adding jenis and kategori aset
+        Route::post('aset/add-jenis-aset', [AsetController::class, 'addJenisAset'])->name('aset.add-jenis-aset');
+        Route::post('aset/add-kategori-aset', [AsetController::class, 'addKategoriAset'])->name('aset.add-kategori-aset');
         Route::resource('kualifikasi-tenaga-kerja', JabatanController::class);
         Route::resource('pegawai', PegawaiController::class);
         Route::resource('vendor', VendorController::class);

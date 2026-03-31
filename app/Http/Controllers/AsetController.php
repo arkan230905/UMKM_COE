@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\JenisAset;
 use App\Models\KategoriAset;
 use App\Models\Aset;
+use App\Models\Coa;
 use App\Services\DepreciationCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +27,12 @@ class AsetController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Aset::with('kategori.jenisAset');
+        $query = Aset::with([
+            'kategori.jenisAset',
+            'assetCoa',
+            'accumDepreciationCoa', 
+            'expenseCoa'
+        ]);
 
         // Filter by search term
         if ($request->has('search') && !empty($request->search)) {
@@ -79,7 +85,36 @@ class AsetController extends Controller
             'sum_of_years_digits' => 'Jumlah Angka Tahun (Sum of Years Digits)',
         ];
         
-        return view('master-data.aset.create', compact('jenisAsets', 'kodeAset', 'metodePenyusutan'));
+        // COA data for dropdowns - with fallback to prevent undefined variables
+        $coaAsets = Coa::where('tipe_akun', 'LIKE', '%Asset%')
+            ->orWhere('tipe_akun', 'LIKE', '%Aset%')
+            ->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC')
+            ->get();
+            
+        // If no asset accounts found, get all COA as fallback
+        if ($coaAsets->isEmpty()) {
+            $coaAsets = Coa::orderByRaw('CAST(kode_akun AS UNSIGNED) ASC')->get();
+        }
+            
+        $coaAkumulasi = Coa::where('nama_akun', 'LIKE', '%akumulasi%')
+            ->orWhere('nama_akun', 'LIKE', '%Akumulasi%')
+            ->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC')
+            ->get();
+            
+        $coaBeban = Coa::where('nama_akun', 'LIKE', '%penyusutan%')
+            ->orWhere('nama_akun', 'LIKE', '%Penyusutan%')
+            ->orWhere('nama_akun', 'LIKE', '%Beban%')
+            ->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC')
+            ->get();
+        
+        return view('master-data.aset.create', compact(
+            'jenisAsets', 
+            'kodeAset', 
+            'metodePenyusutan',
+            'coaAsets',
+            'coaAkumulasi', 
+            'coaBeban'
+        ));
     }
 
     /**
@@ -100,6 +135,9 @@ class AsetController extends Controller
             'tanggal_beli' => 'required|date',
             'tanggal_akuisisi' => 'nullable|date|after_or_equal:tanggal_beli',
             'keterangan' => 'nullable|string',
+            'asset_coa_id' => 'required|exists:coas,id',
+            'accum_depr_coa_id' => 'nullable|exists:coas,id',
+            'expense_coa_id' => 'nullable|exists:coas,id',
         ];
         
         // Tambah validation untuk penyusutan jika aset disusutkan
@@ -186,6 +224,11 @@ class AsetController extends Controller
             $aset->keterangan = $request->keterangan;
             $aset->updated_by = auth()->id();
             
+            // Save COA fields
+            $aset->asset_coa_id = $request->asset_coa_id;
+            $aset->accum_depr_coa_id = $request->accum_depr_coa_id;
+            $aset->expense_coa_id = $request->expense_coa_id;
+            
             $aset->save();
             
             DB::commit();
@@ -253,16 +296,8 @@ class AsetController extends Controller
      */
     public function edit(Aset $aset)
     {
-        $aset->load('kategori.jenisAset');
-        $jenisAsets = JenisAset::with('kategories')->get();
-        $kategoriAsets = KategoriAset::where('jenis_aset_id', $aset->kategori->jenis_aset_id)->get();
-        $metodePenyusutan = [
-            'garis_lurus' => 'Garis Lurus (Straight Line)',
-            'saldo_menurun' => 'Saldo Menurun (Declining Balance)',
-            'sum_of_years_digits' => 'Jumlah Angka Tahun (Sum of Years Digits)',
-        ];
-        
-        return view('master-data.aset.edit', compact('aset', 'jenisAsets', 'kategoriAsets', 'metodePenyusutan'));
+        // Debug langsung tanpa try-catch
+        dd('Controller edit dipanggil', $aset->id, $aset->nama_aset);
     }
 
     /**
@@ -283,6 +318,9 @@ class AsetController extends Controller
             'tanggal_beli' => 'required|date',
             'tanggal_akuisisi' => 'nullable|date|after_or_equal:tanggal_beli',
             'keterangan' => 'nullable|string',
+            'asset_coa_id' => 'required|exists:coas,id',
+            'accum_depr_coa_id' => 'nullable|exists:coas,id',
+            'expense_coa_id' => 'nullable|exists:coas,id',
         ];
         
         // Field penyusutan
@@ -350,6 +388,11 @@ class AsetController extends Controller
             $aset->keterangan = $request->keterangan;
             $aset->updated_by = auth()->id();
             
+            // Update COA fields
+            $aset->asset_coa_id = $request->asset_coa_id;
+            $aset->accum_depr_coa_id = $request->accum_depr_coa_id;
+            $aset->expense_coa_id = $request->expense_coa_id;
+            
             if ($disusutkan) {
                 $aset->umur_manfaat = $umurManfaat;
                 $aset->metode_penyusutan = $metodePenyusutan;
@@ -409,5 +452,112 @@ class AsetController extends Controller
             ->get();
         
         return response()->json($kategories);
+    }
+
+    /**
+     * Add new jenis aset via AJAX
+     */
+    public function addJenisAset(Request $request)
+    {
+        $request->validate([
+            'nama' => 'required|string|max:255|unique:jenis_asets,nama',
+            'deskripsi' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $jenisAset = JenisAset::create([
+                'nama' => $request->nama,
+                'deskripsi' => $request->deskripsi,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jenis aset berhasil ditambahkan',
+                'data' => [
+                    'id' => $jenisAset->id,
+                    'nama' => $jenisAset->nama,
+                    'deskripsi' => $jenisAset->deskripsi,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Add new kategori aset via AJAX
+     */
+    public function addKategoriAset(Request $request)
+    {
+        $request->validate([
+            'jenis_aset_id' => 'required|exists:jenis_asets,id',
+            'nama' => 'required|string|max:255',
+            'kode' => 'nullable|string|max:20|unique:kategori_asets,kode',
+            'umur_ekonomis' => 'nullable|integer|min:0|max:100',
+            'tarif_penyusutan' => 'nullable|numeric|min:0|max:100',
+            'disusutkan' => 'boolean',
+        ]);
+
+        try {
+            // Generate kode otomatis jika tidak diisi
+            $kode = $request->kode;
+            if (empty($kode)) {
+                $jenisAset = JenisAset::find($request->jenis_aset_id);
+                $prefix = '';
+                if (str_contains($jenisAset->nama, 'Tetap')) {
+                    $prefix = 'AT';
+                } elseif (str_contains($jenisAset->nama, 'Tidak Tetap')) {
+                    $prefix = 'ATT';
+                } elseif (str_contains($jenisAset->nama, 'Tidak Berwujud')) {
+                    $prefix = 'ATB';
+                } else {
+                    $prefix = 'A';
+                }
+                
+                $lastKategori = KategoriAset::where('kode', 'LIKE', $prefix . '-%')
+                    ->orderBy('kode', 'desc')
+                    ->first();
+                
+                if ($lastKategori) {
+                    $lastNumber = (int) substr($lastKategori->kode, strlen($prefix) + 1);
+                    $newNumber = $lastNumber + 1;
+                } else {
+                    $newNumber = 1;
+                }
+                
+                $kode = $prefix . '-' . str_pad($newNumber, 2, '0', STR_PAD_LEFT);
+            }
+
+            $kategoriAset = KategoriAset::create([
+                'jenis_aset_id' => $request->jenis_aset_id,
+                'kode' => $kode,
+                'nama' => $request->nama,
+                'umur_ekonomis' => $request->umur_ekonomis ?? 0,
+                'tarif_penyusutan' => $request->tarif_penyusutan ?? 0,
+                'disusutkan' => $request->disusutkan ?? true,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Kategori aset berhasil ditambahkan',
+                'data' => [
+                    'id' => $kategoriAset->id,
+                    'jenis_aset_id' => $kategoriAset->jenis_aset_id,
+                    'kode' => $kategoriAset->kode,
+                    'nama' => $kategoriAset->nama,
+                    'umur_ekonomis' => $kategoriAset->umur_ekonomis,
+                    'tarif_penyusutan' => $kategoriAset->tarif_penyusutan,
+                    'disusutkan' => $kategoriAset->disusutkan,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
