@@ -74,8 +74,8 @@ class PenjualanController extends Controller
         $jumlahTransaksiHariIni = $penjualansHariIni->count();
         
         // Get return data for the return tab
-        $salesReturns = \App\Models\SalesReturn::with(['penjualan', 'items.produk'])
-            ->orderBy('return_date', 'desc')
+        $salesReturns = \App\Models\ReturPenjualan::with(['penjualan', 'detailReturPenjualans.produk'])
+            ->orderBy('created_at', 'desc')
             ->get();
         
         return view('transaksi.penjualan.index', compact('penjualans', 'totalPenjualan', 'jumlahTransaksiHariIni', 'totalProdukTerjual', 'totalProfit', 'salesReturns'));
@@ -299,7 +299,7 @@ class PenjualanController extends Controller
 
     public function show($id)
     {
-        $penjualan = Penjualan::with('details.produk', 'produk')->findOrFail($id);
+        $penjualan = Penjualan::with('details.produk', 'produk', 'returPenjualans.detailReturPenjualans.produk')->findOrFail($id);
         
         return view('transaksi.penjualan.show', compact('penjualan'));
     }

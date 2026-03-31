@@ -37,9 +37,6 @@ class ReturPenjualanController extends Controller
         return view('transaksi.retur-penjualan.create', compact('penjualans', 'pelanggans', 'jenisReturOptions', 'selectedPenjualanId'));
     }
 
-    /**
-     * Halaman detail retur dengan form input
-     */
     public function detailRetur($penjualanId)
     {
         $penjualan = Penjualan::with(['penjualanDetails.produk'])->findOrFail($penjualanId);
@@ -69,7 +66,6 @@ class ReturPenjualanController extends Controller
         try {
             DB::beginTransaction();
 
-            // Buat retur penjualan
             $returPenjualan = new ReturPenjualan();
             $returPenjualan->nomor_retur = $returPenjualan->generateNomorRetur();
             $returPenjualan->tanggal = $request->tanggal;
@@ -79,11 +75,9 @@ class ReturPenjualanController extends Controller
             $returPenjualan->keterangan = $request->keterangan;
             $returPenjualan->save();
 
-            // Buat detail retur penjualan
             foreach ($request->details as $detail) {
                 $penjualanDetail = PenjualanDetail::find($detail['penjualan_detail_id']);
-                
-                // Validasi qty retur tidak melebihi qty penjualan
+
                 if ($detail['qty_retur'] > $penjualanDetail->jumlah) {
                     throw new \Exception('Qty retur tidak boleh melebihi qty penjualan');
                 }
@@ -98,15 +92,12 @@ class ReturPenjualanController extends Controller
                 ]);
             }
 
-            // Hitung total retur
             $returPenjualan->calculateTotalRetur();
-
-            // Proses retur sesuai jenis
             $returPenjualan->processRetur();
 
             DB::commit();
 
-            return redirect()->route('retur-penjualan.index')
+            return redirect()->route('transaksi.retur-penjualan.index')
                 ->with('success', 'Retur penjualan berhasil dibuat dengan nomor: ' . $returPenjualan->nomor_retur);
 
         } catch (\Exception $e) {
@@ -126,9 +117,8 @@ class ReturPenjualanController extends Controller
 
     public function edit(ReturPenjualan $returPenjualan)
     {
-        // Hanya retur dengan status 'belum_dibayar' yang bisa diedit
         if ($returPenjualan->status !== 'belum_dibayar') {
-            return redirect()->route('retur-penjualan.index')
+            return redirect()->route('transaksi.retur-penjualan.index')
                 ->with('error', 'Retur tidak dapat diedit karena status sudah ' . $returPenjualan->status);
         }
 
@@ -145,9 +135,8 @@ class ReturPenjualanController extends Controller
 
     public function update(Request $request, ReturPenjualan $returPenjualan)
     {
-        // Hanya retur dengan status 'belum_dibayar' yang bisa diedit
         if ($returPenjualan->status !== 'belum_dibayar') {
-            return redirect()->route('retur-penjualan.index')
+            return redirect()->route('transaksi.retur-penjualan.index')
                 ->with('error', 'Retur tidak dapat diedit karena status sudah ' . $returPenjualan->status);
         }
 
@@ -165,21 +154,17 @@ class ReturPenjualanController extends Controller
         try {
             DB::beginTransaction();
 
-            // Update retur penjualan
             $returPenjualan->tanggal = $request->tanggal;
             $returPenjualan->pelanggan_id = $request->pelanggan_id ?? null;
             $returPenjualan->jenis_retur = $request->jenis_retur;
             $returPenjualan->keterangan = $request->keterangan;
             $returPenjualan->save();
 
-            // Hapus detail lama
             $returPenjualan->detailReturPenjualans()->delete();
 
-            // Buat detail baru
             foreach ($request->details as $detail) {
                 $penjualanDetail = PenjualanDetail::find($detail['penjualan_detail_id']);
-                
-                // Validasi qty retur tidak melebihi qty penjualan
+
                 if ($detail['qty_retur'] > $penjualanDetail->jumlah) {
                     throw new \Exception('Qty retur tidak boleh melebihi qty penjualan');
                 }
@@ -194,15 +179,12 @@ class ReturPenjualanController extends Controller
                 ]);
             }
 
-            // Hitung total retur
             $returPenjualan->calculateTotalRetur();
-
-            // Proses retur sesuai jenis
             $returPenjualan->processRetur();
 
             DB::commit();
 
-            return redirect()->route('retur-penjualan.index')
+            return redirect()->route('transaksi.retur-penjualan.index')
                 ->with('success', 'Retur penjualan berhasil diperbarui');
 
         } catch (\Exception $e) {
@@ -215,29 +197,25 @@ class ReturPenjualanController extends Controller
 
     public function destroy(ReturPenjualan $returPenjualan)
     {
-        // Hanya retur dengan status 'belum_dibayar' yang bisa dihapus
         if ($returPenjualan->status !== 'belum_dibayar') {
-            return redirect()->route('retur-penjualan.index')
+            return redirect()->route('transaksi.retur-penjualan.index')
                 ->with('error', 'Retur tidak dapat dihapus karena status sudah ' . $returPenjualan->status);
         }
 
         try {
             DB::beginTransaction();
 
-            // Hapus detail retur
             $returPenjualan->detailReturPenjualans()->delete();
-            
-            // Hapus retur
             $returPenjualan->delete();
 
             DB::commit();
 
-            return redirect()->route('retur-penjualan.index')
+            return redirect()->route('transaksi.retur-penjualan.index')
                 ->with('success', 'Retur penjualan berhasil dihapus');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('retur-penjualan.index')
+            return redirect()->route('transaksi.retur-penjualan.index')
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
@@ -245,7 +223,7 @@ class ReturPenjualanController extends Controller
     public function getPenjualanDetails($penjualanId)
     {
         $penjualan = Penjualan::with(['penjualanDetails.produk'])->find($penjualanId);
-        
+
         if (!$penjualan) {
             return response()->json(['error' => 'Penjualan tidak ditemukan'], 404);
         }
@@ -270,44 +248,5 @@ class ReturPenjualanController extends Controller
             ->get();
 
         return view('transaksi.retur-penjualan.laporan', compact('returPenjualans'));
-    }
-
-    public function bayarKredit(ReturPenjualan $returPenjualan)
-    {
-        if ($returPenjualan->jenis_retur !== 'kredit') {
-            return redirect()->route('retur-penjualan.index')
-                ->with('error', 'Hanya retur kredit yang dapat dibayar');
-        }
-
-        if ($returPenjualan->status !== 'belum_dibayar') {
-            return redirect()->route('retur-penjualan.index')
-                ->with('error', 'Retur sudah dibayar');
-        }
-
-        try {
-            DB::beginTransaction();
-
-            // Update status menjadi lunas
-            $returPenjualan->status = 'lunas';
-            $returPenjualan->save();
-
-            // Catat pembayaran ke jurnal
-            JournalEntry::create([
-                'tanggal' => now(),
-                'keterangan' => 'Pelunasan Retur Penjualan - ' . $returPenjualan->nomor_retur,
-                'total_debit' => $returPenjualan->total_retur,
-                'total_kredit' => $returPenjualan->total_retur
-            ]);
-
-            DB::commit();
-
-            return redirect()->route('retur-penjualan.index')
-                ->with('success', 'Retur kredit berhasil dilunasi');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->route('retur-penjualan.index')
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
-        }
     }
 }

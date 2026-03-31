@@ -15,6 +15,8 @@
     margin: -1rem -1rem 1.5rem -1rem;
     padding-left: 1rem;
     padding-right: 1rem;
+    position: relative;
+    z-index: 10;
 }
 
 .tab-btn {
@@ -30,6 +32,8 @@
     margin-bottom: -2px;
     border-radius: 8px 8px 0 0;
     position: relative;
+    z-index: 11;
+    pointer-events: all;
 }
 
 .tab-btn:hover {
@@ -192,6 +196,29 @@
     background: #fee2e2;
     border-color: #dc2626;
     color: #dc2626;
+}
+
+/* DETAIL (abu soft) */
+.btn-minimal.btn-detail {
+    color: #62c7a6ff;        
+    border-color: #75ceb0ff;
+    background: #ecfdf5;
+}
+
+.btn-minimal.btn-detail:hover {
+    background: #d1fae5;
+    color: #047857;
+}
+
+/* JURNAL (biru) */
+.btn-minimal.btn-jurnal {
+    color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.btn-minimal.btn-jurnal:hover {
+    background: #dbeafe;
+    color: #1d4ed8;
 }
 </style>
 @endpush
@@ -443,7 +470,7 @@
                                     @endphp
                                     @if($totalQtyRetur > 0)
                                         <span class="badge bg-danger animate-pulse">
-                                            <i class="fas fa-undo me-1"></i>{{ number_format($totalQtyRetur, 4, ',', '.') }}
+                                            <i class="fas fa-undo me-1"></i>{{ (int)$totalQtyRetur }}
                                         </span>
                                     @else
                                         <span class="badge bg-success">
@@ -454,7 +481,7 @@
                                 <td class="text-center">
                                     <div class="action-layout">
                                         <div class="action-left">
-                                            <a href="{{ route('transaksi.penjualan.show', $penjualan->id) }}" class="btn btn-primary btn-sm">
+                                            <a href="{{ route('transaksi.penjualan.show', $penjualan->id) }}" class="btn-minimal btn-detail" data-bs-toggle="tooltip" title="Detail Transaksi">
                                                 Detail
                                             </a>
                                         </div>
@@ -463,7 +490,7 @@
                                                 <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Transaksi">
                                                     Edit
                                                 </a>
-                                                <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn-minimal btn-primary w-100" data-bs-toggle="tooltip" title="Lihat Jurnal">
+                                                <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn-minimal btn-jurnal" data-bs-toggle="tooltip" title="Lihat Jurnal">
                                                     Jurnal
                                                 </a>
                                             </div>
@@ -501,7 +528,7 @@
                                     <th class="text-center" style="width: 50px">#</th>
                                     <th>Tanggal</th>
                                     <th>Nomor Penjualan</th>
-                                    <th>Alasan</th>
+                                    <th>Deskripsi</th>
                                     <th>Kompensasi</th>
                                     <th>Status</th>
                                     <th class="text-end">Total Retur</th>
@@ -513,27 +540,40 @@
                                 @forelse($salesReturns as $key => $retur)
                                     <tr>
                                         <td class="text-center">{{ $key + 1 }}</td>
-                                        <td>{{ optional($retur->return_date)->format('d-m-Y') ?? '-' }}</td>
+                                        <td>{{ optional($retur->tanggal)->format('d-m-Y') ?? '-' }}</td>
                                         <td><strong>{{ $retur->penjualan?->nomor_penjualan ?? '-' }}</strong></td>
-                                        <td>{{ $retur->reason ?? '-' }}</td>
+                                        <td>{{ $retur->keterangan ?? '-' }}</td>
                                         <td>
-                                            @if($retur->items->count() > 0)
-                                                @foreach($retur->items as $item)
-                                                    <div>{{ $item->jumlah ?? 0 }} {{ $item->produk?->satuan->nama_satuan ?? 'unit' }} {{ $item->produk?->nama_produk ?? '' }}</div>
-                                                @endforeach
-                                            @else
-                                                -
-                                            @endif
+                                            @php
+                                                $jenisRetur = $retur->jenis_retur ?? '';
+                                                $jenisLabel = '';
+                                                switch($jenisRetur) {
+                                                    case 'refund':
+                                                        $jenisLabel = 'Refund';
+                                                        break;
+                                                    case 'tukar_barang':
+                                                        $jenisLabel = 'Tukar Barang';
+                                                        break;
+                                                    case 'kredit':
+                                                        $jenisLabel = 'Kredit';
+                                                        break;
+                                                    default:
+                                                        $jenisLabel = '-';
+                                                }
+                                            @endphp
+                                            <span class="badge {{ $jenisRetur === 'refund' ? 'bg-danger' : ($jenisRetur === 'tukar_barang' ? 'bg-warning' : 'bg-info') }}">
+                                                {{ $jenisLabel }}
+                                            </span>
                                         </td>
                                         <td>
-                                            <span class="badge {{ $retur->status === 'completed' ? 'bg-success' : ($retur->status === 'pending' ? 'bg-warning' : 'bg-danger') }}">
+                                            <span class="badge {{ $retur->status === 'selesai' ? 'bg-success' : ($retur->status === 'lunas' ? 'bg-info' : 'bg-warning') }}">
                                                 {{ ucfirst($retur->status ?? '-') }}
                                             </span>
                                         </td>
-                                        <td class="text-end fw-semibold">Rp {{ number_format($retur->total_return_amount ?? 0, 0, ',', '.') }}</td>
+                                        <td class="text-end fw-semibold">Rp {{ number_format($retur->total_retur ?? 0, 0, ',', '.') }}</td>
                                         <td>
-                                            @if($retur->items->count() > 0)
-                                                @foreach($retur->items as $item)
+                                            @if($retur->detailReturPenjualans->count() > 0)
+                                                @foreach($retur->detailReturPenjualans as $item)
                                                     <div>{{ $item->produk?->nama_produk ?? '-' }}</div>
                                                 @endforeach
                                             @else
@@ -543,16 +583,16 @@
                                         <td class="text-center">
                                             <div class="action-layout">
                                                 <div class="action-left">
-                                                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#returDetailModal{{ $retur->id }}">
+                                                    <button type="button" class="btn-minimal btn-detail" data-bs-toggle="modal" data-bs-target="#returDetailModal{{ $retur->id }}">
                                                         Detail
                                                     </button>
                                                 </div>
                                                 <div class="action-right">
                                                     <div class="action-row">
-                                                        <a href="{{ route('retur-penjualan.edit', $retur->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Retur">
+                                                        <a href="{{ route('transaksi.retur-penjualan.edit', $retur->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Retur">
                                                             Edit
                                                         </a>
-                                                        <form action="{{ route('retur-penjualan.destroy', $retur->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus retur ini?')">
+                                                        <form action="{{ route('transaksi.retur-penjualan.destroy', $retur->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus retur ini?')">
                                                             @csrf
                                                             @method('DELETE')
                                                             <button type="submit" class="btn-minimal btn-danger" data-bs-toggle="tooltip" title="Hapus Retur">
@@ -676,7 +716,7 @@
                             $totalQtyRetur = $penjualan->total_qty_retur;
                         @endphp
                         @if($totalQtyRetur > 0)
-                            <span class="badge bg-info">{{ number_format($totalQtyRetur, 4, ',', '.') }}</span>
+                            <span class="badge bg-info">{{ (int)$totalQtyRetur }}</span>
                         @else
                             <span class="badge bg-success">0</span>
                         @endif
@@ -812,10 +852,10 @@
                 <!-- Informasi Retur -->
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <strong>Nomor Retur:</strong> {{ $retur->return_number ?? '-' }}
+                        <strong>Nomor Retur:</strong> {{ $retur->nomor_retur ?? '-' }}
                     </div>
                     <div class="col-md-6">
-                        <strong>Tanggal Retur:</strong> {{ optional($retur->return_date)->format('d-m-Y') ?? '-' }}
+                        <strong>Tanggal Retur:</strong> {{ optional($retur->tanggal)->format('d-m-Y') ?? '-' }}
                     </div>
                 </div>
                 <div class="row mb-3">
@@ -828,24 +868,19 @@
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <strong>Status:</strong> 
-                        <span class="badge {{ $retur->status === 'completed' ? 'bg-success' : ($retur->status === 'pending' ? 'bg-warning' : 'bg-danger') }}">
+                        <strong>Status:</strong>
+                        <span class="badge {{ $retur->status === 'selesai' ? 'bg-success' : ($retur->status === 'lunas' ? 'bg-info' : 'bg-warning') }}">
                             {{ ucfirst($retur->status ?? '-') }}
                         </span>
                     </div>
                     <div class="col-md-6">
-                        <strong>Total Nilai Retur:</strong> 
-                        <span class="text-danger fw-semibold">Rp {{ number_format($retur->total_return_amount ?? 0, 0, ',', '.') }}</span>
+                        <strong>Total Nilai Retur:</strong>
+                        <span class="text-danger fw-semibold">Rp {{ number_format($retur->total_retur ?? 0, 0, ',', '.') }}</span>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-12">
-                        <strong>Alasan Retur:</strong> {{ $retur->reason ?? '-' }}
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <strong>Catatan:</strong> {{ $retur->notes ?? '-' }}
+                        <strong>Keterangan:</strong> {{ $retur->keterangan ?? '-' }}
                     </div>
                 </div>
                 
@@ -861,13 +896,13 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @if($retur->items->count() > 0)
-                                @foreach($retur->items as $item)
+                            @if($retur->detailReturPenjualans->count() > 0)
+                                @foreach($retur->detailReturPenjualans as $item)
                                     <tr>
                                         <td>{{ $item->produk?->nama_produk ?? '-' }}</td>
-                                        <td class="text-end">{{ number_format($item->jumlah ?? 0, 2, ',', '.') }} {{ $item->produk?->satuan?->nama_satuan ?? 'unit' }}</td>
-                                        <td class="text-end">Rp {{ number_format($item->harga_satuan ?? 0, 0, ',', '.') }}</td>
-                                        <td class="text-end">Rp {{ number_format(($item->jumlah ?? 0) * ($item->harga_satuan ?? 0), 0, ',', '.') }}</td>
+                                        <td class="text-end">{{ number_format($item->qty_retur ?? 0, 0, ',', '.') }}</td>
+                                        <td class="text-end">Rp {{ number_format($item->harga_barang ?? 0, 0, ',', '.') }}</td>
+                                        <td class="text-end">Rp {{ number_format(($item->qty_retur ?? 0) * ($item->harga_barang ?? 0), 0, ',', '.') }}</td>
                                     </tr>
                                 @endforeach
                             @else
@@ -915,8 +950,8 @@ function showTab(tabId, buttonElement) {
     // Add active class to clicked button
     buttonElement.classList.add('active');
 }
+</script>
 
-// CSS untuk animasi pulse
 <style>
 .animate-pulse {
     animation: pulse 2s infinite;
