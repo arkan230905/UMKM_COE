@@ -64,7 +64,7 @@
                 <table class="table table-hover align-middle mb-0 table-wide">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 50px">#</th>
+                            <th class="text-center" style="width: 50px">No</th>
                             <th>Kode</th>
                             <th>Nama</th>
                             <th>Email</th>

@@ -69,7 +69,7 @@
                         <table class="table table-striped table-hover">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>#</th>
+                                    <th>No</th>
                                     <th>Tanggal</th>
                                     <th>Jam Masuk</th>
                                     <th>Jam Keluar</th>

@@ -45,8 +45,13 @@ class PegawaiController extends Controller
     // Tampilkan form create
     public function create()
     {
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji','tarif')->orderBy('nama')->get();
-        return view('master-data.pegawai.create', compact('jabatans'));
+        $jabatans = \App\Models\Jabatan::with('kategori')
+            ->select('id','nama','kategori_id','tunjangan','asuransi','gaji_pokok','tarif_per_jam')
+            ->orderBy('nama')
+            ->get();
+        $kategoris = \App\Models\KategoriPegawai::orderBy('nama')->get();
+        
+        return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
     }
 
     // Simpan data baru
@@ -58,16 +63,21 @@ class PegawaiController extends Controller
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
+            'kategori_id' => 'required|exists:kategori_pegawai,id',
             'jenis_kelamin' => 'required|in:L,P',
             'bank' => 'required|string|max:100',
             'nomor_rekening' => 'required|string|max:50',
             'nama_rekening' => 'required|string|max:100',
         ]);
 
-        $jab = \App\Models\Jabatan::find($validated['jabatan_id']);
-        $jenisPegawai = strtolower($jab->kategori ?? 'btkl');
+        $jabatan = \App\Models\Jabatan::with('kategori')->find($validated['jabatan_id']);
+        $kategori = \App\Models\KategoriPegawai::find($validated['kategori_id']);
         
-        $phoneColumn = Schema::hasColumn('pegawais', 'no_telepon') ? 'no_telepon' : 'no_telp';
+        if (!$jabatan || !$kategori) {
+            return back()->withErrors(['error' => 'Jabatan atau kategori tidak ditemukan'])->withInput();
+        }
+
+        $phoneColumn = Schema::hasColumn('pegawais', 'no_telephone') ? 'no_telephone' : 'no_telepon';
 
         // Prepare data for creation
         $pegawaiData = [
@@ -76,25 +86,23 @@ class PegawaiController extends Controller
             $phoneColumn => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
-            'jabatan' => $jab->nama,
-            'jenis_pegawai' => $jenisPegawai,
-            'gaji_pokok' => $jab->gaji_pokok ?? $jab->gaji ?? 0,
-            'tarif_per_jam' => $jab->tarif_per_jam ?? $jab->tarif ?? 0,
-            'tunjangan' => $jab->tunjangan ?? 0,
-            'asuransi' => $jab->asuransi ?? 0,
-            'bank' => $request->input('bank'),
-            'nomor_rekening' => $request->input('nomor_rekening'),
-            'nama_rekening' => $request->input('nama_rekening'),
+            'jabatan_id' => $validated['jabatan_id'],
+            'kategori_id' => $validated['kategori_id'],
+            'jabatan' => $jabatan->nama, // Backward compatibility
+            'jenis_pegawai' => strtolower($kategori->nama), // Backward compatibility
+            'gaji_pokok' => $jabatan->gaji_pokok,
+            'tarif_per_jam' => $jabatan->tarif_per_jam,
+            'tunjangan' => $jabatan->tunjangan,
+            'asuransi' => $jabatan->asuransi,
+            'bank' => $validated['bank'],
+            'nomor_rekening' => $validated['nomor_rekening'],
+            'nama_rekening' => $validated['nama_rekening'],
         ];
         
-        // Generate kode pegawai
-        $lastId = Pegawai::max('id') ?? 0;
-        $pegawaiData['kode_pegawai'] = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
-        
-        // Log the data being saved for debugging
+        // Log data being saved for debugging
         \Log::info('Creating new Pegawai:', $pegawaiData);
         
-        // Create the pegawai record
+        // Create pegawai record
         $pegawai = Pegawai::create($pegawaiData);
 
         // Auto-create/update user account for this pegawai
@@ -121,8 +129,8 @@ class PegawaiController extends Controller
         }
         
         // Sync BOM when pegawai changes (affects BTKL calculations)
-        if (strtolower($jenisPegawai) === 'btkl') {
-            \App\Services\BomSyncService::syncBomFromJabatanChange($jab->id);
+        if (strtolower($kategori->nama) === 'btkl') {
+            \App\Services\BomSyncService::syncBomFromJabatanChange($jabatan->id);
         }
 
         return redirect()->route('master-data.pegawai.index')->with('success', 'Pegawai berhasil ditambahkan.');
@@ -131,8 +139,13 @@ class PegawaiController extends Controller
     // Form edit pegawai
     public function edit(Pegawai $pegawai)
     {
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji','tarif')->orderBy('nama')->get();
-        return view('master-data.pegawai.edit', compact('pegawai','jabatans'));
+        $jabatans = \App\Models\Jabatan::with('kategori')
+            ->select('id','nama','kategori_id','tunjangan','asuransi','gaji_pokok','tarif_per_jam')
+            ->orderBy('nama')
+            ->get();
+        $kategoris = \App\Models\KategoriPegawai::orderBy('nama')->get();
+        
+        return view('master-data.pegawai.edit', compact('pegawai','jabatans', 'kategoris'));
     }
 
     // Update data pegawai
@@ -145,16 +158,21 @@ class PegawaiController extends Controller
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
+            'kategori_id' => 'required|exists:kategori_pegawai,id',
             'jenis_kelamin' => 'required|in:L,P',
             'bank' => 'nullable|string|max:100',
             'nomor_rekening' => 'nullable|string|max:50',
             'nama_rekening' => 'nullable|string|max:100',
         ]);
 
-        $jab = \App\Models\Jabatan::find($validated['jabatan_id']);
-        $jenisPegawai = strtolower($jab->kategori ?? 'btkl');
+        $jabatan = \App\Models\Jabatan::with('kategori')->find($validated['jabatan_id']);
+        $kategori = \App\Models\KategoriPegawai::find($validated['kategori_id']);
         
-        $phoneColumn = Schema::hasColumn('pegawais', 'no_telepon') ? 'no_telepon' : 'no_telp';
+        if (!$jabatan || !$kategori) {
+            return back()->withErrors(['error' => 'Jabatan atau kategori tidak ditemukan'])->withInput();
+        }
+        
+        $phoneColumn = Schema::hasColumn('pegawais', 'no_telephone') ? 'no_telephone' : 'no_telepon';
 
         // Prepare data for update
         $updateData = [
@@ -163,18 +181,27 @@ class PegawaiController extends Controller
             $phoneColumn => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
-            'jabatan' => $jab->nama,
-            'jenis_pegawai' => $jenisPegawai,
-            'gaji_pokok' => $jab->gaji_pokok ?? $jab->gaji ?? 0,
-            'tarif_per_jam' => $jab->tarif_per_jam ?? $jab->tarif ?? 0,
-            'tunjangan' => $jab->tunjangan ?? 0,
-            'asuransi' => $jab->asuransi ?? 0,
+            'jabatan_id' => $validated['jabatan_id'],
+            'kategori_id' => $validated['kategori_id'],
+            'jabatan' => $jabatan->nama, // Backward compatibility
+            'jenis_pegawai' => strtolower($kategori->nama), // Backward compatibility
+            'gaji_pokok' => $jabatan->gaji_pokok,
+            'tarif_per_jam' => $jabatan->tarif_per_jam,
+            'tunjangan' => $jabatan->tunjangan,
+            'asuransi' => $jabatan->asuransi,
         ];
+        
+        // Add bank info if provided
+        if (!empty($validated['bank'])) {
+            $updateData['bank'] = $validated['bank'];
+            $updateData['nomor_rekening'] = $validated['nomor_rekening'];
+            $updateData['nama_rekening'] = $validated['nama_rekening'];
+        }
         
         // Log the update data for debugging
         \Log::info('Updating Pegawai:', $updateData);
         
-        // Update the pegawai record
+        // Update pegawai record
         $pegawai->update($updateData);
 
         // Auto-create/update user account for this pegawai (keep it linked by pegawai_id)

@@ -53,7 +53,7 @@
                         <table class="table table-striped table-hover">
                             <thead class="table-dark">
                                 <tr>
-                                    <th class="text-center" style="width: 50px">#</th>
+                                    <th class="text-center" style="width: 50px">No</th>
                                     <th>Nama Pegawai</th>
                                     <th>Kode Pegawai</th>
                                     <th class="text-center">Jam Masuk</th>
