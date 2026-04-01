@@ -45,13 +45,9 @@
                     <thead class="table-light">
                         <tr>
                             <th class="text-center" style="width: 50px">NO</th>
-                            <th>Kode Akun</th>
                             <th>Nama Akun</th>
-                            <th>Tipe Akun</th>
-                            <th>Kategori Akun</th>
-                            <th>Saldo Normal</th>
-                            <th>Saldo Awal</th>
-                            <th>Keterangan</th>
+                            <th>Kode Akun</th>
+                            <th>Tipe</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -59,7 +55,6 @@
                         @foreach($coas as $key => $coa)
                             <tr>
                                 <td class="text-center">{{ $key + 1 }}</td>
-                                <td><code>{{ $coa->kode_akun }}</code></td>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
@@ -70,32 +65,12 @@
                                         </div>
                                     </div>
                                 </td>
+                                <td><code>{{ $coa->kode_akun }}</code></td>
                                 <td>
-                                    <span class="badge {{ $coa->tipe_akun == 'Asset' ? 'bg-success' : ($coa->tipe_akun == 'Liability' ? 'bg-warning' : ($coa->tipe_akun == 'Equity' ? 'bg-info' : ($coa->tipe_akun == 'Revenue' ? 'bg-primary' : 'bg-danger'))) }}">
+                                    <span class="badge {{ $coa->tipe_akun == 'Asset' || $coa->tipe_akun == 'Aset' ? 'bg-success' : ($coa->tipe_akun == 'Liability' || $coa->tipe_akun == 'Kewajiban' ? 'bg-warning' : ($coa->tipe_akun == 'Equity' || $coa->tipe_akun == 'Modal' ? 'bg-info' : ($coa->tipe_akun == 'Revenue' || $coa->tipe_akun == 'Pendapatan' ? 'bg-primary' : 'bg-danger'))) }}">
                                         {{ $coa->tipe_akun }}
                                     </span>
                                 </td>
-                                <td>{{ $coa->kategori_akun }}</td>
-                                <td class="text-capitalize">
-                                    @php
-                                        $saldoNormal = strtolower($coa->saldo_normal);
-                                    @endphp
-                                    <span class="badge {{ $saldoNormal == 'debit' ? 'bg-success' : 'bg-warning' }}">
-                                        {{ $saldoNormal == 'debit' ? 'debit' : 'credit' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    @php
-                                        $saldo = $saldoPeriode[$coa->id] ?? 0;
-                                    @endphp
-                                    <span class="{{ $saldo != ($coa->saldo_awal ?? 0) ? 'text-primary fw-bold' : '' }}">
-                                        Rp {{ number_format((float)$saldo, 0, ',', '.') }}
-                                    </span>
-                                    @if($saldo != ($coa->saldo_awal ?? 0))
-                                        <small class="text-muted d-block">(Default: Rp {{ number_format((float)($coa->saldo_awal ?? 0), 0, ',', '.') }})</small>
-                                    @endif
-                                </td>
-                                <td><small class="text-muted">{{ $coa->keterangan }}</small></td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
                                         <a href="{{ route('master-data.coa.edit', $coa->id) }}" class="btn btn-outline-primary">

@@ -4,7 +4,7 @@
 <div class="container-fluid">
     <div class="card">
         <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">📦 Tambah Produksi</h4>
+            <h4 class="mb-0">📦 Tambah Data Produksi Produk</h4>
         </div>
         <div class="card-body">
             @if ($errors->any())
@@ -23,7 +23,7 @@
                 
                 <!-- Form Input -->
                 <div class="row g-3 mb-4">
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label fw-bold">🏷️ Produk</label>
                         <select name="produk_id" id="produk_id" class="form-select form-select-lg" required>
                             <option value="">-- Pilih Produk --</option>
@@ -34,28 +34,50 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label fw-bold">📅 Tanggal</label>
                         <input type="date" name="tanggal" id="tanggal" value="{{ now()->toDateString() }}" class="form-control form-control-lg" required>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">📊 Qty</label>
-                        <input type="number" name="qty_produksi" id="qty_produksi" step="0.01" min="0.01" class="form-control form-control-lg" required>
+                </div>
+
+                <!-- Job Process Costing Fields -->
+                <div class="card bg-light mb-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">📊 Data Produksi Bulanan</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">📦 Jumlah Produksi dalam Sebulan</label>
+                                <input type="number" name="jumlah_produksi_bulanan" id="jumlah_produksi_bulanan" step="0.01" min="0.01" class="form-control form-control-lg" required placeholder="Contoh: 1000">
+                                <small class="text-muted">Total produksi yang direncanakan dalam 1 bulan</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">📅 Hari Memproduksi dalam Sebulan</label>
+                                <input type="number" name="hari_produksi_bulanan" id="hari_produksi_bulanan" min="1" max="31" class="form-control form-control-lg" required placeholder="Contoh: 25">
+                                <small class="text-muted">Jumlah hari kerja produksi dalam 1 bulan</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">📈 Jumlah Produksi Per Hari</label>
+                                <input type="number" name="qty_produksi" id="qty_produksi" step="0.01" class="form-control form-control-lg" readonly>
+                                <small class="text-muted">Otomatis dihitung: Produksi Bulanan ÷ Hari Produksi</small>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Informasi Harga Pokok Produksi Produk -->
                 <div class="card bg-light mb-4" id="bom-info" style="display: none;">
                     <div class="card-header bg-info text-white">
-                        <h5 class="mb-0">📋 Informasi Harga Pokok Produksi Produk</h5>
+                        <h5 class="mb-0">📋 Informasi Harga Pokok Produksi Produk (Per Hari)</h5>
                     </div>
                     <div class="card-body">
                         <div class="row mb-3">
                             <div class="col-md-12">
                                 <div class="alert alert-info mb-0">
-                                    <strong>Harga Pokok Produk:</strong> <span id="harga-pokok">Rp 0</span>
+                                    <strong>Harga Pokok Produk Per Hari:</strong> <span id="harga-pokok">Rp 0</span>
                                     <br>
-                                    <small class="text-muted">Harga pokok akan dihitung berdasarkan BOM dan qty produksi</small>
+                                    <small class="text-muted">Harga pokok dihitung berdasarkan BOM dan qty produksi per hari</small>
                                 </div>
                             </div>
                         </div>
@@ -149,7 +171,7 @@
                                 <div class="row">
                                     <div class="col-md-12">
                                         <div class="d-flex justify-content-between align-items-center">
-                                            <h4 class="mb-0">Total Biaya Produksi</h4>
+                                            <h4 class="mb-0">Total Biaya Produksi Per Hari</h4>
                                             <div>
                                                 <h4 class="mb-0 text-primary" id="total-keseluruhan">Rp 0</h4>
                                             </div>
@@ -181,6 +203,23 @@ let currentBomData = null;
 
 function formatRupiah(amount) {
     return 'Rp ' + parseFloat(amount).toLocaleString('id-ID');
+}
+
+// Calculate daily production quantity
+function calculateDailyProduction() {
+    const jumlahBulanan = parseFloat(document.getElementById('jumlah_produksi_bulanan').value) || 0;
+    const hariBulanan = parseFloat(document.getElementById('hari_produksi_bulanan').value) || 0;
+    
+    if (jumlahBulanan > 0 && hariBulanan > 0) {
+        const qtyPerHari = jumlahBulanan / hariBulanan;
+        document.getElementById('qty_produksi').value = qtyPerHari.toFixed(2);
+        
+        // Recalculate cost breakdown with new daily quantity
+        calculateCostBreakdown();
+    } else {
+        document.getElementById('qty_produksi').value = '';
+        hideAllSections();
+    }
 }
 
 function calculateCostBreakdown() {
@@ -224,7 +263,7 @@ function calculateCostBreakdown() {
         return `
             <div class="mb-2">
                 <strong>${index + 1}. ${bahan.nama}:</strong> ${formatRupiah(totalPerProduksi)}
-                <br><small class="text-muted">(${formatRupiah(bahan.harga_per_unit)} per produk × ${qty} qty produksi)</small>
+                <br><small class="text-muted">(${formatRupiah(bahan.harga_per_unit)} per produk × ${qty} qty produksi per hari)</small>
                 <br><small class="text-info">Resep: ${totalQtyTerpakai} ${bahan.satuan}</small>
                 ${bahan.konversi_info ? `<br><small class="text-warning">${bahan.konversi_info}</small>` : ''}
                 <br><small class="text-danger">Stok berkurang: ${stockReduction} ${stockUnit}</small>
@@ -241,7 +280,7 @@ function calculateCostBreakdown() {
         return `
             <div class="mb-2">
                 <strong>${index + 1}. ${bahan.nama}:</strong> ${formatRupiah(totalPerProduksi)}
-                <br><small class="text-muted">(${formatRupiah(bahan.harga_per_unit)} per produk × ${qty} qty produksi)</small>
+                <br><small class="text-muted">(${formatRupiah(bahan.harga_per_unit)} per produk × ${qty} qty produksi per hari)</small>
                 <br><small class="text-info">Resep: ${totalQtyTerpakai} ${bahan.satuan}</small>
                 <br><small class="text-danger">Stok berkurang: ${totalQtyTerpakai} ${bahan.satuan}</small>
             </div>
@@ -262,7 +301,7 @@ function calculateCostBreakdown() {
                 <td>${btkl.nama}</td>
                 <td>
                     ${formatRupiah(btkl.harga_per_unit)}
-                    <br><small class="text-muted">(${formatRupiah(btkl.harga_per_unit)} per unit X ${qty} quantity produksi)</small>
+                    <br><small class="text-muted">(${formatRupiah(btkl.harga_per_unit)} per unit × ${qty} qty produksi per hari)</small>
                 </td>
                 <td class="fw-bold">${formatRupiah(totalPerProduksi)}</td>
             </tr>
@@ -290,7 +329,7 @@ function calculateCostBreakdown() {
                 <td>${bop.nama}</td>
                 <td>
                     ${formatRupiah(bop.harga_per_unit)}
-                    <br><small class="text-muted">(${formatRupiah(bop.harga_per_unit)} per unit X ${qty} quantity produksi)</small>
+                    <br><small class="text-muted">(${formatRupiah(bop.harga_per_unit)} per unit × ${qty} qty produksi per hari)</small>
                 </td>
                 <td class="fw-bold">${formatRupiah(totalPerProduksi)}</td>
             </tr>
@@ -363,7 +402,9 @@ document.getElementById('produk_id').addEventListener('change', function() {
         });
 });
 
-document.getElementById('qty_produksi').addEventListener('input', calculateCostBreakdown);
+// Add event listeners for daily production calculation
+document.getElementById('jumlah_produksi_bulanan').addEventListener('input', calculateDailyProduction);
+document.getElementById('hari_produksi_bulanan').addEventListener('input', calculateDailyProduction);
 </script>
 @endpush
 @endsection

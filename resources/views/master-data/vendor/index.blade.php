@@ -42,7 +42,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 50px">#</th>
+                            <th class="text-center" style="width: 50px">NO</th>
                             <th>Nama Vendor</th>
                             <th>Kategori</th>
                             <th>Alamat</th>
@@ -62,7 +62,6 @@
                                         </div>
                                         <div>
                                             <div class="fw-semibold">{{ $vendor->nama_vendor }}</div>
-                                            <small class="text-muted">ID: {{ $vendor->id }}</small>
                                         </div>
                                     </div>
                                 </td>

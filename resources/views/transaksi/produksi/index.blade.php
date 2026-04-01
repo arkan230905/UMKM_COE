@@ -7,7 +7,7 @@
             <i class="fas fa-industry me-2"></i>Transaksi Produksi
         </h2>
         <a href="{{ route('transaksi.produksi.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Tambah Produksi
+            <i class="fas fa-plus me-2"></i>Tambah Data Produksi Produk
         </a>
     </div>
 
@@ -90,7 +90,9 @@
                             <th class="text-center" style="width: 50px">NO</th>
                             <th>Tanggal</th>
                             <th>Produk</th>
-                            <th class="text-end">Qty Produksi</th>
+                            <th class="text-end">Produksi Bulanan</th>
+                            <th class="text-center">Hari Kerja</th>
+                            <th class="text-end">Qty Per Hari</th>
                             <th class="text-end">Total Biaya</th>
                             <th>Status</th>
                             <th class="text-center">Aksi</th>
@@ -102,7 +104,9 @@
                                 <td class="text-center">{{ $key + 1 }}</td>
                                 <td>{{ \Carbon\Carbon::parse($p->tanggal)->format('d/m/Y') }}</td>
                                 <td>{{ $p->produk->nama_produk }}</td>
-                                <td class="text-end">{{ number_format($p->qty_produksi, 0, ',', '.') }}</td>
+                                <td class="text-end">{{ number_format($p->jumlah_produksi_bulanan ?? 0, 0, ',', '.') }}</td>
+                                <td class="text-center">{{ $p->hari_produksi_bulanan ?? '-' }} hari</td>
+                                <td class="text-end">{{ number_format($p->qty_produksi, 2, ',', '.') }}</td>
                                 <td class="text-end fw-semibold">Rp {{ number_format($p->total_biaya, 0, ',', '.') }}</td>
                                 <td>
                                     @if($p->status === 'dalam_proses')

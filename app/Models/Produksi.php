@@ -13,6 +13,8 @@ class Produksi extends Model
         'produk_id',
         'tanggal',
         'qty_produksi',
+        'jumlah_produksi_bulanan',
+        'hari_produksi_bulanan',
         'total_bahan',
         'total_btkl',
         'total_bop',
@@ -29,6 +31,8 @@ class Produksi extends Model
     protected $casts = [
         'tanggal' => 'date',
         'qty_produksi' => 'decimal:4',
+        'jumlah_produksi_bulanan' => 'decimal:4',
+        'hari_produksi_bulanan' => 'integer',
         'total_bahan' => 'decimal:2',
         'total_btkl' => 'decimal:2',
         'total_bop' => 'decimal:2',

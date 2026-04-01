@@ -125,8 +125,16 @@ class CoaResource extends Resource
         ->recordTitleAttribute('nama_akun')
         ->defaultSort('kode_akun', 'asc') // Sort by kode_akun ascending
         ->modifyQueryUsing(function ($query) {
-            // Use numeric sorting for kode_akun to ensure proper order (1150-1159, then 11510-11511)
-            return $query->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC');
+            // Custom ordering untuk menangani kode akun dengan titik dan tanpa titik
+            return $query->orderByRaw("
+                CASE 
+                    WHEN kode_akun REGEXP '^[0-9]+$' THEN CAST(kode_akun AS UNSIGNED)
+                    WHEN kode_akun REGEXP '^[0-9]+\\.[0-9]+$' THEN CAST(SUBSTRING_INDEX(kode_akun, '.', 1) AS UNSIGNED) * 1000 + CAST(SUBSTRING_INDEX(kode_akun, '.', -1) AS UNSIGNED)
+                    ELSE 999999
+                END ASC,
+                LENGTH(kode_akun) ASC,
+                kode_akun ASC
+            ");
         })
         ->filters([
             Tables\Filters\SelectFilter::make('tipe_akun')

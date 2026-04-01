@@ -48,7 +48,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 50px">#</th>
+                            <th class="text-center" style="width: 50px">NO</th>
                             <th>Nama</th>
                             <th>Email</th>
                             <th>No. Telepon</th>
@@ -69,7 +69,6 @@
                                         </div>
                                         <div>
                                             <div class="fw-semibold">{{ $pelanggan->name }}</div>
-                                            <small class="text-muted">ID: {{ $pelanggan->id }}</small>
                                         </div>
                                     </div>
                                 </td>

@@ -11,9 +11,17 @@ class ListCoas extends ListRecords
     
     protected function getTableQuery(): Builder
     {
-        // Ensure proper ordering by kode_akun
+        // Custom ordering untuk menangani kode akun dengan titik dan tanpa titik
         return static::getResource()::getEloquentQuery()
-            ->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC, kode_akun ASC');
+            ->orderByRaw("
+                CASE 
+                    WHEN kode_akun REGEXP '^[0-9]+$' THEN CAST(kode_akun AS UNSIGNED)
+                    WHEN kode_akun REGEXP '^[0-9]+\\.[0-9]+$' THEN CAST(SUBSTRING_INDEX(kode_akun, '.', 1) AS UNSIGNED) * 1000 + CAST(SUBSTRING_INDEX(kode_akun, '.', -1) AS UNSIGNED)
+                    ELSE 999999
+                END ASC,
+                LENGTH(kode_akun) ASC,
+                kode_akun ASC
+            ");
     }
     
     protected function getTableRecordsPerPageSelectOptions(): array
