@@ -66,7 +66,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 50px">#</th>
+                            <th class="text-center" style="width: 50px">No</th>
                             <th>Nama Kualifikasi</th>
                             <th>Kategori</th>
                             <th>Tunjangan</th>
@@ -87,7 +87,6 @@
                                     </div>
                                     <div>
                                         <div class="fw-semibold">{{ $row->nama }}</div>
-                                        <small class="text-muted">ID: {{ $row->id }}</small>
                                     </div>
                                 </div>
                             </td>

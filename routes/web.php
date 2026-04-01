@@ -779,6 +779,8 @@ Route::middleware('auth')->group(function () {
         Route::post('aset/add-jenis-aset', [AsetController::class, 'addJenisAset'])->name('aset.add-jenis-aset');
         Route::post('aset/add-kategori-aset', [AsetController::class, 'addKategoriAset'])->name('aset.add-kategori-aset');
         Route::resource('kualifikasi-tenaga-kerja', JabatanController::class);
+        Route::get('api/jabatan/by-kategori', [JabatanController::class, 'getByKategori'])->name('jabatan.by-kategori');
+        Route::get('api/jabatan/detail', [JabatanController::class, 'getDetail'])->name('jabatan.detail');
         Route::resource('pegawai', PegawaiController::class);
         Route::resource('vendor', VendorController::class);
         Route::get('satuan-dashboard', [SatuanController::class, 'dashboard'])->name('satuan.dashboard');

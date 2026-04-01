@@ -203,6 +203,62 @@ class JabatanController extends Controller
         }
     }
 
+    /**
+     * Get jabatan by kategori
+     */
+    public function getByKategori(Request $request)
+    {
+        $kategoriId = $request->get('kategori_id');
+        
+        if (!$kategoriId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Kategori ID is required'
+            ], 400);
+        }
+
+        $jabatans = Jabatan::where('kategori_id', $kategoriId)
+            ->select('id', 'nama', 'gaji_pokok', 'tarif_per_jam', 'tunjangan', 'asuransi')
+            ->orderBy('nama')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $jabatans
+        ]);
+    }
+
+    /**
+     * Get jabatan detail by ID
+     */
+    public function getDetail(Request $request)
+    {
+        $jabatanId = $request->get('jabatan_id');
+        
+        if (!$jabatanId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jabatan ID is required'
+            ], 400);
+        }
+
+        $jabatan = Jabatan::with('kategori')
+            ->select('id', 'nama', 'kategori_id', 'gaji_pokok', 'tarif_per_jam', 'tunjangan', 'asuransi')
+            ->find($jabatanId);
+
+        if (!$jabatan) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jabatan not found'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $jabatan
+        ]);
+    }
+
     private function normalizeMoney($value): ?string
     {
         if ($value === null || $value === '') return $value;
