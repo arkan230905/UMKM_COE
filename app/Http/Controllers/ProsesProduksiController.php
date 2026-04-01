@@ -67,7 +67,7 @@ class ProsesProduksiController extends Controller
             
             // Verify calculation (for security)
             $jumlahPegawai = $jabatan->pegawais->count();
-            $tarifPerJam = $jabatan->tarif;
+            $tarifPerJam = $jabatan->tarif_per_jam;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
             
             // Use calculated value instead of user input for security
@@ -153,7 +153,7 @@ class ProsesProduksiController extends Controller
             
             // Verify calculation (for security)
             $jumlahPegawai = $jabatan->pegawais->count();
-            $tarifPerJam = $jabatan->tarif;
+            $tarifPerJam = $jabatan->tarif_per_jam;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
             
             // Use calculated value instead of user input for security

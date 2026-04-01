@@ -21,6 +21,7 @@ class Pegawai extends Model
         'no_telepon',
         'alamat',
         'jenis_kelamin',
+        'jabatan',
         'jabatan_id',
         'kategori_id',
         'gaji',

@@ -94,7 +94,6 @@
                                         </div>
                                         <div>
                                             <div class="fw-semibold">{{ $bahan->nama_bahan }}</div>
-                                            <small class="text-muted">ID: {{ $bahan->id }}</small>
                                         </div>
                                     </div>
                                 </td>

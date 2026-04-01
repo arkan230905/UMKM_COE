@@ -76,7 +76,7 @@
                                         </tbody>
                                         <tfoot>
                                             <tr class="table-primary fw-bold">
-                                                <td>Total BOP /jam</td>
+                                                <td>Total BOP /produk</td>
                                                 <td><input type="number" id="total_bop_per_jam" name="total_bop_per_jam" class="form-control" min="0" step="0.01" readonly></td>
                                                 <td></td>
                                                 <td></td>
@@ -97,13 +97,9 @@
                             <label class="form-label">BOP / pcs</label>
                             <input type="number" id="bop_per_pcs" class="form-control" readonly>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label">Biaya / produk</label>
                             <input type="number" id="biaya_per_produk" class="form-control" readonly>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Biaya / jam</label>
-                            <input type="number" id="biaya_per_jam" class="form-control" readonly>
                         </div>
                     </div>
                     
@@ -187,7 +183,7 @@
                                         </tbody>
                                         <tfoot>
                                             <tr class="table-primary fw-bold">
-                                                <td>Total BOP /jam</td>
+                                                <td>Total BOP /produk</td>
                                                 <td><input type="number" id="editTotalBopPerJam" name="total_bop_per_jam" class="form-control" readonly></td>
                                                 <td></td>
                                                 <td></td>
@@ -204,17 +200,13 @@
                     
                     <!-- Calculated Values -->
                     <div class="row mt-3">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label">BOP / pcs</label>
                             <input type="number" id="editBopPerPcs" class="form-control" readonly>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <label class="form-label">Biaya / produk</label>
                             <input type="number" id="editBiayaPerProduk" class="form-control" readonly>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Biaya / jam</label>
-                            <input type="number" id="editBiayaPerJam" class="form-control" readonly>
                         </div>
                     </div>
                     

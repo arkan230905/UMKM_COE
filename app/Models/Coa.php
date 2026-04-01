@@ -105,7 +105,15 @@ class Coa extends Model
         
         // Default order by kode_akun untuk memastikan urutan yang konsisten
         static::addGlobalScope('orderByKodeAkun', function ($builder) {
-            $builder->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC, kode_akun ASC');
+            $builder->orderByRaw("
+                CASE 
+                    WHEN kode_akun REGEXP '^[0-9]+$' THEN CAST(kode_akun AS UNSIGNED)
+                    WHEN kode_akun REGEXP '^[0-9]+\\.[0-9]+$' THEN CAST(SUBSTRING_INDEX(kode_akun, '.', 1) AS UNSIGNED) * 1000 + CAST(SUBSTRING_INDEX(kode_akun, '.', -1) AS UNSIGNED)
+                    ELSE 999999
+                END ASC,
+                LENGTH(kode_akun) ASC,
+                kode_akun ASC
+            ");
         });
     }
     

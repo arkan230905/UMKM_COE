@@ -14,17 +14,17 @@
     <!-- Tab Switch -->
     <div class="mb-4">
         <div class="btn-group w-100" role="group">
-            <button type="button" class="btn btn-outline-primary active" id="bopProsesTab" onclick="switchTab('bop-proses')">
+            <button type="button" class="btn btn-outline-primary active" id="bopProsesTab" onclick="switchToBopProses()">
                 <i class="fas fa-industry me-2"></i>BOP Proses
             </button>
-            <button type="button" class="btn btn-outline-primary" id="bebanOperasionalTab" onclick="switchTab('beban-operasional')">
+            <button type="button" class="btn btn-outline-primary" id="bebanOperasionalTab" onclick="switchToBebanOperasional()">
                 <i class="fas fa-chart-line me-2"></i>Beban Operasional
             </button>
         </div>
     </div>
 
     <!-- Tab Content -->
-    <div id="bopProsesContent" class="tab-content" style="display: block;">
+    <div id="bopProsesContent" class="content-section" style="display: block;">
         <!-- BOP Table -->
         <div class="card">
             <div class="card-body p-0">
@@ -33,10 +33,9 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="text-center" style="width: 5%">No</th>
-                                <th style="width: 25%">Nama Proses</th>
-                                <th style="width: 15%">BOP/Jam</th>
-                                <th style="width: 15%">BOP/pcs</th>
-                                <th style="width: 20%">Biaya/Produk</th>
+                                <th style="width: 30%">Nama Proses</th>
+                                <th style="width: 20%">BOP/pcs</th>
+                                <th style="width: 25%">Biaya/Produk</th>
                                 <th style="width: 20%">Aksi</th>
                             </tr>
                         </thead>
@@ -52,15 +51,6 @@
                                         <div>
                                             <div class="fw-semibold">{{ $bop->prosesProduksi->nama_proses ?? '-' }}</div>
                                             <small class="text-muted">Proses</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <i class="bi bi-clock-fill me-2 text-info opacity-50"></i>
-                                        <div>
-                                            <div class="fw-semibold text-info">{{ $bop->total_bop_per_jam_formatted }}</div>
-                                            <small class="text-muted">Per jam</small>
                                         </div>
                                     </div>
                                 </td>
@@ -152,12 +142,23 @@
     </div>
 
     <!-- Beban Operasional Content -->
-    <div id="bebanOperasionalContent" class="tab-content" style="display: none;">
+    <div id="bebanOperasionalContent" class="content-section" style="display: none;">
         <!-- Filter Section -->
         <div class="card mb-3">
             <div class="card-body">
                 <div class="row mb-3">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label for="filterKategori" class="form-label">Kategori</label>
+                        <select class="form-select" id="filterKategori" onchange="filterBebanOperasional()">
+                            <option value="">Semua Kategori</option>
+                            <option value="Administrasi">Administrasi</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Utilitas">Utilitas</option>
+                            <option value="Distribusi">Distribusi</option>
+                            <option value="Lain-lain">Lain-lain</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
                         <label for="filterStatus" class="form-label">Status</label>
                         <select class="form-select" id="filterStatus" onchange="filterBebanOperasional()">
                             <option value="">Semua Status</option>
@@ -165,7 +166,7 @@
                             <option value="nonaktif">Nonaktif</option>
                         </select>
                     </div>
-                    <div class="col-md-8">
+                    <div class="col-md-6">
                         <label for="filterSearch" class="form-label">Cari Beban</label>
                         <input type="text" class="form-control" id="filterSearch" placeholder="Nama beban..." onkeyup="filterBebanOperasional()">
                     </div>
@@ -181,8 +182,9 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="text-center" style="width: 5%">No</th>
-                                <th style="width: 35%">Nama Beban</th>
-                                <th style="width: 20%" class="text-end">Budget Bulanan</th>
+                                <th style="width: 15%">Kategori</th>
+                                <th style="width: 25%">Nama Beban</th>
+                                <th style="width: 15%" class="text-end">Budget Bulanan</th>
                                 <th style="width: 10%">Status</th>
                                 <th style="width: 30%">Aksi</th>
                             </tr>
@@ -241,7 +243,6 @@
                             <strong>Informasi:</strong>
                             <ul class="mb-0 mt-1 small">
                                 <li>Proses: {{ $bop->prosesProduksi->nama_proses ?? 'Tidak Diketahui' }}</li>
-                                <li>BOP/Jam: {{ $bop->total_bop_per_jam_formatted }}</li>
                                 <li>BOP/pcs: Rp {{ number_format($bop->bop_per_unit, 2, ',', '.') }}</li>
                                                             </ul>
                         </div>
@@ -415,26 +416,23 @@ function calculateBopSummary() {
     // Calculate BTKL per pcs
     const btklPerPcs = kapasitas > 0 ? btklPerJam / kapasitas : 0;
     
-    // Calculate Total BOP per jam from components
+    // Calculate Total BOP per produk from components
     const componentRates = document.querySelectorAll('.komponen-rate');
-    let totalBopPerJam = 0;
+    let totalBopPerProduk = 0;
     componentRates.forEach(input => {
-        totalBopPerJam += parseFloat(input.value) || 0;
+        totalBopPerProduk += parseFloat(input.value) || 0;
     });
     
-    // Calculate BOP per pcs
-    const bopPerPcs = kapasitas > 0 ? totalBopPerJam / kapasitas : 0;
+    // BOP per pcs sama dengan total BOP per produk (karena input sudah per produk)
+    const bopPerPcs = totalBopPerProduk;
     
     // Calculate Biaya per produk
     const biayaPerProduk = btklPerPcs + bopPerPcs;
     
-    // Calculate Biaya per jam
-    const biayaPerJam = btklPerJam + totalBopPerJam;
-    
     // Update readonly fields
     const totalBopInput = document.getElementById('total_bop_per_jam');
     if (totalBopInput) {
-        totalBopInput.value = totalBopPerJam.toFixed(2);
+        totalBopInput.value = totalBopPerProduk.toFixed(2);
     }
     
     // Update BOP per pcs field
@@ -448,17 +446,11 @@ function calculateBopSummary() {
     if (biayaPerProdukInput) {
         biayaPerProdukInput.value = biayaPerProduk.toFixed(2);
     }
-    
-    // Update Biaya per jam field
-    const biayaPerJamInput = document.getElementById('biaya_per_jam');
-    if (biayaPerJamInput) {
-        biayaPerJamInput.value = biayaPerJam.toFixed(2);
-    }
 }
 
 // Clear BOP summary
 function clearBopSummary() {
-    const fields = ['total_bop_per_jam', 'bop_per_pcs', 'biaya_per_produk', 'biaya_per_jam'];
+    const fields = ['total_bop_per_jam', 'bop_per_pcs', 'biaya_per_produk'];
     fields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
         if (field) {
@@ -661,26 +653,23 @@ function calculateEditBopSummary() {
     // Calculate BTKL per pcs
     const btklPerPcs = kapasitas > 0 ? btklPerJam / kapasitas : 0;
     
-    // Calculate Total BOP per jam from components
+    // Calculate Total BOP per produk from components
     const componentRates = document.querySelectorAll('.edit-komponen-rate');
-    let totalBopPerJam = 0;
+    let totalBopPerProduk = 0;
     componentRates.forEach(input => {
-        totalBopPerJam += parseFloat(input.value) || 0;
+        totalBopPerProduk += parseFloat(input.value) || 0;
     });
     
-    // Calculate BOP per pcs
-    const bopPerPcs = kapasitas > 0 ? totalBopPerJam / kapasitas : 0;
+    // BOP per pcs sama dengan total BOP per produk (karena input sudah per produk)
+    const bopPerPcs = totalBopPerProduk;
     
     // Calculate Biaya per produk
     const biayaPerProduk = btklPerPcs + bopPerPcs;
     
-    // Calculate Biaya per jam
-    const biayaPerJam = btklPerJam + totalBopPerJam;
-    
     // Update readonly fields in edit modal
     const editTotalBopInput = document.getElementById('editTotalBopPerJam');
     if (editTotalBopInput) {
-        editTotalBopInput.value = totalBopPerJam.toFixed(2);
+        editTotalBopInput.value = totalBopPerProduk.toFixed(2);
     }
     
     const editBopPerPcsInput = document.getElementById('editBopPerPcs');
@@ -693,9 +682,9 @@ function calculateEditBopSummary() {
         editBiayaPerProdukInput.value = biayaPerProduk.toFixed(2);
     }
     
-    const editBiayaPerJamInput = document.getElementById('editBiayaPerJam');
-    if (editBiayaPerJamInput) {
-        editBiayaPerJamInput.value = biayaPerJam.toFixed(2);
+    const editBiayaPerProdukInput = document.getElementById('editBiayaPerProduk');
+    if (editBiayaPerProdukInput) {
+        editBiayaPerProdukInput.value = biayaPerProduk.toFixed(2);
     }
 }
 
@@ -744,61 +733,37 @@ function saveEditedBop() {
     });
 }
 
-// Tab switching functionality
-function switchTab(tab) {
-    const bopProsesTab = document.getElementById('bopProsesTab');
-    const bebanOperasionalTab = document.getElementById('bebanOperasionalTab');
-    const bopProsesContent = document.getElementById('bopProsesContent');
-    const bebanOperasionalContent = document.getElementById('bebanOperasionalContent');
-    const addButton = document.getElementById('addButton');
+// Simple tab switching functions
+// Simple tab switching functions
+function switchToBopProses() {
+    // Hide beban operasional
+    document.getElementById('bebanOperasionalContent').style.display = 'none';
+    document.getElementById('bebanOperasionalTab').classList.remove('active');
+    
+    // Show BOP proses
+    document.getElementById('bopProsesContent').style.display = 'block';
+    document.getElementById('bopProsesTab').classList.add('active');
+    
+    // Update button
+    document.getElementById('addButton').innerHTML = '<i class="fas fa-plus me-2"></i>Tambah BOP Proses';
+    document.getElementById('addButton').onclick = function() { openAddModal(); };
+}
 
-    if (tab === 'bop-proses') {
-        // Show BOP Proses tab
-        bopProsesTab.classList.add('active');
-        bebanOperasionalTab.classList.remove('active');
-        bopProsesContent.style.display = 'block';
-        bebanOperasionalContent.style.display = 'none';
-        
-        // Update add button
-        addButton.innerHTML = '<i class="fas fa-plus me-2"></i>Tambah BOP Proses';
-        addButton.setAttribute('onclick', "openAddModal()");
-        
-        // Update URL without page reload (clean URL)
-        const url = new URL(window.location);
-        // Clear all existing search params
-        url.searchParams.delete('tab');
-        url.searchParams.delete('status');
-        url.searchParams.delete('nama_beban');
-        url.searchParams.delete('nominal');
-        url.searchParams.delete('keterangan');
-        window.history.replaceState({}, '', url);
-        
-    } else if (tab === 'beban-operasional') {
-        // Show Beban Operasional tab
-        bebanOperasionalTab.classList.add('active');
-        bopProsesTab.classList.remove('active');
-        bebanOperasionalContent.style.display = 'block';
-        bopProsesContent.style.display = 'none';
-        
-        // Update add button
-        addButton.innerHTML = '<i class="fas fa-plus me-2"></i>Tambah Beban Operasional';
-        addButton.setAttribute('onclick', "openBebanOperasionalModal()");
-        
-        // Update URL without page reload (clean URL)
-        const url = new URL(window.location);
-        // Clear all existing search params except tab
-        const tabValue = url.searchParams.get('tab');
-        url.searchParams.delete('tab');
-        url.searchParams.delete('status');
-        url.searchParams.delete('nama_beban');
-        url.searchParams.delete('nominal');
-        url.searchParams.delete('keterangan');
-        url.searchParams.set('tab', 'beban-operasional');
-        window.history.replaceState({}, '', url);
-        
-        // Load Beban Operasional data
-        loadBebanOperasionalData();
-    }
+function switchToBebanOperasional() {
+    // Hide BOP proses
+    document.getElementById('bopProsesContent').style.display = 'none';
+    document.getElementById('bopProsesTab').classList.remove('active');
+    
+    // Show beban operasional
+    document.getElementById('bebanOperasionalContent').style.display = 'block';
+    document.getElementById('bebanOperasionalTab').classList.add('active');
+    
+    // Update button
+    document.getElementById('addButton').innerHTML = '<i class="fas fa-plus me-2"></i>Tambah Beban Operasional';
+    document.getElementById('addButton').onclick = function() { openBebanOperasionalModal(); };
+    
+    // Load data
+    loadBebanOperasionalData();
 }
 
 // Open BOP Proses modal (existing functionality)
@@ -815,10 +780,12 @@ function openBebanOperasionalModal() {
 
 // Load Beban Operasional data
 function loadBebanOperasionalData() {
-    const status = document.getElementById('filterStatus').value;
-    const search = document.getElementById('filterSearch').value;
+    const kategori = document.getElementById('filterKategori') ? document.getElementById('filterKategori').value : '';
+    const status = document.getElementById('filterStatus') ? document.getElementById('filterStatus').value : '';
+    const search = document.getElementById('filterSearch') ? document.getElementById('filterSearch').value : '';
     
     const params = new URLSearchParams();
+    if (kategori) params.append('kategori', kategori);
     if (status) params.append('status', status);
     if (search) params.append('search', search);
     
@@ -827,7 +794,7 @@ function loadBebanOperasionalData() {
     if (tbody) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="text-center py-4">
+                <td colspan="6" class="text-center py-4">
                     <div class="text-muted">
                         <i class="fas fa-spinner fa-spin display-4 d-block mb-2"></i>
                         <p>Memuat data...</p>
@@ -837,7 +804,10 @@ function loadBebanOperasionalData() {
         `;
     }
     
-    fetch(`{{ route('master-data.bop.beban-operasional.data') }}?${params.toString()}`)
+    const url = '/master-data/bop/beban-operasional/data';
+    const fullUrl = params.toString() ? `${url}?${params.toString()}` : url;
+    
+    fetch(fullUrl)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -847,14 +817,12 @@ function loadBebanOperasionalData() {
         .then(data => {
             if (data.success) {
                 renderBebanOperasionalTable(data.data);
-                // Summary tidak diperlukan untuk master data
             } else {
                 showAlert('danger', data.message || 'Gagal memuat data');
-                // Show empty state on error
                 if (tbody) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="5" class="text-center py-4">
+                            <td colspan="6" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="bi bi-exclamation-triangle display-4 d-block mb-2"></i>
                                     <p>Gagal memuat data</p>
@@ -868,11 +836,10 @@ function loadBebanOperasionalData() {
         .catch(error => {
             console.error('Error:', error);
             showAlert('danger', 'Terjadi kesalahan saat memuat data: ' + error.message);
-            // Show empty state on error
             if (tbody) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="text-center py-4">
+                        <td colspan="6" class="text-center py-4">
                             <div class="text-muted">
                                 <i class="bi bi-exclamation-triangle display-4 d-block mb-2"></i>
                                 <p>Terjadi kesalahan saat memuat data</p>
@@ -891,7 +858,7 @@ function renderBebanOperasionalTable(data) {
     if (data.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="text-center py-4">
+                <td colspan="6" class="text-center py-4">
                     <div class="text-muted">
                         <i class="bi bi-inbox display-4 d-block mb-2"></i>
                         <p>Belum ada data Beban Operasional</p>
@@ -909,6 +876,9 @@ function renderBebanOperasionalTable(data) {
         <tr>
             <td class="text-center">
                 ${index + 1}
+            </td>
+            <td>
+                <span class="badge bg-secondary">${item.kategori || '-'}</span>
             </td>
             <td>
                 <div class="fw-semibold">${item.nama_beban}</div>
@@ -968,6 +938,7 @@ function editBebanOperasional(id) {
             if (data.success) {
                 const item = data.data;
                 document.getElementById('editBebanOperasionalId').value = item.id;
+                document.getElementById('editKategori').value = item.kategori || '';
                 document.getElementById('editNamaBeban').value = item.nama_beban;
                 document.getElementById('editBudgetBulanan').value = item.budget_bulanan || '';
                 document.getElementById('editKeterangan').value = item.keterangan || '';
@@ -1256,36 +1227,70 @@ function showAlert(type, message) {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // Setup auto-fill for BTKL fields
+    setupBtklAutoFill();
+    
     // Check URL parameter for tab state
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
     
-    // Clean URL from unwanted query parameters (form fields)
-    const url = new URL(window.location);
-    let hasUnwantedParams = false;
-    
-    // Check for form field parameters and clean them
-    ['status', 'nama_beban', 'nominal', 'keterangan'].forEach(param => {
-        if (url.searchParams.has(param)) {
-            url.searchParams.delete(param);
-            hasUnwantedParams = true;
-        }
-    });
-    
-    // Update URL if we cleaned unwanted parameters
-    if (hasUnwantedParams) {
-        if (tabParam === 'beban-operasional') {
-            url.searchParams.set('tab', 'beban-operasional');
-        }
-        window.history.replaceState({}, '', url);
-    }
-    
-    // Set initial tab state based on URL parameter or default to BOP Proses
+    // Set initial tab state
     if (tabParam === 'beban-operasional') {
-        switchTab('beban-operasional');
+        switchToBebanOperasional();
     } else {
-        switchTab('bop-proses');
+        switchToBopProses();
     }
+    
+    // Handle edit BOP Proses form submit
+    document.getElementById('editBopProsesForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const bopId = document.getElementById('editBopProsesId').value;
+        
+        // Show loading
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...';
+        
+        fetch(`/master-data/bop/update-proses-simple/${bopId}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Close modal
+                bootstrap.Modal.getInstance(document.getElementById('editBopProsesModal')).hide();
+                
+                // Show success message
+                alert(data.message || 'BOP Proses berhasil diperbarui');
+                
+                // Reload page
+                window.location.reload();
+            } else {
+                alert(data.message || 'Gagal memperbarui BOP Proses');
+            }
+        })
+        .catch(error => {
+            alert('Terjadi kesalahan: ' + error.message);
+        })
+        .finally(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    });
 });
 </script>
 
@@ -1302,6 +1307,17 @@ document.addEventListener('DOMContentLoaded', function() {
             <form id="addBebanOperasionalForm" method="POST" action="javascript:void(0);" onsubmit="saveBebanOperasional(); return false;">
                 @csrf
                 <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="addKategori" class="form-label">Kategori <span class="text-danger">*</span></label>
+                        <select name="kategori" id="addKategori" class="form-select" required>
+                            <option value="">Pilih Kategori</option>
+                            <option value="Administrasi">Administrasi</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Utilitas">Utilitas</option>
+                            <option value="Distribusi">Distribusi</option>
+                            <option value="Lain-lain">Lain-lain</option>
+                        </select>
+                    </div>
                     <div class="mb-3">
                         <label for="addNamaBeban" class="form-label">Nama Beban <span class="text-danger">*</span></label>
                         <input type="text" name="nama_beban" id="addNamaBeban" class="form-control" placeholder="Contoh: Gaji Karyawan" required>
@@ -1350,6 +1366,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 <input type="hidden" id="editBebanOperasionalId" name="id">
                 <div class="modal-body">
                     <div class="mb-3">
+                        <label for="editKategori" class="form-label">Kategori <span class="text-danger">*</span></label>
+                        <select name="kategori" id="editKategori" class="form-select" required>
+                            <option value="">Pilih Kategori</option>
+                            <option value="Administrasi">Administrasi</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Utilitas">Utilitas</option>
+                            <option value="Distribusi">Distribusi</option>
+                            <option value="Lain-lain">Lain-lain</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label for="editNamaBeban" class="form-label">Nama Beban <span class="text-danger">*</span></label>
                         <input type="text" name="nama_beban" id="editNamaBeban" class="form-control" placeholder="Contoh: Gaji Karyawan" required>
                     </div>
@@ -1380,51 +1407,6 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </div>
-
-// Handle edit BOP Proses form submit
-document.getElementById('editBopProsesForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const formData = new FormData(this);
-    const bopId = document.getElementById('editBopProsesId').value;
-    
-    // Show loading
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...';
-    
-    fetch(`/master-data/bop/update-proses-simple/${bopId}`, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Accept': 'application/json'
-        },
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Close modal
-            bootstrap.Modal.getInstance(document.getElementById('editBopProsesModal')).hide();
-            
-            // Show success message
-            alert(data.message || 'BOP Proses berhasil diperbarui');
-            
-            // Reload page
-            window.location.reload();
-        } else {
-            alert(data.message || 'Gagal memperbarui BOP Proses');
-        }
-    })
-    .catch(error => {
-        alert('Terjadi kesalahan: ' + error.message);
-    })
-    .finally(() => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-    });
-});
 
 @endpush
 @endsection

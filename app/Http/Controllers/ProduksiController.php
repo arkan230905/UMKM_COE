@@ -74,6 +74,8 @@ class ProduksiController extends Controller
         $request->validate([
             'produk_id' => 'required|exists:produks,id',
             'tanggal' => 'required|date',
+            'jumlah_produksi_bulanan' => 'required|numeric|min:0.0001',
+            'hari_produksi_bulanan' => 'required|integer|min:1|max:31',
             'qty_produksi' => 'required|numeric|min:0.0001',
         ]);
 
@@ -184,6 +186,8 @@ class ProduksiController extends Controller
             $produksi = Produksi::create([
                 'produk_id' => $produk->id,
                 'tanggal' => $tanggal,
+                'jumlah_produksi_bulanan' => $request->jumlah_produksi_bulanan,
+                'hari_produksi_bulanan' => $request->hari_produksi_bulanan,
                 'qty_produksi' => $qtyProd,
             ]);
 
