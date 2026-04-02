@@ -89,7 +89,7 @@
                     <tr>
                         <th style="width: 5%">#</th>
                         <th style="width: 45%">Komponen</th>
-                        <th style="width: 20%" class="text-end">Rp / Jam</th>
+                        <th style="width: 20%" class="text-end">Rp / produk</th>
                         <th style="width: 30%">Keterangan</th>
                     </tr>
                 </thead>
@@ -108,7 +108,7 @@
                 </tbody>
                 <tfoot class="table-secondary">
                     <tr class="fw-bold">
-                        <td colspan="2">Total BOP / jam</td>
+                        <td colspan="2">Total BOP / produk</td>
                         <td class="text-end">Rp {{ number_format($totalBop, 0, ',', '.') }}</td>
                         <td></td>
                     </tr>
@@ -134,13 +134,13 @@
         <div class="row g-2">
             <div class="col-md-3">
                 <div class="d-flex justify-content-between border-bottom pb-2">
-                    <strong>Total BOP / jam:</strong>
+                    <strong>Total BOP / produk:</strong>
                     <span class="text-primary">Rp {{ number_format($totalBop, 0, ',', '.') }}</span>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="d-flex justify-content-between border-bottom pb-2">
-                    <strong>BOP / pcs:</strong>
+                    <strong>BOP / produk:</strong>
                     <span class="text-success">Rp {{ number_format($bopPerPcs, 0, ',', '.') }}</span>
                 </div>
             </div>
