@@ -14,7 +14,7 @@ class Jabatan extends Model
         'gaji_pokok', 
         'tunjangan', 
         'asuransi', 
-        'tarif_per_jam', 
+        'tarif', 
         'deskripsi'
     ];
 
@@ -22,7 +22,7 @@ class Jabatan extends Model
         'gaji_pokok' => 'decimal:2',
         'tunjangan' => 'decimal:2',
         'asuransi' => 'decimal:2',
-        'tarif_per_jam' => 'decimal:2',
+        'tarif' => 'decimal:2',
     ];
 
     /**
@@ -56,6 +56,14 @@ class Jabatan extends Model
     {
         $jumlahPegawai = $this->pegawais()->count();
         return $this->tarif_per_jam * $jumlahPegawai;
+    }
+
+    /**
+     * Get tarif per jam (alias for tarif column)
+     */
+    public function getTarifPerJamAttribute()
+    {
+        return $this->tarif;
     }
 
     /**

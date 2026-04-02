@@ -73,6 +73,14 @@ class PembelianDetail extends Model
     }
 
     /**
+     * Relasi ke konversi tambahan (alias)
+     */
+    public function additionalConversions()
+    {
+        return $this->hasMany(PembelianDetailKonversi::class, 'pembelian_detail_id');
+    }
+
+    /**
      * Alias untuk bahanBaku (untuk backward compatibility)
      */
     public function bahan_baku()

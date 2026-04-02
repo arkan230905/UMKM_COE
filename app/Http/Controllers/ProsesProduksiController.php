@@ -70,6 +70,19 @@ class ProsesProduksiController extends Controller
             $tarifPerJam = $jabatan->tarif_per_jam;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
             
+            // Validasi konsistensi
+            if ($jumlahPegawai === 0) {
+                return back()->withInput()->with('error', 
+                    'Jabatan "' . $jabatan->nama . '" belum memiliki pegawai. ' .
+                    'Silakan tambahkan pegawai terlebih dahulu.');
+            }
+            
+            if ($tarifPerJam <= 0) {
+                return back()->withInput()->with('error', 
+                    'Jabatan "' . $jabatan->nama . '" belum memiliki tarif per jam yang valid. ' .
+                    'Silakan set tarif per jam di master jabatan.');
+            }
+            
             // Use calculated value instead of user input for security
             $validated['tarif_btkl'] = $expectedTarifBTKL;
             
@@ -155,6 +168,19 @@ class ProsesProduksiController extends Controller
             $jumlahPegawai = $jabatan->pegawais->count();
             $tarifPerJam = $jabatan->tarif_per_jam;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
+            
+            // Validasi konsistensi
+            if ($jumlahPegawai === 0) {
+                return back()->withInput()->with('error', 
+                    'Jabatan "' . $jabatan->nama . '" belum memiliki pegawai. ' .
+                    'Silakan tambahkan pegawai terlebih dahulu.');
+            }
+            
+            if ($tarifPerJam <= 0) {
+                return back()->withInput()->with('error', 
+                    'Jabatan "' . $jabatan->nama . '" belum memiliki tarif per jam yang valid. ' .
+                    'Silakan set tarif per jam di master jabatan.');
+            }
             
             // Use calculated value instead of user input for security
             $validated['tarif_btkl'] = $expectedTarifBTKL;
