@@ -119,7 +119,7 @@ class BahanBakuController extends Controller
     // Menampilkan form edit
     public function edit($id)
     {
-        $bahanBaku = BahanBaku::with(['satuan', 'coaPembelian', 'coaPersediaan', 'coaHpp'])->findOrFail($id);
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])->findOrFail($id);
         $satuans = Satuan::all();
         $coas = \App\Models\Coa::orderBy('nama_akun')->get();
         return view('master-data.bahan-baku.edit', compact('bahanBaku', 'satuans', 'coas'));

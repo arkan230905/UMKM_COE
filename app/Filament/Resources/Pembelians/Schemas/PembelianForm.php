@@ -15,6 +15,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Schemas\Schema;
@@ -200,45 +201,38 @@ class PembelianForm
                                                 self::calculateSubtotal($set, $get);
                                             }),
                                         
+                                        TextInput::make('satuan')
+                                            ->label('Satuan Pembelian')
+                                            ->required()
+                                            ->disabled(),
+                                        
                                         TextInput::make('harga_satuan')
-                                            ->label('Harga per Satuan')
+                                            ->label('Harga Satuan')
                                             ->numeric()
-                                            ->prefix('Rp')
                                             ->required()
                                             ->minValue(0)
+                                            ->prefix('Rp')
                                             ->live(onBlur: true)
                                             ->afterStateUpdated(function (Set $set, Get $get) {
                                                 self::calculateSubtotal($set, $get);
                                             }),
                                         
-                                        TextInput::make('subtotal')
-                                            ->label('Harga Total')
-                                            ->numeric()
-                                            ->prefix('Rp')
-                                            ->disabled()
-                                            ->dehydrated(),
-                                    ]),
-                                
-                                Grid::make(4)
-                                    ->schema([
-                                        TextInput::make('satuan')
-                                            ->label('Satuan')
-                                            ->disabled()
-                                            ->dehydrated(),
-                                        
                                         TextInput::make('faktor_konversi')
-                                            ->label('Konversi ke Satuan Utama (Manual)')
+                                            ->label('Faktor Konversi')
                                             ->numeric()
-                                            ->step(0.0001)
+                                            ->required()
                                             ->default(1)
                                             ->minValue(0.0001)
-                                            ->required()
+                                            ->step(0.0001)
                                             ->helperText('1 unit pembelian = berapa satuan utama')
                                             ->live(onBlur: true)
                                             ->afterStateUpdated(function (Set $set, Get $get) {
                                                 self::calculateSubtotal($set, $get);
                                             }),
-                                        
+                                    ]),
+                                
+                                Grid::make(4)
+                                    ->schema([
                                         Placeholder::make('jumlah_konversi')
                                             ->label('Estimasi Isi Satuan Utama (Manual)')
                                             ->content(function (Get $get) {
@@ -259,6 +253,13 @@ class PembelianForm
                                                 }
                                                 return 'Rp 0';
                                             }),
+                                        
+                                        TextInput::make('subtotal')
+                                            ->label('Harga Total')
+                                            ->numeric()
+                                            ->prefix('Rp')
+                                            ->disabled()
+                                            ->dehydrated(),
                                     ]),
                             ])
                             ->addActionLabel('+ Tambah Barang')
@@ -268,6 +269,53 @@ class PembelianForm
                                 self::calculateTotals($set, $get);
                             }),
                     ]),
+
+                // 🔄 KONVERSI TAMBAHAN - Section Baru
+                Card::make()
+                    ->schema([
+                        Section::make('🔄 Konversi Tambahan')
+                            ->description('Tambahkan konversi ke satuan lain untuk bahan yang dipilih')
+                            ->schema([
+                                Grid::make(2)
+                                    ->schema([
+                                        Toggle::make('enable_additional_conversion')
+                                            ->label('✅ Aktifkan Konversi Tambahan')
+                                            ->default(false)
+                                            ->live(),
+                                        
+                                        Placeholder::make('info_konversi')
+                                            ->label('ℹ️ Info')
+                                            ->content('Fitur ini memungkinkan konversi ke satuan 1, 2, atau 3')
+                                            ->visible(fn (Get $get) => $get('enable_additional_conversion')),
+                                    ]),
+                                
+                                // Form konversi tambahan
+                                Grid::make(3)
+                                    ->schema([
+                                        Select::make('target_satuan_type')
+                                            ->label('🎯 Pilih Satuan Target')
+                                            ->options([
+                                                'satuan_1' => '1️⃣ Satuan 1',
+                                                'satuan_2' => '2️⃣ Satuan 2',
+                                                'satuan_3' => '3️⃣ Satuan 3',
+                                            ])
+                                            ->placeholder('Pilih satuan target'),
+                                        
+                                        TextInput::make('jumlah_konversi_manual')
+                                            ->label('📊 Jumlah Konversi')
+                                            ->numeric()
+                                            ->placeholder('Masukkan jumlah'),
+                                        
+                                        TextInput::make('keterangan_konversi')
+                                            ->label('📝 Keterangan')
+                                            ->placeholder('Catatan tambahan'),
+                                    ])
+                                    ->visible(fn (Get $get) => $get('enable_additional_conversion')),
+                            ])
+                            ->collapsible()
+                            ->collapsed(false), // Buka secara default untuk testing
+                    ])
+                    ->columnSpanFull(),
 
                 // Totals Section
                 Card::make()
@@ -335,6 +383,36 @@ class PembelianForm
         $subtotal = $jumlah * $harga;
         
         $set('subtotal', $subtotal);
+    }
+
+    /**
+     * Calculate additional conversion based on purchase quantity and conversion factors
+     */
+    private static function calculateAdditionalConversion(Set $set, Get $get): void
+    {
+        $jumlahPembelian = (float) ($get('../../jumlah') ?? 0);
+        $faktorKonversiUtama = (float) ($get('../../faktor_konversi') ?? 1);
+        $masterConversionFactor = (float) ($get('master_conversion_factor') ?? 1);
+        $manualConversionFactor = $get('faktor_konversi_manual');
+        
+        if ($jumlahPembelian <= 0) return;
+        
+        // Use manual factor if provided, otherwise use master data
+        $conversionFactor = $manualConversionFactor ? (float) $manualConversionFactor : $masterConversionFactor;
+        
+        // Calculate: Purchase Quantity → Main Unit → Target Sub Unit
+        // Step 1: Convert purchase quantity to main unit
+        $jumlahSatuanUtama = $jumlahPembelian * $faktorKonversiUtama;
+        
+        // Step 2: Convert main unit to target sub unit
+        // If 1 sub unit = X main units, then Y main units = Y/X sub units
+        if ($conversionFactor > 0) {
+            $jumlahKonversi = $jumlahSatuanUtama / $conversionFactor;
+        } else {
+            $jumlahKonversi = 0;
+        }
+        
+        $set('jumlah_konversi', round($jumlahKonversi, 4));
     }
 
     private static function calculateTotals(Set $set, Get $get): void

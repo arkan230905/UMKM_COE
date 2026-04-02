@@ -128,13 +128,13 @@ class ProsesProduksi extends Model
 
     /**
      * Hitung biaya BTKL per unit produk
-     * Formula: Tarif per Jam ÷ Kapasitas per Jam
+     * Formula: Tarif BTKL per Jam ÷ Kapasitas per Jam
      *
      * @return float
      */
     public function getBiayaPerProdukAttribute(): float
     {
-        if ($this->kapasitas_per_jam > 0) {
+        if ($this->kapasitas_per_jam > 0 && $this->tarif_btkl > 0) {
             return $this->tarif_btkl / $this->kapasitas_per_jam;
         }
         return 0;
@@ -192,5 +192,90 @@ class ProsesProduksi extends Model
         $bopCost = $this->bopProses ? $this->bopProses->bop_per_unit : 0;
         
         return $btklCost + $bopCost;
+    }
+
+    /**
+     * Format tarif per jam untuk tampilan
+     * Menggunakan tarif_btkl karena ini adalah tarif total untuk proses
+     *
+     * @return string
+     */
+    public function getTarifPerJamFormattedAttribute(): string
+    {
+        return 'Rp ' . number_format($this->tarif_btkl, 0, ',', '.');
+    }
+
+    /**
+     * Get nama BTKL (alias untuk nama_proses)
+     *
+     * @return string
+     */
+    public function getNamaBtklAttribute(): string
+    {
+        return $this->nama_proses ?? '-';
+    }
+
+    /**
+     * Get satuan untuk konsistensi dengan model Btkl
+     *
+     * @return string
+     */
+    public function getSatuanAttribute(): string
+    {
+        return $this->satuan_btkl ?? 'Jam';
+    }
+
+    /**
+     * Get deskripsi proses untuk konsistensi dengan model Btkl
+     *
+     * @return string
+     */
+    public function getDeskripsiProsesAttribute(): string
+    {
+        return $this->deskripsi ?? '-';
+    }
+
+    /**
+     * Validasi konsistensi tarif BTKL dengan jabatan
+     * Memastikan tarif sesuai dengan kualifikasi pegawai
+     *
+     * @return array
+     */
+    public function validateTarifConsistency(): array
+    {
+        if (!$this->jabatan) {
+            return [
+                'is_consistent' => false,
+                'message' => 'Jabatan tidak ditemukan',
+                'expected_tarif' => 0,
+                'current_tarif' => $this->tarif_btkl
+            ];
+        }
+
+        $jumlahPegawai = $this->jabatan->pegawais->count();
+        $tarifPerJam = $this->jabatan->tarif_per_jam;
+        $expectedTarif = $tarifPerJam * $jumlahPegawai;
+        
+        $isConsistent = abs($this->tarif_btkl - $expectedTarif) < 0.01; // Toleransi 1 sen
+        
+        return [
+            'is_consistent' => $isConsistent,
+            'message' => $isConsistent ? 'Tarif sesuai dengan kualifikasi' : 'Tarif tidak sesuai dengan kualifikasi pegawai',
+            'expected_tarif' => $expectedTarif,
+            'current_tarif' => $this->tarif_btkl,
+            'jabatan_name' => $this->jabatan->nama,
+            'jumlah_pegawai' => $jumlahPegawai,
+            'tarif_per_jam' => $tarifPerJam
+        ];
+    }
+
+    /**
+     * Get status konsistensi tarif
+     *
+     * @return bool
+     */
+    public function getIsConsistentAttribute(): bool
+    {
+        return $this->validateTarifConsistency()['is_consistent'];
     }
 }

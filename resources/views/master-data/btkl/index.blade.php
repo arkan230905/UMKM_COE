@@ -77,7 +77,17 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="fw-bold text-success">{{ $btkl->tarif_per_jam_formatted }}</span>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-cash-stack me-2 text-success"></i>
+                                    <div>
+                                        <span class="fw-bold text-success">{{ $btkl->tarif_per_jam_formatted }}</span>
+                                        @if(!$btkl->is_consistent)
+                                            <i class="bi bi-exclamation-triangle-fill text-warning ms-1" 
+                                               data-bs-toggle="tooltip" 
+                                               title="Tarif tidak sesuai dengan kualifikasi pegawai"></i>
+                                        @endif
+                                    </div>
+                                </div>
                             </td>
                             <td>
                                 <span class="badge bg-info">{{ $btkl->satuan }}</span>
@@ -90,7 +100,7 @@
                                     <i class="bi bi-cash-stack me-2 text-warning"></i>
                                     <div>
                                         <div class="fw-bold text-warning">{{ $btkl->biaya_per_produk_formatted }}</div>
-                                        <small class="text-muted">Rp {{ number_format($btkl->tarif_per_jam / $btkl->kapasitas_per_jam, 2, ",", ".") }}</small>
+                                        <small class="text-muted">Rp {{ number_format($btkl->tarif_btkl / $btkl->kapasitas_per_jam, 2, ",", ".") }}</small>
                                     </div>
                                 </div>
                             </td>
