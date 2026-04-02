@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -27,7 +28,13 @@ return new class extends Migration
         if (Schema::hasTable('bops')) {
             Schema::table('bops', function (Blueprint $table) {
                 try {
-                    $table->dropForeign(['kode_akun']);
+                    // Cek nama constraint yang benar
+                    $constraints = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'bops' AND COLUMN_NAME = 'kode_akun' AND REFERENCED_TABLE_NAME IS NOT NULL");
+                    
+                    foreach ($constraints as $constraint) {
+                        $table->dropForeign([$constraint->CONSTRAINT_NAME]);
+                    }
+                    
                     $table->foreign('kode_akun')->references('kode_akun')->on('coas')->onDelete('cascade')->onUpdate('cascade');
                 } catch (\Exception $e) {
                     // Ignore if constraint doesn't exist

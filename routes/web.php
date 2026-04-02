@@ -770,8 +770,9 @@ Route::middleware('auth')->group(function () {
         
         // Kategori Bahan Pendukung
         Route::resource('kategori-bahan-pendukung', \App\Http\Controllers\KategoriBahanPendukungController::class);
-        Route::resource('coa', CoaController::class);
         Route::get('coa/generate-kode', [CoaController::class, 'generateKode'])->name('coa.generate-kode');
+        Route::get('coa/generate-child-kode', [CoaController::class, 'generateChildKode'])->name('coa.generate-child-kode');
+        Route::resource('coa', CoaController::class);
         Route::resource('aset', AsetController::class);
         Route::get('aset-kategori-by-jenis', [AsetController::class, 'getKategoriByJenis'])->name('aset.kategori-by-jenis');
         

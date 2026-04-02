@@ -118,7 +118,63 @@ class Coa extends Model
     }
     
     /**
-     * Generate kode akun otomatis
+     * Generate kode akun anak otomatis berdasarkan prefix induk.
+     *
+     * Contoh:
+     *   prefix '114', existing: 114,1141,1142,1143,1144 → return '1145'
+     *   prefix '51',  existing: 51,510,511,512           → return '513'
+     *   prefix '11',  existing: 11 (belum ada anak)      → return '111'
+     *
+     * @param string $prefix  Kode akun induk (misal '114', '51', '21')
+     * @return string         Kode akun anak berikutnya
+     */
+    public static function generateChildCode(string $prefix): string
+    {
+        $prefixLen = strlen($prefix);
+        $childLen = $prefixLen + 1;
+
+        // Cari kode_akun anak langsung (panjang = prefix + 1 digit) yang diawali prefix
+        $maxChild = self::withoutGlobalScopes()
+            ->where('kode_akun', 'LIKE', $prefix . '%')
+            ->whereRaw('LENGTH(kode_akun) = ?', [$childLen])
+            ->orderByRaw('CAST(kode_akun AS UNSIGNED) DESC')
+            ->value('kode_akun');
+
+        if ($maxChild) {
+            $nextNum = (int) $maxChild + 1;
+        } else {
+            // Belum ada anak → deteksi pola awal (0 atau 1) dari sibling
+            $parentPrefix = substr($prefix, 0, $prefixLen - 1);
+            $startDigit = '0';
+
+            if ($parentPrefix !== '') {
+                $firstSibling = self::withoutGlobalScopes()
+                    ->where('kode_akun', 'LIKE', $parentPrefix . '%')
+                    ->whereRaw('LENGTH(kode_akun) = ?', [$childLen])
+                    ->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC')
+                    ->value('kode_akun');
+
+                if ($firstSibling) {
+                    $lastDigit = substr($firstSibling, -1);
+                    $startDigit = ($lastDigit === '0') ? '0' : '1';
+                }
+            }
+
+            $nextNum = (int) ($prefix . $startDigit);
+        }
+
+        // Pastikan kode yang dihasilkan belum ada (hindari konflik)
+        $candidate = (string) $nextNum;
+        while (self::withoutGlobalScopes()->where('kode_akun', $candidate)->exists()) {
+            $nextNum++;
+            $candidate = (string) $nextNum;
+        }
+
+        return $candidate;
+    }
+
+    /**
+     * Generate kode akun otomatis (legacy, untuk backward compatibility)
      */
     protected function generateKodeAkun()
     {
@@ -140,14 +196,8 @@ class Coa extends Model
             $group = '1';
         }
 
-        $prefix = $group;
-        $last = self::where('kode_akun', 'like', $prefix . '%')
-            ->whereRaw('LENGTH(kode_akun) = 4')
-            ->orderByRaw('CAST(kode_akun AS UNSIGNED) DESC')
-            ->value('kode_akun');
-
-        $next = $last ? ((int) $last + 1) : ((int) ($prefix . '101'));
-        return (string) $next;
+        // Gunakan generateChildCode dengan group sebagai prefix
+        return self::generateChildCode($group);
     }
     
     /**
