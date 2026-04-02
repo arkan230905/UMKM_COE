@@ -225,6 +225,134 @@ const productData = {
 // Debug: Log productData to console
 console.log('Product Data:', productData);
 
+// Global utility functions (must be outside DOMContentLoaded)
+function formatCurrency(value) {
+    if (value === null || value === undefined || isNaN(value)) {
+        return 'Rp 0';
+    }
+    const roundedValue = Math.round(parseFloat(value) * 1000) / 1000;
+    return 'Rp ' + roundedValue.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+}
+
+function parseCurrency(formattedValue) {
+    if (!formattedValue) return 0;
+    return parseFloat(formattedValue.toString().replace(/[^\d]/g, '')) || 0;
+}
+
+// Global functions for barcode system
+function recalcRow(tr) {
+    const q = Math.round(parseFloat(tr.querySelector('.jumlah').value) || 0);
+    tr.querySelector('.jumlah').value = q; // Ensure integer display
+    const p = parseCurrency(tr.querySelector('.harga').value) || 0;
+    const dPct = Math.min(Math.max(parseFloat(tr.querySelector('.diskon').value) || 0, 0), 100);
+    const sub = q * p;
+    const dNom = sub * (dPct/100.0);
+    const line = Math.max(sub - dNom, 0);
+    tr.querySelector('.subtotal').value = formatCurrency(line);
+}
+
+function recalcTotal() {
+    const table = document.getElementById('detailTableJual');
+    let sum = 0;
+    table.querySelectorAll('tbody tr').forEach(tr => {
+        const val = (tr.querySelector('.subtotal').value || 'Rp 0').replace(/[^\d]/g,'');
+        sum += parseFloat(val) || 0;
+    });
+    
+    // Update subtotal produk
+    const subtotalProdukInput = document.querySelector('input[name="subtotal_produk"]');
+    if (subtotalProdukInput) {
+        subtotalProdukInput.value = formatCurrency(sum);
+    }
+    
+    // Get additional costs
+    const biayaOngkir = parseFloat(document.getElementById('biaya_ongkir').value) || 0;
+    const biayaService = parseFloat(document.getElementById('biaya_service').value) || 0;
+    const ppnPersen = parseFloat(document.getElementById('ppn_persen').value) || 0;
+    
+    // Calculate PPN base (subtotal + ongkir + service)
+    const ppnBase = sum + biayaOngkir + biayaService;
+    const totalPPN = ppnBase * (ppnPersen / 100);
+    
+    // Update PPN
+    const totalPPNInput = document.getElementById('total_ppn');
+    if (totalPPNInput) {
+        totalPPNInput.value = formatCurrency(totalPPN);
+    }
+    
+    // Calculate final total
+    const finalTotal = sum + biayaOngkir + biayaService + totalPPN;
+    
+    // Update total
+    const totalInput = document.getElementById('total_final');
+    if (totalInput) {
+        totalInput.value = formatCurrency(finalTotal);
+    }
+}
+
+function setPriceFromSelect(tr) {
+    const sel = tr.querySelector('.produk-select');
+    const opt = sel.options[sel.selectedIndex];
+    const price = parseFloat(opt?.getAttribute('data-price') || '0') || 0;
+    const stok = parseFloat(opt?.getAttribute('data-stok') || '0') || 0;
+    
+    tr.querySelector('.harga').value = formatCurrency(price);
+    
+    // Update stok info
+    const stokInfo = tr.querySelector('.stok-info');
+    if (stokInfo && opt.value) {
+        stokInfo.textContent = `Stok tersedia: ${stok.toLocaleString()}`;
+        stokInfo.style.color = stok > 0 ? '#28a745' : '#dc3545';
+    }
+    
+    // Set max qty to available stock
+    const qtyInput = tr.querySelector('.jumlah');
+    qtyInput.setAttribute('data-max-stok', stok);
+    
+    recalcRow(tr); 
+    recalcTotal();
+}
+
+function validateStock(tr) {
+    const qtyInput = tr.querySelector('.jumlah');
+    let qty = parseFloat(qtyInput.value) || 0;
+    qty = Math.round(qty); // Round to nearest integer
+    qtyInput.value = qty; // Update display
+    
+    const maxStok = parseFloat(qtyInput.getAttribute('data-max-stok') || '0') || 0;
+    
+    if (qty > maxStok) {
+        alert(`Stok tidak cukup! Stok tersedia: ${maxStok.toLocaleString()}, Anda input: ${qty.toLocaleString()}`);
+        qtyInput.value = maxStok;
+        qtyInput.style.borderColor = '#dc3545';
+        return false;
+    } else {
+        qtyInput.style.borderColor = '';
+        return true;
+    }
+}
+
+function highlightRow(row) {
+    row.style.backgroundColor = '#d4edda';
+    setTimeout(() => {
+        row.style.backgroundColor = '';
+        row.style.transition = 'background-color 0.5s ease';
+    }, 500);
+}
+
+function findExistingProductRow(productId) {
+    const table = document.getElementById('detailTableJual');
+    const rows = table.querySelectorAll('tbody tr');
+    
+    for (let row of rows) {
+        const select = row.querySelector('.produk-select');
+        if (select && select.value == productId) {
+            return row;
+        }
+    }
+    return null;
+}
+
 // Automatic Barcode Scanner System
 let barcodeBuffer = '';
 let barcodeTimeout = null;
@@ -293,6 +421,11 @@ function processAutomaticBarcode(barcode) {
         if (product) {
             console.log('✅ Product found:', product);
             
+            // Validate stock before adding
+            if (product.stok <= 0) {
+                throw new Error('Produk ' + product.nama + ' stok habis!');
+            }
+            
             // Product found - add to table
             addProductByBarcode(product);
             
@@ -326,13 +459,17 @@ function processAutomaticBarcode(barcode) {
         scanIndicator.textContent = 'Error';
         scanIndicator.parentElement.className = 'input-group-text bg-danger text-white';
         
-        showNotification('Terjadi kesalahan saat memproses barcode', 'error');
+        // Show specific error message
+        showNotification(error.message || 'Terjadi kesalahan saat memproses barcode', 'error');
+        
+        // Play error sound
+        playBeep(false);
     }
     
     // Clear input
     barcodeInput.value = '';
     
-    // Reset status after 2 seconds
+    // Reset status after 3 seconds (increased from 2)
     setTimeout(() => {
         scanIndicator.textContent = 'Siap Scan';
         scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
@@ -340,7 +477,7 @@ function processAutomaticBarcode(barcode) {
         
         // Ensure focus is maintained
         maintainFocus();
-    }, 2000);
+    }, 3000);
 }
 
 // Show notification
@@ -425,9 +562,7 @@ function addProductByBarcode(product) {
         
         // Check stock
         if (newQty > product.stok) {
-            updateBarcodeStatus('Stok tidak cukup!', 'danger');
-            playBeep(false);
-            return;
+            throw new Error('Stok tidak cukup! Stok tersedia: ' + product.stok);
         }
         
         qtyInput.value = Math.round(newQty);
@@ -437,33 +572,76 @@ function addProductByBarcode(product) {
         // Highlight row
         highlightRow(existingRow);
     } else {
-        // Add new row
-        const firstRow = tbody.rows[0];
-        const firstSelect = firstRow.querySelector('.produk-select');
+        // Find first empty row or create new one
+        let targetRow = null;
+        const rows = tbody.querySelectorAll('tr');
         
-        // If first row is empty, use it
-        if (!firstSelect.value) {
-            firstSelect.value = product.id;
-            setPriceFromSelect(firstRow);
-            highlightRow(firstRow);
-        } else {
-            // Clone and add new row
-            const clone = firstRow.cloneNode(true);
-            clone.querySelectorAll('input').forEach(inp => {
-                if (inp.classList.contains('jumlah')) inp.value = 1;
-                else if (inp.classList.contains('harga')) inp.value = formatCurrency(product.harga);
-                else if (inp.classList.contains('diskon')) inp.value = 0;
-                else if (inp.classList.contains('subtotal')) inp.value = formatCurrency(product.harga);
-            });
-            
-            const select = clone.querySelector('.produk-select');
-            select.value = product.id;
-            
-            tbody.appendChild(clone);
-            recalcTotal();
-            highlightRow(clone);
+        // Look for empty row (no product selected)
+        for (let row of rows) {
+            const select = row.querySelector('.produk-select');
+            if (!select.value) {
+                targetRow = row;
+                break;
+            }
         }
+        
+        // If no empty row found, create new one
+        if (!targetRow) {
+            targetRow = createNewRow();
+            tbody.appendChild(targetRow);
+        }
+        
+        // Fill the row with product data
+        const select = targetRow.querySelector('.produk-select');
+        const qtyInput = targetRow.querySelector('.jumlah');
+        const hargaInput = targetRow.querySelector('.harga');
+        const diskonInput = targetRow.querySelector('.diskon');
+        
+        select.value = product.id;
+        qtyInput.value = 1;
+        hargaInput.value = formatCurrency(product.harga);
+        diskonInput.value = 0;
+        
+        // Update stock info
+        setPriceFromSelect(targetRow);
+        
+        // Recalculate
+        recalcRow(targetRow);
+        recalcTotal();
+        
+        // Highlight row
+        highlightRow(targetRow);
+        
+        // Add new empty row for next scan
+        const newEmptyRow = createNewRow();
+        tbody.appendChild(newEmptyRow);
     }
+}
+
+// Create new empty row
+function createNewRow() {
+    const table = document.getElementById('detailTableJual');
+    const firstRow = table.querySelector('tbody tr');
+    const clone = firstRow.cloneNode(true);
+    
+    // Reset all inputs
+    clone.querySelectorAll('input').forEach(inp => {
+        if (inp.classList.contains('jumlah')) inp.value = 1;
+        else if (inp.classList.contains('harga')) inp.value = formatCurrency(0);
+        else if (inp.classList.contains('diskon')) inp.value = 0;
+        else if (inp.classList.contains('subtotal')) inp.value = formatCurrency(0);
+    });
+    
+    // Reset select
+    clone.querySelectorAll('select').forEach(sel => sel.selectedIndex = 0);
+    
+    // Reset stock info
+    const stockInfo = clone.querySelector('.stok-info');
+    if (stockInfo) {
+        stockInfo.textContent = '';
+    }
+    
+    return clone;
 }
 
 function findExistingProductRow(productId) {
@@ -721,105 +899,6 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('recent_sumber_dana_' + paymentMethod, this.value);
         }
     });
-
-    function formatCurrency(value) {
-        const roundedValue = Math.round(parseFloat(value) * 1000) / 1000;
-        return 'Rp ' + roundedValue.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
-    }
-    
-    function parseCurrency(formattedValue) {
-        return parseFloat(formattedValue.replace(/[^\d]/g, '')) || 0;
-    }
-
-    function recalcRow(tr) {
-        const q = Math.round(parseFloat(tr.querySelector('.jumlah').value) || 0);
-        tr.querySelector('.jumlah').value = q; // Ensure integer display
-        const p = parseCurrency(tr.querySelector('.harga').value) || 0;
-        const dPct = Math.min(Math.max(parseFloat(tr.querySelector('.diskon').value) || 0, 0), 100);
-        const sub = q * p;
-        const dNom = sub * (dPct/100.0);
-        const line = Math.max(sub - dNom, 0);
-        tr.querySelector('.subtotal').value = formatCurrency(line);
-    }
-
-    function recalcTotal() {
-        let sum = 0;
-        table.querySelectorAll('tbody tr').forEach(tr => {
-            const val = (tr.querySelector('.subtotal').value || 'Rp 0').replace(/[^\d]/g,'');
-            sum += parseFloat(val) || 0;
-        });
-        
-        // Update subtotal produk
-        const subtotalProdukInput = document.querySelector('input[name="subtotal_produk"]');
-        if (subtotalProdukInput) {
-            subtotalProdukInput.value = formatCurrency(sum);
-        }
-        
-        // Get additional costs
-        const biayaOngkir = parseFloat(document.getElementById('biaya_ongkir').value) || 0;
-        const biayaService = parseFloat(document.getElementById('biaya_service').value) || 0;
-        const ppnPersen = parseFloat(document.getElementById('ppn_persen').value) || 0;
-        
-        // Calculate PPN base (subtotal + ongkir + service)
-        const ppnBase = sum + biayaOngkir + biayaService;
-        const totalPPN = ppnBase * (ppnPersen / 100);
-        
-        // Update PPN
-        const totalPPNInput = document.getElementById('total_ppn');
-        if (totalPPNInput) {
-            totalPPNInput.value = formatCurrency(totalPPN);
-        }
-        
-        // Calculate final total
-        const finalTotal = sum + biayaOngkir + biayaService + totalPPN;
-        
-        // Update total
-        const totalInput = document.getElementById('total_final');
-        if (totalInput) {
-            totalInput.value = formatCurrency(finalTotal);
-        }
-    }
-
-    function setPriceFromSelect(tr) {
-        const sel = tr.querySelector('.produk-select');
-        const opt = sel.options[sel.selectedIndex];
-        const price = parseFloat(opt?.getAttribute('data-price') || '0') || 0;
-        const stok = parseFloat(opt?.getAttribute('data-stok') || '0') || 0;
-        
-        tr.querySelector('.harga').value = formatCurrency(price);
-        
-        // Update stok info
-        const stokInfo = tr.querySelector('.stok-info');
-        if (stokInfo && opt.value) {
-            stokInfo.textContent = `Stok tersedia: ${stok.toLocaleString()}`;
-            stokInfo.style.color = stok > 0 ? '#28a745' : '#dc3545';
-        }
-        
-        // Set max qty to available stock
-        const qtyInput = tr.querySelector('.jumlah');
-        qtyInput.setAttribute('data-max-stok', stok);
-        
-        recalcRow(tr); recalcTotal();
-    }
-    
-    function validateStock(tr) {
-        const qtyInput = tr.querySelector('.jumlah');
-        let qty = parseFloat(qtyInput.value) || 0;
-        qty = Math.round(qty); // Round to nearest integer
-        qtyInput.value = qty; // Update display
-        
-        const maxStok = parseFloat(qtyInput.getAttribute('data-max-stok') || '0') || 0;
-        
-        if (qty > maxStok) {
-            alert(`Stok tidak cukup! Stok tersedia: ${maxStok.toLocaleString()}, Anda input: ${qty.toLocaleString()}`);
-            qtyInput.value = maxStok;
-            qtyInput.style.borderColor = '#dc3545';
-            return false;
-        } else {
-            qtyInput.style.borderColor = '';
-            return true;
-        }
-    }
 
     addBtn.addEventListener('click', () => {
         const tbody = table.querySelector('tbody');
