@@ -54,7 +54,7 @@
                     <tr>
                         <th style="width: 8%" class="text-center">No</th>
                         <th style="width: 42%">Komponen</th>
-                        <th style="width: 25%" class="text-end">Rp / Jam</th>
+                        <th style="width: 25%" class="text-end">Rp / produk</th>
                         <th style="width: 25%">Keterangan</th>
                     </tr>
                 </thead>
@@ -73,7 +73,7 @@
                 </tbody>
                 <tfoot class="bg-light">
                     <tr class="fw-bold">
-                        <td colspan="2" class="text-end">Total BOP / jam</td>
+                        <td colspan="2" class="text-end">Total BOP / produk</td>
                         <td class="text-end text-success">Rp {{ number_format($totalBop, 0, ',', '.') }}</td>
                         <td></td>
                     </tr>
@@ -99,7 +99,7 @@
                     <div class="card-body py-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="text-muted d-block">Total BOP / jam</small>
+                                <small class="text-muted d-block">Total BOP / produk</small>
                                 <strong class="text-primary fs-5">Rp {{ number_format($totalBop, 0, ',', '.') }}</strong>
                             </div>
                             <i class="fas fa-chart-line text-primary opacity-25"></i>
@@ -112,7 +112,7 @@
                     <div class="card-body py-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="text-muted d-block">BOP / pcs</small>
+                                <small class="text-muted d-block">BOP / produk</small>
                                 <strong class="text-success fs-5">Rp {{ number_format($bopPerPcs, 0, ',', '.') }}</strong>
                             </div>
                             <i class="fas fa-box text-success opacity-25"></i>

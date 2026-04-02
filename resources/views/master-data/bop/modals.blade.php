@@ -18,12 +18,13 @@
                                     <option value="{{ $proses->id }}" 
                                             data-kapasitas="{{ $proses->kapasitas_per_jam }}"
                                             data-tarif="{{ $proses->tarif_btkl }}"
+                                            data-biaya-per-unit="{{ $proses->biaya_per_produk }}"
                                             data-nama="{{ $proses->nama_proses }}">
                                         {{ $proses->nama_proses }}
                                     </option>
                                 @endforeach
                             </select>
-                            <small class="text-muted">Total proses: {{ $prosesProduksis->count() }}</small>
+                            <small class="text-muted">Hanya menampilkan nama proses</small>
                         </div>
                         <div class="col-md-6">
                             <div id="btklInfo" class="alert alert-info d-none">
@@ -39,15 +40,15 @@
                     <div class="row mt-3">
                         <div class="col-md-4">
                             <label class="form-label">Kapasitas (pcs/jam)</label>
-                            <input type="number" id="kapasitas" class="form-control" readonly>
+                            <input type="number" id="kapasitas" name="kapasitas" class="form-control" readonly>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">BTKL / Jam</label>
-                            <input type="number" id="btkl_per_jam" name="btkl_per_jam" class="form-control" min="0" step="0.01" required>
+                            <input type="number" id="btkl_per_jam" name="btkl_per_jam" class="form-control" readonly>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">BTKL / pcs</label>
-                            <input type="number" id="btkl_per_pcs" class="form-control" readonly>
+                            <label class="form-label">BTKL / produk</label>
+                            <input type="number" id="btkl_per_pcs" name="btkl_per_pcs" class="form-control" readonly>
                         </div>
                     </div>
                     
@@ -55,13 +56,18 @@
                     <div class="row mt-3">
                         <div class="col-12">
                             <h6 class="mb-3">Komponen BOP</h6>
+                            <div class="alert alert-info">
+                                <small><i class="fas fa-info-circle me-1"></i>
+                                Masukkan nilai BOP <strong>per produk</strong> untuk setiap komponen. Sistem akan menjumlahkan semua komponen untuk mendapatkan Total BOP per produk.
+                                </small>
+                            </div>
                             <div id="komponenContainer">
                                 <div class="table-responsive">
                                     <table class="table table-bordered" id="komponenTable">
                                         <thead>
                                             <tr>
                                                 <th>Komponen</th>
-                                                <th>Rp / Jam</th>
+                                                <th>Rp / produk</th>
                                                 <th>Keterangan</th>
                                                 <th>Aksi</th>
                                             </tr>
@@ -69,15 +75,15 @@
                                         <tbody id="komponenRows">
                                             <tr>
                                                 <td><input type="text" name="komponen_name[]" class="form-control" placeholder="Nama komponen"></td>
-                                                <td><input type="number" name="komponen_rate[]" class="form-control komponen-rate" min="0" step="0.01" placeholder="0"></td>
+                                                <td><input type="number" name="komponen_rate[]" class="form-control komponen-rate" min="0" step="0.01" placeholder="Nilai per produk"></td>
                                                 <td><input type="text" name="komponen_desc[]" class="form-control" placeholder="Keterangan"></td>
                                                 <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">Hapus</button></td>
                                             </tr>
                                         </tbody>
-                                        <tfoot>
+                        <tfoot>
                                             <tr class="table-primary fw-bold">
-                                                <td>Total BOP /produk</td>
-                                                <td><input type="number" id="total_bop_per_jam" name="total_bop_per_jam" class="form-control" min="0" step="0.01" readonly></td>
+                                                <td>Total BOP / produk</td>
+                                                <td><input type="number" id="total_bop_per_jam" name="total_bop_per_jam" class="form-control" readonly></td>
                                                 <td></td>
                                                 <td></td>
                                             </tr>
@@ -94,7 +100,7 @@
                     <!-- Calculated Values -->
                     <div class="row mt-3">
                         <div class="col-md-3">
-                            <label class="form-label">BOP / pcs</label>
+                            <label class="form-label">BOP / produk</label>
                             <input type="number" id="bop_per_pcs" class="form-control" readonly>
                         </div>
                         <div class="col-md-4">
@@ -158,7 +164,7 @@
                             <input type="number" id="editBtklPerJam" name="btkl_per_jam" class="form-control" readonly>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">BTKL / pcs</label>
+                            <label class="form-label">BTKL / produk</label>
                             <input type="number" id="editBtklPerPcs" class="form-control" readonly>
                         </div>
                     </div>
@@ -173,7 +179,7 @@
                                         <thead>
                                             <tr>
                                                 <th>Komponen</th>
-                                                <th>Rp / Jam</th>
+                                                <th>Rp / produk</th>
                                                 <th>Keterangan</th>
                                                 <th>Aksi</th>
                                             </tr>
@@ -183,7 +189,7 @@
                                         </tbody>
                                         <tfoot>
                                             <tr class="table-primary fw-bold">
-                                                <td>Total BOP /produk</td>
+                                                <td>Total BOP / produk</td>
                                                 <td><input type="number" id="editTotalBopPerJam" name="total_bop_per_jam" class="form-control" readonly></td>
                                                 <td></td>
                                                 <td></td>
@@ -201,7 +207,7 @@
                     <!-- Calculated Values -->
                     <div class="row mt-3">
                         <div class="col-md-4">
-                            <label class="form-label">BOP / pcs</label>
+                            <label class="form-label">BOP / produk</label>
                             <input type="number" id="editBopPerPcs" class="form-control" readonly>
                         </div>
                         <div class="col-md-4">

@@ -34,7 +34,7 @@
                             <tr>
                                 <th class="text-center" style="width: 5%">No</th>
                                 <th style="width: 30%">Nama Proses</th>
-                                <th style="width: 20%">BOP/pcs</th>
+                                <th style="width: 20%">BOP / produk</th>
                                 <th style="width: 25%">Biaya/Produk</th>
                                 <th style="width: 20%">Aksi</th>
                             </tr>
@@ -59,7 +59,7 @@
                                         <i class="bi bi-box-seam me-2 text-warning opacity-50"></i>
                                         <div>
                                             <div class="fw-semibold text-warning">Rp {{ number_format($bop->bop_per_unit, 2, ',', '.') }}</div>
-                                            <small class="text-muted">Per pcs</small>
+                                            <small class="text-muted">Per produk</small>
                                         </div>
                                     </div>
                                 </td>
@@ -117,18 +117,18 @@
                             </tr>
                             @endforelse
                             
-                            <!-- Total Row - Only for BOP/pcs -->
+                            <!-- Total Row - Total Biaya / produk -->
                             @if($bopProses->count() > 0)
                             <tr class="table-active fw-bold">
                                 <td colspan="4" class="text-end">
-                                    <span class="text-muted">Total BOP/pcs:</span>
+                                    <span class="text-muted">Total Biaya / produk:</span>
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center justify-content-end">
                                         @php
-                                            $totalBopPcs = $bopProses->sum('bop_per_unit');
+                                            $totalBiayaPerProduk = $bopProses->sum('biaya_per_produk');
                                         @endphp
-                                        <span class="fw-bold text-warning fs-6">Rp {{ number_format($totalBopPcs, 2, ',', '.') }}</span>
+                                        <span class="fw-bold text-success fs-6">Rp {{ number_format($totalBiayaPerProduk, 2, ',', '.') }}</span>
                                     </div>
                                 </td>
                                 <td>-</td>
@@ -243,7 +243,7 @@
                             <strong>Informasi:</strong>
                             <ul class="mb-0 mt-1 small">
                                 <li>Proses: {{ $bop->prosesProduksi->nama_proses ?? 'Tidak Diketahui' }}</li>
-                                <li>BOP/pcs: Rp {{ number_format($bop->bop_per_unit, 2, ',', '.') }}</li>
+                                <li>BOP / produk: Rp {{ number_format($bop->bop_per_unit, 2, ',', '.') }}</li>
                                                             </ul>
                         </div>
                     </div>
@@ -300,26 +300,20 @@ function setupBtklAutoFill() {
                 // Get process data from option attributes
                 const kapasitas = parseFloat(selectedOption.getAttribute('data-kapasitas')) || 0;
                 const tarif = parseFloat(selectedOption.getAttribute('data-tarif')) || 0;
+                const biayaPerUnit = parseFloat(selectedOption.getAttribute('data-biaya-per-unit')) || 0;
                 const prosesNama = selectedOption.getAttribute('data-nama') || '';
-                const jabatan = selectedOption.getAttribute('data-jabatan') || '';
                 
                 // Fill BTKL fields with data from ProsesProduksi
                 document.getElementById('kapasitas').value = kapasitas;
                 document.getElementById('btkl_per_jam').value = tarif;
-                
-                // Calculate BTKL per pcs
-                const btklPerPcs = kapasitas > 0 ? tarif / kapasitas : 0;
-                document.getElementById('btkl_per_pcs').value = btklPerPcs.toFixed(2);
-                
-                // Set fields as readonly (auto-generated)
-                document.getElementById('kapasitas').readOnly = true;
-                document.getElementById('btkl_per_jam').readOnly = true;
-                document.getElementById('btkl_per_pcs').readOnly = true;
+                document.getElementById('btkl_per_pcs').value = biayaPerUnit.toFixed(2);
                 
                 // Show info if data is available
                 if (kapasitas > 0 && tarif > 0) {
                     btklInfo.classList.remove('d-none');
-                    btklInfoText.textContent = `Data BTKL tersedia: Kapasitas ${kapasitas} pcs/jam, Tarif Rp ${tarif.toLocaleString('id-ID')}/jam (${jabatan})`;
+                    btklInfo.classList.remove('alert-warning');
+                    btklInfo.classList.add('alert-info');
+                    btklInfoText.textContent = `Data BTKL tersedia: Kapasitas ${kapasitas} pcs/jam, Tarif Rp ${tarif.toLocaleString('id-ID')}/jam, BTKL per pcs Rp ${biayaPerUnit.toFixed(2)}`;
                 } else {
                     btklInfo.classList.remove('d-none');
                     btklInfo.classList.remove('alert-info');
@@ -334,9 +328,6 @@ function setupBtklAutoFill() {
                 document.getElementById('kapasitas').value = '';
                 document.getElementById('btkl_per_jam').value = '';
                 document.getElementById('btkl_per_pcs').value = '';
-                document.getElementById('kapasitas').readOnly = false;
-                document.getElementById('btkl_per_jam').readOnly = false;
-                document.getElementById('btkl_per_pcs').readOnly = false;
                 
                 // Hide info
                 btklInfo.classList.add('d-none');
@@ -407,27 +398,25 @@ function setupComponentRateListeners() {
     });
 }
 
-// Calculate BOP summary based on new formula
+// Calculate BOP summary based on per-product formula
 function calculateBopSummary() {
     // Get BTKL values
     const kapasitas = parseFloat(document.getElementById('kapasitas').value) || 0;
     const btklPerJam = parseFloat(document.getElementById('btkl_per_jam').value) || 0;
+    const btklPerPcs = parseFloat(document.getElementById('btkl_per_pcs').value) || 0;
     
-    // Calculate BTKL per pcs
-    const btklPerPcs = kapasitas > 0 ? btklPerJam / kapasitas : 0;
-    
-    // Calculate Total BOP per produk from components
+    // Calculate Total BOP per produk from components (direct sum, no division)
     const componentRates = document.querySelectorAll('.komponen-rate');
     let totalBopPerProduk = 0;
     componentRates.forEach(input => {
         totalBopPerProduk += parseFloat(input.value) || 0;
     });
     
-    // BOP per pcs sama dengan total BOP per produk (karena input sudah per produk)
-    const bopPerPcs = totalBopPerProduk;
+    // BOP per produk = Total BOP per produk (same value, no division by capacity)
+    const bopPerProduk = totalBopPerProduk;
     
-    // Calculate Biaya per produk
-    const biayaPerProduk = btklPerPcs + bopPerPcs;
+    // Calculate Biaya per produk: BTKL per produk + BOP per produk
+    const biayaPerProduk = btklPerPcs + bopPerProduk;
     
     // Update readonly fields
     const totalBopInput = document.getElementById('total_bop_per_jam');
@@ -435,10 +424,10 @@ function calculateBopSummary() {
         totalBopInput.value = totalBopPerProduk.toFixed(2);
     }
     
-    // Update BOP per pcs field
+    // Update BOP per produk field
     const bopPerPcsInput = document.getElementById('bop_per_pcs');
     if (bopPerPcsInput) {
-        bopPerPcsInput.value = bopPerPcs.toFixed(2);
+        bopPerPcsInput.value = bopPerProduk.toFixed(2);
     }
     
     // Update Biaya per produk field
@@ -509,17 +498,16 @@ function editBopProses(id) {
                 // Set BTKL data
                 const kapasitas = bop.kapasitas_per_jam || 0;
                 const tarif = bop.proses_produksi?.tarif_btkl || 0;
+                const btklPerPcs = bop.proses_produksi?.biaya_per_produk || (kapasitas > 0 ? tarif / kapasitas : 0);
                 
                 document.getElementById('editKapasitas').value = kapasitas;
                 document.getElementById('editBtklPerJam').value = tarif;
-                
-                const btklPerPcs = kapasitas > 0 ? tarif / kapasitas : 0;
                 document.getElementById('editBtklPerPcs').value = btklPerPcs.toFixed(2);
                 
                 // Show BTKL info
                 const editBtklInfoText = document.getElementById('editBtklInfoText');
                 if (editBtklInfoText) {
-                    editBtklInfoText.textContent = `Kapasitas ${kapasitas} pcs/jam, Tarif Rp ${tarif.toLocaleString('id-ID')}/jam`;
+                    editBtklInfoText.textContent = `Kapasitas ${kapasitas} pcs/jam, Tarif Rp ${tarif.toLocaleString('id-ID')}/jam, BTKL per pcs Rp ${btklPerPcs.toFixed(2)}`;
                 }
                 
                 // Load components
@@ -644,27 +632,25 @@ function setupEditComponentListeners() {
     });
 }
 
-// Calculate BOP summary for edit modal
+// Calculate BOP summary for edit modal based on per-product formula
 function calculateEditBopSummary() {
     // Get BTKL values from edit modal
     const kapasitas = parseFloat(document.getElementById('editKapasitas').value) || 0;
     const btklPerJam = parseFloat(document.getElementById('editBtklPerJam').value) || 0;
+    const btklPerPcs = parseFloat(document.getElementById('editBtklPerPcs').value) || 0;
     
-    // Calculate BTKL per pcs
-    const btklPerPcs = kapasitas > 0 ? btklPerJam / kapasitas : 0;
-    
-    // Calculate Total BOP per produk from components
+    // Calculate Total BOP per produk from components (direct sum, no division)
     const componentRates = document.querySelectorAll('.edit-komponen-rate');
     let totalBopPerProduk = 0;
     componentRates.forEach(input => {
         totalBopPerProduk += parseFloat(input.value) || 0;
     });
     
-    // BOP per pcs sama dengan total BOP per produk (karena input sudah per produk)
-    const bopPerPcs = totalBopPerProduk;
+    // BOP per produk = Total BOP per produk (same value, no division by capacity)
+    const bopPerProduk = totalBopPerProduk;
     
-    // Calculate Biaya per produk
-    const biayaPerProduk = btklPerPcs + bopPerPcs;
+    // Calculate Biaya per produk: BTKL per produk + BOP per produk
+    const biayaPerProduk = btklPerPcs + bopPerProduk;
     
     // Update readonly fields in edit modal
     const editTotalBopInput = document.getElementById('editTotalBopPerJam');
@@ -674,12 +660,7 @@ function calculateEditBopSummary() {
     
     const editBopPerPcsInput = document.getElementById('editBopPerPcs');
     if (editBopPerPcsInput) {
-        editBopPerPcsInput.value = bopPerPcs.toFixed(2);
-    }
-    
-    const editBiayaPerProdukInput = document.getElementById('editBiayaPerProduk');
-    if (editBiayaPerProdukInput) {
-        editBiayaPerProdukInput.value = biayaPerProduk.toFixed(2);
+        editBopPerPcsInput.value = bopPerProduk.toFixed(2);
     }
     
     const editBiayaPerProdukInput = document.getElementById('editBiayaPerProduk');
