@@ -926,15 +926,21 @@ class BomController extends Controller
                     $komponenBop = [];
                     
                     if ($proses->bopProses) {
-                        $totalBopPerJam = $proses->bopProses->total_bop_per_jam ?? 0;
-                        $bopPerProduk = $proses->kapasitas_per_jam > 0 ? $totalBopPerJam / $proses->kapasitas_per_jam : 0;
-                        
                         // Get komponen BOP
                         if ($proses->bopProses->komponen_bop) {
                             $komponenBop = is_array($proses->bopProses->komponen_bop) 
                                 ? $proses->bopProses->komponen_bop 
                                 : json_decode($proses->bopProses->komponen_bop, true);
+                            
+                            // Calculate total BOP per jam from component rates (not stored total)
+                            if (is_array($komponenBop)) {
+                                foreach ($komponenBop as $komponen) {
+                                    $totalBopPerJam += floatval($komponen['rate_per_hour'] ?? 0);
+                                }
+                            }
                         }
+                        
+                        $bopPerProduk = $proses->kapasitas_per_jam > 0 ? $totalBopPerJam / $proses->kapasitas_per_jam : 0;
                     }
                     
                     return [
@@ -1020,7 +1026,20 @@ class BomController extends Controller
                 
                 // Save BOP if exists
                 if ($proses->bopProses) {
-                    $totalBopPerJam = $proses->bopProses->total_bop_per_jam ?? 0;
+                    // Calculate total BOP per jam from component rates (not stored total)
+                    $totalBopPerJam = 0;
+                    if ($proses->bopProses->komponen_bop) {
+                        $komponenBop = is_array($proses->bopProses->komponen_bop) 
+                            ? $proses->bopProses->komponen_bop 
+                            : json_decode($proses->bopProses->komponen_bop, true);
+                        
+                        if (is_array($komponenBop)) {
+                            foreach ($komponenBop as $komponen) {
+                                $totalBopPerJam += floatval($komponen['rate_per_hour'] ?? 0);
+                            }
+                        }
+                    }
+                    // Original line: $totalBopPerJam = $proses->bopProses->total_bop_per_jam ?? 0;
                     $bopPerProduk = $proses->kapasitas_per_jam > 0 ? $totalBopPerJam / $proses->kapasitas_per_jam : 0;
                     
                     // Get komponen BOP
@@ -1120,7 +1139,19 @@ class BomController extends Controller
                     $komponenBop = [];
                     
                     if ($proses->bopProses) {
-                        $totalBopPerJam = $proses->bopProses->total_bop_per_jam ?? 0;
+                        // Calculate total BOP per jam from component rates (not stored total)
+                        $totalBopPerJam = 0;
+                        if ($proses->bopProses->komponen_bop) {
+                            $komponenBop = is_array($proses->bopProses->komponen_bop) 
+                                ? $proses->bopProses->komponen_bop 
+                                : json_decode($proses->bopProses->komponen_bop, true);
+                            
+                            if (is_array($komponenBop)) {
+                                foreach ($komponenBop as $komponen) {
+                                    $totalBopPerJam += floatval($komponen['rate_per_hour'] ?? 0);
+                                }
+                            }
+                        }
                         $bopPerProduk = $proses->kapasitas_per_jam > 0 ? $totalBopPerJam / $proses->kapasitas_per_jam : 0;
                         
                         // Get komponen BOP
@@ -1215,7 +1246,20 @@ class BomController extends Controller
                 
                 // Save BOP if exists
                 if ($proses->bopProses) {
-                    $totalBopPerJam = $proses->bopProses->total_bop_per_jam ?? 0;
+                    // Calculate total BOP per jam from component rates (not stored total)
+                    $totalBopPerJam = 0;
+                    if ($proses->bopProses->komponen_bop) {
+                        $komponenBop = is_array($proses->bopProses->komponen_bop) 
+                            ? $proses->bopProses->komponen_bop 
+                            : json_decode($proses->bopProses->komponen_bop, true);
+                        
+                        if (is_array($komponenBop)) {
+                            foreach ($komponenBop as $komponen) {
+                                $totalBopPerJam += floatval($komponen['rate_per_hour'] ?? 0);
+                            }
+                        }
+                    }
+                    // Original line: $totalBopPerJam = $proses->bopProses->total_bop_per_jam ?? 0;
                     $bopPerProduk = $proses->kapasitas_per_jam > 0 ? $totalBopPerJam / $proses->kapasitas_per_jam : 0;
                     
                     // Get komponen BOP
