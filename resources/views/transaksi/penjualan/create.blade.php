@@ -46,16 +46,25 @@
                         <label class="form-label mb-1 small text-muted">Scan Barcode Produk</label>
                         <div class="input-group">
                             <input type="text" id="barcode-scanner" class="form-control form-control-lg" 
-                                   placeholder="Scan atau ketik barcode produk..." 
-                                   autocomplete="off" autofocus>
-                            <button type="button" class="btn btn-primary" onclick="searchBarcode()">
-                                <i class="fas fa-search"></i> Cari
+                                   placeholder="Siap untuk scan barcode..." 
+                                   autocomplete="off" autofocus readonly>
+                            <div class="input-group-text bg-success text-white">
+                                <i class="fas fa-wifi me-1"></i>
+                                <span id="scan-indicator">Siap Scan</span>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetScannerState()" title="Reset Scanner">
+                                <i class="fas fa-refresh"></i>
                             </button>
                         </div>
-                        <small class="text-muted">Tekan Enter setelah scan barcode untuk menambah produk otomatis</small>
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Sistem otomatis mendeteksi barcode - tidak perlu klik atau tekan tombol
+                        </small>
                     </div>
                     <div class="col-auto">
-                        <span id="barcode-status" class="badge bg-secondary">Siap Scan</span>
+                        <button type="button" id="barcode-status" class="btn btn-outline-secondary btn-sm" onclick="toggleProductList()">
+                            <i class="fas fa-list me-1"></i>Daftar Produk
+                        </button>
                     </div>
                 </div>
             </div>
@@ -82,8 +91,8 @@
                                 @foreach($produks as $p)
                                     <option value="{{ $p->id }}" 
                                             data-price="{{ round($p->harga_jual ?? 0) }}"
-                                            data-stok="{{ $p->stok_tersedia ?? 0 }}">
-                                        {{ $p->nama_produk ?? $p->nama }} (Stok: {{ number_format($p->stok_tersedia ?? 0, 0, ',', '.') }})
+                                            data-stok="{{ $p->stok ?? 0 }}">
+                                        {{ $p->nama_produk ?? $p->nama }} (Stok: {{ number_format($p->stok ?? 0, 0, ',', '.') }})
                                     </option>
                                 @endforeach
                             </select>
@@ -139,6 +148,67 @@
     </form>
 </div>
 
+<!-- Product List Modal -->
+<div class="modal fade" id="productListModal" tabindex="-1" aria-labelledby="productListModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productListModalLabel">
+                    <i class="fas fa-barcode me-2"></i>Daftar Produk & Barcode
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <input type="text" id="modal-search" class="form-control" placeholder="Cari produk atau barcode...">
+                </div>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover table-sm">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Produk</th>
+                                <th>Barcode</th>
+                                <th>Harga</th>
+                                <th>Stok</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="product-list-body">
+                            @foreach($produks as $p)
+                            <tr class="product-row" data-barcode="{{ $p->barcode ?? '' }}" data-name="{{ strtolower($p->nama_produk ?? $p->nama) }}">
+                                <td>{{ $p->nama_produk ?? $p->nama }}</td>
+                                <td>
+                                    @if($p->barcode)
+                                        <code>{{ $p->barcode }}</code>
+                                    @else
+                                        <small class="text-muted">Tidak ada</small>
+                                    @endif
+                                </td>
+                                <td>Rp {{ number_format($p->harga_jual ?? 0, 0, ',', '.') }}</td>
+                                <td>
+                                    <span class="badge {{ ($p->stok ?? 0) > 0 ? 'bg-success' : 'bg-danger' }}">
+                                        {{ number_format($p->stok ?? 0, 0, ',', '.') }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-primary" 
+                                            onclick="addProductFromModal({{ $p->id }}, '{{ addslashes($p->nama_produk ?? $p->nama) }}', {{ $p->harga_jual ?? 0 }}, {{ $p->stok ?? 0 }})">>
+                                        <i class="fas fa-plus"></i> Tambah
+                                    </button>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // Product data for barcode lookup
 const productData = {
@@ -147,44 +217,197 @@ const productData = {
         id: {{ $p->id }},
         nama: '{{ addslashes($p->nama_produk ?? $p->nama) }}',
         harga: {{ round($p->harga_jual ?? 0) }},
-        stok: {{ $p->stok_tersedia ?? 0 }}
+        stok: {{ $p->stok ?? 0 }}
     },
     @endforeach
 };
 
-// Barcode scanner functionality
+// Debug: Log productData to console
+console.log('Product Data:', productData);
+
+// Automatic Barcode Scanner System
+let barcodeBuffer = '';
+let barcodeTimeout = null;
+let isProcessing = false;
+const BARCODE_TIMEOUT = 100; // 100ms timeout for barcode completion
+const MIN_BARCODE_LENGTH = 3; // Minimum barcode length
+
+// Safety mechanism to reset processing state if stuck
+function resetProcessingState() {
+    const scanIndicator = document.getElementById('scan-indicator');
+    if (isProcessing && scanIndicator && scanIndicator.textContent === 'Memproses...') {
+        console.log('⚠️ Resetting stuck processing state');
+        isProcessing = false;
+        scanIndicator.textContent = 'Siap Scan';
+        scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
+    }
+}
+
+// Check for stuck processing every 5 seconds
+setInterval(resetProcessingState, 5000);
+
+// Auto-focus system
+function maintainFocus() {
+    const barcodeInput = document.getElementById('barcode-scanner');
+    if (document.activeElement !== barcodeInput) {
+        barcodeInput.focus();
+    }
+}
+
+// Automatic barcode detection
+function handleBarcodeInput(char) {
+    // Add character to buffer
+    barcodeBuffer += char;
+    
+    // Clear existing timeout
+    if (barcodeTimeout) {
+        clearTimeout(barcodeTimeout);
+    }
+    
+    // Set new timeout - if no new characters come within BARCODE_TIMEOUT, process the barcode
+    barcodeTimeout = setTimeout(() => {
+        if (barcodeBuffer.length >= MIN_BARCODE_LENGTH && !isProcessing) {
+            processAutomaticBarcode(barcodeBuffer.trim());
+        }
+        barcodeBuffer = ''; // Clear buffer
+    }, BARCODE_TIMEOUT);
+}
+
+// Process barcode automatically
+function processAutomaticBarcode(barcode) {
+    if (isProcessing) return;
+    
+    isProcessing = true;
+    console.log('🔍 Auto-processing barcode:', barcode);
+    
+    const barcodeInput = document.getElementById('barcode-scanner');
+    const scanIndicator = document.getElementById('scan-indicator');
+    
+    // Update UI to show processing
+    scanIndicator.textContent = 'Memproses...';
+    scanIndicator.parentElement.className = 'input-group-text bg-warning text-dark';
+    
+    try {
+        const product = productData[barcode];
+        
+        if (product) {
+            console.log('✅ Product found:', product);
+            
+            // Product found - add to table
+            addProductByBarcode(product);
+            
+            // Success feedback
+            scanIndicator.textContent = '✓ ' + product.nama;
+            scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
+            
+            // Play success sound
+            playBeep(true);
+            
+            // Show success notification
+            showNotification('Produk ditambahkan: ' + product.nama, 'success');
+            
+        } else {
+            console.log('❌ Product not found for barcode:', barcode);
+            
+            // Product not found
+            scanIndicator.textContent = 'Tidak ditemukan';
+            scanIndicator.parentElement.className = 'input-group-text bg-danger text-white';
+            
+            // Play error sound
+            playBeep(false);
+            
+            // Show error notification
+            showNotification('Produk tidak ditemukan: ' + barcode, 'error');
+        }
+    } catch (error) {
+        console.error('Error processing barcode:', error);
+        
+        // Error feedback
+        scanIndicator.textContent = 'Error';
+        scanIndicator.parentElement.className = 'input-group-text bg-danger text-white';
+        
+        showNotification('Terjadi kesalahan saat memproses barcode', 'error');
+    }
+    
+    // Clear input
+    barcodeInput.value = '';
+    
+    // Reset status after 2 seconds
+    setTimeout(() => {
+        scanIndicator.textContent = 'Siap Scan';
+        scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
+        isProcessing = false;
+        
+        // Ensure focus is maintained
+        maintainFocus();
+    }, 2000);
+}
+
+// Show notification
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Add to page
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 3000);
+}
+
+// Manual reset function
+function resetScannerState() {
+    console.log('🔄 Manually resetting scanner state');
+    isProcessing = false;
+    barcodeBuffer = '';
+    
+    if (barcodeTimeout) {
+        clearTimeout(barcodeTimeout);
+        barcodeTimeout = null;
+    }
+    
+    const scanIndicator = document.getElementById('scan-indicator');
+    const barcodeInput = document.getElementById('barcode-scanner');
+    
+    if (scanIndicator) {
+        scanIndicator.textContent = 'Siap Scan';
+        scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
+    }
+    
+    if (barcodeInput) {
+        barcodeInput.value = '';
+        barcodeInput.focus();
+    }
+    
+    showNotification('Scanner direset - siap untuk scan', 'success');
+}
+
+// Legacy functions (kept for compatibility)
 function searchBarcode() {
     const barcodeInput = document.getElementById('barcode-scanner');
     const barcode = barcodeInput.value.trim();
     
     if (!barcode) {
-        updateBarcodeStatus('Masukkan barcode', 'warning');
+        showNotification('Masukkan barcode', 'error');
         return;
     }
     
-    processBarcode(barcode);
+    processAutomaticBarcode(barcode);
 }
 
 function processBarcode(barcode) {
-    const barcodeInput = document.getElementById('barcode-scanner');
-    const product = productData[barcode];
-    
-    if (product) {
-        // Product found - add to table
-        addProductByBarcode(product);
-        updateBarcodeStatus('✓ ' + product.nama, 'success');
-        barcodeInput.value = '';
-        
-        // Play success sound (optional)
-        playBeep(true);
-    } else {
-        // Product not found
-        updateBarcodeStatus('Produk tidak ditemukan', 'danger');
-        playBeep(false);
-    }
-    
-    // Refocus to barcode input for continuous scanning
-    setTimeout(() => barcodeInput.focus(), 100);
+    processAutomaticBarcode(barcode);
 }
 
 function addProductByBarcode(product) {
@@ -265,15 +488,55 @@ function highlightRow(row) {
 }
 
 function updateBarcodeStatus(message, type) {
-    const status = document.getElementById('barcode-status');
-    status.textContent = message;
-    status.className = 'badge bg-' + type;
+    // Legacy function - now handled by automatic system
+    console.log('Status:', message, type);
+}
+
+// Toggle product list modal
+function toggleProductList() {
+    const modal = new bootstrap.Modal(document.getElementById('productListModal'));
+    modal.show();
+}
+
+// Add product from modal
+function addProductFromModal(productId, productName, price, stock) {
+    const product = {
+        id: productId,
+        nama: productName,
+        harga: price,
+        stok: stock
+    };
     
-    // Reset to default after 3 seconds
+    addProductByBarcode(product);
+    showNotification('✓ ' + productName + ' ditambahkan', 'success');
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('productListModal'));
+    if (modal) {
+        modal.hide();
+    }
+    
+    // Focus back to barcode input
     setTimeout(() => {
-        status.textContent = 'Siap Scan';
-        status.className = 'badge bg-secondary';
-    }, 3000);
+        document.getElementById('barcode-scanner').focus();
+    }, 100);
+}
+
+// Search products in modal
+function filterProductList() {
+    const searchTerm = document.getElementById('modal-search').value.toLowerCase();
+    const rows = document.querySelectorAll('.product-row');
+    
+    rows.forEach(row => {
+        const productName = row.getAttribute('data-name');
+        const barcode = row.getAttribute('data-barcode');
+        
+        if (productName.includes(searchTerm) || barcode.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
 }
 
 function playBeep(success) {
@@ -300,16 +563,105 @@ function playBeep(success) {
 document.addEventListener('DOMContentLoaded', function() {
     const table = document.getElementById('detailTableJual');
     const addBtn = document.getElementById('addRowJual');
-    const totalInput = document.querySelector('input[name="total"]');
-    
-    // Barcode scanner Enter key handler
     const barcodeInput = document.getElementById('barcode-scanner');
+    
+    // 🎯 AUTOMATIC BARCODE SCANNING SYSTEM
+    
+    // Maintain focus on barcode input at all times
+    function ensureBarcodeInputFocus() {
+        if (document.activeElement !== barcodeInput && !document.querySelector('.modal.show')) {
+            barcodeInput.focus();
+        }
+    }
+    
+    // Set initial focus
+    barcodeInput.focus();
+    
+    // Maintain focus every 500ms
+    setInterval(ensureBarcodeInputFocus, 500);
+    
+    // Global keydown listener for automatic barcode detection
+    document.addEventListener('keydown', function(e) {
+        // Skip if user is typing in other inputs (except barcode input)
+        if (e.target.tagName === 'INPUT' && e.target.id !== 'barcode-scanner') {
+            return;
+        }
+        
+        // Skip if modal is open
+        if (document.querySelector('.modal.show')) {
+            return;
+        }
+        
+        // Skip special keys
+        if (e.ctrlKey || e.altKey || e.metaKey) {
+            return;
+        }
+        
+        // Handle Enter key (barcode scanners usually send Enter at the end)
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const currentValue = barcodeInput.value.trim();
+            if (currentValue && currentValue.length >= MIN_BARCODE_LENGTH) {
+                processAutomaticBarcode(currentValue);
+            }
+            return;
+        }
+        
+        // Handle printable characters
+        if (e.key.length === 1) {
+            // Ensure barcode input is focused
+            if (document.activeElement !== barcodeInput) {
+                barcodeInput.focus();
+            }
+            
+            // Let the character be typed naturally, then handle it
+            setTimeout(() => {
+                handleBarcodeInput(e.key);
+            }, 1);
+        }
+    });
+    
+    // Handle direct input to barcode field
+    barcodeInput.addEventListener('input', function(e) {
+        const value = e.target.value;
+        
+        // If input is cleared, reset buffer
+        if (!value) {
+            barcodeBuffer = '';
+            if (barcodeTimeout) {
+                clearTimeout(barcodeTimeout);
+            }
+            return;
+        }
+        
+        // Handle rapid input (typical of barcode scanners)
+        handleBarcodeInput(value.slice(-1)); // Get last character
+    });
+    
+    // Prevent form submission on Enter in barcode input
     barcodeInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            searchBarcode();
         }
     });
+    
+    // Re-focus when clicking anywhere on the page (except inputs/buttons)
+    document.addEventListener('click', function(e) {
+        if (!e.target.matches('input, button, select, textarea, .btn, .form-control, .modal *')) {
+            setTimeout(() => {
+                barcodeInput.focus();
+            }, 10);
+        }
+    });
+    
+    // Handle window focus/blur
+    window.addEventListener('focus', function() {
+        setTimeout(() => {
+            barcodeInput.focus();
+        }, 100);
+    });
+    
+    // 🎯 END AUTOMATIC BARCODE SCANNING SYSTEM
     
     // Auto-focus barcode input when pressing F2
     document.addEventListener('keydown', function(e) {
