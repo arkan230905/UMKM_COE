@@ -34,6 +34,7 @@ return new class extends Migration
             $table->string('code')->unique();
             $table->string('name');
             $table->enum('type', ['asset','liability','equity','revenue','expense']);
+            $table->string('kategori_akun')->nullable(); // Tambah dengan nullable
             $table->timestamps();
         });
         echo "Accounts table recreated for rollback.\n";

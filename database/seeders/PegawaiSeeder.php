@@ -13,9 +13,9 @@ class PegawaiSeeder extends Seeder
         $pegawais = [
             // BTKL (Karyawan Tetap)
             [
-                'kode_pegawai' => 'EMP' . str_pad(1, 3, '0', STR_PAD_LEFT),
+                'kode_pegawai' => 'EMP' . substr(time(), -3),
                 'nama' => 'Muhammad Arkan Abiyyu',
-                'email' => 'arkan.abi@example.com',
+                'email' => 'arkan.abi' . time() . '1@example.com',
                 'no_telepon' => '081234567890',
                 'alamat' => 'Jl. Merdeka No. 10, Jakarta',
                 'jenis_kelamin' => 'L',
@@ -30,9 +30,9 @@ class PegawaiSeeder extends Seeder
                 'updated_at' => now()
             ],
             [
-                'kode_pegawai' => 'EMP' . str_pad(2, 3, '0', STR_PAD_LEFT),
+                'kode_pegawai' => 'EMP' . substr(time(), -3) . '2',
                 'nama' => 'Githa Permata',
-                'email' => 'githa.permata@example.com',
+                'email' => 'githa.permata' . time() . '2@example.com',
                 'no_telepon' => '081234567891',
                 'alamat' => 'Jl. Sudirman No. 45, Jakarta',
                 'jenis_kelamin' => 'P',
@@ -47,9 +47,9 @@ class PegawaiSeeder extends Seeder
                 'updated_at' => now()
             ],
             [
-                'kode_pegawai' => 'EMP' . str_pad(3, 3, '0', STR_PAD_LEFT),
+                'kode_pegawai' => 'EMP' . substr(time(), -3) . '3',
                 'nama' => 'Nayla Putri',
-                'email' => 'nayla.putri@example.com',
+                'email' => 'nayla.putri' . time() . '3@example.com',
                 'no_telepon' => '081234567892',
                 'alamat' => 'Jl. Gatot Subroto No. 67, Jakarta',
                 'jenis_kelamin' => 'P',
@@ -64,9 +64,9 @@ class PegawaiSeeder extends Seeder
                 'updated_at' => now()
             ],
             [
-                'kode_pegawai' => 'EMP' . str_pad(4, 3, '0', STR_PAD_LEFT),
+                'kode_pegawai' => 'EMP' . substr(time(), -3) . '4',
                 'nama' => 'Chindi Lestari',
-                'email' => 'chindi.les@example.com',
+                'email' => 'chindi.les' . time() . '4@example.com',
                 'no_telepon' => '081234567893',
                 'alamat' => 'Jl. Thamrin No. 12, Jakarta',
                 'jenis_kelamin' => 'P',
@@ -82,9 +82,9 @@ class PegawaiSeeder extends Seeder
             ],
             // BTKTL (Karyawan Kontrak)
             [
-                'kode_pegawai' => 'EMP' . str_pad(5, 3, '0', STR_PAD_LEFT),
+                'kode_pegawai' => 'EMP' . substr(time(), -3) . '5',
                 'nama' => 'Rizki Maulana',
-                'email' => 'rizki.maulana@example.com',
+                'email' => 'rizki.maulana' . time() . '5@example.com',
                 'no_telepon' => '081234567894',
                 'alamat' => 'Jl. Pahlawan No. 5, Tangerang',
                 'jenis_kelamin' => 'L',
@@ -99,9 +99,9 @@ class PegawaiSeeder extends Seeder
                 'updated_at' => now()
             ],
             [
-                'kode_pegawai' => 'EMP' . str_pad(6, 3, '0', STR_PAD_LEFT),
+                'kode_pegawai' => 'EMP' . substr(time(), -3) . '6',
                 'nama' => 'Siti Aisyah',
-                'email' => 'siti.aisyah@example.com',
+                'email' => 'siti.aisyah' . time() . '6@example.com',
                 'no_telepon' => '081234567895',
                 'alamat' => 'Jl. Melati No. 3, Depok',
                 'jenis_kelamin' => 'P',

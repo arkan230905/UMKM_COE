@@ -28,10 +28,10 @@ class CoaController extends Controller
         // Get semua periode untuk dropdown
         $periods = CoaPeriod::orderBy('periode', 'desc')->get();
 
-        // Get semua COA dengan urutan berdasarkan kode_akun
+        // Get semua COA dengan urutan hierarkis (parent diikuti children)
         $coas = Coa::whereNotNull('nama_akun')
             ->where('nama_akun', '!=', '')
-            ->orderBy('kode_akun')
+            ->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)")
             ->get();
         
         // Get saldo untuk setiap COA berdasarkan periode
@@ -91,17 +91,25 @@ class CoaController extends Controller
 
     public function create()
     {
-        return view('master-data.coa.create');
+        // Ambil semua COA sebagai pilihan akun induk, urut hierarkis
+        $parentCoas = Coa::withoutGlobalScopes()
+            ->whereNotNull('nama_akun')
+            ->where('nama_akun', '!=', '')
+            ->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)")
+            ->get(['id', 'kode_akun', 'nama_akun', 'tipe_akun', 'kategori_akun', 'saldo_normal']);
+
+        return view('master-data.coa.create', compact('parentCoas'));
     }
 
     public function store(Request $request)
     {
-        // Generate kode otomatis jika tipe akun diberikan
-        if ($request->tipe_akun) {
-            $maxKode = Coa::where('tipe_akun', $request->tipe_akun)->max('kode_akun');
-            $request->merge([
-                'kode_akun' => $maxKode ? $maxKode + 1 : $this->defaultKode($request->tipe_akun)
-            ]);
+        // Jika user memilih akun induk dan mode auto-generate
+        if ($request->filled('parent_coa_id') && $request->boolean('auto_generate_kode')) {
+            $parentCoa = Coa::withoutGlobalScopes()->find($request->parent_coa_id);
+            if ($parentCoa) {
+                $generatedKode = Coa::generateChildCode($parentCoa->kode_akun);
+                $request->merge(['kode_akun' => $generatedKode]);
+            }
         }
 
         $validated = $request->validate([
@@ -125,27 +133,23 @@ class CoaController extends Controller
             'tipe_akun.required' => 'Tipe akun wajib dipilih.',
         ]);
 
-        // Pastikan semua nilai yang diperlukan ada
         $coaData = [
             'kode_akun' => $validated['kode_akun'],
             'nama_akun' => $validated['nama_akun'],
             'tipe_akun' => $validated['tipe_akun'],
-            'kategori_akun' => $request->kategori_akun ?? $validated['tipe_akun'], // Default ke tipe_akun jika kategori_akun kosong
-            'saldo_normal' => $request->saldo_normal ?? 'debit', // Default ke debit jika kosong
+            'kategori_akun' => $request->kategori_akun ?? $validated['tipe_akun'],
+            'saldo_normal' => $request->saldo_normal ?? 'debit',
             'saldo_awal' => $request->saldo_awal ?? 0,
             'keterangan' => $request->keterangan,
             'posted_saldo_awal' => $request->boolean('posted_saldo_awal') ? 1 : 0,
         ];
-        
-        // Hanya tambahkan tanggal_saldo_awal jika ada nilainya
+
         if ($request->has('tanggal_saldo_awal') && $request->tanggal_saldo_awal) {
             $coaData['tanggal_saldo_awal'] = $request->tanggal_saldo_awal;
         }
-        
-        // Buat COA dengan data yang sudah divalidasi
+
         $coa = Coa::create($coaData);
 
-        // Otomatis tambahkan ke BOP jika tipe akun "Beban"
         if ($coa->tipe_akun === 'Beban') {
             Bop::create([
                 'coa_id' => $coa->id,
@@ -153,12 +157,8 @@ class CoaController extends Controller
             ]);
         }
 
-        // Hitung jumlah akun dengan prefix yang sama
-        $prefix = substr($coa->kode_akun, 0, 1);
-        $sameGroupCount = Coa::byPrefix($prefix)->count();
-
-        return redirect()->route('master-data.coa.index')->with('success', 
-            "COA berhasil ditambahkan. Akun {$coa->kode_akun} - {$coa->nama_akun} telah ditempatkan pada urutan yang sesuai. Total akun dengan prefix {$prefix}: {$sameGroupCount}");
+        return redirect()->route('master-data.coa.index')->with('success',
+            "COA berhasil ditambahkan: {$coa->kode_akun} - {$coa->nama_akun}");
     }
 
     public function edit(Coa $coa)
@@ -207,7 +207,10 @@ class CoaController extends Controller
     public function destroy(Coa $coa)
     {
         // Cek apakah akun ini digunakan dalam transaksi
-        $journalCount = \App\Models\JournalLine::where('coa_id', $coa->id)->count();
+        // Cek dulu kolom yang ada di journal_lines
+        $coaColumn = \Illuminate\Support\Facades\Schema::hasColumn('journal_lines', 'coa_id') ? 'coa_id' : 'account_id';
+        
+        $journalCount = \App\Models\JournalLine::where($coaColumn, $coa->id)->count();
         if ($journalCount > 0) {
             return redirect()->route('master-data.coa.index')
                 ->with('error', 'Tidak dapat menghapus akun ini karena sudah digunakan dalam transaksi jurnal.');
@@ -277,6 +280,37 @@ class CoaController extends Controller
             ->with('success', "COA {$coa->kode_akun} - {$coa->nama_akun} berhasil dihapus.");
     }
 
+    /**
+     * AJAX: Generate kode akun anak berdasarkan parent_coa_id
+     */
+    public function generateChildKode(Request $request)
+    {
+        $parentId = $request->get('parent_coa_id');
+
+        if (!$parentId) {
+            return response()->json(['error' => 'Parent COA ID diperlukan'], 400);
+        }
+
+        $parent = Coa::withoutGlobalScopes()->find($parentId);
+        if (!$parent) {
+            return response()->json(['error' => 'Akun induk tidak ditemukan'], 404);
+        }
+
+        $nextKode = Coa::generateChildCode($parent->kode_akun);
+
+        return response()->json([
+            'kode_akun' => $nextKode,
+            'parent_kode' => $parent->kode_akun,
+            'parent_nama' => $parent->nama_akun,
+            'parent_tipe' => $parent->tipe_akun,
+            'parent_kategori' => $parent->kategori_akun,
+            'parent_saldo_normal' => $parent->saldo_normal,
+        ]);
+    }
+
+    /**
+     * AJAX: Legacy generate kode (backward compat)
+     */
     public function generateKode(Request $request)
     {
         $tipe = $request->tipe;
