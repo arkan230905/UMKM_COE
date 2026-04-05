@@ -1094,6 +1094,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [ProduksiController::class, 'create'])->name('create');
             Route::post('/', [ProduksiController::class, 'store'])->name('store');
             Route::get('/get-bom-details/{produkId}', [ProduksiController::class, 'getBomDetails'])->name('get-bom-details');
+            Route::post('/{id}/mulai-produksi', [ProduksiController::class, 'mulaiProduksi'])->name('mulai-produksi');
             Route::get('/{id}', [ProduksiController::class, 'show'])->name('show');
             Route::get('/{id}/proses', [ProduksiController::class, 'proses'])->name('proses');
             Route::post('/proses/{prosesId}/mulai', [ProduksiController::class, 'mulaiProses'])->name('proses.mulai');

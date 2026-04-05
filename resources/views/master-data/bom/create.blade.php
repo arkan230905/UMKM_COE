@@ -300,7 +300,7 @@ function calculateTotal() {
                         <thead class="table-light">
                             <tr>
                                 <th>Komponen</th>
-                                <th width="20%">Rp/Jam</th>
+                                <th width="20%">Rp/Produk</th>
                                 <th width="20%">Keterangan</th>
                             </tr>
                         </thead>
@@ -308,10 +308,15 @@ function calculateTotal() {
             `;
             
             detail.komponen.forEach(komp => {
+                // Calculate rate per produk based on proportion of total BOP per produk
+                const ratePerHour = parseFloat(komp.rate_per_hour || komp.tarif || 0);
+                const totalRatePerHour = detail.komponen.reduce((sum, k) => sum + parseFloat(k.rate_per_hour || k.tarif || 0), 0);
+                const ratePerProduk = totalRatePerHour > 0 ? (ratePerHour / totalRatePerHour) * detail.total : 0;
+                
                 html += `
                     <tr>
                         <td>${komp.component || komp.component_name || komp.nama_komponen || '-'}</td>
-                        <td>Rp ${formatNumber(komp.rate_per_hour || komp.tarif || 0)}</td>
+                        <td>Rp ${formatNumber(ratePerProduk)}</td>
                         <td>${komp.description || komp.notes || komp.keterangan || '-'}</td>
                     </tr>
                 `;
