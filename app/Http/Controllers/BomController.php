@@ -825,24 +825,41 @@ class BomController extends Controller
             }
         }
 
-        // Get BOP from BOM
+        // Get BOP from BOM - Group by process like in detail page
         if ($bomJobCosting) {
-            foreach ($bomJobCosting->detailBOP as $detail) {
-                // Use tarif if available, otherwise calculate from jumlah and kapasitas
-                if ($detail->tarif > 0) {
-                    $hargaPerUnit = $detail->tarif;
-                } elseif ($detail->bop && $detail->bop->jumlah > 0) {
-                    // Calculate per unit from BOP master data
-                    $hargaPerUnit = $detail->bop->jumlah / 200; // Assuming 200 units per hour
-                } else {
-                    $hargaPerUnit = 0;
+            $bopByProcess = [];
+            
+            // Get BOP data from bom_job_bop table
+            $bopDataRaw = \Illuminate\Support\Facades\DB::table('bom_job_bop')
+                ->where('bom_job_bop.bom_job_costing_id', $bomJobCosting->id)
+                ->select('bom_job_bop.*')
+                ->get();
+            
+            // Group BOP components by process
+            foreach ($bopDataRaw as $item) {
+                $namaProses = 'Umum';
+                $namaBiaya = strtolower($item->nama_bop ?? '');
+                
+                if (stripos($namaBiaya, 'penggorengan') !== false) {
+                    $namaProses = 'Penggorengan';
+                } elseif (stripos($namaBiaya, 'perbumbuan') !== false) {
+                    $namaProses = 'Perbumbuan';
+                } elseif (stripos($namaBiaya, 'pengemasan') !== false) {
+                    $namaProses = 'Pengemasan';
                 }
                 
-                $namaProses = $detail->nama_bop ?? ($detail->bop ? $detail->bop->nama_biaya : 'Proses Tidak Diketahui');
+                if (!isset($bopByProcess[$namaProses])) {
+                    $bopByProcess[$namaProses] = 0;
+                }
                 
+                $bopByProcess[$namaProses] += $item->tarif ?? 0;
+            }
+            
+            // Convert to array format expected by frontend
+            foreach ($bopByProcess as $processName => $totalCost) {
                 $breakdown['bop'][] = [
-                    'nama' => $namaProses,
-                    'harga_per_unit' => $hargaPerUnit
+                    'nama' => $processName,
+                    'harga_per_unit' => $totalCost
                 ];
             }
         }
@@ -926,21 +943,22 @@ class BomController extends Controller
                     $komponenBop = [];
                     
                     if ($proses->bopProses) {
-                        // Get komponen BOP
+                        // Use BOP per produk directly (not calculated from per jam)
+                        $bopPerProduk = $proses->bopProses->bop_per_unit ?? 0;
+                        
+                        // Get komponen BOP for display
                         if ($proses->bopProses->komponen_bop) {
                             $komponenBop = is_array($proses->bopProses->komponen_bop) 
                                 ? $proses->bopProses->komponen_bop 
                                 : json_decode($proses->bopProses->komponen_bop, true);
                             
-                            // Calculate total BOP per jam from component rates (not stored total)
+                            // Calculate total BOP per jam from component rates for display purposes
                             if (is_array($komponenBop)) {
                                 foreach ($komponenBop as $komponen) {
                                     $totalBopPerJam += floatval($komponen['rate_per_hour'] ?? 0);
                                 }
                             }
                         }
-                        
-                        $bopPerProduk = $proses->kapasitas_per_jam > 0 ? $totalBopPerJam / $proses->kapasitas_per_jam : 0;
                     }
                     
                     return [
@@ -1026,21 +1044,8 @@ class BomController extends Controller
                 
                 // Save BOP if exists
                 if ($proses->bopProses) {
-                    // Calculate total BOP per jam from component rates (not stored total)
-                    $totalBopPerJam = 0;
-                    if ($proses->bopProses->komponen_bop) {
-                        $komponenBop = is_array($proses->bopProses->komponen_bop) 
-                            ? $proses->bopProses->komponen_bop 
-                            : json_decode($proses->bopProses->komponen_bop, true);
-                        
-                        if (is_array($komponenBop)) {
-                            foreach ($komponenBop as $komponen) {
-                                $totalBopPerJam += floatval($komponen['rate_per_hour'] ?? 0);
-                            }
-                        }
-                    }
-                    // Original line: $totalBopPerJam = $proses->bopProses->total_bop_per_jam ?? 0;
-                    $bopPerProduk = $proses->kapasitas_per_jam > 0 ? $totalBopPerJam / $proses->kapasitas_per_jam : 0;
+                    // Use BOP per produk directly (not calculated from per jam)
+                    $bopPerProduk = $proses->bopProses->bop_per_unit ?? 0;
                     
                     // Get komponen BOP
                     $komponenBop = [];
@@ -1052,9 +1057,16 @@ class BomController extends Controller
                     
                     // Save each BOP component
                     if (is_array($komponenBop)) {
+                        // Calculate total rate per hour for proportion calculation (outside loop)
+                        $totalRatePerHour = 0;
+                        foreach ($komponenBop as $k) {
+                            $totalRatePerHour += floatval($k['rate_per_hour'] ?? 0);
+                        }
+                        
                         foreach ($komponenBop as $komponen) {
                             $ratePerHour = floatval($komponen['rate_per_hour'] ?? 0);
-                            $ratePerPcs = $proses->kapasitas_per_jam > 0 ? $ratePerHour / $proses->kapasitas_per_jam : 0;
+                            // Calculate rate per produk based on proportion of total BOP per produk
+                            $ratePerPcs = $totalRatePerHour > 0 ? ($ratePerHour / $totalRatePerHour) * $bopPerProduk : 0;
                             
                             BomJobBOP::create([
                                 'bom_job_costing_id' => $bomJobCosting->id,
@@ -1152,7 +1164,9 @@ class BomController extends Controller
                                 }
                             }
                         }
-                        $bopPerProduk = $proses->kapasitas_per_jam > 0 ? $totalBopPerJam / $proses->kapasitas_per_jam : 0;
+                        
+                        // Use BOP per produk directly (not calculated from per jam)
+                        $bopPerProduk = $proses->bopProses->bop_per_unit ?? 0;
                         
                         // Get komponen BOP
                         if ($proses->bopProses->komponen_bop) {
@@ -1246,21 +1260,8 @@ class BomController extends Controller
                 
                 // Save BOP if exists
                 if ($proses->bopProses) {
-                    // Calculate total BOP per jam from component rates (not stored total)
-                    $totalBopPerJam = 0;
-                    if ($proses->bopProses->komponen_bop) {
-                        $komponenBop = is_array($proses->bopProses->komponen_bop) 
-                            ? $proses->bopProses->komponen_bop 
-                            : json_decode($proses->bopProses->komponen_bop, true);
-                        
-                        if (is_array($komponenBop)) {
-                            foreach ($komponenBop as $komponen) {
-                                $totalBopPerJam += floatval($komponen['rate_per_hour'] ?? 0);
-                            }
-                        }
-                    }
-                    // Original line: $totalBopPerJam = $proses->bopProses->total_bop_per_jam ?? 0;
-                    $bopPerProduk = $proses->kapasitas_per_jam > 0 ? $totalBopPerJam / $proses->kapasitas_per_jam : 0;
+                    // Use BOP per produk directly (not calculated from per jam)
+                    $bopPerProduk = $proses->bopProses->bop_per_unit ?? 0;
                     
                     // Get komponen BOP
                     $komponenBop = [];
@@ -1272,9 +1273,16 @@ class BomController extends Controller
                     
                     // Save each BOP component
                     if (is_array($komponenBop)) {
+                        // Calculate total rate per hour for proportion calculation (outside loop)
+                        $totalRatePerHour = 0;
+                        foreach ($komponenBop as $k) {
+                            $totalRatePerHour += floatval($k['rate_per_hour'] ?? 0);
+                        }
+                        
                         foreach ($komponenBop as $komponen) {
                             $ratePerHour = floatval($komponen['rate_per_hour'] ?? 0);
-                            $ratePerPcs = $proses->kapasitas_per_jam > 0 ? $ratePerHour / $proses->kapasitas_per_jam : 0;
+                            // Calculate rate per produk based on proportion of total BOP per produk
+                            $ratePerPcs = $totalRatePerHour > 0 ? ($ratePerHour / $totalRatePerHour) * $bopPerProduk : 0;
                             
                             BomJobBOP::create([
                                 'bom_job_costing_id' => $bomJobCosting->id,

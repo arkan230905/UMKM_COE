@@ -123,9 +123,9 @@
                     $baseQty = (float)($selectedItem->stok ?? 0); // Actual stock from database
                     $basePrice = (float)($selectedItem->harga_satuan ?? 0); // Actual price from database
                     
-                    // Special handling for bahan pendukung - always 50 units starting stock
+                    // Special handling for bahan pendukung - always 200 units starting stock
                     if($tipe == 'bahan_pendukung') {
-                        $baseQty = 50; // Fixed for bahan pendukung as per user requirement
+                        $baseQty = 200; // Fixed for bahan pendukung as per user requirement
                     }
                     
                     $baseTotal = $baseQty * $basePrice;

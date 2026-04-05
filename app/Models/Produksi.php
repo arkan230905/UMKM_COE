@@ -61,6 +61,11 @@ class Produksi extends Model
     {
         return $this->status === 'draft';
     }
+    
+    public function isSiapProduksi()
+    {
+        return $this->status === 'draft'; // Draft means ready for production in process costing
+    }
 
     public function isDalamProses()
     {
@@ -75,7 +80,7 @@ class Produksi extends Model
     public function getStatusBadgeAttribute()
     {
         return match($this->status) {
-            'draft' => '<span class="badge bg-secondary">Draft</span>',
+            'draft' => '<span class="badge bg-info">Siap Produksi</span>',
             'dalam_proses' => '<span class="badge bg-primary">Dalam Proses</span>',
             'selesai' => '<span class="badge bg-success">Selesai</span>',
             default => '<span class="badge bg-secondary">Unknown</span>',
