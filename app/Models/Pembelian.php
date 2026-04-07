@@ -51,6 +51,9 @@ class Pembelian extends Model
      */
     protected static function booted()
     {
+        // DISABLED: Conflicting with PembelianObserver and PembelianController
+        // Multiple systems trying to create journals causes conflicts
+        /*
         static::created(function ($pembelian) {
             // Create automatic journal entries
             \App\Services\JournalService::createJournalFromPembelian($pembelian);
@@ -60,6 +63,7 @@ class Pembelian extends Model
             // Recreate journal entries if transaction is updated
             \App\Services\JournalService::createJournalFromPembelian($pembelian);
         });
+        */
         
         static::deleting(function ($pembelian) {
             // Delete related pembelian details

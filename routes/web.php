@@ -2080,6 +2080,7 @@ Route::middleware('auth')->group(function () {
         // Harga Pokok Produksi Routes
         Route::prefix('harga-pokok-produksi')->name('harga-pokok-produksi.')->group(function () {
             Route::get('calculate/{produkId}', [BomController::class, 'calculateBomCost'])->name('calculate');
+            Route::post('update-from-stock/{produkId}', [BomController::class, 'updateBomFromStockReport'])->name('update-from-stock');
             Route::get('by-produk/{id}', [BomController::class, 'view'])->name('view-by-produk');
             Route::post('by-produk/{id}', [BomController::class, 'updateByProduk'])->name('update-by-produk');
             Route::get('generate-kode', [BomController::class, 'generateKodeBom'])->name('generate-kode');
@@ -2338,6 +2339,45 @@ Route::middleware('auth')->group(function () {
 
     });
 
+
+    // ================================================================
+    // EMERGENCY FIXES
+    // ================================================================
+    Route::get('fix-pembelian-journals', function() {
+        include 'fix_pembelian_journals.php';
+    });
+
+    Route::get('debug-kas-transactions', function() {
+        include 'debug_kas_transactions.php';
+    });
+
+    Route::get('quick-fix-kas-bank', function() {
+        include 'quick_fix_kas_bank.php';
+    });
+
+    Route::get('fix-purchase-journals', function() {
+        include 'fix_purchase_journals.php';
+    });
+
+    Route::get('analyze-journal-issues', function() {
+        include 'analyze_journal_issues.php';
+    });
+
+    Route::get('comprehensive-cleanup', function() {
+        include 'comprehensive_cleanup.php';
+    });
+
+    Route::get('cleanup-orphan-journals', function() {
+        include 'cleanup_orphan_journals.php';
+    });
+
+    Route::get('check-stock-movements', function() {
+        include 'check_stock_movements.php';
+    });
+
+    Route::get('fix-product-stock', function() {
+        include 'fix_product_stock.php';
+    });
 
     // ================================================================
     // LAPORAN (Admin & Owner Only)

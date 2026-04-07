@@ -99,8 +99,6 @@ class StockService
                 'total_cost' => $primaryQty * $primaryUnitCost,
                 'ref_type' => $refType,
                 'ref_id' => $refId,
-                'qty_as_input' => $qty,
-                'satuan_as_input' => $satuan,
                 'manual_conversion_data' => $manualConversionData ? json_encode($manualConversionData) : null,
             ]);
 
@@ -136,12 +134,18 @@ class StockService
                     'satuan' => $this->getPrimarySatuan($itemType, $itemId),
                     'ref_type' => 'avg_layer',
                     'ref_id' => 0,
-                    'qty_as_input' => $qty,
-                    'satuan_as_input' => $satuan,
                     'manual_conversion_data' => $manualConversionData ? json_encode($manualConversionData) : null,
                 ]);
             }
         });
+    }
+
+    /**
+     * Add stock layer (backward compatibility wrapper)
+     */
+    public function addLayer(string $itemType, int $itemId, float $qty, string $satuan, float $unitCost, string $refType, int $refId, string $tanggal): void
+    {
+        $this->addLayerWithManualConversion($itemType, $itemId, $qty, $satuan, $unitCost, $refType, $refId, $tanggal, null);
     }
     
     /**
@@ -363,8 +367,6 @@ class StockService
                 'total_cost' => $totalCost,
                 'ref_type' => $refType,
                 'ref_id' => $refId,
-                'qty_as_input' => $qty,
-                'satuan_as_input' => $satuan,
             ]);
 
             return $totalCost;
