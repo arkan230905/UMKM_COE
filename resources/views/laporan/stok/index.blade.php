@@ -72,6 +72,20 @@
         </div>
     </div>
 
+    <!-- Debug Information (temporary) -->
+    @if(isset($debug_info) && request('item_id') == 5)
+    <div class="alert alert-info">
+        <strong>Debug Info:</strong><br>
+        Total Movements: {{ $debug_info['total_movements'] }}<br>
+        Daily Stock Count: {{ $debug_info['daily_stock_count'] }}<br>
+        Has Manual Conversion: {{ $debug_info['has_manual_conversion'] }}<br>
+        @if(isset($debug_info['sample_movement']))
+        Sample Movement: Qty={{ $debug_info['sample_movement']['qty'] }}, Cost={{ $debug_info['sample_movement']['total_cost'] }}, Type={{ $debug_info['sample_movement']['ref_type'] }}<br>
+        @endif
+        Potong Conversion Factor: {{ $debug_info['potong_conversion_factor'] }}
+    </div>
+    @endif
+
     <!-- Stock Cards for All Items -->
     @if(request('item_id'))
         @php

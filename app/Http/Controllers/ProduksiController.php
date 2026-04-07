@@ -448,6 +448,9 @@ class ProduksiController extends Controller
         // Mulai proses ini
         $proses->mulaiProses();
         
+        // Refresh data to ensure we have the latest timestamp
+        $proses->refresh();
+        
         // Update produksi
         $produksi->proses_saat_ini = $proses->nama_proses;
         $produksi->save();
@@ -465,7 +468,12 @@ class ProduksiController extends Controller
         $proses->selesaikanProses();
 
         // Update produksi
-        $produksi->proses_selesai = $produksi->proses_selesai + 1;
+        // Hitung ulang proses selesai berdasarkan data aktual
+        $totalProsesSelesai = \App\Models\ProduksiProses::where('produksi_id', $produksi->id)
+            ->where('status', 'selesai')
+            ->count();
+        
+        $produksi->proses_selesai = $totalProsesSelesai;
 
         // Reset current process - biarkan user memilih proses selanjutnya
         $produksi->proses_saat_ini = null;
@@ -611,6 +619,97 @@ class ProduksiController extends Controller
                 ['code' => $coaWIP->kode_akun, 'debit' => 0, 'credit' => $totalBiaya],  // WIP
             ]);
         }
+    }
+
+    /**
+     * Start production again for completed products using last production data
+     */
+    public function mulaiLagi(Request $request, StockService $stock, JournalService $journal, KonversiProduksiService $konversiService)
+    {
+        $request->validate([
+            'produk_id' => 'required|exists:produks,id',
+        ]);
+
+        // Check if product has completed production before
+        $lastProduction = Produksi::where('produk_id', $request->produk_id)
+            ->where('status', 'selesai')
+            ->orderBy('tanggal', 'desc')
+            ->first();
+            
+        if (!$lastProduction) {
+            return back()->withErrors([
+                'produk_id' => 'Produk ini belum pernah menyelesaikan produksi sebelumnya.',
+            ])->withInput();
+        }
+
+        // Guard: pastikan produk sudah memiliki BOM dan detail
+        $bom = \App\Models\Bom::where('produk_id', $request->produk_id)
+            ->withCount('details')
+            ->first();
+        if (!$bom || (int)($bom->details_count ?? 0) === 0) {
+            return back()->withErrors([
+                'bom' => 'Produk belum melewati perhitungan Bill Of Material. Silakan lakukan perhitungan Bill Of Material untuk produk tersebut.',
+            ])->withInput();
+        }
+
+        return DB::transaction(function () use ($request, $lastProduction, $stock, $journal, $konversiService) {
+            $produk = Produk::findOrFail($request->produk_id);
+            $tanggal = now()->toDateString(); // Use current date
+
+            // Use data from last production
+            $qtyProd = $lastProduction->qty_produksi;
+            $jumlahProduksiBulanan = $lastProduction->jumlah_produksi_bulanan;
+            $hariProduksiBulanan = $lastProduction->hari_produksi_bulanan;
+
+            // Create production plan with same data as last production
+            $produksi = Produksi::create([
+                'produk_id' => $produk->id,
+                'tanggal' => $tanggal,
+                'jumlah_produksi_bulanan' => $jumlahProduksiBulanan,
+                'hari_produksi_bulanan' => $hariProduksiBulanan,
+                'qty_produksi' => $qtyProd,
+                'status' => 'draft',
+            ]);
+
+            // Calculate total costs from BOM data (same as original create method)
+            $bom = \App\Models\Bom::where('produk_id', $produk->id)->first();
+            $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
+            
+            // Total Biaya Bahan = Bahan Baku (Bom.details) + Bahan Pendukung (BomJobBahanPendukung)
+            $totalBahanBakuPerUnit = $bom ? $bom->details->sum('total_harga') : 0;
+            $totalBahanPendukungPerUnit = 0;
+            if ($bomJobCosting) {
+                $bahanPendukungDetails = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->get();
+                foreach ($bahanPendukungDetails as $detail) {
+                    $totalBahanPendukungPerUnit += $detail->subtotal;
+                }
+            }
+            $totalBahanPerUnit = $totalBahanBakuPerUnit + $totalBahanPendukungPerUnit;
+            $totalBahan = $totalBahanPerUnit * $qtyProd;
+            
+            // Total BTKL dan BOP dari BOM Job Costing
+            $totalBTKLPerUnit = 0;
+            $totalBOPPerUnit = 0;
+            
+            if ($bomJobCosting) {
+                $totalBTKLPerUnit = $bomJobCosting->total_btkl ?? 0;
+                $totalBOPPerUnit = $bomJobCosting->total_bop ?? 0;
+            }
+            
+            $totalBTKL = $totalBTKLPerUnit * $qtyProd;
+            $totalBOP = $totalBOPPerUnit * $qtyProd;
+            $totalBiaya = $totalBahan + $totalBTKL + $totalBOP;
+
+            $produksi->update([
+                'total_bahan' => $totalBahan,
+                'total_btkl' => $totalBTKL,
+                'total_bop' => $totalBOP,
+                'total_biaya' => $totalBiaya,
+            ]);
+
+            return redirect()->route('transaksi.produksi.index')
+                ->with('success', 'Produksi baru untuk ' . $produk->nama_produk . ' berhasil dibuat dengan data yang sama (' . number_format($qtyProd, 2) . ' pcs). Klik "Mulai Produksi" untuk memulai proses.');
+        });
     }
 
     public function destroy($id, JournalService $journal)
@@ -1049,9 +1148,9 @@ class ProduksiController extends Controller
         $prosesOrder = 1;
         foreach ($bomJobBTKLs as $bomJobBTKL) {
             // Create production process record
-            \App\Models\ProduksiProses::updateOrCreate([
+            $produksiProses = \App\Models\ProduksiProses::updateOrCreate([
                 'produksi_id' => $produksi->id,
-                'nama_proses' => $bomJobBTKL->proses_produksi ?? 'Proses ' . $prosesOrder,
+                'nama_proses' => $bomJobBTKL->nama_proses ?? 'Proses ' . $prosesOrder,
             ], [
                 'urutan' => $prosesOrder,
                 'status' => 'pending', // Use 'pending' instead of 'belum_dimulai'
@@ -1061,6 +1160,54 @@ class ProduksiController extends Controller
             ]);
             
             $prosesOrder++;
+        }
+
+        // Calculate BOP for each process
+        $bomJobBOPs = \App\Models\BomJobBOP::where('bom_job_costing_id', $bomJobCosting->id)->get();
+        
+        // Group BOP by process name and multiply by production quantity
+        $bopByProcess = [];
+        foreach ($bomJobBOPs as $bomJobBOP) {
+            $namaProses = 'Umum';
+            $namaBiaya = strtolower($bomJobBOP->nama_bop ?? '');
+            
+            // Map BOP components to process names based on naming convention
+            if (stripos($namaBiaya, 'penggorengan') !== false || stripos($namaBiaya, 'goreng') !== false) {
+                $namaProses = 'Penggorengan';
+            } elseif (stripos($namaBiaya, 'pembumbuan') !== false || stripos($namaBiaya, 'bumbu') !== false) {
+                $namaProses = 'Pembumbuan';
+            } elseif (stripos($namaBiaya, 'pengemasan') !== false || stripos($namaBiaya, 'kemas') !== false) {
+                $namaProses = 'Pengemasan';
+            }
+            
+            if (!isset($bopByProcess[$namaProses])) {
+                $bopByProcess[$namaProses] = 0;
+            }
+            // Multiply by production quantity to get total BOP for this production
+            $bopByProcess[$namaProses] += ($bomJobBOP->subtotal ?? 0) * $produksi->qty_produksi;
+        }
+        
+        // Update BOP for each process
+        foreach ($produksi->proses as $proses) {
+            $bopAmount = 0;
+            
+            // Find matching BOP for this process
+            foreach ($bopByProcess as $prosesName => $bopValue) {
+                if (stripos($proses->nama_proses, $prosesName) !== false || 
+                    ($prosesName === 'Umum' && !isset($bopByProcess[$proses->nama_proses]))) {
+                    $bopAmount = $bopValue;
+                    break;
+                }
+            }
+            
+            // Also multiply BTKL by production quantity
+            $btklAmount = $proses->biaya_btkl * $produksi->qty_produksi;
+            
+            $proses->update([
+                'biaya_btkl' => $btklAmount,
+                'biaya_bop' => $bopAmount,
+                'total_biaya_proses' => $btklAmount + $bopAmount,
+            ]);
         }
 
         // Update total proses count

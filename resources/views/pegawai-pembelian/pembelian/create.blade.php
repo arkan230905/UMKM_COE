@@ -161,7 +161,7 @@ input[name="total[]"]:focus, input[name="total_pendukung[]"]:focus {
                                     <option value="{{ $kb->id }}">
                                         @if($kb->nama_akun)
                                             @if(str_contains(strtolower($kb->nama_akun), 'kas'))
-                                                💵 Kas {{ $kb->nama_akun }}
+                                                💵 {{ $kb->nama_akun }}
                                             @else
                                                 🏦 {{ $kb->nama_akun }}
                                             @endif

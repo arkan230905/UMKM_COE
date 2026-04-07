@@ -57,9 +57,12 @@ class StockService
         ]);
     }
 
-    public function addLayer(string $itemType, int $itemId, float $qty, string $satuan, float $unitCost, string $refType, int $refId, string $tanggal): void
+    /**
+     * Add stock layer with optional manual conversion data
+     */
+    public function addLayerWithManualConversion(string $itemType, int $itemId, float $qty, string $satuan, float $unitCost, string $refType, int $refId, string $tanggal, ?array $manualConversionData = null): void
     {
-        DB::transaction(function () use ($itemType, $itemId, $qty, $satuan, $unitCost, $refType, $refId, $tanggal) {
+        DB::transaction(function () use ($itemType, $itemId, $qty, $satuan, $unitCost, $refType, $refId, $tanggal, $manualConversionData) {
             // Check if a stock movement with the same parameters already exists to prevent duplicates
             $existingMovement = StockMovement::where('item_type', $itemType)
                 ->where('item_id', $itemId)
@@ -98,6 +101,7 @@ class StockService
                 'ref_id' => $refId,
                 'qty_as_input' => $qty,
                 'satuan_as_input' => $satuan,
+                'manual_conversion_data' => $manualConversionData ? json_encode($manualConversionData) : null,
             ]);
 
             // Moving average: compute new average with existing layers + this receipt
@@ -134,6 +138,7 @@ class StockService
                     'ref_id' => 0,
                     'qty_as_input' => $qty,
                     'satuan_as_input' => $satuan,
+                    'manual_conversion_data' => $manualConversionData ? json_encode($manualConversionData) : null,
                 ]);
             }
         });
