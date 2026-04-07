@@ -90,6 +90,18 @@ class Produksi extends Model
     public function getProgressPercentageAttribute()
     {
         if ($this->total_proses == 0) return 0;
-        return round(($this->proses_selesai / $this->total_proses) * 100);
+        
+        // Hitung ulang proses selesai berdasarkan data aktual
+        $actualProsesSelesai = $this->proses()->where('status', 'selesai')->count();
+        
+        return round(($actualProsesSelesai / $this->total_proses) * 100);
+    }
+    
+    /**
+     * Get actual count of completed processes
+     */
+    public function getActualProsesSelesaiAttribute()
+    {
+        return $this->proses()->where('status', 'selesai')->count();
     }
 }

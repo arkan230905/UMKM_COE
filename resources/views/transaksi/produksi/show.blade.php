@@ -51,7 +51,7 @@
                          aria-valuenow="{{ $produksi->progress_percentage }}" 
                          aria-valuemin="0" 
                          aria-valuemax="100">
-                        {{ $produksi->proses_selesai }}/{{ $produksi->total_proses }} Proses ({{ $produksi->progress_percentage }}%)
+                        {{ $produksi->actual_proses_selesai }}/{{ $produksi->total_proses }} Proses ({{ $produksi->progress_percentage }}%)
                     </div>
                 </div>
             </div>
@@ -138,7 +138,7 @@
                 <table class="table table-bordered table-striped">
                     <thead class="table-light">
                         <tr>
-                            <th>#</th>
+                            <th>No</th>
                             <th>Nama Bahan</th>
                             <th>Resep (Total)</th>
                             <th>Konversi ke Satuan Bahan</th>
@@ -250,7 +250,7 @@
                 <table class="table table-bordered">
                     <thead class="table-light">
                         <tr>
-                            <th>#</th>
+                            <th>No</th>
                             <th>Nama Proses</th>
                             @if($produksi->status === 'draft')
                                 <th>Biaya per Unit</th>
@@ -299,7 +299,7 @@
                                     </td>
                                     <td>
                                         @if($proses->durasi_menit)
-                                            {{ $proses->durasi_menit }} menit
+                                            {{ $proses->formatted_duration }}
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif
@@ -342,7 +342,7 @@
                 <table class="table table-bordered">
                     <thead class="table-light">
                         <tr>
-                            <th>#</th>
+                            <th>No</th>
                             <th>Nama Proses</th>
                             @if($produksi->status === 'draft')
                                 <th>Biaya per Unit</th>

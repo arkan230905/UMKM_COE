@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Kas Dropdown Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .fix-box { background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 10px 0; }
+        .before-box { background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 10px 0; }
+        table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Kas Dropdown Duplicate Text Fix</h1>
+    
+    <div class="before-box">
+        <h2>❌ Before Fix (Incorrect)</h2>
+        <p>The dropdown was showing duplicate "Kas" text:</p>
+        <ul>
+            <li>💵 <strong>Kas Kas Bank</strong> (Saldo: Rp 100,000,000)</li>
+            <li>💵 <strong>Kas Kas</strong> (Saldo: Rp 75,000,000)</li>
+            <li>💵 <strong>Kas Kas Kecil</strong> (Saldo: Rp 0)</li>
+            <li>💵 <strong>Kas Kas Bank BCA</strong> (Saldo: Rp 0)</li>
+        </ul>
+    </div>
+    
+    <div class="fix-box">
+        <h2>✅ After Fix (Correct)</h2>
+        <p>The dropdown now shows proper account names:</p>
+        <ul>
+            <li>💵 <strong>Kas Bank</strong> (Saldo: Rp 100,000,000)</li>
+            <li>💵 <strong>Kas</strong> (Saldo: Rp 75,000,000)</li>
+            <li>💵 <strong>Kas Kecil</strong> (Saldo: Rp 0)</li>
+            <li>💵 <strong>Kas Bank BCA</strong> (Saldo: Rp 0)</li>
+        </ul>
+    </div>
+    
+    <h2>What Was Fixed</h2>
+    <table>
+        <tr>
+            <th>File</th>
+            <th>Issue</th>
+            <th>Fix</th>
+        </tr>
+        <tr>
+            <td>resources/views/transaksi/pembelian/create.blade.php</td>
+            <td>Line 130: <code>💵 Kas {{ $kb->nama_akun }}</code></td>
+            <td>Changed to: <code>💵 {{ $kb->nama_akun }}</code></td>
+        </tr>
+        <tr>
+            <td>resources/views/pegawai-pembelian/pembelian/create.blade.php</td>
+            <td>Line 164: <code>💵 Kas {{ $kb->nama_akun }}</code></td>
+            <td>Changed to: <code>💵 {{ $kb->nama_akun }}</code></td>
+        </tr>
+    </table>
+    
+    <h2>Root Cause</h2>
+    <p>The code was checking if the account name contains "kas" and then adding "Kas" prefix:</p>
+    <pre><code>@if(str_contains(strtolower($kb->nama_akun), 'kas'))
+    💵 Kas {{ $kb->nama_akun }}  <!-- This caused "Kas Kas Bank" -->
+@else
+    🏦 {{ $kb->nama_akun }}
+@endif</code></pre>
+    
+    <p>Since account names like "Kas Bank" already contain "Kas", adding another "Kas" prefix created duplicates.</p>
+    
+    <h2>Test URLs</h2>
+    <ul>
+        <li><a href="http://localhost:8000/transaksi/pembelian/create" target="_blank">Purchase Create Form</a></li>
+        <li><a href="http://localhost:8000/pegawai-pembelian/pembelian/create" target="_blank">Employee Purchase Create Form</a></li>
+    </ul>
+    
+    <p><strong>Expected Result:</strong> Payment method dropdown should now show clean account names without duplicate "Kas" text.</p>
+</body>
+</html>

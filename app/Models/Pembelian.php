@@ -114,6 +114,14 @@ class Pembelian extends Model
     }
     
     /**
+     * Get the kas/bank account for the pembelian.
+     */
+    public function kasBank()
+    {
+        return $this->belongsTo(Coa::class, 'bank_id');
+    }
+    
+    /**
      * Get the pembelian details for the pembelian.
      */
     public function pembelianDetails()

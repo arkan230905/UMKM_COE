@@ -1,5 +1,11 @@
 @extends('layouts.app')
 
+@section('head')
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+@endsection
+
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -50,18 +56,30 @@
                 </div>
             </div>
             
-            <!-- Progress Bar -->
+            <!-- Current Time and Progress Bar -->
             <div class="mt-3">
-                <label class="fw-bold">Progress Produksi:</label>
-                <div class="progress" style="height: 30px;">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                         role="progressbar" 
-                         style="width: {{ $produksi->progress_percentage }}%"
-                         aria-valuenow="{{ $produksi->progress_percentage }}" 
-                         aria-valuemin="0" 
-                         aria-valuemax="100">
-                        {{ $produksi->proses_selesai }}/{{ $produksi->total_proses }} Proses ({{ $produksi->progress_percentage }}%)
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="fw-bold">Progress Produksi:</label>
+                        <div class="progress" style="height: 30px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" 
+                                 style="width: {{ $produksi->progress_percentage }}%"
+                                 aria-valuenow="{{ $produksi->progress_percentage }}" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                                {{ $produksi->actual_proses_selesai }}/{{ $produksi->total_proses }} Proses ({{ $produksi->progress_percentage }}%)
+                            </div>
+                        </div>
                     </div>
+                    <div class="col-md-6">
+                        <label class="fw-bold">Waktu Saat Ini:</label>
+                        <p class="mb-0">
+                            <span id="current-time" class="badge bg-info fs-6">{{ now()->format('d/m/Y H:i:s') }}</span>
+                        </p>
+                        <small class="text-muted">Timezone: Asia/Jakarta</small>
+                    </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -105,11 +123,11 @@
                                 <td class="text-end fw-bold">Rp {{ number_format($proses->total_biaya_proses, 0, ',', '.') }}</td>
                                 <td>
                                     @if($proses->waktu_mulai)
-                                        <small>Mulai: {{ $proses->waktu_mulai->format('d/m/Y H:i') }}</small>
+                                        <small>Mulai: {{ $proses->waktu_mulai->format('d/m/Y H:i:s') }}</small>
                                     @endif
                                     @if($proses->waktu_selesai)
-                                        <br><small>Selesai: {{ $proses->waktu_selesai->format('d/m/Y H:i') }}</small>
-                                        <br><small class="text-success">Durasi: {{ $proses->durasi_menit }} menit</small>
+                                        <br><small>Selesai: {{ $proses->waktu_selesai->format('d/m/Y H:i:s') }}</small>
+                                        <br><small class="text-success">Durasi: {{ $proses->formatted_duration }}</small>
                                     @endif
                                 </td>
                                 <td class="text-center">
@@ -161,4 +179,37 @@
         </div>
     </div>
 </div>
+
+<script>
+// Auto-refresh page every 30 seconds to ensure latest data
+setTimeout(function() {
+    location.reload();
+}, 30000);
+
+// Show current time for reference (server already corrected)
+function updateCurrentTime() {
+    const now = new Date();
+    // No additional correction needed - server already provides correct time
+    
+    const timeString = now.toLocaleString('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    
+    // Update any element with id 'current-time' if exists
+    const timeElement = document.getElementById('current-time');
+    if (timeElement) {
+        timeElement.textContent = timeString;
+    }
+}
+
+// Update time every second
+setInterval(updateCurrentTime, 1000);
+updateCurrentTime();
+</script>
 @endsection

@@ -127,7 +127,7 @@
                             @if($kb->nama_akun)
                                 <option value="{{ $kb->id }}">
                                     @if(str_contains(strtolower($kb->nama_akun), 'kas'))
-                                        💵 Kas {{ $kb->nama_akun }}
+                                        💵 {{ $kb->nama_akun }}
                                     @else
                                         🏦 {{ $kb->nama_akun }}
                                     @endif
@@ -277,58 +277,76 @@
                         <div class="col-md-12">
                             <div class="card border-info">
                                 <div class="card-header bg-info text-white py-2">
-                                    <h6 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Konversi Sub Satuan Tersedia</h6>
+                                    <h6 class="mb-0"><i class="fas fa-exchange-alt me-2"></i>Konversi Sub Satuan</h6>
                                 </div>
                                 <div class="card-body py-2">
                                     <div class="sub-satuan-info" style="display: none;">
-                                        <div class="row g-2">
-                                            <div class="col-md-3">
-                                                <label class="form-label small">Sub Satuan 1</label>
-                                                <div class="form-control form-control-sm bg-light sub-satuan-1-info" style="min-height: 31px; display: flex; align-items: center;">
+                                        <!-- Data Konversi Sub Satuan Saat Ini (Info Only) -->
+                                        <div class="alert alert-info mb-3">
+                                            <h6 class="mb-2"><i class="fas fa-info-circle me-1"></i>Data Konversi Sub Satuan Saat Ini</h6>
+                                            <div class="row g-2">
+                                                <div class="col-md-4">
+                                                    <strong>Sub Satuan 1:</strong><br>
                                                     <span class="sub-satuan-1-text">-</span>
                                                 </div>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label small">Sub Satuan 2</label>
-                                                <div class="form-control form-control-sm bg-light sub-satuan-2-info" style="min-height: 31px; display: flex; align-items: center;">
+                                                <div class="col-md-4">
+                                                    <strong>Sub Satuan 2:</strong><br>
                                                     <span class="sub-satuan-2-text">-</span>
                                                 </div>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label small">Sub Satuan 3</label>
-                                                <div class="form-control form-control-sm bg-light sub-satuan-3-info" style="min-height: 31px; display: flex; align-items: center;">
+                                                <div class="col-md-4">
+                                                    <strong>Sub Satuan 3:</strong><br>
                                                     <span class="sub-satuan-3-text">-</span>
                                                 </div>
                                             </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label small">Pilih Sub Satuan</label>
-                                                <select name="sub_satuan_pilihan[]" class="form-select form-select-sm sub-satuan-select" onchange="updateSubSatuanKonversi(this)">
+                                        </div>
+                                        
+                                        <!-- Pilihan Sub Satuan untuk Pembelian Kali Ini -->
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label small fw-bold">Pilih Sub Satuan untuk Pembelian Kali Ini</label>
+                                                <select name="sub_satuan_pilihan[]" class="form-select sub-satuan-select" onchange="updateSubSatuanKonversi(this)">
                                                     <option value="">-- Gunakan Satuan Utama --</option>
                                                 </select>
+                                                <small class="text-muted">Pilih sub satuan yang akan digunakan untuk pembelian ini</small>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <label class="form-label small fw-bold">Konversi untuk Pembelian Ini</label>
+                                                <div class="input-group">
+                                                    <span class="input-group-text bg-info text-white fw-bold conversion-prefix">1 Satuan Utama =</span>
+                                                    <input type="number" name="manual_conversion_factor[]" class="form-control fw-bold text-center conversion-input" placeholder="1" step="0.01" onchange="updateManualConversion(this)">
+                                                    <span class="input-group-text bg-success text-white fw-bold conversion-suffix">Sub Satuan</span>
+                                                </div>
+                                                <small class="text-muted">Sesuaikan konversi sesuai kebutuhan pembelian Anda</small>
                                             </div>
                                         </div>
-                                        <div class="row g-2 mt-1">
+                                        
+                                        <!-- Input Jumlah dan Harga -->
+                                        <div class="row g-3 mt-2">
                                             <div class="col-md-4">
-                                                <label class="form-label small">Pilih Sub Satuan untuk Konversi</label>
-                                                <select name="sub_satuan_pilihan[]" class="form-select form-select-sm sub-satuan-select" onchange="updateSubSatuanKonversi(this)">
-                                                    <option value="">-- Pilih Sub Satuan --</option>
-                                                </select>
+                                                <label class="form-label small fw-bold">Jumlah dalam Sub Satuan</label>
+                                                <input type="number" name="jumlah_sub_satuan[]" class="form-control jumlah-sub-satuan fw-bold" placeholder="0" step="0.01" onchange="updateSubSatuanFromInput(this)">
+                                                <small class="text-muted">Input jumlah dalam sub satuan yang dipilih</small>
                                             </div>
                                             <div class="col-md-4">
-                                                <label class="form-label small">Jumlah dalam Sub Satuan (Manual)</label>
-                                                <input type="number" name="jumlah_sub_satuan[]" class="form-control form-control-sm jumlah-sub-satuan" placeholder="0" step="0.0001" onchange="updateSubSatuanFromInput(this)">
-                                                <small class="text-muted">Input manual jumlah sub satuan</small>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <label class="form-label small">Harga per Sub Satuan</label>
-                                                <div class="form-control form-control-sm bg-warning" style="min-height: 31px; display: flex; align-items: center;">
+                                                <label class="form-label small fw-bold">Harga per Sub Satuan</label>
+                                                <div class="form-control bg-warning fw-bold d-flex align-items-center" style="min-height: 38px;">
                                                     <span class="sub-satuan-price">Rp 0</span>
                                                 </div>
+                                                <small class="text-muted">Harga per unit sub satuan yang dipilih</small>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label small fw-bold">Total Harga Sub Satuan</label>
+                                                <div class="form-control bg-info text-dark fw-bold d-flex align-items-center" style="min-height: 38px;">
+                                                    <span class="sub-satuan-total">Rp 0</span>
+                                                </div>
+                                                <small class="text-muted">Total harga untuk jumlah sub satuan</small>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="no-sub-satuan-info text-center text-muted py-2">
-                                        <small><i class="fas fa-info-circle me-1"></i>Pilih item terlebih dahulu untuk melihat sub satuan yang tersedia</small>
+                                    <div class="no-sub-satuan-info text-center text-muted py-3">
+                                        <i class="fas fa-info-circle fa-2x mb-2"></i><br>
+                                        <strong>Pilih item terlebih dahulu</strong><br>
+                                        <small>untuk melihat sub satuan yang tersedia</small>
                                     </div>
                                 </div>
                             </div>
@@ -411,6 +429,22 @@ if (subSatuanData.bahan_baku && subSatuanData.bahan_baku[5]) {
 }
 console.log('=== END DEBUG ===');
 
+// Format number with clean decimal display
+function formatCleanNumber(num) {
+    if (num === 0) return '0';
+    
+    // Round to 2 decimal places
+    const rounded = Math.round(num * 100) / 100;
+    
+    // If it's a whole number, return without decimal
+    if (rounded % 1 === 0) {
+        return rounded.toString();
+    }
+    
+    // If it has decimals, show max 2 decimal places
+    return rounded.toFixed(2).replace(/\.?0+$/, '');
+}
+
 // Format number with thousand separators
 function formatNumber(num) {
     return new Intl.NumberFormat('id-ID').format(num);
@@ -462,19 +496,19 @@ function updateSubSatuanInfo(itemSelect) {
         subSatuanSelect.innerHTML = '<option value="">-- Pilih Sub Satuan --</option>';
         
         if (data.sub_satuan_1) {
-            subSatuanSelect.innerHTML += `<option value="1" data-nama="${data.sub_satuan_1.nama}" data-faktor="${data.sub_satuan_1.faktor_konversi}">
+            subSatuanSelect.innerHTML += `<option value="${data.sub_satuan_1.id}|${data.sub_satuan_1.nama}" data-id="${data.sub_satuan_1.id}" data-nama="${data.sub_satuan_1.nama}" data-faktor="${data.sub_satuan_1.faktor_konversi}">
                 ${data.sub_satuan_1.nama} (1 ${data.satuan_utama} = ${data.sub_satuan_1.faktor_konversi} ${data.sub_satuan_1.nama})
             </option>`;
         }
         
         if (data.sub_satuan_2) {
-            subSatuanSelect.innerHTML += `<option value="2" data-nama="${data.sub_satuan_2.nama}" data-faktor="${data.sub_satuan_2.faktor_konversi}">
+            subSatuanSelect.innerHTML += `<option value="${data.sub_satuan_2.id}|${data.sub_satuan_2.nama}" data-id="${data.sub_satuan_2.id}" data-nama="${data.sub_satuan_2.nama}" data-faktor="${data.sub_satuan_2.faktor_konversi}">
                 ${data.sub_satuan_2.nama} (1 ${data.satuan_utama} = ${data.sub_satuan_2.faktor_konversi} ${data.sub_satuan_2.nama})
             </option>`;
         }
         
         if (data.sub_satuan_3) {
-            subSatuanSelect.innerHTML += `<option value="3" data-nama="${data.sub_satuan_3.nama}" data-faktor="${data.sub_satuan_3.faktor_konversi}">
+            subSatuanSelect.innerHTML += `<option value="${data.sub_satuan_3.id}|${data.sub_satuan_3.nama}" data-id="${data.sub_satuan_3.id}" data-nama="${data.sub_satuan_3.nama}" data-faktor="${data.sub_satuan_3.faktor_konversi}">
                 ${data.sub_satuan_3.nama} (1 ${data.satuan_utama} = ${data.sub_satuan_3.faktor_konversi} ${data.sub_satuan_3.nama})
             </option>`;
         }
@@ -499,51 +533,96 @@ function updateSubSatuanKonversi(subSatuanSelect) {
     const row = subSatuanSelect.closest('.item-row');
     const selectedOption = subSatuanSelect.options[subSatuanSelect.selectedIndex];
     
+    const conversionPrefix = row.querySelector('.conversion-prefix');
+    const conversionInput = row.querySelector('.conversion-input');
+    const conversionSuffix = row.querySelector('.conversion-suffix');
     const subSatuanPrice = row.querySelector('.sub-satuan-price');
+    const subSatuanTotal = row.querySelector('.sub-satuan-total');
     const jumlahSubSatuanInput = row.querySelector('.jumlah-sub-satuan');
     
-    const jumlah = parseFloat(row.querySelector('input[name="jumlah[]"]').value) || 0;
-    const harga = parseFloat(row.querySelector('input[name="harga_satuan[]"]').value) || 0;
-    const subtotal = jumlah * harga; // Total harga pembelian
-    const jumlahSatuanUtama = parseFloat(row.querySelector('input[name="jumlah_satuan_utama[]"]').value) || 0;
+    // Get item info to show proper unit names
+    const itemSelect = row.querySelector('.item-select');
+    const selectedItemOption = itemSelect.options[itemSelect.selectedIndex];
+    const satuanUtama = selectedItemOption ? selectedItemOption.getAttribute('data-satuan') || 'Satuan Utama' : 'Satuan Utama';
     
     if (selectedOption.value && selectedOption.getAttribute('data-faktor')) {
         const subSatuanNama = selectedOption.getAttribute('data-nama');
         const subSatuanFaktor = parseFloat(selectedOption.getAttribute('data-faktor'));
         
-        // Calculate conversion to sub satuan from satuan utama
-        const jumlahDalamSubSatuan = jumlahSatuanUtama * subSatuanFaktor;
-        jumlahSubSatuanInput.value = jumlahDalamSubSatuan.toFixed(4);
+        // Update conversion display with proper unit names
+        conversionPrefix.textContent = `1 ${satuanUtama} =`;
+        conversionInput.value = subSatuanFaktor;
+        conversionSuffix.textContent = subSatuanNama;
         
-        // Calculate price per sub satuan: TOTAL HARGA ÷ JUMLAH SUB SATUAN
-        const hargaPerSubSatuan = jumlahDalamSubSatuan > 0 ? subtotal / jumlahDalamSubSatuan : 0;
-        subSatuanPrice.textContent = `Rp ${formatNumber(Math.round(hargaPerSubSatuan))}`;
+        // Enable conversion input
+        conversionInput.disabled = false;
+        
+        // Calculate initial values
+        updateManualConversion(conversionInput);
         
     } else {
+        // Reset to default state
+        conversionPrefix.textContent = '1 Satuan Utama =';
+        conversionInput.value = '';
+        conversionInput.disabled = true;
+        conversionSuffix.textContent = 'Sub Satuan';
+        
         jumlahSubSatuanInput.value = '';
         subSatuanPrice.textContent = 'Rp 0';
+        subSatuanTotal.textContent = 'Rp 0';
+    }
+}
+
+// Update conversion when user manually changes conversion factor
+function updateManualConversion(conversionInput) {
+    const row = conversionInput.closest('.item-row');
+    const subSatuanSelect = row.querySelector('.sub-satuan-select');
+    const selectedOption = subSatuanSelect.options[subSatuanSelect.selectedIndex];
+    
+    if (!selectedOption.value) return;
+    
+    const jumlahSatuanUtama = parseFloat(row.querySelector('input[name="jumlah_satuan_utama[]"]').value) || 0;
+    const manualFaktor = parseFloat(conversionInput.value) || 0;
+    const jumlahSubSatuanInput = row.querySelector('.jumlah-sub-satuan');
+    
+    if (jumlahSatuanUtama > 0 && manualFaktor > 0) {
+        // Calculate quantity in sub satuan using manual conversion factor
+        const jumlahDalamSubSatuan = jumlahSatuanUtama * manualFaktor;
+        jumlahSubSatuanInput.value = formatCleanNumber(jumlahDalamSubSatuan);
+        
+        // Update prices
+        updateSubSatuanPrices(row);
+    }
+}
+
+// Update sub satuan prices and totals
+function updateSubSatuanPrices(row) {
+    const jumlah = parseFloat(row.querySelector('input[name="jumlah[]"]').value) || 0;
+    const harga = parseFloat(row.querySelector('input[name="harga_satuan[]"]').value) || 0;
+    const subtotal = jumlah * harga; // Total harga pembelian
+    const jumlahSubSatuan = parseFloat(row.querySelector('.jumlah-sub-satuan').value) || 0;
+    
+    const subSatuanPrice = row.querySelector('.sub-satuan-price');
+    const subSatuanTotal = row.querySelector('.sub-satuan-total');
+    
+    if (jumlahSubSatuan > 0 && subtotal > 0) {
+        // Calculate price per sub satuan: TOTAL HARGA ÷ JUMLAH SUB SATUAN
+        const hargaPerSubSatuan = subtotal / jumlahSubSatuan;
+        subSatuanPrice.textContent = `Rp ${formatNumber(Math.round(hargaPerSubSatuan))}`;
+        
+        // Calculate total for sub satuan
+        const totalSubSatuan = jumlahSubSatuan * hargaPerSubSatuan;
+        subSatuanTotal.textContent = `Rp ${formatNumber(Math.round(totalSubSatuan))}`;
+    } else {
+        subSatuanPrice.textContent = 'Rp 0';
+        subSatuanTotal.textContent = 'Rp 0';
     }
 }
 
 // Update sub satuan when manual input changes
 function updateSubSatuanFromInput(input) {
     const row = input.closest('.item-row');
-    const subSatuanSelect = row.querySelector('.sub-satuan-select');
-    const selectedOption = subSatuanSelect.options[subSatuanSelect.selectedIndex];
-    const subSatuanPrice = row.querySelector('.sub-satuan-price');
-    
-    const jumlah = parseFloat(row.querySelector('input[name="jumlah[]"]').value) || 0;
-    const harga = parseFloat(row.querySelector('input[name="harga_satuan[]"]').value) || 0;
-    const subtotal = jumlah * harga; // Total harga pembelian
-    const jumlahSubSatuan = parseFloat(input.value) || 0;
-    
-    if (selectedOption.value && jumlahSubSatuan > 0) {
-        // Calculate price per sub satuan: TOTAL HARGA ÷ JUMLAH SUB SATUAN
-        const hargaPerSubSatuan = subtotal / jumlahSubSatuan;
-        subSatuanPrice.textContent = `Rp ${formatNumber(Math.round(hargaPerSubSatuan))}`;
-    } else {
-        subSatuanPrice.textContent = 'Rp 0';
-    }
+    updateSubSatuanPrices(row);
 }
 
 // Add new item row
@@ -699,7 +778,14 @@ function calculateRowTotal(input) {
     const row = input.closest('.item-row');
     const jumlah = parseFloat(row.querySelector('input[name="jumlah[]"]').value) || 0;
     const harga = parseFloat(row.querySelector('input[name="harga_satuan[]"]').value) || 0;
-    const jumlahSatuanUtama = parseFloat(row.querySelector('input[name="jumlah_satuan_utama[]"]').value) || 0;
+    let jumlahSatuanUtama = parseFloat(row.querySelector('input[name="jumlah_satuan_utama[]"]').value) || 0;
+    
+    // Jika jumlah_satuan_utama kosong, hitung otomatis berdasarkan faktor konversi
+    if (jumlahSatuanUtama === 0 && jumlah > 0) {
+        const faktorKonversi = parseFloat(row.querySelector('input[name="faktor_konversi[]"]').value) || 1;
+        jumlahSatuanUtama = jumlah * faktorKonversi;
+        row.querySelector('input[name="jumlah_satuan_utama[]"]').value = jumlahSatuanUtama.toFixed(4);
+    }
     
     // Calculate subtotal: jumlah × harga per satuan
     const subtotal = jumlah * harga;
@@ -728,6 +814,9 @@ function calculateRowTotal(input) {
     // Update sub satuan conversion if sub satuan is selected
     const subSatuanSelect = row.querySelector('.sub-satuan-select');
     updateSubSatuanKonversi(subSatuanSelect);
+    
+    // Update sub satuan prices
+    updateSubSatuanPrices(row);
     
     calculateTotal();
 }
@@ -772,6 +861,7 @@ function debugFormData(form) {
     const subtotals = formData.getAll('subtotal[]');
     const faktorKonversis = formData.getAll('faktor_konversi[]');
     const jumlahSatuanUtamas = formData.getAll('jumlah_satuan_utama[]');
+    const manualConversionFactors = formData.getAll('manual_conversion_factor[]');
     const subSatuanPilihans = formData.getAll('sub_satuan_pilihan[]');
     const jumlahSubSatuans = formData.getAll('jumlah_sub_satuan[]');
     
@@ -783,6 +873,7 @@ function debugFormData(form) {
     console.log('harga_satuan[]:', hargaSatuans);
     console.log('subtotal[]:', subtotals);
     console.log('jumlah_satuan_utama[]:', jumlahSatuanUtamas);
+    console.log('manual_conversion_factor[]:', manualConversionFactors);
     console.log('sub_satuan_pilihan[]:', subSatuanPilihans);
     console.log('jumlah_sub_satuan[]:', jumlahSubSatuans);
     
@@ -841,19 +932,19 @@ document.addEventListener('DOMContentLoaded', function() {
             subSatuanSelect.innerHTML = '<option value="">-- Gunakan Satuan Utama --</option>';
             
             if (data.sub_satuan_1) {
-                subSatuanSelect.innerHTML += `<option value="1" data-nama="${data.sub_satuan_1.nama}" data-faktor="${data.sub_satuan_1.faktor_konversi}">
+                subSatuanSelect.innerHTML += `<option value="${data.sub_satuan_1.id}|${data.sub_satuan_1.nama}" data-id="${data.sub_satuan_1.id}" data-nama="${data.sub_satuan_1.nama}" data-faktor="${data.sub_satuan_1.faktor_konversi}">
                     ${data.sub_satuan_1.nama} (1 ${data.satuan_utama} = ${data.sub_satuan_1.faktor_konversi} ${data.sub_satuan_1.nama})
                 </option>`;
             }
             
             if (data.sub_satuan_2) {
-                subSatuanSelect.innerHTML += `<option value="2" data-nama="${data.sub_satuan_2.nama}" data-faktor="${data.sub_satuan_2.faktor_konversi}">
+                subSatuanSelect.innerHTML += `<option value="${data.sub_satuan_2.id}|${data.sub_satuan_2.nama}" data-id="${data.sub_satuan_2.id}" data-nama="${data.sub_satuan_2.nama}" data-faktor="${data.sub_satuan_2.faktor_konversi}">
                     ${data.sub_satuan_2.nama} (1 ${data.satuan_utama} = ${data.sub_satuan_2.faktor_konversi} ${data.sub_satuan_2.nama})
                 </option>`;
             }
             
             if (data.sub_satuan_3) {
-                subSatuanSelect.innerHTML += `<option value="3" data-nama="${data.sub_satuan_3.nama}" data-faktor="${data.sub_satuan_3.faktor_konversi}">
+                subSatuanSelect.innerHTML += `<option value="${data.sub_satuan_3.id}|${data.sub_satuan_3.nama}" data-id="${data.sub_satuan_3.id}" data-nama="${data.sub_satuan_3.nama}" data-faktor="${data.sub_satuan_3.faktor_konversi}">
                     ${data.sub_satuan_3.nama} (1 ${data.satuan_utama} = ${data.sub_satuan_3.faktor_konversi} ${data.sub_satuan_3.nama})
                 </option>`;
             }
@@ -894,7 +985,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const selectedSatuan = satuanSelect.options[satuanSelect.selectedIndex];
             const satuanPembelianName = selectedSatuan ? selectedSatuan.getAttribute('data-nama') : 'Unit';
             
-            subSatuanConversion.textContent = `${formatNumber(jumlahDalamSubSatuan.toFixed(4))} ${subSatuanNama} (dari ${formatNumber(jumlah)} ${satuanPembelianName})`;
+            subSatuanConversion.textContent = `${formatCleanNumber(jumlahDalamSubSatuan)} ${subSatuanNama} (dari ${formatNumber(jumlah)} ${satuanPembelianName})`;
             subSatuanPrice.textContent = `Rp ${formatNumber(Math.round(hargaPerSubSatuan))}`;
             
         } else {
