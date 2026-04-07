@@ -360,7 +360,7 @@ let isProcessing = false;
 const BARCODE_TIMEOUT = 100; // 100ms timeout for barcode completion
 const MIN_BARCODE_LENGTH = 3; // Minimum barcode length
 
-// Safety mechanism to reset processing state if stuck
+// Safety mechanism to reset processing state if stuck (reduced frequency)
 function resetProcessingState() {
     const scanIndicator = document.getElementById('scan-indicator');
     if (isProcessing && scanIndicator && scanIndicator.textContent === 'Memproses...') {
@@ -371,8 +371,8 @@ function resetProcessingState() {
     }
 }
 
-// Check for stuck processing every 5 seconds
-setInterval(resetProcessingState, 5000);
+// Check for stuck processing every 10 seconds (reduced from 5)
+setInterval(resetProcessingState, 10000);
 
 // Auto-focus system
 function maintainFocus() {
@@ -745,7 +745,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 🎯 AUTOMATIC BARCODE SCANNING SYSTEM
     
-    // Maintain focus on barcode input at all times
+    // Maintain focus on barcode input (less aggressive)
     function ensureBarcodeInputFocus() {
         if (document.activeElement !== barcodeInput && !document.querySelector('.modal.show')) {
             barcodeInput.focus();
@@ -755,8 +755,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set initial focus
     barcodeInput.focus();
     
-    // Maintain focus every 500ms
-    setInterval(ensureBarcodeInputFocus, 500);
+    // Maintain focus every 2 seconds (reduced from 500ms)
+    setInterval(ensureBarcodeInputFocus, 2000);
     
     // Global keydown listener for automatic barcode detection
     document.addEventListener('keydown', function(e) {
@@ -799,7 +799,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Handle direct input to barcode field
+    // Handle direct input to barcode field (simplified)
     barcodeInput.addEventListener('input', function(e) {
         const value = e.target.value;
         
@@ -812,8 +812,16 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Handle rapid input (typical of barcode scanners)
-        handleBarcodeInput(value.slice(-1)); // Get last character
+        // Simple timeout-based processing
+        if (barcodeTimeout) {
+            clearTimeout(barcodeTimeout);
+        }
+        
+        barcodeTimeout = setTimeout(() => {
+            if (value.length >= MIN_BARCODE_LENGTH && !isProcessing) {
+                processAutomaticBarcode(value.trim());
+            }
+        }, 300); // Increased timeout for better stability
     });
     
     // Prevent form submission on Enter in barcode input
@@ -823,12 +831,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Re-focus when clicking anywhere on the page (except inputs/buttons)
+    // Re-focus when clicking on empty areas (less aggressive)
     document.addEventListener('click', function(e) {
-        if (!e.target.matches('input, button, select, textarea, .btn, .form-control, .modal *')) {
+        if (e.target === document.body || e.target.classList.contains('container')) {
             setTimeout(() => {
-                barcodeInput.focus();
-            }, 10);
+                if (!document.querySelector('.modal.show')) {
+                    barcodeInput.focus();
+                }
+            }, 100);
         }
     });
     
@@ -863,16 +873,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // Get recent pick from localStorage
             const recentPick = localStorage.getItem('recent_sumber_dana_' + paymentMethod);
             
-            // Update options based on payment method
+            // Update options based on payment method - use accounts from kas bank report
             if (paymentMethod === 'cash') {
                 sumberDana.innerHTML = `
-                    <option value="1101">Kas Kecil (1101)</option>
-                    <option value="101">Kas (101)</option>
+                    <option value="112">Kas (112)</option>
+                    <option value="113">Kas Kecil (113)</option>
                 `;
             } else if (paymentMethod === 'transfer') {
                 sumberDana.innerHTML = `
-                    <option value="1102">Kas di Bank (1102)</option>
-                    <option value="102">Bank (102)</option>
+                    <option value="111">Kas Bank (111)</option>
                 `;
             }
             

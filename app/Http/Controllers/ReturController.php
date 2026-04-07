@@ -145,7 +145,7 @@ class ReturController extends Controller
             $cashOrReceivable = $request->kompensasi === 'credit' ? '1102' : '1101';
             if ($totalNominal > 0) {
                 $journal->post($tanggalRetur, 'sale_return', (int)$retur->id, 'Retur Penjualan', [
-                    ['code' => '4101', 'debit' => (float)$totalNominal, 'credit' => 0],
+                    ['code' => '41', 'debit' => (float)$totalNominal, 'credit' => 0],
                     ['code' => $cashOrReceivable, 'debit' => 0, 'credit' => (float)$totalNominal],
                 ]);
             }
@@ -232,7 +232,7 @@ class ReturController extends Controller
                 $cashOrReceivable = $retur->kompensasi === 'credit' ? '1102' : '1101';
                 if ($totalNominal > 0) {
                     $journal->post($tanggal, 'sale_return', (int)$retur->id, 'Retur Penjualan', [
-                        ['code' => '4101', 'debit' => (float)$totalNominal, 'credit' => 0],
+                        ['code' => '41', 'debit' => (float)$totalNominal, 'credit' => 0],
                         ['code' => $cashOrReceivable, 'debit' => 0, 'credit' => (float)$totalNominal],
                     ]);
                 }
@@ -380,7 +380,7 @@ class ReturController extends Controller
                 $cashOrReceivable = $retur->kompensasi === 'credit' ? '1102' : '1101';
                 if ($totalNominal > 0) {
                     $journal->post($tanggal, 'sale_return', (int)$retur->id, 'Retur Penjualan', [
-                        ['code' => '4101', 'debit' => (float)$totalNominal, 'credit' => 0],
+                        ['code' => '41', 'debit' => (float)$totalNominal, 'credit' => 0],
                         ['code' => $cashOrReceivable, 'debit' => 0, 'credit' => (float)$totalNominal],
                     ]);
                 }

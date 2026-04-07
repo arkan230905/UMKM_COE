@@ -324,18 +324,8 @@ class PembelianController extends Controller
         // 1. Penjualan (cash/transfer masuk ke kas/bank)
         $penjualanMasuk = DB::table('penjualans')
             ->whereBetween('tanggal', [$startDate, $endDate])
-            ->where(function($query) use ($akun) {
-                $query->where(function($subQuery) use ($akun) {
-                    // Jika akun adalah Kas (mengandung kata 'kas')
-                    if (stripos($akun->nama_akun, 'kas') !== false) {
-                        $subQuery->where('payment_method', 'cash');
-                    }
-                    // Jika akun adalah Bank (mengandung kata 'bank')
-                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
-                        $subQuery->where('payment_method', 'transfer');
-                    }
-                });
-            })
+            ->where('coa_id', $akun->id) // Gunakan coa_id untuk penjualan
+            ->whereIn('payment_method', ['cash', 'transfer']) // Hanya cash dan transfer yang menambah saldo
             ->sum('total');
             
         $totalMasuk += (float) ($penjualanMasuk ?? 0);
@@ -391,18 +381,8 @@ class PembelianController extends Controller
         // 1. Pembelian (cash/transfer keluar dari kas/bank ke persediaan)
         $pembelianKeluar = DB::table('pembelians')
             ->whereBetween('tanggal', [$startDate, $endDate])
-            ->where(function($query) use ($akun) {
-                $query->where(function($subQuery) use ($akun) {
-                    // Jika akun adalah Kas (mengandung kata 'kas')
-                    if (stripos($akun->nama_akun, 'kas') !== false) {
-                        $subQuery->where('payment_method', 'cash');
-                    }
-                    // Jika akun adalah Bank (mengandung kata 'bank')
-                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
-                        $subQuery->where('payment_method', 'transfer');
-                    }
-                });
-            })
+            ->where('bank_id', $akun->id) // Gunakan bank_id yang spesifik
+            ->whereIn('payment_method', ['cash', 'transfer']) // Hanya cash dan transfer yang mengurangi saldo
             ->sum('total_harga');
             
         $totalKeluar += (float) ($pembelianKeluar ?? 0);
@@ -556,12 +536,19 @@ class PembelianController extends Controller
                 if ($request->bank_id === 'credit') {
                     $paymentMethod = 'credit';
                 } else {
-                    // Cek apakah ini kas atau bank
+                    // Cek apakah ini kas atau bank berdasarkan nama akun
                     $bank = \App\Models\Coa::find($request->bank_id);
-                    if ($bank && (str_contains(strtolower($bank->nama_akun), 'kas') || str_starts_with($bank->kode_akun, '1'))) {
-                        $paymentMethod = 'cash';
-                    } else {
-                        $paymentMethod = 'transfer';
+                    if ($bank) {
+                        $namaAkun = strtolower($bank->nama_akun);
+                        // Jika nama akun mengandung 'kas' tapi BUKAN 'kas bank' atau 'kas di bank'
+                        if (str_contains($namaAkun, 'kas') && 
+                            !str_contains($namaAkun, 'bank') && 
+                            !str_contains($namaAkun, 'di bank')) {
+                            $paymentMethod = 'cash';
+                        } else {
+                            // Untuk semua akun bank (termasuk 'kas bank', 'kas di bank', dll)
+                            $paymentMethod = 'transfer';
+                        }
                     }
                 }
                     
@@ -775,7 +762,7 @@ class PembelianController extends Controller
 
                                 // FIFO layer IN + movement untuk bahan pendukung
                                 $unitStr = (string)($bahanPendukung->satuanRelation->nama ?? $bahanPendukung->satuan ?? 'pcs');
-                                $stock->addLayer('support', $bahanPendukung->id, $qtyInBaseUnit, $unitStr, $pricePerBaseUnit, 'purchase', $pembelian->id, $request->tanggal);
+                                $stock->addLayerWithManualConversion('support', $bahanPendukung->id, $qtyInBaseUnit, $unitStr, $pricePerBaseUnit, 'purchase', $pembelian->id, $request->tanggal);
                             }
                     }
 
@@ -798,6 +785,8 @@ class PembelianController extends Controller
                     'total_bahan_pendukung' => $totalBahanPendukung,
                 ]);
 
+                // DISABLED: Let PembelianObserver handle journal creation to avoid conflicts
+                /*
                 // Create journal entries for accounting integration
                 try {
                     \App\Services\JournalService::createJournalFromPembelian($pembelian);
@@ -811,6 +800,7 @@ class PembelianController extends Controller
                     ]);
                     // Don't fail the transaction, just log the error
                 }
+                */
 
                 return redirect()->route('transaksi.pembelian.index')
                     ->with('success', 'Data pembelian berhasil disimpan!');

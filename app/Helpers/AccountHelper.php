@@ -10,9 +10,9 @@ class AccountHelper
     /**
      * Kode akun Kas & Bank yang digunakan di seluruh sistem
      * STANDAR: Gunakan ini di SEMUA controller untuk konsistensi
-     * Updated to match actual COA and accounts data
+     * Updated to match kas bank report accounts (111, 112, 113, 118)
      */
-    const KAS_BANK_CODES = ['1101', '1102', '1110', '1120', '101', '102'];
+    const KAS_BANK_CODES = ['111', '112', '113', '118'];
     
     /**
      * Get semua akun Kas & Bank
@@ -21,50 +21,49 @@ class AccountHelper
      */
     public static function getKasBankAccounts()
     {
-        // Prioritas: Cari COA yang mengandung kata 'kas' atau 'bank'
-        $coaAccounts = Coa::where('tipe_akun', 'Asset')
-            ->where(function($query) {
-                $query->where('nama_akun', 'like', '%kas%')
-                      ->orWhere('nama_akun', 'like', '%bank%');
-            })
-            ->orderBy('kode_akun')
-            ->get();
+        // Gunakan akun yang sesuai dengan laporan kas dan bank
+        $kasBankCodes = ['111', '112', '113']; // Sesuai dengan laporan kas bank
         
-        // Jika ada COA dengan nama kas/bank, gunakan itu
-        if ($coaAccounts->count() > 0) {
-            return $coaAccounts;
-        }
-        
-        // Fallback: cari COA dengan kode yang umum untuk kas/bank
-        $fallbackCoas = Coa::whereIn('kode_akun', ['1101', '1102', '1110', '1120', '101', '102'])
+        $coaAccounts = Coa::whereIn('kode_akun', $kasBankCodes)
             ->where('tipe_akun', 'Asset')
             ->orderBy('kode_akun')
             ->get();
+        
+        // Jika tidak ada, fallback ke pencarian berdasarkan nama
+        if ($coaAccounts->count() === 0) {
+            $coaAccounts = Coa::where('tipe_akun', 'Asset')
+                ->where(function($query) {
+                    $query->where('nama_akun', 'like', '%kas%')
+                          ->orWhere('nama_akun', 'like', '%bank%');
+                })
+                ->orderBy('kode_akun')
+                ->get();
+        }
             
-        return $fallbackCoas;
+        return $coaAccounts;
     }
     
     /**
-     * Get akun Kas saja (1110, 101)
+     * Get akun Kas saja (112, 113)
      * 
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public static function getKasAccounts()
     {
-        return Coa::whereIn('kode_akun', ['1110', '101'])
+        return Coa::whereIn('kode_akun', ['112', '113'])
             ->where('tipe_akun', 'Asset')
             ->orderBy('kode_akun')
             ->get();
     }
     
     /**
-     * Get akun Bank saja (1120, 102)
+     * Get akun Bank saja (111)
      * 
      * @return \Illuminate\Database\Eloquent\Collection
      */
     public static function getBankAccounts()
     {
-        return Coa::whereIn('kode_akun', ['1120', '102'])
+        return Coa::whereIn('kode_akun', ['111'])
             ->where('tipe_akun', 'Asset')
             ->orderBy('kode_akun')
             ->get();
@@ -78,21 +77,23 @@ class AccountHelper
      */
     public static function isKasBankAccount($kodeAkun)
     {
-        return in_array($kodeAkun, ['1101', '1102', '1110', '1120', '101', '102']);
+        return in_array($kodeAkun, ['111', '112', '113', '118']);
     }
     
     /**
-     * Get nama kategori akun (Kas/Bank/Lainnya)
+     * Get nama kategori akun (Kas/Bank/Piutang/Lainnya)
      * 
      * @param string $kodeAkun
      * @return string
      */
     public static function getAccountCategory($kodeAkun)
     {
-        if (in_array($kodeAkun, ['1101', '1110', '101'])) {
+        if (in_array($kodeAkun, ['112', '113'])) {
             return 'Kas';
-        } elseif (in_array($kodeAkun, ['1102', '1120', '102'])) {
+        } elseif ($kodeAkun === '111') {
             return 'Bank';
+        } elseif ($kodeAkun === '118') {
+            return 'Piutang';
         }
         return 'Lainnya';
     }

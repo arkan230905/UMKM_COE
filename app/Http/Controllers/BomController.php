@@ -13,6 +13,7 @@ use App\Models\Pegawai;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Artisan;
 use App\Services\BomCalculationService;
 
 class BomController extends Controller
@@ -703,6 +704,26 @@ class BomController extends Controller
         }
         
         return $keterangan;
+    }
+
+    /**
+     * Update BOM prices from stock report and return fresh data
+     */
+    public function updateBomFromStockReport($produkId)
+    {
+        try {
+            // Run the improved BOM fix command that uses actual stock report prices
+            Artisan::call('bom:fix-from-actual-stock');
+            
+            // Return fresh calculated data
+            return $this->calculateBomCost($produkId);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating BOM from stock report: ' . $e->getMessage()
+            ]);
+        }
     }
 
     /**

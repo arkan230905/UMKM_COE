@@ -145,7 +145,20 @@ class LaporanController extends Controller
      */
     private function ensureAccurateInitialStock($tipe, $itemId, $item)
     {
+        // DISABLED: This function was causing data corruption by overwriting correct initial stock
+        // The function kept resetting Ayam Kampung from 40 ekor back to 13 ekor based on master data
+        // All initial stock should be managed manually or through proper data migration
+        return;
+        
         if (!$item) {
+            return;
+        }
+        
+        // IMPORTANT: Do NOT create initial stock for products
+        // Products should only get stock from production, not initial stock
+        // The 'stok' field in produks table represents current stock level,
+        // but this should come from production movements, not initial_stock entries
+        if ($tipe == 'product') {
             return;
         }
         

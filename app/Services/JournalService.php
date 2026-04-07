@@ -231,11 +231,11 @@ class JournalService
                         $creditAccount = $bankCoa->kode_akun;
                         $creditMemo = 'Pembayaran tunai pembelian via ' . $bankCoa->nama_akun;
                     } else {
-                        $creditAccount = '1101'; // Kas
+                        $creditAccount = '112'; // Kas
                         $creditMemo = 'Pembayaran tunai pembelian';
                     }
                 } else {
-                    $creditAccount = '1101'; // Kas
+                    $creditAccount = '112'; // Kas
                     $creditMemo = 'Pembayaran tunai pembelian';
                 }
                 break;
@@ -305,22 +305,22 @@ class JournalService
         
         switch ($penjualan->payment_method) {
             case 'cash':
-                $debitAccount = '1101'; // Kas
+                $debitAccount = '112'; // Kas
                 $debitMemo = 'Penerimaan tunai penjualan';
                 break;
                 
             case 'transfer':
-                $debitAccount = '1102'; // Kas di Bank
+                $debitAccount = '111'; // Kas Bank
                 $debitMemo = 'Penerimaan transfer penjualan';
                 break;
                 
             case 'credit':
-                $debitAccount = '1103'; // Piutang Usaha
+                $debitAccount = '118'; // Piutang (sesuai COA yang ada)
                 $debitMemo = 'Penjualan kredit';
                 break;
                 
             default:
-                $debitAccount = '1101'; // Default to Kas
+                $debitAccount = '112'; // Default to Kas
                 $debitMemo = 'Penerimaan penjualan';
         }
         
@@ -333,7 +333,7 @@ class JournalService
         
         // Create credit entry for sales revenue
         $lines[] = [
-            'code' => '4101', // Pendapatan Penjualan
+            'code' => '41', // Penjualan (menggunakan akun yang sudah ada)
             'debit' => 0,
             'credit' => $totalAmount,
             'memo' => 'Pendapatan penjualan produk'
@@ -414,7 +414,7 @@ class JournalService
         
         // Credit: Kas/Bank account (mengurangi kas/bank)
         $akunKas = $pelunasanUtang->akunKas;
-        $kodeAkun = $akunKas ? $akunKas->kode_akun : '1101'; // Default ke Kas jika tidak ada
+        $kodeAkun = $akunKas ? $akunKas->kode_akun : '112'; // Default ke Kas jika tidak ada
         
         $lines[] = [
             'code' => $kodeAkun,
