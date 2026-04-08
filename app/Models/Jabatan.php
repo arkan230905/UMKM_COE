@@ -11,10 +11,12 @@ class Jabatan extends Model
         'kode_jabatan', 
         'nama', 
         'kategori',
-        'gaji', 
+        'kategori_id',
+        'gaji_pokok', 
         'tunjangan', 
         'asuransi', 
-        'tarif', 
+        'tarif',
+        'tarif_per_jam', 
         'deskripsi'
     ];
 

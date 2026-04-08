@@ -97,7 +97,7 @@
                             </td>
                             <td class="fw-semibold">Rp {{ number_format($row->tunjangan,0,',','.') }}</td>
                             <td class="fw-semibold">Rp {{ number_format($row->asuransi,0,',','.') }}</td>
-                            <td class="fw-semibold">Rp {{ number_format($row->gaji,0,',','.') }}</td>
+                            <td class="fw-semibold">Rp {{ number_format($row->gaji_pokok,0,',','.') }}</td>
                             <td class="fw-semibold">Rp {{ number_format($row->tarif,0,',','.') }}</td>
                             <td class="text-center">
                                 <a href="{{ route('master-data.kualifikasi-tenaga-kerja.edit',$row->id) }}" class="btn btn-outline-primary btn-sm me-1">
