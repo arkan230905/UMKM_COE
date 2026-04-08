@@ -60,7 +60,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Gaji Pokok (Rp)</label>
-                        <input type="text" name="gaji" class="form-control money-input" value="{{ old('gaji',$jabatan->gaji) }}">
+                        <input type="text" name="gaji" class="form-control money-input" value="{{ old('gaji',$jabatan->gaji_pokok) }}">
                         <small class="text-dark money-hint"></small>
                         <small class="text-dark d-block">BTKTL: gaji per bulan. BTKL: isi 0.</small>
                     </div>

@@ -161,7 +161,7 @@ function loadJabatanByKategori() {
     document.getElementById('preview-box').style.display = 'none';
     
     if (kategoriId) {
-        fetch(`/api/jabatan/by-kategori?kategori_id=${kategoriId}`)
+        fetch(`/master-data/api/jabatan/by-kategori?kategori_id=${kategoriId}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -220,8 +220,8 @@ function loadJabatanDetail() {
 // Update preview box
 function updatePreview() {
     if (jabatanData.nama) {
-        const kategoriOption = document.querySelector(`#kategori_id option[value="${jabatanData.kategori_id}"]`);
-        const kategoriName = kategoriOption ? kategoriOption.textContent.split(' - ')[0] : '-';
+        const kategoriSelect = document.getElementById('kategori_id');
+        const kategoriName = kategoriSelect.selectedIndex > 0 ? kategoriSelect.options[kategoriSelect.selectedIndex].textContent.trim().split(' - ')[0] : '-';
         
         document.getElementById('pv-kategori').textContent = kategoriName;
         document.getElementById('pv-tunjangan').textContent = formatNumber(jabatanData.tunjangan);

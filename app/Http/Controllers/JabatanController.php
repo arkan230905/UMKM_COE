@@ -60,8 +60,12 @@ class JabatanController extends Controller
         // Normalisasi nilai default
         $data['tunjangan'] = $data['tunjangan'] ?? 0;
         $data['asuransi'] = $data['asuransi'] ?? 0;
-        $data['gaji'] = $data['gaji'] ?? 0;
         $data['tarif'] = $data['tarif'] ?? 0;
+
+        // Map form fields to correct DB columns
+        $data['gaji_pokok'] = $data['gaji'] ?? 0;
+        $data['tarif_per_jam'] = $data['tarif'];
+        unset($data['gaji']);
         
         // Generate kode_jabatan
         $prefix = strtoupper(substr($data['kategori'], 0, 2));
@@ -114,8 +118,12 @@ class JabatanController extends Controller
 
         $data['tunjangan'] = $data['tunjangan'] ?? 0;
         $data['asuransi'] = $data['asuransi'] ?? 0;
-        $data['gaji'] = $data['gaji'] ?? 0;
         $data['tarif'] = $data['tarif'] ?? 0;
+
+        // Map form fields to correct DB columns
+        $data['gaji_pokok'] = $data['gaji'] ?? 0;
+        $data['tarif_per_jam'] = $data['tarif'];
+        unset($data['gaji']);
 
         // Update kode_jabatan jika kategori berubah
         if ($jabatan->kategori !== $data['kategori']) {
@@ -217,8 +225,17 @@ class JabatanController extends Controller
             ], 400);
         }
 
-        $jabatans = Jabatan::where('kategori_id', $kategoriId)
-            ->select('id', 'nama', 'gaji_pokok', 'tarif_per_jam', 'tunjangan', 'asuransi')
+        // Lookup KategoriPegawai name, then match jabatans by kategori string
+        $kategoriPegawai = \App\Models\KategoriPegawai::find($kategoriId);
+        if (!$kategoriPegawai) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
+
+        $kategoriName = strtolower($kategoriPegawai->nama); // 'btkl' or 'btktl'
+
+        $jabatans = Jabatan::where('kategori', $kategoriName)
+            ->orWhere('kategori_id', $kategoriId)
+            ->select('id', 'nama', 'kategori', 'kategori_id', 'gaji_pokok', 'tarif_per_jam', 'tunjangan', 'asuransi')
             ->orderBy('nama')
             ->get();
 

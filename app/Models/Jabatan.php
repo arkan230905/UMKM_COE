@@ -10,10 +10,12 @@ class Jabatan extends Model
     protected $fillable = [
         'kode_jabatan', 
         'nama', 
+        'kategori',
         'kategori_id',
         'gaji_pokok', 
         'tunjangan', 
         'asuransi', 
+        'tarif',
         'tarif_per_jam', 
         'deskripsi'
     ];
