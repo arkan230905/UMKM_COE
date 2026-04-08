@@ -217,8 +217,8 @@ class JabatanController extends Controller
             ], 400);
         }
 
-        $jabatans = Jabatan::where('kategori_id', $kategoriId)
-            ->select('id', 'nama', 'gaji_pokok', 'tarif_per_jam', 'tunjangan', 'asuransi')
+        $jabatans = Jabatan::where('kategori', $kategoriId)
+            ->select('id', 'nama', 'kategori', 'gaji', 'tarif', 'tunjangan', 'asuransi')
             ->orderBy('nama')
             ->get();
 
@@ -242,8 +242,7 @@ class JabatanController extends Controller
             ], 400);
         }
 
-        $jabatan = Jabatan::with('kategori')
-            ->select('id', 'nama', 'kategori_id', 'gaji_pokok', 'tarif_per_jam', 'tunjangan', 'asuransi')
+        $jabatan = Jabatan::select('id', 'nama', 'kategori', 'gaji', 'tarif', 'tunjangan', 'asuransi')
             ->find($jabatanId);
 
         if (!$jabatan) {

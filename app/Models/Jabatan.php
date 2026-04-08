@@ -10,8 +10,8 @@ class Jabatan extends Model
     protected $fillable = [
         'kode_jabatan', 
         'nama', 
-        'kategori_id',
-        'gaji_pokok', 
+        'kategori',
+        'gaji', 
         'tunjangan', 
         'asuransi', 
         'tarif', 
@@ -19,18 +19,18 @@ class Jabatan extends Model
     ];
 
     protected $casts = [
-        'gaji_pokok' => 'decimal:2',
+        'gaji' => 'decimal:2',
         'tunjangan' => 'decimal:2',
         'asuransi' => 'decimal:2',
         'tarif' => 'decimal:2',
     ];
 
     /**
-     * Relasi ke kategori pegawai
+     * Get kategori name (accessor for backward compat)
      */
-    public function kategori(): BelongsTo
+    public function getKategoriIdAttribute()
     {
-        return $this->belongsTo(KategoriPegawai::class, 'kategori_id');
+        return $this->kategori;
     }
 
     /**
@@ -38,7 +38,7 @@ class Jabatan extends Model
      */
     public function pegawais(): HasMany
     {
-        return $this->hasMany(Pegawai::class, 'jabatan_id');
+        return $this->hasMany(Pegawai::class, 'jabatan', 'nama');
     }
 
     /**
@@ -52,10 +52,18 @@ class Jabatan extends Model
     /**
      * Calculate automatic BTKL rate based on tariff and employee count
      */
+    /**
+     * Get gaji_pokok (alias for gaji column)
+     */
+    public function getGajiPokokAttribute()
+    {
+        return $this->gaji;
+    }
+
     public function getTarifBtklAttribute()
     {
         $jumlahPegawai = $this->pegawais()->count();
-        return $this->tarif_per_jam * $jumlahPegawai;
+        return $this->tarif * $jumlahPegawai;
     }
 
     /**
@@ -72,16 +80,14 @@ class Jabatan extends Model
     public function scopeSearch($query, $search)
     {
         return $query->where('nama', 'like', "%{$search}%")
-                    ->orWhereHas('kategori', function($q) use ($search) {
-                        $q->where('nama', 'like', "%{$search}%");
-                    });
+                    ->orWhere('kategori', 'like', "%{$search}%");
     }
 
     /**
      * Scope untuk filter by kategori
      */
-    public function scopeByKategori($query, $kategoriId)
+    public function scopeByKategori($query, $kategori)
     {
-        return $query->where('kategori_id', $kategoriId);
+        return $query->where('kategori', $kategori);
     }
 }

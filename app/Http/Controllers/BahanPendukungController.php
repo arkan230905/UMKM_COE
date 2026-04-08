@@ -110,7 +110,7 @@ class BahanPendukungController extends Controller
     {
         $satuans = Satuan::orderBy('nama')->get();
         $kategoris = KategoriBahanPendukung::active()->orderBy('nama')->get();
-        $coas = \App\Models\Coa::orderBy('nama_akun')->get();
+        $coas = \App\Models\Coa::all();
         return view('master-data.bahan-pendukung.create', compact('satuans', 'kategoris', 'coas'));
     }
 
@@ -174,7 +174,7 @@ class BahanPendukungController extends Controller
     {
         $satuans = Satuan::orderBy('nama')->get();
         $kategoris = KategoriBahanPendukung::active()->orderBy('nama')->get();
-        $coas = \App\Models\Coa::orderBy('nama_akun')->get();
+        $coas = \App\Models\Coa::all();
         return view('master-data.bahan-pendukung.edit', compact('bahanPendukung', 'satuans', 'kategoris', 'coas'));
     }
 

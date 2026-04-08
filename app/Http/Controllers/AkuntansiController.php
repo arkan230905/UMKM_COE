@@ -183,7 +183,7 @@ class AkuntansiController extends Controller
         $accountCode = $request->get('account_code'); // Ubah ke account_code (kode_akun)
 
         // Ambil semua COA yang ada di sistem
-        $coas = \App\Models\Coa::orderBy('kode_akun')->get();
+        $coas = \App\Models\Coa::all();
         $lines = collect();
         $saldoAwal = 0.0;
         $from = null;
@@ -308,7 +308,7 @@ class AkuntansiController extends Controller
         $periods = CoaPeriod::orderBy('periode', 'desc')->get();
 
         // Get semua COA
-        $coas = Coa::orderBy('kode_akun')->get();
+        $coas = Coa::all();
         
         $totals = [];
         foreach ($coas as $coa) {
@@ -421,7 +421,7 @@ class AkuntansiController extends Controller
         $periode = $request->get('periode', now()->format('Y-m'));
         
         // Get all COA accounts
-        $allCoa = \App\Models\Coa::orderBy('kode_akun')->get();
+        $allCoa = \App\Models\Coa::all();
         
         // Calculate balances for each account from journal entries
         $calculateBalance = function($coa) use ($periode) {

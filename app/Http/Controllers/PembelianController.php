@@ -815,7 +815,7 @@ class PembelianController extends Controller
         $produks = Produk::orderBy('nama_produk')->get();
         $bahanBakus = BahanBaku::with('satuan')->orderBy('nama_bahan')->get();
         $bahanPendukungs = BahanPendukung::with('satuan')->orderBy('nama_bahan')->get();
-        $coas = Coa::orderBy('nama_akun')->get();
+        $coas = Coa::all();
         
         // Filter COA untuk kas/bank
         $kasbank = $coas->filter(function($coa) {
