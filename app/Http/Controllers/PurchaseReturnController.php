@@ -14,13 +14,13 @@ class PurchaseReturnController extends Controller
 {
     public function create(Pembelian $pembelian)
     {
-        $pembelian->load(['details.bahanBaku']);
+        $pembelian->load(['details.bahanBaku', 'details.bahanPendukung']);
 
         $existingReturns = PurchaseReturnItem::whereHas('purchaseReturn', function ($q) use ($pembelian) {
             $q->where('pembelian_id', $pembelian->id);
         })->get()->groupBy('pembelian_detail_id');
 
-        return view('transaksi.pembelian.retur-create', [
+        return view('transaksi.retur-pembelian.create', [
             'pembelian' => $pembelian,
             'existingReturns' => $existingReturns,
         ]);
@@ -32,11 +32,16 @@ class PurchaseReturnController extends Controller
 
         $data = $request->validate([
             'return_date' => 'required|date',
-            'reason' => 'nullable|string|max:255',
+            'alasan' => 'nullable|string|max:255',
+            'jenis_retur' => 'required|string|in:tukar_barang,refund',
             'notes' => 'nullable|string',
             'items' => 'required|array',
             'items.*.pembelian_detail_id' => 'required|integer|exists:pembelian_details,id',
             'items.*.quantity' => 'nullable|numeric|min:0',
+        ], [
+            'jenis_retur.required' => 'Jenis retur harus dipilih.',
+            'jenis_retur.in' => 'Jenis retur yang dipilih tidak valid.',
+            'alasan.max' => 'Alasan retur tidak boleh lebih dari 255 karakter.',
         ]);
 
         // Filter item dengan quantity > 0
@@ -52,7 +57,8 @@ class PurchaseReturnController extends Controller
             $return = PurchaseReturn::create([
                 'pembelian_id' => $pembelian->id,
                 'return_date' => $data['return_date'],
-                'reason' => $data['reason'] ?? null,
+                'reason' => $data['alasan'] ?? null,
+                'jenis_retur' => $data['jenis_retur'],
                 'notes' => $data['notes'] ?? null,
                 'status' => 'pending',
             ]);

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Pembelians\Pages;
 use App\Filament\Resources\Pembelians\PembelianResource;
 use App\Models\StockMovement;
 use App\Models\StockLayer;
+use App\Models\PembelianDetailKonversi;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Notifications\Notification;
 
@@ -20,6 +21,15 @@ class CreatePembelian extends CreateRecord
                 $jumlah = (float) ($detail['jumlah'] ?? 0);
                 $harga_satuan = (float) ($detail['harga_satuan'] ?? 0);
                 $detail['subtotal'] = $jumlah * $harga_satuan;
+                
+                // Store additional conversions separately for processing after create
+                if (isset($detail['additional_conversions']) && !empty($detail['additional_conversions'])) {
+                    $this->additionalConversions[$index] = $detail['additional_conversions'];
+                    unset($detail['additional_conversions']);
+                }
+                
+                // Remove UI-only fields
+                unset($detail['enable_additional_conversion']);
             }
         }
         
@@ -43,6 +53,8 @@ class CreatePembelian extends CreateRecord
         return $data;
     }
 
+    protected $additionalConversions = [];
+
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
@@ -56,6 +68,41 @@ class CreatePembelian extends CreateRecord
     protected function afterCreate(): void
     {
         $pembelian = $this->record;
+        
+        // Save additional conversions
+        $this->saveAdditionalConversions($pembelian);
+        
+        // Update stock for each detail
+        foreach ($pembelian->pembelianDetails as $detail) {
+            $this->updateStock($detail);
+        }
+    }
+
+    /**
+     * Save additional conversions to database
+     */
+    protected function saveAdditionalConversions($pembelian): void
+    {
+        if (empty($this->additionalConversions)) return;
+        
+        foreach ($pembelian->pembelianDetails as $index => $detail) {
+            if (!isset($this->additionalConversions[$index])) continue;
+            
+            $conversions = $this->additionalConversions[$index];
+            
+            foreach ($conversions as $conversion) {
+                if (empty($conversion['satuan_id']) || empty($conversion['jumlah_konversi'])) continue;
+                
+                \App\Models\PembelianDetailKonversi::create([
+                    'pembelian_detail_id' => $detail->id,
+                    'satuan_id' => $conversion['satuan_id'],
+                    'satuan_nama' => $conversion['satuan_nama'] ?? '',
+                    'jumlah_konversi' => $conversion['jumlah_konversi'],
+                    'faktor_konversi_manual' => $conversion['faktor_konversi_manual'] ?? null,
+                    'keterangan' => $conversion['keterangan'] ?? null,
+                ]);
+            }
+        }
         
         // Update stock for each detail
         foreach ($pembelian->pembelianDetails as $detail) {

@@ -329,21 +329,55 @@ class RealTimeStockService
      */
     private function updateModelStock($itemType, $itemId)
     {
+        // Calculate total stock from stock layers
         $totalStock = StockLayer::where('item_type', $itemType)
             ->where('item_id', $itemId)
             ->sum('remaining_qty');
         
+        // Calculate weighted average price from stock layers
+        $layers = StockLayer::where('item_type', $itemType)
+            ->where('item_id', $itemId)
+            ->get();
+        
+        $totalValue = 0;
+        $totalQty = 0;
+        
+        foreach ($layers as $layer) {
+            $layerValue = $layer->remaining_qty * $layer->unit_cost;
+            $totalValue += $layerValue;
+            $totalQty += $layer->remaining_qty;
+        }
+        
+        $averagePrice = $totalQty > 0 ? $totalValue / $totalQty : 0;
+        
+        // Update both stock quantity and average price in master data
         switch ($itemType) {
             case 'material':
-                BahanBaku::where('id', $itemId)->update(['stok' => $totalStock]);
+                BahanBaku::where('id', $itemId)->update([
+                    'stok' => $totalStock,
+                    'harga_satuan' => $averagePrice
+                ]);
                 break;
             case 'support':
-                BahanPendukung::where('id', $itemId)->update(['stok' => $totalStock]);
+                BahanPendukung::where('id', $itemId)->update([
+                    'stok' => $totalStock,
+                    'harga_satuan' => $averagePrice
+                ]);
                 break;
             case 'product':
-                Produk::where('id', $itemId)->update(['stok' => $totalStock]);
+                Produk::where('id', $itemId)->update([
+                    'stok' => $totalStock,
+                    'harga_satuan' => $averagePrice
+                ]);
                 break;
         }
+        
+        Log::info("Updated master data stock and price", [
+            'item_type' => $itemType,
+            'item_id' => $itemId,
+            'stock' => $totalStock,
+            'average_price' => $averagePrice
+        ]);
     }
     
     /**

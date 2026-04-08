@@ -78,14 +78,14 @@
                             <div class="text-success">{{ number_format($btklPerPcs, 0, ',', '.') }}</div>
                         </div>
                         <div class="col-6">
-                            <strong>Total BOP / jam</strong>
+                            <strong>Total BOP / produk</strong>
                             <div class="text-warning">{{ number_format($totalBopPerJam, 0, ',', '.') }}</div>
                         </div>
                     </div>
                     
                     <div class="row mb-3">
                         <div class="col-6">
-                            <strong>BOP / pcs</strong>
+                            <strong>BOP / produk</strong>
                             <div class="text-danger">{{ number_format($bopPerPcs, 0, ',', '.') }}</div>
                         </div>
                         <div class="col-6">
@@ -123,7 +123,7 @@
                                             </tr>
                                         @endforeach
                                         <tr class="table-primary fw-bold">
-                                            <td>Total BOP / jam</td>
+                                            <td>Total BOP / produk</td>
                                             <td class="text-end">{{ number_format($totalBopPerJam, 0, ',', '.') }}</td>
                                             <td></td>
                                         </tr>

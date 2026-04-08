@@ -30,14 +30,14 @@
 @endif
 
 @php
-    // Calculate variables
+    // Calculate variables using per-product basis
     $kapasitas = $bopProses->kapasitas_per_jam ?? 0;
-    $totalBop = $bopProses->total_bop_per_jam ?? 0;
+    $totalBopPerProduk = $bopProses->total_bop_per_jam ?? 0; // This now stores per-product total
     $btklPerJam = $bopProses->prosesProduksi->tarif_btkl ?? 0;
-    $btklPerPcs = $kapasitas > 0 ? $btklPerJam / $kapasitas : 0;
-    $bopPerPcs = $kapasitas > 0 ? $totalBop / $kapasitas : 0;
-    $biayaPerProduk = $btklPerPcs + $bopPerPcs;
-    $biayaPerJam = $btklPerJam + $totalBop;
+    $btklPerProduk = $kapasitas > 0 ? $btklPerJam / $kapasitas : 0;
+    
+    // Biaya per produk = BTKL per produk + Total BOP per produk
+    $biayaPerProduk = $btklPerProduk + $totalBopPerProduk;
     
     $komponenBop = is_array($bopProses->komponen_bop) ? $bopProses->komponen_bop : json_decode($bopProses->komponen_bop, true);
     if (!is_array($komponenBop)) $komponenBop = [];
@@ -70,8 +70,8 @@
             </div>
             <div class="col-md-3">
                 <div class="d-flex justify-content-between border-bottom pb-2">
-                    <strong>BTKL / pcs:</strong>
-                    <span>Rp {{ number_format($btklPerPcs, 0, ',', '.') }}</span>
+                    <strong>BTKL / produk:</strong>
+                    <span>Rp {{ number_format($btklPerProduk, 0, ',', '.') }}</span>
                 </div>
             </div>
         </div>
@@ -89,7 +89,7 @@
                     <tr>
                         <th style="width: 5%">#</th>
                         <th style="width: 45%">Komponen</th>
-                        <th style="width: 20%" class="text-end">Rp / Jam</th>
+                        <th style="width: 20%" class="text-end">Rp / produk</th>
                         <th style="width: 30%">Keterangan</th>
                     </tr>
                 </thead>
@@ -108,8 +108,8 @@
                 </tbody>
                 <tfoot class="table-secondary">
                     <tr class="fw-bold">
-                        <td colspan="2">Total BOP / jam</td>
-                        <td class="text-end">Rp {{ number_format($totalBop, 0, ',', '.') }}</td>
+                        <td colspan="2">Total BOP / produk</td>
+                        <td class="text-end">Rp {{ number_format($totalBopPerProduk, 0, ',', '.') }}</td>
                         <td></td>
                     </tr>
                 </tfoot>
@@ -132,28 +132,16 @@
     <div class="col-12">
         <h5 class="mb-3">Ringkasan Biaya</h5>
         <div class="row g-2">
-            <div class="col-md-3">
+            <div class="col-md-6">
                 <div class="d-flex justify-content-between border-bottom pb-2">
-                    <strong>Total BOP / jam:</strong>
-                    <span class="text-primary">Rp {{ number_format($totalBop, 0, ',', '.') }}</span>
+                    <strong>Total BOP / produk:</strong>
+                    <span class="text-primary">Rp {{ number_format($totalBopPerProduk, 0, ',', '.') }}</span>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="d-flex justify-content-between border-bottom pb-2">
-                    <strong>BOP / pcs:</strong>
-                    <span class="text-success">Rp {{ number_format($bopPerPcs, 0, ',', '.') }}</span>
-                </div>
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-6">
                 <div class="d-flex justify-content-between border-bottom pb-2">
                     <strong>Biaya / produk:</strong>
-                    <span class="text-warning">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</span>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="d-flex justify-content-between border-bottom pb-2">
-                    <strong>Biaya / jam:</strong>
-                    <span class="text-danger">Rp {{ number_format($biayaPerJam, 0, ',', '.') }}</span>
+                    <span class="text-success">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</span>
                 </div>
             </div>
         </div>

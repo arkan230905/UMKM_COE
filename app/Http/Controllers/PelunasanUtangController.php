@@ -14,7 +14,7 @@ class PelunasanUtangController extends Controller
      */
     public function index(Request $request)
     {
-        $query = PelunasanUtang::with(['pembelian.vendor']);
+        $query = PelunasanUtang::with(['pembelian.vendor', 'pembelian.details.bahanBaku', 'pembelian.details.bahanPendukung', 'akunKas', 'coaPelunasan']);
         
         // Filter by kode transaksi
         if ($request->filled('kode_transaksi')) {
@@ -81,7 +81,13 @@ class PelunasanUtangController extends Controller
         // Get kas/bank accounts using helper for consistency
         $akunKas = \App\Helpers\AccountHelper::getKasBankAccounts();
         
-        return view('transaksi.pelunasan-utang.create', compact('pembayarans', 'akunKas'));
+        // Get COA hutang/kewajiban yang relevan untuk pelunasan
+        $coaPelunasan = \App\Models\Coa::where('tipe_akun', 'Liability')
+            ->whereIn('kode_akun', ['21', '210', '211', '212']) // Hutang, Hutang Usaha, Hutang Gaji, PPN Keluaran
+            ->orderBy('kode_akun')
+            ->get();
+        
+        return view('transaksi.pelunasan-utang.create', compact('pembayarans', 'akunKas', 'coaPelunasan'));
     }
 
     /**
@@ -94,6 +100,7 @@ class PelunasanUtangController extends Controller
             'tanggal' => 'required|date',
             'jumlah' => 'required|numeric|min:1',
             'akun_kas_id' => 'required|exists:coas,id',
+            'coa_pelunasan_id' => 'required|exists:coas,id',
             'keterangan' => 'nullable|string|max:255'
         ]);
 
@@ -117,6 +124,7 @@ class PelunasanUtangController extends Controller
                 'pembelian_id' => $pembelian->id,
                 'tanggal' => $request->tanggal,
                 'akun_kas_id' => $request->akun_kas_id,
+                'coa_pelunasan_id' => $request->coa_pelunasan_id,
                 'jumlah' => $request->jumlah,
                 'keterangan' => $request->keterangan,
                 'status' => 'lunas',
@@ -124,6 +132,9 @@ class PelunasanUtangController extends Controller
             ]);
             
             $pelunasan->save();
+            
+            // Load relasi yang diperlukan untuk jurnal
+            $pelunasan->load(['coaPelunasan', 'akunKas', 'pembelian.vendor']);
             
             // Create journal entry for kas/bank integration
             \App\Services\JournalService::createJournalFromPelunasanUtang($pelunasan);
@@ -153,7 +164,9 @@ class PelunasanUtangController extends Controller
     {
         $pelunasanUtang = PelunasanUtang::with([
             'pembelian.vendor', 
-            'pembelian.pembelianDetails.bahanBaku'
+            'pembelian.pembelianDetails.bahanBaku',
+            'akunKas',
+            'coaPelunasan'
         ])->findOrFail($id);
         
         return view('transaksi.pelunasan-utang.show', compact('pelunasanUtang'));
@@ -166,7 +179,9 @@ class PelunasanUtangController extends Controller
     {
         $pelunasanUtang = PelunasanUtang::with([
             'pembelian.vendor', 
-            'pembelian.pembelianDetails.bahanBaku'
+            'pembelian.pembelianDetails.bahanBaku',
+            'akunKas',
+            'coaPelunasan'
         ])->findOrFail($id);
         
         return view('transaksi.pelunasan-utang.print', compact('pelunasanUtang'));

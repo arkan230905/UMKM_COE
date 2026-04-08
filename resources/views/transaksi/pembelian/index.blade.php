@@ -1,268 +1,540 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+/* Action Layout Style - Detail on Left, Others on Right */
+.action-layout {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    min-height: 60px;
+}
+
+.action-left {
+    display: flex;
+    align-items: center;
+}
+
+.action-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.action-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.btn-minimal {
+    font-size: 0.75rem !important;
+    text-decoration: none !important;
+    padding: 6px 12px !important;
+    border-radius: 0.35rem;
+    transition: all 0.2s ease;
+    cursor: pointer !important;
+    border: 2px solid;
+    background: white;
+    font-weight: 600;
+    white-space: nowrap;
+    width: 70px !important;
+    min-width: 70px !important;
+    max-width: 70px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+    text-align: center;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    box-sizing: border-box;
+    pointer-events: auto !important;
+    z-index: 1 !important;
+}
+
+.btn-minimal:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-minimal.btn-detail {
+    color: #10b981 !important;
+    border-color: #10b981 !important;
+    background: white !important;
+    width: 80px !important;
+    min-width: 80px !important;
+    max-width: 80px !important;
+}
+
+.btn-minimal.btn-detail:hover {
+    background: #d1fae5 !important;
+    border-color: #059669 !important;
+    color: #059669 !important;
+}
+
+.btn-minimal.btn-warning {
+    color: #f59e0b !important;
+    border-color: #f59e0b !important;
+    background: white !important;
+}
+
+.btn-minimal.btn-warning:hover {
+    background: #fef3c7 !important;
+    border-color: #d97706 !important;
+    color: #d97706 !important;
+}
+
+.btn-minimal.btn-info {
+    color: #06b6d4 !important;
+    border-color: #06b6d4 !important;
+    background: white !important;
+}
+
+.btn-minimal.btn-info:hover {
+    background: #cffafe !important;
+    border-color: #0891b2 !important;
+    color: #0891b2 !important;
+}
+
+.btn-minimal.btn-danger {
+    color: #ef4444 !important;
+    border-color: #ef4444 !important;
+    background: white !important;
+}
+
+.btn-minimal.btn-danger:hover {
+    background: #fee2e2 !important;
+    border-color: #dc2626 !important;
+    color: #dc2626 !important;
+}
+
+.btn-minimal.btn-jurnal {
+    color: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    background: white !important;
+}
+
+.btn-minimal.btn-jurnal:hover {
+    background: #dbeafe !important;
+    border-color: #2563eb !important;
+    color: #2563eb !important;
+}
+</style>
+@endpush
+
 @section('title', 'Daftar Pembelian')
 
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
-            <i class="fas fa-shopping-cart me-2"></i>Daftar Pembelian
+            @if(request('tab') == 'retur')
+                <i class="fas fa-undo me-2"></i>Retur Pembelian
+            @else
+                <i class="fas fa-shopping-cart me-2"></i>Daftar Pembelian
+            @endif
         </h2>
-        <a href="{{ route('transaksi.pembelian.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Tambah Pembelian
-        </a>
+        @if(request('tab') != 'retur')
+            <a href="{{ route('transaksi.pembelian.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Tambah Pembelian
+            </a>
+        @endif
     </div>
 
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    <!-- Filter Section -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h6 class="mb-0">
-                <i class="fas fa-filter me-2"></i>Filter Transaksi
-            </h6>
-        </div>
-        <div class="card-body">
-            <form method="GET" action="{{ route('transaksi.pembelian.index') }}">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">Nomor Transaksi</label>
-                        <input type="text" name="nomor_transaksi" class="form-control" 
-                               value="{{ request('nomor_transaksi') }}" placeholder="Cari nomor transaksi...">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Tanggal Mulai</label>
-                        <input type="date" name="tanggal_mulai" class="form-control" 
-                               value="{{ request('tanggal_mulai') }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Tanggal Selesai</label>
-                        <input type="date" name="tanggal_selesai" class="form-control" 
-                               value="{{ request('tanggal_selesai') }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Vendor</label>
-                        <select name="vendor_id" class="form-select">
-                            <option value="">Semua Vendor</option>
-                            @foreach($vendors ?? [] as $vendor)
-                                <option value="{{ $vendor->id }}" {{ request('vendor_id') == $vendor->id ? 'selected' : '' }}>
-                                    {{ $vendor->nama_vendor }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Metode Pembayaran</label>
-                        <select name="payment_method" class="form-select">
-                            <option value="">Semua Metode</option>
-                            <option value="cash" {{ request('payment_method') == 'cash' ? 'selected' : '' }}>Tunai</option>
-                            <option value="transfer" {{ request('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer</option>
-                            <option value="credit" {{ request('payment_method') == 'credit' ? 'selected' : '' }}>Kredit</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
-                            <option value="">Semua Status</option>
-                            <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
-                            <option value="belum_lunas" {{ request('status') == 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
-                        </select>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search me-2"></i>Filter
-                            </button>
-                            <a href="{{ route('transaksi.pembelian.index') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-redo me-2"></i>Reset
+    <!-- Content based on selected tab -->
+    @if(request('tab') == 'retur')
+        <!-- Retur Content -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-list me-2"></i>
+                        <div class="inline-tabs">
+                            <a href="{{ route('transaksi.pembelian.index', ['tab' => 'pembelian']) }}" 
+                               class="inline-tab {{ request('tab', 'pembelian') == 'pembelian' ? 'active' : '' }}">
+                                Riwayat Pembelian
+                            </a>
+                            <span class="tab-separator">|</span>
+                            <a href="{{ route('transaksi.pembelian.index', ['tab' => 'retur']) }}" 
+                               class="inline-tab {{ request('tab') == 'retur' ? 'active' : '' }}">
+                                Retur
                             </a>
                         </div>
                     </div>
                 </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">
-                <i class="fas fa-list me-2"></i>Riwayat Pembelian
-                @if(request()->hasAny(['nomor_transaksi', 'tanggal_mulai', 'tanggal_selesai', 'vendor_id', 'payment_method', 'status']))
-                    <small class="text-muted">(Filter Aktif)</small>
-                @endif
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="text-center" style="width: 50px">No</th>
-                            <th>Nomor Transaksi</th>
-                            <th>Nomor Faktur</th>
-                            <th>Tanggal</th>
-                            <th>Vendor</th>
-                            <th>Item Dibeli</th>
-                            <th>Satuan Pembelian</th>
-                            <th>Pembayaran</th>
-                            <th>Total Harga</th>
-                            <th>Status Retur</th>
-                            <th class="text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($pembelians as $key => $pembelian)
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <td class="text-center">{{ $key + 1 }}</td>
-                                <td style="color: #000; font-weight: bold;">{{ $pembelian->nomor_pembelian ?? 'KOSONG' }}</td>
-                                <td>
-                                    @if($pembelian->nomor_faktur)
-                                        <span class="badge bg-info">{{ $pembelian->nomor_faktur }}</span>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                                <td>{{ $pembelian->tanggal->format('d-m-Y') }}</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
-                                            <i class="fas fa-store text-primary"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-semibold">{{ $pembelian->vendor->nama_vendor ?? '-' }}</div>
-                                            <small class="text-muted">ID: {{ $pembelian->vendor->id ?? '-' }}</small>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    @if($pembelian->details && $pembelian->details->count() > 0)
-                                        <small>
-                                        @foreach($pembelian->details as $detail)
-                                            <div>
-                                                @if($detail->bahan_baku_id && $detail->bahanBaku)
-                                                    • <span class="badge bg-primary">BB</span> {{ $detail->bahanBaku->nama_bahan }} 
-                                                    ({{ number_format($detail->jumlah, 0, '.', '') }} {{ $detail->satuan_nama }})
-                                                @elseif($detail->bahan_pendukung_id && $detail->bahanPendukung)
-                                                    • <span class="badge bg-info">BP</span> {{ $detail->bahanPendukung->nama_bahan }} 
-                                                    ({{ number_format($detail->jumlah, 0, '.', '') }} {{ $detail->satuan_nama }})
-                                                @else
-                                                    • -
-                                                @endif
-                                                @ Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}
-                                                = <strong>Rp {{ number_format(($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0), 0, ',', '.') }}</strong>
-                                                @if($detail->faktor_konversi && abs($detail->faktor_konversi - 1) > 0.001)
-                                                    <br><span class="text-muted" style="font-size: 10px;">
-                                                        Stok: +{{ number_format($detail->jumlah_satuan_utama, 1, ',', '.') }} {{ $detail->satuan_utama }}
-                                                    </span>
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                        </small>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    @if($pembelian->details && $pembelian->details->count() > 0)
-                                        <small>
-                                        @foreach($pembelian->details as $detail)
-                                            <div>
-                                                <span class="badge bg-secondary">{{ $detail->satuan_nama }}</span>
-                                            </div>
-                                        @endforeach
-                                        </small>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    @php
-                                        $paymentMethod = $pembelian->payment_method ?? 'cash';
-                                        if ($paymentMethod === 'credit') {
-                                            $badgeClass = 'bg-warning';
-                                            $paymentText = 'Kredit';
-                                        } elseif ($paymentMethod === 'transfer') {
-                                            $badgeClass = 'bg-info';
-                                            $paymentText = 'Transfer';
-                                        } else {
-                                            $badgeClass = 'bg-success';
-                                            $paymentText = 'Tunai';
-                                        }
-                                    @endphp
-                                    <span class="badge {{ $badgeClass }}">
-                                        {{ $paymentText }}
-                                    </span>
-                                </td>
-                                <td>
-                                    @php
-                                        // Hitung total dari details untuk konsistensi
-                                        $totalPembelian = 0;
-                                        if ($pembelian->details && $pembelian->details->count() > 0) {
-                                            $totalPembelian = $pembelian->details->sum(function($detail) {
-                                                return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
-                                            });
-                                        }
-                                        
-                                        // Jika ada total_harga di database, gunakan yang lebih besar
-                                        if ($pembelian->total_harga > $totalPembelian) {
-                                            $totalPembelian = $pembelian->total_harga;
-                                        }
-                                        
-                                        // Cek apakah ada biaya tambahan (shipping/tax)
-                                        $hasAdditionalCosts = ($pembelian->biaya_kirim ?? 0) > 0 || ($pembelian->ppn_nominal ?? 0) > 0;
-                                    @endphp
-                                    
-                                    @if($hasAdditionalCosts)
-                                        <div class="small">
-                                            <div>Subtotal: <span class="fw-semibold">Rp {{ number_format($pembelian->subtotal ?? 0, 0, ',', '.') }}</span></div>
-                                            @if(($pembelian->biaya_kirim ?? 0) > 0)
-                                                <div>Biaya Kirim: <span class="text-info">Rp {{ number_format($pembelian->biaya_kirim, 0, ',', '.') }}</span></div>
-                                            @endif
-                                            @if(($pembelian->ppn_nominal ?? 0) > 0)
-                                                <div>PPN ({{ $pembelian->ppn_persen ?? 0 }}%): <span class="text-warning">Rp {{ number_format($pembelian->ppn_nominal, 0, ',', '.') }}</span></div>
-                                            @endif
-                                            <hr class="my-1">
-                                        </div>
-                                    @endif
-                                    
-                                    <span class="fw-semibold">Total: Rp {{ number_format($totalPembelian, 0, ',', '.') }}</span>
-                                </td>
-                                <td>
-                                    @php
-                                        // Cek apakah ada retur untuk pembelian ini
-                                        $hasRetur = \App\Models\PurchaseReturn::where('pembelian_id', $pembelian->id)->exists();
-                                    @endphp
-                                    @if($hasRetur)
-                                        <span class="badge bg-danger">Ada Retur</span>
-                                    @else
-                                        <span class="badge bg-success">Tidak Ada Retur</span>
-                                    @endif
-                                </td>
-                                <td class="text-center">
-                                    <a href="{{ route('transaksi.pembelian.show', $pembelian->id) }}" 
-                                       class="btn btn-outline-primary" 
-                                       title="Lihat Detail Pembelian {{ $pembelian->nomor_pembelian }}">
-                                        <i class="fas fa-eye"></i> Detail
-                                    </a>
-                                </td>
+                                <th class="text-center" style="width: 50px">No</th>
+                                <th>Tanggal Retur</th>
+                                <th>No Retur</th>
+                                <th>Vendor</th>
+                                <th>Jenis Retur</th>
+                                <th>Status</th>
+                                <th class="text-center" style="width: 100px">Aksi</th>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="11" class="text-center py-4">
-                                    <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
-                                    <p class="text-muted">Belum ada data pembelian</p>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @forelse ($returs as $key => $retur)
+                                <tr>
+                                    <td class="text-center">{{ $key + 1 }}</td>
+                                    <td>{{ $retur->return_date->format('d-m-Y') }}</td>
+                                    <td>{{ $retur->return_number ?? '-' }}</td>
+                                    <td>
+                                        @if($retur->pembelian && $retur->pembelian->vendor)
+                                            {{ $retur->pembelian->vendor->nama_vendor }}
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($retur->jenis_retur === 'tukar_barang')
+                                            Tukar Barang
+                                        @elseif($retur->jenis_retur === 'refund')
+                                            Refund (Pengembalian Uang)
+                                        @else
+                                            {{ $retur->jenis_retur ?? 'Tidak Diketahui' }}
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($retur->status === 'completed')
+                                            <span class="text-success fw-semibold">Selesai</span>
+                                        @elseif($retur->status === 'approved')
+                                            <span class="text-info fw-semibold">Disetujui</span>
+                                        @else
+                                            <span class="text-warning fw-semibold">Pending</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-flex gap-2 justify-content-center">
+                                            <a href="{{ route('transaksi.retur-pembelian.show', $retur->id) }}" 
+                                               class="btn btn-sm btn-success" title="Detail Retur">
+                                                <i class="fas fa-eye me-1"></i>Detail
+                                            </a>
+                                            @if($retur->status === 'pending')
+                                                <form action="{{ route('transaksi.retur-pembelian.proses', $retur->id) }}" 
+                                                      method="POST" class="d-inline" 
+                                                      onsubmit="return confirm('Yakin mau menyelesaikan retur ini?')">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-primary" title="Proses Retur">
+                                                        <i class="fas fa-check me-1"></i>Proses
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">
+                                        <i class="fas fa-undo fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted">Belum ada data retur pembelian</p>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
+    @else
+        <!-- Pembelian Content (Default) -->
+        <!-- Filter Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-filter me-2"></i>Filter Transaksi
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ route('transaksi.pembelian.index') }}">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label">Nomor Transaksi</label>
+                            <input type="text" name="nomor_transaksi" class="form-control" 
+                                   value="{{ request('nomor_transaksi') }}" placeholder="Cari nomor transaksi...">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tanggal Mulai</label>
+                            <input type="date" name="tanggal_mulai" class="form-control" 
+                                   value="{{ request('tanggal_mulai') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tanggal Selesai</label>
+                            <input type="date" name="tanggal_selesai" class="form-control" 
+                                   value="{{ request('tanggal_selesai') }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Vendor</label>
+                            <select name="vendor_id" class="form-select">
+                                <option value="">Semua Vendor</option>
+                                @foreach($vendors ?? [] as $vendor)
+                                    <option value="{{ $vendor->id }}" {{ request('vendor_id') == $vendor->id ? 'selected' : '' }}>
+                                        {{ $vendor->nama_vendor }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Metode Pembayaran</label>
+                            <select name="payment_method" class="form-select">
+                                <option value="">Semua Metode</option>
+                                <option value="cash" {{ request('payment_method') == 'cash' ? 'selected' : '' }}>Tunai</option>
+                                <option value="transfer" {{ request('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer</option>
+                                <option value="credit" {{ request('payment_method') == 'credit' ? 'selected' : '' }}>Kredit</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="">Semua Status</option>
+                                <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
+                                <option value="belum_lunas" {{ request('status') == 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Status Pembayaran</label>
+                            <select name="status_pembayaran" class="form-select">
+                                <option value="">Semua Status Pembayaran</option>
+                                <option value="lunas" {{ request('status_pembayaran') == 'lunas' ? 'selected' : '' }}>Lunas</option>
+                                <option value="belum_lunas" {{ request('status_pembayaran') == 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-2"></i>Filter
+                                </button>
+                                <a href="{{ route('transaksi.pembelian.index') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-redo me-2"></i>Reset
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-list me-2"></i>
+                        <div class="inline-tabs">
+                            <a href="{{ route('transaksi.pembelian.index', ['tab' => 'pembelian']) }}" 
+                               class="inline-tab {{ request('tab', 'pembelian') == 'pembelian' ? 'active' : '' }}">
+                                Riwayat Pembelian
+                            </a>
+                            <span class="tab-separator">|</span>
+                            <a href="{{ route('transaksi.pembelian.index', ['tab' => 'retur']) }}" 
+                               class="inline-tab {{ request('tab') == 'retur' ? 'active' : '' }}">
+                                Retur
+                            </a>
+                        </div>
+                        @if(request()->hasAny(['nomor_transaksi', 'tanggal_mulai', 'tanggal_selesai', 'vendor_id', 'payment_method', 'status', 'status_pembayaran']))
+                            <small class="text-white-50 ms-3">(Filter Aktif)</small>
+                        @endif
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-center" style="width: 50px">No</th>
+                                <th>Nomor Transaksi</th>
+                                <th>Nomor Faktur</th>
+                                <th>Tanggal</th>
+                                <th>Vendor</th>
+                                <th>Item Dibeli</th>
+                                <th>Satuan Pembelian</th>
+                                <th>Pembayaran</th>
+                                <th>Status Pembayaran</th>
+                                <th>Total Harga</th>
+                                <th>Status Retur</th>
+                                <th class="text-center" style="width: 200px">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($pembelians as $key => $pembelian)
+                                <tr>
+                                    <td class="text-center">{{ $key + 1 }}</td>
+                                    <td style="color: #000; font-weight: bold;">{{ $pembelian->nomor_pembelian ?? 'KOSONG' }}</td>
+                                    <td>
+                                        @if($pembelian->nomor_faktur)
+                                            {{ $pembelian->nomor_faktur }}
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ $pembelian->tanggal->format('d-m-Y') }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+                                                <i class="fas fa-store text-primary"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">{{ $pembelian->vendor->nama_vendor ?? '-' }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if($pembelian->details && $pembelian->details->count() > 0)
+                                            @foreach($pembelian->details as $detail)
+                                                <div class="mb-1">
+                                                    @if($detail->bahan_baku_id && $detail->bahanBaku)
+                                                        BB - {{ $detail->bahanBaku->nama_bahan }}
+                                                    @elseif($detail->bahan_pendukung_id && $detail->bahanPendukung)
+                                                        BP - {{ $detail->bahanPendukung->nama_bahan }}
+                                                    @else
+                                                        <span class="text-muted">Item tidak diketahui</span>
+                                                    @endif
+                                                </div>
+                                            @endforeach
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($pembelian->details && $pembelian->details->count() > 0)
+                                            <small>
+                                            @foreach($pembelian->details as $detail)
+                                                <div>
+                                                    {{ $detail->satuan_nama }}
+                                                </div>
+                                            @endforeach
+                                            </small>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @php
+                                            $paymentMethod = $pembelian->payment_method ?? 'cash';
+                                            if ($paymentMethod === 'credit') {
+                                                $paymentText = 'Kredit';
+                                            } elseif ($paymentMethod === 'transfer') {
+                                                $paymentText = 'Transfer';
+                                            } else {
+                                                $paymentText = 'Tunai';
+                                            }
+                                        @endphp
+                                        {{ $paymentText }}
+                                    </td>
+                                    <td>
+                                        @php
+                                            $statusPembayaran = $pembelian->status_pembayaran;
+                                        @endphp
+                                        @if($statusPembayaran === 'Lunas')
+                                            <span class="text-success fw-semibold">Lunas</span>
+                                        @else
+                                            <span class="text-warning fw-semibold">Belum Lunas</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-end fw-semibold">
+                                        Rp {{ number_format($pembelian->total_harga ?? 0, 0, ',', '.') }}
+                                    </td>
+                                    <td>
+                                        @php
+                                            // Cek apakah ada retur untuk pembelian ini
+                                            $hasRetur = \App\Models\PurchaseReturn::where('pembelian_id', $pembelian->id)->exists();
+                                        @endphp
+                                        @if($hasRetur)
+                                            Ada Retur
+                                        @else
+                                            Tidak Ada Retur
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="action-layout">
+                                            <div class="action-left">
+                                                <a href="{{ route('transaksi.pembelian.show', $pembelian->id) }}" class="btn-minimal btn-detail" title="Detail Transaksi">
+                                                    Detail
+                                                </a>
+                                            </div>
+                                            <div class="action-right">
+                                                <div class="action-row">
+                                                    <a href="{{ route('transaksi.pembelian.edit', $pembelian->id) }}" class="btn-minimal btn-warning" title="Edit Transaksi">
+                                                        Edit
+                                                    </a>
+                                                    <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'purchase', 'ref_id' => $pembelian->id]) }}" class="btn-minimal btn-jurnal" title="Lihat Jurnal">
+                                                        Jurnal
+                                                    </a>
+                                                </div>
+                                                <div class="action-row">
+                                                    <a href="{{ route('transaksi.retur-pembelian.create', ['pembelian_id' => $pembelian->id]) }}" class="btn-minimal btn-info" title="Proses Retur">
+                                                        Retur
+                                                    </a>
+                                                    <form action="{{ route('transaksi.pembelian.destroy', $pembelian->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn-minimal btn-danger" title="Hapus Transaksi">
+                                                            Hapus
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="12" class="text-center py-4">
+                                        <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                                        <p class="text-muted">Belum ada data pembelian</p>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
+
+@push('styles')
+<style>
+.inline-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.inline-tab {
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 0.25rem 0;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.inline-tab:hover {
+    color: rgba(255, 255, 255, 0.75);
+    text-decoration: none;
+}
+
+.inline-tab.active {
+    color: white;
+    border-bottom-color: white;
+    font-weight: 600;
+}
+
+.tab-separator {
+    color: rgba(255, 255, 255, 0.3);
+    font-weight: 300;
+    margin: 0 0.25rem;
+}
+</style>
+@endpush
 @endsection

@@ -21,6 +21,7 @@ class PembelianDetail extends Model
         'harga_satuan',
         'subtotal',
         'faktor_konversi',
+        'jumlah_satuan_utama',
     ];
 
     protected $casts = [
@@ -28,9 +29,10 @@ class PembelianDetail extends Model
         'harga_satuan' => 'float',
         'subtotal' => 'float',
         'faktor_konversi' => 'decimal:4',
+        'jumlah_satuan_utama' => 'decimal:4',
     ];
 
-    protected $appends = ['nama_bahan', 'tipe_bahan', 'jumlah_satuan_utama', 'satuan_utama', 'satuan_nama'];
+    protected $appends = ['nama_bahan', 'tipe_bahan', 'satuan_utama', 'satuan_nama'];
 
     /**
      * Relasi ke Pembelian
@@ -73,6 +75,14 @@ class PembelianDetail extends Model
     }
 
     /**
+     * Relasi ke konversi tambahan (alias)
+     */
+    public function additionalConversions()
+    {
+        return $this->hasMany(PembelianDetailKonversi::class, 'pembelian_detail_id');
+    }
+
+    /**
      * Alias untuk bahanBaku (untuk backward compatibility)
      */
     public function bahan_baku()
@@ -110,9 +120,16 @@ class PembelianDetail extends Model
     
     /**
      * Get jumlah dalam satuan utama (untuk keperluan stok)
+     * Prioritas: 1. Manual input from DB field, 2. Calculated from faktor_konversi
      */
     public function getJumlahSatuanUtamaAttribute()
     {
+        // Check if the field exists in database and has a value
+        if (isset($this->attributes['jumlah_satuan_utama']) && $this->attributes['jumlah_satuan_utama'] !== null) {
+            return (float) $this->attributes['jumlah_satuan_utama'];
+        }
+        
+        // Fallback to calculated value
         return $this->jumlah * ($this->faktor_konversi ?? 1);
     }
     
@@ -121,9 +138,20 @@ class PembelianDetail extends Model
      */
     public function getSatuanNamaAttribute()
     {
+        // Try to get satuan name from relationship first
         if ($this->satuanRelation) {
             return $this->satuanRelation->nama;
         }
+        
+        // If relationship fails, try to find satuan manually
+        if ($this->satuan) {
+            $satuan = \App\Models\Satuan::find($this->satuan);
+            if ($satuan) {
+                return $satuan->nama;
+            }
+        }
+        
+        // Fallback to raw satuan value or default
         return $this->satuan ?? 'unit';
     }
     

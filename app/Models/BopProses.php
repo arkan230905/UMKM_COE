@@ -76,12 +76,9 @@ class BopProses extends Model
                 $model->kapasitas_per_jam = $model->prosesProduksi->kapasitas_per_jam;
             }
 
-            // Auto-calculate BOP per unit
-            if ($model->kapasitas_per_jam > 0) {
-                $model->bop_per_unit = $model->total_bop_per_jam / $model->kapasitas_per_jam;
-            } else {
-                $model->bop_per_unit = 0;
-            }
+            // Auto-calculate BOP per unit using per-product basis
+            // BOP per unit is same as total BOP (no division by capacity)
+            $model->bop_per_unit = $totalBop;
         });
     }
 

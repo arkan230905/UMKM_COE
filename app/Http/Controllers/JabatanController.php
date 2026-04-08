@@ -259,8 +259,7 @@ class JabatanController extends Controller
             ], 400);
         }
 
-        $jabatan = Jabatan::with('kategori')
-            ->select('id', 'nama', 'kategori_id', 'gaji_pokok', 'tarif_per_jam', 'tunjangan', 'asuransi')
+        $jabatan = Jabatan::select('id', 'nama', 'kategori', 'gaji', 'tarif', 'tunjangan', 'asuransi')
             ->find($jabatanId);
 
         if (!$jabatan) {

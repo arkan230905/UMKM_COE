@@ -51,6 +51,9 @@ class Pembelian extends Model
      */
     protected static function booted()
     {
+        // DISABLED: Conflicting with PembelianObserver and PembelianController
+        // Multiple systems trying to create journals causes conflicts
+        /*
         static::created(function ($pembelian) {
             // Create automatic journal entries
             \App\Services\JournalService::createJournalFromPembelian($pembelian);
@@ -60,6 +63,7 @@ class Pembelian extends Model
             // Recreate journal entries if transaction is updated
             \App\Services\JournalService::createJournalFromPembelian($pembelian);
         });
+        */
         
         static::deleting(function ($pembelian) {
             // Delete related pembelian details
@@ -114,6 +118,14 @@ class Pembelian extends Model
     }
     
     /**
+     * Get the kas/bank account for the pembelian.
+     */
+    public function kasBank()
+    {
+        return $this->belongsTo(Coa::class, 'bank_id');
+    }
+    
+    /**
      * Get the pembelian details for the pembelian.
      */
     public function pembelianDetails()
@@ -154,7 +166,7 @@ class Pembelian extends Model
      */
     public function getStatusPembayaranAttribute()
     {
-        if ($this->payment_method === 'cash' || $this->status === 'lunas') {
+        if ($this->payment_method === 'cash' || $this->payment_method === 'transfer' || $this->status === 'lunas') {
             return 'Lunas';
         }
         return 'Belum Lunas';

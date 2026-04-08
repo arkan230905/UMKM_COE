@@ -31,7 +31,6 @@ class CoaController extends Controller
         // Get semua COA dengan urutan hierarkis (parent diikuti children)
         $coas = Coa::whereNotNull('nama_akun')
             ->where('nama_akun', '!=', '')
-            ->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)")
             ->get();
         
         // Get saldo untuk setiap COA berdasarkan periode
@@ -163,7 +162,14 @@ class CoaController extends Controller
 
     public function edit(Coa $coa)
     {
-        return view('master-data.coa.edit', compact('coa'));
+        $parentCoas = Coa::withoutGlobalScopes()
+            ->whereNotNull('nama_akun')
+            ->where('nama_akun', '!=', '')
+            ->where('id', '!=', $coa->id)
+            ->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)")
+            ->get(['id', 'kode_akun', 'nama_akun', 'tipe_akun', 'kategori_akun', 'saldo_normal']);
+
+        return view('master-data.coa.edit', compact('coa', 'parentCoas'));
     }
 
     public function update(Request $request, Coa $coa)

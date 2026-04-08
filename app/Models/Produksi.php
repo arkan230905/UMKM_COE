@@ -61,6 +61,11 @@ class Produksi extends Model
     {
         return $this->status === 'draft';
     }
+    
+    public function isSiapProduksi()
+    {
+        return $this->status === 'draft'; // Draft means ready for production in process costing
+    }
 
     public function isDalamProses()
     {
@@ -75,7 +80,7 @@ class Produksi extends Model
     public function getStatusBadgeAttribute()
     {
         return match($this->status) {
-            'draft' => '<span class="badge bg-secondary">Draft</span>',
+            'draft' => '<span class="badge bg-info">Siap Produksi</span>',
             'dalam_proses' => '<span class="badge bg-primary">Dalam Proses</span>',
             'selesai' => '<span class="badge bg-success">Selesai</span>',
             default => '<span class="badge bg-secondary">Unknown</span>',
@@ -85,6 +90,18 @@ class Produksi extends Model
     public function getProgressPercentageAttribute()
     {
         if ($this->total_proses == 0) return 0;
-        return round(($this->proses_selesai / $this->total_proses) * 100);
+        
+        // Hitung ulang proses selesai berdasarkan data aktual
+        $actualProsesSelesai = $this->proses()->where('status', 'selesai')->count();
+        
+        return round(($actualProsesSelesai / $this->total_proses) * 100);
+    }
+    
+    /**
+     * Get actual count of completed processes
+     */
+    public function getActualProsesSelesaiAttribute()
+    {
+        return $this->proses()->where('status', 'selesai')->count();
     }
 }
