@@ -351,10 +351,10 @@
                                 @foreach($pembelian->details as $detail)
                                     <div class="mb-1">
                                         @if($detail->bahan_baku_id && $detail->bahanBaku)
-                                            • <span class="badge bg-primary">BB</span> {{ $detail->bahanBaku->nama_bahan }} 
+                                            • BB {{ $detail->bahanBaku->nama_bahan }} 
                                             ({{ number_format($detail->jumlah, 0, '.', '') }} {{ $detail->bahanBaku->satuan->nama ?? 'unit' }})
                                         @elseif($detail->bahan_pendukung_id && $detail->bahanPendukung)
-                                            • <span class="badge bg-info">BP</span> {{ $detail->bahanPendukung->nama_bahan }} 
+                                            • BP {{ $detail->bahanPendukung->nama_bahan }} 
                                             ({{ number_format($detail->jumlah, 0, '.', '') }} {{ $detail->bahanPendukung->satuanRelation->nama ?? 'unit' }})
                                         @else
                                             • -

@@ -2282,6 +2282,158 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [ReturController::class, 'createPembelian'])->name('create');
             Route::post('/', [ReturController::class, 'storePembelian'])->name('store');
             Route::get('/{id}', [ReturController::class, 'showPembelian'])->name('show');
+            Route::get('debug-stock-pembelian/{pembelianId}', function($pembelianId) {
+    $pembelian = \App\Models\Pembelian::with(['details.bahanBaku', 'details.bahanPendukung'])->find($pembelianId);
+    
+    if (!$pembelian) {
+        return "Pembelian ID {$pembelianId} tidak ditemukan";
+    }
+    
+    $vendorName = $pembelian->vendor->nama_vendor ?? 'N/A';
+    
+    $output = "<h2>Debug Stock Update - Pembelian ID: {$pembelianId}</h2>";
+    $output .= "<p><strong>Tanggal:</strong> {$pembelian->tanggal}</p>";
+    $output .= "<p><strong>Vendor:</strong> {$vendorName}</p>";
+    $output .= "<hr>";
+    
+    foreach ($pembelian->details as $detail) {
+        $output .= "<div style='border: 1px solid #ccc; padding: 10px; margin: 10px 0;'>";
+        
+        if ($detail->bahan_baku_id) {
+            $bahan = $detail->bahanBaku;
+            $satuanUtama = $bahan->satuan->nama ?? 'KG';
+            $output .= "<h4>Bahan Baku: {$bahan->nama_bahan}</h4>";
+            $output .= "<p><strong>Stok Saat Ini:</strong> {$bahan->stok} {$satuanUtama}</p>";
+        } elseif ($detail->bahan_pendukung_id) {
+            $bahan = $detail->bahanPendukung;
+            $satuanUtama = $bahan->satuanRelation->nama ?? 'unit';
+            $output .= "<h4>Bahan Pendukung: {$bahan->nama_bahan}</h4>";
+            $output .= "<p><strong>Stok Saat Ini:</strong> {$bahan->stok} {$satuanUtama}</p>";
+        }
+        
+        $output .= "<p><strong>Qty Pembelian:</strong> {$detail->jumlah} {$detail->satuan_nama}</p>";
+        $output .= "<p><strong>Faktor Konversi:</strong> {$detail->faktor_konversi}</p>";
+        
+        // Calculate conversion
+        $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+        $output .= "<p><strong>Qty dalam Satuan Utama:</strong> {$qtyInBaseUnit}</p>";
+        
+        $output .= "<p><strong>Harga Satuan:</strong> Rp " . number_format($detail->harga_satuan, 0, ',', '.') . "</p>";
+        $output .= "<p><strong>Subtotal:</strong> Rp " . number_format($detail->subtotal, 0, ',', '.') . "</p>";
+        
+        $output .= "</div>";
+    }
+    
+    $output .= "<hr><p><a href='/manual-stock-update/{$pembelianId}' style='background: #007bff; color: white; padding: 10px; text-decoration: none; border-radius: 5px;'>🔧 Manual Stock Update</a></p>";
+    
+    return $output;
+});
+
+Route::get('test-stock-update', function() {
+    // Test stock update logic
+    $output = "<h2>🧪 Test Stock Update Logic</h2>";
+    
+    try {
+        // Find a bahan baku for testing
+        $bahanBaku = \App\Models\BahanBaku::first();
+        
+        if (!$bahanBaku) {
+            return "<p style='color: red;'>❌ Tidak ada bahan baku untuk testing</p>";
+        }
+        
+        $output .= "<h3>Testing dengan: {$bahanBaku->nama_bahan}</h3>";
+        
+        // Record original stock
+        $originalStock = $bahanBaku->stok;
+        $output .= "<p><strong>Stok Awal:</strong> {$originalStock}</p>";
+        
+        // Test adding stock
+        $testQty = 10.5;
+        $newStock = $originalStock + $testQty;
+        
+        $output .= "<p><strong>Menambah:</strong> {$testQty}</p>";
+        $output .= "<p><strong>Expected Stok Baru:</strong> {$newStock}</p>";
+        
+        // Method 1: Using model save()
+        $bahanBaku->stok = $newStock;
+        $saveResult = $bahanBaku->save();
+        
+        $output .= "<p><strong>Save Result:</strong> " . ($saveResult ? 'Success' : 'Failed') . "</p>";
+        
+        // Verify
+        $bahanBaku->refresh();
+        $actualStock = $bahanBaku->stok;
+        
+        $output .= "<p><strong>Actual Stok:</strong> {$actualStock}</p>";
+        
+        if (abs($actualStock - $newStock) < 0.0001) {
+            $output .= "<p style='color: green;'>✅ Stock update berhasil!</p>";
+        } else {
+            $output .= "<p style='color: red;'>❌ Stock update gagal!</p>";
+            
+            // Try direct DB update
+            $output .= "<p>Mencoba direct DB update...</p>";
+            
+            $dbResult = \DB::table('bahan_bakus')
+                ->where('id', $bahanBaku->id)
+                ->update(['stok' => $newStock]);
+            
+            $output .= "<p><strong>DB Update Result:</strong> {$dbResult} rows affected</p>";
+            
+            // Check again
+            $bahanBaku->refresh();
+            $finalStock = $bahanBaku->stok;
+            
+            $output .= "<p><strong>Final Stok:</strong> {$finalStock}</p>";
+            
+            if (abs($finalStock - $newStock) < 0.0001) {
+                $output .= "<p style='color: green;'>✅ DB update berhasil!</p>";
+            } else {
+                $output .= "<p style='color: red;'>❌ DB update juga gagal!</p>";
+            }
+        }
+        
+        // Restore original stock
+        $bahanBaku->stok = $originalStock;
+        $bahanBaku->save();
+        
+        $output .= "<p><em>Stok dikembalikan ke nilai awal: {$originalStock}</em></p>";
+        
+    } catch (\Exception $e) {
+        $output .= "<p style='color: red;'>❌ Error: " . $e->getMessage() . "</p>";
+    }
+    
+    return $output;
+});
+
+Route::get('manual-stock-update/{pembelianId}', function($pembelianId) {
+    $controller = new \App\Http\Controllers\PembelianController();
+    $result = $controller->manualStockUpdate($pembelianId);
+    
+    if ($result['success']) {
+        $output = "<h2 style='color: green;'>✅ Manual Stock Update Berhasil</h2>";
+        $output .= "<p><strong>Pembelian ID:</strong> {$pembelianId}</p>";
+        $output .= "<h3>Items Updated:</h3>";
+        
+        foreach ($result['updated_items'] as $item) {
+            $output .= "<div style='border: 1px solid #28a745; padding: 10px; margin: 10px 0; background: #d4edda;'>";
+            $output .= "<h4>{$item['type']}: {$item['nama']}</h4>";
+            $output .= "<p><strong>Qty Ditambahkan:</strong> {$item['qty_added']}</p>";
+            $output .= "<p><strong>Stok Lama:</strong> {$item['stok_lama']}</p>";
+            $output .= "<p><strong>Stok Baru:</strong> {$item['stok_baru']}</p>";
+            $output .= "</div>";
+        }
+    } else {
+        $output = "<h2 style='color: red;'>❌ Manual Stock Update Gagal</h2>";
+        $output .= "<p><strong>Error:</strong> {$result['message']}</p>";
+    }
+    
+    $output .= "<p><a href='/debug-stock-pembelian/{$pembelianId}' style='background: #6c757d; color: white; padding: 10px; text-decoration: none; border-radius: 5px;'>← Kembali ke Debug</a></p>";
+    
+    return $output;
+});
+
+Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
             Route::delete('/{id}', [ReturController::class, 'destroyPembelian'])->name('destroy');
         });
         

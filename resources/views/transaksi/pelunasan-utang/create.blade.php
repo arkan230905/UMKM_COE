@@ -100,7 +100,7 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label>Akun Pembayaran <span class="text-danger">*</span></label>
                             <select class="form-control @error('akun_kas_id') is-invalid @enderror" name="akun_kas_id" required>
@@ -121,7 +121,28 @@
                             </small>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>COA Pelunasan <span class="text-danger">*</span></label>
+                            <select class="form-control @error('coa_pelunasan_id') is-invalid @enderror" name="coa_pelunasan_id" required>
+                                <option value="">Pilih COA Pelunasan</option>
+                                @foreach($coaPelunasan as $coa)
+                                    <option value="{{ $coa->id }}" {{ old('coa_pelunasan_id') == $coa->id ? 'selected' : '' }}>
+                                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('coa_pelunasan_id')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+                            <small class="form-text text-muted">
+                                Pilih akun COA untuk pelunasan utang
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label>Jumlah Pembayaran <span class="text-danger">*</span></label>
                             <div class="input-group">

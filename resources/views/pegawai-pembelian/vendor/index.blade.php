@@ -38,9 +38,9 @@
                         <td><strong>{{ $vendor->nama_vendor }}</strong></td>
                         <td>
                             @if($vendor->kategori)
-                            <span class="badge bg-info">{{ $vendor->kategori }}</span>
+                                {{ $vendor->kategori }}
                             @else
-                            -
+                                -
                             @endif
                         </td>
                         <td>{{ $vendor->no_telp ?? '-' }}</td>

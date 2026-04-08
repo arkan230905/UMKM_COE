@@ -166,7 +166,7 @@ class Pembelian extends Model
      */
     public function getStatusPembayaranAttribute()
     {
-        if ($this->payment_method === 'cash' || $this->status === 'lunas') {
+        if ($this->payment_method === 'cash' || $this->payment_method === 'transfer' || $this->status === 'lunas') {
             return 'Lunas';
         }
         return 'Belum Lunas';
