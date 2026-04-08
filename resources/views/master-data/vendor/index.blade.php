@@ -66,7 +66,7 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge bg-info">{{ $vendor->kategori }}</span>
+                                    {{ $vendor->kategori }}
                                 </td>
                                 <td>{{ Str::limit($vendor->alamat, 50) ?? '-' }}</td>
                                 <td>{{ $vendor->no_telp ?? '-' }}</td>

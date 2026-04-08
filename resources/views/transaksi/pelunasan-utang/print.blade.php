@@ -108,7 +108,7 @@
     <div class="invoice-info">
         <div class="left">
             <h3>Kepada:</h3>
-            <p><strong>{{ $pelunasanUtang->pembelian->vendor->nama }}</strong></p>
+            <p><strong>{{ $pelunasanUtang->pembelian->vendor->nama_vendor }}</strong></p>
             <p>{{ $pelunasanUtang->pembelian->vendor->alamat }}</p>
             <p>Telp: {{ $pelunasanUtang->pembelian->vendor->telepon }}</p>
         </div>
@@ -130,7 +130,7 @@
         <tbody>
             <tr>
                 <td>1</td>
-                <td>Pelunasan untuk Pembelian {{ $pelunasanUtang->pembelian->kode_pembelian }}</td>
+                <td>Pelunasan untuk Pembelian {{ $pelunasanUtang->pembelian->nomor_pembelian }}</td>
                 <td class="text-right">{{ format_rupiah($pelunasanUtang->jumlah) }}</td>
             </tr>
             <tr>
@@ -143,7 +143,7 @@
     <div class="invoice-info">
         <div class="left">
             <h3>Pembayaran Melalui:</h3>
-            <p><strong>{{ $pelunasanUtang->akunKas->kode }} - {{ $pelunasanUtang->akunKas->nama }}</strong></p>
+            <p><strong>{{ $pelunasanUtang->akunKas->kode_akun }} - {{ $pelunasanUtang->akunKas->nama_akun }}</strong></p>
             
             @if($pelunasanUtang->keterangan)
             <div class="mt-4">

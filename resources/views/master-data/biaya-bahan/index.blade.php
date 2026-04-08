@@ -150,7 +150,7 @@
                                 <td class="text-center">
                                     @if($jumlahBahanBaku > 0)
                                         <div class="mb-1">
-                                            <span class="badge bg-info">{{ $jumlahBahanBaku }} item</span>
+                                            <span class="text-warning fw-semibold">{{ $jumlahBahanBaku }} item</span>
                                         </div>
                                         <small class="text-muted d-block">
                                             Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}
@@ -162,7 +162,7 @@
                                 <td class="text-center">
                                     @if($jumlahBahanPendukung > 0)
                                         <div class="mb-1">
-                                            <span class="badge bg-warning text-dark">{{ $jumlahBahanPendukung }} item</span>
+                                            <span class="text-info fw-semibold">{{ $jumlahBahanPendukung }} item</span>
                                         </div>
                                         <small class="text-muted d-block">
                                             Rp {{ number_format($totalBiayaBahanPendukung, 0, ',', '.') }}

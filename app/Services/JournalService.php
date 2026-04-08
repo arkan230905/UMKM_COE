@@ -404,9 +404,12 @@ class JournalService
         $lines = [];
         $amount = $pelunasanUtang->jumlah ?? 0;
         
-        // Debit: Utang Usaha (mengurangi utang)
+        // Debit: COA Pelunasan yang dipilih user (mengurangi utang)
+        $coaPelunasan = $pelunasanUtang->coaPelunasan;
+        $kodeCoaPelunasan = $coaPelunasan ? $coaPelunasan->kode_akun : '210'; // Default ke Hutang Usaha jika tidak ada
+        
         $lines[] = [
-            'code' => '2101', // Utang Usaha
+            'code' => $kodeCoaPelunasan,
             'debit' => $amount,
             'credit' => 0,
             'memo' => 'Pelunasan utang - ' . ($pelunasanUtang->pembelian->vendor->nama_vendor ?? 'Vendor')
