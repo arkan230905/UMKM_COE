@@ -830,48 +830,19 @@ class LaporanController extends Controller
                     $saldoPerItem[$m->item_id] = ($saldoPerItem[$m->item_id] ?? 0) + ($sign * (float)$m->qty);
                 }
                 
-                // Jika tidak ada filter tanggal, gunakan stok dari stock movements (real-time)
+                // Jika tidak ada filter tanggal, gunakan stok dari master table
                 if (!$from && !$to) {
-                    // Calculate stock from movements for real-time accuracy
                     if ($tipe == 'material') {
                         foreach ($materials as $m) {
-                            $stockIn = StockMovement::where('item_type', 'bahan_baku')
-                                ->where('item_id', $m->id)
-                                ->where('direction', 'in')
-                                ->sum('qty');
-                            $stockOut = StockMovement::where('item_type', 'bahan_baku')
-                                ->where('item_id', $m->id)
-                                ->where('direction', 'out')
-                                ->sum('qty');
-                            $saldoPerItem[$m->id] = $stockIn - $stockOut;
+                            $saldoPerItem[$m->id] = (float)($m->stok ?? 0);
                         }
                     } elseif ($tipe == 'product') {
                         foreach ($products as $p) {
-                            $stockIn = StockMovement::where('item_type', 'product')
-                                ->where('item_id', $p->id)
-                                ->where('direction', 'in')
-                                ->sum('qty');
-                            $stockOut = StockMovement::where('item_type', 'product')
-                                ->where('item_id', $p->id)
-                                ->where('direction', 'out')
-                                ->sum('qty');
-                            $saldoPerItem[$p->id] = $stockIn - $stockOut;
-                            
-                            // Also update the master data for consistency
-                            $p->stok = $stockIn - $stockOut;
-                            $p->save();
+                            $saldoPerItem[$p->id] = (float)($p->stok ?? 0);
                         }
                     } elseif ($tipe == 'bahan_pendukung') {
                         foreach ($bahanPendukungs as $bp) {
-                            $stockIn = StockMovement::where('item_type', 'bahan_pendukung')
-                                ->where('item_id', $bp->id)
-                                ->where('direction', 'in')
-                                ->sum('qty');
-                            $stockOut = StockMovement::where('item_type', 'bahan_pendukung')
-                                ->where('item_id', $bp->id)
-                                ->where('direction', 'out')
-                                ->sum('qty');
-                            $saldoPerItem[$bp->id] = $stockIn - $stockOut;
+                            $saldoPerItem[$bp->id] = (float)($bp->stok ?? 0);
                         }
                     }
                 }
