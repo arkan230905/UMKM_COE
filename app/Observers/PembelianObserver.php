@@ -25,6 +25,12 @@ class PembelianObserver
      */
     public function created(Pembelian $pembelian)
     {
+        // Load relationships to ensure COA data is available
+        $pembelian->load([
+            'details.bahanBaku.coaPembelian',
+            'details.bahanPendukung.coaPembelian'
+        ]);
+        
         $this->createPembelianJournal($pembelian);
     }
 
@@ -36,6 +42,12 @@ class PembelianObserver
      */
     public function updated(Pembelian $pembelian)
     {
+        // Load relationships to ensure COA data is available
+        $pembelian->load([
+            'details.bahanBaku.coaPembelian',
+            'details.bahanPendukung.coaPembelian'
+        ]);
+        
         // Delete old journal entries and create new ones
         $this->deletePembelianJournals($pembelian->id);
         $this->createPembelianJournal($pembelian);
@@ -77,85 +89,59 @@ class PembelianObserver
             }
 
             $entries = [];
-            $totalBahanBaku = 0;
-            $totalBahanPendukung = 0;
             
-            // Hitung total per tipe item
+            // Group entries by COA pembelian from master data
+            $coaGroups = [];
+            
             foreach($pembelian->details as $detail) {
                 $subtotal = ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
                 
-                if ($detail->tipe_item === 'bahan_baku') {
-                    $totalBahanBaku += $subtotal;
-                } elseif ($detail->tipe_item === 'bahan_pendukung') {
-                    $totalBahanPendukung += $subtotal;
+                // Get COA pembelian from master data
+                $coaPembelian = null;
+                if ($detail->bahanBaku && $detail->bahanBaku->coa_pembelian_id) {
+                    $coaPembelian = $detail->bahanBaku->coaPembelian;
+                } elseif ($detail->bahanPendukung && $detail->bahanPendukung->coa_pembelian_id) {
+                    $coaPembelian = $detail->bahanPendukung->coaPembelian;
                 }
-            }
-            
-            // Debit Persediaan Bahan Baku - gunakan akun persediaan yang sesuai berdasarkan item yang dibeli
-            if ($totalBahanBaku > 0) {
-                $coaBahanBaku = null;
                 
-                // Cari COA berdasarkan bahan baku yang dibeli
-                foreach($pembelian->details as $detail) {
-                    if ($detail->tipe_item === 'bahan_baku' && $detail->bahanBaku) {
-                        $namaBahan = strtolower($detail->bahanBaku->nama_bahan);
-                        
-                        // Map nama bahan ke COA yang sesuai
-                        $coaBahanBaku = \App\Models\Coa::where('tipe_akun', 'Asset')
-                            ->where('nama_akun', 'like', '%persediaan%' . str_replace(' ', '%', $namaBahan) . '%')
-                            ->first();
-                            
-                        if ($coaBahanBaku) {
-                            break; // Gunakan COA pertama yang ditemukan
-                        }
+                if ($coaPembelian) {
+                    $coaCode = $coaPembelian->kode_akun;
+                    if (!isset($coaGroups[$coaCode])) {
+                        $coaGroups[$coaCode] = [
+                            'coa' => $coaPembelian,
+                            'total' => 0,
+                            'items' => []
+                        ];
                     }
-                }
-                
-                // Fallback ke akun persediaan umum jika tidak ada yang spesifik
-                if (!$coaBahanBaku) {
-                    $coaBahanBaku = \App\Models\Coa::where('tipe_akun', 'Asset')
-                        ->where(function($query) {
-                            $query->where('kode_akun', 'like', '122%') // Persediaan bahan baku
-                                  ->orWhere('nama_akun', 'like', '%persediaan%ayam%');
-                        })
-                        ->first();
-                }
-                    
-                if ($coaBahanBaku) {
-                    $entries[] = [
-                        'code' => $coaBahanBaku->kode_akun, 
-                        'debit' => $totalBahanBaku, 
-                        'credit' => 0,
-                        'memo' => 'Pembelian ' . ($coaBahanBaku->nama_akun ?? 'Bahan Baku')
-                    ];
+                    $coaGroups[$coaCode]['total'] += $subtotal;
+                    $coaGroups[$coaCode]['items'][] = $detail->bahanBaku->nama_bahan ?? $detail->bahanPendukung->nama_bahan ?? 'Unknown';
+                } else {
+                    Log::warning('COA pembelian not found for item', [
+                        'pembelian_id' => $pembelian->id,
+                        'detail_id' => $detail->id,
+                        'bahan_baku_id' => $detail->bahan_baku_id,
+                        'bahan_pendukung_id' => $detail->bahan_pendukung_id
+                    ]);
                 }
             }
             
-            // Debit Persediaan Bahan Pendukung - gunakan akun yang sesuai
-            if ($totalBahanPendukung > 0) {
-                $coaBahanPendukung = \App\Models\Coa::where('tipe_akun', 'Asset')
-                    ->where(function($query) {
-                        $query->where('nama_akun', 'like', '%persediaan%barang%dalam%proses%')
-                              ->orWhere('kode_akun', '1105');
-                    })
-                    ->first();
-                    
-                if ($coaBahanPendukung) {
-                    $entries[] = [
-                        'code' => $coaBahanPendukung->kode_akun, 
-                        'debit' => $totalBahanPendukung, 
-                        'credit' => 0,
-                        'memo' => 'Pembelian ' . ($coaBahanPendukung->nama_akun ?? 'Bahan Pendukung')
-                    ];
-                }
+            // Create debit entries for each COA group
+            foreach ($coaGroups as $coaCode => $group) {
+                $entries[] = [
+                    'code' => $coaCode, 
+                    'debit' => $group['total'], 
+                    'credit' => 0,
+                    'memo' => 'Pembelian ' . implode(', ', array_unique($group['items']))
+                ];
             }
             
-            // Tambahkan PPN jika ada
+            // Tambahkan PPN Masukan jika ada (selalu PPN Masukan untuk pembelian)
             if (($pembelian->ppn_nominal ?? 0) > 0) {
                 $coaPpnMasukan = \App\Models\Coa::where('tipe_akun', 'Asset')
                     ->where(function($query) {
                         $query->where('nama_akun', 'like', '%ppn%masukan%')
-                              ->orWhere('kode_akun', '1130');
+                              ->orWhere('kode_akun', '127') // Use exact code from database
+                              ->orWhere('nama_akun', 'like', '%ppn%masukkan%');
                     })
                     ->first();
                     
@@ -166,6 +152,11 @@ class PembelianObserver
                         'credit' => 0,
                         'memo' => 'PPN Masukan ' . ($pembelian->ppn_persen ?? 10) . '%'
                     ];
+                } else {
+                    Log::warning('COA PPN Masukan not found', [
+                        'pembelian_id' => $pembelian->id,
+                        'ppn_nominal' => $pembelian->ppn_nominal
+                    ]);
                 }
             }
             

@@ -50,10 +50,28 @@ class PembelianController extends Controller
             $query->where('status', $request->status);
         }
         
+        // Filter by status pembayaran
+        if ($request->filled('status_pembayaran')) {
+            if ($request->status_pembayaran === 'lunas') {
+                $query->where(function($q) {
+                    $q->whereIn('payment_method', ['cash', 'transfer'])
+                      ->orWhere('status', 'lunas');
+                });
+            } elseif ($request->status_pembayaran === 'belum_lunas') {
+                $query->where('payment_method', 'credit')
+                      ->where('status', '!=', 'lunas');
+            }
+        }
+        
         $pembelians = $query->latest()->get();
         $vendors = Vendor::orderBy('nama_vendor')->get();
         
-        return view('transaksi.pembelian.index', compact('pembelians', 'vendors'));
+        // Add purchase return data for the Retur tab
+        $returs = \App\Models\PurchaseReturn::with(['pembelian.vendor', 'items.bahanBaku'])
+            ->latest()
+            ->get();
+        
+        return view('transaksi.pembelian.index', compact('pembelians', 'vendors', 'returs'));
     }
 
     public function show($id)
@@ -324,18 +342,8 @@ class PembelianController extends Controller
         // 1. Penjualan (cash/transfer masuk ke kas/bank)
         $penjualanMasuk = DB::table('penjualans')
             ->whereBetween('tanggal', [$startDate, $endDate])
-            ->where(function($query) use ($akun) {
-                $query->where(function($subQuery) use ($akun) {
-                    // Jika akun adalah Kas (mengandung kata 'kas')
-                    if (stripos($akun->nama_akun, 'kas') !== false) {
-                        $subQuery->where('payment_method', 'cash');
-                    }
-                    // Jika akun adalah Bank (mengandung kata 'bank')
-                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
-                        $subQuery->where('payment_method', 'transfer');
-                    }
-                });
-            })
+            ->where('coa_id', $akun->id) // Gunakan coa_id untuk penjualan
+            ->whereIn('payment_method', ['cash', 'transfer']) // Hanya cash dan transfer yang menambah saldo
             ->sum('total');
             
         $totalMasuk += (float) ($penjualanMasuk ?? 0);
@@ -391,18 +399,8 @@ class PembelianController extends Controller
         // 1. Pembelian (cash/transfer keluar dari kas/bank ke persediaan)
         $pembelianKeluar = DB::table('pembelians')
             ->whereBetween('tanggal', [$startDate, $endDate])
-            ->where(function($query) use ($akun) {
-                $query->where(function($subQuery) use ($akun) {
-                    // Jika akun adalah Kas (mengandung kata 'kas')
-                    if (stripos($akun->nama_akun, 'kas') !== false) {
-                        $subQuery->where('payment_method', 'cash');
-                    }
-                    // Jika akun adalah Bank (mengandung kata 'bank')
-                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
-                        $subQuery->where('payment_method', 'transfer');
-                    }
-                });
-            })
+            ->where('bank_id', $akun->id) // Gunakan bank_id yang spesifik
+            ->whereIn('payment_method', ['cash', 'transfer']) // Hanya cash dan transfer yang mengurangi saldo
             ->sum('total_harga');
             
         $totalKeluar += (float) ($pembelianKeluar ?? 0);
@@ -425,7 +423,48 @@ class PembelianController extends Controller
         return $mapping[$coaCode] ?? $coaCode;
     }
 
-        public function store(Request $request, StockService $stock, JournalService $journal)
+        /**
+     * Helper method to validate and calculate conversion to base unit
+     * 
+     * @param float $qtyInput - Quantity in purchase unit
+     * @param string $satuanPembelian - Purchase unit
+     * @param float $faktorKonversi - Conversion factor
+     * @param float|null $qtyManual - Manual input for base unit quantity
+     * @return array - Contains validated conversion data
+     */
+    private function validateAndCalculateConversion($qtyInput, $satuanPembelian, $faktorKonversi, $qtyManual = null)
+    {
+        $result = [
+            'qty_input' => (float) $qtyInput,
+            'satuan_pembelian' => $satuanPembelian,
+            'faktor_konversi_original' => (float) $faktorKonversi,
+            'qty_manual' => $qtyManual ? (float) $qtyManual : null,
+            'qty_in_base_unit' => 0,
+            'faktor_konversi_final' => 0,
+            'conversion_method' => 'automatic'
+        ];
+        
+        // Priority 1: Use manual input if provided
+        if ($qtyManual && $qtyManual > 0) {
+            $result['qty_in_base_unit'] = (float) $qtyManual;
+            $result['faktor_konversi_final'] = $qtyInput > 0 ? $qtyManual / $qtyInput : 1;
+            $result['conversion_method'] = 'manual';
+        } else {
+            // Priority 2: Use automatic conversion
+            $result['qty_in_base_unit'] = $qtyInput * $faktorKonversi;
+            $result['faktor_konversi_final'] = $faktorKonversi;
+            $result['conversion_method'] = 'automatic';
+        }
+        
+        // Validation
+        if ($result['qty_in_base_unit'] <= 0) {
+            throw new \Exception("Konversi tidak valid: Jumlah dalam satuan utama harus lebih dari 0. Input: {$qtyInput} {$satuanPembelian}, Faktor: {$faktorKonversi}, Manual: " . ($qtyManual ?? 'tidak ada'));
+        }
+        
+        return $result;
+    }
+
+    public function store(Request $request, StockService $stock, JournalService $journal)
     {
         // Debug: Log semua data request yang diterima
         \Log::info('Complete request data received:', [
@@ -556,12 +595,19 @@ class PembelianController extends Controller
                 if ($request->bank_id === 'credit') {
                     $paymentMethod = 'credit';
                 } else {
-                    // Cek apakah ini kas atau bank
+                    // Cek apakah ini kas atau bank berdasarkan nama akun
                     $bank = \App\Models\Coa::find($request->bank_id);
-                    if ($bank && (str_contains(strtolower($bank->nama_akun), 'kas') || str_starts_with($bank->kode_akun, '1'))) {
-                        $paymentMethod = 'cash';
-                    } else {
-                        $paymentMethod = 'transfer';
+                    if ($bank) {
+                        $namaAkun = strtolower($bank->nama_akun);
+                        // Jika nama akun mengandung 'kas' tapi BUKAN 'kas bank' atau 'kas di bank'
+                        if (str_contains($namaAkun, 'kas') && 
+                            !str_contains($namaAkun, 'bank') && 
+                            !str_contains($namaAkun, 'di bank')) {
+                            $paymentMethod = 'cash';
+                        } else {
+                            // Untuk semua akun bank (termasuk 'kas bank', 'kas di bank', dll)
+                            $paymentMethod = 'transfer';
+                        }
                     }
                 }
                     
@@ -613,31 +659,18 @@ class PembelianController extends Controller
                         // Ambil jumlah dalam satuan utama dari input manual user
                         $qtyInBaseUnitManual = (float) ($request->jumlah_satuan_utama[$i] ?? 0);
                         
-                        \Log::info("Processing item $i:", [
-                            'qty_input' => $qtyInput,
-                            'satuan_pembelian' => $satuanPembelian,
-                            'faktor_konversi_original' => $faktorKonversi,
-                            'qty_in_base_unit_manual' => $qtyInBaseUnitManual,
-                        ]);
+                        // Use helper method to validate and calculate conversion
+                        $conversionData = $this->validateAndCalculateConversion(
+                            $qtyInput, 
+                            $satuanPembelian, 
+                            $faktorKonversi, 
+                            $qtyInBaseUnitManual > 0 ? $qtyInBaseUnitManual : null
+                        );
                         
-                        // Jika user input manual satuan utama, gunakan itu dan hitung faktor konversi yang sesuai
-                        if ($qtyInBaseUnitManual > 0) {
-                            $qtyInBaseUnit = $qtyInBaseUnitManual;
-                            $faktorKonversi = $qtyInput > 0 ? $qtyInBaseUnit / $qtyInput : 1;
-                            
-                            \Log::info("Using manual conversion for item $i:", [
-                                'qty_in_base_unit' => $qtyInBaseUnit,
-                                'calculated_faktor_konversi' => $faktorKonversi,
-                            ]);
-                        } else {
-                            // Fallback ke perhitungan otomatis
-                            $qtyInBaseUnit = $qtyInput * $faktorKonversi;
-                            
-                            \Log::info("Using automatic conversion for item $i:", [
-                                'qty_in_base_unit' => $qtyInBaseUnit,
-                                'faktor_konversi' => $faktorKonversi,
-                            ]);
-                        }
+                        $qtyInBaseUnit = $conversionData['qty_in_base_unit'];
+                        $faktorKonversi = $conversionData['faktor_konversi_final'];
+                        
+                        \Log::info("Conversion validation for item $i:", $conversionData);
                         
                         // Hitung harga per satuan utama
                         $pricePerBaseUnit = $qtyInBaseUnit > 0 ? $hargaTotal / $qtyInBaseUnit : 0;
@@ -694,17 +727,73 @@ class PembelianController extends Controller
                                     'saved_subtotal' => $detail->subtotal,
                                 ]);
                                 
-                                // Update moving average harga bahan & stok
+                                // CRITICAL: Update stock in base unit (satuan utama)
+                                // Ensure we're working with the latest data
+                                $bahanBaku->refresh();
                                 $stokLama = (float) ($bahanBaku->stok ?? 0);
                                 $stokBaru = $stokLama + $qtyInBaseUnit;
                                 
-                                // Update harga rata-rata menggunakan method dari model
-                                if ($stokBaru > 0) {
-                                    $bahanBaku->updateHargaRataRata($pricePerBaseUnit, $qtyInBaseUnit);
+                                \Log::info("STOCK UPDATE - Bahan Baku ID {$itemId}:", [
+                                    'nama_bahan' => $bahanBaku->nama_bahan,
+                                    'stok_lama' => $stokLama,
+                                    'qty_input' => $qtyInput,
+                                    'satuan_pembelian' => $satuanPembelian,
+                                    'faktor_konversi' => $faktorKonversi,
+                                    'qty_in_base_unit' => $qtyInBaseUnit,
+                                    'stok_baru_calculated' => $stokBaru,
+                                    'satuan_utama' => $bahanBaku->satuan->nama ?? 'KG'
+                                ]);
+                                
+                                // Method 1: Direct update using save()
+                                $bahanBaku->stok = $stokBaru;
+                                $saveResult = $bahanBaku->save();
+                                
+                                \Log::info("STOCK UPDATE - Save Result:", [
+                                    'save_successful' => $saveResult,
+                                    'model_stok_after_save' => $bahanBaku->stok
+                                ]);
+                                
+                                // Method 2: Fallback using direct DB update if save() fails
+                                if (!$saveResult || $bahanBaku->stok != $stokBaru) {
+                                    \Log::warning("STOCK UPDATE - Save method failed, using direct DB update");
+                                    
+                                    $dbUpdateResult = \DB::table('bahan_bakus')
+                                        ->where('id', $itemId)
+                                        ->update(['stok' => $stokBaru]);
+                                    
+                                    \Log::info("STOCK UPDATE - DB Update Result:", [
+                                        'db_update_successful' => $dbUpdateResult,
+                                        'rows_affected' => $dbUpdateResult
+                                    ]);
                                 }
                                 
-                                $bahanBaku->stok = $stokBaru;
-                                $bahanBaku->save();
+                                // Final verification
+                                $bahanBaku->refresh();
+                                $finalStock = $bahanBaku->stok;
+                                
+                                \Log::info("STOCK UPDATE - Final Verification:", [
+                                    'bahan_baku_id' => $itemId,
+                                    'expected_stock' => $stokBaru,
+                                    'actual_stock_from_model' => $finalStock,
+                                    'update_successful' => (abs($finalStock - $stokBaru) < 0.0001),
+                                    'difference' => ($finalStock - $stokBaru)
+                                ]);
+                                
+                                // Throw exception if stock update failed
+                                if (abs($finalStock - $stokBaru) > 0.0001) {
+                                    throw new \Exception("CRITICAL: Stock update failed for Bahan Baku ID {$itemId}. Expected: {$stokBaru}, Actual: {$finalStock}");
+                                }
+                                
+                                // Update harga rata-rata menggunakan method dari model
+                                if ($stokBaru > 0) {
+                                    try {
+                                        $bahanBaku->updateHargaRataRata($pricePerBaseUnit, $qtyInBaseUnit);
+                                        \Log::info("PRICE UPDATE - Success for Bahan Baku ID {$itemId}");
+                                    } catch (\Exception $e) {
+                                        \Log::error("PRICE UPDATE - Failed for Bahan Baku ID {$itemId}: " . $e->getMessage());
+                                        // Don't fail the transaction for price update errors
+                                    }
+                                }
 
                                 // FIFO layer IN + movement
                                 $unitStr = $bahanBaku->satuan->nama ?? $bahanBaku->satuan ?? 'pcs';
@@ -759,23 +848,73 @@ class PembelianController extends Controller
                                 // Simpan konversi manual sub satuan jika ada
                                 $this->simpanKonversiManualBaru($detail->id, $request, $i);
                                 
-                                // Update moving average harga bahan & stok
+                                // CRITICAL: Update stock in base unit (satuan utama)
+                                // Ensure we're working with the latest data
+                                $bahanPendukung->refresh();
                                 $stokLama = (float) ($bahanPendukung->stok ?? 0);
                                 $stokBaru = $stokLama + $qtyInBaseUnit;
                                 
-                                // Update harga rata-rata
+                                \Log::info("STOCK UPDATE - Bahan Pendukung ID {$itemId}:", [
+                                    'nama_bahan' => $bahanPendukung->nama_bahan,
+                                    'stok_lama' => $stokLama,
+                                    'qty_input' => $qtyInput,
+                                    'satuan_pembelian' => $satuanPembelian,
+                                    'faktor_konversi' => $faktorKonversi,
+                                    'qty_in_base_unit' => $qtyInBaseUnit,
+                                    'stok_baru_calculated' => $stokBaru,
+                                    'satuan_utama' => $bahanPendukung->satuanRelation->nama ?? 'unit'
+                                ]);
+                                
+                                // Update harga rata-rata first
                                 if ($stokBaru > 0) {
                                     $hargaLama = (float) ($bahanPendukung->harga_satuan ?? 0);
                                     $hargaBaru = (($stokLama * $hargaLama) + $hargaTotal) / $stokBaru;
                                     $bahanPendukung->harga_satuan = $hargaBaru;
                                 }
-
+                                
+                                // Method 1: Direct update using save()
                                 $bahanPendukung->stok = $stokBaru;
-                                $bahanPendukung->save();
+                                $saveResult = $bahanPendukung->save();
+                                
+                                \Log::info("STOCK UPDATE - Save Result:", [
+                                    'save_successful' => $saveResult,
+                                    'model_stok_after_save' => $bahanPendukung->stok
+                                ]);
+                                
+                                // Method 2: Fallback using direct DB update if save() fails
+                                if (!$saveResult || $bahanPendukung->stok != $stokBaru) {
+                                    \Log::warning("STOCK UPDATE - Save method failed, using direct DB update");
+                                    
+                                    $dbUpdateResult = \DB::table('bahan_pendukungs')
+                                        ->where('id', $itemId)
+                                        ->update(['stok' => $stokBaru]);
+                                    
+                                    \Log::info("STOCK UPDATE - DB Update Result:", [
+                                        'db_update_successful' => $dbUpdateResult,
+                                        'rows_affected' => $dbUpdateResult
+                                    ]);
+                                }
+                                
+                                // Final verification
+                                $bahanPendukung->refresh();
+                                $finalStock = $bahanPendukung->stok;
+                                
+                                \Log::info("STOCK UPDATE - Final Verification:", [
+                                    'bahan_pendukung_id' => $itemId,
+                                    'expected_stock' => $stokBaru,
+                                    'actual_stock_from_model' => $finalStock,
+                                    'update_successful' => (abs($finalStock - $stokBaru) < 0.0001),
+                                    'difference' => ($finalStock - $stokBaru)
+                                ]);
+                                
+                                // Throw exception if stock update failed
+                                if (abs($finalStock - $stokBaru) > 0.0001) {
+                                    throw new \Exception("CRITICAL: Stock update failed for Bahan Pendukung ID {$itemId}. Expected: {$stokBaru}, Actual: {$finalStock}");
+                                }
 
                                 // FIFO layer IN + movement untuk bahan pendukung
                                 $unitStr = (string)($bahanPendukung->satuanRelation->nama ?? $bahanPendukung->satuan ?? 'pcs');
-                                $stock->addLayer('support', $bahanPendukung->id, $qtyInBaseUnit, $unitStr, $pricePerBaseUnit, 'purchase', $pembelian->id, $request->tanggal);
+                                $stock->addLayerWithManualConversion('support', $bahanPendukung->id, $qtyInBaseUnit, $unitStr, $pricePerBaseUnit, 'purchase', $pembelian->id, $request->tanggal);
                             }
                     }
 
@@ -791,13 +930,47 @@ class PembelianController extends Controller
                     throw new \Exception('Gagal menyimpan detail pembelian. Silakan coba lagi.');
                 }
                 
+                // VALIDASI: Log semua update stok yang terjadi
+                $updatedItems = [];
+                foreach ($request->item_id as $i => $itemId) {
+                    if (empty($itemId) || empty($request->tipe_item[$i])) continue;
+                    
+                    $tipeItem = $request->tipe_item[$i];
+                    if ($tipeItem === 'bahan_baku') {
+                        $bahanBaku = BahanBaku::find($itemId);
+                        if ($bahanBaku) {
+                            $updatedItems[] = [
+                                'type' => 'Bahan Baku',
+                                'id' => $itemId,
+                                'nama' => $bahanBaku->nama_bahan,
+                                'stok_final' => $bahanBaku->stok,
+                                'satuan_utama' => $bahanBaku->satuan->nama ?? 'KG'
+                            ];
+                        }
+                    } elseif ($tipeItem === 'bahan_pendukung') {
+                        $bahanPendukung = \App\Models\BahanPendukung::find($itemId);
+                        if ($bahanPendukung) {
+                            $updatedItems[] = [
+                                'type' => 'Bahan Pendukung',
+                                'id' => $itemId,
+                                'nama' => $bahanPendukung->nama_bahan,
+                                'stok_final' => $bahanPendukung->stok,
+                                'satuan_utama' => $bahanPendukung->satuanRelation->nama ?? 'unit'
+                            ];
+                        }
+                    }
+                }
+                
                 \Log::info('Pembelian berhasil dengan detail', [
                     'pembelian_id' => $pembelian->id,
                     'detail_count' => $savedDetails,
                     'total_bahan_baku' => $totalBahanBaku,
                     'total_bahan_pendukung' => $totalBahanPendukung,
+                    'updated_stock_items' => $updatedItems
                 ]);
 
+                // DISABLED: Let PembelianObserver handle journal creation to avoid conflicts
+                /*
                 // Create journal entries for accounting integration
                 try {
                     \App\Services\JournalService::createJournalFromPembelian($pembelian);
@@ -811,10 +984,85 @@ class PembelianController extends Controller
                     ]);
                     // Don't fail the transaction, just log the error
                 }
+                */
 
                 return redirect()->route('transaksi.pembelian.index')
                     ->with('success', 'Data pembelian berhasil disimpan!');
             });
+    }
+
+    /**
+     * Helper method to manually update stock for debugging
+     * Call this method if automatic stock update fails
+     */
+    public function manualStockUpdate($pembelianId)
+    {
+        try {
+            $pembelian = Pembelian::with('details')->findOrFail($pembelianId);
+            
+            \Log::info("MANUAL STOCK UPDATE - Starting for Pembelian ID: {$pembelianId}");
+            
+            $updatedItems = [];
+            
+            foreach ($pembelian->details as $detail) {
+                if ($detail->bahan_baku_id) {
+                    $bahanBaku = BahanBaku::find($detail->bahan_baku_id);
+                    if ($bahanBaku) {
+                        // Get conversion quantity
+                        $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * ($detail->faktor_konversi ?? 1));
+                        
+                        // Update stock
+                        $stokLama = $bahanBaku->stok;
+                        $bahanBaku->stok += $qtyInBaseUnit;
+                        $bahanBaku->save();
+                        
+                        $updatedItems[] = [
+                            'type' => 'Bahan Baku',
+                            'id' => $detail->bahan_baku_id,
+                            'nama' => $bahanBaku->nama_bahan,
+                            'qty_added' => $qtyInBaseUnit,
+                            'stok_lama' => $stokLama,
+                            'stok_baru' => $bahanBaku->stok
+                        ];
+                    }
+                } elseif ($detail->bahan_pendukung_id) {
+                    $bahanPendukung = \App\Models\BahanPendukung::find($detail->bahan_pendukung_id);
+                    if ($bahanPendukung) {
+                        // Get conversion quantity
+                        $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * ($detail->faktor_konversi ?? 1));
+                        
+                        // Update stock
+                        $stokLama = $bahanPendukung->stok;
+                        $bahanPendukung->stok += $qtyInBaseUnit;
+                        $bahanPendukung->save();
+                        
+                        $updatedItems[] = [
+                            'type' => 'Bahan Pendukung',
+                            'id' => $detail->bahan_pendukung_id,
+                            'nama' => $bahanPendukung->nama_bahan,
+                            'qty_added' => $qtyInBaseUnit,
+                            'stok_lama' => $stokLama,
+                            'stok_baru' => $bahanPendukung->stok
+                        ];
+                    }
+                }
+            }
+            
+            \Log::info("MANUAL STOCK UPDATE - Completed", ['updated_items' => $updatedItems]);
+            
+            return [
+                'success' => true,
+                'message' => 'Manual stock update completed',
+                'updated_items' => $updatedItems
+            ];
+            
+        } catch (\Exception $e) {
+            \Log::error("MANUAL STOCK UPDATE - Failed: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Manual stock update failed: ' . $e->getMessage()
+            ];
+        }
     }
 
     public function edit($id)
@@ -825,7 +1073,7 @@ class PembelianController extends Controller
         $produks = Produk::orderBy('nama_produk')->get();
         $bahanBakus = BahanBaku::with('satuan')->orderBy('nama_bahan')->get();
         $bahanPendukungs = BahanPendukung::with('satuan')->orderBy('nama_bahan')->get();
-        $coas = Coa::orderBy('nama_akun')->get();
+        $coas = Coa::all();
         
         // Filter COA untuk kas/bank
         $kasbank = $coas->filter(function($coa) {

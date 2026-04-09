@@ -48,8 +48,18 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Tunjangan (Rp)</label>
+                        <label class="form-label">Tunjangan Jabatan (Rp)</label>
                         <input type="text" name="tunjangan" class="form-control money-input" value="{{ old('tunjangan',0) }}">
+                        <small class="money-hint"></small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tunjangan Transport (Rp)</label>
+                        <input type="text" name="tunjangan_transport" class="form-control money-input" value="{{ old('tunjangan_transport',0) }}">
+                        <small class="money-hint"></small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tunjangan Konsumsi (Rp)</label>
+                        <input type="text" name="tunjangan_konsumsi" class="form-control money-input" value="{{ old('tunjangan_konsumsi',0) }}">
                         <small class="money-hint"></small>
                     </div>
                     <div class="col-md-6">

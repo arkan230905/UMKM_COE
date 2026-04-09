@@ -20,16 +20,10 @@ class ProsesProduksiController extends Controller
      */
     public function index()
     {
-        try {
-            $prosesProduksis = ProsesProduksi::with(['prosesBops.komponenBop', 'jabatan.pegawais'])
-                ->orderBy('kode_proses')
-                ->paginate(10);
-        } catch (\Exception $e) {
-            // Jika tabel proses_bops tidak ada, load tanpa relasi
-            $prosesProduksis = ProsesProduksi::with(['jabatan.pegawais'])
-                ->orderBy('kode_proses')
-                ->paginate(10);
-        }
+        // Load with essential relationships only to avoid errors
+        $prosesProduksis = ProsesProduksi::with(['jabatan.pegawais'])
+            ->orderBy('kode_proses')
+            ->paginate(10);
         
         return view('master-data.proses-produksi.index', compact('prosesProduksis'));
     }
@@ -67,7 +61,7 @@ class ProsesProduksiController extends Controller
             
             // Verify calculation (for security)
             $jumlahPegawai = $jabatan->pegawais->count();
-            $tarifPerJam = $jabatan->tarif_per_jam;
+            $tarifPerJam = $jabatan->tarif;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
             
             // Validasi konsistensi
@@ -166,7 +160,7 @@ class ProsesProduksiController extends Controller
             
             // Verify calculation (for security)
             $jumlahPegawai = $jabatan->pegawais->count();
-            $tarifPerJam = $jabatan->tarif_per_jam;
+            $tarifPerJam = $jabatan->tarif;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
             
             // Validasi konsistensi

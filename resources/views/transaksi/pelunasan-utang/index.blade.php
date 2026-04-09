@@ -89,6 +89,7 @@
                             <th>Tanggal</th>
                             <th>Pembelian</th>
                             <th>Vendor</th>
+                            <th>COA Pelunasan</th>
                             <th class="text-end">Jumlah</th>
                             <th>Status</th>
                             <th class="text-center">Aksi</th>
@@ -116,7 +117,28 @@
                                             <i class="fas fa-shopping-cart text-success"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-semibold">{{ $item->pembelian->kode_pembelian ?? '-' }}</div>
+                                            <div class="fw-semibold">
+                                                @if($item->pembelian && $item->pembelian->details->count() > 0)
+                                                    @php
+                                                        $details = $item->pembelian->details;
+                                                        $items = $details->map(function($detail) {
+                                                            return $detail->nama_bahan;
+                                                        })->filter()->toArray();
+                                                        $count = count($items);
+                                                        $noTransaksi = $item->pembelian->nomor_pembelian;
+                                                    @endphp
+                                                    
+                                                    @if($count == 1)
+                                                        {{ $items[0] }} ({{ $noTransaksi }})
+                                                    @elseif($count == 2)
+                                                        {{ $items[0] }}, {{ $items[1] }} ({{ $noTransaksi }})
+                                                    @else
+                                                        {{ $items[0] }}, {{ $items[1] }} +{{ $count - 2 }} item ({{ $noTransaksi }})
+                                                    @endif
+                                                @else
+                                                    {{ $item->pembelian->nomor_pembelian ?? '-' }}
+                                                @endif
+                                            </div>
                                             <small class="text-muted">Pembelian</small>
                                         </div>
                                     </div>
@@ -127,10 +149,25 @@
                                             <i class="fas fa-truck text-info"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-semibold">{{ $item->pembelian->vendor->nama ?? '-' }}</div>
+                                            <div class="fw-semibold">{{ $item->pembelian->vendor->nama_vendor ?? '-' }}</div>
                                             <small class="text-muted">Vendor</small>
                                         </div>
                                     </div>
+                                </td>
+                                <td>
+                                    @if($item->coaPelunasan)
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle bg-warning bg-opacity-10 p-2 me-2">
+                                                <i class="fas fa-chart-line text-warning"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-semibold">{{ $item->coaPelunasan->kode_akun }}</div>
+                                                <small class="text-muted">{{ $item->coaPelunasan->nama_akun }}</small>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
                                 </td>
                                 <td class="text-end fw-semibold">Rp {{ number_format($item->jumlah, 0, ',', '.') }}</td>
                                 <td>{!! $item->status_badge !!}</td>
@@ -157,7 +194,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4">
+                                <td colspan="9" class="text-center py-4">
                                     <i class="fas fa-hand-holding-usd fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data pelunasan utang</p>
                                 </td>

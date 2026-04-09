@@ -4,9 +4,14 @@
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Detail Harga Pokok Produksi: {{ $produk->nama_produk }}</h3>
-        <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Kembali
-        </a>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-warning" onclick="updateBomFromStockReport()" id="updateBomBtn">
+                <i class="fas fa-sync-alt me-2"></i>Update dari Laporan Stok
+            </button>
+            <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Kembali
+            </a>
+        </div>
     </div>
 
     @if(session('success'))
@@ -606,6 +611,139 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Function to update BOM from stock report
+function updateBomFromStockReport() {
+    const productId = {{ $produk->id }};
+    const updateBtn = document.getElementById('updateBomBtn');
+    
+    // Show loading state
+    updateBtn.disabled = true;
+    updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Mengupdate...';
+    
+    // Show loading indicators
+    showLoadingIndicators();
+    
+    // Call update endpoint
+    fetch(`/master-data/harga-pokok-produksi/update-from-stock/${productId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json();
+        } else {
+            return response.text().then(html => {
+                throw new Error('Server returned HTML instead of JSON. Possible server error.');
+            });
+        }
+    })
+    .then(data => {
+        if (data.success) {
+            // Update all data with fresh calculations
+            updateBahanData(data.data.biaya_bahan);
+            updateBTKLData(data.data.btkl);
+            updateBOPData(data.data.bop);
+            updateTotalData(data.data.total);
+            
+            // Show success message
+            showSuccessMessage('BOM berhasil diupdate dengan harga terbaru dari laporan stok!');
+        } else {
+            showErrorMessage('Gagal mengupdate BOM: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error updating BOM from stock report:', error);
+        showErrorMessage('Terjadi kesalahan saat mengupdate BOM: ' + error.message);
+    })
+    .finally(() => {
+        // Reset button state
+        updateBtn.disabled = false;
+        updateBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>Update dari Laporan Stok';
+        hideLoadingIndicators();
+    });
+}
+
+// Function to update bahan data
+function updateBahanData(bahanData) {
+    if (bahanData) {
+        // Update bahan baku
+        if (bahanData.bahan_baku && bahanData.bahan_baku.length > 0) {
+            bahanData.bahan_baku.forEach((bahan, index) => {
+                const row = document.querySelector(`#bahan-baku-${index}`);
+                if (row) {
+                    const hargaCell = row.querySelector('.harga-satuan');
+                    const subtotalCell = row.querySelector('.subtotal');
+                    
+                    if (hargaCell) {
+                        hargaCell.textContent = `Rp ${formatNumber(bahan.harga_satuan)}`;
+                    }
+                    if (subtotalCell) {
+                        subtotalCell.textContent = `Rp ${formatNumber(bahan.subtotal)}`;
+                    }
+                }
+            });
+        }
+        
+        // Update bahan pendukung
+        if (bahanData.bahan_pendukung && bahanData.bahan_pendukung.length > 0) {
+            bahanData.bahan_pendukung.forEach((bahan, index) => {
+                const row = document.querySelector(`#bahan-pendukung-${index}`);
+                if (row) {
+                    const hargaCell = row.querySelector('.harga-satuan');
+                    const subtotalCell = row.querySelector('.subtotal');
+                    
+                    if (hargaCell) {
+                        hargaCell.textContent = `Rp ${formatNumber(bahan.harga_satuan)}`;
+                    }
+                    if (subtotalCell) {
+                        subtotalCell.textContent = `Rp ${formatNumber(bahan.subtotal)}`;
+                    }
+                }
+            });
+        }
+    }
+}
+
+// Function to show success message
+function showSuccessMessage(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild.nextSibling);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// Function to show error message
+function showErrorMessage(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild.nextSibling);
+    
+    // Auto-hide after 8 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 8000);
+}
 
 // Listen for custom events from other pages
 window.addEventListener('message', function(event) {

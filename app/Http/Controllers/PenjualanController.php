@@ -97,9 +97,9 @@ class PenjualanController extends Controller
 
     public function store(Request $request, StockService $stock, JournalService $journal)
     {
-        
-        // Multi-item path
-        if (is_array($request->produk_id)) {
+        return \DB::transaction(function () use ($request, $stock, $journal) {
+            // Multi-item path
+            if (is_array($request->produk_id)) {
             $request->validate([
                 'tanggal' => 'required|date',
                 'payment_method' => 'required|in:cash,transfer,credit',
@@ -295,6 +295,7 @@ class PenjualanController extends Controller
 
         return redirect()->route('transaksi.penjualan.index')
                          ->with('success', 'Data penjualan berhasil ditambahkan.');
+        }); // End of DB transaction
     }
 
     public function show($id)
