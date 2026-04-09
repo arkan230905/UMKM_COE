@@ -241,22 +241,7 @@ class JabatanController extends Controller
             ], 400);
         }
 
-<<<<<<< HEAD
-        // Handle both string kategori ('btkl') and integer kategori_id
-        if (is_numeric($kategoriId)) {
-            $kategoriPegawai = \App\Models\KategoriPegawai::find($kategoriId);
-            $kategoriName = $kategoriPegawai ? strtolower($kategoriPegawai->nama) : null;
-            $jabatans = Jabatan::where(function($q) use ($kategoriName, $kategoriId) {
-                if ($kategoriName) $q->where('kategori', $kategoriName);
-                $q->orWhere('kategori_id', $kategoriId);
-            });
-        } else {
-            $jabatans = Jabatan::where('kategori', strtolower($kategoriId));
-        }
-
-        $jabatans = $jabatans->select('id', 'nama', 'kategori', 'gaji_pokok', 'tarif', 'tunjangan', 'asuransi')
-=======
-        // Lookup KategoriPegawai name, then match jabatans by kategori string
+// Lookup KategoriPegawai name, then match jabatans by kategori string
         $kategoriPegawai = \App\Models\KategoriPegawai::find($kategoriId);
         if (!$kategoriPegawai) {
             return response()->json(['success' => true, 'data' => []]);
@@ -267,7 +252,6 @@ class JabatanController extends Controller
         $jabatans = Jabatan::where('kategori', $kategoriName)
             ->orWhere('kategori_id', $kategoriId)
             ->select('id', 'nama', 'kategori', 'kategori_id', 'gaji_pokok', 'tarif_per_jam', 'tunjangan', 'asuransi')
->>>>>>> 09c795ee293c426b3d80634193e2fe2f90e330de
             ->orderBy('nama')
             ->get();
 
