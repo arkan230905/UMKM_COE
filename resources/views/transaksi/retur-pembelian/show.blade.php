@@ -114,7 +114,7 @@
                             <table class="table table-hover mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Bahan Baku</th>
+                                        <th>Item</th>
                                         <th class="text-center">Qty</th>
                                         <th class="text-center">Satuan</th>
                                         <th class="text-end">Harga Satuan</th>
@@ -137,8 +137,13 @@
                                                         <span class="text-primary fw-semibold me-2">BB</span>
                                                         <span>{{ $item->bahanBaku->nama_bahan }}</span>
                                                     </div>
+                                                @elseif($item->bahanPendukung)
+                                                    <div class="d-flex align-items-center">
+                                                        <span class="text-info fw-semibold me-2">BP</span>
+                                                        <span>{{ $item->bahanPendukung->nama_bahan }}</span>
+                                                    </div>
                                                 @else
-                                                    <span class="text-muted">Item ID: {{ $item->bahan_baku_id }}</span>
+                                                    <span class="text-muted">Item tidak diketahui</span>
                                                 @endif
                                             </td>
                                             <td class="text-center">{{ number_format($item->quantity, 2) }}</td>

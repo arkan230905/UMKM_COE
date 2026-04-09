@@ -1135,13 +1135,15 @@ class LaporanController extends Controller
             })
             ->orderBy('tanggal', 'desc');
 
-        // Filter untuk Retur Pembelian  
-        $purchaseReturnQuery = \App\Models\Retur::with(['pembelian.vendor', 'details.produk'])
-            ->where('type', 'purchase')
+        // Filter untuk Retur Pembelian - Use PurchaseReturn model
+        $purchaseReturnQuery = \App\Models\PurchaseReturn::with(['pembelian.vendor', 'items.bahanBaku', 'items.bahanPendukung'])
             ->when($request->purchase_start_date && $request->purchase_end_date, function($q) use ($request) {
-                return $q->whereBetween('tanggal', [$request->purchase_start_date, $request->purchase_end_date]);
+                return $q->whereBetween('return_date', [$request->purchase_start_date, $request->purchase_end_date]);
             })
-            ->orderBy('tanggal', 'desc');
+            ->when($request->purchase_status, function($q) use ($request) {
+                return $q->where('status', $request->purchase_status);
+            })
+            ->orderBy('return_date', 'desc');
 
         // Get data
         $salesReturns = $salesReturnQuery->paginate(10, ['*'], 'sales_page');
@@ -1153,10 +1155,9 @@ class LaporanController extends Controller
                 return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0);
             });
         });
+        
         $totalPurchaseReturns = $purchaseReturnQuery->get()->sum(function($retur) {
-            return $retur->details->sum(function($detail) {
-                return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0);
-            });
+            return $retur->total_return_amount ?? 0;
         });
 
         return view('laporan.retur.index', compact(
