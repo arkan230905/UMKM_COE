@@ -135,7 +135,7 @@
                                             value="Rp {{ number_format($detail->harga_satuan, 0, ',', '.') }}" readonly>
                                     </td>
                                     <td class="text-end">
-                                        <input type="text" class="form-control subtotal text-end" value="Rp {{ number_format(old("details.$index.qty_retur", (int)$detail->jumlah) * $detail->harga_satuan, 0, ',', '.') }}" readonly>
+                                        <input type="text" class="form-control subtotal text-end" value="Rp {{ number_format(old("details.$index.qty_retur", 1) * $detail->harga_satuan, 0, ',', '.') }}" readonly>
                                     </td>
                                     <td class="text-center">
                                         <button type="button" class="btn btn-sm btn-danger remove-detail">

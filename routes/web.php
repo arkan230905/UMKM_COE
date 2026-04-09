@@ -2267,6 +2267,10 @@ Route::middleware('auth')->group(function () {
         // ============================================================
         Route::resource('penjualan', PenjualanController::class);
         Route::get('penjualan/barcode/{barcode}', [PenjualanController::class, 'findByBarcode'])->name('penjualan.barcode');
+        
+        // API routes for real-time product search
+        Route::get('api/products/search', [PenjualanController::class, 'searchProducts'])->name('api.products.search');
+        Route::get('api/products/barcode', [PenjualanController::class, 'findByBarcode'])->name('api.products.barcode');
 
         // ============================================================
         // ✅ RETUR

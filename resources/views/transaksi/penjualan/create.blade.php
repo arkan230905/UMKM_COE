@@ -1,5 +1,58 @@
 @extends('layouts.app')
 @section('content')
+
+<style>
+/* Enhanced search result styling */
+.search-result-item {
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    padding: 8px !important;
+    margin: 2px 0;
+}
+
+.search-result-item:hover {
+    background-color: #f8f9fa !important;
+    transform: translateX(2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.search-result-item.selected {
+    background-color: #e3f2fd !important;
+    border-left: 3px solid #2196f3;
+}
+
+/* Barcode highlight styling */
+mark.bg-warning {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+    font-weight: bold;
+    padding: 1px 2px;
+    border-radius: 2px;
+}
+
+/* Search results container */
+#search-results {
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Barcode scanner input focus */
+#barcode-scanner:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+</style>
+
 <div class="container">
     <h3 class="mb-3">Tambah Penjualan</h3>
 
@@ -46,8 +99,8 @@
                         <label class="form-label mb-1 small text-muted">Scan Barcode Produk</label>
                         <div class="input-group">
                             <input type="text" id="barcode-scanner" class="form-control form-control-lg" 
-                                   placeholder="Siap untuk scan barcode..." 
-                                   autocomplete="off" autofocus readonly>
+                                   placeholder="Ketik atau scan barcode..." 
+                                   autocomplete="off" autofocus>
                             <div class="input-group-text bg-success text-white">
                                 <i class="fas fa-wifi me-1"></i>
                                 <span id="scan-indicator">Siap Scan</span>
@@ -58,8 +111,20 @@
                         </div>
                         <small class="text-muted">
                             <i class="fas fa-info-circle me-1"></i>
-                            Sistem otomatis mendeteksi barcode - tidak perlu klik atau tekan tombol
+                            Pencarian berdasarkan awalan barcode - ketik angka untuk mencari produk yang barcodenya diawali dengan angka tersebut
                         </small>
+                        
+                        <!-- Real-time search results -->
+                        <div id="search-results" class="mt-2" style="display: none;">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white py-1">
+                                    <small><i class="fas fa-search me-1"></i>Hasil Pencarian (<span id="search-count">0</span> produk)</small>
+                                </div>
+                                <div class="card-body p-2" id="search-results-body" style="max-height: 200px; overflow-y: auto;">
+                                    <!-- Results will be populated here -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-auto">
                         <button type="button" id="barcode-status" class="btn btn-outline-secondary btn-sm" onclick="toggleProductList()">
@@ -217,13 +282,29 @@ const productData = {
         id: {{ $p->id }},
         nama: '{{ addslashes($p->nama_produk ?? $p->nama) }}',
         harga: {{ round($p->harga_jual ?? 0) }},
-        stok: {{ $p->stok ?? 0 }}
+        stok: {{ $p->stok ?? 0 }},
+        barcode: '{{ $p->barcode ?? '' }}'
     },
     @endforeach
 };
 
+// Create searchable product array for real-time search
+const searchableProducts = [
+    @foreach($produks as $p)
+    {
+        id: {{ $p->id }},
+        nama: '{{ addslashes($p->nama_produk ?? $p->nama) }}',
+        harga: {{ round($p->harga_jual ?? 0) }},
+        stok: {{ $p->stok ?? 0 }},
+        barcode: '{{ $p->barcode ?? '' }}',
+        searchText: '{{ strtolower(addslashes($p->nama_produk ?? $p->nama)) }} {{ $p->barcode ?? '' }}'.toLowerCase()
+    },
+    @endforeach
+];
+
 // Debug: Log productData to console
 console.log('Product Data:', productData);
+console.log('Searchable Products:', searchableProducts);
 
 // Global utility functions (must be outside DOMContentLoaded)
 function formatCurrency(value) {
@@ -344,12 +425,19 @@ function findExistingProductRow(productId) {
     const table = document.getElementById('detailTableJual');
     const rows = table.querySelectorAll('tbody tr');
     
+    console.log('🔍 Looking for existing product ID:', productId);
+    
     for (let row of rows) {
         const select = row.querySelector('.produk-select');
-        if (select && select.value == productId) {
-            return row;
+        if (select && select.value) {
+            console.log('📋 Found row with product ID:', select.value);
+            if (select.value == productId) {
+                console.log('✅ Found existing row for product:', productId);
+                return row;
+            }
         }
     }
+    console.log('❌ No existing row found for product:', productId);
     return null;
 }
 
@@ -357,8 +445,178 @@ function findExistingProductRow(productId) {
 let barcodeBuffer = '';
 let barcodeTimeout = null;
 let isProcessing = false;
-const BARCODE_TIMEOUT = 100; // 100ms timeout for barcode completion
-const MIN_BARCODE_LENGTH = 3; // Minimum barcode length
+let searchTimeout = null;
+const BARCODE_TIMEOUT = 50; // Reduced to 50ms for faster response
+const MIN_BARCODE_LENGTH = 1; // Reduced to 1 for immediate search
+const SEARCH_DELAY = 150; // Delay for real-time search to avoid too many requests
+
+// Real-time product search functionality
+function performRealTimeSearch(query) {
+    const searchResults = document.getElementById('search-results');
+    const searchResultsBody = document.getElementById('search-results-body');
+    const searchCount = document.getElementById('search-count');
+    
+    if (!query || query.length < 1) {
+        searchResults.style.display = 'none';
+        return;
+    }
+    
+    console.log('🔍 Searching for products with barcode starting with:', query);
+    
+    // Search in products with priority for barcode prefix match
+    const results = searchableProducts.filter(product => {
+        // Priority 1: Barcode starts with query (exact prefix match)
+        if (product.barcode && product.barcode.startsWith(query)) {
+            console.log('✅ Found barcode prefix match:', product.barcode, 'for product:', product.nama);
+            return true;
+        }
+        // Priority 2: Product name contains query (fallback for name search)
+        if (product.searchText.includes(query.toLowerCase())) {
+            console.log('📝 Found name match:', product.nama, 'for query:', query);
+            return true;
+        }
+        return false;
+    })
+    .sort((a, b) => {
+        // Sort by priority: barcode prefix matches first
+        const aStartsWithBarcode = a.barcode && a.barcode.startsWith(query);
+        const bStartsWithBarcode = b.barcode && b.barcode.startsWith(query);
+        
+        if (aStartsWithBarcode && !bStartsWithBarcode) return -1;
+        if (!aStartsWithBarcode && bStartsWithBarcode) return 1;
+        
+        // If both or neither start with barcode, sort by name
+        return a.nama.localeCompare(b.nama);
+    })
+    .slice(0, 10); // Limit to 10 results for performance
+    
+    console.log('📊 Search results count:', results.length);
+    
+    if (results.length > 0) {
+        searchCount.textContent = results.length;
+        
+        let html = '';
+        results.forEach(product => {
+            const stockBadge = product.stok > 0 ? 
+                `<span class="badge bg-success">${product.stok}</span>` : 
+                `<span class="badge bg-danger">Habis</span>`;
+            
+            // Highlight matching part in barcode for prefix matches
+            let barcodeDisplay = '';
+            if (product.barcode) {
+                if (product.barcode.startsWith(query)) {
+                    // Highlight the matching prefix
+                    const matchedPart = product.barcode.substring(0, query.length);
+                    const remainingPart = product.barcode.substring(query.length);
+                    barcodeDisplay = `<code class="text-primary"><mark class="bg-warning text-dark">${matchedPart}</mark>${remainingPart}</code>`;
+                } else {
+                    barcodeDisplay = `<code class="text-primary">${product.barcode}</code>`;
+                }
+            } else {
+                barcodeDisplay = '<small class="text-muted">No barcode</small>';
+            }
+            
+            html += `
+                <div class="d-flex justify-content-between align-items-center py-1 border-bottom search-result-item" 
+                     style="cursor: pointer;" 
+                     onclick="selectProductFromSearch(${product.id}, '${product.nama.replace(/'/g, "\\'")}', ${product.harga}, ${product.stok})"
+                     onmouseover="this.style.backgroundColor='#f8f9fa'" 
+                     onmouseout="this.style.backgroundColor=''">
+                    <div class="flex-grow-1">
+                        <div class="fw-bold text-dark">${product.nama}</div>
+                        <small class="text-muted">${barcodeDisplay} • Rp ${product.harga.toLocaleString('id-ID')}</small>
+                    </div>
+                    <div class="text-end">
+                        ${stockBadge}
+                        <button type="button" class="btn btn-sm btn-primary ms-2" onclick="event.stopPropagation(); selectProductFromSearch(${product.id}, '${product.nama.replace(/'/g, "\\'")}', ${product.harga}, ${product.stok})">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        searchResultsBody.innerHTML = html;
+        searchResults.style.display = 'block';
+    } else {
+        searchCount.textContent = '0';
+        searchResultsBody.innerHTML = `
+            <div class="text-center text-muted py-2">
+                <i class="fas fa-search me-1"></i>
+                Tidak ada produk dengan barcode yang diawali "${query}"
+            </div>
+        `;
+        searchResults.style.display = 'block';
+    }
+}
+
+// Select product from search results
+function selectProductFromSearch(productId, productName, price, stock) {
+    const product = {
+        id: productId,
+        nama: productName,
+        harga: price,
+        stok: stock
+    };
+    
+    try {
+        addProductByBarcode(product);
+        showNotification('✓ ' + productName + ' ditambahkan', 'success');
+        
+        // Clear search
+        document.getElementById('barcode-scanner').value = '';
+        document.getElementById('search-results').style.display = 'none';
+        
+        // Reset scan indicator to "Siap Scan" after product selection
+        const scanIndicator = document.getElementById('scan-indicator');
+        if (scanIndicator) {
+            scanIndicator.textContent = 'Siap Scan';
+            scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
+        }
+        
+        // Focus back to barcode input
+        setTimeout(() => {
+            document.getElementById('barcode-scanner').focus();
+        }, 100);
+        
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+}
+
+// Enhanced barcode input handler with real-time search
+function handleBarcodeInputEnhanced(value) {
+    // Clear existing search timeout
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+    
+    // If value is empty, hide search results
+    if (!value) {
+        document.getElementById('search-results').style.display = 'none';
+        return;
+    }
+    
+    // Don't show search results during barcode scanning (when processing is active)
+    if (isProcessing) {
+        document.getElementById('search-results').style.display = 'none';
+        return;
+    }
+    
+    // Only show search results for numeric input (barcode search) and manual typing
+    if (/^\d+$/.test(value)) {
+        // Set timeout for real-time search for numeric input
+        searchTimeout = setTimeout(() => {
+            // Double check we're not processing a barcode scan
+            if (!isProcessing) {
+                performRealTimeSearch(value);
+            }
+        }, SEARCH_DELAY);
+    } else {
+        // Hide search results for non-numeric input
+        document.getElementById('search-results').style.display = 'none';
+    }
+}
 
 // Safety mechanism to reset processing state if stuck
 function resetProcessingState() {
@@ -384,6 +642,9 @@ function maintainFocus() {
 
 // Automatic barcode detection
 function handleBarcodeInput(char) {
+    // Hide search results immediately when rapid input is detected (barcode scanning)
+    document.getElementById('search-results').style.display = 'none';
+    
     // Add character to buffer
     barcodeBuffer += char;
     
@@ -401,7 +662,7 @@ function handleBarcodeInput(char) {
     }, BARCODE_TIMEOUT);
 }
 
-// Process barcode automatically
+// Process barcode automatically - Enhanced version
 function processAutomaticBarcode(barcode) {
     if (isProcessing) return;
     
@@ -410,6 +671,13 @@ function processAutomaticBarcode(barcode) {
     
     const barcodeInput = document.getElementById('barcode-scanner');
     const scanIndicator = document.getElementById('scan-indicator');
+    const searchResults = document.getElementById('search-results');
+    
+    // Hide search results when processing exact barcode
+    searchResults.style.display = 'none';
+    
+    // Clear input immediately for silent processing
+    barcodeInput.value = '';
     
     // Update UI to show processing
     scanIndicator.textContent = 'Memproses...';
@@ -426,11 +694,11 @@ function processAutomaticBarcode(barcode) {
                 throw new Error('Produk ' + product.nama + ' stok habis!');
             }
             
-            // Product found - add to table
+            // Product found - add to table silently
             addProductByBarcode(product);
             
             // Success feedback
-            scanIndicator.textContent = '✓ ' + product.nama;
+            scanIndicator.textContent = '✓ ' + product.nama.substring(0, 15) + (product.nama.length > 15 ? '...' : '');
             scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
             
             // Play success sound
@@ -442,15 +710,15 @@ function processAutomaticBarcode(barcode) {
         } else {
             console.log('❌ Product not found for barcode:', barcode);
             
-            // Product not found
-            scanIndicator.textContent = 'Tidak ditemukan';
+            // Product not found - show error without search results
+            scanIndicator.textContent = 'Produk tidak ditemukan';
             scanIndicator.parentElement.className = 'input-group-text bg-danger text-white';
+            
+            // Show error notification
+            showNotification('Produk dengan barcode ' + barcode + ' tidak ditemukan', 'error');
             
             // Play error sound
             playBeep(false);
-            
-            // Show error notification
-            showNotification('Produk tidak ditemukan: ' + barcode, 'error');
         }
     } catch (error) {
         console.error('Error processing barcode:', error);
@@ -466,10 +734,7 @@ function processAutomaticBarcode(barcode) {
         playBeep(false);
     }
     
-    // Clear input
-    barcodeInput.value = '';
-    
-    // Reset status after 3 seconds (increased from 2)
+    // Reset status after 2 seconds
     setTimeout(() => {
         scanIndicator.textContent = 'Siap Scan';
         scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
@@ -477,7 +742,7 @@ function processAutomaticBarcode(barcode) {
         
         // Ensure focus is maintained
         maintainFocus();
-    }, 3000);
+    }, 2000);
 }
 
 // Show notification
@@ -503,7 +768,7 @@ function showNotification(message, type) {
     }, 3000);
 }
 
-// Manual reset function
+// Manual reset function - Enhanced
 function resetScannerState() {
     console.log('🔄 Manually resetting scanner state');
     isProcessing = false;
@@ -514,8 +779,14 @@ function resetScannerState() {
         barcodeTimeout = null;
     }
     
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+        searchTimeout = null;
+    }
+    
     const scanIndicator = document.getElementById('scan-indicator');
     const barcodeInput = document.getElementById('barcode-scanner');
+    const searchResults = document.getElementById('search-results');
     
     if (scanIndicator) {
         scanIndicator.textContent = 'Siap Scan';
@@ -525,6 +796,10 @@ function resetScannerState() {
     if (barcodeInput) {
         barcodeInput.value = '';
         barcodeInput.focus();
+    }
+    
+    if (searchResults) {
+        searchResults.style.display = 'none';
     }
     
     showNotification('Scanner direset - siap untuk scan', 'success');
@@ -548,6 +823,8 @@ function processBarcode(barcode) {
 }
 
 function addProductByBarcode(product) {
+    console.log('🛒 Adding product to cart:', product);
+    
     const table = document.getElementById('detailTableJual');
     const tbody = table.querySelector('tbody');
     
@@ -555,6 +832,7 @@ function addProductByBarcode(product) {
     const existingRow = findExistingProductRow(product.id);
     
     if (existingRow) {
+        console.log('📈 Incrementing existing product quantity');
         // Increment quantity
         const qtyInput = existingRow.querySelector('.jumlah');
         const currentQty = parseFloat(qtyInput.value) || 0;
@@ -572,6 +850,7 @@ function addProductByBarcode(product) {
         // Highlight row
         highlightRow(existingRow);
     } else {
+        console.log('➕ Adding new product to table');
         // Find first empty row or create new one
         let targetRow = null;
         const rows = tbody.querySelectorAll('tr');
@@ -579,7 +858,8 @@ function addProductByBarcode(product) {
         // Look for empty row (no product selected)
         for (let row of rows) {
             const select = row.querySelector('.produk-select');
-            if (!select.value) {
+            if (!select || !select.value) {
+                console.log('📝 Found empty row to use');
                 targetRow = row;
                 break;
             }
@@ -587,6 +867,7 @@ function addProductByBarcode(product) {
         
         // If no empty row found, create new one
         if (!targetRow) {
+            console.log('🆕 Creating new row');
             targetRow = createNewRow();
             tbody.appendChild(targetRow);
         }
@@ -596,6 +877,12 @@ function addProductByBarcode(product) {
         const qtyInput = targetRow.querySelector('.jumlah');
         const hargaInput = targetRow.querySelector('.harga');
         const diskonInput = targetRow.querySelector('.diskon');
+        
+        console.log('📋 Setting product data in row:', {
+            productId: product.id,
+            name: product.nama,
+            price: product.harga
+        });
         
         select.value = product.id;
         qtyInput.value = 1;
@@ -611,10 +898,6 @@ function addProductByBarcode(product) {
         
         // Highlight row
         highlightRow(targetRow);
-        
-        // Add new empty row for next scan
-        const newEmptyRow = createNewRow();
-        tbody.appendChild(newEmptyRow);
     }
 }
 
@@ -642,19 +925,6 @@ function createNewRow() {
     }
     
     return clone;
-}
-
-function findExistingProductRow(productId) {
-    const table = document.getElementById('detailTableJual');
-    const rows = table.querySelectorAll('tbody tr');
-    
-    for (let row of rows) {
-        const select = row.querySelector('.produk-select');
-        if (select && select.value == productId) {
-            return row;
-        }
-    }
-    return null;
 }
 
 function highlightRow(row) {
@@ -687,6 +957,13 @@ function addProductFromModal(productId, productName, price, stock) {
     
     addProductByBarcode(product);
     showNotification('✓ ' + productName + ' ditambahkan', 'success');
+    
+    // Reset scan indicator to "Siap Scan" after adding product from modal
+    const scanIndicator = document.getElementById('scan-indicator');
+    if (scanIndicator) {
+        scanIndicator.textContent = 'Siap Scan';
+        scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
+    }
     
     // Close modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('productListModal'));
@@ -747,7 +1024,32 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Maintain focus on barcode input at all times
     function ensureBarcodeInputFocus() {
-        if (document.activeElement !== barcodeInput && !document.querySelector('.modal.show')) {
+        // Don't steal focus if user is actively using dropdown or other form elements
+        const activeElement = document.activeElement;
+        
+        if (activeElement && (
+            activeElement.tagName === 'SELECT' ||
+            activeElement.tagName === 'INPUT' ||
+            activeElement.tagName === 'TEXTAREA' ||
+            activeElement.classList.contains('form-control') ||
+            activeElement.classList.contains('form-select') ||
+            activeElement.hasAttribute('data-dropdown-focused')
+        )) {
+            return; // Don't steal focus
+        }
+        
+        // Don't steal focus if any dropdown is currently focused
+        if (document.querySelector('select[data-dropdown-focused="true"]')) {
+            return;
+        }
+        
+        // Don't steal focus if modal is open
+        if (document.querySelector('.modal.show')) {
+            return;
+        }
+        
+        // Only focus barcode input if no other form element is focused
+        if (document.activeElement !== barcodeInput) {
             barcodeInput.focus();
         }
     }
@@ -755,13 +1057,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set initial focus
     barcodeInput.focus();
     
-    // Maintain focus every 500ms
-    setInterval(ensureBarcodeInputFocus, 500);
+    // Maintain focus every 1000ms (reduced frequency to be less aggressive)
+    setInterval(ensureBarcodeInputFocus, 1000);
     
-    // Global keydown listener for automatic barcode detection
+    // Enhanced keyboard handling for better UX
     document.addEventListener('keydown', function(e) {
         // Skip if user is typing in other inputs (except barcode input)
         if (e.target.tagName === 'INPUT' && e.target.id !== 'barcode-scanner') {
+            return;
+        }
+        
+        // Skip if user is interacting with select dropdown
+        if (e.target.tagName === 'SELECT') {
             return;
         }
         
@@ -770,8 +1077,37 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Skip if dropdown is open
+        if (document.querySelector('select:focus')) {
+            return;
+        }
+        
         // Skip special keys
         if (e.ctrlKey || e.altKey || e.metaKey) {
+            return;
+        }
+        
+        // Handle Escape key to clear search results
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            document.getElementById('search-results').style.display = 'none';
+            barcodeInput.value = '';
+            barcodeInput.focus();
+            return;
+        }
+        
+        // Handle Arrow keys for search result navigation
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            const searchResults = document.getElementById('search-results');
+            if (searchResults.style.display !== 'none') {
+                e.preventDefault();
+                navigateSearchResults(e.key === 'ArrowDown' ? 1 : -1);
+                return;
+            }
+        }
+        
+        // Skip navigation keys when dropdown is focused
+        if (['ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
             return;
         }
         
@@ -780,6 +1116,15 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const currentValue = barcodeInput.value.trim();
             if (currentValue && currentValue.length >= MIN_BARCODE_LENGTH) {
+                // Check if search results are visible and select first result
+                const searchResults = document.getElementById('search-results');
+                if (searchResults.style.display !== 'none') {
+                    const firstResult = searchResults.querySelector('.search-result-item');
+                    if (firstResult) {
+                        firstResult.click();
+                        return;
+                    }
+                }
                 processAutomaticBarcode(currentValue);
             }
             return;
@@ -787,6 +1132,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Handle printable characters
         if (e.key.length === 1) {
+            // Don't interfere if user is typing in dropdown or other form elements
+            if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
             // Ensure barcode input is focused
             if (document.activeElement !== barcodeInput) {
                 barcodeInput.focus();
@@ -798,22 +1148,88 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 1);
         }
     });
+
+// Navigate search results with arrow keys
+function navigateSearchResults(direction) {
+    const results = document.querySelectorAll('.search-result-item');
+    if (results.length === 0) return;
     
-    // Handle direct input to barcode field
+    let currentIndex = -1;
+    results.forEach((result, index) => {
+        if (result.classList.contains('selected')) {
+            currentIndex = index;
+            result.classList.remove('selected');
+            result.style.backgroundColor = '';
+        }
+    });
+    
+    currentIndex += direction;
+    if (currentIndex < 0) currentIndex = results.length - 1;
+    if (currentIndex >= results.length) currentIndex = 0;
+    
+    const selectedResult = results[currentIndex];
+    selectedResult.classList.add('selected');
+    selectedResult.style.backgroundColor = '#e3f2fd';
+    selectedResult.scrollIntoView({ block: 'nearest' });
+}
+    
+    // Handle direct input to barcode field - Enhanced with real-time search
     barcodeInput.addEventListener('input', function(e) {
-        const value = e.target.value;
+        const value = e.target.value.trim();
+        const scanIndicator = document.getElementById('scan-indicator');
         
-        // If input is cleared, reset buffer
+        // If input is cleared, reset buffer and hide search
         if (!value) {
             barcodeBuffer = '';
             if (barcodeTimeout) {
                 clearTimeout(barcodeTimeout);
             }
+            document.getElementById('search-results').style.display = 'none';
+            
+            // Reset scan indicator to "Siap Scan" when input is cleared
+            if (scanIndicator) {
+                scanIndicator.textContent = 'Siap Scan';
+                scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
+            }
             return;
         }
         
         // Handle rapid input (typical of barcode scanners)
-        handleBarcodeInput(value.slice(-1)); // Get last character
+        const currentTime = Date.now();
+        const timeDiff = barcodeInput.lastInputTime ? (currentTime - barcodeInput.lastInputTime) : 1000;
+        
+        // If input is very rapid (< 50ms between characters), it's likely a barcode scanner
+        if (timeDiff < 50) {
+            // Rapid input detected - likely from scanner, hide search results and process silently
+            document.getElementById('search-results').style.display = 'none';
+            handleBarcodeInput(value.slice(-1)); // Get last character for buffer
+            barcodeInput.lastInputTime = currentTime;
+            return;
+        }
+        
+        // If input is slower, treat as manual typing and show search results
+        barcodeInput.lastInputTime = currentTime;
+        
+        // Only show search results for numeric input (barcode search) and manual typing
+        // Don't show search results for text input
+        if (/^\d+$/.test(value)) {
+            // Numeric input - show search results for barcode search only for manual typing
+            if (value.length >= 1 && value.length < 8 && !isProcessing) {
+                // Handle real-time search for numeric input (barcode search) - only for manual input
+                handleBarcodeInputEnhanced(value);
+            } else if (value.length >= 8) {
+                // Long numeric input - try to process as complete barcode
+                document.getElementById('search-results').style.display = 'none';
+                setTimeout(() => {
+                    if (barcodeInput.value === value) {
+                        processAutomaticBarcode(value);
+                    }
+                }, 100);
+            }
+        } else {
+            // Non-numeric input - hide search results completely
+            document.getElementById('search-results').style.display = 'none';
+        }
     });
     
     // Prevent form submission on Enter in barcode input
@@ -825,11 +1241,31 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Re-focus when clicking anywhere on the page (except inputs/buttons)
     document.addEventListener('click', function(e) {
-        if (!e.target.matches('input, button, select, textarea, .btn, .form-control, .modal *')) {
-            setTimeout(() => {
-                barcodeInput.focus();
-            }, 10);
+        // Hide search results when clicking outside
+        const searchResults = document.getElementById('search-results');
+        const barcodeScanner = document.getElementById('barcode-scanner');
+        
+        if (!e.target.closest('#search-results') && e.target !== barcodeScanner) {
+            searchResults.style.display = 'none';
         }
+        
+        // Don't interfere with form elements
+        if (e.target.matches('input, button, select, textarea, option, .btn, .form-control, .form-select, .modal *, .dropdown-menu *')) {
+            return;
+        }
+        
+        // Don't interfere if clicking on dropdown options
+        if (e.target.closest('select') || e.target.closest('.dropdown-menu')) {
+            return;
+        }
+        
+        setTimeout(() => {
+            // Only focus if no form element is currently focused
+            const activeElement = document.activeElement;
+            if (!activeElement || (!activeElement.matches('input, select, textarea') && !activeElement.classList.contains('form-control'))) {
+                barcodeInput.focus();
+            }
+        }, 10);
     });
     
     // Handle window focus/blur
@@ -840,6 +1276,34 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // 🎯 END AUTOMATIC BARCODE SCANNING SYSTEM
+    
+    // Enhanced modal search functionality
+    document.getElementById('modal-search').addEventListener('input', function() {
+        filterProductList();
+    });
+    
+    // Add event listener for modal search
+    function filterProductList() {
+        const searchTerm = document.getElementById('modal-search').value.toLowerCase();
+        const rows = document.querySelectorAll('.product-row');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const productName = row.getAttribute('data-name');
+            const barcode = row.getAttribute('data-barcode');
+            
+            if (productName.includes(searchTerm) || barcode.includes(searchTerm)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Show count in modal
+        const modalTitle = document.getElementById('productListModalLabel');
+        modalTitle.innerHTML = `<i class="fas fa-barcode me-2"></i>Daftar Produk & Barcode (${visibleCount} produk)`;
+    }
     
     // Auto-focus barcode input when pressing F2
     document.addEventListener('keydown', function(e) {
@@ -919,6 +1383,28 @@ document.addEventListener('DOMContentLoaded', function() {
             setPriceFromSelect(tr);
         }
     });
+    
+    // Add special handling for dropdown focus/blur to prevent barcode interference
+    table.addEventListener('focus', (e) => {
+        if (e.target && e.target.classList.contains('produk-select')) {
+            // Stop barcode auto-focus when dropdown is focused
+            e.target.setAttribute('data-dropdown-focused', 'true');
+        }
+    }, true);
+    
+    table.addEventListener('blur', (e) => {
+        if (e.target && e.target.classList.contains('produk-select')) {
+            // Remove dropdown focus flag
+            e.target.removeAttribute('data-dropdown-focused');
+            
+            // Resume barcode focus after a short delay
+            setTimeout(() => {
+                if (!document.querySelector('select:focus')) {
+                    barcodeInput.focus();
+                }
+            }, 100);
+        }
+    }, true);
     table.addEventListener('input', (e) => {
         if (e.target && (e.target.classList.contains('jumlah') || e.target.classList.contains('harga') || e.target.classList.contains('diskon'))) {
             const tr = e.target.closest('tr');

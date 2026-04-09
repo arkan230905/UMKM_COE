@@ -513,8 +513,19 @@ class PenjualanController extends Controller
     /**
      * Find product by barcode (API endpoint for barcode scanner)
      */
-    public function findByBarcode($barcode)
+    public function findByBarcode(Request $request)
     {
+        // Handle both direct parameter and request parameter for backward compatibility
+        $barcode = $request->get('barcode', '') ?: $request->route('barcode', '');
+        
+        if (empty($barcode)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Barcode is required',
+                'data' => null
+            ]);
+        }
+
         $produk = Produk::where('barcode', $barcode)->first();
         
         if (!$produk) {
@@ -524,7 +535,7 @@ class PenjualanController extends Controller
             ], 404);
         }
         
-        // Calculate available stock
+        // Calculate available stock using stock movements for accuracy
         $stokMasuk = \DB::table('stock_movements')
             ->where('item_type', 'product')
             ->where('item_id', $produk->id)
@@ -537,18 +548,59 @@ class PenjualanController extends Controller
             ->where('direction', 'out')
             ->sum('qty');
         
-        $stokTersedia = $stokMasuk - $stokKeluar;
+        $stokTersedia = max(0, $stokMasuk - $stokKeluar);
         
         return response()->json([
             'success' => true,
             'data' => [
                 'id' => $produk->id,
+                'nama' => $produk->nama_produk ?? $produk->nama,
                 'barcode' => $produk->barcode,
-                'nama_produk' => $produk->nama_produk,
-                'harga_jual' => $produk->harga_jual ?? 0,
-                'stok_tersedia' => $stokTersedia,
+                'harga' => round($produk->harga_jual ?? 0),
+                'stok' => $stokTersedia,
                 'foto' => $produk->foto ? asset('storage/' . $produk->foto) : null,
             ]
         ]);
     }
+
+    /**
+     * API endpoint for real-time product search by barcode or name
+     */
+    public function searchProducts(Request $request)
+    {
+        $search = $request->get('q', '');
+        
+        if (strlen($search) < 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Search term too short',
+                'data' => []
+            ]);
+        }
+
+        $products = Produk::where(function($query) use ($search) {
+                $query->where('barcode', 'LIKE', "%{$search}%")
+                      ->orWhere('nama_produk', 'LIKE', "%{$search}%")
+                      ->orWhere('nama', 'LIKE', "%{$search}%");
+            })
+            ->where('stok', '>', 0) // Only products with stock
+            ->select('id', 'nama_produk', 'nama', 'barcode', 'harga_jual', 'stok')
+            ->limit(10)
+            ->get()
+            ->map(function($product) {
+                return [
+                    'id' => $product->id,
+                    'nama' => $product->nama_produk ?? $product->nama,
+                    'barcode' => $product->barcode,
+                    'harga' => round($product->harga_jual ?? 0),
+                    'stok' => $product->stok ?? 0
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $products
+        ]);
+    }
+
 }
