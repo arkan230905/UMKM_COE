@@ -292,6 +292,22 @@ class BiayaBahanController extends Controller
                 // Cek apakah bahan ini dihapus atau tidak ada di database
                 $isDeleted = !$bahanBaku || ($detail->harga_satuan == 0 && !empty($detail->catatan_hapus));
                 
+                // Hitung stok real-time dari stock movements (konsisten dengan laporan stok)
+                $stokRealTime = 0;
+                if ($bahanBaku) {
+                    $stockIn = \App\Models\StockMovement::where('item_type', 'material')
+                        ->where('item_id', $bahanBaku->id)
+                        ->where('direction', 'in')
+                        ->sum('qty');
+                    
+                    $stockOut = \App\Models\StockMovement::where('item_type', 'material')
+                        ->where('item_id', $bahanBaku->id)
+                        ->where('direction', 'out')
+                        ->sum('qty');
+                    
+                    $stokRealTime = $stockIn - $stockOut;
+                }
+                
                 return [
                     'id' => $detail->id,
                     'nama_bahan' => $bahanBaku ? $bahanBaku->nama_bahan : ($detail->nama_bahan_terhapus ?? 'Unknown'),
@@ -303,7 +319,9 @@ class BiayaBahanController extends Controller
                     'status' => $isDeleted ? 'dihapus' : 'aktif',
                     'catatan_hapus' => $detail->catatan_hapus ?? null,
                     'nama_bahan_terhapus' => $detail->nama_bahan_terhapus ?? null,
-                    'harga_terakhir' => $detail->harga_terakhir ?? null
+                    'harga_terakhir' => $detail->harga_terakhir ?? null,
+                    'stok_tersedia' => $stokRealTime, // Stok real-time sesuai laporan stok
+                    'stok_master' => $bahanBaku ? $bahanBaku->stok : 0 // Stok dari master data untuk perbandingan
                 ];
             })->toArray() ?? [];
         } else {
