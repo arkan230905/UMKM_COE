@@ -174,6 +174,7 @@ class ProdukController extends Controller
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
             'harga_jual' => 'required|string',
             'hpp' => 'nullable|numeric|min:0',
+            'hpp_calculated' => 'nullable|numeric|min:0',
             'bopb_method' => 'nullable|in:per_unit,per_hour',
             'bopb_rate' => 'nullable|numeric|min:0',
             'labor_hours_per_unit' => 'nullable|numeric|min:0',
@@ -184,17 +185,24 @@ class ProdukController extends Controller
         $hargaJualFormatted = $request->input('harga_jual');
         $hargaJual = intval(str_replace('.', '', $hargaJualFormatted));
         
+        // Use calculated HPP from BomJobCosting if available, otherwise use the old HPP
+        $hppCalculated = $request->input('hpp_calculated');
+        $hppToUse = !empty($hppCalculated) && $hppCalculated > 0 ? $hppCalculated : $request->input('hpp');
+        
         // Debug: log the values
-        \Log::info('ProdukController::update - Debug harga_jual');
+        \Log::info('ProdukController::update - Debug harga_jual and HPP');
         \Log::info('Raw harga_jual from form: ' . $hargaJualFormatted);
         \Log::info('Parsed harga_jual: ' . $hargaJual);
-        \Log::info('HPP from request: ' . $request->input('hpp'));
+        \Log::info('HPP calculated (from BomJobCosting): ' . $hppCalculated);
+        \Log::info('HPP old (from produk): ' . $request->input('hpp'));
+        \Log::info('HPP to use: ' . $hppToUse);
 
         $data = [
             'nama_produk' => $request->nama_produk,
             'deskripsi' => $request->deskripsi,
             'harga_jual' => $hargaJual,
-            'hpp' => $request->input('hpp'),
+            'hpp' => $hppToUse,
+            'harga_bom' => $hppToUse, // Update harga_bom to match HPP
             'bopb_method' => $request->input('bopb_method'),
             'bopb_rate' => $request->input('bopb_rate'),
             'labor_hours_per_unit' => $request->input('labor_hours_per_unit'),
@@ -210,6 +218,7 @@ class ProdukController extends Controller
         // Debug: log the stored values after update
         \Log::info('ProdukController::update - After update');
         \Log::info('Stored harga_jual in database: ' . $produk->harga_jual);
+        \Log::info('Stored hpp in database: ' . $produk->hpp);
         \Log::info('Final data array: ' . json_encode($data));
 
         return redirect()->route('master-data.produk.index')

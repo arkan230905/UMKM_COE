@@ -8,93 +8,25 @@
         @csrf
         @method('PUT')
         @php
-            // Calculate HPP using the same logic as dashboard
-            $totalBiayaBahan = 0;
-            $totalBTKL = 0;
-            $totalBOP = 0;
-            
+            // Get HPP from BomJobCosting (total biaya harga pokok produksi)
             $bomJobCosting = $produk->bomJobCosting;
+            $calculatedHPP = 0;
             
             if ($bomJobCosting) {
-                // Use data from BomJobCosting for bahan
-                $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
-                
-                // Calculate BTKL real-time from bom_job_btkl
-                $btklData = DB::table('bom_job_btkl')
-                    ->leftJoin('btkls', 'bom_job_btkl.btkl_id', '=', 'btkls.id')
-                    ->leftJoin('jabatans', 'btkls.jabatan_id', '=', 'jabatans.id')
-                    ->where('bom_job_btkl.bom_job_costing_id', $bomJobCosting->id)
-                    ->select(
-                        'bom_job_btkl.*',
-                        'btkls.kapasitas_per_jam',
-                        'jabatans.id as jabatan_id',
-                        'jabatans.tarif as tarif_jabatan'
-                    )
-                    ->get();
-                
-                $totalBTKL = 0;
-                foreach ($btklData as $btkl) {
-                    if ($btkl->jabatan_id) {
-                        // Get jumlah pegawai for this jabatan
-                        $jumlahPegawai = DB::table('pegawais')
-                            ->join('jabatans', 'pegawais.jabatan', '=', 'jabatans.nama')
-                            ->where('jabatans.id', $btkl->jabatan_id)
-                            ->count();
-                        
-                        // Calculate tarif BTKL: Jumlah Pegawai × Tarif per Jam Jabatan
-                        $tarifBtkl = $jumlahPegawai * ($btkl->tarif_jabatan ?? 0);
-                        
-                        // Calculate biaya per produk: Tarif BTKL ÷ Kapasitas per Jam
-                        $kapasitasPerJam = $btkl->kapasitas_per_jam ?? 1;
-                        $biayaPerProduk = $kapasitasPerJam > 0 ? $tarifBtkl / $kapasitasPerJam : 0;
-                        
-                        $totalBTKL += $biayaPerProduk;
-                    }
-                }
-                
-                // Calculate BOP using the same logic as dashboard
-                $bopData = DB::table('bom_job_bop')
-                    ->where('bom_job_bop.bom_job_costing_id', $bomJobCosting->id)
-                    ->select('bom_job_bop.*')
-                    ->get();
-                    
-                $totalBOP = 0;
-                if (!empty($bopData) && count($bopData) > 0) {
-                    // Group BOP by process and sum the tariffs
-                    $bopByProcess = [];
-                    foreach ($bopData as $bop) {
-                        $namaBiaya = strtolower($bop->nama_bop ?? '');
-                        $prosesName = 'Umum';
-                        
-                        if (stripos($namaBiaya, 'penggorengan') !== false) {
-                            $prosesName = 'Menggoreng';
-                        } elseif (stripos($namaBiaya, 'perbumbuan') !== false) {
-                            $prosesName = 'Perbumbuan';
-                        } elseif (stripos($namaBiaya, 'pengemasan') !== false) {
-                            $prosesName = 'Packing';
-                        }
-                        
-                        if (!isset($bopByProcess[$prosesName])) {
-                            $bopByProcess[$prosesName] = 0;
-                        }
-                        $bopByProcess[$prosesName] += $bop->tarif;
-                    }
-                    
-                    // Sum all BOP tariffs
-                    foreach ($bopByProcess as $prosesName => $totalTarif) {
-                        $totalBOP += $totalTarif;
-                    }
-                }
-                
-                // If BOP data is empty or incorrect, use standard BOP values
-                if ($totalBOP == 0 || $totalBOP > 50000) {
-                    $totalBOP = 1740 + 290 + 1160; // Total = 3.190
-                }
+                // Use total_hpp from BomJobCosting which is the complete HPP calculation
+                $calculatedHPP = $bomJobCosting->total_hpp ?? 0;
             }
             
-            // Calculate total HPP: Biaya Bahan + BTKL + BOP
-            $totalBiayaHPP = $totalBiayaBahan + $totalBTKL + $totalBOP;
-            $calculatedHPP = $totalBiayaHPP;
+            // Fallback to harga_bom if BomJobCosting is not available
+            if ($calculatedHPP == 0) {
+                $calculatedHPP = $produk->harga_bom ?? 0;
+            }
+            
+            // Auto-populate harga_jual with HPP if harga_jual is empty or 0
+            $autoHargaJual = $produk->harga_jual;
+            if (empty($autoHargaJual) || $autoHargaJual == 0) {
+                $autoHargaJual = $calculatedHPP;
+            }
         @endphp
         
         <input type="hidden" name="hpp" id="hpp" value="{{ $produk->hpp ?? $calculatedHPP ?? 0 }}">
@@ -145,7 +77,7 @@
         <div class="mb-3">
             <label for="harga_jual" class="form-label">Harga Jual</label>
             <div class="input-group">
-                <input type="text" name="harga_jual" id="harga_jual" class="form-control" value="{{ old('harga_jual', $produk->harga_jual) }}" required>
+                <input type="text" name="harga_jual" id="harga_jual" class="form-control" value="{{ old('harga_jual', $autoHargaJual) }}" required>
                 <button type="button" class="btn btn-outline-secondary" onclick="resetToHPP()" title="Reset ke HPP">
                     <i class="fas fa-undo"></i>
                 </button>
@@ -161,17 +93,11 @@
 <script>
 // Reset harga jual to HPP value
 function resetToHPP() {
-    const hppInput = document.getElementById('hpp');
     const hppCalculatedInput = document.getElementById('hpp_calculated');
     const hargaJualInput = document.getElementById('harga_jual');
     
-    // Prioritize calculated HPP (total biaya harga pokok produksi)
+    // Use calculated HPP (total biaya harga pokok produksi from BomJobCosting)
     let hpp = parseFloat(hppCalculatedInput.value) || 0;
-    
-    // Fallback to stored HPP if calculated is 0
-    if (hpp === 0) {
-        hpp = parseFloat(hppInput.value) || 0;
-    }
     
     if (hpp > 0) {
         // Format HPP with thousand separators and set as harga jual
@@ -193,7 +119,7 @@ function resetToHPP() {
             btn.classList.add('btn-outline-secondary');
         }, 1500);
     } else {
-        alert('Total biaya harga pokok produksi tidak tersedia. Tidak bisa reset ke HPP.');
+        alert('Total biaya harga pokok produksi tidak tersedia. Pastikan BOM sudah dikonfigurasi dengan benar.');
     }
 }
 
@@ -209,25 +135,18 @@ function parseFormattedNumber(formattedString) {
 
 // Calculate profit percentage when harga_jual changes
 function calculateProfitPercentage() {
-    const hppInput = document.getElementById('hpp');
     const hppCalculatedInput = document.getElementById('hpp_calculated');
     const hargaJualInput = document.getElementById('harga_jual');
     const profitPercentageSpan = document.getElementById('profit_percentage');
     
-    // Prioritize calculated HPP (total biaya harga pokok produksi)
+    // Use calculated HPP (total biaya harga pokok produksi from BomJobCosting)
     let hpp = parseFloat(hppCalculatedInput.value) || 0;
-    
-    // Fallback to stored HPP if calculated is 0
-    if (hpp === 0) {
-        hpp = parseFloat(hppInput.value) || 0;
-    }
     
     // Get the actual numeric values
     const hargaJual = parseFormattedNumber(hargaJualInput.value);
     
     // Debug: log HPP values
-    console.log('HPP from hppInput (stored):', hppInput.value);
-    console.log('HPP from hppCalculatedInput (actual HPP):', hppCalculatedInput.value);
+    console.log('HPP from BomJobCosting (total_hpp):', hppCalculatedInput.value);
     console.log('Using HPP for calculation:', hpp);
     console.log('Harga Jual input value:', hargaJualInput.value);
     console.log('Parsed Harga Jual:', hargaJual);
@@ -271,11 +190,20 @@ function formatHargaJualInput() {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     const hargaJualInput = document.getElementById('harga_jual');
-    const hppInput = document.getElementById('hpp');
+    const hppCalculatedInput = document.getElementById('hpp_calculated');
     
     // Debug: Check HPP value
-    console.log('Initial HPP value:', hppInput.value);
+    console.log('Initial HPP from BomJobCosting:', hppCalculatedInput.value);
     console.log('Initial Harga Jual value:', hargaJualInput.value);
+    
+    // Auto-populate harga_jual with HPP if it's empty or 0
+    const currentHargaJual = parseFormattedNumber(hargaJualInput.value);
+    const hppValue = parseFloat(hppCalculatedInput.value) || 0;
+    
+    if ((currentHargaJual === 0 || !hargaJualInput.value) && hppValue > 0) {
+        console.log('Auto-populating harga_jual with HPP:', hppValue);
+        hargaJualInput.value = formatNumberWithDots(hppValue);
+    }
     
     // Format initial value
     const initialValue = hargaJualInput.value;

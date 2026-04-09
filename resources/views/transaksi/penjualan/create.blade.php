@@ -1,5 +1,58 @@
 @extends('layouts.app')
 @section('content')
+
+<style>
+/* Enhanced search result styling */
+.search-result-item {
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    padding: 8px !important;
+    margin: 2px 0;
+}
+
+.search-result-item:hover {
+    background-color: #f8f9fa !important;
+    transform: translateX(2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.search-result-item.selected {
+    background-color: #e3f2fd !important;
+    border-left: 3px solid #2196f3;
+}
+
+/* Barcode highlight styling */
+mark.bg-warning {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+    font-weight: bold;
+    padding: 1px 2px;
+    border-radius: 2px;
+}
+
+/* Search results container */
+#search-results {
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Barcode scanner input focus */
+#barcode-scanner:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+</style>
+
 <div class="container">
     <h3 class="mb-3">Tambah Penjualan</h3>
 
@@ -47,7 +100,7 @@
                         <label class="form-label mb-1 small text-muted">Scan Barcode Produk</label>
                         <div class="input-group">
                             <input type="text" id="barcode-scanner" class="form-control form-control-lg" 
-                                   placeholder="Siap untuk scan barcode..." 
+                                   placeholder="Ketik atau scan barcode..." 
                                    autocomplete="off" autofocus>
                             <div class="input-group-text bg-success text-white">
                                 <i class="fas fa-wifi me-1"></i>
@@ -59,8 +112,20 @@
                         </div>
                         <small class="text-muted">
                             <i class="fas fa-info-circle me-1"></i>
-                            Sistem otomatis mendeteksi barcode - tidak perlu klik atau tekan tombol
+                            Pencarian berdasarkan awalan barcode - ketik angka untuk mencari produk yang barcodenya diawali dengan angka tersebut
                         </small>
+                        
+                        <!-- Real-time search results -->
+                        <div id="search-results" class="mt-2" style="display: none;">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white py-1">
+                                    <small><i class="fas fa-search me-1"></i>Hasil Pencarian (<span id="search-count">0</span> produk)</small>
+                                </div>
+                                <div class="card-body p-2" id="search-results-body" style="max-height: 200px; overflow-y: auto;">
+                                    <!-- Results will be populated here -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- Preview Produk -->
@@ -158,53 +223,378 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const paymentMethodSelect = document.getElementById('payment_method_jual');
-    const sumberDanaSelect = document.getElementById('sumber_dana_jual');
+// Product data for barcode lookup
+const productData = {
+    @foreach($produks as $p)
+    '{{ $p->barcode ?? '' }}': {
+        id: {{ $p->id }},
+        nama: '{{ addslashes($p->nama_produk ?? $p->nama) }}',
+        harga: {{ round($p->harga_jual ?? 0) }},
+        stok: {{ $p->stok ?? 0 }},
+        barcode: '{{ $p->barcode ?? '' }}'
+    },
+    @endforeach
+};
+
+// Create searchable product array for real-time search
+const searchableProducts = [
+    @foreach($produks as $p)
+    {
+        id: {{ $p->id }},
+        nama: '{{ addslashes($p->nama_produk ?? $p->nama) }}',
+        harga: {{ round($p->harga_jual ?? 0) }},
+        stok: {{ $p->stok ?? 0 }},
+        barcode: '{{ $p->barcode ?? '' }}',
+        searchText: '{{ strtolower(addslashes($p->nama_produk ?? $p->nama)) }} {{ $p->barcode ?? '' }}'.toLowerCase()
+    },
+    @endforeach
+];
+
+// Debug: Log productData to console
+console.log('Product Data:', productData);
+console.log('Searchable Products:', searchableProducts);
+
+// Global utility functions (must be outside DOMContentLoaded)
+function formatCurrency(value) {
+    if (value === null || value === undefined || isNaN(value)) {
+        return 'Rp 0';
+    }
+    const roundedValue = Math.round(parseFloat(value) * 1000) / 1000;
+    return 'Rp ' + roundedValue.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+}
+
+function parseCurrency(formattedValue) {
+    if (!formattedValue) return 0;
+    return parseFloat(formattedValue.toString().replace(/[^\d]/g, '')) || 0;
+}
+
+// Global functions for barcode system
+function recalcRow(tr) {
+    const q = Math.round(parseFloat(tr.querySelector('.jumlah').value) || 0);
+    tr.querySelector('.jumlah').value = q; // Ensure integer display
+    const p = parseCurrency(tr.querySelector('.harga').value) || 0;
+    const dPct = Math.min(Math.max(parseFloat(tr.querySelector('.diskon').value) || 0, 0), 100);
+    const sub = q * p;
+    const dNom = sub * (dPct/100.0);
+    const line = Math.max(sub - dNom, 0);
+    tr.querySelector('.subtotal').value = formatCurrency(line);
+}
+
+function recalcTotal() {
+    const table = document.getElementById('detailTableJual');
+    let sum = 0;
+    table.querySelectorAll('tbody tr').forEach(tr => {
+        const val = (tr.querySelector('.subtotal').value || 'Rp 0').replace(/[^\d]/g,'');
+        sum += parseFloat(val) || 0;
+    });
     
-    // Fungsi untuk update sumber dana berdasarkan metode pembayaran
-    function updateSumberDana() {
-        const paymentMethod = paymentMethodSelect.value;
-        let targetKode = '';
-        
-        // Tentukan kode akun target berdasarkan metode pembayaran
-        switch(paymentMethod) {
-            case 'cash':
-                // Pilih akun Kas (112 atau 113) - prioritaskan 112
-                targetKode = '112';
-                break;
-            case 'transfer':
-                // Pilih akun Bank (111)
-                targetKode = '111';
-                break;
-            case 'credit':
-                // Pilih akun Piutang (118)
-                targetKode = '118';
-                break;
-        }
-        
-        // Cari dan pilih option yang sesuai
-        if (targetKode) {
-            const targetOption = Array.from(sumberDanaSelect.options).find(option => 
-                option.value === targetKode
-            );
-            
-            if (targetOption) {
-                sumberDanaSelect.value = targetKode;
-            } else {
-                // Jika kode target tidak ditemukan, coba fallback
-                if (paymentMethod === 'cash') {
-                    // Coba cari akun kas lainnya (113)
-                    const fallbackOption = Array.from(sumberDanaSelect.options).find(option => 
-                        option.value === '113'
-                    );
-                    if (fallbackOption) {
-                        sumberDanaSelect.value = '113';
-                    }
-                }
+    // Update subtotal produk
+    const subtotalProdukInput = document.querySelector('input[name="subtotal_produk"]');
+    if (subtotalProdukInput) {
+        subtotalProdukInput.value = formatCurrency(sum);
+    }
+    
+    // Get additional costs
+    const biayaOngkir = parseFloat(document.getElementById('biaya_ongkir').value) || 0;
+    const biayaService = parseFloat(document.getElementById('biaya_service').value) || 0;
+    const ppnPersen = parseFloat(document.getElementById('ppn_persen').value) || 0;
+    
+    // Calculate PPN base (subtotal + ongkir + service)
+    const ppnBase = sum + biayaOngkir + biayaService;
+    const totalPPN = ppnBase * (ppnPersen / 100);
+    
+    // Update PPN
+    const totalPPNInput = document.getElementById('total_ppn');
+    if (totalPPNInput) {
+        totalPPNInput.value = formatCurrency(totalPPN);
+    }
+    
+    // Calculate final total
+    const finalTotal = sum + biayaOngkir + biayaService + totalPPN;
+    
+    // Update total
+    const totalInput = document.getElementById('total_final');
+    if (totalInput) {
+        totalInput.value = formatCurrency(finalTotal);
+    }
+}
+
+function setPriceFromSelect(tr) {
+    const sel = tr.querySelector('.produk-select');
+    const opt = sel.options[sel.selectedIndex];
+    const price = parseFloat(opt?.getAttribute('data-price') || '0') || 0;
+    const stok = parseFloat(opt?.getAttribute('data-stok') || '0') || 0;
+    
+    tr.querySelector('.harga').value = formatCurrency(price);
+    
+    // Update stok info
+    const stokInfo = tr.querySelector('.stok-info');
+    if (stokInfo && opt.value) {
+        stokInfo.textContent = `Stok tersedia: ${stok.toLocaleString()}`;
+        stokInfo.style.color = stok > 0 ? '#28a745' : '#dc3545';
+    }
+    
+    // Set max qty to available stock
+    const qtyInput = tr.querySelector('.jumlah');
+    qtyInput.setAttribute('data-max-stok', stok);
+    
+    recalcRow(tr); 
+    recalcTotal();
+}
+
+function validateStock(tr) {
+    const qtyInput = tr.querySelector('.jumlah');
+    let qty = parseFloat(qtyInput.value) || 0;
+    qty = Math.round(qty); // Round to nearest integer
+    qtyInput.value = qty; // Update display
+    
+    const maxStok = parseFloat(qtyInput.getAttribute('data-max-stok') || '0') || 0;
+    
+    if (qty > maxStok) {
+        alert(`Stok tidak cukup! Stok tersedia: ${maxStok.toLocaleString()}, Anda input: ${qty.toLocaleString()}`);
+        qtyInput.value = maxStok;
+        qtyInput.style.borderColor = '#dc3545';
+        return false;
+    } else {
+        qtyInput.style.borderColor = '';
+        return true;
+    }
+}
+
+function highlightRow(row) {
+    row.style.backgroundColor = '#d4edda';
+    setTimeout(() => {
+        row.style.backgroundColor = '';
+        row.style.transition = 'background-color 0.5s ease';
+    }, 500);
+}
+
+function findExistingProductRow(productId) {
+    const table = document.getElementById('detailTableJual');
+    const rows = table.querySelectorAll('tbody tr');
+    
+    console.log('🔍 Looking for existing product ID:', productId);
+    
+    for (let row of rows) {
+        const select = row.querySelector('.produk-select');
+        if (select && select.value) {
+            console.log('📋 Found row with product ID:', select.value);
+            if (select.value == productId) {
+                console.log('✅ Found existing row for product:', productId);
+                return row;
             }
         }
     }
+    console.log('❌ No existing row found for product:', productId);
+    return null;
+}
+
+// Automatic Barcode Scanner System
+let barcodeBuffer = '';
+let barcodeTimeout = null;
+let isProcessing = false;
+let searchTimeout = null;
+const BARCODE_TIMEOUT = 50; // Reduced to 50ms for faster response
+const MIN_BARCODE_LENGTH = 1; // Reduced to 1 for immediate search
+const SEARCH_DELAY = 150; // Delay for real-time search to avoid too many requests
+
+// Real-time product search functionality
+function performRealTimeSearch(query) {
+    const searchResults = document.getElementById('search-results');
+    const searchResultsBody = document.getElementById('search-results-body');
+    const searchCount = document.getElementById('search-count');
+    
+    if (!query || query.length < 1) {
+        searchResults.style.display = 'none';
+        return;
+    }
+    
+    console.log('🔍 Searching for products with barcode starting with:', query);
+    
+    // Search in products with priority for barcode prefix match
+    const results = searchableProducts.filter(product => {
+        // Priority 1: Barcode starts with query (exact prefix match)
+        if (product.barcode && product.barcode.startsWith(query)) {
+            console.log('✅ Found barcode prefix match:', product.barcode, 'for product:', product.nama);
+            return true;
+        }
+        // Priority 2: Product name contains query (fallback for name search)
+        if (product.searchText.includes(query.toLowerCase())) {
+            console.log('📝 Found name match:', product.nama, 'for query:', query);
+            return true;
+        }
+        return false;
+    })
+    .sort((a, b) => {
+        // Sort by priority: barcode prefix matches first
+        const aStartsWithBarcode = a.barcode && a.barcode.startsWith(query);
+        const bStartsWithBarcode = b.barcode && b.barcode.startsWith(query);
+        
+        if (aStartsWithBarcode && !bStartsWithBarcode) return -1;
+        if (!aStartsWithBarcode && bStartsWithBarcode) return 1;
+        
+        // If both or neither start with barcode, sort by name
+        return a.nama.localeCompare(b.nama);
+    })
+    .slice(0, 10); // Limit to 10 results for performance
+    
+    console.log('📊 Search results count:', results.length);
+    
+    if (results.length > 0) {
+        searchCount.textContent = results.length;
+        
+        let html = '';
+        results.forEach(product => {
+            const stockBadge = product.stok > 0 ? 
+                `<span class="badge bg-success">${product.stok}</span>` : 
+                `<span class="badge bg-danger">Habis</span>`;
+            
+            // Highlight matching part in barcode for prefix matches
+            let barcodeDisplay = '';
+            if (product.barcode) {
+                if (product.barcode.startsWith(query)) {
+                    // Highlight the matching prefix
+                    const matchedPart = product.barcode.substring(0, query.length);
+                    const remainingPart = product.barcode.substring(query.length);
+                    barcodeDisplay = `<code class="text-primary"><mark class="bg-warning text-dark">${matchedPart}</mark>${remainingPart}</code>`;
+                } else {
+                    barcodeDisplay = `<code class="text-primary">${product.barcode}</code>`;
+                }
+            } else {
+                barcodeDisplay = '<small class="text-muted">No barcode</small>';
+            }
+            
+            html += `
+                <div class="d-flex justify-content-between align-items-center py-1 border-bottom search-result-item" 
+                     style="cursor: pointer;" 
+                     onclick="selectProductFromSearch(${product.id}, '${product.nama.replace(/'/g, "\\'")}', ${product.harga}, ${product.stok})"
+                     onmouseover="this.style.backgroundColor='#f8f9fa'" 
+                     onmouseout="this.style.backgroundColor=''">
+                    <div class="flex-grow-1">
+                        <div class="fw-bold text-dark">${product.nama}</div>
+                        <small class="text-muted">${barcodeDisplay} • Rp ${product.harga.toLocaleString('id-ID')}</small>
+                    </div>
+                    <div class="text-end">
+                        ${stockBadge}
+                        <button type="button" class="btn btn-sm btn-primary ms-2" onclick="event.stopPropagation(); selectProductFromSearch(${product.id}, '${product.nama.replace(/'/g, "\\'")}', ${product.harga}, ${product.stok})">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        searchResultsBody.innerHTML = html;
+        searchResults.style.display = 'block';
+    } else {
+        searchCount.textContent = '0';
+        searchResultsBody.innerHTML = `
+            <div class="text-center text-muted py-2">
+                <i class="fas fa-search me-1"></i>
+                Tidak ada produk dengan barcode yang diawali "${query}"
+            </div>
+        `;
+        searchResults.style.display = 'block';
+    }
+}
+
+// Select product from search results
+function selectProductFromSearch(productId, productName, price, stock) {
+    const product = {
+        id: productId,
+        nama: productName,
+        harga: price,
+        stok: stock
+    };
+    
+    try {
+        addProductByBarcode(product);
+        showNotification('✓ ' + productName + ' ditambahkan', 'success');
+        
+        // Clear search
+        document.getElementById('barcode-scanner').value = '';
+        document.getElementById('search-results').style.display = 'none';
+        
+        // Reset scan indicator to "Siap Scan" after product selection
+        const scanIndicator = document.getElementById('scan-indicator');
+        if (scanIndicator) {
+            scanIndicator.textContent = 'Siap Scan';
+            scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
+        }
+        
+        // Focus back to barcode input
+        setTimeout(() => {
+            document.getElementById('barcode-scanner').focus();
+        }, 100);
+        
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+}
+
+// Enhanced barcode input handler with real-time search
+function handleBarcodeInputEnhanced(value) {
+    // Clear existing search timeout
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+    
+    // If value is empty, hide search results
+    if (!value) {
+        document.getElementById('search-results').style.display = 'none';
+        return;
+    }
+    
+    // Don't show search results during barcode scanning (when processing is active)
+    if (isProcessing) {
+        document.getElementById('search-results').style.display = 'none';
+        return;
+    }
+    
+    // Only show search results for numeric input (barcode search) and manual typing
+    if (/^\d+$/.test(value)) {
+        // Set timeout for real-time search for numeric input
+        searchTimeout = setTimeout(() => {
+            // Double check we're not processing a barcode scan
+            if (!isProcessing) {
+                performRealTimeSearch(value);
+            }
+        }, SEARCH_DELAY);
+    } else {
+        // Hide search results for non-numeric input
+        document.getElementById('search-results').style.display = 'none';
+    }
+}
+
+// Safety mechanism to reset processing state if stuck
+function resetProcessingState() {
+    const scanIndicator = document.getElementById('scan-indicator');
+    if (isProcessing && scanIndicator && scanIndicator.textContent === 'Memproses...') {
+        console.log('⚠️ Resetting stuck processing state');
+        isProcessing = false;
+        scanIndicator.textContent = 'Siap Scan';
+        scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
+    }
+}
+
+// Check for stuck processing every 5 seconds
+setInterval(resetProcessingState, 5000);
+
+// Auto-focus system
+function maintainFocus() {
+    const barcodeInput = document.getElementById('barcode-scanner');
+    if (document.activeElement !== barcodeInput) {
+        barcodeInput.focus();
+    }
+}
+
+// Automatic barcode detection
+function handleBarcodeInput(char) {
+    // Hide search results immediately when rapid input is detected (barcode scanning)
+    document.getElementById('search-results').style.display = 'none';
+    
+    // Add character to buffer
+    barcodeBuffer += char;
     
     // Event listener untuk perubahan metode pembayaran
     paymentMethodSelect.addEventListener('change', updateSumberDana);
@@ -214,13 +604,22 @@ document.addEventListener('DOMContentLoaded', function() {
         updateSumberDana();
     }
 
-    // ===== BARCODE SCANNER IMPLEMENTATION =====
+// Process barcode automatically - Enhanced version
+function processAutomaticBarcode(barcode) {
+    if (isProcessing) return;
+    
+    isProcessing = true;
+    console.log('🔍 Auto-processing barcode:', barcode);
     
     const barcodeInput = document.getElementById('barcode-scanner');
     const scanIndicator = document.getElementById('scan-indicator');
-    let barcodeBuffer = '';
-    let barcodeTimeout = null;
-    let isScanning = false;
+    const searchResults = document.getElementById('search-results');
+    
+    // Hide search results when processing exact barcode
+    searchResults.style.display = 'none';
+    
+    // Clear input immediately for silent processing
+    barcodeInput.value = '';
     
     // Fungsi untuk memainkan suara beep
     function playBeep() {
@@ -229,8 +628,42 @@ document.addEventListener('DOMContentLoaded', function() {
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
         
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+        if (product) {
+            console.log('✅ Product found:', product);
+            
+            // Validate stock before adding
+            if (product.stok <= 0) {
+                throw new Error('Produk ' + product.nama + ' stok habis!');
+            }
+            
+            // Product found - add to table silently
+            addProductByBarcode(product);
+            
+            // Success feedback
+            scanIndicator.textContent = '✓ ' + product.nama.substring(0, 15) + (product.nama.length > 15 ? '...' : '');
+            scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
+            
+            // Play success sound
+            playBeep(true);
+            
+            // Show success notification
+            showNotification('Produk ditambahkan: ' + product.nama, 'success');
+            
+        } else {
+            console.log('❌ Product not found for barcode:', barcode);
+            
+            // Product not found - show error without search results
+            scanIndicator.textContent = 'Produk tidak ditemukan';
+            scanIndicator.parentElement.className = 'input-group-text bg-danger text-white';
+            
+            // Show error notification
+            showNotification('Produk dengan barcode ' + barcode + ' tidak ditemukan', 'error');
+            
+            // Play error sound
+            playBeep(false);
+        }
+    } catch (error) {
+        console.error('Error processing barcode:', error);
         
         oscillator.frequency.value = 1000; // 1000 Hz
         oscillator.type = 'sine';
@@ -242,11 +675,28 @@ document.addEventListener('DOMContentLoaded', function() {
         oscillator.stop(audioContext.currentTime + 0.1);
     }
     
-    // Fungsi untuk update indikator scan
-    function updateScanIndicator(text, className = 'bg-success') {
-        scanIndicator.textContent = text;
-        scanIndicator.parentElement.className = `input-group-text ${className} text-white`;
-    }
+    // Reset status after 2 seconds
+    setTimeout(() => {
+        scanIndicator.textContent = 'Siap Scan';
+        scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
+        isProcessing = false;
+        
+        // Ensure focus is maintained
+        maintainFocus();
+    }, 2000);
+}
+
+// Show notification
+function showNotification(message, type) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
     
     // Fungsi untuk reset scanner state
     window.resetScannerState = function() {
@@ -267,36 +717,32 @@ document.addEventListener('DOMContentLoaded', function() {
             hidePreview();
             return;
         }
-        
-        console.log('Searching for product...');
-        findProductByBarcode(barcode)
-            .then(product => {
-                console.log('Product found for preview:', product);
-                showPreview(product);
-            })
-            .catch(error => {
-                console.log('Product not found for preview:', error);
-                hidePreview();
-            });
+    }, 3000);
+}
+
+// Manual reset function - Enhanced
+function resetScannerState() {
+    console.log('🔄 Manually resetting scanner state');
+    isProcessing = false;
+    barcodeBuffer = '';
+    
+    if (barcodeTimeout) {
+        clearTimeout(barcodeTimeout);
+        barcodeTimeout = null;
     }
     
-    // Fungsi untuk menampilkan preview produk
-    function showPreview(product) {
-        const previewDiv = document.getElementById('barcode-preview');
-        const namaEl = document.getElementById('preview-nama');
-        const barcodeEl = document.getElementById('preview-barcode');
-        const hargaEl = document.getElementById('preview-harga');
-        const stokEl = document.getElementById('preview-stok');
-        
-        // Simpan produk yang sedang di-preview untuk Enter key
-        lastPreviewProduct = product;
-        
-        namaEl.textContent = product.nama_produk || product.nama;
-        barcodeEl.textContent = product.barcode || '-';
-        hargaEl.textContent = 'Rp ' + number_format(product.harga_jual || 0);
-        stokEl.textContent = product.stok_tersedia || 0;
-        
-        previewDiv.style.display = 'block';
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+        searchTimeout = null;
+    }
+    
+    const scanIndicator = document.getElementById('scan-indicator');
+    const barcodeInput = document.getElementById('barcode-scanner');
+    const searchResults = document.getElementById('search-results');
+    
+    if (scanIndicator) {
+        scanIndicator.textContent = 'Siap Scan';
+        scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
     }
     
     // Fungsi untuk menyembunyikan preview
@@ -305,88 +751,78 @@ document.addEventListener('DOMContentLoaded', function() {
         previewDiv.style.display = 'none';
     }
     
-    // Helper function untuk format number
-    function number_format(num) {
-        return new Intl.NumberFormat('id-ID').format(num);
+    if (searchResults) {
+        searchResults.style.display = 'none';
     }
     
-        
-    // Fungsi untuk mencari produk berdasarkan barcode
-    function findProductByBarcode(barcode) {
-        console.log('findProductByBarcode called with:', barcode);
-        const url = `/transaksi/penjualan/barcode/${barcode}`;
-        console.log('Fetching URL:', url);
-        
-        return fetch(url)
-            .then(response => {
-                console.log('Response status:', response.status);
-                return response.json();
-            })
-            .then(data => {
-                console.log('Response data:', data);
-                if (data.success) {
-                    return data.data;
-                } else {
-                    throw new Error(data.message || 'Produk tidak ditemukan');
-                }
-            })
-            .catch(error => {
-                console.log('Fetch error:', error);
-                throw error;
-            });
+    showNotification('Scanner direset - siap untuk scan', 'success');
+}
+
+// Legacy functions (kept for compatibility)
+function searchBarcode() {
+    const barcodeInput = document.getElementById('barcode-scanner');
+    const barcode = barcodeInput.value.trim();
+    
+    if (!barcode) {
+        showNotification('Masukkan barcode', 'error');
+        return;
     }
     
-    // Fungsi untuk menambahkan produk ke tabel
-    function addProductToTable(product) {
-        console.log('addProductToTable called with product:', product);
-        const table = document.getElementById('detailTableJual');
-        const tbody = table.querySelector('tbody');
+    processAutomaticBarcode(barcode);
+}
+
+function processBarcode(barcode) {
+    processAutomaticBarcode(barcode);
+}
+
+function addProductByBarcode(product) {
+    console.log('🛒 Adding product to cart:', product);
+    
+    const table = document.getElementById('detailTableJual');
+    const tbody = table.querySelector('tbody');
+    
+    // Check if product already exists in table
+    const existingRow = findExistingProductRow(product.id);
+    
+    if (existingRow) {
+        console.log('📈 Incrementing existing product quantity');
+        // Increment quantity
+        const qtyInput = existingRow.querySelector('.jumlah');
+        const currentQty = parseFloat(qtyInput.value) || 0;
+        const newQty = currentQty + 1;
+        
+        // Check stock
+        if (newQty > product.stok) {
+            throw new Error('Stok tidak cukup! Stok tersedia: ' + product.stok);
+        }
         
         console.log('Current tbody rows before adding:', tbody.querySelectorAll('tr').length);
         
-        // Cek apakah produk sudah ada di tabel
-        const existingRows = tbody.querySelectorAll('tr');
-        let existingRow = null;
+        // Highlight row
+        highlightRow(existingRow);
+    } else {
+        console.log('➕ Adding new product to table');
+        // Find first empty row or create new one
+        let targetRow = null;
+        const rows = tbody.querySelectorAll('tr');
         
         existingRows.forEach((row, index) => {
             console.log(`Checking row ${index}:`, row);
             const select = row.querySelector('.produk-select');
-            if (select && select.value == product.id) {
-                existingRow = row;
+            if (!select || !select.value) {
+                console.log('📝 Found empty row to use');
+                targetRow = row;
+                break;
             }
         });
         
         console.log('Existing row found:', existingRow);
         
-        if (existingRow) {
-            console.log('Updating existing row');
-            // Jika produk sudah ada, tambah quantity
-            const qtyInput = existingRow.querySelector('.jumlah');
-            const currentQty = parseInt(qtyInput.value) || 0;
-            qtyInput.value = currentQty + 1;
-            
-            // Update subtotal
-            updateRowSubtotal(existingRow);
-            
-            // Highlight row yang sudah ada
-            existingRow.style.backgroundColor = '#d4edda';
-            setTimeout(() => {
-                existingRow.style.backgroundColor = '';
-            }, 1000);
-        } else {
-            console.log('Creating new row');
-            // Tambah baris baru
-            const newRow = createProductRow(product);
-            console.log('New row created:', newRow);
-            tbody.appendChild(newRow);
-            console.log('Row appended to tbody');
-            console.log('Total rows after adding:', tbody.querySelectorAll('tr').length);
-            
-            // Highlight baris baru
-            newRow.style.backgroundColor = '#d1ecf1';
-            setTimeout(() => {
-                newRow.style.backgroundColor = '';
-            }, 1000);
+        // If no empty row found, create new one
+        if (!targetRow) {
+            console.log('🆕 Creating new row');
+            targetRow = createNewRow();
+            tbody.appendChild(targetRow);
         }
         
         // Update total
@@ -435,8 +871,12 @@ document.addEventListener('DOMContentLoaded', function() {
             </td>
         `;
         
-        // Set product selection
-        const select = newRow.querySelector('.produk-select');
+        console.log('📋 Setting product data in row:', {
+            productId: product.id,
+            name: product.nama,
+            price: product.harga
+        });
+        
         select.value = product.id;
         
         console.log('Product row created from scratch');
@@ -446,61 +886,79 @@ document.addEventListener('DOMContentLoaded', function() {
             updateRowFromProduct(newRow);
         });
         
-        newRow.querySelector('.jumlah').addEventListener('input', function() {
-            updateRowSubtotal(newRow);
-        });
-        
-        newRow.querySelector('.diskon').addEventListener('input', function() {
-            updateRowSubtotal(newRow);
-        });
-        
-        // Calculate initial subtotal
-        updateRowSubtotal(newRow);
-        
-        console.log('createProductRow completed, returning:', newRow);
-        return newRow;
+        // Highlight row
+        highlightRow(targetRow);
+    }
+}
+
+// Create new empty row
+function createNewRow() {
+    const table = document.getElementById('detailTableJual');
+    const firstRow = table.querySelector('tbody tr');
+    const clone = firstRow.cloneNode(true);
+    
+    // Reset all inputs
+    clone.querySelectorAll('input').forEach(inp => {
+        if (inp.classList.contains('jumlah')) inp.value = 1;
+        else if (inp.classList.contains('harga')) inp.value = formatCurrency(0);
+        else if (inp.classList.contains('diskon')) inp.value = 0;
+        else if (inp.classList.contains('subtotal')) inp.value = formatCurrency(0);
+    });
+    
+    // Reset select
+    clone.querySelectorAll('select').forEach(sel => sel.selectedIndex = 0);
+    
+    // Reset stock info
+    const stockInfo = clone.querySelector('.stok-info');
+    if (stockInfo) {
+        stockInfo.textContent = '';
     }
     
-    // Fungsi untuk update data produk saat dropdown berubah
-    function updateRowFromProduct(row) {
-        const select = row.querySelector('.produk-select');
-        const selectedOption = select.options[select.selectedIndex];
-        
-        if (selectedOption && selectedOption.value) {
-            const price = parseFloat(selectedOption.dataset.price) || 0;
-            const stok = parseFloat(selectedOption.dataset.stok) || 0;
-            const hargaInput = row.querySelector('.harga');
-            const stokInfo = row.querySelector('.stok-info');
-            
-            // Update harga
-            hargaInput.value = formatCurrency(price);
-            
-            // Update stok info
-            if (stokInfo) {
-                stokInfo.textContent = `Stok tersedia: ${stok}`;
-                stokInfo.className = stok > 0 ? 'text-muted stok-info' : 'text-danger stok-info';
-            }
-            
-            // Update subtotal
-            updateRowSubtotal(row);
-        }
+    return clone;
+}
+
+function highlightRow(row) {
+    row.style.backgroundColor = '#d4edda';
+    setTimeout(() => {
+        row.style.backgroundColor = '';
+        row.style.transition = 'background-color 0.5s ease';
+    }, 500);
+}
+
+function updateBarcodeStatus(message, type) {
+    // Legacy function - now handled by automatic system
+    console.log('Status:', message, type);
+}
+
+// Toggle product list modal
+function toggleProductList() {
+    const modal = new bootstrap.Modal(document.getElementById('productListModal'));
+    modal.show();
+}
+
+// Add product from modal
+function addProductFromModal(productId, productName, price, stock) {
+    const product = {
+        id: productId,
+        nama: productName,
+        harga: price,
+        stok: stock
+    };
+    
+    addProductByBarcode(product);
+    showNotification('✓ ' + productName + ' ditambahkan', 'success');
+    
+    // Reset scan indicator to "Siap Scan" after adding product from modal
+    const scanIndicator = document.getElementById('scan-indicator');
+    if (scanIndicator) {
+        scanIndicator.textContent = 'Siap Scan';
+        scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
     }
     
-    // Fungsi untuk update subtotal baris
-    function updateRowSubtotal(row) {
-        const qtyInput = row.querySelector('.jumlah');
-        const hargaInput = row.querySelector('.harga');
-        const diskonInput = row.querySelector('.diskon');
-        const subtotalInput = row.querySelector('.subtotal');
-        
-        const qty = parseFloat(qtyInput.value) || 0;
-        const harga = parseFloat(hargaInput.value.replace(/[^\d]/g, '')) || 0;
-        const diskonPersen = parseFloat(diskonInput.value) || 0;
-        
-        const subtotal = qty * harga * (1 - diskonPersen / 100);
-        subtotalInput.value = formatCurrency(subtotal);
-        
-        updateAllTotals();
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('productListModal'));
+    if (modal) {
+        modal.hide();
     }
     
     // Fungsi untuk update semua total
@@ -539,104 +997,286 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('total_final').value = formatCurrency(totalFinal);
     }
     
-    // Fungsi format currency
-    function formatCurrency(value) {
-        const roundedValue = Math.round(parseFloat(value) * 1000) / 1000;
-        return 'Rp ' + roundedValue.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
-    }
-    
-    // Fungsi untuk membuat baris kosong
-    function createEmptyRow() {
-        const newRow = document.createElement('tr');
-        newRow.innerHTML = `
-            <td>
-                <select name="produk_id[]" class="form-select produk-select" required>
-                    <option value="">-- Pilih Produk --</option>
-                    @foreach($produks as $p)
-                        <option value="{{ $p->id }}" data-stok="{{ $p->stok ?? 0 }}" data-harga="{{ $p->harga_jual ?? 0 }}">
-                            {{ $p->nama_produk ?? $p->nama }}
-                        </option>
-                    @endforeach
-                </select>
-                <small class="text-muted stok-info" style="font-size: 0.8em;">Stok tersedia: -</small>
-            </td>
-            <td>
-                <input type="number" name="jumlah[]" class="form-control jumlah text-end" value="1" min="1" required>
-            </td>
-            <td>
-                <input type="text" name="harga_satuan[]" class="form-control harga text-end" value="0" readonly>
-            </td>
-            <td>
-                <input type="number" name="diskon_persen[]" class="form-control diskon text-end" value="0" min="0" max="100" step="0.1">
-            </td>
-            <td>
-                <input type="text" name="subtotal[]" class="form-control subtotal text-end" value="0" readonly>
-            </td>
-            <td style="width:6%">
-                <button class="btn btn-danger btn-sm" type="button" onclick="removeRow(this)">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        `;
+    // Maintain focus on barcode input at all times
+    function ensureBarcodeInputFocus() {
+        // Don't steal focus if user is actively using dropdown or other form elements
+        const activeElement = document.activeElement;
         
-        // Add event listeners
-        const select = newRow.querySelector('.produk-select');
-        const qtyInput = newRow.querySelector('.jumlah');
-        const diskonInput = newRow.querySelector('.diskon');
-        
-        select.addEventListener('change', function() {
-            updateRowFromProduct(newRow);
-        });
-        
-        qtyInput.addEventListener('input', function() {
-            updateRowSubtotal(newRow);
-        });
-        
-        diskonInput.addEventListener('input', function() {
-            updateRowSubtotal(newRow);
-        });
-        
-        return newRow;
-    }
-    
-        
-    // Simple dan robust barcode scanner detection
-    barcodeInput.addEventListener('input', function(e) {
-        const value = e.target.value.trim();
-        console.log('Input event triggered, value:', value, 'length:', value.length);
-        
-        // Preview produk jika ada input
-        if (value.length > 0) {
-            console.log('Calling previewProduct with:', value);
-            previewProduct(value);
-        } else {
-            console.log('Input empty, hiding preview');
-            hidePreview();
+        if (activeElement && (
+            activeElement.tagName === 'SELECT' ||
+            activeElement.tagName === 'INPUT' ||
+            activeElement.tagName === 'TEXTAREA' ||
+            activeElement.classList.contains('form-control') ||
+            activeElement.classList.contains('form-select') ||
+            activeElement.hasAttribute('data-dropdown-focused')
+        )) {
+            return; // Don't steal focus
         }
         
-        // Jika input memiliki panjang barcode (minimal 8 karakter) - auto process untuk scanner
-        if (value.length >= 8) {
-            updateScanIndicator('Mencari produk...', 'bg-info');
-            processBarcode(value);
+        // Don't steal focus if any dropdown is currently focused
+        if (document.querySelector('select[data-dropdown-focused="true"]')) {
+            return;
+        }
+        
+        // Don't steal focus if modal is open
+        if (document.querySelector('.modal.show')) {
+            return;
+        }
+        
+        // Only focus barcode input if no other form element is focused
+        if (document.activeElement !== barcodeInput) {
+            barcodeInput.focus();
+        }
+    }
+    
+    // Set initial focus
+    barcodeInput.focus();
+    
+    // Maintain focus every 1000ms (reduced frequency to be less aggressive)
+    setInterval(ensureBarcodeInputFocus, 1000);
+    
+    // Enhanced keyboard handling for better UX
+    document.addEventListener('keydown', function(e) {
+        // Skip if user is typing in other inputs (except barcode input)
+        if (e.target.tagName === 'INPUT' && e.target.id !== 'barcode-scanner') {
+            return;
+        }
+        
+        // Skip if user is interacting with select dropdown
+        if (e.target.tagName === 'SELECT') {
+            return;
+        }
+        
+        // Skip if modal is open
+        if (document.querySelector('.modal.show')) {
+            return;
+        }
+        
+        // Skip if dropdown is open
+        if (document.querySelector('select:focus')) {
+            return;
+        }
+        
+        // Skip special keys
+        if (e.ctrlKey || e.altKey || e.metaKey) {
+            return;
+        }
+        
+        // Handle Escape key to clear search results
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            document.getElementById('search-results').style.display = 'none';
+            barcodeInput.value = '';
+            barcodeInput.focus();
+            return;
+        }
+        
+        // Handle Arrow keys for search result navigation
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            const searchResults = document.getElementById('search-results');
+            if (searchResults.style.display !== 'none') {
+                e.preventDefault();
+                navigateSearchResults(e.key === 'ArrowDown' ? 1 : -1);
+                return;
+            }
+        }
+        
+        // Skip navigation keys when dropdown is focused
+        if (['ArrowLeft', 'ArrowRight', 'Tab'].includes(e.key)) {
+            return;
+        }
+        
+        // Handle Enter key (barcode scanners usually send Enter at the end)
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const currentValue = barcodeInput.value.trim();
+            if (currentValue && currentValue.length >= MIN_BARCODE_LENGTH) {
+                // Check if search results are visible and select first result
+                const searchResults = document.getElementById('search-results');
+                if (searchResults.style.display !== 'none') {
+                    const firstResult = searchResults.querySelector('.search-result-item');
+                    if (firstResult) {
+                        firstResult.click();
+                        return;
+                    }
+                }
+                processAutomaticBarcode(currentValue);
+            }
+            return;
+        }
+        
+        // Handle printable characters
+        if (e.key.length === 1) {
+            // Don't interfere if user is typing in dropdown or other form elements
+            if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+            
+            // Ensure barcode input is focused
+            if (document.activeElement !== barcodeInput) {
+                barcodeInput.focus();
+            }
+            
+            // Let the character be typed naturally, then handle it
+            setTimeout(() => {
+                handleBarcodeInput(e.key);
+            }, 1);
+        }
+    });
+
+// Navigate search results with arrow keys
+function navigateSearchResults(direction) {
+    const results = document.querySelectorAll('.search-result-item');
+    if (results.length === 0) return;
+    
+    let currentIndex = -1;
+    results.forEach((result, index) => {
+        if (result.classList.contains('selected')) {
+            currentIndex = index;
+            result.classList.remove('selected');
+            result.style.backgroundColor = '';
         }
     });
     
-    // Event listener untuk paste (jika barcode di-paste)
-    barcodeInput.addEventListener('paste', function(e) {
-        e.preventDefault();
-        const pastedData = e.clipboardData.getData('text').trim();
-        if (pastedData.length >= 8) {
-            updateScanIndicator('Mencari produk...', 'bg-info');
-            processBarcode(pastedData);
+    currentIndex += direction;
+    if (currentIndex < 0) currentIndex = results.length - 1;
+    if (currentIndex >= results.length) currentIndex = 0;
+    
+    const selectedResult = results[currentIndex];
+    selectedResult.classList.add('selected');
+    selectedResult.style.backgroundColor = '#e3f2fd';
+    selectedResult.scrollIntoView({ block: 'nearest' });
+}
+    
+    // Handle direct input to barcode field - Enhanced with real-time search
+    barcodeInput.addEventListener('input', function(e) {
+        const value = e.target.value.trim();
+        const scanIndicator = document.getElementById('scan-indicator');
+        
+        // If input is cleared, reset buffer and hide search
+        if (!value) {
+            barcodeBuffer = '';
+            if (barcodeTimeout) {
+                clearTimeout(barcodeTimeout);
+            }
+            document.getElementById('search-results').style.display = 'none';
+            
+            // Reset scan indicator to "Siap Scan" when input is cleared
+            if (scanIndicator) {
+                scanIndicator.textContent = 'Siap Scan';
+                scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
+            }
+            return;
         }
+        
+        // Handle rapid input (typical of barcode scanners)
+        const currentTime = Date.now();
+        const timeDiff = barcodeInput.lastInputTime ? (currentTime - barcodeInput.lastInputTime) : 1000;
+        
+        // If input is very rapid (< 50ms between characters), it's likely a barcode scanner
+        if (timeDiff < 50) {
+            // Rapid input detected - likely from scanner, hide search results and process silently
+            document.getElementById('search-results').style.display = 'none';
+            handleBarcodeInput(value.slice(-1)); // Get last character for buffer
+            barcodeInput.lastInputTime = currentTime;
+            return;
+        }
+        
+        // If input is slower, treat as manual typing and show search results
+        barcodeInput.lastInputTime = currentTime;
+        
+        // Only show search results for numeric input (barcode search) and manual typing
+        // Don't show search results for text input
+        if (/^\d+$/.test(value)) {
+            // Numeric input - show search results for barcode search only for manual typing
+            if (value.length >= 1 && value.length < 8 && !isProcessing) {
+                // Handle real-time search for numeric input (barcode search) - only for manual input
+                handleBarcodeInputEnhanced(value);
+            } else if (value.length >= 8) {
+                // Long numeric input - try to process as complete barcode
+                document.getElementById('search-results').style.display = 'none';
+                setTimeout(() => {
+                    if (barcodeInput.value === value) {
+                        processAutomaticBarcode(value);
+                    }
+                }, 100);
+            }
+        } else {
+            // Non-numeric input - hide search results completely
+            document.getElementById('search-results').style.display = 'none';
+        }
+    });
+    
+    // Prevent form submission on Enter in barcode input
+    barcodeInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+        }
+    });
+    
+    // Re-focus when clicking anywhere on the page (except inputs/buttons)
+    document.addEventListener('click', function(e) {
+        // Hide search results when clicking outside
+        const searchResults = document.getElementById('search-results');
+        const barcodeScanner = document.getElementById('barcode-scanner');
+        
+        if (!e.target.closest('#search-results') && e.target !== barcodeScanner) {
+            searchResults.style.display = 'none';
+        }
+        
+        // Don't interfere with form elements
+        if (e.target.matches('input, button, select, textarea, option, .btn, .form-control, .form-select, .modal *, .dropdown-menu *')) {
+            return;
+        }
+        
+        // Don't interfere if clicking on dropdown options
+        if (e.target.closest('select') || e.target.closest('.dropdown-menu')) {
+            return;
+        }
+        
+        setTimeout(() => {
+            // Only focus if no form element is currently focused
+            const activeElement = document.activeElement;
+            if (!activeElement || (!activeElement.matches('input, select, textarea') && !activeElement.classList.contains('form-control'))) {
+                barcodeInput.focus();
+            }
+        }, 10);
     });
     
     // Event listener untuk keydown (Enter key untuk manual input)
     let lastPreviewProduct = null;
     
-    barcodeInput.addEventListener('keydown', function(e) {
-        // Handle Enter key untuk menambahkan produk dari preview
-        if (e.key === 'Enter' || e.keyCode === 13) {
+    // Enhanced modal search functionality
+    document.getElementById('modal-search').addEventListener('input', function() {
+        filterProductList();
+    });
+    
+    // Add event listener for modal search
+    function filterProductList() {
+        const searchTerm = document.getElementById('modal-search').value.toLowerCase();
+        const rows = document.querySelectorAll('.product-row');
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const productName = row.getAttribute('data-name');
+            const barcode = row.getAttribute('data-barcode');
+            
+            if (productName.includes(searchTerm) || barcode.includes(searchTerm)) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Show count in modal
+        const modalTitle = document.getElementById('productListModalLabel');
+        modalTitle.innerHTML = `<i class="fas fa-barcode me-2"></i>Daftar Produk & Barcode (${visibleCount} produk)`;
+    }
+    
+    // Auto-focus barcode input when pressing F2
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'F2') {
             e.preventDefault();
             
             const value = barcodeInput.value.trim();
@@ -698,11 +1338,30 @@ document.addEventListener('DOMContentLoaded', function() {
         tbody.appendChild(newRow);
     });
     
-    // Event listener untuk tombol hapus baris (gunakan event delegation)
-    document.getElementById('detailTableJual').addEventListener('click', function(e) {
-        if (e.target.classList.contains('removeRow')) {
-            const row = e.target.closest('tr');
-            const tbody = row.parentElement;
+    // Add special handling for dropdown focus/blur to prevent barcode interference
+    table.addEventListener('focus', (e) => {
+        if (e.target && e.target.classList.contains('produk-select')) {
+            // Stop barcode auto-focus when dropdown is focused
+            e.target.setAttribute('data-dropdown-focused', 'true');
+        }
+    }, true);
+    
+    table.addEventListener('blur', (e) => {
+        if (e.target && e.target.classList.contains('produk-select')) {
+            // Remove dropdown focus flag
+            e.target.removeAttribute('data-dropdown-focused');
+            
+            // Resume barcode focus after a short delay
+            setTimeout(() => {
+                if (!document.querySelector('select:focus')) {
+                    barcodeInput.focus();
+                }
+            }, 100);
+        }
+    }, true);
+    table.addEventListener('input', (e) => {
+        if (e.target && (e.target.classList.contains('jumlah') || e.target.classList.contains('harga') || e.target.classList.contains('diskon'))) {
+            const tr = e.target.closest('tr');
             
             // Hapus baris jika ada lebih dari 1 baris
             if (tbody.children.length > 1) {
