@@ -326,4 +326,182 @@ class BahanPendukung extends Model
         
         return $stokSatuan;
     }
+
+    /**
+     * Convert quantity to base unit (satuan utama) consistently
+     * This is the SINGLE SOURCE OF TRUTH for all unit conversions
+     * 
+     * @param float $quantity Input quantity
+     * @param string $fromUnit Input unit
+     * @return float Quantity in base unit (satuan utama)
+     */
+    public function convertToSatuanUtama($quantity, $fromUnit)
+    {
+        $quantity = (float) $quantity;
+        $fromUnit = strtoupper(trim($fromUnit));
+        
+        // Get base unit (satuan utama)
+        $baseUnit = strtoupper($this->satuanRelation->nama ?? 'UNIT');
+        
+        \Log::info("CONVERSION START - Bahan Pendukung ID {$this->id}:", [
+            'nama_bahan' => $this->nama_bahan,
+            'quantity' => $quantity,
+            'from_unit' => $fromUnit,
+            'base_unit' => $baseUnit
+        ]);
+        
+        // If already in base unit, return as is
+        if ($fromUnit === $baseUnit) {
+            \Log::info("CONVERSION - Already in base unit:", [
+                'result' => $quantity,
+                'method' => 'no_conversion_needed'
+            ]);
+            return $quantity;
+        }
+        
+        // Try to find conversion from sub-units first (more accurate)
+        $convertedQty = $this->convertFromSubUnits($quantity, $fromUnit);
+        if ($convertedQty !== null) {
+            \Log::info("CONVERSION - Using sub-unit conversion:", [
+                'result' => $convertedQty,
+                'method' => 'sub_unit_conversion'
+            ]);
+            return $convertedQty;
+        }
+        
+        // Fallback to 1:1 conversion for bahan pendukung
+        \Log::warning("CONVERSION - No conversion found, using 1:1 ratio:", [
+            'input' => "{$quantity} {$fromUnit}",
+            'output' => "{$quantity} {$baseUnit}"
+        ]);
+        
+        return $quantity;
+    }
+
+    /**
+     * Convert from sub-units defined in bahan pendukung master data
+     * This uses the conversion factors stored in the bahan_pendukungs table
+     * 
+     * @param float $quantity
+     * @param string $fromUnit
+     * @return float|null Converted quantity or null if unit not found
+     */
+    private function convertFromSubUnits($quantity, $fromUnit)
+    {
+        $fromUnit = strtoupper(trim($fromUnit));
+        
+        // Check sub_satuan_1
+        if ($this->subSatuan1 && strtoupper($this->subSatuan1->nama) === $fromUnit) {
+            if ($this->sub_satuan_1_konversi > 0) {
+                return $quantity / $this->sub_satuan_1_konversi;
+            }
+        }
+        
+        // Check sub_satuan_2
+        if ($this->subSatuan2 && strtoupper($this->subSatuan2->nama) === $fromUnit) {
+            if ($this->sub_satuan_2_konversi > 0) {
+                return $quantity / $this->sub_satuan_2_konversi;
+            }
+        }
+        
+        // Check sub_satuan_3
+        if ($this->subSatuan3 && strtoupper($this->subSatuan3->nama) === $fromUnit) {
+            if ($this->sub_satuan_3_konversi > 0) {
+                return $quantity / $this->sub_satuan_3_konversi;
+            }
+        }
+        
+        return null; // Unit not found in sub-units
+    }
+
+    /**
+     * Helper function to update stock consistently
+     * Always use converted quantities in base unit (satuan utama)
+     * 
+     * @param float $qty Quantity in base unit (satuan utama)
+     * @param string $type 'in' for stock increase, 'out' for stock decrease
+     * @param string $description Optional description for logging
+     * @return bool Success status
+     */
+    public function updateStok($qty, $type = 'in', $description = '')
+    {
+        \Log::info("STOCK UPDATE START - Bahan Pendukung ID {$this->id}:", [
+            'nama_bahan' => $this->nama_bahan,
+            'qty' => $qty,
+            'type' => $type,
+            'description' => $description,
+            'current_stok' => $this->stok
+        ]);
+
+        if ($qty <= 0) {
+            \Log::warning("Invalid quantity for stock update: {$qty}");
+            return false;
+        }
+
+        $stokLama = (float) ($this->stok ?? 0);
+        
+        if ($type === 'in') {
+            $stokBaru = $stokLama + $qty;
+        } elseif ($type === 'out') {
+            // Validate sufficient stock for outbound operations
+            if ($stokLama < $qty) {
+                \Log::error("Insufficient stock for {$this->nama_bahan}. Available: {$stokLama}, Required: {$qty}");
+                return false;
+            }
+            $stokBaru = $stokLama - $qty;
+        } else {
+            \Log::error("Invalid stock update type: {$type}. Use 'in' or 'out'");
+            return false;
+        }
+
+        \Log::info("STOCK UPDATE CALCULATION - Bahan Pendukung ID {$this->id}:", [
+            'nama_bahan' => $this->nama_bahan,
+            'type' => $type,
+            'qty' => $qty,
+            'stok_lama' => $stokLama,
+            'stok_baru' => $stokBaru,
+            'satuan_utama' => $this->satuanRelation->nama ?? 'unit',
+            'description' => $description
+        ]);
+
+        // Method 1: Direct update using save()
+        $this->stok = $stokBaru;
+        $saveResult = $this->save();
+
+        \Log::info("STOCK UPDATE SAVE ATTEMPT - Bahan Pendukung ID {$this->id}:", [
+            'save_result' => $saveResult,
+            'model_stok_after_save' => $this->stok,
+            'expected_stok' => $stokBaru
+        ]);
+
+        // Method 2: Fallback using direct DB update if save() fails
+        if (!$saveResult || abs($this->stok - $stokBaru) > 0.0001) {
+            \Log::warning("STOCK UPDATE - Save method failed, using direct DB update");
+            
+            $dbUpdateResult = \DB::table('bahan_pendukungs')
+                ->where('id', $this->id)
+                ->update(['stok' => $stokBaru]);
+            
+            \Log::info("STOCK UPDATE - DB Update Result:", [
+                'db_update_successful' => $dbUpdateResult,
+                'rows_affected' => $dbUpdateResult
+            ]);
+        }
+
+        // Final verification
+        $this->refresh();
+        $finalStock = $this->stok;
+
+        $success = (abs($finalStock - $stokBaru) < 0.0001);
+        
+        \Log::info("STOCK UPDATE FINAL - Bahan Pendukung ID {$this->id}:", [
+            'bahan_pendukung_id' => $this->id,
+            'expected_stock' => $stokBaru,
+            'actual_stock' => $finalStock,
+            'update_successful' => $success,
+            'difference' => ($finalStock - $stokBaru)
+        ]);
+
+        return $success;
+    }
 }

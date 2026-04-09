@@ -32,14 +32,6 @@
         </div>
     @endif
 
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show mx-3" role="alert">
-            <i class="bi bi-check-circle me-2"></i>
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
     <div class="card border-0 shadow-sm mx-3" style="border-radius: 15px;">
         <div class="card-body p-4">
             <form action="{{ route('master-data.presensi.store') }}" method="POST" id="presensiForm">

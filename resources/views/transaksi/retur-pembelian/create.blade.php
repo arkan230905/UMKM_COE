@@ -130,7 +130,7 @@
                         <thead class="table-light">
                             <tr>
                                 <th width="5%">No.</th>
-                                <th width="30%">Bahan Baku</th>
+                                <th width="30%">Item</th>
                                 <th width="15%">Qty Dibeli</th>
                                 <th width="15%">Qty Retur</th>
                                 <th width="10%">Satuan</th>
@@ -156,18 +156,13 @@
                                                 <span>{{ $detail->bahanPendukung->nama_bahan }}</span>
                                             </div>
                                             <input type="hidden" name="items[{{ $index }}][pembelian_detail_id]" value="{{ $detail->id }}">
-                                            <input type="hidden" name="items[{{ $index }}][bahan_baku_id]" value="">
-                                            <small class="text-warning">
-                                                <i class="fas fa-exclamation-triangle me-1"></i>
-                                                Bahan pendukung tidak dapat diretur
-                                            </small>
+                                            <input type="hidden" name="items[{{ $index }}][bahan_pendukung_id]" value="{{ $detail->bahan_pendukung_id }}">
                                         @else
                                             <span class="text-muted">
                                                 <i class="fas fa-exclamation-triangle me-1"></i>
                                                 Item tidak diketahui
                                             </span>
                                             <input type="hidden" name="items[{{ $index }}][pembelian_detail_id]" value="{{ $detail->id }}">
-                                            <input type="hidden" name="items[{{ $index }}][bahan_baku_id]" value="">
                                         @endif
                                     </td>
                                     <td>
@@ -178,11 +173,7 @@
                                                class="form-control qty-input" 
                                                data-price="{{ $detail->harga_satuan }}"
                                                value="{{ old('items.'.$index.'.qty', 0) }}" 
-                                               min="0" max="{{ $detail->jumlah }}"
-                                               {{ !$detail->bahan_baku_id ? 'disabled readonly' : '' }}>
-                                        @if(!$detail->bahan_baku_id)
-                                            <small class="text-muted">Hanya bahan baku yang dapat diretur</small>
-                                        @endif
+                                               min="0" max="{{ $detail->jumlah }}">
                                     </td>
                                     <td>
                                         <input type="text" name="items[{{ $index }}][satuan]" class="form-control" 
