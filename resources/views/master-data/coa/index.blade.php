@@ -48,6 +48,7 @@
                             <th>Nama Akun</th>
                             <th>Kode Akun</th>
                             <th>Tipe</th>
+                            <th class="text-end">Saldo Awal</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -70,6 +71,9 @@
                                     <span class="badge {{ $coa->tipe_akun == 'Asset' || $coa->tipe_akun == 'Aset' ? 'bg-success' : ($coa->tipe_akun == 'Liability' || $coa->tipe_akun == 'Kewajiban' ? 'bg-warning' : ($coa->tipe_akun == 'Equity' || $coa->tipe_akun == 'Modal' ? 'bg-info' : ($coa->tipe_akun == 'Revenue' || $coa->tipe_akun == 'Pendapatan' ? 'bg-primary' : 'bg-danger'))) }}">
                                         {{ $coa->tipe_akun }}
                                     </span>
+                                </td>
+                                <td class="text-end">
+                                    {{ number_format($saldoPeriode[$coa->id] ?? 0, 2, ',', '.') }}
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
