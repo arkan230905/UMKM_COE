@@ -1,0 +1,255 @@
+{
+    "proses_produksis": [
+        {
+            "id": 4,
+            "kode_proses": "PRO-001",
+            "nama_proses": "Perbumbuan",
+            "deskripsi": "Proses perbumbuan produk",
+            "tarif_btkl": "22000.00",
+            "satuan_btkl": "jam",
+            "kapasitas_per_jam": 200,
+            "jabatan_id": 10,
+            "btkl_id": null,
+            "jumlah_produksi_per_jam": "0.00",
+            "created_at": "2026-04-01 21:31:04",
+            "updated_at": "2026-04-08 15:51:30"
+        },
+        {
+            "id": 5,
+            "kode_proses": "PRO-002",
+            "nama_proses": "Penggorengan",
+            "deskripsi": "Proses penggorengan produk",
+            "tarif_btkl": "22200.00",
+            "satuan_btkl": "jam",
+            "kapasitas_per_jam": 50,
+            "jabatan_id": 9,
+            "btkl_id": null,
+            "jumlah_produksi_per_jam": "0.00",
+            "created_at": "2026-04-01 21:32:22",
+            "updated_at": "2026-04-08 15:46:03"
+        },
+        {
+            "id": 6,
+            "kode_proses": "PRO-003",
+            "nama_proses": "Pengemasan",
+            "deskripsi": "Proses pengemasan produk",
+            "tarif_btkl": "21800.00",
+            "satuan_btkl": "jam",
+            "kapasitas_per_jam": 50,
+            "jabatan_id": 11,
+            "btkl_id": null,
+            "jumlah_produksi_per_jam": "0.00",
+            "created_at": "2026-04-01 21:40:15",
+            "updated_at": "2026-04-08 15:46:03"
+        }
+    ],
+    "bop_proses": [
+        {
+            "id": 7,
+            "proses_produksi_id": 4,
+            "listrik_per_jam": "0.00",
+            "gas_bbm_per_jam": "0.00",
+            "penyusutan_mesin_per_jam": "0.00",
+            "maintenance_per_jam": "0.00",
+            "gaji_mandor_per_jam": "0.00",
+            "lain_lain_per_jam": "0.00",
+            "total_bop_per_jam": "91.00",
+            "kapasitas_per_jam": 200,
+            "bop_per_unit": "91.0000",
+            "is_active": 1,
+            "created_at": "2026-04-02 13:11:25",
+            "updated_at": "2026-04-08 15:51:30",
+            "komponen_bop": "[{\"component\":\"Listrik Mixer\",\"rate_per_hour\":42,\"description\":\"Mesin Ringan\"},{\"component\":\"Penyusutan Alat\",\"rate_per_hour\":7,\"description\":\"Drum \\\/ Mixer\"},{\"component\":\"Maintenace\",\"rate_per_hour\":21,\"description\":\"Rutin\"},{\"component\":\"Kebersihan\",\"rate_per_hour\":21,\"description\":\"Rutin\"}]",
+            "budget": "0.00",
+            "aktual": "0.00"
+        },
+        {
+            "id": 8,
+            "proses_produksi_id": 5,
+            "listrik_per_jam": "0.00",
+            "gas_bbm_per_jam": "0.00",
+            "penyusutan_mesin_per_jam": "0.00",
+            "maintenance_per_jam": "0.00",
+            "gaji_mandor_per_jam": "0.00",
+            "lain_lain_per_jam": "0.00",
+            "total_bop_per_jam": "381.00",
+            "kapasitas_per_jam": 50,
+            "bop_per_unit": "381.0000",
+            "is_active": 1,
+            "created_at": "2026-04-02 13:14:10",
+            "updated_at": "2026-04-08 15:46:03",
+            "komponen_bop": "[{\"component\":\"Listrik Mesin\",\"rate_per_hour\":208,\"description\":\"Pemanas Minyak\"},{\"component\":\"Gas \\\/ BBM\",\"rate_per_hour\":114,\"description\":\"Penjalanan Penggorengan\"},{\"component\":\"Maintenace\",\"rate_per_hour\":21,\"description\":\"Mesin Goreng\"},{\"component\":\"Penyusutan Mesin\",\"rate_per_hour\":17,\"description\":\"Rutin\"},{\"component\":\"Air & Kebersihan\",\"rate_per_hour\":21,\"description\":\"Cuci alat\"}]",
+            "budget": "0.00",
+            "aktual": "0.00"
+        },
+        {
+            "id": 9,
+            "proses_produksi_id": 6,
+            "listrik_per_jam": "0.00",
+            "gas_bbm_per_jam": "0.00",
+            "penyusutan_mesin_per_jam": "0.00",
+            "maintenance_per_jam": "0.00",
+            "gaji_mandor_per_jam": "0.00",
+            "lain_lain_per_jam": "0.00",
+            "total_bop_per_jam": "219.00",
+            "kapasitas_per_jam": 50,
+            "bop_per_unit": "219.0000",
+            "is_active": 1,
+            "created_at": "2026-04-02 13:15:32",
+            "updated_at": "2026-04-08 15:46:03",
+            "komponen_bop": "[{\"component\":\"Listrik\",\"rate_per_hour\":6,\"description\":\"\"},{\"component\":\"Penyusutan Alat\",\"rate_per_hour\":3,\"description\":\"\"},{\"component\":\"Kemasan\",\"rate_per_hour\":200,\"description\":\"\"},{\"component\":\"Kebersihan\",\"rate_per_hour\":10,\"description\":\"\"}]",
+            "budget": "0.00",
+            "aktual": "0.00"
+        }
+    ],
+    "bom_job_btkl": [
+        {
+            "id": 4,
+            "bom_job_costing_id": 2,
+            "proses_produksi_id": null,
+            "btkl_id": null,
+            "nama_proses": "Perbumbuan",
+            "durasi_jam": "1.0000",
+            "tarif_per_jam": "48000.00",
+            "kapasitas_per_jam": 200,
+            "subtotal": "240.00",
+            "keterangan": "1 pegawai @ Rp 48.000\/jam",
+            "created_at": "2026-04-04 20:22:23",
+            "updated_at": "2026-04-07 07:38:54"
+        },
+        {
+            "id": 5,
+            "bom_job_costing_id": 2,
+            "proses_produksi_id": null,
+            "btkl_id": null,
+            "nama_proses": "Penggorengan",
+            "durasi_jam": "1.0000",
+            "tarif_per_jam": "50000.00",
+            "kapasitas_per_jam": 50,
+            "subtotal": "1000.00",
+            "keterangan": "1 pegawai @ Rp 50.000\/jam",
+            "created_at": "2026-04-04 20:22:23",
+            "updated_at": "2026-04-04 20:22:23"
+        },
+        {
+            "id": 6,
+            "bom_job_costing_id": 2,
+            "proses_produksi_id": null,
+            "btkl_id": null,
+            "nama_proses": "Pengemasan",
+            "durasi_jam": "1.0000",
+            "tarif_per_jam": "45000.00",
+            "kapasitas_per_jam": 50,
+            "subtotal": "900.00",
+            "keterangan": "1 pegawai @ Rp 45.000\/jam",
+            "created_at": "2026-04-04 20:22:23",
+            "updated_at": "2026-04-04 20:22:23"
+        }
+    ],
+    "proses_bops": [
+        {
+            "id": 1,
+            "proses_produksi_id": 5,
+            "komponen_bop_id": 1,
+            "kuantitas_default": "1.0000",
+            "created_at": "2026-04-01 23:12:43",
+            "updated_at": "2026-04-01 23:12:43"
+        },
+        {
+            "id": 2,
+            "proses_produksi_id": 5,
+            "komponen_bop_id": 2,
+            "kuantitas_default": "1.0000",
+            "created_at": "2026-04-01 23:12:43",
+            "updated_at": "2026-04-01 23:12:43"
+        },
+        {
+            "id": 3,
+            "proses_produksi_id": 5,
+            "komponen_bop_id": 3,
+            "kuantitas_default": "1.0000",
+            "created_at": "2026-04-01 23:12:43",
+            "updated_at": "2026-04-01 23:12:43"
+        },
+        {
+            "id": 4,
+            "proses_produksi_id": 5,
+            "komponen_bop_id": 4,
+            "kuantitas_default": "1.0000",
+            "created_at": "2026-04-01 23:12:43",
+            "updated_at": "2026-04-01 23:12:43"
+        },
+        {
+            "id": 5,
+            "proses_produksi_id": 5,
+            "komponen_bop_id": 5,
+            "kuantitas_default": "1.0000",
+            "created_at": "2026-04-01 23:12:43",
+            "updated_at": "2026-04-01 23:12:43"
+        },
+        {
+            "id": 6,
+            "proses_produksi_id": 4,
+            "komponen_bop_id": 6,
+            "kuantitas_default": "1.0000",
+            "created_at": "2026-04-01 23:12:43",
+            "updated_at": "2026-04-01 23:12:43"
+        },
+        {
+            "id": 7,
+            "proses_produksi_id": 4,
+            "komponen_bop_id": 7,
+            "kuantitas_default": "1.0000",
+            "created_at": "2026-04-01 23:12:43",
+            "updated_at": "2026-04-01 23:12:43"
+        },
+        {
+            "id": 8,
+            "proses_produksi_id": 4,
+            "komponen_bop_id": 8,
+            "kuantitas_default": "1.0000",
+            "created_at": "2026-04-01 23:12:43",
+            "updated_at": "2026-04-01 23:12:43"
+        },
+        {
+            "id": 9,
+            "proses_produksi_id": 4,
+            "komponen_bop_id": 9,
+            "kuantitas_default": "1.0000",
+            "created_at": "2026-04-01 23:12:43",
+            "updated_at": "2026-04-01 23:12:43"
+        },
+        {
+            "id": 10,
+            "proses_produksi_id": 6,
+            "komponen_bop_id": 10,
+            "kuantitas_default": "1.0000",
+            "created_at": "2026-04-01 23:12:43",
+            "updated_at": "2026-04-01 23:12:43"
+        },
+        {
+            "id": 11,
+            "proses_produksi_id": 6,
+            "komponen_bop_id": 11,
+            "kuantitas_default": "1.0000",
+            "created_at": "2026-04-01 23:12:43",
+            "updated_at": "2026-04-01 23:12:43"
+        },
+        {
+            "id": 12,
+            "proses_produksi_id": 6,
+            "komponen_bop_id": 12,
+            "kuantitas_default": "1.0000",
+            "created_at": "2026-04-01 23:12:43",
+            "updated_at": "2026-04-01 23:12:43"
+        },
+        {
+            "id": 13,
+            "proses_produksi_id": 6,
+            "komponen_bop_id": 13,
+            "kuantitas_default": "1.0000",
+            "created_at": "2026-04-01 23:12:43",
+            "updated_at": "2026-04-01 23:12:43"
+        }
+    ]
+}

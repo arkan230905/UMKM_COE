@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\BopApiController;
+use App\Http\Controllers\Api\BtklApiController;
 use App\Http\Controllers\PresensiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +23,13 @@ Route::get('/recent-attendance', [PresensiController::class, 'apiRecentAttendanc
 // BOP API Routes
 Route::prefix('bop')->group(function () {
     Route::post('/update-aktual', [BopApiController::class, 'updateAktual'])->name('api.bop.update-aktual');
+});
+
+// BTKL API Routes
+Route::prefix('btkl')->group(function () {
+    Route::get('/jabatan/{jabatanId}', [BtklApiController::class, 'getByJabatan'])->name('api.btkl.by-jabatan');
+    Route::get('/proses/{prosesId}', [BtklApiController::class, 'getByProses'])->name('api.btkl.by-proses');
+    Route::get('/', [BtklApiController::class, 'index'])->name('api.btkl.index');
 });
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

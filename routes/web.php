@@ -2474,6 +2474,14 @@ Route::middleware('auth')->group(function () {
 });
 
 // ================================================================
+// ROUTE AUTO-RESET DATA (Untuk multi-perusahaan)
+// ================================================================
+Route::middleware(['auth'])->prefix('auto-reset')->name('auto-reset.')->group(function () {
+    Route::post('/check', [App\Http\Controllers\Auth\AutoResetController::class, 'checkAndReset'])->name('check');
+    Route::get('/history', [App\Http\Controllers\Auth\AutoResetController::class, 'getResetHistory'])->name('history');
+});
+
+// ================================================================
 // ROUTE PEGAWAI (Khusus untuk pegawai login)
 // ================================================================
 Route::middleware(['auth', 'role:pegawai'])->prefix('pegawai')->name('pegawai.')->group(function () {
