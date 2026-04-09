@@ -62,7 +62,7 @@ class PenjualanObserver
         $entries[] = ['code' => '1101', 'debit' => $penjualan->total_harga, 'credit' => 0];
         
         // 2. Credit Penjualan
-        $entries[] = ['code' => '4101', 'debit' => 0, 'credit' => $penjualan->total_harga];
+        $entries[] = ['code' => '41', 'debit' => 0, 'credit' => $penjualan->total_harga];
         
         // 3. Debit HPP (Harga Pokok Produksi)
         if ($hpp > 0) {

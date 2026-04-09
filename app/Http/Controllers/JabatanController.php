@@ -38,6 +38,8 @@ class JabatanController extends Controller
         // Normalisasi angka berformat (1.234,56 atau 1,234.56) -> 1234.56
         $request->merge([
             'tunjangan' => $this->normalizeMoney($request->input('tunjangan')),
+            'tunjangan_transport' => $this->normalizeMoney($request->input('tunjangan_transport')),
+            'tunjangan_konsumsi' => $this->normalizeMoney($request->input('tunjangan_konsumsi')),
             'asuransi' => $this->normalizeMoney($request->input('asuransi')),
             'gaji' => $this->normalizeMoney($request->input('gaji')),
             'tarif' => $this->normalizeMoney($request->input('tarif')),
@@ -46,12 +48,16 @@ class JabatanController extends Controller
             'nama' => 'required|string|max:255|unique:jabatans,nama',
             'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
+            'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
+            'tunjangan_konsumsi' => 'nullable|numeric|min:0|max:999999999',
             'asuransi' => 'nullable|numeric|min:0|max:999999999',
             'gaji' => 'nullable|numeric|min:0|max:999999999',
             'tarif' => 'nullable|numeric|min:0|max:999999999',
         ], [
             'nama.unique' => 'Nama kualifikasi sudah ada. Silakan gunakan nama yang berbeda.',
             'tunjangan.max' => 'Tunjangan maksimal adalah Rp 999.999.999',
+            'tunjangan_transport.max' => 'Tunjangan transport maksimal adalah Rp 999.999.999',
+            'tunjangan_konsumsi.max' => 'Tunjangan konsumsi maksimal adalah Rp 999.999.999',
             'asuransi.max' => 'Asuransi maksimal adalah Rp 999.999.999',
             'gaji.max' => 'Gaji maksimal adalah Rp 999.999.999',
             'tarif.max' => 'Tarif maksimal adalah Rp 999.999.999',
@@ -59,6 +65,8 @@ class JabatanController extends Controller
 
         // Normalisasi nilai default
         $data['tunjangan'] = $data['tunjangan'] ?? 0;
+        $data['tunjangan_transport'] = $data['tunjangan_transport'] ?? 0;
+        $data['tunjangan_konsumsi'] = $data['tunjangan_konsumsi'] ?? 0;
         $data['asuransi'] = $data['asuransi'] ?? 0;
         $data['tarif'] = $data['tarif'] ?? 0;
 
@@ -97,6 +105,8 @@ class JabatanController extends Controller
         // Normalisasi angka berformat (1.234,56 atau 1,234.56) -> 1234.56
         $request->merge([
             'tunjangan' => $this->normalizeMoney($request->input('tunjangan')),
+            'tunjangan_transport' => $this->normalizeMoney($request->input('tunjangan_transport')),
+            'tunjangan_konsumsi' => $this->normalizeMoney($request->input('tunjangan_konsumsi')),
             'asuransi' => $this->normalizeMoney($request->input('asuransi')),
             'gaji' => $this->normalizeMoney($request->input('gaji')),
             'tarif' => $this->normalizeMoney($request->input('tarif')),
@@ -105,18 +115,24 @@ class JabatanController extends Controller
             'nama' => 'required|string|max:255|unique:jabatans,nama,' . $kualifikasi_tenaga_kerja->id,
             'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
+            'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
+            'tunjangan_konsumsi' => 'nullable|numeric|min:0|max:999999999',
             'asuransi' => 'nullable|numeric|min:0|max:999999999',
             'gaji' => 'nullable|numeric|min:0|max:999999999',
             'tarif' => 'nullable|numeric|min:0|max:999999999',
         ], [
             'nama.unique' => 'Nama kualifikasi sudah ada. Silakan gunakan nama yang berbeda.',
             'tunjangan.max' => 'Tunjangan maksimal adalah Rp 999.999.999',
+            'tunjangan_transport.max' => 'Tunjangan transport maksimal adalah Rp 999.999.999',
+            'tunjangan_konsumsi.max' => 'Tunjangan konsumsi maksimal adalah Rp 999.999.999',
             'asuransi.max' => 'Asuransi maksimal adalah Rp 999.999.999',
             'gaji.max' => 'Gaji maksimal adalah Rp 999.999.999',
             'tarif.max' => 'Tarif maksimal adalah Rp 999.999.999',
         ]);
 
         $data['tunjangan'] = $data['tunjangan'] ?? 0;
+        $data['tunjangan_transport'] = $data['tunjangan_transport'] ?? 0;
+        $data['tunjangan_konsumsi'] = $data['tunjangan_konsumsi'] ?? 0;
         $data['asuransi'] = $data['asuransi'] ?? 0;
         $data['tarif'] = $data['tarif'] ?? 0;
 
@@ -225,17 +241,19 @@ class JabatanController extends Controller
             ], 400);
         }
 
-        // Lookup KategoriPegawai name, then match jabatans by kategori string
-        $kategoriPegawai = \App\Models\KategoriPegawai::find($kategoriId);
-        if (!$kategoriPegawai) {
-            return response()->json(['success' => true, 'data' => []]);
+        // Handle both string kategori ('btkl') and integer kategori_id
+        if (is_numeric($kategoriId)) {
+            $kategoriPegawai = \App\Models\KategoriPegawai::find($kategoriId);
+            $kategoriName = $kategoriPegawai ? strtolower($kategoriPegawai->nama) : null;
+            $jabatans = Jabatan::where(function($q) use ($kategoriName, $kategoriId) {
+                if ($kategoriName) $q->where('kategori', $kategoriName);
+                $q->orWhere('kategori_id', $kategoriId);
+            });
+        } else {
+            $jabatans = Jabatan::where('kategori', strtolower($kategoriId));
         }
 
-        $kategoriName = strtolower($kategoriPegawai->nama); // 'btkl' or 'btktl'
-
-        $jabatans = Jabatan::where('kategori', $kategoriName)
-            ->orWhere('kategori_id', $kategoriId)
-            ->select('id', 'nama', 'kategori', 'kategori_id', 'gaji_pokok', 'tarif_per_jam', 'tunjangan', 'asuransi')
+        $jabatans = $jabatans->select('id', 'nama', 'kategori', 'gaji_pokok', 'tarif', 'tunjangan', 'asuransi')
             ->orderBy('nama')
             ->get();
 
@@ -259,8 +277,7 @@ class JabatanController extends Controller
             ], 400);
         }
 
-        $jabatan = Jabatan::with('kategori')
-            ->select('id', 'nama', 'kategori_id', 'gaji_pokok', 'tarif_per_jam', 'tunjangan', 'asuransi')
+        $jabatan = Jabatan::select('id', 'nama', 'kategori', 'kategori_id', 'gaji_pokok', 'tarif_per_jam', 'tunjangan', 'asuransi')
             ->find($jabatanId);
 
         if (!$jabatan) {

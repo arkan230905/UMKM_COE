@@ -1,12 +1,12 @@
 {{-- Clean and professional modal view for BOP detail --}}
 @php
     $kapasitas = $bopProses->kapasitas_per_jam ?? 0;
-    $totalBop = $bopProses->total_bop_per_jam ?? 0;
+    $totalBopPerProduk = $bopProses->total_bop_per_jam ?? 0; // This now stores per-product total
     $btklPerJam = $bopProses->prosesProduksi->tarif_btkl ?? 0;
-    $btklPerPcs = $kapasitas > 0 ? $btklPerJam / $kapasitas : 0;
-    $bopPerPcs = $kapasitas > 0 ? $totalBop / $kapasitas : 0;
-    $biayaPerProduk = $bopProses->biaya_per_produk; // Gunakan accessor untuk konsistensi
-    $biayaPerJam = $btklPerJam + $totalBop;
+    $btklPerProduk = $kapasitas > 0 ? $btklPerJam / $kapasitas : 0;
+    
+    // Biaya per produk = BTKL per produk + Total BOP per produk
+    $biayaPerProduk = $btklPerProduk + $totalBopPerProduk;
     
     $komponenBop = is_array($bopProses->komponen_bop) ? $bopProses->komponen_bop : json_decode($bopProses->komponen_bop, true);
     if (!is_array($komponenBop)) $komponenBop = [];
@@ -37,8 +37,8 @@
             </div>
             <div class="col-6">
                 <div class="d-flex flex-column">
-                    <small class="text-muted mb-1">BTKL / pcs</small>
-                    <strong class="fs-6 text-primary">Rp {{ number_format($btklPerPcs, 0, ',', '.') }}</strong>
+                    <small class="text-muted mb-1">BTKL / produk</small>
+                    <strong class="fs-6 text-primary">Rp {{ number_format($btklPerProduk, 0, ',', '.') }}</strong>
                 </div>
             </div>
         </div>
@@ -54,7 +54,7 @@
                     <tr>
                         <th style="width: 8%" class="text-center">No</th>
                         <th style="width: 42%">Komponen</th>
-                        <th style="width: 25%" class="text-end">Rp / Jam</th>
+                        <th style="width: 25%" class="text-end">Rp / produk</th>
                         <th style="width: 25%">Keterangan</th>
                     </tr>
                 </thead>
@@ -73,8 +73,8 @@
                 </tbody>
                 <tfoot class="bg-light">
                     <tr class="fw-bold">
-                        <td colspan="2" class="text-end">Total BOP / jam</td>
-                        <td class="text-end text-success">Rp {{ number_format($totalBop, 0, ',', '.') }}</td>
+                        <td colspan="2" class="text-end">Total BOP / produk</td>
+                        <td class="text-end text-success">Rp {{ number_format($totalBopPerProduk, 0, ',', '.') }}</td>
                         <td></td>
                     </tr>
                 </tfoot>
@@ -99,8 +99,8 @@
                     <div class="card-body py-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="text-muted d-block">Total BOP / jam</small>
-                                <strong class="text-primary fs-5">Rp {{ number_format($totalBop, 0, ',', '.') }}</strong>
+                                <small class="text-muted d-block">Total BOP / produk</small>
+                                <strong class="text-primary fs-5">Rp {{ number_format($totalBopPerProduk, 0, ',', '.') }}</strong>
                             </div>
                             <i class="fas fa-chart-line text-primary opacity-25"></i>
                         </div>
@@ -112,36 +112,10 @@
                     <div class="card-body py-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="text-muted d-block">BOP / pcs</small>
-                                <strong class="text-success fs-5">Rp {{ number_format($bopPerPcs, 0, ',', '.') }}</strong>
-                            </div>
-                            <i class="fas fa-box text-success opacity-25"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6">
-                <div class="card border-0 bg-light">
-                    <div class="card-body py-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
                                 <small class="text-muted d-block">Biaya / produk</small>
-                                <strong class="text-warning fs-5">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</strong>
+                                <strong class="text-success fs-5">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</strong>
                             </div>
-                            <i class="fas fa-calculator text-warning opacity-25"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-6">
-                <div class="card border-0 bg-light">
-                    <div class="card-body py-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="text-muted d-block">Biaya / jam</small>
-                                <strong class="text-danger fs-5">Rp {{ number_format($biayaPerJam, 0, ',', '.') }}</strong>
-                            </div>
-                            <i class="fas fa-clock text-danger opacity-25"></i>
+                            <i class="fas fa-calculator text-success opacity-25"></i>
                         </div>
                     </div>
                 </div>

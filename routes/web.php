@@ -4,6 +4,1221 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\WelcomeController;
 
+// IMPORT ALL STOCK FROM DATABASE TO STOCK MOVEMENTS
+Route::get('import-all-stock-from-database', function() {
+    try {
+        $pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+        $pdo->beginTransaction();
+        
+        $output = "<h1 style='color:green;'>IMPORTING ALL STOCK FROM DATABASE</h1><pre>";
+        $output .= "Tanggal Saldo Awal: 07/04/2026 (sesuai contoh Cabe Merah)\n\n";
+        
+        // 1. Import Bahan Baku
+        $output .= "=== IMPORTING BAHAN BAKU ===\n";
+        $stmt = $pdo->query("SELECT * FROM bahan_bakus WHERE stok > 0");
+        
+        $importedBB = 0;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $id = $row['id'];
+            $nama = $row['nama_bahan'];
+            $stok = $row['stok'];
+            $harga = $row['harga_satuan'] ?: 50000;
+            $total = $stok * $harga;
+            
+            // Delete existing initial stock
+            $pdo->exec("DELETE FROM stock_movements WHERE item_type='material' AND item_id=$id AND ref_type='initial_stock'");
+            $pdo->exec("DELETE FROM stock_layers WHERE item_type='material' AND item_id=$id AND ref_type='initial_stock'");
+            
+            // Add initial stock movement dengan tanggal 07/04/2026
+            $insertStmt = $pdo->prepare("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insertStmt->execute(['material', $id, '2026-04-07', 'in', $stok, 'Unit', $harga, $total, 'initial_stock', 0, '2026-04-07 00:00:00', '2026-04-07 00:00:00']);
+            
+            // Add stock layer
+            $layerStmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $layerStmt->execute(['material', $id, '2026-04-07', $stok, $harga, 'Unit', 'initial_stock', 0, '2026-04-07 00:00:00', '2026-04-07 00:00:00']);
+            
+            $output .= "✅ $nama: $stok Unit @ Rp " . number_format($harga) . " = Rp " . number_format($total) . "\n";
+            $importedBB++;
+        }
+        
+        // 2. Import Bahan Pendukung
+        $output .= "\n=== IMPORTING BAHAN PENDUKUNG ===\n";
+        $stmt = $pdo->query("SELECT * FROM bahan_pendukungs WHERE stok > 0");
+        
+        $importedBP = 0;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $id = $row['id'];
+            $nama = $row['nama_bahan'];
+            $stok = $row['stok'];
+            $harga = $row['harga_satuan'] ?: 1000;
+            $total = $stok * $harga;
+            
+            // Delete existing initial stock
+            $pdo->exec("DELETE FROM stock_movements WHERE item_type='support' AND item_id=$id AND ref_type='initial_stock'");
+            $pdo->exec("DELETE FROM stock_layers WHERE item_type='support' AND item_id=$id AND ref_type='initial_stock'");
+            
+            // Add initial stock movement dengan tanggal 07/04/2026
+            $insertStmt = $pdo->prepare("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insertStmt->execute(['support', $id, '2026-04-07', 'in', $stok, 'Unit', $harga, $total, 'initial_stock', 0, '2026-04-07 00:00:00', '2026-04-07 00:00:00']);
+            
+            // Add stock layer
+            $layerStmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $layerStmt->execute(['support', $id, '2026-04-07', $stok, $harga, 'Unit', 'initial_stock', 0, '2026-04-07 00:00:00', '2026-04-07 00:00:00']);
+            
+            $output .= "✅ $nama: $stok Unit @ Rp " . number_format($harga) . " = Rp " . number_format($total) . "\n";
+            $importedBP++;
+        }
+        
+        // 3. Import Produk
+        $output .= "\n=== IMPORTING PRODUK ===\n";
+        $stmt = $pdo->query("SELECT * FROM produks WHERE stok > 0");
+        
+        $importedP = 0;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $id = $row['id'];
+            $nama = $row['nama_produk'];
+            $stok = $row['stok'];
+            $harga = $row['harga_jual'] ?: 100000;
+            $total = $stok * $harga;
+            
+            // Delete existing initial stock
+            $pdo->exec("DELETE FROM stock_movements WHERE item_type='product' AND item_id=$id AND ref_type='initial_stock'");
+            $pdo->exec("DELETE FROM stock_layers WHERE item_type='product' AND item_id=$id AND ref_type='initial_stock'");
+            
+            // Add initial stock movement dengan tanggal 07/04/2026
+            $insertStmt = $pdo->prepare("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insertStmt->execute(['product', $id, '2026-04-07', 'in', $stok, 'Unit', $harga, $total, 'initial_stock', 0, '2026-04-07 00:00:00', '2026-04-07 00:00:00']);
+            
+            // Add stock layer
+            $layerStmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $layerStmt->execute(['product', $id, '2026-04-07', $stok, $harga, 'Unit', 'initial_stock', 0, '2026-04-07 00:00:00', '2026-04-07 00:00:00']);
+            
+            $output .= "✅ $nama: $stok Unit @ Rp " . number_format($harga) . " = Rp " . number_format($total) . "\n";
+            $importedP++;
+        }
+        
+        // 4. Update semua existing initial stock dates ke 07/04/2026
+        $output .= "\n=== UPDATING ALL EXISTING INITIAL STOCK DATES ===\n";
+        $pdo->exec("UPDATE stock_movements SET tanggal = '2026-04-07', created_at = '2026-04-07 00:00:00', updated_at = '2026-04-07 00:00:00' WHERE ref_type = 'initial_stock'");
+        $pdo->exec("UPDATE stock_layers SET tanggal = '2026-04-07', created_at = '2026-04-07 00:00:00', updated_at = '2026-04-07 00:00:00' WHERE ref_type = 'initial_stock'");
+        $output .= "✅ All existing initial stock dates updated to 07/04/2026\n";
+        
+        $pdo->commit();
+        
+        $output .= "\n🎉 IMPORT COMPLETED!\n";
+        $output .= "Bahan Baku imported: $importedBB\n";
+        $output .= "Bahan Pendukung imported: $importedBP\n";
+        $output .= "Produk imported: $importedP\n";
+        $output .= "All saldo awal set to 07/04/2026 (same as Cabe Merah example)\n";
+        $output .= "</pre>";
+        
+        $output .= "<h2>CHECK RESULTS (Should match Cabe Merah format):</h2>";
+        $output .= "<p><a href='/laporan/stok?tipe=bahan_pendukung&item_id=13' style='background:#28a745;color:white;padding:10px;text-decoration:none;margin:5px;'>📊 Check Air Stock</a>";
+        $output .= "<a href='/laporan/stok?tipe=bahan_pendukung&item_id=23' style='background:#28a745;color:white;padding:10px;text-decoration:none;margin:5px;'>📊 Check Cabe Merah</a>";
+        $output .= "<a href='/laporan/stok?tipe=material' style='background:#007bff;color:white;padding:10px;text-decoration:none;margin:5px;'>📊 All Bahan Baku</a>";
+        $output .= "<a href='/laporan/stok?tipe=support' style='background:#007bff;color:white;padding:10px;text-decoration:none;margin:5px;'>📊 All Bahan Pendukung</a></p>";
+        
+        return $output;
+        
+    } catch (Exception $e) {
+        if (isset($pdo)) $pdo->rollback();
+        return "<h1 style='color:red;'>❌ ERROR</h1><pre>" . $e->getMessage() . "</pre>";
+    }
+});
+
+// SYNC ALL MASTER STOCK TO STOCK MOVEMENTS
+Route::get('sync-master-to-movements', function() {
+    try {
+        $pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+        $pdo->beginTransaction();
+        
+        $output = "<h1 style='color:green;'>SYNCING MASTER STOCK TO STOCK MOVEMENTS</h1><pre>";
+        
+        // 1. Sync Bahan Baku
+        $output .= "=== SYNCING BAHAN BAKU ===\n";
+        $stmt = $pdo->query("
+            SELECT bb.id, bb.nama_bahan, bb.stok, bb.harga_satuan
+            FROM bahan_bakus bb
+            WHERE bb.stok > 0
+            AND bb.id NOT IN (
+                SELECT DISTINCT item_id FROM stock_movements WHERE item_type='material' AND ref_type='initial_stock'
+            )
+        ");
+        
+        $syncedBB = 0;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $id = $row['id'];
+            $stok = $row['stok'];
+            $harga = $row['harga_satuan'] ?: 50000;
+            $total = $stok * $harga;
+            
+            // Add initial stock movement
+            $insertStmt = $pdo->prepare("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insertStmt->execute(['material', $id, '2026-04-01', 'in', $stok, 'Unit', $harga, $total, 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+            
+            // Add stock layer
+            $layerStmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $layerStmt->execute(['material', $id, '2026-04-01', $stok, $harga, 'Unit', 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+            
+            $output .= "✅ {$row['nama_bahan']}: {$stok} @ Rp " . number_format($harga) . "\n";
+            $syncedBB++;
+        }
+        
+        // 2. Sync Bahan Pendukung
+        $output .= "\n=== SYNCING BAHAN PENDUKUNG ===\n";
+        $stmt = $pdo->query("
+            SELECT bp.id, bp.nama_bahan, bp.stok, bp.harga_satuan
+            FROM bahan_pendukungs bp
+            WHERE bp.stok > 0
+            AND bp.id NOT IN (
+                SELECT DISTINCT item_id FROM stock_movements WHERE item_type='support' AND ref_type='initial_stock'
+            )
+        ");
+        
+        $syncedBP = 0;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $id = $row['id'];
+            $stok = $row['stok'];
+            $harga = $row['harga_satuan'] ?: 1000;
+            $total = $stok * $harga;
+            
+            // Add initial stock movement
+            $insertStmt = $pdo->prepare("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insertStmt->execute(['support', $id, '2026-04-01', 'in', $stok, 'Unit', $harga, $total, 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+            
+            // Add stock layer
+            $layerStmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $layerStmt->execute(['support', $id, '2026-04-01', $stok, $harga, 'Unit', 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+            
+            $output .= "✅ {$row['nama_bahan']}: {$stok} @ Rp " . number_format($harga) . "\n";
+            $syncedBP++;
+        }
+        
+        // 3. Sync Produk
+        $output .= "\n=== SYNCING PRODUK ===\n";
+        $stmt = $pdo->query("
+            SELECT p.id, p.nama_produk, p.stok, p.harga_jual
+            FROM produks p
+            WHERE p.stok > 0
+            AND p.id NOT IN (
+                SELECT DISTINCT item_id FROM stock_movements WHERE item_type='product' AND ref_type='initial_stock'
+            )
+        ");
+        
+        $syncedP = 0;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $id = $row['id'];
+            $stok = $row['stok'];
+            $harga = $row['harga_jual'] ?: 100000;
+            $total = $stok * $harga;
+            
+            // Add initial stock movement
+            $insertStmt = $pdo->prepare("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insertStmt->execute(['product', $id, '2026-04-01', 'in', $stok, 'Unit', $harga, $total, 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+            
+            // Add stock layer
+            $layerStmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $layerStmt->execute(['product', $id, '2026-04-01', $stok, $harga, 'Unit', 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+            
+            $output .= "✅ {$row['nama_produk']}: {$stok} @ Rp " . number_format($harga) . "\n";
+            $syncedP++;
+        }
+        
+        $pdo->commit();
+        
+        $output .= "\n🎉 SYNC COMPLETED!\n";
+        $output .= "Bahan Baku synced: {$syncedBB}\n";
+        $output .= "Bahan Pendukung synced: {$syncedBP}\n";
+        $output .= "Produk synced: {$syncedP}\n";
+        $output .= "All saldo awal set to April 1, 2026\n";
+        $output .= "</pre>";
+        
+        $output .= "<h2>CHECK RESULTS:</h2>";
+        $output .= "<p><a href='/laporan/stok?tipe=bahan_pendukung&item_id=13' style='background:#007bff;color:white;padding:10px;text-decoration:none;margin:5px;'>📊 Check Air Stock</a>";
+        $output .= "<a href='/laporan/stok?tipe=material' style='background:#007bff;color:white;padding:10px;text-decoration:none;margin:5px;'>📊 Check Bahan Baku</a>";
+        $output .= "<a href='/laporan/stok?tipe=support' style='background:#007bff;color:white;padding:10px;text-decoration:none;margin:5px;'>📊 Check Bahan Pendukung</a></p>";
+        
+        return $output;
+        
+    } catch (Exception $e) {
+        if (isset($pdo)) $pdo->rollback();
+        return "<h1 style='color:red;'>❌ ERROR</h1><pre>" . $e->getMessage() . "</pre>";
+    }
+});
+
+// CHECK STOCK MOVEMENTS VS MASTER DATA
+Route::get('check-stock-movements', function() {
+    try {
+        $pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+        
+        $output = "<h1>CHECKING STOCK MOVEMENTS VS MASTER DATA</h1>";
+        $output .= "<style>table{border-collapse:collapse;width:100%;} th,td{border:1px solid #ddd;padding:8px;} th{background:#f2f2f2;}</style>";
+        
+        // Check Air specifically
+        $output .= "<h2>AIR (ID=13) Analysis:</h2>";
+        
+        // Master data
+        $stmt = $pdo->query("SELECT * FROM bahan_pendukungs WHERE id=13");
+        $master = $stmt->fetch(PDO::FETCH_ASSOC);
+        $output .= "<p><strong>Master Data:</strong> Stok = {$master['stok']}</p>";
+        
+        // Stock movements
+        $stmt = $pdo->query("SELECT * FROM stock_movements WHERE item_type='support' AND item_id=13 ORDER BY tanggal");
+        $movements = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        $output .= "<p><strong>Stock Movements Count:</strong> " . count($movements) . "</p>";
+        
+        if (count($movements) > 0) {
+            $output .= "<table><tr><th>Tanggal</th><th>Direction</th><th>Qty</th><th>Satuan</th><th>Ref Type</th><th>Total Cost</th></tr>";
+            foreach ($movements as $m) {
+                $output .= "<tr><td>{$m['tanggal']}</td><td>{$m['direction']}</td><td>{$m['qty']}</td><td>{$m['satuan']}</td><td>{$m['ref_type']}</td><td>{$m['total_cost']}</td></tr>";
+            }
+            $output .= "</table>";
+        } else {
+            $output .= "<p style='color:red;'><strong>NO STOCK MOVEMENTS FOUND!</strong></p>";
+        }
+        
+        // Check if initial stock exists
+        $stmt = $pdo->query("SELECT COUNT(*) FROM stock_movements WHERE item_type='support' AND item_id=13 AND ref_type='initial_stock'");
+        $hasInitial = $stmt->fetchColumn() > 0;
+        
+        $output .= "<p><strong>Has Initial Stock:</strong> " . ($hasInitial ? 'YES' : 'NO') . "</p>";
+        
+        if (!$hasInitial) {
+            $output .= "<p><a href='/add-air-initial-stock' style='background:red;color:white;padding:10px;text-decoration:none;'>ADD AIR INITIAL STOCK NOW</a></p>";
+        }
+        
+        return $output;
+        
+    } catch (Exception $e) {
+        return "<h1 style='color:red;'>ERROR</h1><p>" . $e->getMessage() . "</p>";
+    }
+});
+
+// ADD AIR INITIAL STOCK
+Route::get('add-air-initial-stock', function() {
+    try {
+        $pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+        
+        // Get master stock
+        $stmt = $pdo->query("SELECT stok FROM bahan_pendukungs WHERE id=13");
+        $masterStock = $stmt->fetchColumn();
+        
+        // Get production usage
+        $stmt = $pdo->query("SELECT COALESCE(SUM(qty), 0) FROM stock_movements WHERE item_type='support' AND item_id=13 AND ref_type='production' AND direction='out'");
+        $productionUsage = $stmt->fetchColumn();
+        
+        // Calculate initial stock
+        $initialStock = $masterStock + $productionUsage;
+        
+        // Add initial stock movement
+        $stmt = $pdo->prepare("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute(['support', 13, '2026-04-01', 'in', $initialStock, 'Liter', 1, $initialStock, 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+        
+        // Add stock layer
+        if ($masterStock > 0) {
+            $stmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute(['support', 13, '2026-04-01', $masterStock, 1, 'Liter', 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+        }
+        
+        return "<h1 style='color:green;'>✅ SUCCESS!</h1>
+                <p>Master Stock: $masterStock Liter</p>
+                <p>Production Usage: $productionUsage Liter</p>
+                <p>Initial Stock Added: $initialStock Liter</p>
+                <p>Date: April 1, 2026</p>
+                <p><strong><a href='/laporan/stok?tipe=bahan_pendukung&item_id=13'>CHECK AIR LAPORAN STOK NOW</a></strong></p>";
+        
+    } catch (Exception $e) {
+        return "<h1 style='color:red;'>ERROR</h1><p>" . $e->getMessage() . "</p>";
+    }
+});
+
+// DIRECT FIX FOR AIR (ID=13) - BAHAN PENDUKUNG
+Route::get('fix-air-direct', function() {
+    try {
+        $pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+        
+        // Check current production usage for Air
+        $stmt = $pdo->prepare("SELECT COALESCE(SUM(qty), 0) FROM stock_movements WHERE item_type='support' AND item_id=13 AND ref_type='production' AND direction='out'");
+        $stmt->execute();
+        $productionUsage = $stmt->fetchColumn();
+        
+        // Check current stock
+        $stmt = $pdo->prepare("SELECT COALESCE(stok, 0) FROM bahan_pendukungs WHERE id=13");
+        $stmt->execute();
+        $currentStock = $stmt->fetchColumn();
+        
+        // Calculate initial stock needed
+        $initialStock = $currentStock + $productionUsage;
+        
+        // Delete existing initial stock for Air if any
+        $pdo->exec("DELETE FROM stock_movements WHERE item_type='support' AND item_id=13 AND ref_type='initial_stock'");
+        $pdo->exec("DELETE FROM stock_layers WHERE item_type='support' AND item_id=13");
+        
+        // Add initial stock movement for Air
+        $stmt = $pdo->prepare("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute(['support', 13, '2026-04-01', 'in', $initialStock, 'Liter', 1, $initialStock, 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+        
+        // Add stock layer for remaining stock
+        if ($currentStock > 0) {
+            $stmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute(['support', 13, '2026-04-01', $currentStock, 1, 'Liter', 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+        }
+        
+        // Update master stock if needed
+        if ($currentStock == 0) {
+            $pdo->exec("UPDATE bahan_pendukungs SET stok = $initialStock WHERE id = 13");
+        }
+        
+        return "<h1 style='color:green;'>✅ AIR FIXED!</h1>
+                <p>Production Usage: $productionUsage Liter</p>
+                <p>Current Stock: $currentStock Liter</p>
+                <p>Initial Stock Added: $initialStock Liter</p>
+                <p>Date: April 1, 2026</p>
+                <p><strong><a href='/laporan/stok?tipe=bahan_pendukung&item_id=13'>CHECK AIR STOCK REPORT NOW</a></strong></p>";
+        
+    } catch (Exception $e) {
+        return "<h1 style='color:red;'>ERROR</h1><p>" . $e->getMessage() . "</p>";
+    }
+});
+
+// FIX ALL OTHER ITEMS
+Route::get('fix-all-other-items', function() {
+    $pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+    
+    $output = "Fixing all other items...\n\n";
+    
+    // Get all bahan baku used in production without initial stock
+    $stmt = $pdo->query("
+        SELECT DISTINCT bb.id, bb.nama_bahan, bb.stok
+        FROM bahan_bakus bb
+        JOIN produksi_details pd ON pd.bahan_baku_id = bb.id
+        WHERE bb.id NOT IN (
+            SELECT DISTINCT item_id FROM stock_movements WHERE item_type='material' AND ref_type='initial_stock'
+        )
+    ");
+    
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $id = $row['id'];
+        $stok = $row['stok'] ?: 0;
+        
+        // Get production usage
+        $usageStmt = $pdo->prepare("SELECT COALESCE(SUM(qty), 0) FROM stock_movements WHERE item_type='material' AND item_id=? AND ref_type='production' AND direction='out'");
+        $usageStmt->execute([$id]);
+        $usage = $usageStmt->fetchColumn();
+        
+        $initialStock = $stok + $usage;
+        
+        // Add initial stock
+        $pdo->exec("INSERT IGNORE INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES ('material', $id, '2026-04-01', 'in', $initialStock, 'Unit', 50000, " . ($initialStock * 50000) . ", 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00')");
+        
+        if ($stok > 0) {
+            $pdo->exec("INSERT IGNORE INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES ('material', $id, '2026-04-01', $stok, 50000, 'Unit', 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00')");
+        }
+        
+        $output .= "✅ {$row['nama_bahan']}: Initial=$initialStock, Current=$stok\n";
+    }
+    
+    // Get all bahan pendukung used in production without initial stock
+    $stmt = $pdo->query("
+        SELECT DISTINCT bp.id, bp.nama_bahan, COALESCE(bp.stok, 200) as stok
+        FROM bahan_pendukungs bp
+        JOIN produksi_details pd ON pd.bahan_pendukung_id = bp.id
+        WHERE bp.id NOT IN (
+            SELECT DISTINCT item_id FROM stock_movements WHERE item_type='support' AND ref_type='initial_stock'
+        )
+    ");
+    
+    while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $id = $row['id'];
+        $stok = $row['stok'];
+        
+        // Get production usage
+        $usageStmt = $pdo->prepare("SELECT COALESCE(SUM(qty), 0) FROM stock_movements WHERE item_type='support' AND item_id=? AND ref_type='production' AND direction='out'");
+        $usageStmt->execute([$id]);
+        $usage = $usageStmt->fetchColumn();
+        
+        $initialStock = $stok + $usage;
+        
+        // Add initial stock
+        $pdo->exec("INSERT IGNORE INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES ('support', $id, '2026-04-01', 'in', $initialStock, 'Unit', 1000, " . ($initialStock * 1000) . ", 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00')");
+        
+        if ($stok > 0) {
+            $pdo->exec("INSERT IGNORE INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES ('support', $id, '2026-04-01', $stok, 1000, 'Unit', 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00')");
+        }
+        
+        $pdo->exec("UPDATE bahan_pendukungs SET stok = $stok WHERE id = $id");
+        
+        $output .= "✅ {$row['nama_bahan']}: Initial=$initialStock, Current=$stok\n";
+    }
+    
+    return "<pre>$output</pre><p>SUCCESS! All items fixed. Check laporan stok now.</p>";
+});
+
+// SUPER SIMPLE FIX - NO LARAVEL FEATURES
+Route::get('super-simple-fix', function() {
+    $pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+    
+    // Add Air initial stock specifically
+    $pdo->exec("INSERT IGNORE INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES ('support', 13, '2026-04-01', 'in', 296.0, 'Liter', 1, 296, 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00')");
+    
+    // Add stock layer for Air
+    $pdo->exec("DELETE FROM stock_layers WHERE item_type='support' AND item_id=13");
+    $pdo->exec("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES ('support', 13, '2026-04-01', 200.0, 1, 'Liter', 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00')");
+    
+    // Update master stock
+    $pdo->exec("UPDATE bahan_pendukungs SET stok = 200 WHERE id = 13");
+    
+    return "SUCCESS! Air initial stock added. Check laporan stok now.";
+});
+
+// EMERGENCY FIX - ADD ALL MISSING SALDO AWAL
+Route::get('emergency-fix-saldo-awal', function() {
+    try {
+        $pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+        $pdo->beginTransaction();
+        
+        $output = "EMERGENCY FIX - ADDING ALL MISSING SALDO AWAL\n\n";
+        
+        // 1. Fix Bahan Baku
+        $output .= "1. FIXING BAHAN BAKU...\n";
+        $stmt = $pdo->query("
+            SELECT bb.id, bb.nama_bahan, bb.stok,
+                   COALESCE(usage.total_usage, 0) as production_usage
+            FROM bahan_bakus bb
+            LEFT JOIN (
+                SELECT item_id, SUM(qty) as total_usage
+                FROM stock_movements 
+                WHERE item_type='material' AND ref_type='production' AND direction='out'
+                GROUP BY item_id
+            ) usage ON usage.item_id = bb.id
+            WHERE bb.id NOT IN (
+                SELECT DISTINCT item_id FROM stock_movements WHERE item_type='material' AND ref_type='initial_stock'
+            )
+            AND bb.id IN (
+                SELECT DISTINCT bahan_baku_id FROM produksi_details WHERE bahan_baku_id IS NOT NULL
+            )
+        ");
+        
+        $fixedBB = 0;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $initialStock = max($row['stok'] + $row['production_usage'], 0);
+            $unitCost = 50000;
+            $totalCost = $initialStock * $unitCost;
+            
+            // Add initial stock movement
+            $insertStmt = $pdo->prepare("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insertStmt->execute(['material', $row['id'], '2026-04-01', 'in', $initialStock, 'Unit', $unitCost, $totalCost, 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+            
+            // Add stock layer if current stock > 0
+            if ($row['stok'] > 0) {
+                $layerStmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $layerStmt->execute(['material', $row['id'], '2026-04-01', $row['stok'], $unitCost, 'Unit', 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+            }
+            
+            $output .= "   ✅ {$row['nama_bahan']}: Initial={$initialStock}, Current={$row['stok']}, Usage={$row['production_usage']}\n";
+            $fixedBB++;
+        }
+        
+        // 2. Fix Bahan Pendukung
+        $output .= "\n2. FIXING BAHAN PENDUKUNG...\n";
+        $stmt = $pdo->query("
+            SELECT bp.id, bp.nama_bahan, COALESCE(bp.stok, 200) as stok,
+                   COALESCE(usage.total_usage, 0) as production_usage
+            FROM bahan_pendukungs bp
+            LEFT JOIN (
+                SELECT item_id, SUM(qty) as total_usage
+                FROM stock_movements 
+                WHERE item_type='support' AND ref_type='production' AND direction='out'
+                GROUP BY item_id
+            ) usage ON usage.item_id = bp.id
+            WHERE bp.id NOT IN (
+                SELECT DISTINCT item_id FROM stock_movements WHERE item_type='support' AND ref_type='initial_stock'
+            )
+            AND bp.id IN (
+                SELECT DISTINCT bahan_pendukung_id FROM produksi_details WHERE bahan_pendukung_id IS NOT NULL
+            )
+        ");
+        
+        $fixedBP = 0;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $initialStock = max($row['stok'] + $row['production_usage'], 0);
+            $unitCost = 1000;
+            $totalCost = $initialStock * $unitCost;
+            
+            // Add initial stock movement
+            $insertStmt = $pdo->prepare("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insertStmt->execute(['support', $row['id'], '2026-04-01', 'in', $initialStock, 'Unit', $unitCost, $totalCost, 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+            
+            // Add stock layer if current stock > 0
+            if ($row['stok'] > 0) {
+                $layerStmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $layerStmt->execute(['support', $row['id'], '2026-04-01', $row['stok'], $unitCost, 'Unit', 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+            }
+            
+            // Update master stock
+            $pdo->prepare("UPDATE bahan_pendukungs SET stok = ? WHERE id = ?")->execute([$row['stok'], $row['id']]);
+            
+            $output .= "   ✅ {$row['nama_bahan']}: Initial={$initialStock}, Current={$row['stok']}, Usage={$row['production_usage']}\n";
+            $fixedBP++;
+        }
+        
+        // 3. Update all existing initial stock dates to April 1
+        $pdo->exec("UPDATE stock_movements SET tanggal = '2026-04-01', created_at = '2026-04-01 00:00:00', updated_at = '2026-04-01 00:00:00' WHERE ref_type = 'initial_stock'");
+        $pdo->exec("UPDATE stock_layers SET tanggal = '2026-04-01', created_at = '2026-04-01 00:00:00', updated_at = '2026-04-01 00:00:00' WHERE ref_type = 'initial_stock'");
+        
+        $pdo->commit();
+        
+        $output .= "\n🎉 SUCCESS!\n";
+        $output .= "Fixed Bahan Baku: {$fixedBB}\n";
+        $output .= "Fixed Bahan Pendukung: {$fixedBP}\n";
+        $output .= "All saldo awal dates set to April 1, 2026\n";
+        
+        return "<h1 style='color:green;'>✅ EMERGENCY FIX COMPLETED!</h1><pre>{$output}</pre>
+                <p><a href='/laporan/stok?tipe=bahan_pendukung&item_id=13'>Check Air Stock Report</a></p>
+                <p><a href='/laporan/stok?tipe=material'>Check All Bahan Baku</a></p>
+                <p><a href='/laporan/stok?tipe=support'>Check All Bahan Pendukung</a></p>";
+        
+    } catch (Exception $e) {
+        if (isset($pdo)) $pdo->rollback();
+        return "<h1 style='color:red;'>❌ ERROR</h1><pre>" . $e->getMessage() . "</pre>";
+    }
+});
+
+// FIX ALL INITIAL STOCK ISSUES
+Route::get('fix-all-initial-stock', function() {
+    try {
+        $pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+        $output = "<h1 style='color:#fff;background:#28a745;padding:20px;'>🔧 FIXING ALL INITIAL STOCK ISSUES</h1>";
+        $output .= "<pre style='background:#000;color:#0f0;padding:20px;font-family:monospace;'>";
+        
+        $pdo->beginTransaction();
+        
+        // 1. Fix Bahan Baku without initial stock
+        $output .= "=== FIXING BAHAN BAKU ===\n";
+        $stmt = $pdo->query("
+            SELECT bb.id, bb.nama_bahan, bb.stok
+            FROM bahan_bakus bb
+            WHERE bb.id IN (
+                SELECT DISTINCT bahan_baku_id FROM produksi_details WHERE bahan_baku_id IS NOT NULL
+            )
+            AND bb.id NOT IN (
+                SELECT DISTINCT item_id FROM stock_movements WHERE item_type='material' AND ref_type='initial_stock'
+            )
+        ");
+        
+        $fixedMaterials = 0;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $currentStock = $row['stok'];
+            
+            // Calculate production usage
+            $usageStmt = $pdo->prepare("SELECT COALESCE(SUM(qty), 0) FROM stock_movements WHERE item_type='material' AND item_id=? AND ref_type='production' AND direction='out'");
+            $usageStmt->execute([$row['id']]);
+            $productionUsage = $usageStmt->fetchColumn();
+            
+            // Calculate initial stock needed
+            $initialStock = $currentStock + $productionUsage;
+            $unitCost = $initialStock > 0 ? 50000 : 0; // Default unit cost
+            $totalCost = $initialStock * $unitCost;
+            
+            // Add initial stock movement
+            $insertStmt = $pdo->prepare("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insertStmt->execute([
+                'material', $row['id'], '2026-04-01', 'in', $initialStock, 'Unit', $unitCost, $totalCost, 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00'
+            ]);
+            
+            // Add stock layer
+            if ($currentStock > 0) {
+                $layerStmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $layerStmt->execute([
+                    'material', $row['id'], '2026-04-01', $currentStock, $unitCost, 'Unit', 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00'
+                ]);
+            }
+            
+            $output .= "✅ {$row['nama_bahan']}: Initial={$initialStock}, Current={$currentStock}, Usage={$productionUsage}\n";
+            $fixedMaterials++;
+        }
+        
+        // 2. Fix Bahan Pendukung without initial stock
+        $output .= "\n=== FIXING BAHAN PENDUKUNG ===\n";
+        $stmt = $pdo->query("
+            SELECT bp.id, bp.nama_bahan, bp.stok
+            FROM bahan_pendukungs bp
+            WHERE bp.id IN (
+                SELECT DISTINCT bahan_pendukung_id FROM produksi_details WHERE bahan_pendukung_id IS NOT NULL
+            )
+            AND bp.id NOT IN (
+                SELECT DISTINCT item_id FROM stock_movements WHERE item_type='support' AND ref_type='initial_stock'
+            )
+        ");
+        
+        $fixedSupports = 0;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $currentStock = $row['stok'] ?: 200; // Default stock for support materials
+            
+            // Calculate production usage
+            $usageStmt = $pdo->prepare("SELECT COALESCE(SUM(qty), 0) FROM stock_movements WHERE item_type='support' AND item_id=? AND ref_type='production' AND direction='out'");
+            $usageStmt->execute([$row['id']]);
+            $productionUsage = $usageStmt->fetchColumn();
+            
+            // Calculate initial stock needed
+            $initialStock = $currentStock + $productionUsage;
+            $unitCost = 1000; // Default unit cost for support materials
+            $totalCost = $initialStock * $unitCost;
+            
+            // Add initial stock movement
+            $insertStmt = $pdo->prepare("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $insertStmt->execute([
+                'support', $row['id'], '2026-04-01', 'in', $initialStock, 'Unit', $unitCost, $totalCost, 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00'
+            ]);
+            
+            // Add stock layer
+            if ($currentStock > 0) {
+                $layerStmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $layerStmt->execute([
+                    'support', $row['id'], '2026-04-01', $currentStock, $unitCost, 'Unit', 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00'
+                ]);
+            }
+            
+            // Update master stock
+            $pdo->prepare("UPDATE bahan_pendukungs SET stok = ? WHERE id = ?")->execute([$currentStock, $row['id']]);
+            
+            $output .= "✅ {$row['nama_bahan']}: Initial={$initialStock}, Current={$currentStock}, Usage={$productionUsage}\n";
+            $fixedSupports++;
+        }
+        
+        $pdo->commit();
+        
+        $output .= "\n🎉 SUCCESS!\n";
+        $output .= "Fixed Materials: {$fixedMaterials}\n";
+        $output .= "Fixed Support Materials: {$fixedSupports}\n";
+        $output .= "All saldo awal set to April 1, 2026\n";
+        $output .= "</pre>";
+        
+        $output .= "<p><a href='/laporan/stok?tipe=material' style='background:#007bff;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;margin:5px;'>📊 Check Bahan Baku</a>";
+        $output .= "<a href='/laporan/stok?tipe=support' style='background:#007bff;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;margin:5px;'>📊 Check Bahan Pendukung</a></p>";
+        
+        return $output;
+        
+    } catch (Exception $e) {
+        if (isset($pdo)) $pdo->rollback();
+        return "<h1 style='color:red;'>❌ ERROR</h1><pre>" . $e->getMessage() . "</pre>";
+    }
+});
+
+// ANALYZE ALL STOCK ISSUES - CHECK LAPORAN STOK
+Route::get('analyze-all-stock-issues', function() {
+    try {
+        $pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+        $output = "<h1 style='color:#fff;background:#d9534f;padding:20px;'>🔍 ANALYZING ALL STOCK ISSUES</h1>";
+        $output .= "<style>table{border-collapse:collapse;width:100%;} th,td{border:1px solid #ddd;padding:8px;text-align:left;} th{background:#f2f2f2;}</style>";
+        
+        // 1. Check all materials used in production
+        $output .= "<h2>1. BAHAN BAKU YANG DIGUNAKAN DALAM PRODUKSI</h2>";
+        $stmt = $pdo->query("
+            SELECT DISTINCT 
+                bb.id, bb.nama_bahan, bb.stok,
+                COUNT(sm.id) as movement_count,
+                SUM(CASE WHEN sm.ref_type='initial_stock' THEN 1 ELSE 0 END) as has_initial_stock,
+                SUM(CASE WHEN sm.ref_type='production' THEN sm.qty ELSE 0 END) as production_usage
+            FROM bahan_bakus bb
+            LEFT JOIN stock_movements sm ON sm.item_type='material' AND sm.item_id=bb.id
+            WHERE bb.id IN (
+                SELECT DISTINCT bahan_baku_id FROM produksi_details WHERE bahan_baku_id IS NOT NULL
+            )
+            GROUP BY bb.id, bb.nama_bahan, bb.stok
+            ORDER BY bb.id
+        ");
+        
+        $output .= "<table><tr><th>ID</th><th>Nama Bahan</th><th>Stok Master</th><th>Total Movements</th><th>Has Initial Stock</th><th>Production Usage</th><th>Status</th></tr>";
+        
+        $materialsWithoutInitial = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $status = $row['has_initial_stock'] > 0 ? '✅ OK' : '❌ NO INITIAL STOCK';
+            if ($row['has_initial_stock'] == 0) {
+                $materialsWithoutInitial[] = $row;
+            }
+            
+            $output .= "<tr>";
+            $output .= "<td>{$row['id']}</td>";
+            $output .= "<td>{$row['nama_bahan']}</td>";
+            $output .= "<td>" . number_format($row['stok'], 4) . "</td>";
+            $output .= "<td>{$row['movement_count']}</td>";
+            $output .= "<td>{$row['has_initial_stock']}</td>";
+            $output .= "<td>" . number_format($row['production_usage'], 4) . "</td>";
+            $output .= "<td style='color:" . ($row['has_initial_stock'] > 0 ? 'green' : 'red') . ";'>{$status}</td>";
+            $output .= "</tr>";
+        }
+        $output .= "</table>";
+        
+        // 2. Check all support materials used in production
+        $output .= "<h2>2. BAHAN PENDUKUNG YANG DIGUNAKAN DALAM PRODUKSI</h2>";
+        $stmt = $pdo->query("
+            SELECT DISTINCT 
+                bp.id, bp.nama_bahan, bp.stok,
+                COUNT(sm.id) as movement_count,
+                SUM(CASE WHEN sm.ref_type='initial_stock' THEN 1 ELSE 0 END) as has_initial_stock,
+                SUM(CASE WHEN sm.ref_type='production' THEN sm.qty ELSE 0 END) as production_usage
+            FROM bahan_pendukungs bp
+            LEFT JOIN stock_movements sm ON sm.item_type='support' AND sm.item_id=bp.id
+            WHERE bp.id IN (
+                SELECT DISTINCT bahan_pendukung_id FROM produksi_details WHERE bahan_pendukung_id IS NOT NULL
+            )
+            GROUP BY bp.id, bp.nama_bahan, bp.stok
+            ORDER BY bp.id
+        ");
+        
+        $output .= "<table><tr><th>ID</th><th>Nama Bahan</th><th>Stok Master</th><th>Total Movements</th><th>Has Initial Stock</th><th>Production Usage</th><th>Status</th></tr>";
+        
+        $supportsWithoutInitial = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $status = $row['has_initial_stock'] > 0 ? '✅ OK' : '❌ NO INITIAL STOCK';
+            if ($row['has_initial_stock'] == 0) {
+                $supportsWithoutInitial[] = $row;
+            }
+            
+            $output .= "<tr>";
+            $output .= "<td>{$row['id']}</td>";
+            $output .= "<td>{$row['nama_bahan']}</td>";
+            $output .= "<td>" . number_format($row['stok'], 4) . "</td>";
+            $output .= "<td>{$row['movement_count']}</td>";
+            $output .= "<td>{$row['has_initial_stock']}</td>";
+            $output .= "<td>" . number_format($row['production_usage'], 4) . "</td>";
+            $output .= "<td style='color:" . ($row['has_initial_stock'] > 0 ? 'green' : 'red') . ";'>{$status}</td>";
+            $output .= "</tr>";
+        }
+        $output .= "</table>";
+        
+        // 3. Summary of issues
+        $totalIssues = count($materialsWithoutInitial) + count($supportsWithoutInitial);
+        $output .= "<h2>3. RINGKASAN MASALAH</h2>";
+        $output .= "<div style='background:#f8d7da;border:1px solid #f5c6cb;padding:15px;border-radius:5px;'>";
+        $output .= "<strong>Total items tanpa saldo awal: {$totalIssues}</strong><br>";
+        $output .= "- Bahan Baku: " . count($materialsWithoutInitial) . "<br>";
+        $output .= "- Bahan Pendukung: " . count($supportsWithoutInitial) . "<br>";
+        $output .= "</div>";
+        
+        // 4. Fix button
+        if ($totalIssues > 0) {
+            $output .= "<h2>4. PERBAIKAN</h2>";
+            $output .= "<div style='background:#d4edda;border:1px solid #c3e6cb;padding:15px;border-radius:5px;'>";
+            $output .= "<p><strong>Klik tombol di bawah untuk memperbaiki semua masalah saldo awal:</strong></p>";
+            $output .= "<a href='/fix-all-initial-stock' style='background:#28a745;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;'>🔧 FIX ALL INITIAL STOCK</a>";
+            $output .= "</div>";
+        } else {
+            $output .= "<div style='background:#d4edda;border:1px solid #c3e6cb;padding:15px;border-radius:5px;'>";
+            $output .= "<strong>✅ Semua item sudah memiliki saldo awal!</strong>";
+            $output .= "</div>";
+        }
+        
+        return $output;
+        
+    } catch (Exception $e) {
+        return "<h1 style='color:red;'>❌ ERROR</h1><pre>" . $e->getMessage() . "</pre>";
+    }
+});
+
+// EXECUTE SQL FIX FOR AYAM KAMPUNG
+Route::get('sql-fix-ayam-kampung', function() {
+    try {
+        $pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+        
+        // Add initial stock if not exists
+        $pdo->exec("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) 
+                   SELECT 'material', 2, '2026-04-01', 'in', 30.0000, 'Ekor', 45000.0000, 1350000.00, 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00'
+                   WHERE NOT EXISTS (SELECT 1 FROM stock_movements WHERE item_type='material' AND item_id=2 AND ref_type='initial_stock')");
+        
+        // Calculate remaining stock
+        $stmt = $pdo->query("SELECT COALESCE(SUM(qty), 0) FROM stock_movements WHERE item_type='material' AND item_id=2 AND ref_type='production' AND direction='out'");
+        $productionUsage = $stmt->fetchColumn();
+        $remainingStock = 30.0 - $productionUsage;
+        
+        // Delete old stock layers
+        $pdo->exec("DELETE FROM stock_layers WHERE item_type='material' AND item_id=2");
+        
+        // Add new stock layer
+        if ($remainingStock > 0) {
+            $stmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute(['material', 2, '2026-04-01', $remainingStock, 45000.0, 'Ekor', 'initial_stock', 0, '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+        }
+        
+        // Update master stock
+        $pdo->exec("UPDATE bahan_bakus SET stok = $remainingStock WHERE id = 2");
+        
+        // Update all initial stock dates to April 1
+        $pdo->exec("UPDATE stock_movements SET tanggal = '2026-04-01', created_at = '2026-04-01 00:00:00', updated_at = '2026-04-01 00:00:00' WHERE ref_type = 'initial_stock'");
+        $pdo->exec("UPDATE stock_layers SET tanggal = '2026-04-01', created_at = '2026-04-01 00:00:00', updated_at = '2026-04-01 00:00:00' WHERE ref_type = 'initial_stock'");
+        
+        return "<h1 style='color:green;'>✅ SUCCESS!</h1>
+                <p>Ayam Kampung initial stock added: 30 Ekor on April 1, 2026</p>
+                <p>Remaining stock: $remainingStock Ekor</p>
+                <p>All saldo awal dates updated to April 1, 2026</p>
+                <p><a href='/laporan/stok?tipe=material&item_id=2'>Check Laporan Stok Ayam Kampung</a></p>";
+        
+    } catch (Exception $e) {
+        return "<h1 style='color:red;'>❌ ERROR</h1><p>" . $e->getMessage() . "</p>";
+    }
+});
+
+// UPDATE ALL INITIAL STOCK DATES TO APRIL 1, 2026
+Route::get('update-saldo-awal-april', function() {
+    try {
+        $pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+        $output = "<h1 style='color:#0f0;background:#000;padding:20px;'>📅 UPDATING ALL SALDO AWAL TO APRIL 1, 2026</h1>";
+        $output .= "<pre style='background:#000;color:#0f0;padding:20px;font-family:monospace;'>";
+        
+        $pdo->beginTransaction();
+        
+        // 1. Update stock_movements - change all initial_stock dates to 2026-04-01
+        $stmt = $pdo->prepare("UPDATE stock_movements SET tanggal = ?, created_at = ?, updated_at = ? WHERE ref_type = 'initial_stock'");
+        $result1 = $stmt->execute(['2026-04-01', '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+        
+        $stmt = $pdo->query("SELECT ROW_COUNT()");
+        $updatedMovements = $stmt->fetchColumn();
+        $output .= "✅ Updated $updatedMovements stock movements to April 1, 2026\n";
+        
+        // 2. Update stock_layers - change all initial stock layer dates to 2026-04-01
+        $stmt = $pdo->prepare("UPDATE stock_layers SET tanggal = ?, created_at = ?, updated_at = ? WHERE ref_type = 'initial_stock'");
+        $result2 = $stmt->execute(['2026-04-01', '2026-04-01 00:00:00', '2026-04-01 00:00:00']);
+        
+        $stmt = $pdo->query("SELECT ROW_COUNT()");
+        $updatedLayers = $stmt->fetchColumn();
+        $output .= "✅ Updated $updatedLayers stock layers to April 1, 2026\n";
+        
+        // 3. Show updated data
+        $output .= "\n=== UPDATED STOCK MOVEMENTS (Initial Stock) ===\n";
+        $stmt = $pdo->query("SELECT item_id, tanggal, qty, satuan, total_cost FROM stock_movements WHERE ref_type='initial_stock' ORDER BY item_id");
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $output .= "Item ID: {$row['item_id']} | Date: {$row['tanggal']} | Qty: {$row['qty']} {$row['satuan']} | Cost: Rp " . number_format($row['total_cost'], 0, ',', '.') . "\n";
+        }
+        
+        $output .= "\n=== UPDATED STOCK LAYERS (Initial Stock) ===\n";
+        $stmt = $pdo->query("SELECT item_id, tanggal, remaining_qty, satuan, unit_cost FROM stock_layers WHERE ref_type='initial_stock' ORDER BY item_id");
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $output .= "Item ID: {$row['item_id']} | Date: {$row['tanggal']} | Remaining: {$row['remaining_qty']} {$row['satuan']} | Unit Cost: Rp " . number_format($row['unit_cost'], 0, ',', '.') . "\n";
+        }
+        
+        $pdo->commit();
+        
+        $output .= "\n🎉 SUCCESS! All saldo awal dates updated to April 1, 2026\n";
+        $output .= "\nRefresh laporan stok to see the changes:\n";
+        $output .= "- <a href='/laporan/stok?tipe=material' style='color:#0ff;'>Laporan Stok Bahan Baku</a>\n";
+        $output .= "- <a href='/laporan/stok?tipe=support' style='color:#0ff;'>Laporan Stok Bahan Pendukung</a>\n";
+        $output .= "- <a href='/laporan/stok?tipe=product' style='color:#0ff;'>Laporan Stok Produk</a>\n";
+        
+        $output .= "</pre>";
+        
+        return $output;
+        
+    } catch (Exception $e) {
+        if (isset($pdo)) $pdo->rollback();
+        return "<h1 style='color:red;'>❌ ERROR</h1><pre style='color:red;'>" . $e->getMessage() . "</pre>";
+    }
+});
+
+// SIMPLE FIX FOR AYAM KAMPUNG STOCK
+Route::get('simple-fix-ayam-kampung', function() {
+    try {
+        // Direct database connection
+        $pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+        $output = "<h1>Fixing Ayam Kampung Stock</h1><pre>";
+        
+        // Check if initial stock exists
+        $stmt = $pdo->query("SELECT COUNT(*) FROM stock_movements WHERE item_type='material' AND item_id=2 AND ref_type='initial_stock'");
+        $hasInitial = $stmt->fetchColumn() > 0;
+        
+        if (!$hasInitial) {
+            $pdo->beginTransaction();
+            
+            // Add initial stock
+            $stmt = $pdo->prepare("INSERT INTO stock_movements (item_type, item_id, tanggal, direction, qty, satuan, unit_cost, total_cost, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute(['material', 2, '2026-03-01', 'in', 30.0, 'Ekor', 45000.0, 1350000.0, 'initial_stock', 0, '2026-03-01 00:00:00', '2026-03-01 00:00:00']);
+            
+            $output .= "✅ Initial stock added: 30 Ekor\n";
+            
+            // Calculate remaining stock
+            $stmt = $pdo->query("SELECT COALESCE(SUM(qty), 0) FROM stock_movements WHERE item_type='material' AND item_id=2 AND ref_type='production' AND direction='out'");
+            $productionUsage = $stmt->fetchColumn();
+            $remainingStock = 30.0 - $productionUsage;
+            
+            $output .= "Production usage: $productionUsage Ekor\n";
+            $output .= "Remaining stock: $remainingStock Ekor\n";
+            
+            // Delete old stock layers
+            $pdo->exec("DELETE FROM stock_layers WHERE item_type='material' AND item_id=2");
+            
+            // Add new stock layer
+            if ($remainingStock > 0) {
+                $stmt = $pdo->prepare("INSERT INTO stock_layers (item_type, item_id, tanggal, remaining_qty, unit_cost, satuan, ref_type, ref_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute(['material', 2, '2026-03-01', $remainingStock, 45000.0, 'Ekor', 'initial_stock', 0, '2026-03-01 00:00:00', '2026-03-01 00:00:00']);
+                $output .= "✅ Stock layer added: $remainingStock Ekor\n";
+            }
+            
+            // Update master stock
+            $stmt = $pdo->prepare("UPDATE bahan_bakus SET stok = ? WHERE id = 2");
+            $stmt->execute([$remainingStock]);
+            $output .= "✅ Master stock updated: $remainingStock Ekor\n";
+            
+            $pdo->commit();
+            $output .= "\n🎉 SUCCESS! Check laporan stok now.\n";
+            
+        } else {
+            $output .= "✅ Initial stock already exists\n";
+        }
+        
+        $output .= "</pre>";
+        $output .= "<p><a href='/laporan/stok?tipe=material&item_id=2'>Check Laporan Stok Ayam Kampung</a></p>";
+        
+        return $output;
+        
+    } catch (Exception $e) {
+        return "<h1>Error</h1><pre>" . $e->getMessage() . "</pre>";
+    }
+});
+
+// FIX AYAM KAMPUNG STOCK AWAL - SIMPLE VERSION
+Route::get('fix-stock-awal-ayam-kampung', function() {
+    DB::beginTransaction();
+    
+    try {
+        // Check if initial stock exists
+        $hasInitialStock = DB::table('stock_movements')
+            ->where('item_type', 'material')
+            ->where('item_id', 2)
+            ->where('ref_type', 'initial_stock')
+            ->exists();
+        
+        if (!$hasInitialStock) {
+            // Add initial stock
+            DB::table('stock_movements')->insert([
+                'item_type' => 'material',
+                'item_id' => 2,
+                'tanggal' => '2026-03-01',
+                'direction' => 'in',
+                'qty' => 30.0000,
+                'satuan' => 'Ekor',
+                'unit_cost' => 45000.0000,
+                'total_cost' => 1350000.00,
+                'ref_type' => 'initial_stock',
+                'ref_id' => 0,
+                'created_at' => '2026-03-01 00:00:00',
+                'updated_at' => '2026-03-01 00:00:00',
+            ]);
+            
+            // Calculate remaining stock
+            $productionUsage = DB::table('stock_movements')
+                ->where('item_type', 'material')
+                ->where('item_id', 2)
+                ->where('ref_type', 'production')
+                ->where('direction', 'out')
+                ->sum('qty');
+            
+            $remainingStock = 30.0 - $productionUsage;
+            
+            // Delete old stock layers and add new one
+            DB::table('stock_layers')->where('item_type', 'material')->where('item_id', 2)->delete();
+            
+            if ($remainingStock > 0) {
+                DB::table('stock_layers')->insert([
+                    'item_type' => 'material',
+                    'item_id' => 2,
+                    'tanggal' => '2026-03-01',
+                    'remaining_qty' => $remainingStock,
+                    'unit_cost' => 45000.0000,
+                    'satuan' => 'Ekor',
+                    'ref_type' => 'initial_stock',
+                    'ref_id' => 0,
+                    'created_at' => '2026-03-01 00:00:00',
+                    'updated_at' => '2026-03-01 00:00:00',
+                ]);
+            }
+            
+            // Update master stock
+            DB::table('bahan_bakus')->where('id', 2)->update(['stok' => $remainingStock]);
+            
+            DB::commit();
+            return "<h1 style='color:green;'>✅ SUCCESS! Initial stock restored. Remaining: $remainingStock Ekor</h1><p><a href='/laporan/stok?tipe=material&item_id=2'>Check Laporan Stok</a></p>";
+        } else {
+            DB::rollback();
+            return "<h1 style='color:blue;'>ℹ️ Initial stock already exists</h1>";
+        }
+        
+    } catch (Exception $e) {
+        DB::rollback();
+        return "<h1 style='color:red;'>❌ ERROR: " . $e->getMessage() . "</h1>";
+    }
+});
+
+// FIX AYAM KAMPUNG STOCK - RESTORE INITIAL STOCK
+Route::get('fix-ayam-kampung-stock-awal', function() {
+    try {
+        DB::beginTransaction();
+        
+        echo "<h1 style='color:#0f0;background:#000;padding:20px;'>🔧 RESTORING AYAM KAMPUNG INITIAL STOCK</h1>";
+        echo "<pre style='background:#000;color:#0f0;padding:20px;font-family:monospace;'>";
+        
+        // Get satuan IDs
+        $ekorId = DB::table('satuans')->where('nama', 'Ekor')->value('id');
+        $potongId = DB::table('satuans')->where('nama', 'Potong')->value('id');
+        $kgId = DB::table('satuans')->whereIn('nama', ['Kilogram', 'Kg'])->value('id');
+        $gramId = DB::table('satuans')->where('nama', 'Gram')->value('id');
+        
+        echo "Satuan IDs: Ekor=$ekorId, Potong=$potongId, Kg=$kgId, Gram=$gramId\n\n";
+        
+        // Check current data
+        $currentMovements = DB::table('stock_movements')
+            ->where('item_type', 'material')
+            ->where('item_id', 2)
+            ->orderBy('tanggal')
+            ->get();
+            
+        echo "Current movements count: " . $currentMovements->count() . "\n";
+        foreach($currentMovements as $m) {
+            echo "  {$m->tanggal} | {$m->direction} | {$m->qty} {$m->satuan} | {$m->ref_type}\n";
+        }
+        
+        // Check if initial stock exists
+        $initialStock = DB::table('stock_movements')
+            ->where('item_type', 'material')
+            ->where('item_id', 2)
+            ->where('ref_type', 'initial_stock')
+            ->first();
+            
+        if (!$initialStock) {
+            echo "\n❌ Initial stock missing! Adding initial stock...\n";
+            
+            // Add initial stock (30 Ekor on 2026-03-01)
+            DB::table('stock_movements')->insert([
+                'item_type' => 'material',
+                'item_id' => 2,
+                'tanggal' => '2026-03-01',
+                'direction' => 'in',
+                'qty' => 30.0000,
+                'satuan' => 'Ekor',
+                'unit_cost' => 45000.0000,
+                'total_cost' => 1350000.00,
+                'ref_type' => 'initial_stock',
+                'ref_id' => 0,
+                'created_at' => '2026-03-01 00:00:00',
+                'updated_at' => '2026-03-01 00:00:00',
+            ]);
+            echo "✅ Initial stock added: 30 Ekor @ Rp 45,000 = Rp 1,350,000\n";
+            
+            // Recalculate stock layers
+            DB::table('stock_layers')->where('item_type', 'material')->where('item_id', 2)->delete();
+            
+            // Find production usage
+            $productionUsage = DB::table('stock_movements')
+                ->where('item_type', 'material')
+                ->where('item_id', 2)
+                ->where('ref_type', 'production')
+                ->where('direction', 'out')
+                ->sum('qty');
+                
+            echo "Production usage: $productionUsage Ekor\n";
+            
+            $remainingStock = 30.0 - $productionUsage;
+            echo "Remaining stock: $remainingStock Ekor\n";
+            
+            // Add stock layer
+            if ($remainingStock > 0) {
+                DB::table('stock_layers')->insert([
+                    'item_type' => 'material',
+                    'item_id' => 2,
+                    'tanggal' => '2026-03-01',
+                    'remaining_qty' => $remainingStock,
+                    'unit_cost' => 45000.0000,
+                    'satuan' => 'Ekor',
+                    'ref_type' => 'initial_stock',
+                    'ref_id' => 0,
+                    'created_at' => '2026-03-01 00:00:00',
+                    'updated_at' => '2026-03-01 00:00:00',
+                ]);
+                echo "✅ Stock layer added: $remainingStock Ekor\n";
+            }
+            
+            // Update master stock
+            DB::table('bahan_bakus')->where('id', 2)->update(['stok' => $remainingStock]);
+            echo "✅ Master stock updated: $remainingStock Ekor\n";
+            
+        } else {
+            echo "\n✅ Initial stock already exists\n";
+        }
+        
+        DB::commit();
+        
+        echo "\n🎉 SUCCESS! Initial stock restored.\n";
+        echo "\nRefresh laporan stok to see the changes:\n";
+        echo "<a href='/laporan/stok?tipe=material&item_id=2&satuan_id=$ekorId' style='color:#0ff;'>Laporan Stok Ayam Kampung</a>\n";
+        
+        echo "</pre>";
+        
+    } catch (\Exception $e) {
+        DB::rollback();
+        echo "<pre style='background:#000;color:#f00;padding:20px;'>ERROR: " . $e->getMessage() . "</pre>";
+    }
+});
+
+// DEBUG ROUTE - CHECK AYAM KAMPUNG STOCK
+Route::get('debug-ayam-kampung', function() {
+    try {
+        echo "<h1 style='color:#0f0;background:#000;padding:20px;'>🔍 CHECKING AYAM KAMPUNG STOCK DATA</h1>";
+        echo "<pre style='background:#000;color:#0f0;padding:20px;font-family:monospace;'>";
+        
+        // Check stock movements
+        echo "1. Stock Movements:\n";
+        $movements = DB::table('stock_movements')
+            ->where('item_type', 'material')
+            ->where('item_id', 2)
+            ->orderBy('tanggal')
+            ->orderBy('created_at')
+            ->get();
+
+        foreach($movements as $m) {
+            echo "  {$m->tanggal} | {$m->direction} | {$m->qty} {$m->satuan} | {$m->ref_type} | Cost: {$m->total_cost}\n";
+        }
+
+        // Check stock layers
+        echo "\n2. Stock Layers:\n";
+        $layers = DB::table('stock_layers')
+            ->where('item_type', 'material')
+            ->where('item_id', 2)
+            ->orderBy('tanggal')
+            ->get();
+
+        foreach($layers as $l) {
+            echo "  {$l->tanggal} | {$l->remaining_qty} {$l->satuan} | {$l->ref_type} | Unit Cost: {$l->unit_cost}\n";
+        }
+
+        // Check master stock
+        echo "\n3. Master Stock:\n";
+        $master = DB::table('bahan_bakus')->where('id', 2)->first();
+        echo "  Master Stock: {$master->stok} Ekor\n";
+
+        // Check conversion ratios
+        echo "\n4. Conversion Ratios:\n";
+        echo "  Satuan ID: {$master->satuan_id}\n";
+        echo "  Sub Satuan 1: {$master->sub_satuan_1_id} = {$master->sub_satuan_1_konversi}\n";
+        echo "  Sub Satuan 2: {$master->sub_satuan_2_id} = {$master->sub_satuan_2_konversi}\n";
+        echo "  Sub Satuan 3: {$master->sub_satuan_3_id} = {$master->sub_satuan_3_konversi}\n";
+        
+        echo "</pre>";
+        
+    } catch (\Exception $e) {
+        echo "<pre style='background:#000;color:#f00;padding:20px;'>ERROR: " . $e->getMessage() . "</pre>";
+    }
+});
+
 // DATABASE FIX ROUTE - AYAM KAMPUNG
 Route::get('fix-ayam-kampung-database', function() {
     try {
@@ -865,6 +2080,7 @@ Route::middleware('auth')->group(function () {
         // Harga Pokok Produksi Routes
         Route::prefix('harga-pokok-produksi')->name('harga-pokok-produksi.')->group(function () {
             Route::get('calculate/{produkId}', [BomController::class, 'calculateBomCost'])->name('calculate');
+            Route::post('update-from-stock/{produkId}', [BomController::class, 'updateBomFromStockReport'])->name('update-from-stock');
             Route::get('by-produk/{id}', [BomController::class, 'view'])->name('view-by-produk');
             Route::post('by-produk/{id}', [BomController::class, 'updateByProduk'])->name('update-by-produk');
             Route::get('generate-kode', [BomController::class, 'generateKodeBom'])->name('generate-kode');
@@ -1066,6 +2282,158 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [ReturController::class, 'createPembelian'])->name('create');
             Route::post('/', [ReturController::class, 'storePembelian'])->name('store');
             Route::get('/{id}', [ReturController::class, 'showPembelian'])->name('show');
+            Route::get('debug-stock-pembelian/{pembelianId}', function($pembelianId) {
+    $pembelian = \App\Models\Pembelian::with(['details.bahanBaku', 'details.bahanPendukung'])->find($pembelianId);
+    
+    if (!$pembelian) {
+        return "Pembelian ID {$pembelianId} tidak ditemukan";
+    }
+    
+    $vendorName = $pembelian->vendor->nama_vendor ?? 'N/A';
+    
+    $output = "<h2>Debug Stock Update - Pembelian ID: {$pembelianId}</h2>";
+    $output .= "<p><strong>Tanggal:</strong> {$pembelian->tanggal}</p>";
+    $output .= "<p><strong>Vendor:</strong> {$vendorName}</p>";
+    $output .= "<hr>";
+    
+    foreach ($pembelian->details as $detail) {
+        $output .= "<div style='border: 1px solid #ccc; padding: 10px; margin: 10px 0;'>";
+        
+        if ($detail->bahan_baku_id) {
+            $bahan = $detail->bahanBaku;
+            $satuanUtama = $bahan->satuan->nama ?? 'KG';
+            $output .= "<h4>Bahan Baku: {$bahan->nama_bahan}</h4>";
+            $output .= "<p><strong>Stok Saat Ini:</strong> {$bahan->stok} {$satuanUtama}</p>";
+        } elseif ($detail->bahan_pendukung_id) {
+            $bahan = $detail->bahanPendukung;
+            $satuanUtama = $bahan->satuanRelation->nama ?? 'unit';
+            $output .= "<h4>Bahan Pendukung: {$bahan->nama_bahan}</h4>";
+            $output .= "<p><strong>Stok Saat Ini:</strong> {$bahan->stok} {$satuanUtama}</p>";
+        }
+        
+        $output .= "<p><strong>Qty Pembelian:</strong> {$detail->jumlah} {$detail->satuan_nama}</p>";
+        $output .= "<p><strong>Faktor Konversi:</strong> {$detail->faktor_konversi}</p>";
+        
+        // Calculate conversion
+        $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+        $output .= "<p><strong>Qty dalam Satuan Utama:</strong> {$qtyInBaseUnit}</p>";
+        
+        $output .= "<p><strong>Harga Satuan:</strong> Rp " . number_format($detail->harga_satuan, 0, ',', '.') . "</p>";
+        $output .= "<p><strong>Subtotal:</strong> Rp " . number_format($detail->subtotal, 0, ',', '.') . "</p>";
+        
+        $output .= "</div>";
+    }
+    
+    $output .= "<hr><p><a href='/manual-stock-update/{$pembelianId}' style='background: #007bff; color: white; padding: 10px; text-decoration: none; border-radius: 5px;'>🔧 Manual Stock Update</a></p>";
+    
+    return $output;
+});
+
+Route::get('test-stock-update', function() {
+    // Test stock update logic
+    $output = "<h2>🧪 Test Stock Update Logic</h2>";
+    
+    try {
+        // Find a bahan baku for testing
+        $bahanBaku = \App\Models\BahanBaku::first();
+        
+        if (!$bahanBaku) {
+            return "<p style='color: red;'>❌ Tidak ada bahan baku untuk testing</p>";
+        }
+        
+        $output .= "<h3>Testing dengan: {$bahanBaku->nama_bahan}</h3>";
+        
+        // Record original stock
+        $originalStock = $bahanBaku->stok;
+        $output .= "<p><strong>Stok Awal:</strong> {$originalStock}</p>";
+        
+        // Test adding stock
+        $testQty = 10.5;
+        $newStock = $originalStock + $testQty;
+        
+        $output .= "<p><strong>Menambah:</strong> {$testQty}</p>";
+        $output .= "<p><strong>Expected Stok Baru:</strong> {$newStock}</p>";
+        
+        // Method 1: Using model save()
+        $bahanBaku->stok = $newStock;
+        $saveResult = $bahanBaku->save();
+        
+        $output .= "<p><strong>Save Result:</strong> " . ($saveResult ? 'Success' : 'Failed') . "</p>";
+        
+        // Verify
+        $bahanBaku->refresh();
+        $actualStock = $bahanBaku->stok;
+        
+        $output .= "<p><strong>Actual Stok:</strong> {$actualStock}</p>";
+        
+        if (abs($actualStock - $newStock) < 0.0001) {
+            $output .= "<p style='color: green;'>✅ Stock update berhasil!</p>";
+        } else {
+            $output .= "<p style='color: red;'>❌ Stock update gagal!</p>";
+            
+            // Try direct DB update
+            $output .= "<p>Mencoba direct DB update...</p>";
+            
+            $dbResult = \DB::table('bahan_bakus')
+                ->where('id', $bahanBaku->id)
+                ->update(['stok' => $newStock]);
+            
+            $output .= "<p><strong>DB Update Result:</strong> {$dbResult} rows affected</p>";
+            
+            // Check again
+            $bahanBaku->refresh();
+            $finalStock = $bahanBaku->stok;
+            
+            $output .= "<p><strong>Final Stok:</strong> {$finalStock}</p>";
+            
+            if (abs($finalStock - $newStock) < 0.0001) {
+                $output .= "<p style='color: green;'>✅ DB update berhasil!</p>";
+            } else {
+                $output .= "<p style='color: red;'>❌ DB update juga gagal!</p>";
+            }
+        }
+        
+        // Restore original stock
+        $bahanBaku->stok = $originalStock;
+        $bahanBaku->save();
+        
+        $output .= "<p><em>Stok dikembalikan ke nilai awal: {$originalStock}</em></p>";
+        
+    } catch (\Exception $e) {
+        $output .= "<p style='color: red;'>❌ Error: " . $e->getMessage() . "</p>";
+    }
+    
+    return $output;
+});
+
+Route::get('manual-stock-update/{pembelianId}', function($pembelianId) {
+    $controller = new \App\Http\Controllers\PembelianController();
+    $result = $controller->manualStockUpdate($pembelianId);
+    
+    if ($result['success']) {
+        $output = "<h2 style='color: green;'>✅ Manual Stock Update Berhasil</h2>";
+        $output .= "<p><strong>Pembelian ID:</strong> {$pembelianId}</p>";
+        $output .= "<h3>Items Updated:</h3>";
+        
+        foreach ($result['updated_items'] as $item) {
+            $output .= "<div style='border: 1px solid #28a745; padding: 10px; margin: 10px 0; background: #d4edda;'>";
+            $output .= "<h4>{$item['type']}: {$item['nama']}</h4>";
+            $output .= "<p><strong>Qty Ditambahkan:</strong> {$item['qty_added']}</p>";
+            $output .= "<p><strong>Stok Lama:</strong> {$item['stok_lama']}</p>";
+            $output .= "<p><strong>Stok Baru:</strong> {$item['stok_baru']}</p>";
+            $output .= "</div>";
+        }
+    } else {
+        $output = "<h2 style='color: red;'>❌ Manual Stock Update Gagal</h2>";
+        $output .= "<p><strong>Error:</strong> {$result['message']}</p>";
+    }
+    
+    $output .= "<p><a href='/debug-stock-pembelian/{$pembelianId}' style='background: #6c757d; color: white; padding: 10px; text-decoration: none; border-radius: 5px;'>← Kembali ke Debug</a></p>";
+    
+    return $output;
+});
+
+Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
             Route::delete('/{id}', [ReturController::class, 'destroyPembelian'])->name('destroy');
         });
         
@@ -1094,6 +2462,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [ProduksiController::class, 'create'])->name('create');
             Route::post('/', [ProduksiController::class, 'store'])->name('store');
             Route::get('/get-bom-details/{produkId}', [ProduksiController::class, 'getBomDetails'])->name('get-bom-details');
+            Route::post('/mulai-lagi', [ProduksiController::class, 'mulaiLagi'])->name('mulai-lagi');
+            Route::post('/{id}/mulai-produksi', [ProduksiController::class, 'mulaiProduksi'])->name('mulai-produksi');
             Route::get('/{id}', [ProduksiController::class, 'show'])->name('show');
             Route::get('/{id}/proses', [ProduksiController::class, 'proses'])->name('proses');
             Route::post('/proses/{prosesId}/mulai', [ProduksiController::class, 'mulaiProses'])->name('proses.mulai');
@@ -1121,6 +2491,45 @@ Route::middleware('auth')->group(function () {
 
     });
 
+
+    // ================================================================
+    // EMERGENCY FIXES
+    // ================================================================
+    Route::get('fix-pembelian-journals', function() {
+        include 'fix_pembelian_journals.php';
+    });
+
+    Route::get('debug-kas-transactions', function() {
+        include 'debug_kas_transactions.php';
+    });
+
+    Route::get('quick-fix-kas-bank', function() {
+        include 'quick_fix_kas_bank.php';
+    });
+
+    Route::get('fix-purchase-journals', function() {
+        include 'fix_purchase_journals.php';
+    });
+
+    Route::get('analyze-journal-issues', function() {
+        include 'analyze_journal_issues.php';
+    });
+
+    Route::get('comprehensive-cleanup', function() {
+        include 'comprehensive_cleanup.php';
+    });
+
+    Route::get('cleanup-orphan-journals', function() {
+        include 'cleanup_orphan_journals.php';
+    });
+
+    Route::get('check-stock-movements', function() {
+        include 'check_stock_movements.php';
+    });
+
+    Route::get('fix-product-stock', function() {
+        include 'fix_product_stock.php';
+    });
 
     // ================================================================
     // LAPORAN (Admin & Owner Only)

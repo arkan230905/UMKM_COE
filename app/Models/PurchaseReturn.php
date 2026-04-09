@@ -13,6 +13,7 @@ class PurchaseReturn extends Model
         'pembelian_id',
         'return_date',
         'reason',
+        'jenis_retur',
         'notes',
         'total_return_amount',
         'status',

@@ -84,14 +84,14 @@
                         <div class="row g-3">
                             <div class="col-12">
                                 <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
-                                    <strong class="text-muted">Total BOP per Jam:</strong>
+                                    <strong class="text-muted">Total BOP / produk:</strong>
                                     <span class="fs-5 text-primary fw-bold" id="totalBopPerJam">Rp {{ number_format($bopProses->total_bop_per_jam, 0, ',', '.') }}</span>
                                 </div>
                             </div>
                             <div class="col-12">
                                 <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
-                                    <strong class="text-muted">BOP per Unit:</strong>
-                                    <span class="fs-5 text-success fw-bold" id="bopPerUnit">Rp {{ number_format($bopProses->bop_per_unit, 0, ',', '.') }}</span>
+                                    <strong class="text-muted">Biaya / produk:</strong>
+                                    <span class="fs-5 text-success fw-bold" id="bopPerUnit">Rp {{ number_format($bopProses->biaya_per_produk, 0, ',', '.') }}</span>
                                 </div>
                             </div>
                         </div>

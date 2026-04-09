@@ -20,6 +20,7 @@ class PelunasanUtang extends Model
         'pembelian_id',
         'tanggal',
         'akun_kas_id',
+        'coa_pelunasan_id',
         'jumlah',
         'keterangan',
         'status',
@@ -42,6 +43,11 @@ class PelunasanUtang extends Model
     public function akunKas()
     {
         return $this->belongsTo(Coa::class, 'akun_kas_id');
+    }
+    
+    public function coaPelunasan()
+    {
+        return $this->belongsTo(Coa::class, 'coa_pelunasan_id');
     }
     
     public function user()

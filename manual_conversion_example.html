@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manual Conversion Feature</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .example-box { border: 1px solid #ddd; margin: 20px 0; padding: 15px; border-radius: 8px; }
+        .info-section { background: #d1ecf1; border-color: #bee5eb; }
+        .conversion-section { background: #fff3cd; border-color: #ffeaa7; }
+        .price-section { background: #d4edda; border-color: #c3e6cb; }
+        .input-group { display: flex; margin: 10px 0; }
+        .input-group-text { background: #007bff; color: white; padding: 8px 12px; border: 1px solid #007bff; }
+        .form-control { padding: 8px; border: 1px solid #ced4da; flex: 1; text-align: center; font-weight: bold; }
+        .bg-info { background: #17a2b8 !important; }
+        .bg-success { background: #28a745 !important; }
+        .bg-warning { background: #ffc107 !important; color: #212529; }
+        .bg-primary { background: #007bff !important; color: white; }
+        .price-display { padding: 10px; margin: 5px 0; border-radius: 5px; font-weight: bold; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Manual Conversion Feature - Contoh Penggunaan</h1>
+    
+    <div class="example-box info-section">
+        <h2>📋 Data Konversi Sub Satuan Saat Ini (Info Only)</h2>
+        <div style="display: flex; gap: 15px;">
+            <div><strong>Sub Satuan 1:</strong><br>Gram (1 Kilogram = 1000 Gram)</div>
+            <div><strong>Sub Satuan 2:</strong><br>Potong (1 Kilogram = 4 Potong)</div>
+            <div><strong>Sub Satuan 3:</strong><br>Ons (1 Kilogram = 10 Ons)</div>
+        </div>
+        <p><em>Ini adalah data master yang tersimpan di database - hanya untuk informasi</em></p>
+    </div>
+    
+    <div class="example-box conversion-section">
+        <h2>🛒 Pilihan untuk Pembelian Kali Ini</h2>
+        
+        <h3>1. Pilih Sub Satuan:</h3>
+        <select style="width: 100%; padding: 8px; margin-bottom: 15px;">
+            <option>-- Gunakan Satuan Utama --</option>
+            <option selected>Potong (1 Kilogram = 4 Potong)</option>
+            <option>Gram (1 Kilogram = 1000 Gram)</option>
+            <option>Ons (1 Kilogram = 10 Ons)</option>
+        </select>
+        
+        <h3>2. Sesuaikan Konversi untuk Pembelian Ini:</h3>
+        <div class="input-group">
+            <span class="input-group-text bg-info">1 Ekor =</span>
+            <input type="number" class="form-control" value="5" style="background: #fff3cd;">
+            <span class="input-group-text bg-success">Potong</span>
+        </div>
+        <p><strong>Penjelasan:</strong> User bisa mengubah angka "5" sesuai kebutuhan. Misalnya:</p>
+        <ul>
+            <li>Ayam besar: 1 Ekor = 6 Potong</li>
+            <li>Ayam sedang: 1 Ekor = 5 Potong</li>
+            <li>Ayam kecil: 1 Ekor = 4 Potong</li>
+        </ul>
+        
+        <h3>3. Input Jumlah:</h3>
+        <input type="number" style="width: 100%; padding: 8px; font-weight: bold;" value="25" placeholder="Jumlah dalam Potong">
+        <p><em>User input: 25 Potong</em></p>
+    </div>
+    
+    <div class="example-box price-section">
+        <h2>💰 Harga Otomatis Keluar</h2>
+        
+        <div style="display: flex; gap: 15px;">
+            <div style="flex: 1;">
+                <h4>Harga per Sub Satuan:</h4>
+                <div class="price-display bg-warning">Rp 10.000</div>
+                <p><em>Harga per 1 Potong</em></p>
+            </div>
+            <div style="flex: 1;">
+                <h4>Total Harga Sub Satuan:</h4>
+                <div class="price-display bg-primary">Rp 250.000</div>
+                <p><em>25 Potong × Rp 10.000 = Rp 250.000</em></p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="example-box">
+        <h2>🔄 Skenario Lengkap: Membeli Ayam Potong</h2>
+        
+        <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+            <tr style="background: #f8f9fa;">
+                <th style="border: 1px solid #ddd; padding: 8px;">Step</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Action</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Result</th>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 8px;">1</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">User pilih "Potong" dari dropdown</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">Muncul: "1 Ekor = [4] Potong"</td>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 8px;">2</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">User ubah konversi jadi "5"</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">Tampil: "1 Ekor = [5] Potong"</td>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 8px;">3</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">User input "25" di jumlah</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">25 Potong siap dibeli</td>
+            </tr>
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 8px;">4</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">Sistem hitung otomatis</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">Harga per Potong: Rp 10.000<br>Total: Rp 250.000</td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class="example-box">
+        <h2>✅ Keuntungan Fitur Baru</h2>
+        <ul>
+            <li>✅ <strong>Fleksibel:</strong> User bisa sesuaikan konversi per pembelian</li>
+            <li>✅ <strong>Jelas:</strong> Format "1 Ekor = [5] Potong" mudah dipahami</li>
+            <li>✅ <strong>Otomatis:</strong> Harga langsung keluar dengan format Rupiah</li>
+            <li>✅ <strong>Akurat:</strong> Perhitungan real-time saat user input</li>
+            <li>✅ <strong>User-friendly:</strong> Input manual untuk konversi khusus</li>
+        </ul>
+    </div>
+    
+    <p><strong>Test URL:</strong> <a href="http://localhost:8000/transaksi/pembelian/create" target="_blank">Purchase Create Form</a></p>
+    
+    <p><em>Catatan: Pilih item dulu (misal Ayam Potong), lalu pilih sub satuan untuk melihat fitur ini bekerja.</em></p>
+</body>
+</html>

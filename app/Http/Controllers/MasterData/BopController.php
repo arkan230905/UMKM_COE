@@ -611,18 +611,23 @@ class BopController extends Controller
                 throw new \Exception('Komponen BOP tidak boleh duplikat.');
             }
 
-            // Calculate values
-            $totalBopPerJam = array_sum(array_column($components, 'rate_per_hour'));
+            // Calculate values - using per-product basis
+            $totalBopPerProduk = array_sum(array_column($components, 'rate_per_hour'));
             $kapasitasPerJam = $prosesProduksi->kapasitas_per_jam;
-            $bopPerUnit = $kapasitasPerJam > 0 ? $totalBopPerJam / $kapasitasPerJam : 0;
+            
+            // BOP per unit is same as total BOP per produk (no division by capacity)
+            $bopPerUnit = $totalBopPerProduk;
+            
+            // For backward compatibility, store total_bop_per_jam as the per-product total
+            $totalBopPerJam = $totalBopPerProduk;
 
             // Create BOP Proses
             $bopProses = BopProses::create([
                 'proses_produksi_id' => $validated['proses_produksi_id'],
                 'komponen_bop' => $components,
-                'total_bop_per_jam' => $totalBopPerJam,
+                'total_bop_per_jam' => $totalBopPerJam, // Actually stores per-product total
                 'kapasitas_per_jam' => $kapasitasPerJam,
-                'bop_per_unit' => $bopPerUnit,
+                'bop_per_unit' => $bopPerUnit, // Same as total BOP per produk
                 'periode' => date('Y-m'),
                 'keterangan' => $validated['keterangan'] ?? "BOP untuk proses {$prosesProduksi->nama_proses}",
                 'is_active' => true,
@@ -686,16 +691,21 @@ class BopController extends Controller
                 throw new \Exception('Komponen BOP tidak boleh duplikat.');
             }
 
-            // Calculate values
-            $totalBopPerJam = array_sum(array_column($components, 'rate_per_hour'));
+            // Calculate values - using per-product basis
+            $totalBopPerProduk = array_sum(array_column($components, 'rate_per_hour'));
             $kapasitasPerJam = $bopProses->kapasitas_per_jam;
-            $bopPerUnit = $kapasitasPerJam > 0 ? $totalBopPerJam / $kapasitasPerJam : 0;
+            
+            // BOP per unit is same as total BOP per produk (no division by capacity)
+            $bopPerUnit = $totalBopPerProduk;
+            
+            // For backward compatibility, store total_bop_per_jam as the per-product total
+            $totalBopPerJam = $totalBopPerProduk;
 
             // Update BOP Proses
             $bopProses->update([
                 'komponen_bop' => $components,
-                'total_bop_per_jam' => $totalBopPerJam,
-                'bop_per_unit' => $bopPerUnit,
+                'total_bop_per_jam' => $totalBopPerJam, // Actually stores per-product total
+                'bop_per_unit' => $bopPerUnit, // Same as total BOP per produk
                 'keterangan' => $validated['keterangan'] ?? $bopProses->keterangan,
             ]);
 

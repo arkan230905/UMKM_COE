@@ -20,16 +20,10 @@ class ProsesProduksiController extends Controller
      */
     public function index()
     {
-        try {
-            $prosesProduksis = ProsesProduksi::with(['prosesBops.komponenBop', 'jabatan.pegawais'])
-                ->orderBy('kode_proses')
-                ->paginate(10);
-        } catch (\Exception $e) {
-            // Jika tabel proses_bops tidak ada, load tanpa relasi
-            $prosesProduksis = ProsesProduksi::with(['jabatan.pegawais'])
-                ->orderBy('kode_proses')
-                ->paginate(10);
-        }
+        // Load with essential relationships only to avoid errors
+        $prosesProduksis = ProsesProduksi::with(['jabatan.pegawais'])
+            ->orderBy('kode_proses')
+            ->paginate(10);
         
         return view('master-data.proses-produksi.index', compact('prosesProduksis'));
     }
@@ -67,8 +61,21 @@ class ProsesProduksiController extends Controller
             
             // Verify calculation (for security)
             $jumlahPegawai = $jabatan->pegawais->count();
-            $tarifPerJam = $jabatan->tarif_per_jam;
+            $tarifPerJam = $jabatan->tarif;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
+            
+            // Validasi konsistensi
+            if ($jumlahPegawai === 0) {
+                return back()->withInput()->with('error', 
+                    'Jabatan "' . $jabatan->nama . '" belum memiliki pegawai. ' .
+                    'Silakan tambahkan pegawai terlebih dahulu.');
+            }
+            
+            if ($tarifPerJam <= 0) {
+                return back()->withInput()->with('error', 
+                    'Jabatan "' . $jabatan->nama . '" belum memiliki tarif per jam yang valid. ' .
+                    'Silakan set tarif per jam di master jabatan.');
+            }
             
             // Use calculated value instead of user input for security
             $validated['tarif_btkl'] = $expectedTarifBTKL;
@@ -153,8 +160,21 @@ class ProsesProduksiController extends Controller
             
             // Verify calculation (for security)
             $jumlahPegawai = $jabatan->pegawais->count();
-            $tarifPerJam = $jabatan->tarif_per_jam;
+            $tarifPerJam = $jabatan->tarif;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
+            
+            // Validasi konsistensi
+            if ($jumlahPegawai === 0) {
+                return back()->withInput()->with('error', 
+                    'Jabatan "' . $jabatan->nama . '" belum memiliki pegawai. ' .
+                    'Silakan tambahkan pegawai terlebih dahulu.');
+            }
+            
+            if ($tarifPerJam <= 0) {
+                return back()->withInput()->with('error', 
+                    'Jabatan "' . $jabatan->nama . '" belum memiliki tarif per jam yang valid. ' .
+                    'Silakan set tarif per jam di master jabatan.');
+            }
             
             // Use calculated value instead of user input for security
             $validated['tarif_btkl'] = $expectedTarifBTKL;

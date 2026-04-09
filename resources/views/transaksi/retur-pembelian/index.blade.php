@@ -35,43 +35,46 @@
                         @forelse($returs as $retur)
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
-                                <td>{{ $retur->tanggal }}</td>
+                                <td>{{ $retur->return_date->format('d/m/Y') }}</td>
                                 <td>
-                                    @if($retur->ref_id)
-                                        <a href="{{ route('transaksi.pembelian.show', $retur->ref_id) }}">
-                                            Pembelian #{{ $retur->ref_id }}
+                                    @if($retur->pembelian_id)
+                                        <a href="{{ route('transaksi.pembelian.show', $retur->pembelian_id) }}">
+                                            {{ $retur->pembelian->nomor_pembelian ?? 'Pembelian #' . $retur->pembelian_id }}
                                         </a>
                                     @else
                                         -
                                     @endif
                                 </td>
-                                <td>{{ \Illuminate\Support\Str::limit($retur->alasan, 50) }}</td>
+                                <td>{{ \Illuminate\Support\Str::limit($retur->reason, 50) }}</td>
                                 <td>
-                                    @if($retur->status === 'posted')
-                                        <span class="badge bg-success">Posted</span>
+                                    @if($retur->status === 'completed')
+                                        <span class="badge bg-success">Completed</span>
                                     @elseif($retur->status === 'approved')
                                         <span class="badge bg-info">Approved</span>
                                     @else
-                                        <span class="badge bg-secondary">Draft</span>
+                                        <span class="badge bg-secondary">Pending</span>
                                     @endif
                                 </td>
-                                <td>{{ $retur->details->count() }} item</td>
+                                <td>{{ $retur->items->count() }} item</td>
                                 <td class="text-center">
                                     <div class="btn-group">
                                         <a href="{{ route('transaksi.retur-pembelian.show', $retur->id) }}" 
-                                           class="btn btn-sm btn-info" title="Detail">
+                                           class="btn btn-sm btn-success me-1" title="Detail">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        @if($retur->status !== 'posted')
+                                        @if($retur->status !== 'completed')
                                             <form action="{{ route('transaksi.retur-pembelian.destroy', $retur->id) }}" 
                                                   method="POST" 
-                                                  onsubmit="return confirm('Yakin ingin menghapus retur ini?')">
+                                                  onsubmit="return confirm('Yakin ingin menghapus retur ini?')"
+                                                  class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-danger" title="Hapus">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
+                                        @else
+                                            <span class="text-muted">Completed</span>
                                         @endif
                                     </div>
                                 </td>

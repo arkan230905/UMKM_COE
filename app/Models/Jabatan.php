@@ -14,6 +14,8 @@ class Jabatan extends Model
         'kategori_id',
         'gaji_pokok', 
         'tunjangan', 
+        'tunjangan_transport',
+        'tunjangan_konsumsi',
         'asuransi', 
         'tarif',
         'tarif_per_jam', 
@@ -23,7 +25,10 @@ class Jabatan extends Model
     protected $casts = [
         'gaji_pokok' => 'decimal:2',
         'tunjangan' => 'decimal:2',
+        'tunjangan_transport' => 'decimal:2',
+        'tunjangan_konsumsi' => 'decimal:2',
         'asuransi' => 'decimal:2',
+        'tarif' => 'decimal:2',
         'tarif_per_jam' => 'decimal:2',
     ];
 
@@ -66,16 +71,14 @@ class Jabatan extends Model
     public function scopeSearch($query, $search)
     {
         return $query->where('nama', 'like', "%{$search}%")
-                    ->orWhereHas('kategori', function($q) use ($search) {
-                        $q->where('nama', 'like', "%{$search}%");
-                    });
+                    ->orWhere('kategori', 'like', "%{$search}%");
     }
 
     /**
      * Scope untuk filter by kategori
      */
-    public function scopeByKategori($query, $kategoriId)
+    public function scopeByKategori($query, $kategori)
     {
-        return $query->where('kategori_id', $kategoriId);
+        return $query->where('kategori', $kategori);
     }
 }
