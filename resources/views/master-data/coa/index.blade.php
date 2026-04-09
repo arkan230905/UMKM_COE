@@ -73,7 +73,14 @@
                                     </span>
                                 </td>
                                 <td class="text-end">
-                                    {{ number_format($saldoPeriode[$coa->id] ?? 0, 2, ',', '.') }}
+                                    @php
+                                        $saldo = $saldoPeriode[$coa->id] ?? 0;
+                                        if ($saldo == floor($saldo)) {
+                                            echo number_format($saldo, 0, ',', '.');
+                                        } else {
+                                            echo number_format($saldo, 2, ',', '.');
+                                        }
+                                    @endphp
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
