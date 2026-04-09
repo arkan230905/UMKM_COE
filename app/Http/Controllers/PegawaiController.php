@@ -45,7 +45,7 @@ class PegawaiController extends Controller
     // Tampilkan form create
     public function create()
     {
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji','tarif')
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif')
             ->orderBy('nama')
             ->get();
         // Get distinct kategori values from jabatans table
@@ -142,7 +142,7 @@ class PegawaiController extends Controller
     // Form edit pegawai
     public function edit(Pegawai $pegawai)
     {
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji','tarif')
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif')
             ->orderBy('nama')
             ->get();
         $kategoris = \App\Models\Jabatan::select('kategori')

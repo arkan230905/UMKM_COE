@@ -160,8 +160,13 @@ function loadJabatanByKategori() {
     jabatanSelect.innerHTML = '<option value="">-- Pilih Jabatan --</option>';
     document.getElementById('preview-box').style.display = 'none';
     
+<<<<<<< HEAD
+    if (kategori) {
+        fetch(`/master-data/api/jabatan/by-kategori?kategori_id=${encodeURIComponent(kategori)}`)
+=======
     if (kategoriId) {
         fetch(`/master-data/api/jabatan/by-kategori?kategori_id=${kategoriId}`)
+>>>>>>> 09c795ee293c426b3d80634193e2fe2f90e330de
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -172,7 +177,7 @@ function loadJabatanByKategori() {
                         option.setAttribute('data-kategori', jabatan.kategori);
                         option.setAttribute('data-tunjangan', jabatan.tunjangan);
                         option.setAttribute('data-asuransi', jabatan.asuransi);
-                        option.setAttribute('data-gaji', jabatan.gaji);
+                        option.setAttribute('data-gaji', jabatan.gaji_pokok);
                         option.setAttribute('data-tarif', jabatan.tarif);
                         option.textContent = jabatan.nama;
                         
@@ -207,7 +212,7 @@ function loadJabatanDetail() {
             kategori: selectedOption.getAttribute('data-kategori'),
             tunjangan: parseFloat(selectedOption.getAttribute('data-tunjangan')) || 0,
             asuransi: parseFloat(selectedOption.getAttribute('data-asuransi')) || 0,
-            gaji: parseFloat(selectedOption.getAttribute('data-gaji')) || 0,
+            gaji_pokok: parseFloat(selectedOption.getAttribute('data-gaji')) || 0,
             tarif: parseFloat(selectedOption.getAttribute('data-tarif')) || 0
         };
         
@@ -220,13 +225,17 @@ function loadJabatanDetail() {
 // Update preview box
 function updatePreview() {
     if (jabatanData.nama) {
+<<<<<<< HEAD
+        document.getElementById('pv-kategori').textContent = jabatanData.kategori ? jabatanData.kategori.toUpperCase() : '-';
+=======
         const kategoriSelect = document.getElementById('kategori_id');
         const kategoriName = kategoriSelect.selectedIndex > 0 ? kategoriSelect.options[kategoriSelect.selectedIndex].textContent.trim().split(' - ')[0] : '-';
         
         document.getElementById('pv-kategori').textContent = kategoriName;
+>>>>>>> 09c795ee293c426b3d80634193e2fe2f90e330de
         document.getElementById('pv-tunjangan').textContent = formatNumber(jabatanData.tunjangan);
         document.getElementById('pv-asuransi').textContent = formatNumber(jabatanData.asuransi);
-        document.getElementById('pv-gaji-pokok').textContent = formatNumber(jabatanData.gaji);
+        document.getElementById('pv-gaji-pokok').textContent = formatNumber(jabatanData.gaji_pokok);
         document.getElementById('pv-tarif-per-jam').textContent = formatNumber(jabatanData.tarif);
         document.getElementById('preview-box').style.display = 'block';
     }

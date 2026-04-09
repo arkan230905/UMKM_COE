@@ -14,6 +14,8 @@ class Jabatan extends Model
         'kategori_id',
         'gaji_pokok', 
         'tunjangan', 
+        'tunjangan_transport',
+        'tunjangan_konsumsi',
         'asuransi', 
         'tarif',
         'tarif_per_jam', 
@@ -21,18 +23,21 @@ class Jabatan extends Model
     ];
 
     protected $casts = [
-        'gaji' => 'decimal:2',
+        'gaji_pokok' => 'decimal:2',
         'tunjangan' => 'decimal:2',
+        'tunjangan_transport' => 'decimal:2',
+        'tunjangan_konsumsi' => 'decimal:2',
         'asuransi' => 'decimal:2',
         'tarif' => 'decimal:2',
+        'tarif_per_jam' => 'decimal:2',
     ];
 
     /**
-     * Get kategori name (accessor for backward compat)
+     * Relasi ke kategori pegawai
      */
-    public function getKategoriIdAttribute()
+    public function kategori(): BelongsTo
     {
-        return $this->kategori;
+        return $this->belongsTo(KategoriPegawai::class, 'kategori_id');
     }
 
     /**
@@ -40,7 +45,7 @@ class Jabatan extends Model
      */
     public function pegawais(): HasMany
     {
-        return $this->hasMany(Pegawai::class, 'jabatan', 'nama');
+        return $this->hasMany(Pegawai::class, 'jabatan_id');
     }
 
     /**
@@ -54,26 +59,10 @@ class Jabatan extends Model
     /**
      * Calculate automatic BTKL rate based on tariff and employee count
      */
-    /**
-     * Get gaji_pokok (alias for gaji column)
-     */
-    public function getGajiPokokAttribute()
-    {
-        return $this->gaji;
-    }
-
     public function getTarifBtklAttribute()
     {
         $jumlahPegawai = $this->pegawais()->count();
-        return $this->tarif * $jumlahPegawai;
-    }
-
-    /**
-     * Get tarif per jam (alias for tarif column)
-     */
-    public function getTarifPerJamAttribute()
-    {
-        return $this->tarif;
+        return $this->tarif_per_jam * $jumlahPegawai;
     }
 
     /**
