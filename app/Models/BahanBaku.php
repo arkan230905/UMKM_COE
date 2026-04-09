@@ -1108,4 +1108,112 @@ class BahanBaku extends Model
 
         return $success;
     }
+
+    /**
+     * Sinkronisasi stok master dengan stock movements (untuk konsistensi dengan laporan stok)
+     */
+    public function syncStokWithMovements()
+    {
+        \Log::info("SYNC STOCK WITH MOVEMENTS - Bahan Baku ID {$this->id}:", [
+            'nama_bahan' => $this->nama_bahan,
+            'current_master_stok' => $this->stok
+        ]);
+
+        // Hitung stok real-time dari stock movements
+        $stockIn = \App\Models\StockMovement::where('item_type', 'material')
+            ->where('item_id', $this->id)
+            ->where('direction', 'in')
+            ->sum('qty');
+
+        $stockOut = \App\Models\StockMovement::where('item_type', 'material')
+            ->where('item_id', $this->id)
+            ->where('direction', 'out')
+            ->sum('qty');
+
+        $stokRealTime = $stockIn - $stockOut;
+
+        \Log::info("SYNC STOCK CALCULATION - Bahan Baku ID {$this->id}:", [
+            'stock_in' => $stockIn,
+            'stock_out' => $stockOut,
+            'calculated_stock' => $stokRealTime,
+            'master_stock' => $this->stok,
+            'difference' => ($this->stok - $stokRealTime)
+        ]);
+
+        // Update jika ada perbedaan
+        if (abs($this->stok - $stokRealTime) > 0.01) {
+            $oldStock = $this->stok;
+            $this->stok = $stokRealTime;
+            $result = $this->save();
+
+            \Log::info("SYNC STOCK UPDATE - Bahan Baku ID {$this->id}:", [
+                'old_stock' => $oldStock,
+                'new_stock' => $stokRealTime,
+                'update_successful' => $result
+            ]);
+
+            return [
+                'updated' => true,
+                'old_stock' => $oldStock,
+                'new_stock' => $stokRealTime,
+                'difference' => ($oldStock - $stokRealTime)
+            ];
+        }
+
+        return [
+            'updated' => false,
+            'stock' => $this->stok,
+            'message' => 'Stok sudah konsisten'
+        ];
+    }
+
+    /**
+     * Get stok real-time dari stock movements (konsisten dengan laporan stok)
+     */
+    public function getStokRealTimeAttribute()
+    {
+        $stockIn = \App\Models\StockMovement::where('item_type', 'material')
+            ->where('item_id', $this->id)
+            ->where('direction', 'in')
+            ->sum('qty');
+
+        $stockOut = \App\Models\StockMovement::where('item_type', 'material')
+            ->where('item_id', $this->id)
+            ->where('direction', 'out')
+            ->sum('qty');
+
+        return $stockIn - $stockOut;
+    }
+
+    /**
+     * Cek apakah stok master konsisten dengan stock movements
+     */
+    public function isStokConsistent()
+    {
+        return abs($this->stok - $this->stok_real_time) <= 0.01;
+    }
+
+    /**
+     * Sinkronisasi semua bahan baku (static method)
+     */
+    public static function syncAllStokWithMovements()
+    {
+        $results = [];
+        $bahanBakus = self::all();
+
+        foreach ($bahanBakus as $bahan) {
+            $result = $bahan->syncStokWithMovements();
+            if ($result['updated']) {
+                $results[] = [
+                    'id' => $bahan->id,
+                    'nama_bahan' => $bahan->nama_bahan,
+                    'old_stock' => $result['old_stock'],
+                    'new_stock' => $result['new_stock'],
+                    'difference' => $result['difference']
+                ];
+            }
+        }
+
+        return $results;
+    }
 }
