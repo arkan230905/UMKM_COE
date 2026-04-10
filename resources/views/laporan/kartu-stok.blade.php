@@ -257,6 +257,10 @@
 <script>
 // Auto update material dropdown when material type changes
 document.querySelector('select[name="material_type"]').addEventListener('change', function() {
+    // Clear material selection when type changes
+    document.querySelector('select[name="material_id"]').value = '';
+    
+    // Submit form to reload with new material type
     this.form.submit();
 });
 </script>

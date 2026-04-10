@@ -929,23 +929,40 @@ class LaporanController extends Controller
             // Header
             fputcsv($handle, [
                 'No', 'No. Transaksi', 'Tanggal', 'Vendor', 
-                'Keterangan', 'Total (Rp)'
+                'Metode Pembayaran', 'Keterangan', 'Total (Rp)'
             ]);
             
             // Data
             foreach ($pembelian as $index => $item) {
+                // Format payment method
+                $paymentMethodText = '';
+                switch($item->payment_method) {
+                    case 'cash':
+                        $paymentMethodText = 'Tunai';
+                        break;
+                    case 'transfer':
+                        $paymentMethodText = 'Transfer';
+                        break;
+                    case 'credit':
+                        $paymentMethodText = 'Kredit';
+                        break;
+                    default:
+                        $paymentMethodText = ucfirst($item->payment_method ?? 'Tunai');
+                }
+                
                 fputcsv($handle, [
                     $index + 1,
                     $item->no_pembelian,
                     $item->tanggal->format('d/m/Y'),
                     $item->vendor->nama_vendor ?? '-',
+                    $paymentMethodText,
                     $item->keterangan ?? '-',
                     number_format($item->total, 0, ',', '.')
                 ]);
             }
             
             // Total
-            fputcsv($handle, ['', '', '', '', 'TOTAL', number_format($total, 0, ',', '.')]);
+            fputcsv($handle, ['', '', '', '', '', 'TOTAL', number_format($total, 0, ',', '.')]);
             
             fclose($handle);
         }, $filename, [

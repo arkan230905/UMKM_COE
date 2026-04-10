@@ -31,11 +31,53 @@ class LaporanKartuStokController extends Controller
             }
         }
         
+        // Ensure all bahan pendukung have initial stock movements
+        $this->ensureInitialStockForAllBahanPendukung();
+        
         return view('laporan.kartu-stok', compact(
             'bahanBakus',
             'bahanPendukungs', 
             'stockMovements'
         ));
+    }
+    
+    /**
+     * Ensure all bahan pendukung have initial stock movements
+     */
+    private function ensureInitialStockForAllBahanPendukung()
+    {
+        $bahanPendukungs = BahanPendukung::all();
+        
+        foreach ($bahanPendukungs as $bahanPendukung) {
+            // Check if initial stock movement exists
+            $hasInitialStock = StockMovement::where('item_type', 'support')
+                ->where('item_id', $bahanPendukung->id)
+                ->where('ref_type', 'initial_stock')
+                ->exists();
+                
+            if (!$hasInitialStock && $bahanPendukung->stok > 0) {
+                // Create initial stock movement
+                StockMovement::create([
+                    'item_type' => 'support',
+                    'item_id' => $bahanPendukung->id,
+                    'tanggal' => '2026-04-01', // Set consistent initial date
+                    'direction' => 'in',
+                    'qty' => $bahanPendukung->stok,
+                    'satuan' => $bahanPendukung->satuan->nama ?? 'Unit',
+                    'unit_cost' => $bahanPendukung->harga_rata_rata ?? 0,
+                    'total_cost' => $bahanPendukung->stok * ($bahanPendukung->harga_rata_rata ?? 0),
+                    'ref_type' => 'initial_stock',
+                    'ref_id' => 0,
+                    'keterangan' => 'Stok awal ' . $bahanPendukung->nama_bahan,
+                ]);
+                
+                \Log::info('Created initial stock movement for bahan pendukung', [
+                    'item_id' => $bahanPendukung->id,
+                    'nama_bahan' => $bahanPendukung->nama_bahan,
+                    'stok' => $bahanPendukung->stok
+                ]);
+            }
+        }
     }
 
     /**

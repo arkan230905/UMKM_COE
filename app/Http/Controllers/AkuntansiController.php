@@ -106,13 +106,22 @@ class AkuntansiController extends Controller
     private function ensurePurchaseJournalExists($purchaseId)
     {
         try {
+            \Log::info('Ensuring purchase journal exists', ['purchase_id' => $purchaseId]);
+            
             // Check if journal already exists
             $existingJournal = \App\Models\JournalEntry::where('ref_type', 'purchase')
                 ->where('ref_id', $purchaseId)
                 ->first();
 
             if ($existingJournal) {
-                return; // Journal already exists
+                \Log::info('Journal already exists, deleting to recreate with updated logic', [
+                    'purchase_id' => $purchaseId, 
+                    'journal_id' => $existingJournal->id
+                ]);
+                
+                // Delete existing journal lines first
+                \App\Models\JournalLine::where('journal_entry_id', $existingJournal->id)->delete();
+                $existingJournal->delete();
             }
 
             // Get purchase data
@@ -127,6 +136,13 @@ class AkuntansiController extends Controller
                 return;
             }
 
+            \Log::info('Creating journal for purchase', [
+                'purchase_id' => $purchaseId,
+                'nomor_pembelian' => $pembelian->nomor_pembelian,
+                'total_harga' => $pembelian->total_harga,
+                'details_count' => $pembelian->details->count()
+            ]);
+
             // Create journal using observer
             $observer = new \App\Observers\PembelianObserver();
             $observer->created($pembelian);
@@ -139,7 +155,8 @@ class AkuntansiController extends Controller
         } catch (\Exception $e) {
             \Log::error('Failed to auto-generate purchase journal', [
                 'purchase_id' => $purchaseId,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
     }

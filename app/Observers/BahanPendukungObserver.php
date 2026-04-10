@@ -7,6 +7,7 @@ use App\Models\BomJobBahanPendukung;
 use App\Models\BomJobCosting;
 use App\Models\BomDetail;
 use App\Models\Produk;
+use App\Models\StockMovement;
 use App\Support\UnitConverter;
 use Illuminate\Support\Facades\Log;
 
@@ -15,6 +16,15 @@ use Illuminate\Support\Facades\Log;
  */
 class BahanPendukungObserver
 {
+    /**
+     * Handle the BahanPendukung "created" event.
+     */
+    public function created(BahanPendukung $bahanPendukung): void
+    {
+        // Ensure initial stock movement exists for laporan stok
+        $this->ensureInitialStockMovement($bahanPendukung);
+    }
+    
     /**
      * Handle the BahanPendukung "updated" event.
      */
@@ -461,5 +471,43 @@ class BahanPendukungObserver
             'bahan_pendukung_id' => $bahanPendukung->id,
             'nama_bahan' => $bahanPendukung->nama_bahan
         ]);
+    }
+    
+    /**
+     * Ensure initial stock movement exists for laporan stok
+     */
+    private function ensureInitialStockMovement(BahanPendukung $bahanPendukung): void
+    {
+        // Check if initial stock movement already exists
+        $hasInitialStock = \App\Models\StockMovement::where('item_type', 'support')
+            ->where('item_id', $bahanPendukung->id)
+            ->where('ref_type', 'initial_stock')
+            ->exists();
+            
+        if (!$hasInitialStock) {
+            // Create initial stock movement
+            $stokAwal = $bahanPendukung->stok ?? 0;
+            $hargaRataRata = $bahanPendukung->harga_rata_rata ?? 0;
+            
+            \App\Models\StockMovement::create([
+                'item_type' => 'support',
+                'item_id' => $bahanPendukung->id,
+                'tanggal' => '2026-04-01', // Set consistent initial date
+                'direction' => 'in',
+                'qty' => $stokAwal,
+                'satuan' => $bahanPendukung->satuan->nama ?? 'Unit',
+                'unit_cost' => $hargaRataRata,
+                'total_cost' => $stokAwal * $hargaRataRata,
+                'ref_type' => 'initial_stock',
+                'ref_id' => 0,
+                'keterangan' => 'Stok awal ' . $bahanPendukung->nama_bahan,
+            ]);
+            
+            Log::info('Created initial stock movement for new bahan pendukung', [
+                'item_id' => $bahanPendukung->id,
+                'nama_bahan' => $bahanPendukung->nama_bahan,
+                'stok_awal' => $stokAwal
+            ]);
+        }
     }
 }

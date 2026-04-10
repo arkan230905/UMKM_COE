@@ -25,6 +25,11 @@ class PembelianObserver
      */
     public function created(Pembelian $pembelian)
     {
+        \Log::info('PembelianObserver created called', [
+            'pembelian_id' => $pembelian->id,
+            'nomor_pembelian' => $pembelian->nomor_pembelian
+        ]);
+        
         // Load relationships to ensure COA data is available
         $pembelian->load([
             'details.bahanBaku.coaPembelian',
@@ -71,6 +76,12 @@ class PembelianObserver
     private function createPembelianJournal(Pembelian $pembelian)
     {
         try {
+            \Log::info('Creating pembelian journal', [
+                'pembelian_id' => $pembelian->id,
+                'nomor_pembelian' => $pembelian->nomor_pembelian,
+                'details_count' => $pembelian->details->count()
+            ]);
+            
             // Calculate total from details if total_harga is 0
             $total = $pembelian->total_harga ?? 0;
             if ($total == 0 && $pembelian->details && $pembelian->details->count() > 0) {
@@ -90,59 +101,91 @@ class PembelianObserver
 
             $entries = [];
             
-            // Group entries by material type (bahan baku vs bahan pendukung)
-            $totalBahanBaku = 0;
-            $totalBahanPendukung = 0;
-            $bahanBakuItems = [];
-            $bahanPendukungItems = [];
-            
+            // Create entries per item untuk akun persediaan spesifik
             foreach($pembelian->details as $detail) {
                 $subtotal = ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
                 
+                \Log::info('Processing pembelian detail', [
+                    'detail_id' => $detail->id,
+                    'subtotal' => $subtotal,
+                    'has_bahan_baku' => !is_null($detail->bahanBaku),
+                    'has_bahan_pendukung' => !is_null($detail->bahanPendukung)
+                ]);
+                
                 if ($detail->bahanBaku) {
-                    $totalBahanBaku += $subtotal;
-                    $bahanBakuItems[] = $detail->bahanBaku->nama_bahan;
+                    // Cari akun persediaan spesifik untuk bahan baku ini
+                    $coaPersediaan = $this->findSpecificPersediaanCoa($detail->bahanBaku, 'bahan_baku');
+                    
+                    if ($coaPersediaan) {
+                        $entries[] = [
+                            'code' => $coaPersediaan->kode_akun, 
+                            'debit' => $subtotal, 
+                            'credit' => 0,
+                            'memo' => 'Persediaan ' . $detail->bahanBaku->nama_bahan
+                        ];
+                        
+                        \Log::info('Using specific COA for bahan baku', [
+                            'item_name' => $detail->bahanBaku->nama_bahan,
+                            'kode_akun' => $coaPersediaan->kode_akun,
+                            'nama_akun' => $coaPersediaan->nama_akun,
+                            'subtotal' => $subtotal
+                        ]);
+                    } else {
+                        // Fallback ke akun umum jika tidak ada spesifik
+                        $coaUmum = \App\Models\Coa::where('kode_akun', '114')->first();
+                        if ($coaUmum) {
+                            $entries[] = [
+                                'code' => $coaUmum->kode_akun, 
+                                'debit' => $subtotal, 
+                                'credit' => 0,
+                                'memo' => 'Persediaan Bahan Baku: ' . $detail->bahanBaku->nama_bahan
+                            ];
+                            
+                            \Log::warning('Using fallback COA for bahan baku', [
+                                'item_name' => $detail->bahanBaku->nama_bahan,
+                                'fallback_kode' => $coaUmum->kode_akun,
+                                'fallback_nama' => $coaUmum->nama_akun,
+                                'subtotal' => $subtotal
+                            ]);
+                        }
+                    }
                 } elseif ($detail->bahanPendukung) {
-                    $totalBahanPendukung += $subtotal;
-                    $bahanPendukungItems[] = $detail->bahanPendukung->nama_bahan;
-                }
-            }
-            
-            // Debit Persediaan Bahan Baku jika ada
-            if ($totalBahanBaku > 0) {
-                $coaPersediaanBahanBaku = \App\Models\Coa::where('kode_akun', '114')->first();
+                    // Cari akun persediaan spesifik untuk bahan pendukung ini
+                    $coaPersediaan = $this->findSpecificPersediaanCoa($detail->bahanPendukung, 'bahan_pendukung');
                     
-                if ($coaPersediaanBahanBaku) {
-                    $entries[] = [
-                        'code' => $coaPersediaanBahanBaku->kode_akun, 
-                        'debit' => $totalBahanBaku, 
-                        'credit' => 0,
-                        'memo' => 'Persediaan Bahan Baku: ' . implode(', ', array_unique($bahanBakuItems))
-                    ];
-                } else {
-                    Log::warning('COA Persediaan Bahan Baku (114) not found', [
-                        'pembelian_id' => $pembelian->id,
-                        'total_bahan_baku' => $totalBahanBaku
-                    ]);
-                }
-            }
-            
-            // Debit Persediaan Bahan Pendukung jika ada
-            if ($totalBahanPendukung > 0) {
-                $coaPersediaanBahanPendukung = \App\Models\Coa::where('kode_akun', '115')->first();
-                    
-                if ($coaPersediaanBahanPendukung) {
-                    $entries[] = [
-                        'code' => $coaPersediaanBahanPendukung->kode_akun, 
-                        'debit' => $totalBahanPendukung, 
-                        'credit' => 0,
-                        'memo' => 'Persediaan Bahan Pendukung: ' . implode(', ', array_unique($bahanPendukungItems))
-                    ];
-                } else {
-                    Log::warning('COA Persediaan Bahan Pendukung (115) not found', [
-                        'pembelian_id' => $pembelian->id,
-                        'total_bahan_pendukung' => $totalBahanPendukung
-                    ]);
+                    if ($coaPersediaan) {
+                        $entries[] = [
+                            'code' => $coaPersediaan->kode_akun, 
+                            'debit' => $subtotal, 
+                            'credit' => 0,
+                            'memo' => 'Persediaan ' . $detail->bahanPendukung->nama_bahan
+                        ];
+                        
+                        \Log::info('Using specific COA for bahan pendukung', [
+                            'item_name' => $detail->bahanPendukung->nama_bahan,
+                            'kode_akun' => $coaPersediaan->kode_akun,
+                            'nama_akun' => $coaPersediaan->nama_akun,
+                            'subtotal' => $subtotal
+                        ]);
+                    } else {
+                        // Fallback ke akun umum jika tidak ada spesifik
+                        $coaUmum = \App\Models\Coa::where('kode_akun', '115')->first();
+                        if ($coaUmum) {
+                            $entries[] = [
+                                'code' => $coaUmum->kode_akun, 
+                                'debit' => $subtotal, 
+                                'credit' => 0,
+                                'memo' => 'Persediaan Bahan Pendukung: ' . $detail->bahanPendukung->nama_bahan
+                            ];
+                            
+                            \Log::warning('Using fallback COA for bahan pendukung', [
+                                'item_name' => $detail->bahanPendukung->nama_bahan,
+                                'fallback_kode' => $coaUmum->kode_akun,
+                                'fallback_nama' => $coaUmum->nama_akun,
+                                'subtotal' => $subtotal
+                            ]);
+                        }
+                    }
                 }
             }
             
@@ -257,8 +300,6 @@ class PembelianObserver
                     'pembelian_id' => $pembelian->id,
                     'nomor_pembelian' => $pembelian->nomor_pembelian,
                     'total' => $total,
-                    'total_bahan_baku' => $totalBahanBaku,
-                    'total_bahan_pendukung' => $totalBahanPendukung,
                     'ppn_nominal' => $pembelian->ppn_nominal ?? 0,
                     'payment_method' => $pembelian->payment_method,
                     'bank_id' => $pembelian->bank_id,
@@ -267,8 +308,7 @@ class PembelianObserver
             } else {
                 Log::warning('No journal entries created for pembelian - COA not found', [
                     'pembelian_id' => $pembelian->id,
-                    'total_bahan_baku' => $totalBahanBaku,
-                    'total_bahan_pendukung' => $totalBahanPendukung
+                    'total' => $total
                 ]);
             }
             
@@ -282,6 +322,163 @@ class PembelianObserver
             // Don't throw exception to avoid breaking pembelian creation
             // Just log the error for manual investigation
         }
+    }
+    
+    /**
+     * Find specific persediaan COA for an item
+     */
+    private function findSpecificPersediaanCoa($item, $type)
+    {
+        $itemName = $item->nama_bahan;
+        
+        // Cari akun persediaan yang mengandung kata kunci dari nama item
+        $keywords = $this->extractKeywords($itemName);
+        
+        \Log::info('Finding specific COA for item', [
+            'item_name' => $itemName,
+            'type' => $type,
+            'keywords' => $keywords
+        ]);
+        
+        // Strategi pencarian bertingkat
+        $coaPersediaan = null;
+        
+        // 1. Cari dengan kode akun spesifik yang sudah diketahui
+        $specificCodes = [
+            'air' => '1150',
+            'minyak' => '1151', 
+            'gas' => '1152',
+            'ayam' => '1141'
+        ];
+        
+        foreach ($keywords as $keyword) {
+            if (isset($specificCodes[$keyword])) {
+                $coaPersediaan = \App\Models\Coa::where('kode_akun', $specificCodes[$keyword])->first();
+                if ($coaPersediaan) {
+                    \Log::info('Found COA by specific code mapping', [
+                        'keyword' => $keyword,
+                        'kode_akun' => $coaPersediaan->kode_akun,
+                        'nama_akun' => $coaPersediaan->nama_akun
+                    ]);
+                    return $coaPersediaan;
+                }
+            }
+        }
+        
+        // 2. Cari berdasarkan nama akun yang mengandung keyword
+        foreach ($keywords as $keyword) {
+            $coaPersediaan = \App\Models\Coa::where('tipe_akun', 'Asset')
+                ->where('nama_akun', 'like', '%pers%')
+                ->where('nama_akun', 'like', '%' . $keyword . '%')
+                ->where(function($query) use ($type) {
+                    if ($type === 'bahan_baku') {
+                        $query->where('nama_akun', 'like', '%bahan%baku%');
+                    } else {
+                        $query->where('nama_akun', 'like', '%bahan%pendukung%');
+                    }
+                })
+                ->orderBy('kode_akun')
+                ->first();
+                
+            if ($coaPersediaan) {
+                \Log::info('Found COA by keyword search', [
+                    'keyword' => $keyword,
+                    'kode_akun' => $coaPersediaan->kode_akun,
+                    'nama_akun' => $coaPersediaan->nama_akun
+                ]);
+                return $coaPersediaan;
+            }
+        }
+        
+        // 3. Cari berdasarkan kode akun range (1140-1149 untuk bahan baku, 1150-1159 untuk bahan pendukung)
+        $startCode = $type === 'bahan_baku' ? '1140' : '1150';
+        $endCode = $type === 'bahan_baku' ? '1149' : '1159';
+        
+        foreach ($keywords as $keyword) {
+            $coaPersediaan = \App\Models\Coa::where('tipe_akun', 'Asset')
+                ->where('kode_akun', '>=', $startCode)
+                ->where('kode_akun', '<=', $endCode)
+                ->where('nama_akun', 'like', '%' . $keyword . '%')
+                ->orderBy('kode_akun')
+                ->first();
+                
+            if ($coaPersediaan) {
+                \Log::info('Found COA by code range search', [
+                    'keyword' => $keyword,
+                    'kode_akun' => $coaPersediaan->kode_akun,
+                    'nama_akun' => $coaPersediaan->nama_akun
+                ]);
+                return $coaPersediaan;
+            }
+        }
+        
+        \Log::warning('No specific COA found, will use fallback', [
+            'item_name' => $itemName,
+            'type' => $type,
+            'keywords' => $keywords
+        ]);
+            
+        return null;
+    }
+    
+    /**
+     * Extract keywords from item name for COA matching
+     */
+    private function extractKeywords($itemName)
+    {
+        $itemName = strtolower($itemName);
+        
+        // Mapping kata kunci untuk matching yang lebih baik
+        $keywordMap = [
+            'air galon' => ['air'],
+            'air' => ['air'],
+            'minyak goreng' => ['minyak'],
+            'minyak' => ['minyak'],
+            'gas' => ['gas'],
+            'tepung terigu' => ['tepung', 'terigu'],
+            'tepung maizena' => ['tepung', 'maizena'],
+            'tepung' => ['tepung'],
+            'lada' => ['lada'],
+            'bubuk kaldu' => ['kaldu'],
+            'bubuk bawang putih' => ['bawang'],
+            'bubuk' => ['bubuk'],
+            'kemasan' => ['kemasan'],
+            'listrik' => ['listrik'],
+            'cabe merah' => ['cabe'],
+            'cabe' => ['cabe'],
+            'ayam potong' => ['ayam'],
+            'ayam kampung' => ['ayam'],
+            'ayam' => ['ayam'],
+            'bebek' => ['bebek'],
+            'garam' => ['garam'],
+            'gula' => ['gula'],
+            'beras' => ['beras']
+        ];
+        
+        // Cari mapping yang cocok (prioritas yang lebih spesifik dulu)
+        foreach ($keywordMap as $pattern => $keywords) {
+            if (strpos($itemName, $pattern) !== false) {
+                \Log::info('Keyword mapping found', [
+                    'item_name' => $itemName,
+                    'pattern' => $pattern,
+                    'keywords' => $keywords
+                ]);
+                return $keywords;
+            }
+        }
+        
+        // Jika tidak ada mapping, gunakan kata-kata dari nama item
+        $words = explode(' ', $itemName);
+        $keywords = array_filter($words, function($word) {
+            return strlen($word) > 2; // Skip kata pendek seperti "di", "ke", dll
+        });
+        
+        \Log::info('Using default keywords from item name', [
+            'item_name' => $itemName,
+            'keywords' => array_values($keywords)
+        ]);
+        
+        return array_values($keywords);
     }
     
     /**
