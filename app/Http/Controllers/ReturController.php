@@ -32,10 +32,13 @@ class ReturController extends Controller
 
     public function indexPembelian()
     {
-        // Use PurchaseReturn model instead of Retur for purchase returns
-        $returs = \App\Models\PurchaseReturn::with(['items.bahanBaku', 'pembelian'])
-            ->orderBy('id', 'desc')
+        // FIXED: Query with eager loading and sum calculation for better performance
+        $returs = \App\Models\PurchaseReturn::with(['pembelian', 'items'])
+            ->withSum('items as calculated_total', 'subtotal')
+            ->latest()
             ->get();
+        
+        \Log::info('Retur pembelian index - data count: ' . $returs->count());
         
         return view('transaksi.retur-pembelian.index', compact('returs'));
     }
@@ -66,6 +69,13 @@ class ReturController extends Controller
 
     public function createPembelian(Request $request)
     {
+        \Log::info('Retur create form accessed:', [
+            'user_id' => auth()->id(),
+            'user_email' => auth()->user()->email ?? 'not authenticated',
+            'pembelian_id' => $request->query('pembelian_id'),
+            'session_id' => session()->getId(),
+        ]);
+        
         $pembelianId = $request->query('pembelian_id');
         
         if (!$pembelianId) {
@@ -74,6 +84,12 @@ class ReturController extends Controller
         }
         
         $pembelian = Pembelian::with(['details.bahanBaku', 'details.bahanPendukung', 'vendor'])->findOrFail($pembelianId);
+        
+        \Log::info('Pembelian data loaded for retur:', [
+            'pembelian_id' => $pembelian->id,
+            'nomor_pembelian' => $pembelian->nomor_pembelian,
+            'details_count' => $pembelian->details->count(),
+        ]);
         
         return view('transaksi.retur-pembelian.create', compact('pembelian'));
     }
@@ -162,16 +178,19 @@ class ReturController extends Controller
 
     public function storePembelian(Request $request, StockService $stock, JournalService $journal)
     {
+        \Log::info('Retur form submission received');
+
+        // Validation
         $request->validate([
             'pembelian_id' => 'required|exists:pembelians,id',
             'alasan' => 'required|string',
+            'jenis_retur' => 'required|in:tukar_barang,refund',
             'items' => 'required|array|min:1',
             'items.*.pembelian_detail_id' => 'required|exists:pembelian_details,id',
             'items.*.qty' => 'required|numeric|min:0.01',
         ]);
 
         $tanggalRetur = date('Y-m-d');
-
         $pembelian = Pembelian::with('details')->findOrFail($request->pembelian_id);
         
         $items = collect($request->items)->filter(function($item) {
@@ -179,114 +198,303 @@ class ReturController extends Controller
         });
 
         if ($items->isEmpty()) {
-            return back()->withInput()->withErrors(['items' => 'Minimal satu item harus diisi qty retur lebih dari 0.']);
+            return redirect()->route('transaksi.retur-pembelian.index')->withErrors(['items' => 'Minimal satu item harus diisi qty retur lebih dari 0.']);
         }
 
+        // Use proper transaction handling
+        DB::beginTransaction();
+        
         try {
-            DB::transaction(function() use ($request, $pembelian, $items, $stock, $journal, $tanggalRetur) {
-            // Use PurchaseReturn model for purchase returns instead of generic Retur
+            // Create PurchaseReturn record
             $purchaseReturn = \App\Models\PurchaseReturn::create([
                 'pembelian_id' => $pembelian->id,
                 'return_date' => $tanggalRetur,
                 'reason' => $request->alasan,
-                'jenis_retur' => $request->jenis_retur ?? 'refund',
+                'jenis_retur' => $request->jenis_retur,
                 'notes' => $request->memo,
-                'status' => 'pending',
+                'status' => \App\Models\PurchaseReturn::STATUS_MENUNGGU_ACC, // Set default status
             ]);
 
             $totalNominal = 0;
-            $totalHpp = 0;
 
+            // Create retur items
             foreach ($items as $itemData) {
                 $detail = $pembelian->details()->where('id', $itemData['pembelian_detail_id'])->first();
                 
                 if (!$detail) continue;
 
                 $qty = (float)$itemData['qty'];
-                $avg = (float)($detail->harga_satuan ?? 0);
+                $unitPrice = (float)($detail->harga_satuan ?? 0);
+                $subtotal = $qty * $unitPrice;
 
-                // Determine if this is bahan baku or bahan pendukung
+                // Determine material type
                 $isBahanBaku = !empty($detail->bahan_baku_id);
                 $isBahanPendukung = !empty($detail->bahan_pendukung_id);
                 
-                if (!$isBahanBaku && !$isBahanPendukung) {
-                    continue; // Skip if neither bahan baku nor bahan pendukung
-                }
-
-                // NO STOCK CHANGES ON CREATE - Only validate that we have enough stock for future processing
-                $material = null;
-                $materialId = null;
-                $materialName = '';
-                
-                if ($isBahanBaku) {
-                    $material = $detail->bahanBaku;
-                    $materialId = $detail->bahan_baku_id;
-                    $materialName = $material->nama_bahan ?? 'ID: ' . $materialId;
-                } else {
-                    $material = $detail->bahanPendukung;
-                    $materialId = $detail->bahan_pendukung_id;
-                    $materialName = $material->nama_bahan ?? 'ID: ' . $materialId;
-                }
-                
-                if (!$material) {
-                    throw new \RuntimeException("Data material tidak ditemukan untuk ID: " . $materialId);
-                }
-                
-                // Only validate stock availability for future processing (no actual stock change)
-                $satuan = $itemData['satuan'] ?? $detail->satuan_nama ?? 'kg';
-                $qtyInPrimaryUnit = $qty; // Default to input qty
-                
-                // For bahan baku, use existing conversion logic
-                if ($isBahanBaku && method_exists($material, 'convertToKg')) {
-                    $qtyInPrimaryUnit = $material->convertToKg($qty, $satuan);
-                }
-                
-                // Check available stock for validation only (no consumption yet)
-                $availableStock = $stock->getAvailableQty('material', (int)$materialId);
-                
-                if ($qtyInPrimaryUnit > $availableStock) {
-                    $primaryUnit = $material->satuan->nama ?? 'unit';
-                    
-                    throw new \RuntimeException("Stok tidak mencukupi untuk retur '{$materialName}'. " .
-                        "Dibutuhkan: {$qty} {$satuan} ({$qtyInPrimaryUnit} {$primaryUnit}), " .
-                        "Tersedia: {$availableStock} {$primaryUnit}. " .
-                        "Pastikan material tersedia di gudang sebelum melakukan retur.");
-                }
-                
-                // NO STOCK CONSUMPTION HERE - Stock will be changed only when status becomes "selesai"
-                $lineNominal = (float)($detail->harga_satuan ?? 0) * $qty;
-                $lineHpp = $avg * $qty;
-
-                // Create PurchaseReturnItem for both bahan baku and bahan pendukung
+                // Create PurchaseReturnItem
                 \App\Models\PurchaseReturnItem::create([
                     'purchase_return_id' => $purchaseReturn->id,
                     'pembelian_detail_id' => $detail->id,
                     'bahan_baku_id' => $isBahanBaku ? $detail->bahan_baku_id : null,
                     'bahan_pendukung_id' => $isBahanPendukung ? $detail->bahan_pendukung_id : null,
-                    'unit' => $satuan,
+                    'unit' => $itemData['satuan'] ?? $detail->satuan_nama ?? 'kg',
                     'quantity' => $qty,
-                    'unit_price' => $detail->harga_satuan ?? 0,
-                    'subtotal' => $lineNominal,
+                    'unit_price' => $unitPrice,
+                    'subtotal' => $subtotal,
                 ]);
 
-                $totalNominal += $lineNominal;
-                $totalHpp += $lineHpp;
+                $totalNominal += $subtotal;
             }
 
-            // Update the total return amount in the PurchaseReturn record
+            // Update total return amount
             $purchaseReturn->total_return_amount = $totalNominal;
             $purchaseReturn->save();
 
-            // For purchase returns, we don't need the sale-specific journal logic
-            // The journal entries for purchase returns would be different and should be handled separately if needed
-        });
+            DB::commit();
 
-        return redirect()->route('transaksi.retur-pembelian.index')->with('success', 'Retur pembelian berhasil dibuat dengan status pending.');
-        
-        } catch (\RuntimeException $e) {
-            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
+            \Log::info('Retur pembelian successfully created', ['return_id' => $purchaseReturn->id]);
+
+            // Redirect to index with success message
+            return redirect()->route('transaksi.retur-pembelian.index')->with('success', 'Retur berhasil disimpan');
+            
         } catch (\Exception $e) {
-            return back()->withInput()->withErrors(['error' => 'Terjadi kesalahan saat memproses retur: ' . $e->getMessage()]);
+            DB::rollBack();
+            \Log::error('Error saving retur pembelian: ' . $e->getMessage());
+            
+            return redirect()->route('transaksi.retur-pembelian.index')->withErrors(['error' => 'Terjadi kesalahan saat memproses retur: ' . $e->getMessage()]);
+        }
+    }
+
+    public function updateStatus(Request $request, $id, StockService $stock, JournalService $journal)
+    {
+        $retur = \App\Models\PurchaseReturn::with(['items.bahanBaku', 'pembelian'])->findOrFail($id);
+        
+        // Validate that we can update to next status
+        if (!$retur->next_status) {
+            return back()->with('error', 'Status retur sudah final atau tidak dapat diubah.');
+        }
+
+        $oldStatus = $retur->status;
+        $newStatus = $retur->next_status;
+
+        DB::beginTransaction();
+        
+        try {
+            // Update status
+            $retur->status = $newStatus;
+            $retur->save();
+
+            // Handle business logic based on status change
+            $this->handleStatusChange($retur, $oldStatus, $newStatus, $stock, $journal);
+
+            DB::commit();
+
+            $statusText = $retur->status_badge['text'];
+            return back()->with('success', "Status retur berhasil diubah menjadi: {$statusText}");
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error updating retur status: ' . $e->getMessage());
+            
+            return back()->with('error', 'Terjadi kesalahan saat mengubah status: ' . $e->getMessage());
+        }
+    }
+
+    private function handleStatusChange($retur, $oldStatus, $newStatus, $stock, $journal)
+    {
+        // Handle stock changes
+        if ($newStatus === \App\Models\PurchaseReturn::STATUS_DIKIRIM) {
+            // Kurangi stok saat barang dikirim
+            foreach ($retur->items as $item) {
+                if ($item->bahan_baku_id && $item->bahanBaku) {
+                    $material = $item->bahanBaku;
+                    $qty = $item->quantity;
+                    
+                    // Update stock (reduce)
+                    $material->updateStok($qty, 'out', "Retur dikirim ID: {$retur->id}");
+                    
+                    // Record to stock_movements for audit trail
+                    $this->recordStockMovement(
+                        'material',
+                        $item->bahan_baku_id,
+                        $retur->return_date ?? now(),
+                        'out',
+                        $qty,
+                        $item->unit ?? $material->satuan->nama ?? 'KG',
+                        $item->unit_price ?? 0,
+                        $item->subtotal ?? 0,
+                        'purchase_return',
+                        $retur->id,
+                        "Retur Pembelian - Dikirim ke Vendor"
+                    );
+                }
+                
+                // Handle bahan pendukung if exists
+                if ($item->bahan_pendukung_id && $item->bahanPendukung) {
+                    $material = $item->bahanPendukung;
+                    $qty = $item->quantity;
+                    
+                    // Update stock (reduce)
+                    $material->updateStok($qty, 'out', "Retur dikirim ID: {$retur->id}");
+                    
+                    // Record to stock_movements for audit trail
+                    $this->recordStockMovement(
+                        'support', // Changed from 'material' to 'support' for bahan_pendukung
+                        $item->bahan_pendukung_id,
+                        $retur->return_date ?? now(),
+                        'out',
+                        $qty,
+                        $item->unit ?? $material->satuan->nama ?? 'KG',
+                        $item->unit_price ?? 0,
+                        $item->subtotal ?? 0,
+                        'purchase_return',
+                        $retur->id,
+                        "Retur Pembelian - Dikirim ke Vendor"
+                    );
+                }
+            }
+        }
+
+        if ($retur->jenis_retur === \App\Models\PurchaseReturn::JENIS_TUKAR_BARANG && 
+            $newStatus === \App\Models\PurchaseReturn::STATUS_SELESAI) {
+            // Tambah stok saat tukar barang selesai (barang baru diterima)
+            foreach ($retur->items as $item) {
+                if ($item->bahan_baku_id && $item->bahanBaku) {
+                    $material = $item->bahanBaku;
+                    $qty = $item->quantity;
+                    
+                    // Update stock (add new stock)
+                    $material->updateStok($qty, 'in', "Tukar barang selesai ID: {$retur->id}");
+                    
+                    // Record to stock_movements for audit trail
+                    $this->recordStockMovement(
+                        'material',
+                        $item->bahan_baku_id,
+                        $retur->return_date ?? now(),
+                        'in',
+                        $qty,
+                        $item->unit ?? $material->satuan->nama ?? 'KG',
+                        $item->unit_price ?? 0,
+                        $item->subtotal ?? 0,
+                        'purchase_return',
+                        $retur->id,
+                        "Barang pengganti dari retur pembelian"
+                    );
+                }
+                
+                // Handle bahan pendukung if exists
+                if ($item->bahan_pendukung_id && $item->bahanPendukung) {
+                    $material = $item->bahanPendukung;
+                    $qty = $item->quantity;
+                    
+                    // Update stock (add new stock)
+                    $material->updateStok($qty, 'in', "Tukar barang selesai ID: {$retur->id}");
+                    
+                    // Record to stock_movements for audit trail
+                    $this->recordStockMovement(
+                        'support', // Changed from 'material' to 'support' for bahan_pendukung
+                        $item->bahan_pendukung_id,
+                        $retur->return_date ?? now(),
+                        'in',
+                        $qty,
+                        $item->unit ?? $material->satuan->nama ?? 'KG',
+                        $item->unit_price ?? 0,
+                        $item->subtotal ?? 0,
+                        'purchase_return',
+                        $retur->id,
+                        "Barang pengganti dari retur pembelian"
+                    );
+                }
+            }
+        }
+
+        if ($retur->jenis_retur === \App\Models\PurchaseReturn::JENIS_REFUND && 
+            $newStatus === \App\Models\PurchaseReturn::STATUS_REFUND_SELESAI) {
+            // Tambah kas saat refund selesai
+            $totalRefund = $retur->total_return_amount;
+            
+            if ($totalRefund > 0) {
+                // Create journal entry for refund received
+                $journal->post(
+                    date('Y-m-d'), 
+                    'purchase_return_refund', 
+                    $retur->id, 
+                    "Refund retur pembelian #{$retur->return_number}", 
+                    [
+                        ['code' => '1101', 'debit' => $totalRefund, 'credit' => 0], // Kas
+                        ['code' => '1141', 'debit' => 0, 'credit' => $totalRefund], // Persediaan (recovery)
+                    ]
+                );
+            }
+        }
+
+        \Log::info('Retur status changed', [
+            'retur_id' => $retur->id,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'jenis_retur' => $retur->jenis_retur
+        ]);
+    }
+
+    private function recordStockMovement($itemType, $itemId, $tanggal, $direction, $qty, $satuan, $unitCost, $totalCost, $refType, $refId, $keterangan = '')
+    {
+        try {
+            // Check for duplicate to prevent double insertion
+            $existing = StockMovement::where('item_type', $itemType)
+                ->where('item_id', $itemId)
+                ->where('ref_type', $refType)
+                ->where('ref_id', $refId)
+                ->where('direction', $direction)
+                ->where('keterangan', $keterangan)
+                ->first();
+            
+            if ($existing) {
+                \Log::info('Stock movement already exists, skipping duplicate', [
+                    'item_type' => $itemType,
+                    'item_id' => $itemId,
+                    'ref_type' => $refType,
+                    'ref_id' => $refId,
+                    'direction' => $direction,
+                    'existing_id' => $existing->id
+                ]);
+                return true;
+            }
+
+            StockMovement::create([
+                'item_type' => $itemType,
+                'item_id' => $itemId,
+                'tanggal' => $tanggal,
+                'direction' => $direction,
+                'qty' => $qty,
+                'satuan' => $satuan,
+                'unit_cost' => $unitCost,
+                'total_cost' => $totalCost,
+                'ref_type' => $refType,
+                'ref_id' => $refId,
+                'keterangan' => $keterangan,
+            ]);
+
+            \Log::info('Stock movement recorded', [
+                'item_type' => $itemType,
+                'item_id' => $itemId,
+                'direction' => $direction,
+                'qty' => $qty,
+                'ref_type' => $refType,
+                'ref_id' => $refId,
+                'keterangan' => $keterangan
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            \Log::error('Failed to record stock movement: ' . $e->getMessage(), [
+                'item_type' => $itemType,
+                'item_id' => $itemId,
+                'direction' => $direction,
+                'qty' => $qty,
+                'error' => $e->getMessage()
+            ]);
+            
+            return false;
         }
     }
 
@@ -582,150 +790,6 @@ class ReturController extends Controller
             DB::rollBack();
             \Log::error('Error processing return: ' . $e->getMessage());
             return back()->with('error', 'Terjadi kesalahan saat memproses retur: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Update return status based on workflow
-     */
-    public function updateStatus($id, $status)
-    {
-        try {
-            $retur = \App\Models\PurchaseReturn::findOrFail($id);
-            
-            // Validate allowed status transitions
-            $allowedStatuses = [
-                'pending',
-                'menunggu_vendor',
-                'disetujui_vendor', 
-                'diproses_vendor',
-                'barang_diterima',
-                'barang_dikembalikan',
-                'menunggu_pembayaran',
-                'dana_diterima',
-                'completed'
-            ];
-            
-            if (!in_array($status, $allowedStatuses)) {
-                return back()->with('error', 'Status tidak valid.');
-            }
-            
-            // Log status change
-            \Log::info("Return status update:", [
-                'retur_id' => $id,
-                'old_status' => $retur->status,
-                'new_status' => $status,
-                'jenis_retur' => $retur->jenis_retur
-            ]);
-            
-            // Update status
-            $retur->status = $status;
-            $retur->save();
-            
-            // Handle stock updates for final statuses
-            if (in_array($status, ['barang_diterima', 'dana_diterima'])) {
-                // Call the existing proses method logic for stock updates
-                return $this->processStockUpdate($retur);
-            }
-            
-            // Success message based on status
-            $messages = [
-                'disetujui_vendor' => 'Status berhasil diubah: Vendor telah menyetujui retur.',
-                'diproses_vendor' => 'Status berhasil diubah: Vendor sedang memproses barang.',
-                'barang_diterima' => 'Status berhasil diubah: Barang pengganti telah diterima.',
-                'barang_dikembalikan' => 'Status berhasil diubah: Barang telah dikembalikan ke vendor.',
-                'menunggu_pembayaran' => 'Status berhasil diubah: Menunggu pembayaran refund dari vendor.',
-                'dana_diterima' => 'Status berhasil diubah: Dana refund telah diterima.'
-            ];
-            
-            $message = $messages[$status] ?? 'Status retur berhasil diperbarui.';
-            
-            return back()->with('success', $message);
-            
-        } catch (\Exception $e) {
-            \Log::error('Error updating return status: ' . $e->getMessage());
-            return back()->with('error', 'Terjadi kesalahan saat mengubah status retur.');
-        }
-    }
-
-    /**
-     * Process stock update for completed returns
-     */
-    private function processStockUpdate($retur)
-    {
-        try {
-            DB::beginTransaction();
-            
-            // Only process stock if not already completed
-            if ($retur->status === 'completed') {
-                return back()->with('success', 'Retur sudah selesai diproses sebelumnya.');
-            }
-            
-            $retur = \App\Models\PurchaseReturn::with(['items.bahanBaku', 'items.bahanPendukung', 'pembelian.details'])->findOrFail($retur->id);
-            
-            foreach ($retur->items as $item) {
-                // Handle both bahan baku and bahan pendukung
-                $material = null;
-                $materialName = '';
-                $materialType = '';
-                
-                if ($item->bahan_baku_id && $item->bahanBaku) {
-                    $material = $item->bahanBaku;
-                    $materialName = $material->nama_bahan;
-                    $materialType = 'bahan_baku';
-                } elseif ($item->bahan_pendukung_id && $item->bahanPendukung) {
-                    $material = $item->bahanPendukung;
-                    $materialName = $material->nama_bahan;
-                    $materialType = 'bahan_pendukung';
-                } else {
-                    continue;
-                }
-                
-                // Calculate converted quantity
-                $originalDetail = null;
-                if ($retur->pembelian && $retur->pembelian->details) {
-                    foreach ($retur->pembelian->details as $detail) {
-                        if (($materialType === 'bahan_baku' && $detail->bahan_baku_id == $item->bahan_baku_id) ||
-                            ($materialType === 'bahan_pendukung' && $detail->bahan_pendukung_id == $item->bahan_pendukung_id)) {
-                            $originalDetail = $detail;
-                            break;
-                        }
-                    }
-                }
-                
-                $qtyRaw = (float) $item->quantity;
-                $qtyConverted = $originalDetail && $originalDetail->faktor_konversi > 0 
-                    ? $qtyRaw * $originalDetail->faktor_konversi 
-                    : $qtyRaw;
-                
-                if ($qtyConverted <= 0) continue;
-                
-                // Apply stock changes based on return type
-                if ($retur->jenis_retur === 'refund') {
-                    $updateSuccess = $material->updateStok($qtyConverted, 'out', "Return refund completed ID: {$retur->id}");
-                    if (!$updateSuccess) {
-                        DB::rollBack();
-                        return back()->with('error', "Stok {$materialName} tidak mencukupi untuk retur.");
-                    }
-                } elseif ($retur->jenis_retur === 'tukar_barang') {
-                    // For tukar barang, stock is neutral (old out, new in)
-                    $material->updateStok($qtyConverted, 'out', "Return exchange (old) completed ID: {$retur->id}");
-                    $material->updateStok($qtyConverted, 'in', "Return exchange (new) completed ID: {$retur->id}");
-                }
-            }
-            
-            // Mark as completed
-            $retur->status = 'completed';
-            $retur->save();
-            
-            DB::commit();
-            
-            return back()->with('success', 'Retur berhasil diselesaikan dan stok telah diperbarui.');
-            
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Error processing stock update: ' . $e->getMessage());
-            return back()->with('error', 'Terjadi kesalahan saat memproses stok retur.');
         }
     }
 }

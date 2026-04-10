@@ -1,23 +1,21 @@
 <?php
 
-require 'vendor/autoload.php';
+$pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
 
-$app = require_once 'bootstrap/app.php';
-$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
+echo "=== CHECKING JOURNAL TABLES ===\n";
 
-echo "=== CHECKING BTKL TABLES ===\n";
+$stmt = $pdo->query('SHOW TABLES LIKE "%journal%"');
+$tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-$tables = DB::select("SHOW TABLES LIKE '%btkl%'");
-echo "BTKL tables found: " . count($tables) . "\n";
-foreach($tables as $table) {
-    $tableName = array_values((array)$table)[0];
-    echo "- {$tableName}\n";
-}
-
-echo "\n=== CHECKING BOM TABLES ===\n";
-$bomTables = DB::select("SHOW TABLES LIKE '%bom%'");
-echo "BOM tables found: " . count($bomTables) . "\n";
-foreach($bomTables as $table) {
-    $tableName = array_values((array)$table)[0];
-    echo "- {$tableName}\n";
+foreach ($tables as $table) {
+    echo "Table: {$table}\n";
+    
+    // Show table structure
+    $stmt2 = $pdo->query("DESCRIBE {$table}");
+    $columns = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+    
+    foreach ($columns as $column) {
+        echo "  - {$column['Field']} ({$column['Type']})\n";
+    }
+    echo "\n";
 }

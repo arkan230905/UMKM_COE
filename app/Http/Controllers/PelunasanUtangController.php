@@ -248,6 +248,8 @@ class PelunasanUtangController extends Controller
             'success' => true,
             'data' => [
                 'sisa_utang' => $sisaUtang,
+                'total_pembelian' => $pembelian->total_harga ?? 0,
+                'terbayar' => $pembelian->terbayar ?? 0,
                 'vendor' => $pembelian->vendor->nama_vendor ?? '-',
                 'nomor_pembelian' => $pembelian->nomor_pembelian ?? 'PB-' . $pembelian->id
             ]

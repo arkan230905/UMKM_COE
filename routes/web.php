@@ -2261,6 +2261,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/{pembelian}/edit', [PembelianController::class, 'edit'])->name('edit');
             Route::put('/{pembelian}', [PembelianController::class, 'update'])->name('update');
             Route::delete('/{pembelian}', [PembelianController::class, 'destroy'])->name('destroy');
+            Route::get('/{pembelian}/cetak-pdf', [PembelianController::class, 'cetakPdf'])->name('cetak-pdf');
         });
 
         // ============================================================
@@ -2285,7 +2286,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [ReturController::class, 'indexPembelian'])->name('index');
             Route::get('/create', [ReturController::class, 'createPembelian'])->name('create');
             Route::post('/', [ReturController::class, 'storePembelian'])->name('store');
+            Route::post('/update-status/{id}', [ReturController::class, 'updateStatus'])->name('update-status');
             Route::get('/{id}', [ReturController::class, 'showPembelian'])->name('show');
+            Route::delete('/{id}', [ReturController::class, 'destroyPembelian'])->name('destroy');
             Route::get('debug-stock-pembelian/{pembelianId}', function($pembelianId) {
     $pembelian = \App\Models\Pembelian::with(['details.bahanBaku', 'details.bahanPendukung'])->find($pembelianId);
     

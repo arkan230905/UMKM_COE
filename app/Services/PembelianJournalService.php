@@ -244,7 +244,7 @@ class PembelianJournalService
             case 'credit':
             default:
                 // Utang Usaha
-                $coa = $this->getCoaByCode('2110'); // Utang Usaha
+                $coa = $this->getCoaByCode('210'); // Hutang Usaha
                 $coaId = $coa->id;
                 $coaCode = $coa->kode_akun;
                 $coaName = $coa->nama_akun;

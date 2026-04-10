@@ -173,10 +173,13 @@
                                 <td>{!! $item->status_badge !!}</td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{{ route('transaksi.pelunasan-utang.show', $item->id) }}" class="btn btn-outline-primary">
+                                        <a href="{{ route('transaksi.pelunasan-utang.show', $item->id) }}" class="btn btn-outline-primary" title="Lihat Detail">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('transaksi.pelunasan-utang.print', $item->id) }}" class="btn btn-outline-warning" target="_blank">
+                                        <a href="{{ route('akuntansi.jurnal-umum') }}?ref_type=debt_payment&ref_id={{ $item->id }}" class="btn btn-outline-success" title="Lihat Jurnal">
+                                            <i class="fas fa-book"></i>
+                                        </a>
+                                        <a href="{{ route('transaksi.pelunasan-utang.print', $item->id) }}" class="btn btn-outline-warning" target="_blank" title="Print">
                                             <i class="fas fa-print"></i>
                                         </a>
                                         <form action="{{ route('transaksi.pelunasan-utang.destroy', $item->id) }}" 
@@ -185,7 +188,7 @@
                                               onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ini?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="btn btn-outline-danger">
+                                            <button class="btn btn-outline-danger" title="Hapus">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
