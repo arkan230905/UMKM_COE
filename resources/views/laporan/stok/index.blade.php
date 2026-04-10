@@ -390,3 +390,21 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipeSelect = document.getElementById('tipeSelect');
+    const itemSelect = document.getElementById('itemSelect');
+    
+    // Handle material type change
+    tipeSelect.addEventListener('change', function() {
+        // Clear item selection
+        itemSelect.value = '';
+        
+        // Submit form to reload with new material type
+        this.form.submit();
+    });
+});
+</script>
+@endpush

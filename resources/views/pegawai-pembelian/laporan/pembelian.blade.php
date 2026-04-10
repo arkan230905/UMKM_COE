@@ -206,33 +206,24 @@
                                 
                                 if ($hasRetur) {
                                     $statusText = 'Ada Retur';
-                                    $statusBadgeClass = 'bg-warning';
                                 } else {
                                     $statusText = 'Tidak Ada Retur';
-                                    $statusBadgeClass = 'bg-success';
                                 }
                             @endphp
-                            <span class="badge {{ $statusBadgeClass }}">
-                                {{ $statusText }}
-                            </span>
+                            {{ $statusText }}
                         </td>
                         <td>
                             @php
                                 $paymentMethod = $pembelian->payment_method ?? 'cash';
                                 if ($paymentMethod === 'credit') {
-                                    $badgeClass = 'bg-warning';
                                     $paymentText = 'Kredit';
                                 } elseif ($paymentMethod === 'transfer') {
-                                    $badgeClass = 'bg-info';
                                     $paymentText = 'Transfer';
                                 } else {
-                                    $badgeClass = 'bg-success';
                                     $paymentText = 'Tunai';
                                 }
                             @endphp
-                            <span class="badge {{ $badgeClass }}">
-                                {{ $paymentText }}
-                            </span>
+                            {{ $paymentText }}
                         </td>
                         <td>
                             <div class="btn-group btn-group-sm">

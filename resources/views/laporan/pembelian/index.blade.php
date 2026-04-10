@@ -93,6 +93,7 @@
                             <th>Vendor</th>
                             <th>Item Dibeli</th>
                             <th class="text-end">Total</th>
+                            <th class="text-center">Metode Pembayaran</th>
                             <th class="text-center">Status</th>
                             <th style="width:12%" class="text-center">Aksi</th>
                         </tr>
@@ -205,20 +206,36 @@
                                 </td>
                                 <td class="text-center">
                                     @php
+                                        // Tampilkan metode pembayaran
+                                        $paymentMethodText = '';
+                                        switch($p->payment_method) {
+                                            case 'cash':
+                                                $paymentMethodText = 'Tunai';
+                                                break;
+                                            case 'transfer':
+                                                $paymentMethodText = 'Transfer';
+                                                break;
+                                            case 'credit':
+                                                $paymentMethodText = 'Kredit';
+                                                break;
+                                            default:
+                                                $paymentMethodText = ucfirst($p->payment_method ?? 'Tunai');
+                                        }
+                                    @endphp
+                                    {{ $paymentMethodText }}
+                                </td>
+                                <td class="text-center">
+                                    @php
                                         // Logic status sama dengan pegawai pembelian - cek apakah ada retur
                                         $hasRetur = \App\Models\PurchaseReturn::where('pembelian_id', $p->id)->exists();
                                         
                                         if ($hasRetur) {
                                             $statusText = 'Ada Retur';
-                                            $statusBadgeClass = 'bg-warning';
                                         } else {
                                             $statusText = 'Tidak Ada Retur';
-                                            $statusBadgeClass = 'bg-success';
                                         }
                                     @endphp
-                                    <span class="badge {{ $statusBadgeClass }}">
-                                        {{ $statusText }}
-                                    </span>
+                                    {{ $statusText }}
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group">
@@ -233,7 +250,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4">
+                                <td colspan="9" class="text-center py-4">
                                     <div class="text-muted">
                                         <i class="fas fa-inbox fa-3x mb-3"></i>
                                         <p>Tidak ada data pembelian</p>
