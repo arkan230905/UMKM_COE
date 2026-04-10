@@ -100,10 +100,14 @@ class PenjualanController extends Controller
         
         // Multi-item path
         if (is_array($request->produk_id)) {
+            // Get valid kas/bank codes from database
+            $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
+            
             $request->validate([
                 'tanggal' => 'required|date',
+                'waktu' => 'required|date_format:H:i',
                 'payment_method' => 'required|in:cash,transfer,credit',
-                'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', \App\Helpers\AccountHelper::KAS_BANK_CODES),
+                'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', $validKasBankCodes),
                 'produk_id' => 'required|array|min:1',
                 'produk_id.*' => 'required|exists:produks,id',
                 'jumlah' => 'required|array',
@@ -114,7 +118,7 @@ class PenjualanController extends Controller
                 'diskon_persen.*' => 'nullable|numeric|min:0|max:100',
             ]);
 
-            $tanggal = $request->tanggal;
+            $tanggal = $request->tanggal . ' ' . ($request->waktu ?? now()->format('H:i'));
             $produkIds = $request->produk_id;
             $jumlahArr = $request->jumlah;
             // Override harga jual dengan harga_jual dari master produk
@@ -231,11 +235,14 @@ class PenjualanController extends Controller
         }
 
         // Single-item fallback (tetap mendukung)
+        // Get valid kas/bank codes from database
+        $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
+        
         $request->validate([
             'produk_id' => 'required|exists:produks,id',
             'tanggal' => 'required|date',
             'payment_method' => 'required|in:cash,transfer,credit',
-            'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', \App\Helpers\AccountHelper::KAS_BANK_CODES),
+            'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', $validKasBankCodes),
             'jumlah' => 'required|integer|min:1',
             'harga_satuan' => 'required|string', // Ubah ke string karena format dari JS
             'diskon_nominal' => 'nullable|numeric|min:0',
@@ -304,6 +311,16 @@ class PenjualanController extends Controller
         return view('transaksi.penjualan.show', compact('penjualan'));
     }
 
+    public function struk($id)
+    {
+        $penjualan = Penjualan::with('details.produk', 'produk')->findOrFail($id);
+        
+        // Ambil data perusahaan
+        $dataPerusahaan = \App\Models\Perusahaan::first();
+        
+        return view('transaksi.penjualan.struk', compact('penjualan', 'dataPerusahaan'));
+    }
+
     public function edit($id)
     {
         $penjualan = Penjualan::with('details.produk')->findOrFail($id);
@@ -326,10 +343,13 @@ class PenjualanController extends Controller
         
         // Multi-item path
         if (is_array($request->produk_id)) {
+            // Get valid kas/bank codes from database
+            $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
+            
             $request->validate([
                 'tanggal' => 'required|date',
                 'payment_method' => 'required|in:cash,transfer,credit',
-                'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', \App\Helpers\AccountHelper::KAS_BANK_CODES),
+                'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', $validKasBankCodes),
                 'produk_id' => 'required|array|min:1',
                 'produk_id.*' => 'required|exists:produks,id',
                 'jumlah' => 'required|array',
@@ -442,11 +462,14 @@ class PenjualanController extends Controller
         }
 
         // Single-item fallback
+        // Get valid kas/bank codes from database
+        $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
+        
         $request->validate([
             'produk_id' => 'required|exists:produks,id',
             'tanggal' => 'required|date',
             'payment_method' => 'required|in:cash,transfer,credit',
-            'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', \App\Helpers\AccountHelper::KAS_BANK_CODES),
+            'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', $validKasBankCodes),
             'jumlah' => 'required|integer|min:1',
             'harga_satuan' => 'required|string',
             'diskon_nominal' => 'nullable|numeric|min:0',

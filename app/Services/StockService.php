@@ -318,16 +318,63 @@ class StockService
         return 1.0; // Default: no conversion
     }
 
+    /**
+     * Sync product stock to StockLayer if not exists
+     */
+    private function syncProductStockToLayer(int $productId): void
+    {
+        $layerExists = StockLayer::where('item_type', 'product')
+            ->where('item_id', $productId)
+            ->exists();
+            
+        if (!$layerExists) {
+            $produk = \App\Models\Produk::find($productId);
+            if ($produk && $produk->stok > 0) {
+                // Calculate unit cost (estimate from selling price or use default)
+                $unitCost = 0;
+                if ($produk->harga_jual > 0) {
+                    $unitCost = $produk->harga_jual / 1.3; // Estimate cost as 77% of selling price
+                } else {
+                    // Fallback to BOM cost if available
+                    $sumBom = (float) \App\Models\Bom::where('produk_id', $productId)->sum('total_biaya');
+                    $btkl = (float) ($produk->btkl_default ?? 0);
+                    $bop = (float) ($produk->bop_default ?? 0);
+                    $unitCost = $sumBom + $btkl + $bop;
+                }
+                
+                StockLayer::create([
+                    'item_type' => 'product',
+                    'item_id' => $productId,
+                    'tanggal' => now()->subDays(30), // Set to past date for opening balance
+                    'remaining_qty' => $produk->stok,
+                    'satuan' => 'pcs',
+                    'unit_cost' => $unitCost,
+                    'ref_type' => 'opening_balance',
+                    'ref_id' => 0,
+                ]);
+                
+                \Log::info("Auto-synced product #{$productId} stock to StockLayer: {$produk->stok} pcs, unit_cost: {$unitCost}");
+            }
+        }
+    }
+
     public function consume(string $itemType, int $itemId, float $qty, string $satuan, string $refType, int $refId, string $tanggal): float
     {
         return DB::transaction(function () use ($itemType, $itemId, $qty, $satuan, $refType, $refId, $tanggal) {
             // Convert input quantity to primary unit first
             $primaryQty = $this->convertToPrimaryUnit($itemType, $itemId, $qty, $satuan);
             
-            // Strict check: do not allow consume beyond available
+            // Auto-sync product stock to StockLayer if not exists
+            if ($itemType === 'product') {
+                $this->syncProductStockToLayer($itemId);
+            }
+            
+            // Get available stock after potential sync
             $available = (float) StockLayer::where('item_type', $itemType)
                 ->where('item_id', $itemId)
                 ->sum('remaining_qty');
+                
+            // Strict check: do not allow consume beyond available
             if ($primaryQty > $available + 1e-9) {
                 throw new \RuntimeException('Insufficient stock for '.$itemType.'#'.$itemId.' (need '.$primaryQty.', available '.$available.')');
             }

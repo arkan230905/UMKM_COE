@@ -305,22 +305,61 @@ class JournalService
         
         switch ($penjualan->payment_method) {
             case 'cash':
-                $debitAccount = '1101'; // Kas
+                // Cari COA Kas yang ada di database
+                $kasCoa = Coa::where('tipe_akun', 'Asset')
+                    ->where(function($query) {
+                        $query->where('nama_akun', 'like', '%kas%')
+                              ->where('nama_akun', 'not like', '%bank%');
+                    })
+                    ->orWhere('kode_akun', '1101')
+                    ->orWhere('kode_akun', '101')
+                    ->first();
+                
+                $debitAccount = $kasCoa ? $kasCoa->kode_akun : '1101';
                 $debitMemo = 'Penerimaan tunai penjualan';
                 break;
                 
             case 'transfer':
-                $debitAccount = '1102'; // Kas di Bank
+                // Cari COA Bank yang ada di database
+                $bankCoa = Coa::where('tipe_akun', 'Asset')
+                    ->where(function($query) {
+                        $query->where('nama_akun', 'like', '%bank%')
+                              ->orWhere('nama_akun', 'like', '%kas%bank%');
+                    })
+                    ->orWhere('kode_akun', '1102')
+                    ->orWhere('kode_akun', '102')
+                    ->first();
+                
+                $debitAccount = $bankCoa ? $bankCoa->kode_akun : '1102';
                 $debitMemo = 'Penerimaan transfer penjualan';
                 break;
                 
             case 'credit':
-                $debitAccount = '1103'; // Piutang Usaha
+                // Cari COA Piutang yang ada di database
+                $piutangCoa = Coa::where('tipe_akun', 'Asset')
+                    ->where(function($query) {
+                        $query->where('nama_akun', 'like', '%piutang%')
+                              ->orWhere('nama_akun', 'like', '%receivable%');
+                    })
+                    ->orWhere('kode_akun', '1103')
+                    ->orWhere('kode_akun', '103')
+                    ->first();
+                
+                $debitAccount = $piutangCoa ? $piutangCoa->kode_akun : '1103';
                 $debitMemo = 'Penjualan kredit';
                 break;
                 
             default:
-                $debitAccount = '1101'; // Default to Kas
+                // Default: gunakan COA Kas pertama yang ditemukan
+                $defaultCoa = Coa::where('tipe_akun', 'Asset')
+                    ->where(function($query) {
+                        $query->where('nama_akun', 'like', '%kas%')
+                              ->orWhere('kode_akun', '1101')
+                              ->orWhere('kode_akun', '101');
+                    })
+                    ->first();
+                
+                $debitAccount = $defaultCoa ? $defaultCoa->kode_akun : '1101';
                 $debitMemo = 'Penerimaan penjualan';
         }
         
@@ -331,9 +370,21 @@ class JournalService
             'memo' => $debitMemo
         ];
         
-        // Create credit entry for sales revenue
+        // Create credit entry for sales revenue - cari COA Penjualan yang ada
+        $penjualanCoa = Coa::where('tipe_akun', 'Revenue')
+            ->where(function($query) {
+                $query->where('nama_akun', 'like', '%penjualan%')
+                      ->orWhere('nama_akun', 'like', '%sales%')
+                      ->orWhere('nama_akun', 'like', '%pendapatan%');
+            })
+            ->orWhere('kode_akun', '4101')
+            ->orWhere('kode_akun', '401')
+            ->first();
+        
+        $creditAccount = $penjualanCoa ? $penjualanCoa->kode_akun : '4101';
+        
         $lines[] = [
-            'code' => '4101', // Pendapatan Penjualan
+            'code' => $creditAccount,
             'debit' => 0,
             'credit' => $totalAmount,
             'memo' => 'Pendapatan penjualan produk'

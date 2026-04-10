@@ -69,6 +69,10 @@ mark.bg-warning {
                 <input type="date" name="tanggal" class="form-control" value="{{ now()->toDateString() }}" required>
             </div>
             <div class="col-md-3">
+                <label class="form-label">Waktu</label>
+                <input type="time" name="waktu" class="form-control" value="{{ now()->format('H:i') }}" required>
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">Metode Pembayaran</label>
                 <select name="payment_method" id="payment_method_jual" class="form-select" required>
                     <option value="cash" selected>Tunai</option>
@@ -125,11 +129,6 @@ mark.bg-warning {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-auto">
-                        <button type="button" id="barcode-status" class="btn btn-outline-secondary btn-sm" onclick="toggleProductList()">
-                            <i class="fas fa-list me-1"></i>Daftar Produk
-                        </button>
                     </div>
                 </div>
             </div>
@@ -211,67 +210,6 @@ mark.bg-warning {
             <button class="btn btn-success">Simpan</button>
         </div>
     </form>
-</div>
-
-<!-- Product List Modal -->
-<div class="modal fade" id="productListModal" tabindex="-1" aria-labelledby="productListModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="productListModalLabel">
-                    <i class="fas fa-barcode me-2"></i>Daftar Produk & Barcode
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <input type="text" id="modal-search" class="form-control" placeholder="Cari produk atau barcode...">
-                </div>
-                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                    <table class="table table-hover table-sm">
-                        <thead class="table-light sticky-top">
-                            <tr>
-                                <th>Produk</th>
-                                <th>Barcode</th>
-                                <th>Harga</th>
-                                <th>Stok</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody id="product-list-body">
-                            @foreach($produks as $p)
-                            <tr class="product-row" data-barcode="{{ $p->barcode ?? '' }}" data-name="{{ strtolower($p->nama_produk ?? $p->nama) }}">
-                                <td>{{ $p->nama_produk ?? $p->nama }}</td>
-                                <td>
-                                    @if($p->barcode)
-                                        <code>{{ $p->barcode }}</code>
-                                    @else
-                                        <small class="text-muted">Tidak ada</small>
-                                    @endif
-                                </td>
-                                <td>Rp {{ number_format($p->harga_jual ?? 0, 0, ',', '.') }}</td>
-                                <td>
-                                    <span class="badge {{ ($p->stok ?? 0) > 0 ? 'bg-success' : 'bg-danger' }}">
-                                        {{ number_format($p->stok ?? 0, 0, ',', '.') }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-primary" 
-                                            onclick="addProductFromModal({{ $p->id }}, '{{ addslashes($p->nama_produk ?? $p->nama) }}', {{ $p->harga_jual ?? 0 }}, {{ $p->stok ?? 0 }})">>
-                                        <i class="fas fa-plus"></i> Tambah
-                                    </button>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script>
@@ -941,59 +879,6 @@ function updateBarcodeStatus(message, type) {
 }
 
 // Toggle product list modal
-function toggleProductList() {
-    const modal = new bootstrap.Modal(document.getElementById('productListModal'));
-    modal.show();
-}
-
-// Add product from modal
-function addProductFromModal(productId, productName, price, stock) {
-    const product = {
-        id: productId,
-        nama: productName,
-        harga: price,
-        stok: stock
-    };
-    
-    addProductByBarcode(product);
-    showNotification('✓ ' + productName + ' ditambahkan', 'success');
-    
-    // Reset scan indicator to "Siap Scan" after adding product from modal
-    const scanIndicator = document.getElementById('scan-indicator');
-    if (scanIndicator) {
-        scanIndicator.textContent = 'Siap Scan';
-        scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
-    }
-    
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('productListModal'));
-    if (modal) {
-        modal.hide();
-    }
-    
-    // Focus back to barcode input
-    setTimeout(() => {
-        document.getElementById('barcode-scanner').focus();
-    }, 100);
-}
-
-// Search products in modal
-function filterProductList() {
-    const searchTerm = document.getElementById('modal-search').value.toLowerCase();
-    const rows = document.querySelectorAll('.product-row');
-    
-    rows.forEach(row => {
-        const productName = row.getAttribute('data-name');
-        const barcode = row.getAttribute('data-barcode');
-        
-        if (productName.includes(searchTerm) || barcode.includes(searchTerm)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    });
-}
-
 function playBeep(success) {
     // Simple beep using Web Audio API
     try {
@@ -1277,34 +1162,6 @@ function navigateSearchResults(direction) {
     
     // 🎯 END AUTOMATIC BARCODE SCANNING SYSTEM
     
-    // Enhanced modal search functionality
-    document.getElementById('modal-search').addEventListener('input', function() {
-        filterProductList();
-    });
-    
-    // Add event listener for modal search
-    function filterProductList() {
-        const searchTerm = document.getElementById('modal-search').value.toLowerCase();
-        const rows = document.querySelectorAll('.product-row');
-        let visibleCount = 0;
-        
-        rows.forEach(row => {
-            const productName = row.getAttribute('data-name');
-            const barcode = row.getAttribute('data-barcode');
-            
-            if (productName.includes(searchTerm) || barcode.includes(searchTerm)) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-        
-        // Show count in modal
-        const modalTitle = document.getElementById('productListModalLabel');
-        modalTitle.innerHTML = `<i class="fas fa-barcode me-2"></i>Daftar Produk & Barcode (${visibleCount} produk)`;
-    }
-    
     // Auto-focus barcode input when pressing F2
     document.addEventListener('keydown', function(e) {
         if (e.key === 'F2') {
@@ -1329,15 +1186,39 @@ function navigateSearchResults(direction) {
             
             // Update options based on payment method
             if (paymentMethod === 'cash') {
-                sumberDana.innerHTML = `
-                    <option value="1101">Kas Kecil (1101)</option>
-                    <option value="101">Kas (101)</option>
-                `;
+                // Ambil dari kasbank yang sudah di-load dari server
+                let cashOptions = '';
+                @foreach($kasbank as $kb)
+                    @if(stripos($kb->nama_akun, 'kas') !== false && stripos($kb->nama_akun, 'bank') === false)
+                        cashOptions += `<option value="{{ $kb->kode_akun }}">{{ $kb->nama_akun }} ({{ $kb->kode_akun }})</option>`;
+                    @endif
+                @endforeach
+                
+                // Jika tidak ada kas spesifik, gunakan semua kasbank
+                if (!cashOptions.trim()) {
+                    @foreach($kasbank as $kb)
+                        cashOptions += `<option value="{{ $kb->kode_akun }}">{{ $kb->nama_akun }} ({{ $kb->kode_akun }})</option>`;
+                    @endforeach
+                }
+                
+                sumberDana.innerHTML = cashOptions;
             } else if (paymentMethod === 'transfer') {
-                sumberDana.innerHTML = `
-                    <option value="1102">Kas di Bank (1102)</option>
-                    <option value="102">Bank (102)</option>
-                `;
+                // Ambil dari kasbank yang sudah di-load dari server
+                let bankOptions = '';
+                @foreach($kasbank as $kb)
+                    @if(stripos($kb->nama_akun, 'bank') !== false)
+                        bankOptions += `<option value="{{ $kb->kode_akun }}">{{ $kb->nama_akun }} ({{ $kb->kode_akun }})</option>`;
+                    @endif
+                @endforeach
+                
+                // Jika tidak ada bank spesifik, gunakan semua kasbank
+                if (!bankOptions.trim()) {
+                    @foreach($kasbank as $kb)
+                        bankOptions += `<option value="{{ $kb->kode_akun }}">{{ $kb->nama_akun }} ({{ $kb->kode_akun }})</option>`;
+                    @endforeach
+                }
+                
+                sumberDana.innerHTML = bankOptions;
             }
             
             // Set recent pick if exists and valid
