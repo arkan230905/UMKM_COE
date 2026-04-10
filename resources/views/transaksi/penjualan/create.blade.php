@@ -69,6 +69,10 @@ mark.bg-warning {
                 <input type="date" name="tanggal" class="form-control" value="{{ now()->toDateString() }}" required>
             </div>
             <div class="col-md-3">
+                <label class="form-label">Waktu</label>
+                <input type="time" name="waktu" class="form-control" value="{{ now()->format('H:i') }}" required>
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">Metode Pembayaran</label>
                 <select name="payment_method" id="payment_method_jual" class="form-select" required>
                     <option value="">-- Pilih Metode --</option>
@@ -123,32 +127,6 @@ mark.bg-warning {
                                 </div>
                                 <div class="card-body p-2" id="search-results-body" style="max-height: 200px; overflow-y: auto;">
                                     <!-- Results will be populated here -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Preview Produk -->
-                    <div class="col-12" id="barcode-preview" style="display: none;">
-                        <div class="card border-info">
-                            <div class="card-body py-2">
-                                <div class="row align-items-center">
-                                    <div class="col-auto">
-                                        <i class="fas fa-box fa-2x text-info"></i>
-                                    </div>
-                                    <div class="col">
-                                        <div class="fw-bold" id="preview-nama">-</div>
-                                        <div class="small text-muted">
-                                            <span id="preview-barcode">-</span> | 
-                                            Harga: <span id="preview-harga">-</span> | 
-                                            Stok: <span id="preview-stok">-</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <small class="text-info">
-                                            <i class="fas fa-keyboard me-1"></i>Tekan Enter untuk tambahkan
-                                        </small>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -931,52 +909,12 @@ function updateBarcodeStatus(message, type) {
 }
 
 // Toggle product list modal
-function toggleProductList() {
-    const modal = new bootstrap.Modal(document.getElementById('productListModal'));
-    modal.show();
-}
-
-// Add product from modal
-function addProductFromModal(productId, productName, price, stock) {
-    const product = {
-        id: productId,
-        nama: productName,
-        harga: price,
-        stok: stock
-    };
-    
-    addProductByBarcode(product);
-    showNotification('✓ ' + productName + ' ditambahkan', 'success');
-    
-    // Reset scan indicator to "Siap Scan" after adding product from modal
-    const scanIndicator = document.getElementById('scan-indicator');
-    if (scanIndicator) {
-        scanIndicator.textContent = 'Siap Scan';
-        scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
-    }
-    
-    // Close modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('productListModal'));
-    if (modal) {
-        modal.hide();
-    }
-    
-    // Fungsi untuk update semua total
-    function updateAllTotals() {
-        const rows = document.querySelectorAll('#detailTableJual tbody tr');
-        let totalProduk = 0;
-        
-        rows.forEach(row => {
-            const subtotalInput = row.querySelector('.subtotal');
-            const subtotal = parseFloat(subtotalInput.value.replace(/[^\d]/g, '')) || 0;
-            totalProduk += subtotal;
-        });
-        
-        // Update subtotal produk
-        const subtotalProdukInput = document.querySelector('input[name="subtotal_produk"]');
-        if (subtotalProdukInput) {
-            subtotalProdukInput.value = formatCurrency(totalProduk);
-        }
+function playBeep(success) {
+    // Simple beep using Web Audio API
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
         
         // Update biaya-biaya dan total final
         calculateFinalTotal();
@@ -1246,50 +1184,54 @@ function navigateSearchResults(direction) {
     // Event listener untuk keydown (Enter key untuk manual input)
     let lastPreviewProduct = null;
     
-    // Enhanced modal search functionality
-    document.getElementById('modal-search').addEventListener('input', function() {
-        filterProductList();
-    });
-    
-    // Add event listener for modal search
-    function filterProductList() {
-        const searchTerm = document.getElementById('modal-search').value.toLowerCase();
-        const rows = document.querySelectorAll('.product-row');
-        let visibleCount = 0;
-        
-        rows.forEach(row => {
-            const productName = row.getAttribute('data-name');
-            const barcode = row.getAttribute('data-barcode');
-            
-            if (productName.includes(searchTerm) || barcode.includes(searchTerm)) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-        
-        // Show count in modal
-        const modalTitle = document.getElementById('productListModalLabel');
-        modalTitle.innerHTML = `<i class="fas fa-barcode me-2"></i>Daftar Produk & Barcode (${visibleCount} produk)`;
-    }
-    
     // Auto-focus barcode input when pressing F2
     document.addEventListener('keydown', function(e) {
         if (e.key === 'F2') {
             e.preventDefault();
             
-            const value = barcodeInput.value.trim();
-            if (value.length >= 3 && lastPreviewProduct) {
-                // Tambahkan produk yang sedang di-preview
-                addProductToTable(lastPreviewProduct);
-                barcodeInput.value = '';
-                hidePreview();
-                updateScanIndicator('Produk ditambahkan!', 'bg-success');
-                playBeep();
-            } else if (value.length >= 8) {
-                // Fallback ke auto-process untuk barcode panjang
-                processBarcode(value);
+            // Get recent pick from localStorage
+            const recentPick = localStorage.getItem('recent_sumber_dana_' + paymentMethod);
+            
+            // Update options based on payment method
+            if (paymentMethod === 'cash') {
+                // Ambil dari kasbank yang sudah di-load dari server
+                let cashOptions = '';
+                @foreach($kasbank as $kb)
+                    @if(stripos($kb->nama_akun, 'kas') !== false && stripos($kb->nama_akun, 'bank') === false)
+                        cashOptions += `<option value="{{ $kb->kode_akun }}">{{ $kb->nama_akun }} ({{ $kb->kode_akun }})</option>`;
+                    @endif
+                @endforeach
+                
+                // Jika tidak ada kas spesifik, gunakan semua kasbank
+                if (!cashOptions.trim()) {
+                    @foreach($kasbank as $kb)
+                        cashOptions += `<option value="{{ $kb->kode_akun }}">{{ $kb->nama_akun }} ({{ $kb->kode_akun }})</option>`;
+                    @endforeach
+                }
+                
+                sumberDana.innerHTML = cashOptions;
+            } else if (paymentMethod === 'transfer') {
+                // Ambil dari kasbank yang sudah di-load dari server
+                let bankOptions = '';
+                @foreach($kasbank as $kb)
+                    @if(stripos($kb->nama_akun, 'bank') !== false)
+                        bankOptions += `<option value="{{ $kb->kode_akun }}">{{ $kb->nama_akun }} ({{ $kb->kode_akun }})</option>`;
+                    @endif
+                @endforeach
+                
+                // Jika tidak ada bank spesifik, gunakan semua kasbank
+                if (!bankOptions.trim()) {
+                    @foreach($kasbank as $kb)
+                        bankOptions += `<option value="{{ $kb->kode_akun }}">{{ $kb->nama_akun }} ({{ $kb->kode_akun }})</option>`;
+                    @endforeach
+                }
+                
+                sumberDana.innerHTML = bankOptions;
+            }
+            
+            // Set recent pick if exists and valid
+            if (recentPick && sumberDana.querySelector(`option[value="${recentPick}"]`)) {
+                sumberDana.value = recentPick;
             }
             return;
         }

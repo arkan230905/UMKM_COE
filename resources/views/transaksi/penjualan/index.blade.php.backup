@@ -2,6 +2,35 @@
 
 @push('styles')
 <style>
+/* Loading overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    display: none;
+}
+
+.loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 /* Horizontal Tabs Style - Mengikuti gaya Satuan | Konversi */
 .horizontal-tabs {
     display: flex;
@@ -95,20 +124,12 @@
     line-height: 1.2;
 }
 
-/* Action Layout Style - 2 Baris Grid di Tengah */
+/* Action Layout Style - Detail on Left, Others on Right */
 .action-layout {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.25rem;
-}
-
-.action-row {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.25rem;
+    gap: 0.5rem;
 }
 
 /* Modal fixes */
@@ -145,6 +166,13 @@
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
+}
+
+.action-row {
+    display: flex;
+    gap: 0.35rem;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-minimal {
@@ -247,16 +275,15 @@
     color: #1d4ed8;
 }
 
-/* CETAK */
+/* PRINT (hijau) */
 .btn-minimal.btn-success {
-    color: #e8884d;
-    border-color: #e8884d;
+    color: #10b981;
+    border-color: #10b981;
 }
 
 .btn-minimal.btn-success:hover {
     background: #d1fae5;
-    border-color: #ba5414;
-    color: #ba5414;
+    color: #047857;
 }
 
 .modal-body .row.mt-4 {
@@ -266,6 +293,11 @@
 @endpush
 
 @section('content')
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+</div>
+
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
@@ -397,7 +429,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 50px">NO</th>
+                            <th class="text-center" style="width: 50px">#</th>
                             <th>Nomor Transaksi</th>
                             <th>Tanggal</th>
                             <th>Pembayaran</th>
@@ -414,25 +446,19 @@
                     </thead>
                     <tbody>
                         @foreach($penjualans as $key => $penjualan)
-                            <tr class="{{ $key % 2 === 0 ? 'table-light' : '' }}">
+                            <tr>
                                 <td class="text-center">{{ $key + 1 }}</td>
-                                <td><strong>{{ 'SJ-' . optional($penjualan->tanggal)->format('ymd') . '-' . str_pad(($key + 1), 3, '0', STR_PAD_LEFT) }}</strong></td>
-                                <td>{{ optional($penjualan->tanggal)->format('d-m-Y H:i') ?? $penjualan->tanggal }}</td>
+                                <td><strong>{{ $penjualan->nomor_penjualan ?? '-' }}</strong></td>
+                                <td>{{ optional($penjualan->tanggal)->format('d-m-Y') ?? $penjualan->tanggal }}</td>
                                 <td>
-                                    <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
-                                        @switch($penjualan->payment_method ?? '')
-                                            @case('cash') Tunai @break
-                                            @case('transfer') Transfer @break
-                                            @case('credit') Kredit @break
-                                            @default Tidak Diketahui
-                                        @endswitch
+                                    <span class="badge {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'bg-warning' : 'bg-success' }}">
+                                        {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'Kredit' : 'Tunai' }}
                                     </span>
                                 </td>
                                 @php $detailCount = $penjualan->details->count(); @endphp
                                 <td>
                                     @if($detailCount > 1)
-                                        @foreach($penjualan->details as $index => $d)
-                                            @if($index > 0)<br>@endif
+                                        @foreach($penjualan->details as $d)
                                             <div>{{ $d->produk->nama_produk ?? '-' }}</div>
                                         @endforeach
                                     @elseif($detailCount === 1)
@@ -444,16 +470,12 @@
                                 <td class="text-end">
                                     @if($detailCount > 1)
                                         @foreach($penjualan->details as $d)
-                                            @if($loop->first)
-                                                {{ $d->produk->nama_produk }} - {{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}
-                                            @else
-                                                &nbsp;&nbsp;{{ $d->produk->nama_produk }} - {{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}
-                                            @endif
+                                            <div>{{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}</div>
                                         @endforeach
                                     @elseif($detailCount === 1)
-                                        {{ $penjualan->details[0]->produk->nama_produk }} - {{ rtrim(rtrim(number_format($penjualan->details[0]->jumlah,4,',','.'),'0'),',') }}
+                                        {{ rtrim(rtrim(number_format($penjualan->details[0]->jumlah,4,',','.'),'0'),',') }}
                                     @else
-                                        {{ $penjualan->produk?->nama_produk }} - {{ rtrim(rtrim(number_format($penjualan->jumlah,4,',','.'),'0'),',') }}
+                                        {{ rtrim(rtrim(number_format($penjualan->jumlah,4,',','.'),'0'),',') }}
                                     @endif
                                 </td>
                                 <td class="text-end">
@@ -476,54 +498,46 @@
                                 <td class="text-end">
                                     @if($detailCount > 1)
                                         @foreach($penjualan->details as $d)
-                                            <div>Rp {{ number_format($d->produk->getHPPForSaleDate($penjualan->tanggal), 0, ',', '.') }}</div>
+                                            @php $actualHPP = $d->produk->hpp ?? $d->produk->harga_bom ?? 0; @endphp
+                                            <div>Rp {{ number_format($actualHPP, 0, ',', '.') }}</div>
                                         @endforeach
                                     @elseif($detailCount === 1)
-                                        Rp {{ number_format($penjualan->details[0]->produk->getHPPForSaleDate($penjualan->tanggal), 0, ',', '.') }}
+                                        @php $actualHPP = $penjualan->details[0]->produk->hpp ?? $penjualan->details[0]->produk->harga_bom ?? 0; @endphp
+                                        Rp {{ number_format($actualHPP, 0, ',', '.') }}
                                     @else
-                                        @php
-                                            $hdrHarga = $penjualan->harga_satuan;
-                                            if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
-                                                $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
-                                            }
-                                        @endphp
-                                        Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}
+                                        @php $actualHPP = $penjualan->produk?->hpp ?? $penjualan->produk?->harga_bom ?? 0; @endphp
+                                        Rp {{ number_format($actualHPP, 0, ',', '.') }}
                                     @endif
                                 </td>
                                 <td class="text-end">
                                     @if($detailCount > 1)
                                         @foreach($penjualan->details as $d)
-                                            @php $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal); $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah; @endphp
+                                            @php $actualHPP = $d->produk->hpp ?? $d->produk->harga_bom ?? 0; $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah; @endphp
                                             <div class="{{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
                                         @endforeach
                                     @elseif($detailCount === 1)
-                                        @php $actualHPP = $penjualan->details[0]->produk->getHPPForSaleDate($penjualan->tanggal); $margin = ($penjualan->details[0]->harga_satuan - $actualHPP) * $penjualan->details[0]->jumlah; @endphp
+                                        @php $actualHPP = $penjualan->details[0]->produk->hpp ?? $penjualan->details[0]->produk->harga_bom ?? 0; $margin = ($penjualan->details[0]->harga_satuan - $actualHPP) * $penjualan->details[0]->jumlah; @endphp
                                         <div class="{{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
                                     @else
-                                        @php
-                                            $hdrHarga = $penjualan->harga_satuan;
-                                            if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
-                                                $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
-                                            }
-                                        @endphp
-                                        Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}
+                                        @php $actualHPP = $penjualan->produk?->hpp ?? $penjualan->produk?->harga_bom ?? 0; $margin = ($hdrHarga - $actualHPP) * ($penjualan->jumlah ?? 0); @endphp
+                                        <div class="{{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
                                     @endif
                                 </td>
                                 <td class="text-end">
                                     @if($detailCount > 1)
                                         @foreach($penjualan->details as $d)
                                             @php $sub = (float)$d->jumlah * (float)$d->harga_satuan; $disc = (float)($d->diskon_nominal ?? 0); $pct = $sub>0 ? ($disc/$sub*100) : 0; @endphp
-                                            <div>{{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})</div>
+                                            <div>{{ number_format($pct, 2, ',', '.') }}% (Rp {{ number_format($disc, 0, ',', '.') }})</div>
                                         @endforeach
                                     @elseif($detailCount === 1)
                                         @php $d=$penjualan->details[0]; $sub=(float)$d->jumlah*(float)$d->harga_satuan; $disc=(float)($d->diskon_nominal??0); $pct=$sub>0?($disc/$sub*100):0; @endphp
-                                        {{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})
+                                        {{ number_format($pct, 2, ',', '.') }}% (Rp {{ number_format($disc, 0, ',', '.') }})
                                     @else
                                         @php $pct=0; $disc=(float)($penjualan->diskon_nominal ?? 0); if(($penjualan->jumlah??0)>0){ $hdrHarga=$penjualan->harga_satuan; if(is_null($hdrHarga)){ $hdrHarga=((float)$penjualan->total + $disc)/(float)$penjualan->jumlah; } $subtotal=$penjualan->jumlah*$hdrHarga; $pct=$subtotal>0?($disc/$subtotal*100):0; } @endphp
-                                        {{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})
+                                        {{ number_format($pct, 2, ',', '.') }}% (Rp {{ number_format($disc, 0, ',', '.') }})
                                     @endif
                                 </td>
-                                <td class="text-end fw-semibold"><strong>Rp {{ number_format($penjualan->total, 0, ',', '.') }}</strong></td>
+                                <td class="text-end fw-semibold">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</td>
                                 <td>
                                     @php
                                         $totalQtyRetur = $penjualan->total_qty_retur;
@@ -540,31 +554,37 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="action-layout">
-                                        <div class="action-row gap-1 mb-1">
+                                        <div class="action-left">
                                             <button type="button" class="btn-minimal btn-detail" data-bs-toggle="modal" data-bs-target="#detailModal{{ $penjualan->id }}" title="Detail Transaksi">
                                                 Detail
                                             </button>
-                                            <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Transaksi">
-                                                Edit
-                                            </a>
-                                            <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn-minimal btn-jurnal" data-bs-toggle="tooltip" title="Lihat Jurnal">
-                                                Jurnal
-                                            </a>
                                         </div>
-                                        <div class="action-row gap-1">
-                                            <button type="button" class="btn-minimal btn-success" data-bs-toggle="modal" data-bs-target="#strukModal{{ $penjualan->id }}" title="Cetak Struk">
-                                                Cetak
-                                            </button>
-                                            <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Proses Retur">
-                                                Retur
-                                            </a>
-                                            <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn-minimal btn-danger" data-bs-toggle="tooltip" title="Hapus Transaksi">
-                                                    Hapus
+                                        <div class="action-right">
+                                            <div class="action-row">
+                                                <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Transaksi">
+                                                    Edit
+                                                </a>
+                                                <button type="button" class="btn-minimal btn-success" onclick="printStruk({{ $penjualan->id }})" data-bs-toggle="tooltip" title="Print Struk">
+                                                    Print
                                                 </button>
-                                            </form>
+                                            </div>
+                                            <div class="action-row">
+                                                <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn-minimal btn-jurnal" data-bs-toggle="tooltip" title="Lihat Jurnal">
+                                                    Jurnal
+                                                </a>
+                                                <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Proses Retur">
+                                                    Retur
+                                                </a>
+                                            </div>
+                                            <div class="action-row">
+                                                <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn-minimal btn-danger" data-bs-toggle="tooltip" title="Hapus Transaksi">
+                                                        Hapus
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
                                     </div>
                                 </td>
@@ -572,6 +592,11 @@
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="d-flex justify-content-center mt-3">
+                {{ $penjualans->appends(request()->query())->links() }}
             </div>
                     <!-- Akhir Konten Penjualan -->
                 </div>
@@ -584,7 +609,7 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="text-center" style="width: 50px">NO</th>
+                                    <th class="text-center" style="width: 50px">#</th>
                                     <th>Tanggal</th>
                                     <th>Nomor Penjualan</th>
                                     <th>Deskripsi</th>
@@ -693,7 +718,7 @@
             </div>
             <div class="modal-body">
                 @php
-                    // Calculate summary data
+                    // Simplified calculation using hpp field
                     $totalSubtotal = 0;
                     $totalHPP = 0;
                     $totalProfit = 0;
@@ -701,7 +726,7 @@
                     
                     if($detailCount > 1) {
                         foreach($penjualan->details as $d) {
-                            $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal);
+                            $actualHPP = $d->produk->hpp ?? $d->produk->harga_bom ?? 0;
                             $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah;
                             $subtotal = $d->jumlah * $d->harga_satuan;
                             
@@ -711,7 +736,7 @@
                         }
                     } elseif($detailCount === 1) {
                         $d = $penjualan->details[0];
-                        $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal);
+                        $actualHPP = $d->produk->hpp ?? $d->produk->harga_bom ?? 0;
                         $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah;
                         $subtotal = $d->jumlah * $d->harga_satuan;
                         
@@ -719,7 +744,7 @@
                         $totalHPP = $actualHPP * $d->jumlah;
                         $totalProfit = $margin;
                     } else {
-                        $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
+                        $actualHPP = $penjualan->produk?->hpp ?? $penjualan->produk?->harga_bom ?? 0;
                         $hdrHarga = $penjualan->harga_satuan;
                         if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
                             $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
@@ -760,13 +785,8 @@
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <strong>Metode Pembayaran:</strong> 
-                        <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
-                            @switch($penjualan->payment_method ?? '')
-                                @case('cash') Tunai @break
-                                @case('transfer') Transfer @break
-                                @case('credit') Kredit @break
-                                @default Tidak Diketahui
-                            @endswitch
+                        <span class="badge {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'bg-warning' : 'bg-success' }}">
+                            {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'Kredit' : 'Tunai' }}
                         </span>
                     </div>
                     <div class="col-md-6">
@@ -804,7 +824,7 @@
                             @if($detailCount > 1)
                                 @foreach($penjualan->details as $d)
                                     @php 
-                                    $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal); 
+                                    $actualHPP = $d->produk->hpp ?? $d->produk->harga_bom ?? 0; 
                                     $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah;
                                     $subtotal = $d->jumlah * $d->harga_satuan;
                                     @endphp
@@ -822,7 +842,7 @@
                             @elseif($detailCount === 1)
                                 @php 
                                 $d = $penjualan->details[0];
-                                $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal); 
+                                $actualHPP = $d->produk->hpp ?? $d->produk->harga_bom ?? 0; 
                                 $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah;
                                 $subtotal = $d->jumlah * $d->harga_satuan;
                                 @endphp
@@ -838,7 +858,7 @@
                                 </tr>
                             @else
                                 @php 
-                                $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
+                                $actualHPP = $penjualan->produk?->hpp ?? $penjualan->produk?->harga_bom ?? 0;
                                 $hdrHarga = $penjualan->harga_satuan;
                                 if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
                                     $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
@@ -873,6 +893,714 @@
                     <div class="col-md-3">
                         <div class="p-3 bg-light rounded">
                             <small class="text-muted d-block">Total HPP</small>
+                            <strong class="text-warning">Rp {{ number_format($totalHPP, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded">
+                            <small class="text-muted d-block">Total Profit</small>
+                            <strong class="{{ $totalProfit > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($totalProfit, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded">
+                            <small class="text-muted d-block">Total Transaksi</small>
+                            <strong class="text-primary">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
+<!-- Modal Struk -->
+<div class="modal fade" id="strukModal" tabindex="-1" aria-labelledby="strukModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="strukModalLabel">
+                    <i class="fas fa-receipt me-2"></i>Struk Penjualan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="strukContent" class="p-4">
+                    <!-- Struk content will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary" onclick="printStrukContent()">
+                    <i class="fas fa-print me-2"></i>Print
+                </button>
+                <button type="button" class="btn btn-success" onclick="downloadStrukPDF()">
+                    <i class="fas fa-download me-2"></i>Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@foreach($salesReturns as $retur)
+<!-- Retur Detail Modal -->
+<div class="modal fade" id="returDetailModal{{ $retur->id }}" tabindex="-1" aria-labelledby="returDetailModalLabel{{ $retur->id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="returDetailModalLabel{{ $retur->id }}">
+                    <i class="fas fa-undo me-2"></i>Detail Retur Penjualan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Tanggal Retur:</strong> {{ optional($retur->tanggal)->format('d-m-Y') ?? '-' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Nomor Penjualan:</strong> {{ $retur->penjualan?->nomor_penjualan ?? '-' }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Jenis Retur:</strong> 
+                        @php
+                            $jenisRetur = $retur->jenis_retur ?? '';
+                            $jenisLabel = '';
+                            switch($jenisRetur) {
+                                case 'refund':
+                                    $jenisLabel = 'Refund';
+                                    break;
+                                case 'tukar_barang':
+                                    $jenisLabel = 'Tukar Barang';
+                                    break;
+                                case 'kredit':
+                                    $jenisLabel = 'Kredit';
+                                    break;
+                                default:
+                                    $jenisLabel = '-';
+                            }
+                        @endphp
+                        <span class="badge {{ $jenisRetur === 'refund' ? 'bg-danger' : ($jenisRetur === 'tukar_barang' ? 'bg-warning' : 'bg-info') }}">
+                            {{ $jenisLabel }}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Status:</strong> 
+                        <span class="badge {{ $retur->status === 'selesai' ? 'bg-success' : ($retur->status === 'lunas' ? 'bg-info' : 'bg-warning') }}">
+                            {{ ucfirst($retur->status ?? '-') }}
+                        </span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <strong>Keterangan:</strong> {{ $retur->keterangan ?? '-' }}
+                    </div>
+                </div>
+                
+                <h6 class="mb-3"><i class="fas fa-box me-2"></i>Detail Produk Retur</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Produk</th>
+                                <th class="text-end">Qty Retur</th>
+                                <th class="text-end">Harga Satuan</th>
+                                <th class="text-end">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if($retur->detailReturPenjualans->count() > 0)
+                                @foreach($retur->detailReturPenjualans as $item)
+                                    <tr>
+                                        <td>{{ $item->produk?->nama_produk ?? '-' }}</td>
+                                        <td class="text-end">{{ rtrim(rtrim(number_format($item->qty_retur ?? 0, 4, ',', '.'), '0'), ',') }}</td>
+                                        <td class="text-end">Rp {{ number_format($item->harga_satuan ?? 0, 0, ',', '.') }}</td>
+                                        <td class="text-end">Rp {{ number_format(($item->qty_retur ?? 0) * ($item->harga_satuan ?? 0), 0, ',', '.') }}</td>
+                                    </tr>
+                                @endforeach
+                            @else
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Tidak ada detail produk retur</td>
+                                </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6 ms-auto">
+                        <div class="p-3 bg-light rounded">
+                            <div class="d-flex justify-content-between">
+                                <strong>Total Retur:</strong>
+                                <strong class="text-danger">Rp {{ number_format($retur->total_retur ?? 0, 0, ',', '.') }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
+<script>
+// Tab functionality
+function showTab(tabId, element) {
+    // Hide all tab panes
+    document.querySelectorAll('.tab-pane').forEach(pane => {
+        pane.classList.remove('show', 'active');
+    });
+    
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab pane
+    document.getElementById(tabId).classList.add('show', 'active');
+    
+    // Add active class to clicked button
+    element.classList.add('active');
+}
+
+// Print Struk functionality
+function printStruk(penjualanId) {
+    // Show loading
+    const modal = new bootstrap.Modal(document.getElementById('strukModal'));
+    const content = document.getElementById('strukContent');
+    
+    content.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Memuat struk...</p>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Fetch struk data
+    fetch(`/transaksi/penjualan/${penjualanId}/struk`)
+        .then(response => response.text())
+        .then(html => {
+            content.innerHTML = html;
+        })
+        .catch(error => {
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Gagal memuat struk. Silakan coba lagi.
+                </div>
+            `;
+        });
+}
+
+function printStrukContent() {
+    const content = document.getElementById('strukContent').innerHTML;
+    const printWindow = window.open('', '_blank');
+    
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Struk Penjualan</title>
+            <style>
+                body { 
+                    font-family: 'Courier New', monospace; 
+                    font-size: 12px; 
+                    line-height: 1.4;
+                    margin: 0;
+                    padding: 20px;
+                }
+                .struk-container { 
+                    width: 300px; 
+                    margin: 0 auto;
+                }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .separator { 
+                    border-top: 1px dashed #000; 
+                    margin: 10px 0; 
+                }
+                .total-line { 
+                    font-weight: bold; 
+                    font-size: 14px;
+                }
+                @media print {
+                    body { margin: 0; padding: 10px; }
+                    .struk-container { width: 100%; }
+                }
+            </style>
+        </head>
+        <body>
+            ${content}
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+}
+
+function downloadStrukPDF() {
+    // This would require a PDF generation library or server-side PDF generation
+    alert('Fitur download PDF akan segera tersedia');
+}
+
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    // Hide loading overlay when page is ready
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+    
+    // Show loading on form submit
+    const filterForm = document.querySelector('form[action*="penjualan.index"]');
+    if (filterForm) {
+        filterForm.addEventListener('submit', function() {
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+            }
+        });
+    }
+    
+    // Show loading on pagination clicks
+    document.querySelectorAll('.pagination a').forEach(link => {
+        link.addEventListener('click', function() {
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+            }
+        });
+    });
+    
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+
+<style>
+/* Print-specific styles */
+.struk-container {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    max-width: 300px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border: 1px solid #ddd;
+}
+
+.struk-header {
+    text-align: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #000;
+    padding-bottom: 10px;
+}
+
+.struk-info {
+    margin-bottom: 15px;
+    border-bottom: 1px dashed #000;
+    padding-bottom: 10px;
+}
+
+.struk-items {
+    margin-bottom: 15px;
+}
+
+.struk-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.struk-summary {
+    border-top: 1px dashed #000;
+    padding-top: 10px;
+    margin-bottom: 15px;
+}
+
+.struk-footer {
+    text-align: center;
+    border-top: 1px solid #000;
+    padding-top: 10px;
+    font-size: 11px;
+}
+
+.separator {
+    border-top: 1px dashed #000;
+    margin: 10px 0;
+}
+
+.total-line {
+    font-weight: bold;
+    font-size: 14px;
+}
+</style>
+@endsection
+                            <strong class="text-warning">Rp {{ number_format($totalHPP, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded">
+                            <small class="text-muted d-block">Total Profit</small>
+                            <strong class="{{ $totalProfit > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($totalProfit, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-light rounded">
+                            <small class="text-muted d-block">Total Transaksi</small>
+                            <strong class="text-primary">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
+<!-- Modal Struk -->
+<div class="modal fade" id="strukModal" tabindex="-1" aria-labelledby="strukModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="strukModalLabel">
+                    <i class="fas fa-receipt me-2"></i>Struk Penjualan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="strukContent" class="p-4">
+                    <!-- Struk content will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary" onclick="printStrukContent()">
+                    <i class="fas fa-print me-2"></i>Print
+                </button>
+                <button type="button" class="btn btn-success" onclick="downloadStrukPDF()">
+                    <i class="fas fa-download me-2"></i>Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@foreach($salesReturns as $retur)
+<!-- Retur Detail Modal -->
+<div class="modal fade" id="returDetailModal{{ $retur->id }}" tabindex="-1" aria-labelledby="returDetailModalLabel{{ $retur->id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="returDetailModalLabel{{ $retur->id }}">
+                    <i class="fas fa-undo me-2"></i>Detail Retur Penjualan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Tanggal Retur:</strong> {{ optional($retur->tanggal)->format('d-m-Y') ?? '-' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Nomor Penjualan:</strong> {{ $retur->penjualan?->nomor_penjualan ?? '-' }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Jenis Retur:</strong> 
+                        @php
+                            $jenisRetur = $retur->jenis_retur ?? '';
+                            $jenisLabel = '';
+                            switch($jenisRetur) {
+                                case 'refund':
+                                    $jenisLabel = 'Refund';
+                                    break;
+                                case 'tukar_barang':
+                                    $jenisLabel = 'Tukar Barang';
+                                    break;
+                                case 'kredit':
+                                    $jenisLabel = 'Kredit';
+                                    break;
+                                default:
+                                    $jenisLabel = '-';
+                            }
+                        @endphp
+                        <span class="badge {{ $jenisRetur === 'refund' ? 'bg-danger' : ($jenisRetur === 'tukar_barang' ? 'bg-warning' : 'bg-info') }}">
+                            {{ $jenisLabel }}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Status:</strong> 
+                        <span class="badge {{ $retur->status === 'selesai' ? 'bg-success' : ($retur->status === 'lunas' ? 'bg-info' : 'bg-warning') }}">
+                            {{ ucfirst($retur->status ?? '-') }}
+                        </span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <strong>Keterangan:</strong> {{ $retur->keterangan ?? '-' }}
+                    </div>
+                </div>
+                
+                <h6 class="mb-3"><i class="fas fa-box me-2"></i>Detail Produk Retur</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Produk</th>
+                                <th class="text-end">Qty Retur</th>
+                                <th class="text-end">Harga Satuan</th>
+                                <th class="text-end">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if($retur->detailReturPenjualans->count() > 0)
+                                @foreach($retur->detailReturPenjualans as $item)
+                                    <tr>
+                                        <td>{{ $item->produk?->nama_produk ?? '-' }}</td>
+                                        <td class="text-end">{{ rtrim(rtrim(number_format($item->qty_retur ?? 0, 4, ',', '.'), '0'), ',') }}</td>
+                                        <td class="text-end">Rp {{ number_format($item->harga_satuan ?? 0, 0, ',', '.') }}</td>
+                                        <td class="text-end">Rp {{ number_format(($item->qty_retur ?? 0) * ($item->harga_satuan ?? 0), 0, ',', '.') }}</td>
+                                    </tr>
+                                @endforeach
+                            @else
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted">Tidak ada detail produk retur</td>
+                                </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-md-6 ms-auto">
+                        <div class="p-3 bg-light rounded">
+                            <div class="d-flex justify-content-between">
+                                <strong>Total Retur:</strong>
+                                <strong class="text-danger">Rp {{ number_format($retur->total_retur ?? 0, 0, ',', '.') }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
+<script>
+// Tab functionality
+function showTab(tabId, element) {
+    // Hide all tab panes
+    document.querySelectorAll('.tab-pane').forEach(pane => {
+        pane.classList.remove('show', 'active');
+    });
+    
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab pane
+    document.getElementById(tabId).classList.add('show', 'active');
+    
+    // Add active class to clicked button
+    element.classList.add('active');
+}
+
+// Print Struk functionality
+function printStruk(penjualanId) {
+    // Show loading
+    const modal = new bootstrap.Modal(document.getElementById('strukModal'));
+    const content = document.getElementById('strukContent');
+    
+    content.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Memuat struk...</p>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Fetch struk data
+    fetch(`/transaksi/penjualan/${penjualanId}/struk`)
+        .then(response => response.text())
+        .then(html => {
+            content.innerHTML = html;
+        })
+        .catch(error => {
+            content.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Gagal memuat struk. Silakan coba lagi.
+                </div>
+            `;
+        });
+}
+
+function printStrukContent() {
+    const content = document.getElementById('strukContent').innerHTML;
+    const printWindow = window.open('', '_blank');
+    
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Struk Penjualan</title>
+            <style>
+                body { 
+                    font-family: 'Courier New', monospace; 
+                    font-size: 12px; 
+                    line-height: 1.4;
+                    margin: 0;
+                    padding: 20px;
+                }
+                .struk-container { 
+                    width: 300px; 
+                    margin: 0 auto;
+                }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .separator { 
+                    border-top: 1px dashed #000; 
+                    margin: 10px 0; 
+                }
+                .total-line { 
+                    font-weight: bold; 
+                    font-size: 14px;
+                }
+                @media print {
+                    body { margin: 0; padding: 10px; }
+                    .struk-container { width: 100%; }
+                }
+            </style>
+        </head>
+        <body>
+            ${content}
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+}
+
+function downloadStrukPDF() {
+    // This would require a PDF generation library or server-side PDF generation
+    alert('Fitur download PDF akan segera tersedia');
+}
+
+// Initialize tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    // Hide loading overlay when page is ready
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+    
+    // Show loading on form submit
+    const filterForm = document.querySelector('form[action*="penjualan.index"]');
+    if (filterForm) {
+        filterForm.addEventListener('submit', function() {
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+            }
+        });
+    }
+    
+    // Show loading on pagination clicks
+    document.querySelectorAll('.pagination a').forEach(link => {
+        link.addEventListener('click', function() {
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+            }
+        });
+    });
+    
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
+
+<style>
+/* Print-specific styles */
+.struk-container {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    max-width: 300px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border: 1px solid #ddd;
+}
+
+.struk-header {
+    text-align: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #000;
+    padding-bottom: 10px;
+}
+
+.struk-info {
+    margin-bottom: 15px;
+    border-bottom: 1px dashed #000;
+    padding-bottom: 10px;
+}
+
+.struk-items {
+    margin-bottom: 15px;
+}
+
+.struk-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.struk-summary {
+    border-top: 1px dashed #000;
+    padding-top: 10px;
+    margin-bottom: 15px;
+}
+
+.struk-footer {
+    text-align: center;
+    border-top: 1px solid #000;
+    padding-top: 10px;
+    font-size: 11px;
+}
+
+.separator {
+    border-top: 1px dashed #000;
+    margin: 10px 0;
+}
+
+.total-line {
+    font-weight: bold;
+    font-size: 14px;
+}
+</style>
+@endsection
                             <strong class="text-info">Rp {{ number_format($totalHPP, 0, ',', '.') }}</strong>
                         </div>
                     </div>
@@ -954,39 +1682,6 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-            </div>
-        </div>
-    </div>
-</div>
-@endforeach
-
-<!-- Struk Modal -->
-@foreach($penjualans as $penjualan)
-<div class="modal fade" id="strukModal{{ $penjualan->id }}" tabindex="-1" aria-labelledby="strukModalLabel{{ $penjualan->id }}" aria-hidden="true" style="z-index: 1055;">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="strukModalLabel{{ $penjualan->id }}">
-                    <i class="fas fa-print me-2"></i>Struk Penjualan
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="strukContent{{ $penjualan->id }}">
-                    <!-- Struk content akan dimuat via AJAX -->
-                    <div class="text-center py-4">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2 text-muted">Memuat struk...</p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                <button type="button" class="btn btn-primary" onclick="printStruk('strukContent{{ $penjualan->id }}')">
-                    <i class="fas fa-print me-1"></i>Cetak
-                </button>
             </div>
         </div>
     </div>
@@ -1079,54 +1774,6 @@
 @endforeach
 
 <script>
-function loadStruk(penjualanId) {
-    const strukContent = document.getElementById('strukContent' + penjualanId);
-    
-    fetch(`/transaksi/penjualan/${penjualanId}/struk`)
-        .then(response => response.text())
-        .then(html => {
-            strukContent.innerHTML = html;
-        })
-        .catch(error => {
-            strukContent.innerHTML = '<div class="alert alert-danger">Gagal memuat struk</div>';
-        });
-}
-
-function printStruk(elementId) {
-    const printContent = document.getElementById(elementId);
-    const printWindow = window.open('', '_blank');
-    
-    printWindow.document.write(`
-        <html>
-            <head>
-                <title>Struk Penjualan</title>
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 20px; }
-                    @media print { body { margin: 0; } }
-                </style>
-            </head>
-            <body>
-                ${printContent.innerHTML}
-            </body>
-        </html>
-    `);
-    
-    printWindow.document.close();
-    printWindow.print();
-}
-
-// Load struk saat modal dibuka
-document.addEventListener('DOMContentLoaded', function() {
-    @foreach($penjualans as $penjualan)
-    const strukModal{{ $penjualan->id }} = document.getElementById('strukModal{{ $penjualan->id }}');
-    if(strukModal{{ $penjualan->id }}) {
-        strukModal{{ $penjualan->id }}.addEventListener('shown.bs.modal', function () {
-            loadStruk({{ $penjualan->id }});
-        });
-    }
-    @endforeach
-});
-
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
