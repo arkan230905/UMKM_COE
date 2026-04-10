@@ -1,131 +1,5 @@
 @extends('layouts.app')
 
-@push('styles')
-<style>
-/* Action Layout Style - Detail on Left, Others on Right */
-.action-layout {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0.75rem;
-    min-height: 60px;
-}
-
-.action-left {
-    display: flex;
-    align-items: center;
-}
-
-.action-right {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.action-row {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    justify-content: flex-start;
-}
-
-.btn-minimal {
-    font-size: 0.75rem !important;
-    text-decoration: none !important;
-    padding: 6px 12px !important;
-    border-radius: 0.35rem;
-    transition: all 0.2s ease;
-    cursor: pointer !important;
-    border: 2px solid;
-    background: white;
-    font-weight: 600;
-    white-space: nowrap;
-    width: 70px !important;
-    min-width: 70px !important;
-    max-width: 70px !important;
-    height: 32px !important;
-    min-height: 32px !important;
-    max-height: 32px !important;
-    text-align: center;
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    box-sizing: border-box;
-    pointer-events: auto !important;
-    z-index: 1 !important;
-}
-
-.btn-minimal:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.btn-minimal.btn-detail {
-    color: #10b981 !important;
-    border-color: #10b981 !important;
-    background: white !important;
-    width: 80px !important;
-    min-width: 80px !important;
-    max-width: 80px !important;
-}
-
-.btn-minimal.btn-detail:hover {
-    background: #d1fae5 !important;
-    border-color: #059669 !important;
-    color: #059669 !important;
-}
-
-.btn-minimal.btn-warning {
-    color: #f59e0b !important;
-    border-color: #f59e0b !important;
-    background: white !important;
-}
-
-.btn-minimal.btn-warning:hover {
-    background: #fef3c7 !important;
-    border-color: #d97706 !important;
-    color: #d97706 !important;
-}
-
-.btn-minimal.btn-info {
-    color: #06b6d4 !important;
-    border-color: #06b6d4 !important;
-    background: white !important;
-}
-
-.btn-minimal.btn-info:hover {
-    background: #cffafe !important;
-    border-color: #0891b2 !important;
-    color: #0891b2 !important;
-}
-
-.btn-minimal.btn-danger {
-    color: #ef4444 !important;
-    border-color: #ef4444 !important;
-    background: white !important;
-}
-
-.btn-minimal.btn-danger:hover {
-    background: #fee2e2 !important;
-    border-color: #dc2626 !important;
-    color: #dc2626 !important;
-}
-
-.btn-minimal.btn-jurnal {
-    color: #3b82f6 !important;
-    border-color: #3b82f6 !important;
-    background: white !important;
-}
-
-.btn-minimal.btn-jurnal:hover {
-    background: #dbeafe !important;
-    border-color: #2563eb !important;
-    color: #2563eb !important;
-}
-</style>
-@endpush
-
 @section('title', 'Daftar Pembelian')
 
 @section('content')
@@ -424,7 +298,7 @@
                                 <th>Status Pembayaran</th>
                                 <th>Total Harga</th>
                                 <th>Status Retur</th>
-                                <th class="text-center" style="width: 200px">Aksi</th>
+                                <th class="text-center" style="width: 180px">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -518,34 +392,34 @@
                                         @endif
                                     </td>
                                     <td class="text-center">
-                                        <div class="action-layout">
-                                            <div class="action-left">
-                                                <a href="{{ route('transaksi.pembelian.show', $pembelian->id) }}" class="btn-minimal btn-detail" title="Detail Transaksi">
-                                                    Detail
-                                                </a>
-                                            </div>
-                                            <div class="action-right">
-                                                <div class="action-row">
-                                                    <a href="{{ route('transaksi.pembelian.edit', $pembelian->id) }}" class="btn-minimal btn-warning" title="Edit Transaksi">
-                                                        Edit
-                                                    </a>
-                                                    <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'purchase', 'ref_id' => $pembelian->id]) }}" class="btn-minimal btn-jurnal" title="Lihat Jurnal">
-                                                        Jurnal
-                                                    </a>
-                                                </div>
-                                                <div class="action-row">
-                                                    <a href="{{ route('transaksi.retur-pembelian.create', ['pembelian_id' => $pembelian->id]) }}" class="btn-minimal btn-info" title="Proses Retur">
-                                                        Retur
-                                                    </a>
-                                                    <form action="{{ route('transaksi.pembelian.destroy', $pembelian->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn-minimal btn-danger" title="Hapus Transaksi">
-                                                            Hapus
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </div>
+                                        <div class="d-grid" style="grid-template-columns: repeat(2, 1fr); gap: 5px;">
+                                            <!-- Row 1: Detail | Edit -->
+                                            <a href="{{ route('transaksi.pembelian.show', $pembelian->id) }}" class="btn btn-sm btn-outline-success w-100" title="Detail Transaksi">
+                                                Detail
+                                            </a>
+                                            <a href="{{ route('transaksi.pembelian.edit', $pembelian->id) }}" class="btn btn-sm btn-outline-warning w-100" title="Edit Transaksi">
+                                                Edit
+                                            </a>
+                                            
+                                            <!-- Row 2: Jurnal | Retur -->
+                                            <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'purchase', 'ref_id' => $pembelian->id]) }}" class="btn btn-sm btn-outline-primary w-100" title="Lihat Jurnal">
+                                                Jurnal
+                                            </a>
+                                            <a href="{{ route('transaksi.retur-pembelian.create', ['pembelian_id' => $pembelian->id]) }}" class="btn btn-sm btn-outline-info w-100" title="Proses Retur">
+                                                Retur
+                                            </a>
+                                            
+                                            <!-- Row 3: Cetak | Hapus -->
+                                            <a href="{{ route('transaksi.pembelian.cetak-pdf', $pembelian->id) }}" class="btn btn-sm btn-outline-secondary w-100" title="Download PDF">
+                                                Cetak
+                                            </a>
+                                            <form action="{{ route('transaksi.pembelian.destroy', $pembelian->id) }}" method="POST" class="d-inline w-100" onsubmit="return confirm('Yakin ingin hapus?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger w-100" title="Hapus Transaksi">
+                                                    Hapus
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>

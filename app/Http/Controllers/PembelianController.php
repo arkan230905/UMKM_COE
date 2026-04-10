@@ -13,6 +13,7 @@ use App\Models\Coa;
 use App\Helpers\AccountHelper;
 use App\Services\StockService;
 use App\Services\JournalService;
+use App\Services\PembelianJournalService;
 use App\Support\UnitConverter;
 use Illuminate\Support\Facades\DB;
 
@@ -936,7 +937,8 @@ class PembelianController extends Controller
                 /*
                 // Create journal entries for accounting integration
                 try {
-                    \App\Services\JournalService::createJournalFromPembelian($pembelian);
+                    $pembelianJournalService = new PembelianJournalService();
+                    $pembelianJournalService->createJournalFromPembelian($pembelian);
                     \Log::info('Journal entries created successfully for pembelian', [
                         'pembelian_id' => $pembelian->id,
                     ]);
@@ -1052,6 +1054,18 @@ class PembelianController extends Controller
             $currentBalances[$bank->kode_akun] = $bank->saldo_awal ?? 0;
         }
         
+        // Tentukan jenis pembelian berdasarkan detail yang ada
+        $hasBahanBaku = $pembelian->details->where('bahan_baku_id', '!=', null)->count() > 0;
+        $hasBahanPendukung = $pembelian->details->where('bahan_pendukung_id', '!=', null)->count() > 0;
+        
+        // Tentukan kategori pembelian
+        $kategoriPembelian = 'mixed'; // default
+        if ($hasBahanBaku && !$hasBahanPendukung) {
+            $kategoriPembelian = 'bahan_baku';
+        } elseif ($hasBahanPendukung && !$hasBahanBaku) {
+            $kategoriPembelian = 'bahan_pendukung';
+        }
+        
         return view('transaksi.pembelian.edit', compact(
             'pembelian',
             'vendors',
@@ -1060,7 +1074,8 @@ class PembelianController extends Controller
             'bahanPendukungs',
             'coas',
             'kasbank',
-            'currentBalances'
+            'currentBalances',
+            'kategoriPembelian'
         ));
     }
 
@@ -1367,6 +1382,69 @@ class PembelianController extends Controller
             
             return redirect()->back()
                 ->with('error', 'Gagal menghapus pembelian: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download purchase invoice as PDF
+     */
+    public function cetakPdf($id)
+    {
+        try {
+            // Get purchase data with all related information
+            $pembelian = Pembelian::with([
+                'vendor',
+                'details.bahanBaku',
+                'details.bahanPendukung',
+                'kasBank'
+            ])->findOrFail($id);
+
+            // Calculate totals
+            $subtotal = $pembelian->subtotal ?? 0;
+            $ppnNominal = $pembelian->ppn_nominal ?? 0;
+            $biayaKirim = $pembelian->biaya_kirim ?? 0;
+            $grandTotal = $pembelian->total_harga ?? ($subtotal + $ppnNominal + $biayaKirim);
+
+            // Company information
+            $company = [
+                'name' => 'UMKM COE',
+                'address' => 'Jl. Contoh Alamat No. 123, Kota, Provinsi',
+                'phone' => '(021) 1234-5678',
+                'email' => 'info@umkmcoe.com'
+            ];
+
+            // Generate PDF
+            $pdf = \PDF::loadView('transaksi.pembelian.cetak-pdf', compact(
+                'pembelian',
+                'subtotal',
+                'ppnNominal',
+                'biayaKirim',
+                'grandTotal',
+                'company'
+            ));
+
+            // Set PDF options
+            $pdf->setPaper('A4', 'portrait');
+            $pdf->setOptions([
+                'dpi' => 150,
+                'defaultFont' => 'sans-serif',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+            ]);
+
+            // Generate filename
+            $filename = 'Faktur_Pembelian_' . $pembelian->nomor_pembelian . '_' . date('Y-m-d') . '.pdf';
+
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            \Log::error('Error generating PDF for purchase invoice', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()
+                ->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
     }
 }

@@ -39,8 +39,16 @@
 <div class="container-fluid">
     <h1 class="mb-4">Buat Retur Pembelian</h1>
 
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     @if($errors->any())
         <div class="alert alert-danger">
+            <h6><i class="fas fa-exclamation-triangle me-2"></i>Terjadi Kesalahan:</h6>
             <ul class="mb-0">
                 @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -48,6 +56,22 @@
             </ul>
         </div>
     @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger">
+            <h6><i class="fas fa-exclamation-triangle me-2"></i>Error:</h6>
+            {{ session('error') }}
+        </div>
+    @endif
+
+    <div class="alert alert-info">
+        <h6><i class="fas fa-info-circle me-2"></i>Panduan Pengisian Retur:</h6>
+        <ul class="mb-0">
+            <li><strong>Jenis Retur:</strong> Pilih "Tukar Barang" atau "Refund"</li>
+            <li><strong>Alasan Retur:</strong> Wajib diisi (contoh: "Barang rusak", "Salah kirim")</li>
+            <li><strong>Qty Retur:</strong> Masukkan jumlah yang akan diretur (harus lebih dari 0)</li>
+        </ul>
+    </div>
 
     <form action="{{ route('transaksi.retur-pembelian.store') }}" method="POST" id="returForm">
         @csrf
@@ -94,17 +118,23 @@
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label for="alasan" class="form-label">Alasan Retur <span class="text-danger">*</span></label>
-                            <textarea name="alasan" id="alasan" class="form-control" rows="2" required>{{ old('alasan') }}</textarea>
+                            <textarea name="alasan" id="alasan" class="form-control @error('alasan') is-invalid @enderror" rows="2" required placeholder="Masukkan alasan retur...">{{ old('alasan') }}</textarea>
+                            @error('alasan')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label for="jenis_retur" class="form-label">Jenis Retur <span class="text-danger">*</span></label>
-                            <select name="jenis_retur" id="jenis_retur" class="form-control" required>
+                            <select name="jenis_retur" id="jenis_retur" class="form-control @error('jenis_retur') is-invalid @enderror" required>
                                 <option value="">-- Pilih Jenis Retur --</option>
                                 <option value="tukar_barang" {{ old('jenis_retur') == 'tukar_barang' ? 'selected' : '' }}>Tukar Barang</option>
                                 <option value="refund" {{ old('jenis_retur') == 'refund' ? 'selected' : '' }}>Refund (Pengembalian Uang)</option>
                             </select>
+                            @error('jenis_retur')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
                 </div>
@@ -172,8 +202,10 @@
                                         <input type="number" step="0.01" name="items[{{ $index }}][qty]" 
                                                class="form-control qty-input" 
                                                data-price="{{ $detail->harga_satuan }}"
-                                               value="{{ old('items.'.$index.'.qty', 0) }}" 
-                                               min="0" max="{{ $detail->jumlah }}">
+                                               value="{{ old('items.'.$index.'.qty', '') }}" 
+                                               min="0.01" max="{{ $detail->jumlah }}"
+                                               placeholder="Masukkan qty > 0">
+                                        <small class="text-muted">Min: 0.01, Max: {{ $detail->jumlah }}</small>
                                     </td>
                                     <td>
                                         <input type="text" name="items[{{ $index }}][satuan]" class="form-control" 
@@ -271,6 +303,10 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Retur form loaded');
+    console.log('Form action:', document.getElementById('returForm').action);
+    console.log('CSRF token:', document.querySelector('input[name="_token"]').value);
+    
     const jenisReturSelect = document.getElementById('jenis_retur');
     const summaryRefund = document.getElementById('summary_refund');
     const summaryTukar = document.getElementById('summary_tukar');
@@ -358,6 +394,54 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.querySelectorAll('.qty-input').forEach(function(input) {
         input.addEventListener('input', calculateTotals);
+    });
+    
+    // Form validation before submit
+    document.getElementById('returForm').addEventListener('submit', function(e) {
+        let hasValidQty = false;
+        let jenisRetur = jenisReturSelect.value;
+        let alasan = document.getElementById('alasan').value.trim();
+        
+        console.log('Form submission attempt:', {
+            jenisRetur: jenisRetur,
+            alasan: alasan,
+            formAction: this.action,
+            formMethod: this.method
+        });
+        
+        // Check if jenis retur is selected
+        if (!jenisRetur) {
+            e.preventDefault();
+            alert('Silakan pilih Jenis Retur terlebih dahulu!');
+            jenisReturSelect.focus();
+            return false;
+        }
+        
+        // Check if alasan is filled
+        if (!alasan) {
+            e.preventDefault();
+            alert('Silakan isi Alasan Retur terlebih dahulu!');
+            document.getElementById('alasan').focus();
+            return false;
+        }
+        
+        // Check if at least one item has qty > 0
+        document.querySelectorAll('.qty-input').forEach(function(input) {
+            const qty = parseFloat(input.value) || 0;
+            if (qty > 0) {
+                hasValidQty = true;
+            }
+        });
+        
+        if (!hasValidQty) {
+            e.preventDefault();
+            alert('Silakan masukkan minimal satu item dengan Qty Retur lebih dari 0!');
+            document.querySelector('.qty-input').focus();
+            return false;
+        }
+        
+        console.log('Form validation passed, submitting...');
+        return true;
     });
     
     // Initial setup
