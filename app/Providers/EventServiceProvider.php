@@ -7,10 +7,12 @@ use App\Models\BahanBaku;
 use App\Models\BahanPendukung;
 use App\Models\Pembelian;
 use App\Models\Penjualan;
+use App\Models\ProsesProduksi;
 use App\Observers\BahanBakuObserver;
 use App\Observers\BahanPendukungObserver;
 use App\Observers\PembelianObserver;
 use App\Observers\PenjualanObserver;
+use App\Observers\BtklObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -35,5 +37,6 @@ class EventServiceProvider extends ServiceProvider
         BahanPendukung::observe(BahanPendukungObserver::class);
         Pembelian::observe(PembelianObserver::class);
         Penjualan::observe(PenjualanObserver::class);
+        ProsesProduksi::observe(BtklObserver::class);
     }
 }

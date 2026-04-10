@@ -302,6 +302,7 @@ class PenjualanController extends Controller
 
         return redirect()->route('transaksi.penjualan.index')
                          ->with('success', 'Data penjualan berhasil ditambahkan.');
+        }); // End of DB transaction
     }
 
     public function show($id)

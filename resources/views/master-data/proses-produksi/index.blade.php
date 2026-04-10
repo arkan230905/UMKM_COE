@@ -46,20 +46,16 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 50px">#</th>
+                            <th class="text-center" style="width: 50px">No</th>
                             <th>Kode</th>
                             <th>Nama Proses</th>
                             <th>Jabatan BTKL</th>
-                            <th class="text-end">Tarif BTKL/Jam</th>
+                            <th class="text-end">Jumlah Pegawai</th>
+                            <th class="text-end">Tarif BTKL</th>
                             <th class="text-center">Satuan</th>
                             <th class="text-center">Kapasitas/Jam</th>
-                            <th class="text-end">
-                                Biaya per Produk
-                                <i class="fas fa-info-circle text-muted ms-1" 
-                                   data-bs-toggle="tooltip" 
-                                   data-bs-placement="top" 
-                                   title="Dihitung dari: Tarif BTKL per Jam ÷ Kapasitas per Jam"></i>
-                            </th>
+                            <th class="text-end">Biaya per Produk</th>
+                            <th class="text-center">Deskripsi</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -67,7 +63,7 @@
                         @forelse($prosesProduksis as $key => $proses)
                             <tr>
                                 <td class="text-center">{{ ($prosesProduksis->currentPage() - 1) * $prosesProduksis->perPage() + $key + 1 }}</td>
-                                <td><code>{{ $proses->kode_proses }}</code></td>
+                                <td><code>{{ $proses->kode_proses ?? 'N/A' }}</code></td>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
@@ -89,13 +85,17 @@
                                             </div>
                                             <div>
                                                 <div class="fw-semibold">{{ $proses->jabatan->nama }}</div>
-                                                <small class="text-muted">
-                                                    {{ $proses->jabatan->pegawais->count() }} pegawai @ Rp {{ number_format($proses->jabatan->tarif, 0, ',', '.') }}/jam
-                                                </small>
                                             </div>
                                         </div>
                                     @else
-                                        <span class="text-muted">-</span>
+                                        <span class="text-muted">N/A</span>
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    @if($proses->jabatan)
+                                        {{ $proses->jabatan->pegawais->count() }} pegawai @ Rp {{ number_format($proses->jabatan->tarif, 0, ',', '.') }}/jam
+                                    @else
+                                        <span class="text-muted">N/A</span>
                                     @endif
                                 </td>
                                 <td class="text-end">
@@ -105,11 +105,15 @@
                                         $tarifPerJamJabatan = $proses->jabatan ? $proses->jabatan->tarif : 0;
                                         $tarifBtklCalculated = $jumlahPegawai * $tarifPerJamJabatan;
                                     @endphp
-                                    <div class="fw-semibold">Rp {{ number_format($tarifBtklCalculated, 0, ',', '.') }}</div>
-                                    <small class="text-muted">per {{ $proses->satuan_btkl ?? 'jam' }}</small>
+                                    @if($tarifBtklCalculated > 0)
+                                        <div class="fw-semibold">Rp {{ number_format($tarifBtklCalculated, 0, ',', '.') }}</div>
+                                        <small class="text-muted">per {{ $proses->satuan_btkl ?? 'jam' }}</small>
+                                    @else
+                                        <span class="text-muted">Rp 0</span>
+                                    @endif
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-secondary">{{ $proses->satuan_btkl ?? 'jam' }}</span>
+                                    <span class="badge bg-secondary">{{ $proses->satuan_btkl ?? 'Jam' }}</span>
                                 </td>
                                 <td class="text-center">
                                     <span class="badge bg-info">{{ $proses->kapasitas_per_jam ?? 0 }} unit/jam</span>
@@ -118,15 +122,18 @@
                                     data-biaya-per-produk="{{ $proses->kapasitas_per_jam > 0 ? number_format($tarifBtklCalculated / $proses->kapasitas_per_jam, 0, ',', '.') : '0' }}"
                                     data-tarif="{{ number_format($tarifBtklCalculated, 0, ',', '.') }}"
                                     data-kapasitas="{{ $proses->kapasitas_per_jam }}">
-                                    @if($proses->kapasitas_per_jam > 0)
+                                    @if($proses->kapasitas_per_jam > 0 && $tarifBtklCalculated > 0)
                                         @php
                                             $biayaPerProduk = $tarifBtklCalculated / $proses->kapasitas_per_jam;
                                         @endphp
                                         <div class="fw-semibold text-success">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</div>
                                         <small class="text-muted">per unit</small>
                                     @else
-                                        <span class="text-muted">-</span>
+                                        <span class="text-muted">Rp 0</span>
                                     @endif
+                                </td>
+                                <td class="text-center">
+                                    {{ $proses->deskripsi ?? '-' }}
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
@@ -148,7 +155,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="text-center py-4">
+                                <td colspan="11" class="text-center py-4">
                                     <i class="fas fa-cogs fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data BTKL</p>
                                     <a href="{{ route('master-data.btkl.create') }}" class="btn btn-primary">
@@ -162,6 +169,33 @@
             </div>
             
             @if($prosesProduksis->count() > 0)
+                <!-- Total Biaya Per Produk Summary -->
+                <div class="card-footer bg-primary bg-opacity-10">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h6 class="mb-0 text-primary">
+                                <i class="fas fa-calculator me-2"></i>Total Biaya Per Produk:
+                            </h6>
+                            <small class="text-muted">Jumlah semua biaya BTKL per unit produk</small>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            @php
+                                // Calculate total biaya per produk for all processes
+                                $totalBiayaPerProduk = 0;
+                                foreach($prosesProduksis as $proses) {
+                                    if($proses->kapasitas_per_jam > 0 && $proses->jabatan) {
+                                        $jumlahPegawai = $proses->jabatan->pegawais->count();
+                                        $tarifPerJamJabatan = $proses->jabatan->tarif;
+                                        $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
+                                        $totalBiayaPerProduk += ($tarifBtkl / $proses->kapasitas_per_jam);
+                                    }
+                                }
+                            @endphp
+                            <div class="display-6 fw-bold text-primary">Rp {{ number_format($totalBiayaPerProduk, 0, ',', '.') }}</div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="card-footer bg-light">
                     <div class="row text-center">
                         <div class="col-md-3">

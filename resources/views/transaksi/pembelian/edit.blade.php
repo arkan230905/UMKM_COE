@@ -73,7 +73,8 @@ select.form-select option {
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h3 mb-0">
-            <i class="fas fa-edit me-2"></i>Edit Pembelian
+            <i class="fas fa-edit me-2"></i>Edit Pembelian #{{ $pembelian->id }}
+            <small class="text-muted">(Kategori: {{ $kategoriPembelian }})</small>
         </h2>
         <a href="{{ route('transaksi.pembelian.index') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-2"></i>Kembali
@@ -81,20 +82,6 @@ select.form-select option {
     </div>
 
     <!-- Notifications -->
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     @if ($errors->any())
         <div class="alert alert-danger">
             <ul class="mb-0">
@@ -121,26 +108,7 @@ select.form-select option {
                         <div class="vendor-select-container">
                             <select name="vendor_id" id="vendorSelect" class="form-select" required 
                             style="position: relative !important;"
-                            onchange="
-                            var bahanBaku = document.getElementById('cardBahanBaku');
-                            var bahanPendukung = document.getElementById('cardBahanPendukung');
-                            var selectedOption = this.options[this.selectedIndex];
-                            var kategori = (selectedOption.getAttribute('data-kategori') || '').toLowerCase();
-                            
-                            // Hide both first with !important
-                            bahanBaku.style.setProperty('display', 'none', 'important');
-                            bahanPendukung.style.setProperty('display', 'none', 'important');
-                            
-                            if (kategori === 'bahan baku') {
-                                bahanBaku.style.setProperty('display', 'block', 'important');
-                            } else if (kategori === 'bahan pendukung') {
-                                bahanPendukung.style.setProperty('display', 'block', 'important');
-                            } else {
-                                // Default: show both
-                                bahanBaku.style.setProperty('display', 'block', 'important');
-                                bahanPendukung.style.setProperty('display', 'block', 'important');
-                            }
-                            ">
+                            onchange="handleVendorChange(this)">
                                 <option value="">-- Pilih Vendor --</option>
                                 @foreach ($vendors as $vendor)
                                     <option value="{{ $vendor->id }}" 
@@ -186,7 +154,7 @@ select.form-select option {
         </div>
 
         <!-- Bahan Baku Section -->
-        <div class="card mb-4" id="cardBahanBaku">
+        <div class="card mb-4" id="cardBahanBaku" style="display: {{ $kategoriPembelian === 'bahan_pendukung' ? 'none' : 'block' }};">
             <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                 <h6 class="mb-0">
                     <i class="fas fa-box me-2"></i>Bahan Baku
@@ -301,7 +269,7 @@ select.form-select option {
         </div>
 
         <!-- Bahan Pendukung Section -->
-        <div class="card mb-4" id="cardBahanPendukung">
+        <div class="card mb-4" id="cardBahanPendukung" style="display: {{ $kategoriPembelian === 'bahan_baku' ? 'none' : 'block' }};">
             <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
                 <h6 class="mb-0">
                     <i class="fas fa-tools me-2"></i>Bahan Pendukung
@@ -394,15 +362,81 @@ select.form-select option {
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize vendor selection
-    const vendorSelect = document.getElementById('vendorSelect');
-    if (vendorSelect) {
-        vendorSelect.dispatchEvent(new Event('change'));
-    }
-
-    // Initialize existing rows
+    // Initialize existing rows first
     initializeExistingRows();
+    
+    // Initialize based on current category
+    const kategoriPembelian = '{{ $kategoriPembelian }}';
+    initializeSectionVisibility(kategoriPembelian);
+    
+    // Always trigger vendor change if there's a vendor selected
+    // This will override the category-based display with vendor-based display
+    const vendorSelect = document.getElementById('vendorSelect');
+    if (vendorSelect && vendorSelect.value) {
+        console.log('Triggering vendor change for selected vendor');
+        handleVendorChange(vendorSelect);
+    }
 });
+
+function initializeSectionVisibility(kategori) {
+    console.log('Initializing section visibility for category:', kategori);
+    
+    const bahanBaku = document.getElementById('cardBahanBaku');
+    const bahanPendukung = document.getElementById('cardBahanPendukung');
+    
+    // Check vendor category as well
+    const vendorSelect = document.getElementById('vendorSelect');
+    let vendorKategori = '';
+    if (vendorSelect && vendorSelect.value) {
+        const selectedOption = vendorSelect.options[vendorSelect.selectedIndex];
+        vendorKategori = (selectedOption.getAttribute('data-kategori') || '').toLowerCase();
+    }
+    
+    console.log('Vendor category:', vendorKategori);
+    
+    // If vendor is specifically for bahan baku, only show bahan baku section
+    if (vendorKategori.includes('bahan') && vendorKategori.includes('baku') || kategori === 'bahan_baku') {
+        console.log('Showing only Bahan Baku section (vendor or purchase category)');
+        bahanBaku.style.setProperty('display', 'block', 'important');
+        bahanPendukung.style.setProperty('display', 'none', 'important');
+    } else if (vendorKategori.includes('bahan') && vendorKategori.includes('pendukung') || kategori === 'bahan_pendukung') {
+        console.log('Showing only Bahan Pendukung section (vendor or purchase category)');
+        bahanBaku.style.setProperty('display', 'none', 'important');
+        bahanPendukung.style.setProperty('display', 'block', 'important');
+    } else {
+        console.log('Showing both sections (mixed or default)');
+        // mixed or default: show both
+        bahanBaku.style.setProperty('display', 'block', 'important');
+        bahanPendukung.style.setProperty('display', 'block', 'important');
+    }
+}
+
+function handleVendorChange(selectElement) {
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const kategori = (selectedOption.getAttribute('data-kategori') || '').toLowerCase();
+    
+    console.log('Vendor changed to category:', kategori);
+    
+    const bahanBaku = document.getElementById('cardBahanBaku');
+    const bahanPendukung = document.getElementById('cardBahanPendukung');
+    
+    // Hide both first with !important
+    bahanBaku.style.setProperty('display', 'none', 'important');
+    bahanPendukung.style.setProperty('display', 'none', 'important');
+    
+    if (kategori.includes('bahan') && kategori.includes('baku')) {
+        console.log('Vendor is Bahan Baku - showing only Bahan Baku section');
+        bahanBaku.style.setProperty('display', 'block', 'important');
+    } else if (kategori.includes('bahan') && kategori.includes('pendukung')) {
+        console.log('Vendor is Bahan Pendukung - showing only Bahan Pendukung section');
+        bahanPendukung.style.setProperty('display', 'block', 'important');
+    } else {
+        console.log('Vendor is mixed or unknown - showing both sections');
+        // Default: show both
+        bahanBaku.style.setProperty('display', 'block', 'important');
+        bahanPendukung.style.setProperty('display', 'block', 'important');
+    }
+}
 
 function initializeExistingRows() {
     // Initialize existing bahan baku rows

@@ -13,6 +13,7 @@ use App\Models\Coa;
 use App\Helpers\AccountHelper;
 use App\Services\StockService;
 use App\Services\JournalService;
+use App\Services\PembelianJournalService;
 use App\Support\UnitConverter;
 use Illuminate\Support\Facades\DB;
 
@@ -50,10 +51,28 @@ class PembelianController extends Controller
             $query->where('status', $request->status);
         }
         
+        // Filter by status pembayaran
+        if ($request->filled('status_pembayaran')) {
+            if ($request->status_pembayaran === 'lunas') {
+                $query->where(function($q) {
+                    $q->whereIn('payment_method', ['cash', 'transfer'])
+                      ->orWhere('status', 'lunas');
+                });
+            } elseif ($request->status_pembayaran === 'belum_lunas') {
+                $query->where('payment_method', 'credit')
+                      ->where('status', '!=', 'lunas');
+            }
+        }
+        
         $pembelians = $query->latest()->get();
         $vendors = Vendor::orderBy('nama_vendor')->get();
         
-        return view('transaksi.pembelian.index', compact('pembelians', 'vendors'));
+        // Add purchase return data for the Retur tab
+        $returs = \App\Models\PurchaseReturn::with(['pembelian.vendor', 'items.bahanBaku'])
+            ->latest()
+            ->get();
+        
+        return view('transaksi.pembelian.index', compact('pembelians', 'vendors', 'returs'));
     }
 
     public function show($id)
@@ -324,18 +343,8 @@ class PembelianController extends Controller
         // 1. Penjualan (cash/transfer masuk ke kas/bank)
         $penjualanMasuk = DB::table('penjualans')
             ->whereBetween('tanggal', [$startDate, $endDate])
-            ->where(function($query) use ($akun) {
-                $query->where(function($subQuery) use ($akun) {
-                    // Jika akun adalah Kas (mengandung kata 'kas')
-                    if (stripos($akun->nama_akun, 'kas') !== false) {
-                        $subQuery->where('payment_method', 'cash');
-                    }
-                    // Jika akun adalah Bank (mengandung kata 'bank')
-                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
-                        $subQuery->where('payment_method', 'transfer');
-                    }
-                });
-            })
+            ->where('coa_id', $akun->id) // Gunakan coa_id untuk penjualan
+            ->whereIn('payment_method', ['cash', 'transfer']) // Hanya cash dan transfer yang menambah saldo
             ->sum('total');
             
         $totalMasuk += (float) ($penjualanMasuk ?? 0);
@@ -391,18 +400,8 @@ class PembelianController extends Controller
         // 1. Pembelian (cash/transfer keluar dari kas/bank ke persediaan)
         $pembelianKeluar = DB::table('pembelians')
             ->whereBetween('tanggal', [$startDate, $endDate])
-            ->where(function($query) use ($akun) {
-                $query->where(function($subQuery) use ($akun) {
-                    // Jika akun adalah Kas (mengandung kata 'kas')
-                    if (stripos($akun->nama_akun, 'kas') !== false) {
-                        $subQuery->where('payment_method', 'cash');
-                    }
-                    // Jika akun adalah Bank (mengandung kata 'bank')
-                    elseif (stripos($akun->nama_akun, 'bank') !== false) {
-                        $subQuery->where('payment_method', 'transfer');
-                    }
-                });
-            })
+            ->where('bank_id', $akun->id) // Gunakan bank_id yang spesifik
+            ->whereIn('payment_method', ['cash', 'transfer']) // Hanya cash dan transfer yang mengurangi saldo
             ->sum('total_harga');
             
         $totalKeluar += (float) ($pembelianKeluar ?? 0);
@@ -425,7 +424,48 @@ class PembelianController extends Controller
         return $mapping[$coaCode] ?? $coaCode;
     }
 
-        public function store(Request $request, StockService $stock, JournalService $journal)
+        /**
+     * Helper method to validate and calculate conversion to base unit
+     * 
+     * @param float $qtyInput - Quantity in purchase unit
+     * @param string $satuanPembelian - Purchase unit
+     * @param float $faktorKonversi - Conversion factor
+     * @param float|null $qtyManual - Manual input for base unit quantity
+     * @return array - Contains validated conversion data
+     */
+    private function validateAndCalculateConversion($qtyInput, $satuanPembelian, $faktorKonversi, $qtyManual = null)
+    {
+        $result = [
+            'qty_input' => (float) $qtyInput,
+            'satuan_pembelian' => $satuanPembelian,
+            'faktor_konversi_original' => (float) $faktorKonversi,
+            'qty_manual' => $qtyManual ? (float) $qtyManual : null,
+            'qty_in_base_unit' => 0,
+            'faktor_konversi_final' => 0,
+            'conversion_method' => 'automatic'
+        ];
+        
+        // Priority 1: Use manual input if provided
+        if ($qtyManual && $qtyManual > 0) {
+            $result['qty_in_base_unit'] = (float) $qtyManual;
+            $result['faktor_konversi_final'] = $qtyInput > 0 ? $qtyManual / $qtyInput : 1;
+            $result['conversion_method'] = 'manual';
+        } else {
+            // Priority 2: Use automatic conversion
+            $result['qty_in_base_unit'] = $qtyInput * $faktorKonversi;
+            $result['faktor_konversi_final'] = $faktorKonversi;
+            $result['conversion_method'] = 'automatic';
+        }
+        
+        // Validation
+        if ($result['qty_in_base_unit'] <= 0) {
+            throw new \Exception("Konversi tidak valid: Jumlah dalam satuan utama harus lebih dari 0. Input: {$qtyInput} {$satuanPembelian}, Faktor: {$faktorKonversi}, Manual: " . ($qtyManual ?? 'tidak ada'));
+        }
+        
+        return $result;
+    }
+
+    public function store(Request $request, StockService $stock, JournalService $journal)
     {
         // Debug: Log semua data request yang diterima
         \Log::info('Complete request data received:', [
@@ -556,12 +596,19 @@ class PembelianController extends Controller
                 if ($request->bank_id === 'credit') {
                     $paymentMethod = 'credit';
                 } else {
-                    // Cek apakah ini kas atau bank
+                    // Cek apakah ini kas atau bank berdasarkan nama akun
                     $bank = \App\Models\Coa::find($request->bank_id);
-                    if ($bank && (str_contains(strtolower($bank->nama_akun), 'kas') || str_starts_with($bank->kode_akun, '1'))) {
-                        $paymentMethod = 'cash';
-                    } else {
-                        $paymentMethod = 'transfer';
+                    if ($bank) {
+                        $namaAkun = strtolower($bank->nama_akun);
+                        // Jika nama akun mengandung 'kas' tapi BUKAN 'kas bank' atau 'kas di bank'
+                        if (str_contains($namaAkun, 'kas') && 
+                            !str_contains($namaAkun, 'bank') && 
+                            !str_contains($namaAkun, 'di bank')) {
+                            $paymentMethod = 'cash';
+                        } else {
+                            // Untuk semua akun bank (termasuk 'kas bank', 'kas di bank', dll)
+                            $paymentMethod = 'transfer';
+                        }
                     }
                 }
                     
@@ -613,30 +660,46 @@ class PembelianController extends Controller
                         // Ambil jumlah dalam satuan utama dari input manual user
                         $qtyInBaseUnitManual = (float) ($request->jumlah_satuan_utama[$i] ?? 0);
                         
-                        \Log::info("Processing item $i:", [
-                            'qty_input' => $qtyInput,
-                            'satuan_pembelian' => $satuanPembelian,
-                            'faktor_konversi_original' => $faktorKonversi,
-                            'qty_in_base_unit_manual' => $qtyInBaseUnitManual,
-                        ]);
+                        // Use helper method to validate and calculate conversion
+                        $conversionData = $this->validateAndCalculateConversion(
+                            $qtyInput, 
+                            $satuanPembelian, 
+                            $faktorKonversi, 
+                            $qtyInBaseUnitManual > 0 ? $qtyInBaseUnitManual : null
+                        );
                         
-                        // Jika user input manual satuan utama, gunakan itu dan hitung faktor konversi yang sesuai
-                        if ($qtyInBaseUnitManual > 0) {
-                            $qtyInBaseUnit = $qtyInBaseUnitManual;
-                            $faktorKonversi = $qtyInput > 0 ? $qtyInBaseUnit / $qtyInput : 1;
+                        $qtyInBaseUnit = $conversionData['qty_in_base_unit'];
+                        $faktorKonversi = $conversionData['faktor_konversi_final'];
+                        
+                        \Log::info("Conversion validation for item $i:", $conversionData);
+                        
+                        // DOUBLE CHECK: Use model's conversion method for consistency
+                        if ($tipeItem === 'bahan_baku') {
+                            $bahanBaku = BahanBaku::findOrFail($itemId);
+                            $modelConvertedQty = $bahanBaku->convertToSatuanUtama($qtyInput, $satuanPembelian);
                             
-                            \Log::info("Using manual conversion for item $i:", [
-                                'qty_in_base_unit' => $qtyInBaseUnit,
-                                'calculated_faktor_konversi' => $faktorKonversi,
-                            ]);
-                        } else {
-                            // Fallback ke perhitungan otomatis
-                            $qtyInBaseUnit = $qtyInput * $faktorKonversi;
+                            // Use model conversion if significantly different from manual calculation
+                            if (abs($modelConvertedQty - $qtyInBaseUnit) > 0.0001) {
+                                \Log::warning("Conversion mismatch detected, using model conversion:", [
+                                    'manual_calculation' => $qtyInBaseUnit,
+                                    'model_conversion' => $modelConvertedQty,
+                                    'difference' => abs($modelConvertedQty - $qtyInBaseUnit)
+                                ]);
+                                $qtyInBaseUnit = $modelConvertedQty;
+                            }
+                        } elseif ($tipeItem === 'bahan_pendukung') {
+                            $bahanPendukung = \App\Models\BahanPendukung::findOrFail($itemId);
+                            $modelConvertedQty = $bahanPendukung->convertToSatuanUtama($qtyInput, $satuanPembelian);
                             
-                            \Log::info("Using automatic conversion for item $i:", [
-                                'qty_in_base_unit' => $qtyInBaseUnit,
-                                'faktor_konversi' => $faktorKonversi,
-                            ]);
+                            // Use model conversion if significantly different from manual calculation
+                            if (abs($modelConvertedQty - $qtyInBaseUnit) > 0.0001) {
+                                \Log::warning("Conversion mismatch detected, using model conversion:", [
+                                    'manual_calculation' => $qtyInBaseUnit,
+                                    'model_conversion' => $modelConvertedQty,
+                                    'difference' => abs($modelConvertedQty - $qtyInBaseUnit)
+                                ]);
+                                $qtyInBaseUnit = $modelConvertedQty;
+                            }
                         }
                         
                         // Hitung harga per satuan utama
@@ -668,7 +731,7 @@ class PembelianController extends Controller
                                         'harga_satuan' => $hargaSatuan,
                                         'subtotal' => $hargaTotal,
                                         'faktor_konversi' => $faktorKonversi,
-                                        'jumlah_satuan_utama' => $qtyInBaseUnit, // Save manual input
+                                        'jumlah_satuan_utama' => $qtyInBaseUnit, // Save converted quantity
                                     ]);
                                 } catch (\Exception $e) {
                                     // If jumlah_satuan_utama field doesn't exist, create without it
@@ -694,19 +757,44 @@ class PembelianController extends Controller
                                     'saved_subtotal' => $detail->subtotal,
                                 ]);
                                 
-                                // Update moving average harga bahan & stok
-                                $stokLama = (float) ($bahanBaku->stok ?? 0);
-                                $stokBaru = $stokLama + $qtyInBaseUnit;
+                                // CRITICAL: Update stock in base unit (satuan utama) using helper function
+                                // This is the ONLY place where stock should be updated for purchases
+                                \Log::info("BEFORE STOCK UPDATE - Bahan Baku ID {$itemId}:", [
+                                    'nama_bahan' => $bahanBaku->nama_bahan,
+                                    'stok_sebelum' => $bahanBaku->stok,
+                                    'qty_input' => $qtyInput,
+                                    'satuan_input' => $satuanPembelian,
+                                    'qty_in_base_unit' => $qtyInBaseUnit,
+                                    'satuan_utama' => $bahanBaku->satuan->nama ?? 'KG'
+                                ]);
                                 
-                                // Update harga rata-rata menggunakan method dari model
-                                if ($stokBaru > 0) {
-                                    $bahanBaku->updateHargaRataRata($pricePerBaseUnit, $qtyInBaseUnit);
+                                $updateSuccess = $bahanBaku->updateStok($qtyInBaseUnit, 'in', "Purchase ID: {$pembelian->id}");
+                                
+                                if (!$updateSuccess) {
+                                    throw new \Exception("CRITICAL: Stock update failed for Bahan Baku ID {$itemId}");
                                 }
                                 
-                                $bahanBaku->stok = $stokBaru;
-                                $bahanBaku->save();
+                                // Refresh and log final stock
+                                $bahanBaku->refresh();
+                                \Log::info("AFTER STOCK UPDATE - Bahan Baku ID {$itemId}:", [
+                                    'nama_bahan' => $bahanBaku->nama_bahan,
+                                    'stok_sesudah' => $bahanBaku->stok,
+                                    'update_success' => $updateSuccess
+                                ]);
+                                
+                                // Update harga rata-rata menggunakan method dari model
+                                if ($bahanBaku->stok > 0) {
+                                    try {
+                                        $bahanBaku->updateHargaRataRata($pricePerBaseUnit, $qtyInBaseUnit);
+                                        \Log::info("PRICE UPDATE - Success for Bahan Baku ID {$itemId}");
+                                    } catch (\Exception $e) {
+                                        \Log::error("PRICE UPDATE - Failed for Bahan Baku ID {$itemId}: " . $e->getMessage());
+                                        // Don't fail the transaction for price update errors
+                                    }
+                                }
 
-                                // FIFO layer IN + movement
+                                // STOCK MOVEMENT RECORDING (for reports) - NO STOCK UPDATE HERE
+                                // This is ONLY for tracking movements, not for updating actual stock
                                 $unitStr = $bahanBaku->satuan->nama ?? $bahanBaku->satuan ?? 'pcs';
                                 
                                 // Get manual conversion data if exists
@@ -722,6 +810,7 @@ class PembelianController extends Controller
                                     ];
                                 }
                                 
+                                // Record stock movement for reporting (this should NOT update actual stock)
                                 $stock->addLayerWithManualConversion('material', $bahanBaku->id, $qtyInBaseUnit, $unitStr, $pricePerBaseUnit, 'purchase', $pembelian->id, $request->tanggal, $manualConversionData);
                                 
                             } elseif ($tipeItem === 'bahan_pendukung') {
@@ -739,7 +828,7 @@ class PembelianController extends Controller
                                         'harga_satuan' => $hargaSatuan,
                                         'subtotal' => $hargaTotal,
                                         'faktor_konversi' => $faktorKonversi,
-                                        'jumlah_satuan_utama' => $qtyInBaseUnit, // Save manual input
+                                        'jumlah_satuan_utama' => $qtyInBaseUnit, // Save converted quantity
                                     ]);
                                 } catch (\Exception $e) {
                                     // If jumlah_satuan_utama field doesn't exist, create without it
@@ -759,23 +848,37 @@ class PembelianController extends Controller
                                 // Simpan konversi manual sub satuan jika ada
                                 $this->simpanKonversiManualBaru($detail->id, $request, $i);
                                 
-                                // Update moving average harga bahan & stok
-                                $stokLama = (float) ($bahanPendukung->stok ?? 0);
-                                $stokBaru = $stokLama + $qtyInBaseUnit;
+                                // CRITICAL: Update stock in base unit (satuan utama) using helper function
+                                // This is the ONLY place where stock should be updated for purchases
+                                \Log::info("BEFORE STOCK UPDATE - Bahan Pendukung ID {$itemId}:", [
+                                    'nama_bahan' => $bahanPendukung->nama_bahan,
+                                    'stok_sebelum' => $bahanPendukung->stok,
+                                    'qty_input' => $qtyInput,
+                                    'satuan_input' => $satuanPembelian,
+                                    'qty_in_base_unit' => $qtyInBaseUnit,
+                                    'satuan_utama' => $bahanPendukung->satuanRelation->nama ?? 'unit'
+                                ]);
                                 
-                                // Update harga rata-rata
-                                if ($stokBaru > 0) {
-                                    $hargaLama = (float) ($bahanPendukung->harga_satuan ?? 0);
-                                    $hargaBaru = (($stokLama * $hargaLama) + $hargaTotal) / $stokBaru;
-                                    $bahanPendukung->harga_satuan = $hargaBaru;
+                                $updateSuccess = $bahanPendukung->updateStok($qtyInBaseUnit, 'in', "Purchase ID: {$pembelian->id}");
+                                
+                                if (!$updateSuccess) {
+                                    throw new \Exception("CRITICAL: Stock update failed for Bahan Pendukung ID {$itemId}");
                                 }
+                                
+                                // Refresh and log final stock
+                                $bahanPendukung->refresh();
+                                \Log::info("AFTER STOCK UPDATE - Bahan Pendukung ID {$itemId}:", [
+                                    'nama_bahan' => $bahanPendukung->nama_bahan,
+                                    'stok_sesudah' => $bahanPendukung->stok,
+                                    'update_success' => $updateSuccess
+                                ]);
 
-                                $bahanPendukung->stok = $stokBaru;
-                                $bahanPendukung->save();
-
-                                // FIFO layer IN + movement untuk bahan pendukung
+                                // STOCK MOVEMENT RECORDING (for reports) - NO STOCK UPDATE HERE
+                                // This is ONLY for tracking movements, not for updating actual stock
                                 $unitStr = (string)($bahanPendukung->satuanRelation->nama ?? $bahanPendukung->satuan ?? 'pcs');
-                                $stock->addLayer('support', $bahanPendukung->id, $qtyInBaseUnit, $unitStr, $pricePerBaseUnit, 'purchase', $pembelian->id, $request->tanggal);
+                                
+                                // Record stock movement for reporting (this should NOT update actual stock)
+                                $stock->addLayerWithManualConversion('support', $bahanPendukung->id, $qtyInBaseUnit, $unitStr, $pricePerBaseUnit, 'purchase', $pembelian->id, $request->tanggal);
                             }
                     }
 
@@ -791,16 +894,51 @@ class PembelianController extends Controller
                     throw new \Exception('Gagal menyimpan detail pembelian. Silakan coba lagi.');
                 }
                 
+                // VALIDASI: Log semua update stok yang terjadi
+                $updatedItems = [];
+                foreach ($request->item_id as $i => $itemId) {
+                    if (empty($itemId) || empty($request->tipe_item[$i])) continue;
+                    
+                    $tipeItem = $request->tipe_item[$i];
+                    if ($tipeItem === 'bahan_baku') {
+                        $bahanBaku = BahanBaku::find($itemId);
+                        if ($bahanBaku) {
+                            $updatedItems[] = [
+                                'type' => 'Bahan Baku',
+                                'id' => $itemId,
+                                'nama' => $bahanBaku->nama_bahan,
+                                'stok_final' => $bahanBaku->stok,
+                                'satuan_utama' => $bahanBaku->satuan->nama ?? 'KG'
+                            ];
+                        }
+                    } elseif ($tipeItem === 'bahan_pendukung') {
+                        $bahanPendukung = \App\Models\BahanPendukung::find($itemId);
+                        if ($bahanPendukung) {
+                            $updatedItems[] = [
+                                'type' => 'Bahan Pendukung',
+                                'id' => $itemId,
+                                'nama' => $bahanPendukung->nama_bahan,
+                                'stok_final' => $bahanPendukung->stok,
+                                'satuan_utama' => $bahanPendukung->satuanRelation->nama ?? 'unit'
+                            ];
+                        }
+                    }
+                }
+                
                 \Log::info('Pembelian berhasil dengan detail', [
                     'pembelian_id' => $pembelian->id,
                     'detail_count' => $savedDetails,
                     'total_bahan_baku' => $totalBahanBaku,
                     'total_bahan_pendukung' => $totalBahanPendukung,
+                    'updated_stock_items' => $updatedItems
                 ]);
 
+                // DISABLED: Let PembelianObserver handle journal creation to avoid conflicts
+                /*
                 // Create journal entries for accounting integration
                 try {
-                    \App\Services\JournalService::createJournalFromPembelian($pembelian);
+                    $pembelianJournalService = new PembelianJournalService();
+                    $pembelianJournalService->createJournalFromPembelian($pembelian);
                     \Log::info('Journal entries created successfully for pembelian', [
                         'pembelian_id' => $pembelian->id,
                     ]);
@@ -811,10 +949,85 @@ class PembelianController extends Controller
                     ]);
                     // Don't fail the transaction, just log the error
                 }
+                */
 
                 return redirect()->route('transaksi.pembelian.index')
                     ->with('success', 'Data pembelian berhasil disimpan!');
             });
+    }
+
+    /**
+     * Helper method to manually update stock for debugging
+     * Call this method if automatic stock update fails
+     */
+    public function manualStockUpdate($pembelianId)
+    {
+        try {
+            $pembelian = Pembelian::with('details')->findOrFail($pembelianId);
+            
+            \Log::info("MANUAL STOCK UPDATE - Starting for Pembelian ID: {$pembelianId}");
+            
+            $updatedItems = [];
+            
+            foreach ($pembelian->details as $detail) {
+                if ($detail->bahan_baku_id) {
+                    $bahanBaku = BahanBaku::find($detail->bahan_baku_id);
+                    if ($bahanBaku) {
+                        // Get conversion quantity
+                        $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * ($detail->faktor_konversi ?? 1));
+                        
+                        // Update stock
+                        $stokLama = $bahanBaku->stok;
+                        $bahanBaku->stok += $qtyInBaseUnit;
+                        $bahanBaku->save();
+                        
+                        $updatedItems[] = [
+                            'type' => 'Bahan Baku',
+                            'id' => $detail->bahan_baku_id,
+                            'nama' => $bahanBaku->nama_bahan,
+                            'qty_added' => $qtyInBaseUnit,
+                            'stok_lama' => $stokLama,
+                            'stok_baru' => $bahanBaku->stok
+                        ];
+                    }
+                } elseif ($detail->bahan_pendukung_id) {
+                    $bahanPendukung = \App\Models\BahanPendukung::find($detail->bahan_pendukung_id);
+                    if ($bahanPendukung) {
+                        // Get conversion quantity
+                        $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * ($detail->faktor_konversi ?? 1));
+                        
+                        // Update stock
+                        $stokLama = $bahanPendukung->stok;
+                        $bahanPendukung->stok += $qtyInBaseUnit;
+                        $bahanPendukung->save();
+                        
+                        $updatedItems[] = [
+                            'type' => 'Bahan Pendukung',
+                            'id' => $detail->bahan_pendukung_id,
+                            'nama' => $bahanPendukung->nama_bahan,
+                            'qty_added' => $qtyInBaseUnit,
+                            'stok_lama' => $stokLama,
+                            'stok_baru' => $bahanPendukung->stok
+                        ];
+                    }
+                }
+            }
+            
+            \Log::info("MANUAL STOCK UPDATE - Completed", ['updated_items' => $updatedItems]);
+            
+            return [
+                'success' => true,
+                'message' => 'Manual stock update completed',
+                'updated_items' => $updatedItems
+            ];
+            
+        } catch (\Exception $e) {
+            \Log::error("MANUAL STOCK UPDATE - Failed: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Manual stock update failed: ' . $e->getMessage()
+            ];
+        }
     }
 
     public function edit($id)
@@ -825,7 +1038,7 @@ class PembelianController extends Controller
         $produks = Produk::orderBy('nama_produk')->get();
         $bahanBakus = BahanBaku::with('satuan')->orderBy('nama_bahan')->get();
         $bahanPendukungs = BahanPendukung::with('satuan')->orderBy('nama_bahan')->get();
-        $coas = Coa::orderBy('nama_akun')->get();
+        $coas = Coa::all();
         
         // Filter COA untuk kas/bank
         $kasbank = $coas->filter(function($coa) {
@@ -841,6 +1054,18 @@ class PembelianController extends Controller
             $currentBalances[$bank->kode_akun] = $bank->saldo_awal ?? 0;
         }
         
+        // Tentukan jenis pembelian berdasarkan detail yang ada
+        $hasBahanBaku = $pembelian->details->where('bahan_baku_id', '!=', null)->count() > 0;
+        $hasBahanPendukung = $pembelian->details->where('bahan_pendukung_id', '!=', null)->count() > 0;
+        
+        // Tentukan kategori pembelian
+        $kategoriPembelian = 'mixed'; // default
+        if ($hasBahanBaku && !$hasBahanPendukung) {
+            $kategoriPembelian = 'bahan_baku';
+        } elseif ($hasBahanPendukung && !$hasBahanBaku) {
+            $kategoriPembelian = 'bahan_pendukung';
+        }
+        
         return view('transaksi.pembelian.edit', compact(
             'pembelian',
             'vendors',
@@ -849,7 +1074,8 @@ class PembelianController extends Controller
             'bahanPendukungs',
             'coas',
             'kasbank',
-            'currentBalances'
+            'currentBalances',
+            'kategoriPembelian'
         ));
     }
 
@@ -1037,31 +1263,54 @@ class PembelianController extends Controller
                 $itemId = $detail->bahan_baku_id ?? $detail->bahan_pendukung_id;
                 
                 if ($itemId) {
+                    // Calculate the quantity that was added to stock (in base unit)
+                    $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+                    
+                    $bahanBaku = null;
+                    $bahanPendukung = null;
+                    
                     // Update stock in bahan_bakus or bahan_pendukungs table
                     if ($detail->bahan_baku_id) {
-                        \DB::table('bahan_bakus')
-                            ->where('id', $detail->bahan_baku_id)
-                            ->decrement('stok_tersedia', $detail->jumlah);
+                        // Use the helper method to properly decrease stock
+                        $bahanBaku = \App\Models\BahanBaku::with('satuan')->find($detail->bahan_baku_id);
+                        if ($bahanBaku) {
+                            $updateSuccess = $bahanBaku->updateStok($qtyInBaseUnit, 'out', "Purchase deletion ID: {$pembelian->id}");
+                            if (!$updateSuccess) {
+                                \Log::warning("Failed to reverse stock for bahan baku ID: {$detail->bahan_baku_id}");
+                                // Continue with deletion even if stock reversal fails
+                            }
+                        }
                     } elseif ($detail->bahan_pendukung_id) {
-                        \DB::table('bahan_pendukungs')
-                            ->where('id', $detail->bahan_pendukung_id)
-                            ->decrement('stok_tersedia', $detail->jumlah);
+                        // Use the helper method to properly decrease stock
+                        $bahanPendukung = \App\Models\BahanPendukung::with('satuanRelation')->find($detail->bahan_pendukung_id);
+                        if ($bahanPendukung) {
+                            $updateSuccess = $bahanPendukung->updateStok($qtyInBaseUnit, 'out', "Purchase deletion ID: {$pembelian->id}");
+                            if (!$updateSuccess) {
+                                \Log::warning("Failed to reverse stock for bahan pendukung ID: {$detail->bahan_pendukung_id}");
+                                // Continue with deletion even if stock reversal fails
+                            }
+                        }
                     }
                     
-                    // Create reverse stock movement
-                    \DB::table('stock_movements')->insert([
-                        'item_type' => 'material',
-                        'item_id' => $itemId,
-                        'direction' => 'out',
-                        'qty' => $detail->jumlah,
-                        'unit_cost' => $detail->harga_satuan,
-                        'tanggal' => now(),
-                        'keterangan' => 'Pembatalan pembelian #' . $pembelian->nomor_pembelian,
-                        'ref_type' => 'pembelian_cancellation',
-                        'ref_id' => $pembelian->id,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
+                    // Create reverse stock movement (only if we have the material loaded)
+                    if ($bahanBaku || $bahanPendukung) {
+                        \DB::table('stock_movements')->insert([
+                            'item_type' => $detail->bahan_baku_id ? 'material' : 'support',
+                            'item_id' => $itemId,
+                            'tanggal' => now()->format('Y-m-d'),
+                            'direction' => 'out',
+                            'qty' => $qtyInBaseUnit,
+                            'satuan' => $bahanBaku ? 
+                                ($bahanBaku->satuan->nama ?? 'KG') : 
+                                ($bahanPendukung->satuanRelation->nama ?? 'unit'),
+                            'unit_cost' => $detail->harga_satuan,
+                            'total_cost' => $qtyInBaseUnit * $detail->harga_satuan,
+                            'ref_type' => 'purchase_cancellation',
+                            'ref_id' => $pembelian->id,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    }
                 }
             }
             
@@ -1086,12 +1335,23 @@ class PembelianController extends Controller
                 \Log::info('Deleted journal entries', ['count' => $journalEntryIds->count()]);
             }
             
-            // 7. Delete pembelian detail konversi records
+            // 7. Delete pembelian detail konversi records (if table exists)
             $detailIds = $pembelian->pembelianDetails->pluck('id');
             if ($detailIds->count() > 0) {
-                \DB::table('pembelian_detail_konversis')
-                    ->whereIn('pembelian_detail_id', $detailIds)
-                    ->delete();
+                // Try both possible table names
+                if (\Schema::hasTable('pembelian_detail_konversi')) {
+                    \DB::table('pembelian_detail_konversi')
+                        ->whereIn('pembelian_detail_id', $detailIds)
+                        ->delete();
+                    \Log::info('Deleted pembelian_detail_konversi records');
+                } elseif (\Schema::hasTable('pembelian_detail_konversis')) {
+                    \DB::table('pembelian_detail_konversis')
+                        ->whereIn('pembelian_detail_id', $detailIds)
+                        ->delete();
+                    \Log::info('Deleted pembelian_detail_konversis records');
+                } else {
+                    \Log::info('No pembelian detail konversi table found - skipping');
+                }
             }
             
             // 8. Delete pembelian details
@@ -1122,6 +1382,117 @@ class PembelianController extends Controller
             
             return redirect()->back()
                 ->with('error', 'Gagal menghapus pembelian: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Download purchase invoice as PDF
+     */
+    public function cetakPdf($id)
+    {
+        try {
+            // Get purchase data with all related information
+            $pembelian = Pembelian::with([
+                'vendor',
+                'details.bahanBaku',
+                'details.bahanPendukung',
+                'kasBank'
+            ])->findOrFail($id);
+
+            // Calculate totals
+            $subtotal = $pembelian->subtotal ?? 0;
+            $ppnNominal = $pembelian->ppn_nominal ?? 0;
+            $biayaKirim = $pembelian->biaya_kirim ?? 0;
+            $grandTotal = $pembelian->total_harga ?? ($subtotal + $ppnNominal + $biayaKirim);
+
+            // Company information
+            $company = [
+                'name' => 'UMKM COE',
+                'address' => 'Jl. Contoh Alamat No. 123, Kota, Provinsi',
+                'phone' => '(021) 1234-5678',
+                'email' => 'info@umkmcoe.com'
+            ];
+
+            // Generate PDF
+            $pdf = \PDF::loadView('transaksi.pembelian.cetak-pdf', compact(
+                'pembelian',
+                'subtotal',
+                'ppnNominal',
+                'biayaKirim',
+                'grandTotal',
+                'company'
+            ));
+
+            // Set PDF options
+            $pdf->setPaper('A4', 'portrait');
+            $pdf->setOptions([
+                'dpi' => 150,
+                'defaultFont' => 'sans-serif',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+            ]);
+
+            // Generate filename
+            $filename = 'Faktur_Pembelian_' . $pembelian->nomor_pembelian . '_' . date('Y-m-d') . '.pdf';
+
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            \Log::error('Error generating PDF for purchase invoice', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()
+                ->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Preview faktur pembelian sebelum print/download
+     */
+    public function previewFaktur($id)
+    {
+        try {
+            // Get purchase data with all related information
+            $pembelian = Pembelian::with([
+                'vendor',
+                'details.bahanBaku',
+                'details.bahanPendukung',
+                'kasBank'
+            ])->findOrFail($id);
+
+            // Calculate totals
+            $subtotal = $pembelian->subtotal ?? 0;
+            $ppnNominal = $pembelian->ppn_nominal ?? 0;
+            $biayaKirim = $pembelian->biaya_kirim ?? 0;
+            $grandTotal = $pembelian->total_harga ?? ($subtotal + $ppnNominal + $biayaKirim);
+
+            // Company information
+            $company = [
+                'name' => 'UMKM COE',
+                'address' => 'Jl. Contoh Alamat No. 123, Kota, Provinsi',
+                'phone' => '(021) 1234-5678',
+                'email' => 'info@umkmcoe.com'
+            ];
+
+            return view('transaksi.pembelian.preview-faktur', compact(
+                'pembelian',
+                'subtotal',
+                'ppnNominal',
+                'biayaKirim',
+                'grandTotal',
+                'company'
+            ));
+
+        } catch (\Exception $e) {
+            \Log::error('Error previewing purchase invoice', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()
+                ->with('error', 'Gagal menampilkan preview faktur: ' . $e->getMessage());
         }
     }
 }

@@ -45,9 +45,9 @@
                             <td><strong>Satuan Utama:</strong></td>
                             <td>
                                 @if($bahanBaku->satuan)
-                                    <span class="badge bg-info">{{ $bahanBaku->satuan->nama }}</span>
+                                    {{ $bahanBaku->satuan->nama }}
                                 @else
-                                    <span class="badge bg-secondary">-</span>
+                                    -
                                 @endif
                             </td>
                         </tr>
@@ -244,10 +244,10 @@
                     <div class="text-center mb-3">
                         <h6 class="text-success fw-bold">COA Pembelian</h6>
                         @if($bahanBaku->coaPembelian)
-                            <span class="badge bg-success fs-6">{{ $bahanBaku->coaPembelian->nama_akun }}</span><br>
+                            <div class="fw-semibold">{{ $bahanBaku->coaPembelian->nama_akun }}</div>
                             <small class="text-muted">{{ $bahanBaku->coaPembelian->kode_akun }}</small>
                         @else
-                            <span class="badge bg-secondary fs-6">-</span><br>
+                            <div class="text-muted">-</div>
                             <small class="text-muted">Tidak ada COA</small>
                         @endif
                     </div>
@@ -256,10 +256,10 @@
                     <div class="text-center mb-3">
                         <h6 class="text-info fw-bold">COA Persediaan</h6>
                         @if($bahanBaku->coaPersediaan)
-                            <span class="badge bg-info fs-6">{{ $bahanBaku->coaPersediaan->nama_akun }}</span><br>
+                            <div class="fw-semibold">{{ $bahanBaku->coaPersediaan->nama_akun }}</div>
                             <small class="text-muted">{{ $bahanBaku->coaPersediaan->kode_akun }}</small>
                         @else
-                            <span class="badge bg-secondary fs-6">-</span><br>
+                            <div class="text-muted">-</div>
                             <small class="text-muted">Tidak ada COA</small>
                         @endif
                     </div>
@@ -268,10 +268,10 @@
                     <div class="text-center mb-3">
                         <h6 class="text-warning fw-bold">COA HPP</h6>
                         @if($bahanBaku->coaHpp)
-                            <span class="badge bg-warning fs-6">{{ $bahanBaku->coaHpp->nama_akun }}</span><br>
+                            <div class="fw-semibold">{{ $bahanBaku->coaHpp->nama_akun }}</div>
                             <small class="text-muted">{{ $bahanBaku->coaHpp->kode_akun }}</small>
                         @else
-                            <span class="badge bg-secondary fs-6">-</span><br>
+                            <div class="text-muted">-</div>
                             <small class="text-muted">Tidak ada COA</small>
                         @endif
                     </div>

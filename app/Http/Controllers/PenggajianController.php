@@ -141,11 +141,14 @@ class PenggajianController extends Controller
                 throw new \Exception('Akun kas/bank tidak ditemukan');
             }
 
-            // Hitung saldo kas/bank
+            // Hitung saldo kas/bank dari saldo_awal + jurnal
             $saldoAwal = (float) ($coaKasBank->saldo_awal ?? 0);
-            $saldoDebit = (float) ($coaKasBank->saldo_debit ?? 0);
-            $saldoKredit = (float) ($coaKasBank->saldo_kredit ?? 0);
-            $saldoAkhir = $saldoAwal + $saldoDebit - $saldoKredit;
+            $jurnalSaldo = \DB::table('journal_entries as je')
+                ->join('journal_lines as jl', 'je.id', '=', 'jl.journal_entry_id')
+                ->where('jl.coa_id', $coaKasBank->id)
+                ->selectRaw('COALESCE(SUM(jl.debit), 0) as total_debit, COALESCE(SUM(jl.credit), 0) as total_credit')
+                ->first();
+            $saldoAkhir = $saldoAwal + ($jurnalSaldo->total_debit ?? 0) - ($jurnalSaldo->total_credit ?? 0);
 
             // Validasi saldo cukup
             if ($saldoAkhir < $totalGaji) {
@@ -181,6 +184,9 @@ class PenggajianController extends Controller
                 'potongan' => $potongan,
                 'status_pembayaran' => 'lunas'
             ]);
+
+            // Buat jurnal umum otomatis (Debit: Beban Gaji, Kredit: Kas/Bank)
+            $this->createJournalEntry($penggajian, $pegawai);
 
             // Commit transaksi
             DB::commit();
@@ -228,13 +234,26 @@ class PenggajianController extends Controller
     private function createJournalEntry($penggajian, $pegawai)
     {
         try {
-            // Cari akun beban gaji
-            $coaBebanGaji = Coa::whereRaw('LOWER(nama_akun) LIKE ?', ['%beban gaji%'])
-                ->orWhere('kode_akun', '501')
-                ->first();
+            // Tentukan akun beban berdasarkan jenis pegawai
+            $jenisPegawai = strtolower($pegawai->kategori ?? $pegawai->jenis_pegawai ?? 'btktl');
+            
+            if ($jenisPegawai === 'btkl') {
+                // BTKL → 52 (Biaya Tenaga Kerja Langsung)
+                $coaBebanGaji = Coa::where('kode_akun', '52')->first();
+            } else {
+                // BTKTL → 54 (Biaya Tenaga Kerja Tidak Langsung)
+                $coaBebanGaji = Coa::where('kode_akun', '54')->first();
+            }
+            
+            // Fallback: cari akun beban gaji umum
+            if (!$coaBebanGaji) {
+                $coaBebanGaji = Coa::whereRaw('LOWER(nama_akun) LIKE ?', ['%beban gaji%'])
+                    ->orWhereRaw('LOWER(nama_akun) LIKE ?', ['%biaya tenaga kerja%'])
+                    ->first();
+            }
             
             if (!$coaBebanGaji) {
-                throw new \Exception('Akun beban gaji tidak ditemukan');
+                throw new \Exception('Akun beban gaji tidak ditemukan. Pastikan COA kode 52 (BTKL) atau 54 (BTKTL) sudah ada.');
             }
 
             // Pastikan akun kas/bank valid
@@ -256,7 +275,7 @@ class PenggajianController extends Controller
             $journalService = app(\App\Services\JournalService::class);
             
             $result = $journalService->post(
-                $penggajian->tanggal_penggajian,
+                $penggajian->tanggal_penggajian->format('Y-m-d'),
                 'penggajian',
                 (int)$penggajian->id,
                 'Penggajian - ' . $pegawai->nama,
@@ -279,7 +298,7 @@ class PenggajianController extends Controller
         } catch (\Exception $e) {
             \Log::error('Gagal membuat jurnal penggajian: ' . $e->getMessage());
             \Log::error($e->getTraceAsString());
-            return false;
+            throw $e; // Re-throw agar DB transaction di store() ikut rollback
         }
     }
 
@@ -288,30 +307,11 @@ class PenggajianController extends Controller
      */
     protected function updateCoaSaldo($kodeAkun)
     {
-        try {
-            $coa = Coa::where('kode_akun', $kodeAkun)->first();
-            if (!$coa) {
-                \Log::warning('COA tidak ditemukan: ' . $kodeAkun);
-                return false;
-            }
-            
-            // Hitung saldo dari jurnal
-            $saldo = \DB::table('journal_entries as je')
-                ->join('journal_lines as jl', 'je.id', '=', 'jl.journal_entry_id')
-                ->where('jl.account_id', $coa->id)
-                ->selectRaw('COALESCE(SUM(jl.debit - jl.credit), 0) as saldo')
-                ->first();
-                
-            // Update saldo di COA
-            $coa->saldo_akhir = $coa->saldo_awal + $saldo->saldo;
-            $coa->save();
-            
-            return true;
-            
-        } catch (\Exception $e) {
-            \Log::error('Gagal update saldo COA: ' . $e->getMessage());
-            return false;
-        }
+        // Saldo dihitung langsung dari saldo_awal + journal_lines.
+        // Tabel coas tidak memiliki kolom saldo_akhir, jadi tidak perlu di-update.
+        // Saldo aktual selalu dihitung on-the-fly dari jurnal.
+        \Log::info('Saldo COA ' . $kodeAkun . ' akan dihitung dari jurnal saat dibutuhkan.');
+        return true;
     }
     
     /**

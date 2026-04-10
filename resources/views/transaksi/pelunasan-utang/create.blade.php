@@ -100,7 +100,7 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label>Akun Pembayaran <span class="text-danger">*</span></label>
                             <select class="form-control @error('akun_kas_id') is-invalid @enderror" name="akun_kas_id" required>
@@ -121,7 +121,28 @@
                             </small>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>COA Pelunasan <span class="text-danger">*</span></label>
+                            <select class="form-control @error('coa_pelunasan_id') is-invalid @enderror" name="coa_pelunasan_id" required>
+                                <option value="">Pilih COA Pelunasan</option>
+                                @foreach($coaPelunasan as $coa)
+                                    <option value="{{ $coa->id }}" {{ old('coa_pelunasan_id') == $coa->id ? 'selected' : '' }}>
+                                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('coa_pelunasan_id')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+                            <small class="form-text text-muted">
+                                Pilih akun COA untuk pelunasan utang
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label>Jumlah Pembayaran <span class="text-danger">*</span></label>
                             <div class="input-group">
@@ -172,42 +193,57 @@
             const pembelianSelect = document.querySelector('select[name="pembelian_id"]');
             const detailSection = document.getElementById('detail-pembelian');
             const vendorName = document.getElementById('vendor-name');
+            const totalPembelian = document.getElementById('total-pembelian');
             const sisaUtangDetail = document.getElementById('sisa-utang-detail');
             const jumlahInput = document.getElementById('jumlah');
             const sisaUtangSpan = document.getElementById('sisa-utang');
             
             if (pembelianSelect) {
                 pembelianSelect.addEventListener('change', function() {
-                    const selectedOption = this.options[this.selectedIndex];
-                    const sisaUtang = selectedOption.getAttribute('data-sisa') || 0;
+                    const pembelianId = this.value;
                     
-                    if (sisaUtang > 0) {
-                        // Show detail section
-                        detailSection.style.display = 'block';
-                        
-                        // Fill in the details
-                        const text = selectedOption.text;
-                        const parts = text.split(' - ');
-                        const vendorPart = parts[1] ? parts[1].split(' (')[0] : 'Vendor tidak diketahui';
-                        
-                        vendorName.textContent = vendorPart;
-                        sisaUtangDetail.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(sisaUtang);
-                        
-                        // Auto-fill jumlah with sisa utang
-                        jumlahInput.value = sisaUtang;
+                    if (pembelianId) {
+                        // Make AJAX call to get purchase details
+                        fetch(`/transaksi/pelunasan-utang/get-pembelian/${pembelianId}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    // Show detail section
+                                    detailSection.style.display = 'block';
+                                    
+                                    // Fill in the details
+                                    vendorName.textContent = data.data.vendor;
+                                    totalPembelian.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(data.data.total_pembelian);
+                                    sisaUtangDetail.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(data.data.sisa_utang);
+                                    
+                                    // Auto-fill jumlah with sisa utang
+                                    jumlahInput.value = data.data.sisa_utang;
+                                    jumlahInput.max = data.data.sisa_utang;
+                                    
+                                    // Format and display remaining debt
+                                    const formatter = new Intl.NumberFormat('id-ID', {
+                                        style: 'currency',
+                                        currency: 'IDR',
+                                        maximumFractionDigits: 0,
+                                    });
+                                    
+                                    sisaUtangSpan.textContent = formatter.format(data.data.sisa_utang);
+                                } else {
+                                    alert(data.message);
+                                    detailSection.style.display = 'none';
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                alert('Terjadi kesalahan saat mengambil data pembelian');
+                                detailSection.style.display = 'none';
+                            });
                     } else {
+                        // Hide detail section if no purchase selected
                         detailSection.style.display = 'none';
                         jumlahInput.value = '';
+                        sisaUtangSpan.textContent = 'Rp 0';
                     }
-                    
-                    // Format and display remaining debt
-                    const formatter = new Intl.NumberFormat('id-ID', {
-                        style: 'currency',
-                        currency: 'IDR',
-                        maximumFractionDigits: 0,
-                    });
-                    
-                    sisaUtangSpan.textContent = formatter.format(sisaUtang);
                 });
 
                 // Trigger change event on page load if there's a selected pembelian

@@ -10,19 +10,26 @@ class Jabatan extends Model
     protected $fillable = [
         'kode_jabatan', 
         'nama', 
+        'kategori',
         'kategori_id',
         'gaji_pokok', 
         'tunjangan', 
+        'tunjangan_transport',
+        'tunjangan_konsumsi',
         'asuransi', 
-        'tarif', 
+        'tarif',
+        'tarif_per_jam', 
         'deskripsi'
     ];
 
     protected $casts = [
         'gaji_pokok' => 'decimal:2',
         'tunjangan' => 'decimal:2',
+        'tunjangan_transport' => 'decimal:2',
+        'tunjangan_konsumsi' => 'decimal:2',
         'asuransi' => 'decimal:2',
         'tarif' => 'decimal:2',
+        'tarif_per_jam' => 'decimal:2',
     ];
 
     /**
@@ -59,29 +66,19 @@ class Jabatan extends Model
     }
 
     /**
-     * Get tarif per jam (alias for tarif column)
-     */
-    public function getTarifPerJamAttribute()
-    {
-        return $this->tarif;
-    }
-
-    /**
      * Scope untuk mencari jabatan
      */
     public function scopeSearch($query, $search)
     {
         return $query->where('nama', 'like', "%{$search}%")
-                    ->orWhereHas('kategori', function($q) use ($search) {
-                        $q->where('nama', 'like', "%{$search}%");
-                    });
+                    ->orWhere('kategori', 'like', "%{$search}%");
     }
 
     /**
      * Scope untuk filter by kategori
      */
-    public function scopeByKategori($query, $kategoriId)
+    public function scopeByKategori($query, $kategori)
     {
-        return $query->where('kategori_id', $kategoriId);
+        return $query->where('kategori', $kategori);
     }
 }

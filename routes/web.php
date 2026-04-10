@@ -2080,6 +2080,7 @@ Route::middleware('auth')->group(function () {
         // Harga Pokok Produksi Routes
         Route::prefix('harga-pokok-produksi')->name('harga-pokok-produksi.')->group(function () {
             Route::get('calculate/{produkId}', [BomController::class, 'calculateBomCost'])->name('calculate');
+            Route::post('update-from-stock/{produkId}', [BomController::class, 'updateBomFromStockReport'])->name('update-from-stock');
             Route::get('by-produk/{id}', [BomController::class, 'view'])->name('view-by-produk');
             Route::post('by-produk/{id}', [BomController::class, 'updateByProduk'])->name('update-by-produk');
             Route::get('generate-kode', [BomController::class, 'generateKodeBom'])->name('generate-kode');
@@ -2260,6 +2261,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/{pembelian}/edit', [PembelianController::class, 'edit'])->name('edit');
             Route::put('/{pembelian}', [PembelianController::class, 'update'])->name('update');
             Route::delete('/{pembelian}', [PembelianController::class, 'destroy'])->name('destroy');
+            Route::get('/{pembelian}/cetak-pdf', [PembelianController::class, 'cetakPdf'])->name('cetak-pdf');
+            Route::get('/{pembelian}/preview-faktur', [PembelianController::class, 'previewFaktur'])->name('preview-faktur');
         });
 
         // ============================================================
@@ -2285,7 +2288,161 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [ReturController::class, 'indexPembelian'])->name('index');
             Route::get('/create', [ReturController::class, 'createPembelian'])->name('create');
             Route::post('/', [ReturController::class, 'storePembelian'])->name('store');
+            Route::post('/update-status/{id}', [ReturController::class, 'updateStatus'])->name('update-status');
             Route::get('/{id}', [ReturController::class, 'showPembelian'])->name('show');
+            Route::delete('/{id}', [ReturController::class, 'destroyPembelian'])->name('destroy');
+            Route::get('debug-stock-pembelian/{pembelianId}', function($pembelianId) {
+    $pembelian = \App\Models\Pembelian::with(['details.bahanBaku', 'details.bahanPendukung'])->find($pembelianId);
+    
+    if (!$pembelian) {
+        return "Pembelian ID {$pembelianId} tidak ditemukan";
+    }
+    
+    $vendorName = $pembelian->vendor->nama_vendor ?? 'N/A';
+    
+    $output = "<h2>Debug Stock Update - Pembelian ID: {$pembelianId}</h2>";
+    $output .= "<p><strong>Tanggal:</strong> {$pembelian->tanggal}</p>";
+    $output .= "<p><strong>Vendor:</strong> {$vendorName}</p>";
+    $output .= "<hr>";
+    
+    foreach ($pembelian->details as $detail) {
+        $output .= "<div style='border: 1px solid #ccc; padding: 10px; margin: 10px 0;'>";
+        
+        if ($detail->bahan_baku_id) {
+            $bahan = $detail->bahanBaku;
+            $satuanUtama = $bahan->satuan->nama ?? 'KG';
+            $output .= "<h4>Bahan Baku: {$bahan->nama_bahan}</h4>";
+            $output .= "<p><strong>Stok Saat Ini:</strong> {$bahan->stok} {$satuanUtama}</p>";
+        } elseif ($detail->bahan_pendukung_id) {
+            $bahan = $detail->bahanPendukung;
+            $satuanUtama = $bahan->satuanRelation->nama ?? 'unit';
+            $output .= "<h4>Bahan Pendukung: {$bahan->nama_bahan}</h4>";
+            $output .= "<p><strong>Stok Saat Ini:</strong> {$bahan->stok} {$satuanUtama}</p>";
+        }
+        
+        $output .= "<p><strong>Qty Pembelian:</strong> {$detail->jumlah} {$detail->satuan_nama}</p>";
+        $output .= "<p><strong>Faktor Konversi:</strong> {$detail->faktor_konversi}</p>";
+        
+        // Calculate conversion
+        $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+        $output .= "<p><strong>Qty dalam Satuan Utama:</strong> {$qtyInBaseUnit}</p>";
+        
+        $output .= "<p><strong>Harga Satuan:</strong> Rp " . number_format($detail->harga_satuan, 0, ',', '.') . "</p>";
+        $output .= "<p><strong>Subtotal:</strong> Rp " . number_format($detail->subtotal, 0, ',', '.') . "</p>";
+        
+        $output .= "</div>";
+    }
+    
+    $output .= "<hr><p><a href='/manual-stock-update/{$pembelianId}' style='background: #007bff; color: white; padding: 10px; text-decoration: none; border-radius: 5px;'>🔧 Manual Stock Update</a></p>";
+    
+    return $output;
+});
+
+Route::get('test-stock-update', function() {
+    // Test stock update logic
+    $output = "<h2>🧪 Test Stock Update Logic</h2>";
+    
+    try {
+        // Find a bahan baku for testing
+        $bahanBaku = \App\Models\BahanBaku::first();
+        
+        if (!$bahanBaku) {
+            return "<p style='color: red;'>❌ Tidak ada bahan baku untuk testing</p>";
+        }
+        
+        $output .= "<h3>Testing dengan: {$bahanBaku->nama_bahan}</h3>";
+        
+        // Record original stock
+        $originalStock = $bahanBaku->stok;
+        $output .= "<p><strong>Stok Awal:</strong> {$originalStock}</p>";
+        
+        // Test adding stock
+        $testQty = 10.5;
+        $newStock = $originalStock + $testQty;
+        
+        $output .= "<p><strong>Menambah:</strong> {$testQty}</p>";
+        $output .= "<p><strong>Expected Stok Baru:</strong> {$newStock}</p>";
+        
+        // Method 1: Using model save()
+        $bahanBaku->stok = $newStock;
+        $saveResult = $bahanBaku->save();
+        
+        $output .= "<p><strong>Save Result:</strong> " . ($saveResult ? 'Success' : 'Failed') . "</p>";
+        
+        // Verify
+        $bahanBaku->refresh();
+        $actualStock = $bahanBaku->stok;
+        
+        $output .= "<p><strong>Actual Stok:</strong> {$actualStock}</p>";
+        
+        if (abs($actualStock - $newStock) < 0.0001) {
+            $output .= "<p style='color: green;'>✅ Stock update berhasil!</p>";
+        } else {
+            $output .= "<p style='color: red;'>❌ Stock update gagal!</p>";
+            
+            // Try direct DB update
+            $output .= "<p>Mencoba direct DB update...</p>";
+            
+            $dbResult = \DB::table('bahan_bakus')
+                ->where('id', $bahanBaku->id)
+                ->update(['stok' => $newStock]);
+            
+            $output .= "<p><strong>DB Update Result:</strong> {$dbResult} rows affected</p>";
+            
+            // Check again
+            $bahanBaku->refresh();
+            $finalStock = $bahanBaku->stok;
+            
+            $output .= "<p><strong>Final Stok:</strong> {$finalStock}</p>";
+            
+            if (abs($finalStock - $newStock) < 0.0001) {
+                $output .= "<p style='color: green;'>✅ DB update berhasil!</p>";
+            } else {
+                $output .= "<p style='color: red;'>❌ DB update juga gagal!</p>";
+            }
+        }
+        
+        // Restore original stock
+        $bahanBaku->stok = $originalStock;
+        $bahanBaku->save();
+        
+        $output .= "<p><em>Stok dikembalikan ke nilai awal: {$originalStock}</em></p>";
+        
+    } catch (\Exception $e) {
+        $output .= "<p style='color: red;'>❌ Error: " . $e->getMessage() . "</p>";
+    }
+    
+    return $output;
+});
+
+Route::get('manual-stock-update/{pembelianId}', function($pembelianId) {
+    $controller = new \App\Http\Controllers\PembelianController();
+    $result = $controller->manualStockUpdate($pembelianId);
+    
+    if ($result['success']) {
+        $output = "<h2 style='color: green;'>✅ Manual Stock Update Berhasil</h2>";
+        $output .= "<p><strong>Pembelian ID:</strong> {$pembelianId}</p>";
+        $output .= "<h3>Items Updated:</h3>";
+        
+        foreach ($result['updated_items'] as $item) {
+            $output .= "<div style='border: 1px solid #28a745; padding: 10px; margin: 10px 0; background: #d4edda;'>";
+            $output .= "<h4>{$item['type']}: {$item['nama']}</h4>";
+            $output .= "<p><strong>Qty Ditambahkan:</strong> {$item['qty_added']}</p>";
+            $output .= "<p><strong>Stok Lama:</strong> {$item['stok_lama']}</p>";
+            $output .= "<p><strong>Stok Baru:</strong> {$item['stok_baru']}</p>";
+            $output .= "</div>";
+        }
+    } else {
+        $output = "<h2 style='color: red;'>❌ Manual Stock Update Gagal</h2>";
+        $output .= "<p><strong>Error:</strong> {$result['message']}</p>";
+    }
+    
+    $output .= "<p><a href='/debug-stock-pembelian/{$pembelianId}' style='background: #6c757d; color: white; padding: 10px; text-decoration: none; border-radius: 5px;'>← Kembali ke Debug</a></p>";
+    
+    return $output;
+});
+
+Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
             Route::delete('/{id}', [ReturController::class, 'destroyPembelian'])->name('destroy');
         });
         
@@ -2343,6 +2500,45 @@ Route::middleware('auth')->group(function () {
 
     });
 
+
+    // ================================================================
+    // EMERGENCY FIXES
+    // ================================================================
+    Route::get('fix-pembelian-journals', function() {
+        include 'fix_pembelian_journals.php';
+    });
+
+    Route::get('debug-kas-transactions', function() {
+        include 'debug_kas_transactions.php';
+    });
+
+    Route::get('quick-fix-kas-bank', function() {
+        include 'quick_fix_kas_bank.php';
+    });
+
+    Route::get('fix-purchase-journals', function() {
+        include 'fix_purchase_journals.php';
+    });
+
+    Route::get('analyze-journal-issues', function() {
+        include 'analyze_journal_issues.php';
+    });
+
+    Route::get('comprehensive-cleanup', function() {
+        include 'comprehensive_cleanup.php';
+    });
+
+    Route::get('cleanup-orphan-journals', function() {
+        include 'cleanup_orphan_journals.php';
+    });
+
+    Route::get('check-stock-movements', function() {
+        include 'check_stock_movements.php';
+    });
+
+    Route::get('fix-product-stock', function() {
+        include 'fix_product_stock.php';
+    });
 
     // ================================================================
     // LAPORAN (Admin & Owner Only)
@@ -2439,6 +2635,14 @@ Route::middleware('auth')->group(function () {
 });
 
 // ================================================================
+// ROUTE AUTO-RESET DATA (Untuk multi-perusahaan)
+// ================================================================
+Route::middleware(['auth'])->prefix('auto-reset')->name('auto-reset.')->group(function () {
+    Route::post('/check', [App\Http\Controllers\Auth\AutoResetController::class, 'checkAndReset'])->name('check');
+    Route::get('/history', [App\Http\Controllers\Auth\AutoResetController::class, 'getResetHistory'])->name('history');
+});
+
+// ================================================================
 // ROUTE PEGAWAI (Khusus untuk pegawai login)
 // ================================================================
 Route::middleware(['auth', 'role:pegawai'])->prefix('pegawai')->name('pegawai.')->group(function () {
@@ -2459,3 +2663,827 @@ Route::middleware(['auth', 'role:pegawai'])->prefix('pegawai')->name('pegawai.')
 });
 
 // ====================================================================
+
+// Debug route to check stock update after purchase
+Route::get('/debug/stock-after-purchase/{pembelianId}', function($pembelianId) {
+    $pembelian = \App\Models\Pembelian::with('details.bahanBaku', 'details.bahanPendukung')->findOrFail($pembelianId);
+    
+    echo "<h2>Stock Debug for Purchase ID: {$pembelianId}</h2>";
+    echo "<p><strong>Purchase Date:</strong> {$pembelian->tanggal}</p>";
+    echo "<p><strong>Total Items:</strong> " . $pembelian->details->count() . "</p>";
+    
+    echo "<h3>Purchase Details & Current Stock:</h3>";
+    echo "<table border='1' style='border-collapse: collapse; width: 100%;'>";
+    echo "<tr><th>Item</th><th>Type</th><th>Qty Input</th><th>Satuan</th><th>Faktor Konversi</th><th>Qty Satuan Utama</th><th>Current Stock</th></tr>";
+    
+    foreach ($pembelian->details as $detail) {
+        $material = null;
+        $materialType = '';
+        $currentStock = 0;
+        
+        if ($detail->bahanBaku) {
+            $material = $detail->bahanBaku;
+            $materialType = 'Bahan Baku';
+            $currentStock = $material->stok;
+        } elseif ($detail->bahanPendukung) {
+            $material = $detail->bahanPendukung;
+            $materialType = 'Bahan Pendukung';
+            $currentStock = $material->stok;
+        }
+        
+        $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+        
+        echo "<tr>";
+        echo "<td>" . ($material ? $material->nama_bahan : 'Unknown') . "</td>";
+        echo "<td>{$materialType}</td>";
+        echo "<td>{$detail->jumlah}</td>";
+        echo "<td>{$detail->satuan}</td>";
+        echo "<td>{$detail->faktor_konversi}</td>";
+        echo "<td>{$qtyInBaseUnit}</td>";
+        echo "<td style='font-weight: bold; color: " . ($currentStock > 0 ? 'green' : 'red') . ";'>{$currentStock}</td>";
+        echo "</tr>";
+    }
+    
+    echo "</table>";
+    
+    echo "<h3>Expected vs Actual Stock:</h3>";
+    echo "<p><strong>Note:</strong> If 'Current Stock' shows 0 or unchanged values, the stock update logic is not working.</p>";
+    echo "<p><strong>Check:</strong> Laravel logs for detailed debugging information.</p>";
+    
+    return response()->make(ob_get_clean(), 200, ['Content-Type' => 'text/html']);
+})->name('debug.stock.after.purchase');
+
+// Debug route to manually test stock update helper function
+Route::get('/debug/test-stock-helper/{bahanId}/{qty}/{type}', function($bahanId, $qty, $type) {
+    try {
+        $bahan = \App\Models\BahanBaku::find($bahanId);
+        $materialType = 'BahanBaku';
+        
+        if (!$bahan) {
+            $bahan = \App\Models\BahanPendukung::find($bahanId);
+            $materialType = 'BahanPendukung';
+        }
+        
+        if (!$bahan) {
+            return response()->json(['error' => "Material not found with ID: {$bahanId}"], 404);
+        }
+        
+        $stockBefore = $bahan->stok;
+        $result = $bahan->updateStok((float)$qty, $type, 'Manual debug test');
+        $bahan->refresh();
+        $stockAfter = $bahan->stok;
+        
+        return response()->json([
+            'success' => $result,
+            'material_type' => $materialType,
+            'material_name' => $bahan->nama_bahan,
+            'stock_before' => $stockBefore,
+            'stock_after' => $stockAfter,
+            'qty_applied' => $qty,
+            'type' => $type,
+            'difference' => $stockAfter - $stockBefore
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
+})->name('debug.test.stock.helper');
+// Route for updating return status
+Route::get('/retur/{id}/status/{status}', [App\Http\Controllers\ReturController::class, 'updateStatus'])->name('retur.updateStatus');
+// Debug route to test conversion logic
+Route::get('/debug/test-conversion/{bahanId}/{qty}/{unit}', function($bahanId, $qty, $unit) {
+    try {
+        $bahan = \App\Models\BahanBaku::with('satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3')->find($bahanId);
+        
+        if (!$bahan) {
+            return response()->json(['error' => "Bahan Baku not found with ID: {$bahanId}"], 404);
+        }
+        
+        $convertedQty = $bahan->convertToSatuanUtama((float)$qty, $unit);
+        
+        return response()->json([
+            'success' => true,
+            'material_name' => $bahan->nama_bahan,
+            'base_unit' => $bahan->satuan->nama ?? 'KG',
+            'input' => "{$qty} {$unit}",
+            'converted' => "{$convertedQty} " . ($bahan->satuan->nama ?? 'KG'),
+            'conversion_factor' => $qty > 0 ? ($convertedQty / $qty) : 0,
+            'sub_units' => [
+                'sub_satuan_1' => $bahan->subSatuan1->nama ?? null,
+                'sub_satuan_1_konversi' => $bahan->sub_satuan_1_konversi ?? null,
+                'sub_satuan_2' => $bahan->subSatuan2->nama ?? null,
+                'sub_satuan_2_konversi' => $bahan->sub_satuan_2_konversi ?? null,
+                'sub_satuan_3' => $bahan->subSatuan3->nama ?? null,
+                'sub_satuan_3_konversi' => $bahan->sub_satuan_3_konversi ?? null,
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
+})->name('debug.test.conversion');
+// Route to fix existing stock values (remove double counting)
+Route::get('/debug/fix-existing-stock', function() {
+    try {
+        $results = [];
+        
+        // Fix Bahan Baku Stock
+        $bahanBakus = \App\Models\BahanBaku::with('satuan')->get();
+        
+        foreach ($bahanBakus as $bahan) {
+            $currentStock = (float) $bahan->stok;
+            
+            // Calculate from stock movements first
+            $movements = \App\Models\StockMovement::where('material_type', 'material')
+                ->where('material_id', $bahan->id)
+                ->get();
+            
+            $calculatedStock = 0;
+            
+            if ($movements->count() > 0) {
+                // Use movements if available
+                foreach ($movements as $movement) {
+                    if ($movement->movement_type === 'in') {
+                        $calculatedStock += $movement->quantity;
+                    } else {
+                        $calculatedStock -= $movement->quantity;
+                    }
+                }
+            } else {
+                // Fallback to purchase details
+                $purchaseDetails = \App\Models\PembelianDetail::where('bahan_baku_id', $bahan->id)->get();
+                
+                foreach ($purchaseDetails as $detail) {
+                    $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+                    $calculatedStock += $qtyInBaseUnit;
+                }
+            }
+            
+            // Update if different
+            if (abs($calculatedStock - $currentStock) > 0.0001) {
+                $bahan->stok = $calculatedStock;
+                $bahan->save();
+                
+                $results[] = [
+                    'type' => 'Bahan Baku',
+                    'id' => $bahan->id,
+                    'name' => $bahan->nama_bahan,
+                    'old_stock' => $currentStock,
+                    'new_stock' => $calculatedStock,
+                    'difference' => $calculatedStock - $currentStock,
+                    'status' => 'Updated'
+                ];
+            } else {
+                $results[] = [
+                    'type' => 'Bahan Baku',
+                    'id' => $bahan->id,
+                    'name' => $bahan->nama_bahan,
+                    'old_stock' => $currentStock,
+                    'new_stock' => $calculatedStock,
+                    'difference' => 0,
+                    'status' => 'No Change'
+                ];
+            }
+        }
+        
+        // Fix Bahan Pendukung Stock
+        $bahanPendukungs = \App\Models\BahanPendukung::with('satuanRelation')->get();
+        
+        foreach ($bahanPendukungs as $bahan) {
+            $currentStock = (float) $bahan->stok;
+            
+            // Calculate from stock movements
+            $movements = \App\Models\StockMovement::where('material_type', 'support')
+                ->where('material_id', $bahan->id)
+                ->get();
+            
+            $calculatedStock = 0;
+            
+            if ($movements->count() > 0) {
+                foreach ($movements as $movement) {
+                    if ($movement->movement_type === 'in') {
+                        $calculatedStock += $movement->quantity;
+                    } else {
+                        $calculatedStock -= $movement->quantity;
+                    }
+                }
+            } else {
+                $purchaseDetails = \App\Models\PembelianDetail::where('bahan_pendukung_id', $bahan->id)->get();
+                
+                foreach ($purchaseDetails as $detail) {
+                    $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+                    $calculatedStock += $qtyInBaseUnit;
+                }
+            }
+            
+            // Update if different
+            if (abs($calculatedStock - $currentStock) > 0.0001) {
+                $bahan->stok = $calculatedStock;
+                $bahan->save();
+                
+                $results[] = [
+                    'type' => 'Bahan Pendukung',
+                    'id' => $bahan->id,
+                    'name' => $bahan->nama_bahan,
+                    'old_stock' => $currentStock,
+                    'new_stock' => $calculatedStock,
+                    'difference' => $calculatedStock - $currentStock,
+                    'status' => 'Updated'
+                ];
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Stock values have been recalculated and fixed',
+            'results' => $results,
+            'summary' => [
+                'total_items' => count($results),
+                'updated_items' => count(array_filter($results, fn($r) => $r['status'] === 'Updated')),
+                'unchanged_items' => count(array_filter($results, fn($r) => $r['status'] === 'No Change'))
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+})->name('debug.fix.existing.stock');
+// Route to check specific bahan baku stock calculation
+Route::get('/debug/check-bahan/{id}', function($id) {
+    try {
+        $bahan = \App\Models\BahanBaku::with('satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3')->findOrFail($id);
+        
+        $currentStock = (float) $bahan->stok;
+        
+        // Get all purchase details for this bahan
+        $purchaseDetails = \App\Models\PembelianDetail::where('bahan_baku_id', $id)
+            ->with('pembelian')
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        $purchaseBreakdown = [];
+        $totalFromPurchases = 0;
+        
+        foreach ($purchaseDetails as $detail) {
+            $qtyInput = $detail->jumlah;
+            $satuan = $detail->satuan;
+            $faktorKonversi = $detail->faktor_konversi;
+            $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($qtyInput * $faktorKonversi);
+            
+            $totalFromPurchases += $qtyInBaseUnit;
+            
+            $purchaseBreakdown[] = [
+                'pembelian_id' => $detail->pembelian_id,
+                'tanggal' => $detail->pembelian->tanggal ?? 'Unknown',
+                'qty_input' => $qtyInput,
+                'satuan' => $satuan,
+                'faktor_konversi' => $faktorKonversi,
+                'qty_in_base_unit' => $qtyInBaseUnit,
+                'running_total' => $totalFromPurchases
+            ];
+        }
+        
+        // Get stock movements
+        $movements = \App\Models\StockMovement::where('material_type', 'material')
+            ->where('material_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        $movementBreakdown = [];
+        $totalFromMovements = 0;
+        
+        foreach ($movements as $movement) {
+            if ($movement->movement_type === 'in') {
+                $totalFromMovements += $movement->quantity;
+            } else {
+                $totalFromMovements -= $movement->quantity;
+            }
+            
+            $movementBreakdown[] = [
+                'date' => $movement->created_at,
+                'type' => $movement->movement_type,
+                'quantity' => $movement->quantity,
+                'reference' => $movement->reference_type . ' #' . $movement->reference_id,
+                'running_total' => $totalFromMovements
+            ];
+        }
+        
+        return response()->json([
+            'material_info' => [
+                'id' => $bahan->id,
+                'name' => $bahan->nama_bahan,
+                'base_unit' => $bahan->satuan->nama ?? 'KG',
+                'current_stock' => $currentStock
+            ],
+            'calculations' => [
+                'from_purchases' => $totalFromPurchases,
+                'from_movements' => $totalFromMovements,
+                'difference_purchases_vs_current' => $totalFromPurchases - $currentStock,
+                'difference_movements_vs_current' => $totalFromMovements - $currentStock,
+                'is_double_counted' => abs(($totalFromPurchases - $currentStock) + $totalFromPurchases) < 0.0001
+            ],
+            'purchase_breakdown' => $purchaseBreakdown,
+            'movement_breakdown' => $movementBreakdown,
+            'sub_units' => [
+                'sub_satuan_1' => [
+                    'name' => $bahan->subSatuan1->nama ?? null,
+                    'conversion' => $bahan->sub_satuan_1_konversi ?? null
+                ],
+                'sub_satuan_2' => [
+                    'name' => $bahan->subSatuan2->nama ?? null,
+                    'conversion' => $bahan->sub_satuan_2_konversi ?? null
+                ],
+                'sub_satuan_3' => [
+                    'name' => $bahan->subSatuan3->nama ?? null,
+                    'conversion' => $bahan->sub_satuan_3_konversi ?? null
+                ]
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
+})->name('debug.check.bahan');
+// Route to investigate stock issue in detail
+Route::get('/debug/investigate-stock/{id?}', function($id = null) {
+    try {
+        // Find the material to investigate
+        if ($id) {
+            $material = \App\Models\BahanBaku::with('satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3')->findOrFail($id);
+        } else {
+            // Find material with stock around 130 (the problematic one)
+            $material = \App\Models\BahanBaku::where('stok', '>', 120)
+                ->where('stok', '<', 140)
+                ->with('satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3')
+                ->first();
+            
+            if (!$material) {
+                // Fallback to any high stock material
+                $material = \App\Models\BahanBaku::where('stok', '>', 100)
+                    ->with('satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3')
+                    ->first();
+            }
+        }
+        
+        if (!$material) {
+            return response()->json(['error' => 'No material found to investigate'], 404);
+        }
+        
+        // Get purchase details
+        $purchaseDetails = \App\Models\PembelianDetail::where('bahan_baku_id', $material->id)
+            ->with('pembelian')
+            ->orderBy('created_at', 'asc')
+            ->get();
+        
+        $purchaseBreakdown = [];
+        $totalFromPurchases = 0;
+        
+        foreach ($purchaseDetails as $detail) {
+            $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+            $totalFromPurchases += $qtyInBaseUnit;
+            
+            $purchaseBreakdown[] = [
+                'pembelian_id' => $detail->pembelian_id,
+                'date' => $detail->pembelian->tanggal ?? 'Unknown',
+                'qty_input' => $detail->jumlah,
+                'satuan' => $detail->satuan,
+                'faktor_konversi' => $detail->faktor_konversi,
+                'jumlah_satuan_utama' => $detail->jumlah_satuan_utama,
+                'calculated_base_qty' => $detail->jumlah * $detail->faktor_konversi,
+                'used_base_qty' => $qtyInBaseUnit,
+                'running_total' => $totalFromPurchases
+            ];
+        }
+        
+        // Get stock movements
+        $stockMovements = \App\Models\StockMovement::where('material_type', 'material')
+            ->where('material_id', $material->id)
+            ->orderBy('created_at', 'asc')
+            ->get();
+        
+        $movementBreakdown = [];
+        $totalFromMovements = 0;
+        $duplicateMovements = [];
+        
+        // Group by reference to detect duplicates
+        $movementsByReference = $stockMovements->groupBy(function($movement) {
+            return $movement->reference_type . '_' . $movement->reference_id;
+        });
+        
+        foreach ($stockMovements as $movement) {
+            if ($movement->movement_type === 'in') {
+                $totalFromMovements += $movement->quantity;
+            } else {
+                $totalFromMovements -= $movement->quantity;
+            }
+            
+            $movementBreakdown[] = [
+                'id' => $movement->id,
+                'date' => $movement->created_at,
+                'type' => $movement->movement_type,
+                'quantity' => $movement->quantity,
+                'reference' => $movement->reference_type . ' #' . $movement->reference_id,
+                'running_total' => $totalFromMovements
+            ];
+        }
+        
+        // Check for duplicates
+        foreach ($movementsByReference as $reference => $movements) {
+            if ($movements->count() > 1) {
+                $duplicateMovements[] = [
+                    'reference' => $reference,
+                    'count' => $movements->count(),
+                    'movements' => $movements->map(function($m) {
+                        return [
+                            'id' => $m->id,
+                            'quantity' => $m->quantity,
+                            'date' => $m->created_at
+                        ];
+                    })
+                ];
+            }
+        }
+        
+        // Diagnosis
+        $currentStock = (float) $material->stok;
+        $diagnosis = [];
+        
+        if (abs($currentStock - $totalFromPurchases) < 0.0001) {
+            $diagnosis[] = "✅ Stock matches purchases exactly";
+        } elseif (abs($currentStock - ($totalFromPurchases * 2)) < 0.0001) {
+            $diagnosis[] = "❌ DOUBLE COUNTING: Stock is exactly 2x purchases";
+        }
+        
+        if (count($duplicateMovements) > 0) {
+            $diagnosis[] = "❌ DUPLICATE MOVEMENTS: Found duplicate stock movement entries";
+        }
+        
+        if (abs($totalFromMovements - $totalFromPurchases) > 0.0001) {
+            $diagnosis[] = "⚠️ MISMATCH: Movements don't match purchases";
+        }
+        
+        // Suggested fix
+        $suggestedStock = null;
+        $fixMethod = null;
+        
+        if (abs($currentStock - ($totalFromPurchases * 2)) < 0.0001) {
+            $suggestedStock = $totalFromPurchases;
+            $fixMethod = "Remove double counting - use purchase total";
+        } elseif ($totalFromMovements > 0 && abs($totalFromMovements - $totalFromPurchases) < 0.0001) {
+            $suggestedStock = $totalFromMovements;
+            $fixMethod = "Use movement-based calculation";
+        }
+        
+        return response()->json([
+            'material_info' => [
+                'id' => $material->id,
+                'name' => $material->nama_bahan,
+                'current_stock' => $currentStock,
+                'base_unit' => $material->satuan->nama ?? 'Unknown'
+            ],
+            'calculations' => [
+                'total_from_purchases' => $totalFromPurchases,
+                'total_from_movements' => $totalFromMovements,
+                'purchase_count' => count($purchaseBreakdown),
+                'movement_count' => count($movementBreakdown)
+            ],
+            'diagnosis' => $diagnosis,
+            'suggested_fix' => [
+                'new_stock' => $suggestedStock,
+                'method' => $fixMethod,
+                'sql' => $suggestedStock ? "UPDATE bahan_bakus SET stok = {$suggestedStock} WHERE id = {$material->id};" : null
+            ],
+            'purchase_breakdown' => $purchaseBreakdown,
+            'movement_breakdown' => $movementBreakdown,
+            'duplicate_movements' => $duplicateMovements,
+            'conversion_info' => [
+                'sub_satuan_1' => [
+                    'name' => $material->subSatuan1->nama ?? null,
+                    'conversion' => $material->sub_satuan_1_konversi ?? null
+                ],
+                'sub_satuan_2' => [
+                    'name' => $material->subSatuan2->nama ?? null,
+                    'conversion' => $material->sub_satuan_2_konversi ?? null
+                ],
+                'sub_satuan_3' => [
+                    'name' => $material->subSatuan3->nama ?? null,
+                    'conversion' => $material->sub_satuan_3_konversi ?? null
+                ]
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
+})->name('debug.investigate.stock');
+// Route to directly fix the stock issue
+Route::post('/debug/fix-stock/{id}', function($id) {
+    try {
+        $material = \App\Models\BahanBaku::findOrFail($id);
+        
+        // Calculate correct stock from purchases
+        $purchaseDetails = \App\Models\PembelianDetail::where('bahan_baku_id', $id)->get();
+        $correctStock = 0;
+        
+        foreach ($purchaseDetails as $detail) {
+            $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+            $correctStock += $qtyInBaseUnit;
+        }
+        
+        $oldStock = $material->stok;
+        
+        // Update the stock
+        $material->stok = $correctStock;
+        $material->save();
+        
+        return response()->json([
+            'success' => true,
+            'material_name' => $material->nama_bahan,
+            'old_stock' => $oldStock,
+            'new_stock' => $correctStock,
+            'difference' => $correctStock - $oldStock,
+            'message' => 'Stock has been corrected successfully'
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
+})->name('debug.fix.stock');
+// Route to safely delete purchase and fix stock
+Route::delete('/debug/safe-delete-purchase/{id}', function($id) {
+    try {
+        \DB::beginTransaction();
+        
+        $pembelian = \App\Models\Pembelian::with('details')->findOrFail($id);
+        
+        $deletedItems = [];
+        
+        // First, reverse the stock changes
+        foreach ($pembelian->details as $detail) {
+            if ($detail->bahan_baku_id) {
+                $bahanBaku = \App\Models\BahanBaku::with('satuan')->find($detail->bahan_baku_id);
+                if ($bahanBaku) {
+                    $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+                    $oldStock = $bahanBaku->stok;
+                    $updateSuccess = $bahanBaku->updateStok($qtyInBaseUnit, 'out', "Safe deletion of purchase ID: {$id}");
+                    
+                    $deletedItems[] = [
+                        'type' => 'Bahan Baku',
+                        'name' => $bahanBaku->nama_bahan,
+                        'qty_reversed' => $qtyInBaseUnit,
+                        'old_stock' => $oldStock,
+                        'new_stock' => $bahanBaku->fresh()->stok,
+                        'success' => $updateSuccess
+                    ];
+                }
+            } elseif ($detail->bahan_pendukung_id) {
+                $bahanPendukung = \App\Models\BahanPendukung::with('satuanRelation')->find($detail->bahan_pendukung_id);
+                if ($bahanPendukung) {
+                    $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+                    $oldStock = $bahanPendukung->stok;
+                    $updateSuccess = $bahanPendukung->updateStok($qtyInBaseUnit, 'out', "Safe deletion of purchase ID: {$id}");
+                    
+                    $deletedItems[] = [
+                        'type' => 'Bahan Pendukung',
+                        'name' => $bahanPendukung->nama_bahan,
+                        'qty_reversed' => $qtyInBaseUnit,
+                        'old_stock' => $oldStock,
+                        'new_stock' => $bahanPendukung->fresh()->stok,
+                        'success' => $updateSuccess
+                    ];
+                }
+            }
+        }
+        
+        // Delete related records
+        \DB::table('pembelian_detail_konversi')
+            ->whereIn('pembelian_detail_id', $pembelian->details->pluck('id'))
+            ->delete();
+            
+        \DB::table('pembelian_details')->where('pembelian_id', $id)->delete();
+        \DB::table('pembelians')->where('id', $id)->delete();
+        
+        \DB::commit();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase deleted successfully and stock corrected',
+            'deleted_purchase_id' => $id,
+            'stock_changes' => $deletedItems
+        ]);
+        
+    } catch (\Exception $e) {
+        \DB::rollBack();
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
+})->name('debug.safe.delete.purchase');
+// Route to preview what will happen when deleting a purchase
+Route::get('/debug/preview-delete-purchase/{id}', function($id) {
+    try {
+        $pembelian = \App\Models\Pembelian::with('details')->findOrFail($id);
+        
+        $preview = [
+            'purchase_info' => [
+                'id' => $pembelian->id,
+                'nomor_pembelian' => $pembelian->nomor_pembelian ?? "PB-{$pembelian->id}",
+                'tanggal' => $pembelian->tanggal,
+                'total_harga' => $pembelian->total_harga
+            ],
+            'stock_changes' => []
+        ];
+        
+        foreach ($pembelian->details as $detail) {
+            if ($detail->bahan_baku_id) {
+                $bahanBaku = \App\Models\BahanBaku::with('satuan')->find($detail->bahan_baku_id);
+                if ($bahanBaku) {
+                    $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+                    
+                    $preview['stock_changes'][] = [
+                        'type' => 'Bahan Baku',
+                        'id' => $bahanBaku->id,
+                        'name' => $bahanBaku->nama_bahan,
+                        'current_stock' => $bahanBaku->stok,
+                        'qty_to_reverse' => $qtyInBaseUnit,
+                        'stock_after_delete' => $bahanBaku->stok - $qtyInBaseUnit,
+                        'unit' => $bahanBaku->satuan->nama ?? 'KG',
+                        'purchase_detail' => [
+                            'qty_input' => $detail->jumlah,
+                            'satuan_input' => $detail->satuan,
+                            'faktor_konversi' => $detail->faktor_konversi,
+                            'jumlah_satuan_utama' => $detail->jumlah_satuan_utama
+                        ]
+                    ];
+                }
+            } elseif ($detail->bahan_pendukung_id) {
+                $bahanPendukung = \App\Models\BahanPendukung::with('satuanRelation')->find($detail->bahan_pendukung_id);
+                if ($bahanPendukung) {
+                    $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+                    
+                    $preview['stock_changes'][] = [
+                        'type' => 'Bahan Pendukung',
+                        'id' => $bahanPendukung->id,
+                        'name' => $bahanPendukung->nama_bahan,
+                        'current_stock' => $bahanPendukung->stok,
+                        'qty_to_reverse' => $qtyInBaseUnit,
+                        'stock_after_delete' => $bahanPendukung->stok - $qtyInBaseUnit,
+                        'unit' => $bahanPendukung->satuanRelation->nama ?? 'unit',
+                        'purchase_detail' => [
+                            'qty_input' => $detail->jumlah,
+                            'satuan_input' => $detail->satuan,
+                            'faktor_konversi' => $detail->faktor_konversi,
+                            'jumlah_satuan_utama' => $detail->jumlah_satuan_utama
+                        ]
+                    ];
+                }
+            }
+        }
+        
+        return response()->json($preview);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
+})->name('debug.preview.delete.purchase');
+// Route to check database table structure
+Route::get('/debug/check-tables', function() {
+    try {
+        $tables = [];
+        
+        // Check if tables exist
+        $tableNames = [
+            'pembelian_detail_konversi',
+            'pembelian_detail_konversis', 
+            'stock_movements',
+            'bahan_bakus',
+            'bahan_pendukungs'
+        ];
+        
+        foreach ($tableNames as $tableName) {
+            try {
+                $exists = \Schema::hasTable($tableName);
+                $tables[$tableName] = [
+                    'exists' => $exists,
+                    'columns' => $exists ? \Schema::getColumnListing($tableName) : []
+                ];
+            } catch (\Exception $e) {
+                $tables[$tableName] = [
+                    'exists' => false,
+                    'error' => $e->getMessage()
+                ];
+            }
+        }
+        
+        return response()->json([
+            'database' => config('database.connections.mysql.database'),
+            'tables' => $tables
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
+})->name('debug.check.tables');
+// Route to safely delete purchase with table existence checks
+Route::delete('/debug/safe-delete-purchase-v2/{id}', function($id) {
+    try {
+        \DB::beginTransaction();
+        
+        $pembelian = \App\Models\Pembelian::with('details')->findOrFail($id);
+        
+        $deletedItems = [];
+        
+        // First, reverse the stock changes
+        foreach ($pembelian->details as $detail) {
+            if ($detail->bahan_baku_id) {
+                $bahanBaku = \App\Models\BahanBaku::with('satuan')->find($detail->bahan_baku_id);
+                if ($bahanBaku) {
+                    $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+                    $oldStock = $bahanBaku->stok;
+                    $updateSuccess = $bahanBaku->updateStok($qtyInBaseUnit, 'out', "Safe deletion of purchase ID: {$id}");
+                    
+                    $deletedItems[] = [
+                        'type' => 'Bahan Baku',
+                        'name' => $bahanBaku->nama_bahan,
+                        'qty_reversed' => $qtyInBaseUnit,
+                        'old_stock' => $oldStock,
+                        'new_stock' => $bahanBaku->fresh()->stok,
+                        'success' => $updateSuccess
+                    ];
+                }
+            } elseif ($detail->bahan_pendukung_id) {
+                $bahanPendukung = \App\Models\BahanPendukung::with('satuanRelation')->find($detail->bahan_pendukung_id);
+                if ($bahanPendukung) {
+                    $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * $detail->faktor_konversi);
+                    $oldStock = $bahanPendukung->stok;
+                    $updateSuccess = $bahanPendukung->updateStok($qtyInBaseUnit, 'out', "Safe deletion of purchase ID: {$id}");
+                    
+                    $deletedItems[] = [
+                        'type' => 'Bahan Pendukung',
+                        'name' => $bahanPendukung->nama_bahan,
+                        'qty_reversed' => $qtyInBaseUnit,
+                        'old_stock' => $oldStock,
+                        'new_stock' => $bahanPendukung->fresh()->stok,
+                        'success' => $updateSuccess
+                    ];
+                }
+            }
+        }
+        
+        // Delete related records with table existence checks
+        $detailIds = $pembelian->details->pluck('id');
+        
+        if ($detailIds->count() > 0) {
+            // Check if pembelian_detail_konversi table exists
+            if (\Schema::hasTable('pembelian_detail_konversi')) {
+                \DB::table('pembelian_detail_konversi')
+                    ->whereIn('pembelian_detail_id', $detailIds)
+                    ->delete();
+            }
+            
+            // Check if pembelian_detail_konversis table exists (alternative name)
+            if (\Schema::hasTable('pembelian_detail_konversis')) {
+                \DB::table('pembelian_detail_konversis')
+                    ->whereIn('pembelian_detail_id', $detailIds)
+                    ->delete();
+            }
+        }
+        
+        // Delete main records
+        \DB::table('pembelian_details')->where('pembelian_id', $id)->delete();
+        \DB::table('pembelians')->where('id', $id)->delete();
+        
+        \DB::commit();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Purchase deleted successfully and stock corrected',
+            'deleted_purchase_id' => $id,
+            'stock_changes' => $deletedItems
+        ]);
+        
+    } catch (\Exception $e) {
+        \DB::rollBack();
+        return response()->json([
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+})->name('debug.safe.delete.purchase.v2');

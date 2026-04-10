@@ -75,7 +75,8 @@ mark.bg-warning {
             <div class="col-md-3">
                 <label class="form-label">Metode Pembayaran</label>
                 <select name="payment_method" id="payment_method_jual" class="form-select" required>
-                    <option value="cash" selected>Tunai</option>
+                    <option value="">-- Pilih Metode --</option>
+                    <option value="cash">Tunai</option>
                     <option value="transfer">Transfer Bank</option>
                     <option value="credit">Kredit</option>
                 </select>
@@ -144,30 +145,11 @@ mark.bg-warning {
                         <th class="text-end">Harga/Satuan</th>
                         <th class="text-end">Diskon (%)</th>
                         <th class="text-end">Subtotal</th>
-                        <th style="width:6%"><button class="btn btn-success btn-sm" type="button" id="addRowJual">+</button></th>
+                        <th style="width:6%">NO<button class="btn btn-success btn-sm" type="button" id="addRowJual">+</button></th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>
-                            <select name="produk_id[]" class="form-select produk-select" required>
-                                <option value="">-- Pilih Produk --</option>
-                                @foreach($produks as $p)
-                                    <option value="{{ $p->id }}" 
-                                            data-price="{{ round($p->harga_jual ?? 0) }}"
-                                            data-stok="{{ $p->stok ?? 0 }}">
-                                        {{ $p->nama_produk ?? $p->nama }} (Stok: {{ number_format($p->stok ?? 0, 0, ',', '.') }})
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted stok-info"></small>
-                        </td>
-                        <td><input type="number" step="1" min="1" name="jumlah[]" class="form-control jumlah" value="1" required></td>
-                        <td><input type="text" name="harga_satuan[]" class="form-control harga" value="0" readonly required></td>
-                        <td><input type="number" step="0.01" min="0" max="100" name="diskon_persen[]" class="form-control diskon" value="0"></td>
-                        <td><input type="text" class="form-control subtotal" value="0" readonly></td>
-                        <td><button type="button" class="btn btn-danger btn-sm removeRow">-</button></td>
-                    </tr>
+                    <!-- Tabel akan diisi oleh barcode scanner atau tombol tambah -->
                 </tbody>
             </table>
         </div>
@@ -182,15 +164,21 @@ mark.bg-warning {
         <div class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">Biaya Ongkir</label>
-                <input type="number" step="0.01" min="0" name="biaya_ongkir" class="form-control" value="0" id="biaya_ongkir">
+                <input type="number" step="0.01" min="0" name="biaya_ongkir" class="form-control" value="0" id="biaya_ongkir" 
+                     onclick="this.focus()" 
+                     onfocus="this.select()">
             </div>
             <div class="col-md-3">
                 <label class="form-label">Biaya Service</label>
-                <input type="number" step="0.01" min="0" name="biaya_service" class="form-control" value="0" id="biaya_service">
+                <input type="number" step="0.01" min="0" name="biaya_service" class="form-control" value="0" id="biaya_service" 
+                         onclick="this.focus()" 
+                         onfocus="this.select()">
             </div>
             <div class="col-md-3">
                 <label class="form-label">PPN (%)</label>
-                <input type="number" step="0.01" min="0" max="100" name="ppn_persen" class="form-control" value="11" id="ppn_persen">
+                <input type="number" step="0.01" min="0" name="ppn_persen" class="form-control" value="0" id="ppn_persen" 
+                         onclick="this.focus()" 
+                         onfocus="this.select()">
             </div>
             <div class="col-md-3">
                 <label class="form-label">Total PPN</label>
@@ -586,19 +574,13 @@ function handleBarcodeInput(char) {
     // Add character to buffer
     barcodeBuffer += char;
     
-    // Clear existing timeout
-    if (barcodeTimeout) {
-        clearTimeout(barcodeTimeout);
-    }
+    // Event listener untuk perubahan metode pembayaran
+    paymentMethodSelect.addEventListener('change', updateSumberDana);
     
-    // Set new timeout - if no new characters come within BARCODE_TIMEOUT, process the barcode
-    barcodeTimeout = setTimeout(() => {
-        if (barcodeBuffer.length >= MIN_BARCODE_LENGTH && !isProcessing) {
-            processAutomaticBarcode(barcodeBuffer.trim());
-        }
-        barcodeBuffer = ''; // Clear buffer
-    }, BARCODE_TIMEOUT);
-}
+    // Initialize saat pertama kali load hanya jika ada metode yang dipilih
+    if (paymentMethodSelect.value) {
+        updateSumberDana();
+    }
 
 // Process barcode automatically - Enhanced version
 function processAutomaticBarcode(barcode) {
@@ -617,12 +599,12 @@ function processAutomaticBarcode(barcode) {
     // Clear input immediately for silent processing
     barcodeInput.value = '';
     
-    // Update UI to show processing
-    scanIndicator.textContent = 'Memproses...';
-    scanIndicator.parentElement.className = 'input-group-text bg-warning text-dark';
-    
-    try {
-        const product = productData[barcode];
+    // Fungsi untuk memainkan suara beep
+    function playBeep() {
+        // Buat suara beep menggunakan Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
         
         if (product) {
             console.log('✅ Product found:', product);
@@ -661,15 +643,14 @@ function processAutomaticBarcode(barcode) {
     } catch (error) {
         console.error('Error processing barcode:', error);
         
-        // Error feedback
-        scanIndicator.textContent = 'Error';
-        scanIndicator.parentElement.className = 'input-group-text bg-danger text-white';
+        oscillator.frequency.value = 1000; // 1000 Hz
+        oscillator.type = 'sine';
         
-        // Show specific error message
-        showNotification(error.message || 'Terjadi kesalahan saat memproses barcode', 'error');
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
         
-        // Play error sound
-        playBeep(false);
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.1);
     }
     
     // Reset status after 2 seconds
@@ -695,13 +676,24 @@ function showNotification(message, type) {
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
     
-    // Add to page
-    document.body.appendChild(notification);
+    // Fungsi untuk reset scanner state
+    window.resetScannerState = function() {
+        barcodeBuffer = '';
+        isScanning = false;
+        barcodeInput.value = '';
+        hidePreview();
+        updateScanIndicator('Siap Scan', 'bg-success');
+        barcodeInput.focus();
+    };
     
-    // Auto-remove after 3 seconds
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.remove();
+    // Fungsi untuk preview produk
+    function previewProduct(barcode) {
+        console.log('Preview product called with barcode:', barcode);
+        
+        if (barcode.length < 3) {
+            console.log('Barcode too short, hiding preview');
+            hidePreview();
+            return;
         }
     }, 3000);
 }
@@ -731,9 +723,10 @@ function resetScannerState() {
         scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
     }
     
-    if (barcodeInput) {
-        barcodeInput.value = '';
-        barcodeInput.focus();
+    // Fungsi untuk menyembunyikan preview
+    function hidePreview() {
+        const previewDiv = document.getElementById('barcode-preview');
+        previewDiv.style.display = 'none';
     }
     
     if (searchResults) {
@@ -781,9 +774,7 @@ function addProductByBarcode(product) {
             throw new Error('Stok tidak cukup! Stok tersedia: ' + product.stok);
         }
         
-        qtyInput.value = Math.round(newQty);
-        recalcRow(existingRow);
-        recalcTotal();
+        console.log('Current tbody rows before adding:', tbody.querySelectorAll('tr').length);
         
         // Highlight row
         highlightRow(existingRow);
@@ -793,15 +784,17 @@ function addProductByBarcode(product) {
         let targetRow = null;
         const rows = tbody.querySelectorAll('tr');
         
-        // Look for empty row (no product selected)
-        for (let row of rows) {
+        existingRows.forEach((row, index) => {
+            console.log(`Checking row ${index}:`, row);
             const select = row.querySelector('.produk-select');
             if (!select || !select.value) {
                 console.log('📝 Found empty row to use');
                 targetRow = row;
                 break;
             }
-        }
+        });
+        
+        console.log('Existing row found:', existingRow);
         
         // If no empty row found, create new one
         if (!targetRow) {
@@ -810,11 +803,51 @@ function addProductByBarcode(product) {
             tbody.appendChild(targetRow);
         }
         
-        // Fill the row with product data
-        const select = targetRow.querySelector('.produk-select');
-        const qtyInput = targetRow.querySelector('.jumlah');
-        const hargaInput = targetRow.querySelector('.harga');
-        const diskonInput = targetRow.querySelector('.diskon');
+        // Update total
+        updateAllTotals();
+        
+        // Focus ke barcode input untuk scan berikutnya
+        resetScannerState();
+    }
+    
+    // Fungsi untuk membuat baris produk baru
+    function createProductRow(product) {
+        console.log('createProductRow called with:', product);
+        
+        // Buat baris baru dari scratch
+        const newRow = document.createElement('tr');
+        
+        // Generate HTML untuk baris produk
+        newRow.innerHTML = `
+            <td>
+                <select name="produk_id[]" class="form-select produk-select" required>
+                    <option value="">-- Pilih Produk --</option>
+                    @foreach($produks as $p)
+                        <option value="{{ $p->id }}" data-stok="{{ $p->stok ?? 0 }}" data-harga="{{ $p->harga_jual ?? 0 }}">
+                            {{ $p->nama_produk ?? $p->nama }}
+                        </option>
+                    @endforeach
+                </select>
+                <small class="text-muted stok-info" style="font-size: 0.8em;">Stok tersedia: ${product.stok_tersedia}</small>
+            </td>
+            <td>
+                <input type="number" name="jumlah[]" class="form-control jumlah text-end" value="1" min="1" required>
+            </td>
+            <td>
+                <input type="text" name="harga_satuan[]" class="form-control harga text-end" value="${formatCurrency(parseFloat(product.harga_jual) || 0)}" readonly>
+            </td>
+            <td>
+                <input type="number" name="diskon_persen[]" class="form-control diskon text-end" value="0" min="0" max="100" step="0.1">
+            </td>
+            <td>
+                <input type="text" name="subtotal[]" class="form-control subtotal text-end" value="${formatCurrency(parseFloat(product.harga_jual) || 0)}" readonly>
+            </td>
+            <td style="width:6%">
+                <button class="btn btn-danger btn-sm" type="button" onclick="removeRow(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        `;
         
         console.log('📋 Setting product data in row:', {
             productId: product.id,
@@ -823,16 +856,13 @@ function addProductByBarcode(product) {
         });
         
         select.value = product.id;
-        qtyInput.value = 1;
-        hargaInput.value = formatCurrency(product.harga);
-        diskonInput.value = 0;
         
-        // Update stock info
-        setPriceFromSelect(targetRow);
+        console.log('Product row created from scratch');
         
-        // Recalculate
-        recalcRow(targetRow);
-        recalcTotal();
+        // Add event listeners
+        select.addEventListener('change', function() {
+            updateRowFromProduct(newRow);
+        });
         
         // Highlight row
         highlightRow(targetRow);
@@ -886,26 +916,24 @@ function playBeep(success) {
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
         
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.frequency.value = success ? 800 : 300;
-        oscillator.type = 'sine';
-        gainNode.gain.value = 0.1;
-        
-        oscillator.start();
-        setTimeout(() => oscillator.stop(), success ? 100 : 200);
-    } catch (e) {
-        // Audio not supported, ignore
+        // Update biaya-biaya dan total final
+        calculateFinalTotal();
     }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const table = document.getElementById('detailTableJual');
-    const addBtn = document.getElementById('addRowJual');
-    const barcodeInput = document.getElementById('barcode-scanner');
     
-    // 🎯 AUTOMATIC BARCODE SCANNING SYSTEM
+    // Fungsi untuk menghitung total final
+    function calculateFinalTotal() {
+        const subtotalProduk = parseFloat(document.querySelector('input[name="subtotal_produk"]').value.replace(/[^\d]/g, '')) || 0;
+        const biayaOngkir = parseFloat(document.getElementById('biaya_ongkir').value) || 0;
+        const biayaService = parseFloat(document.getElementById('biaya_service').value) || 0;
+        const ppnPersen = parseFloat(document.getElementById('ppn_persen').value) || 0;
+        
+        const ppnBase = subtotalProduk + biayaOngkir + biayaService;
+        const totalPPN = ppnBase * (ppnPersen / 100);
+        const totalFinal = ppnBase + totalPPN;
+        
+        document.getElementById('total_ppn').value = formatCurrency(totalPPN);
+        document.getElementById('total_final').value = formatCurrency(totalFinal);
+    }
     
     // Maintain focus on barcode input at all times
     function ensureBarcodeInputFocus() {
@@ -1153,33 +1181,13 @@ function navigateSearchResults(direction) {
         }, 10);
     });
     
-    // Handle window focus/blur
-    window.addEventListener('focus', function() {
-        setTimeout(() => {
-            barcodeInput.focus();
-        }, 100);
-    });
-    
-    // 🎯 END AUTOMATIC BARCODE SCANNING SYSTEM
+    // Event listener untuk keydown (Enter key untuk manual input)
+    let lastPreviewProduct = null;
     
     // Auto-focus barcode input when pressing F2
     document.addEventListener('keydown', function(e) {
         if (e.key === 'F2') {
             e.preventDefault();
-            barcodeInput.focus();
-            barcodeInput.select();
-        }
-    });
-
-    // Show/hide sumber dana based on payment method
-    function toggleSumberDana() {
-        const paymentMethod = document.getElementById('payment_method_jual').value;
-        const sumberDanaWrapper = document.getElementById('sumber_dana_wrapper_jual');
-        const sumberDana = document.getElementById('sumber_dana_jual');
-        
-        if (paymentMethod === 'cash' || paymentMethod === 'transfer') {
-            sumberDanaWrapper.style.display = 'block';
-            sumberDana.required = true;
             
             // Get recent pick from localStorage
             const recentPick = localStorage.getItem('recent_sumber_dana_' + paymentMethod);
@@ -1225,44 +1233,51 @@ function navigateSearchResults(direction) {
             if (recentPick && sumberDana.querySelector(`option[value="${recentPick}"]`)) {
                 sumberDana.value = recentPick;
             }
-        } else {
-            sumberDanaWrapper.style.display = 'none';
-            sumberDana.required = false;
+            return;
         }
+        
+        // Abaikan navigation keys lainnya
+        if ([9, 37, 38, 39, 40].includes(e.keyCode)) {
+            return;
+        }
+        
+        // Abaikan jika hanya modifier keys
+        if (e.ctrlKey || e.altKey || e.metaKey) {
+            return;
+        }
+    });
+    
+    // Fungsi untuk memproses barcode
+    function processBarcode(barcode) {
+        updateScanIndicator('Mencari produk...', 'bg-info');
+        
+        findProductByBarcode(barcode)
+            .then(product => {
+                playBeep();
+                updateScanIndicator('Produk ditemukan!', 'bg-success');
+                addProductToTable(product);
+                
+                // Clear input setelah 2 detik agar kode terlihat dulu
+                setTimeout(() => {
+                    barcodeInput.value = '';
+                }, 2000);
+            })
+            .catch(error => {
+                updateScanIndicator('Produk tidak ditemukan!', 'bg-danger');
+                setTimeout(() => {
+                    resetScannerState();
+                }, 2000);
+            });
     }
     
-    // Initial toggle
-    toggleSumberDana();
-    
-    // Listen to payment method changes
-    document.getElementById('payment_method_jual').addEventListener('change', toggleSumberDana);
-    
-    // Listen to sumber dana changes and save to localStorage
-    document.getElementById('sumber_dana_jual').addEventListener('change', function() {
-        const paymentMethod = document.getElementById('payment_method_jual').value;
-        if (paymentMethod === 'cash' || paymentMethod === 'transfer') {
-            localStorage.setItem('recent_sumber_dana_' + paymentMethod, this.value);
-        }
-    });
-
-    addBtn.addEventListener('click', () => {
+    // Event listeners untuk tombol tambah dan hapus baris
+    document.getElementById('addRowJual').addEventListener('click', function() {
+        const table = document.getElementById('detailTableJual');
         const tbody = table.querySelector('tbody');
-        const clone = tbody.rows[0].cloneNode(true);
-        clone.querySelectorAll('input').forEach(inp => {
-            if (inp.classList.contains('jumlah')) inp.value = 1;
-            else if (inp.classList.contains('harga')) inp.value = 'Rp 0';
-            else if (inp.classList.contains('diskon')) inp.value = 0;
-            else if (inp.classList.contains('subtotal')) inp.value = 'Rp 0';
-        });
-        clone.querySelectorAll('select').forEach(sel => sel.selectedIndex = 0);
-        table.querySelector('tbody').appendChild(clone);
-    });
-
-    table.addEventListener('change', (e) => {
-        if (e.target && e.target.classList.contains('produk-select')) {
-            const tr = e.target.closest('tr');
-            setPriceFromSelect(tr);
-        }
+        
+        // Tambah baris kosong baru
+        const newRow = createEmptyRow();
+        tbody.appendChild(newRow);
     });
     
     // Add special handling for dropdown focus/blur to prevent barcode interference
@@ -1290,49 +1305,42 @@ function navigateSearchResults(direction) {
         if (e.target && (e.target.classList.contains('jumlah') || e.target.classList.contains('harga') || e.target.classList.contains('diskon'))) {
             const tr = e.target.closest('tr');
             
-            // Validate stock if qty changed
-            if (e.target.classList.contains('jumlah')) {
-                validateStock(tr);
+            // Hapus baris jika ada lebih dari 1 baris
+            if (tbody.children.length > 1) {
+                row.remove();
+                updateAllTotals();
             }
-            
-            recalcRow(tr); recalcTotal();
         }
     });
     
-    // Listen to additional cost changes
-    document.getElementById('biaya_ongkir').addEventListener('input', recalcTotal);
-    document.getElementById('biaya_service').addEventListener('input', recalcTotal);
-    document.getElementById('ppn_persen').addEventListener('input', recalcTotal);
-    table.addEventListener('click', (e) => {
-        if (e.target && e.target.classList.contains('removeRow')) {
-            const rows = table.querySelectorAll('tbody tr');
-            if (rows.length > 1) e.target.closest('tr').remove();
-            recalcTotal();
-        }
-    });
-
-    // Init first row
-    setPriceFromSelect(table.querySelector('tbody tr'));
-    recalcRow(table.querySelector('tbody tr')); recalcTotal();
-    
-    // Validate before submit
-    document.getElementById('form-penjualan').addEventListener('submit', function(e) {
-        let hasError = false;
-        table.querySelectorAll('tbody tr').forEach(tr => {
-            const sel = tr.querySelector('.produk-select');
-            if (sel.value) {
-                if (!validateStock(tr)) {
-                    hasError = true;
-                }
-            }
+    // Initialize event listeners untuk baris pertama
+    const firstRow = document.querySelector('#detailTableJual tbody tr:first-child');
+    if (firstRow) {
+        const select = firstRow.querySelector('.produk-select');
+        const qtyInput = firstRow.querySelector('.jumlah');
+        const diskonInput = firstRow.querySelector('.diskon');
+        
+        select.addEventListener('change', function() {
+            updateRowFromProduct(firstRow);
         });
         
-        if (hasError) {
-            e.preventDefault();
-            alert('Mohon perbaiki jumlah produk yang melebihi stok tersedia!');
-            return false;
-        }
-    });
+        qtyInput.addEventListener('input', function() {
+            updateRowSubtotal(firstRow);
+        });
+        
+        diskonInput.addEventListener('input', function() {
+            updateRowSubtotal(firstRow);
+        });
+    }
+    
+    // Event listeners untuk biaya-biaya
+    document.getElementById('biaya_ongkir').addEventListener('input', calculateFinalTotal);
+    document.getElementById('biaya_service').addEventListener('input', calculateFinalTotal);
+    document.getElementById('ppn_persen').addEventListener('input', calculateFinalTotal);
+    
+    // Initialize barcode scanner
+    resetScannerState();
 });
 </script>
+
 @endsection

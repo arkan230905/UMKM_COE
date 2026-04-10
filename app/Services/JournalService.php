@@ -231,11 +231,11 @@ class JournalService
                         $creditAccount = $bankCoa->kode_akun;
                         $creditMemo = 'Pembayaran tunai pembelian via ' . $bankCoa->nama_akun;
                     } else {
-                        $creditAccount = '1101'; // Kas
+                        $creditAccount = '112'; // Kas
                         $creditMemo = 'Pembayaran tunai pembelian';
                     }
                 } else {
-                    $creditAccount = '1101'; // Kas
+                    $creditAccount = '112'; // Kas
                     $creditMemo = 'Pembayaran tunai pembelian';
                 }
                 break;
@@ -455,9 +455,12 @@ class JournalService
         $lines = [];
         $amount = $pelunasanUtang->jumlah ?? 0;
         
-        // Debit: Utang Usaha (mengurangi utang)
+        // Debit: COA Pelunasan yang dipilih user (mengurangi utang)
+        $coaPelunasan = $pelunasanUtang->coaPelunasan;
+        $kodeCoaPelunasan = $coaPelunasan ? $coaPelunasan->kode_akun : '210'; // Default ke Hutang Usaha jika tidak ada
+        
         $lines[] = [
-            'code' => '2101', // Utang Usaha
+            'code' => $kodeCoaPelunasan,
             'debit' => $amount,
             'credit' => 0,
             'memo' => 'Pelunasan utang - ' . ($pelunasanUtang->pembelian->vendor->nama_vendor ?? 'Vendor')
@@ -465,7 +468,7 @@ class JournalService
         
         // Credit: Kas/Bank account (mengurangi kas/bank)
         $akunKas = $pelunasanUtang->akunKas;
-        $kodeAkun = $akunKas ? $akunKas->kode_akun : '1101'; // Default ke Kas jika tidak ada
+        $kodeAkun = $akunKas ? $akunKas->kode_akun : '112'; // Default ke Kas jika tidak ada
         
         $lines[] = [
             'code' => $kodeAkun,
