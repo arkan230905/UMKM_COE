@@ -11,9 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('stock_movements', function (Blueprint $table) {
-            $table->text('keterangan')->nullable()->after('ref_id');
-        });
+        // Check if keterangan column doesn't exist before adding
+        if (!Schema::hasColumn('stock_movements', 'keterangan')) {
+            Schema::table('stock_movements', function (Blueprint $table) {
+                $table->text('keterangan')->nullable()->after('ref_id');
+            });
+        }
     }
 
     /**
@@ -21,8 +24,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('stock_movements', function (Blueprint $table) {
-            $table->dropColumn('keterangan');
-        });
+        // Check if keterangan column exists before dropping
+        if (Schema::hasColumn('stock_movements', 'keterangan')) {
+            Schema::table('stock_movements', function (Blueprint $table) {
+                $table->dropColumn('keterangan');
+            });
+        }
     }
 };
