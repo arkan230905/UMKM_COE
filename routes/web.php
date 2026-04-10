@@ -2262,6 +2262,7 @@ Route::middleware('auth')->group(function () {
             Route::put('/{pembelian}', [PembelianController::class, 'update'])->name('update');
             Route::delete('/{pembelian}', [PembelianController::class, 'destroy'])->name('destroy');
             Route::get('/{pembelian}/cetak-pdf', [PembelianController::class, 'cetakPdf'])->name('cetak-pdf');
+            Route::get('/{pembelian}/preview-faktur', [PembelianController::class, 'previewFaktur'])->name('preview-faktur');
         });
 
         // ============================================================

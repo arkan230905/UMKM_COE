@@ -90,49 +90,60 @@ class PembelianObserver
 
             $entries = [];
             
-            // Group entries by COA pembelian from master data
-            $coaGroups = [];
+            // Group entries by material type (bahan baku vs bahan pendukung)
+            $totalBahanBaku = 0;
+            $totalBahanPendukung = 0;
+            $bahanBakuItems = [];
+            $bahanPendukungItems = [];
             
             foreach($pembelian->details as $detail) {
                 $subtotal = ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
                 
-                // Get COA pembelian from master data
-                $coaPembelian = null;
-                if ($detail->bahanBaku && $detail->bahanBaku->coa_pembelian_id) {
-                    $coaPembelian = $detail->bahanBaku->coaPembelian;
-                } elseif ($detail->bahanPendukung && $detail->bahanPendukung->coa_pembelian_id) {
-                    $coaPembelian = $detail->bahanPendukung->coaPembelian;
+                if ($detail->bahanBaku) {
+                    $totalBahanBaku += $subtotal;
+                    $bahanBakuItems[] = $detail->bahanBaku->nama_bahan;
+                } elseif ($detail->bahanPendukung) {
+                    $totalBahanPendukung += $subtotal;
+                    $bahanPendukungItems[] = $detail->bahanPendukung->nama_bahan;
                 }
-                
-                if ($coaPembelian) {
-                    $coaCode = $coaPembelian->kode_akun;
-                    if (!isset($coaGroups[$coaCode])) {
-                        $coaGroups[$coaCode] = [
-                            'coa' => $coaPembelian,
-                            'total' => 0,
-                            'items' => []
-                        ];
-                    }
-                    $coaGroups[$coaCode]['total'] += $subtotal;
-                    $coaGroups[$coaCode]['items'][] = $detail->bahanBaku->nama_bahan ?? $detail->bahanPendukung->nama_bahan ?? 'Unknown';
+            }
+            
+            // Debit Persediaan Bahan Baku jika ada
+            if ($totalBahanBaku > 0) {
+                $coaPersediaanBahanBaku = \App\Models\Coa::where('kode_akun', '114')->first();
+                    
+                if ($coaPersediaanBahanBaku) {
+                    $entries[] = [
+                        'code' => $coaPersediaanBahanBaku->kode_akun, 
+                        'debit' => $totalBahanBaku, 
+                        'credit' => 0,
+                        'memo' => 'Persediaan Bahan Baku: ' . implode(', ', array_unique($bahanBakuItems))
+                    ];
                 } else {
-                    Log::warning('COA pembelian not found for item', [
+                    Log::warning('COA Persediaan Bahan Baku (114) not found', [
                         'pembelian_id' => $pembelian->id,
-                        'detail_id' => $detail->id,
-                        'bahan_baku_id' => $detail->bahan_baku_id,
-                        'bahan_pendukung_id' => $detail->bahan_pendukung_id
+                        'total_bahan_baku' => $totalBahanBaku
                     ]);
                 }
             }
             
-            // Create debit entries for each COA group
-            foreach ($coaGroups as $coaCode => $group) {
-                $entries[] = [
-                    'code' => $coaCode, 
-                    'debit' => $group['total'], 
-                    'credit' => 0,
-                    'memo' => 'Pembelian ' . implode(', ', array_unique($group['items']))
-                ];
+            // Debit Persediaan Bahan Pendukung jika ada
+            if ($totalBahanPendukung > 0) {
+                $coaPersediaanBahanPendukung = \App\Models\Coa::where('kode_akun', '115')->first();
+                    
+                if ($coaPersediaanBahanPendukung) {
+                    $entries[] = [
+                        'code' => $coaPersediaanBahanPendukung->kode_akun, 
+                        'debit' => $totalBahanPendukung, 
+                        'credit' => 0,
+                        'memo' => 'Persediaan Bahan Pendukung: ' . implode(', ', array_unique($bahanPendukungItems))
+                    ];
+                } else {
+                    Log::warning('COA Persediaan Bahan Pendukung (115) not found', [
+                        'pembelian_id' => $pembelian->id,
+                        'total_bahan_pendukung' => $totalBahanPendukung
+                    ]);
+                }
             }
             
             // Tambahkan PPN Masukan jika ada (selalu PPN Masukan untuk pembelian)

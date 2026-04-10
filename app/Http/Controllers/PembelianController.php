@@ -1447,4 +1447,52 @@ class PembelianController extends Controller
                 ->with('error', 'Gagal membuat PDF: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Preview faktur pembelian sebelum print/download
+     */
+    public function previewFaktur($id)
+    {
+        try {
+            // Get purchase data with all related information
+            $pembelian = Pembelian::with([
+                'vendor',
+                'details.bahanBaku',
+                'details.bahanPendukung',
+                'kasBank'
+            ])->findOrFail($id);
+
+            // Calculate totals
+            $subtotal = $pembelian->subtotal ?? 0;
+            $ppnNominal = $pembelian->ppn_nominal ?? 0;
+            $biayaKirim = $pembelian->biaya_kirim ?? 0;
+            $grandTotal = $pembelian->total_harga ?? ($subtotal + $ppnNominal + $biayaKirim);
+
+            // Company information
+            $company = [
+                'name' => 'UMKM COE',
+                'address' => 'Jl. Contoh Alamat No. 123, Kota, Provinsi',
+                'phone' => '(021) 1234-5678',
+                'email' => 'info@umkmcoe.com'
+            ];
+
+            return view('transaksi.pembelian.preview-faktur', compact(
+                'pembelian',
+                'subtotal',
+                'ppnNominal',
+                'biayaKirim',
+                'grandTotal',
+                'company'
+            ));
+
+        } catch (\Exception $e) {
+            \Log::error('Error previewing purchase invoice', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return redirect()->back()
+                ->with('error', 'Gagal menampilkan preview faktur: ' . $e->getMessage());
+        }
+    }
 }

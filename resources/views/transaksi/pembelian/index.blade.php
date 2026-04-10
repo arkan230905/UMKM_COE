@@ -409,10 +409,12 @@
                                                 Retur
                                             </a>
                                             
-                                            <!-- Row 3: Cetak | Hapus -->
-                                            <a href="{{ route('transaksi.pembelian.cetak-pdf', $pembelian->id) }}" class="btn btn-sm btn-outline-secondary w-100" title="Download PDF">
-                                                Cetak
+                                            <!-- Row 3: Cetak -->
+                                            <a href="{{ route('transaksi.pembelian.preview-faktur', $pembelian->id) }}" class="btn btn-sm btn-outline-info w-100" title="Cetak Faktur" target="_blank">
+                                                🖨️ Cetak
                                             </a>
+                                            
+                                            <!-- Row 4: Hapus -->
                                             <form action="{{ route('transaksi.pembelian.destroy', $pembelian->id) }}" method="POST" class="d-inline w-100" onsubmit="return confirm('Yakin ingin hapus?')">
                                                 @csrf
                                                 @method('DELETE')

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Faktur Pembelian - {{ $pembelian->nomor_pembelian }}</title>
+    <title>Preview Faktur Pembelian - {{ $pembelian->nomor_pembelian }}</title>
     <style>
         * {
             margin: 0;
@@ -16,17 +16,19 @@
             font-size: 12px;
             line-height: 1.4;
             color: #333;
-            background: white;
+            background: #f5f5f5;
             margin: 0;
             padding: 20px;
         }
 
-        .invoice-container {
+        .container {
             max-width: 210mm;
             width: 100%;
             margin: 0 auto;
+            padding: 40px;
             background: white;
-            padding: 0;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            border-radius: 8px;
         }
 
         /* Print Settings */
@@ -34,15 +36,51 @@
             body {
                 margin: 0;
                 padding: 0;
+                background: white;
             }
-            .invoice-container {
+            .container {
                 width: 100%;
                 max-width: 100%;
-                padding: 0;
+                box-shadow: none;
+                padding: 30px;
+                border-radius: 0;
+            }
+            .print-buttons {
+                display: none;
             }
         }
 
-        /* Header with date and invoice number */
+        /* Print Buttons */
+        .print-buttons {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 0 5px;
+            background: #2c3e50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #34495e;
+        }
+
+        .btn-print {
+            background: #27ae60;
+        }
+
+        .btn-print:hover {
+            background: #2ecc71;
+        }
+
+        /* Top Header with date and invoice number */
         .top-header {
             display: flex;
             justify-content: space-between;
@@ -96,38 +134,40 @@
             margin: 30px 0;
         }
 
-        /* Info Section - Two Columns */
+        /* Info Section - Using Flexbox */
         .info-section {
             display: flex;
             justify-content: space-between;
             margin-bottom: 40px;
-            gap: 100px;
+            gap: 60px;
         }
 
         .info-left, .info-right {
             flex: 1;
         }
 
-        .info-item {
-            margin-bottom: 20px;
+        .info-group {
+            margin-bottom: 15px;
         }
 
         .info-label {
             font-weight: bold;
-            color: #333;
+            color: #2c3e50;
             margin-bottom: 5px;
-            font-size: 12px;
+            font-size: 14px;
         }
 
         .info-value {
             color: #333;
-            font-size: 12px;
-            margin-left: 10px;
+            padding-left: 15px;
+            font-size: 14px;
+            line-height: 1.4;
         }
 
         .vendor-name {
             font-weight: bold;
-            color: #333;
+            font-size: 16px;
+            color: #2c3e50;
         }
 
         /* Table */
@@ -135,17 +175,18 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 30px;
-            border: 1px solid #333;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
         .items-table th {
-            background: #333;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
             color: white;
-            padding: 12px 8px;
+            padding: 12px 10px;
             text-align: center;
             font-weight: bold;
-            border: 1px solid #333;
+            border: 1px solid #2c3e50;
             font-size: 12px;
+            letter-spacing: 0.5px;
         }
 
         .items-table th.text-left {
@@ -157,10 +198,18 @@
         }
 
         .items-table td {
-            padding: 12px 8px;
-            border: 1px solid #333;
-            vertical-align: top;
-            font-size: 11px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            vertical-align: middle;
+            font-size: 12px;
+        }
+
+        .items-table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .items-table tbody tr:hover {
+            background-color: #e8f4f8;
         }
 
         .text-center {
@@ -177,7 +226,7 @@
 
         .item-name {
             font-weight: bold;
-            color: #333;
+            color: #2c3e50;
             margin-bottom: 2px;
         }
 
@@ -185,41 +234,44 @@
             font-size: 10px;
             color: #666;
             font-style: italic;
+            background: #ecf0f1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: inline-block;
         }
 
-        /* Totals Section - Right Aligned */
+        /* Totals Section */
         .totals-section {
             width: 300px;
             margin-left: auto;
             margin-top: 20px;
+            border: 2px solid #2c3e50;
+            border-radius: 5px;
+            overflow: hidden;
         }
 
         .total-row {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            font-size: 12px;
+            padding: 8px 15px;
+            border-bottom: 1px solid #ecf0f1;
+            background: white;
         }
 
-        .total-row.subtotal {
-            border-bottom: none;
-        }
-
-        .total-row.ppn {
+        .total-row:last-child {
             border-bottom: none;
         }
 
         .total-row.grand-total {
-            border-top: 2px solid #333;
-            border-bottom: 2px solid #333;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
             font-weight: bold;
-            font-size: 13px;
-            padding: 10px 0;
-            margin-top: 5px;
+            font-size: 14px;
+            padding: 12px 15px;
         }
 
         .total-label {
-            font-weight: bold;
+            font-weight: 600;
         }
 
         .total-value {
@@ -228,14 +280,24 @@
 
         /* Footer */
         .footer {
-            margin-top: 60px;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #ecf0f1;
             text-align: center;
-            font-size: 10px;
+            font-size: 11px;
             color: #666;
-            line-height: 1.4;
         }
 
-        /* Print adjustments */
+        .footer-line {
+            margin-bottom: 5px;
+        }
+
+        .print-date {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        /* Responsive adjustments */
         @media print {
             .info-section {
                 display: block;
@@ -264,7 +326,14 @@
     </style>
 </head>
 <body>
-    <div class="invoice-container">
+    <!-- Print Buttons -->
+    <div class="print-buttons">
+        <a href="javascript:window.print()" class="btn btn-print">🖨️ Print Faktur</a>
+        <a href="{{ route('transaksi.pembelian.cetak-pdf', $pembelian->id) }}" class="btn">📄 Download PDF</a>
+        <a href="{{ route('transaksi.pembelian.index') }}" class="btn">← Kembali ke Daftar</a>
+    </div>
+
+    <div class="container">
         <!-- Top Header with Date and Invoice Number -->
         <div class="top-header">
             <div class="print-date">{{ now()->format('j/n/y, g:i A') }}</div>
@@ -287,26 +356,26 @@
         <!-- Info Section -->
         <div class="info-section">
             <div class="info-left">
-                <div class="info-item">
+                <div class="info-group">
                     <div class="info-label">No. Transaksi:</div>
                     <div class="info-value">{{ $pembelian->nomor_pembelian }}</div>
                 </div>
                 
                 @if($pembelian->nomor_faktur)
-                <div class="info-item">
+                <div class="info-group">
                     <div class="info-label">No. Faktur:</div>
                     <div class="info-value">{{ $pembelian->nomor_faktur }}</div>
                 </div>
                 @endif
                 
-                <div class="info-item">
+                <div class="info-group">
                     <div class="info-label">Tanggal:</div>
                     <div class="info-value">{{ $pembelian->tanggal->format('d F Y') }}</div>
                 </div>
             </div>
             
             <div class="info-right">
-                <div class="info-item">
+                <div class="info-group">
                     <div class="info-label">Vendor:</div>
                     <div class="info-value">
                         <div class="vendor-name">{{ $pembelian->vendor->nama_vendor ?? '-' }}</div>
@@ -319,7 +388,7 @@
                     </div>
                 </div>
                 
-                <div class="info-item">
+                <div class="info-group">
                     <div class="info-label">Metode Pembayaran:</div>
                     <div class="info-value">
                         @php
@@ -327,7 +396,7 @@
                             if ($paymentMethod === 'credit') {
                                 echo 'Kredit';
                             } elseif ($paymentMethod === 'transfer') {
-                                echo 'Transfer';
+                                echo 'Transfer Bank';
                             } else {
                                 echo 'Tunai';
                             }
@@ -343,10 +412,10 @@
                 <tr>
                     <th class="text-center" style="width: 40px;">No</th>
                     <th class="text-left">Nama Barang</th>
-                    <th class="text-center" style="width: 60px;">Qty</th>
-                    <th class="text-center" style="width: 80px;">Satuan</th>
+                    <th class="text-center" style="width: 70px;">Qty</th>
+                    <th class="text-center" style="width: 70px;">Satuan</th>
                     <th class="text-right" style="width: 100px;">Harga Satuan</th>
-                    <th class="text-right" style="width: 100px;">Subtotal</th>
+                    <th class="text-right" style="width: 110px;">Subtotal</th>
                 </tr>
             </thead>
             <tbody>
@@ -381,13 +450,13 @@
 
         <!-- Totals Section -->
         <div class="totals-section">
-            <div class="total-row subtotal">
+            <div class="total-row">
                 <span class="total-label">Subtotal:</span>
                 <span class="total-value">Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
             </div>
             
             @if($ppnNominal > 0)
-            <div class="total-row ppn">
+            <div class="total-row">
                 <span class="total-label">PPN ({{ $pembelian->ppn_persen ?? 0 }}%):</span>
                 <span class="total-value">Rp {{ number_format($ppnNominal, 0, ',', '.') }}</span>
             </div>
@@ -408,8 +477,11 @@
 
         <!-- Footer -->
         <div class="footer">
-            Faktur ini dicetak pada {{ now()->format('d F Y H:i:s') }}<br>
-            {{ $company['name'] }} - Sistem Manajemen UMKM
+            <div class="footer-line print-date">Dicetak pada: {{ now()->format('d F Y, H:i:s') }}</div>
+            <div class="footer-line">{{ $company['name'] }} - Sistem Manajemen UMKM</div>
+            <div class="footer-line" style="margin-top: 10px; font-size: 10px;">
+                Dokumen ini digenerate secara otomatis oleh sistem
+            </div>
         </div>
     </div>
 </body>

@@ -24,6 +24,11 @@ class AkuntansiController extends Controller
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
 
+        // Auto-generate journal jika belum ada untuk purchase
+        if ($refType === 'purchase' && $refId) {
+            $this->ensurePurchaseJournalExists($refId);
+        }
+
         // Gunakan query dengan leftJoin untuk memastikan nama akun selalu diambil
         $query = \DB::table('journal_entries as je')
             ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
@@ -93,6 +98,50 @@ class AkuntansiController extends Controller
         }
         
         return view('akuntansi.jurnal-umum', compact('entries','from','to','refType','refId','accountCode'));
+    }
+
+    /**
+     * Ensure purchase journal exists, create if not
+     */
+    private function ensurePurchaseJournalExists($purchaseId)
+    {
+        try {
+            // Check if journal already exists
+            $existingJournal = \App\Models\JournalEntry::where('ref_type', 'purchase')
+                ->where('ref_id', $purchaseId)
+                ->first();
+
+            if ($existingJournal) {
+                return; // Journal already exists
+            }
+
+            // Get purchase data
+            $pembelian = \App\Models\Pembelian::with([
+                'vendor',
+                'details.bahanBaku',
+                'details.bahanPendukung'
+            ])->find($purchaseId);
+
+            if (!$pembelian) {
+                \Log::warning('Purchase not found for journal generation', ['id' => $purchaseId]);
+                return;
+            }
+
+            // Create journal using observer
+            $observer = new \App\Observers\PembelianObserver();
+            $observer->created($pembelian);
+
+            \Log::info('Auto-generated journal for purchase', [
+                'purchase_id' => $purchaseId,
+                'nomor_pembelian' => $pembelian->nomor_pembelian
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to auto-generate purchase journal', [
+                'purchase_id' => $purchaseId,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     public function jurnalUmumExportPdf(Request $request)
