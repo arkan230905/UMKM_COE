@@ -2201,7 +2201,8 @@ Route::middleware('auth')->group(function () {
             Route::get('/create', [PresensiController::class, 'create'])->name('create');
             Route::post('/', [PresensiController::class, 'store'])->name('store');
             Route::get('/face-attendance', [PresensiController::class, 'faceAttendance'])->name('face-attendance');
-            
+            Route::get('/cetak', [PresensiController::class, 'cetak'])->name('cetak')->middleware(['role:owner,admin']);
+
             // Verifikasi Wajah Routes - harus diletakkan sebelum {id}
             Route::prefix('verifikasi-wajah')->name('verifikasi-wajah.')->group(function() {
                 Route::get('/', [PresensiController::class, 'verifikasiWajahIndex'])->name('index');
@@ -2248,6 +2249,12 @@ Route::middleware('auth')->group(function () {
             
             // Status management
             Route::post('/{id}/update-status', [PenggajianController::class, 'updateStatus'])->name('update-status');
+
+            // Tandai sudah dibayar (owner/admin only)
+            Route::patch('/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
+
+            // Posting ke jurnal (owner/admin only)
+            Route::post('/{id}/post-journal', [PenggajianController::class, 'postToJournal'])->name('post-journal')->middleware(['role:owner,admin']);
         });
 
         // ============================================================
@@ -2643,6 +2650,13 @@ Route::middleware(['auth', 'role:pegawai'])->prefix('pegawai')->name('pegawai.')
     
     // Rekap harian presensi (semua pegawai yang hadir hari ini)
     Route::get('/rekap-harian', [PegawaiDashboardController::class, 'rekapHarian'])->name('rekap-harian');
+
+    // Slip Gaji Pegawai
+    Route::prefix('slip-gaji')->name('slip-gaji.')->group(function () {
+        Route::get('/', [PegawaiDashboardController::class, 'slipGajiIndex'])->name('index');
+        Route::get('/{id}', [PegawaiDashboardController::class, 'slipGajiShow'])->name('show');
+        Route::get('/{id}/pdf', [PegawaiDashboardController::class, 'slipGajiPdf'])->name('pdf');
+    });
 });
 
 // ====================================================================

@@ -10,6 +10,7 @@ use App\Models\Pegawai;
 use App\Models\Presensi;
 use App\Models\Bop;
 use App\Models\Coa;
+use App\Models\JurnalUmum;
 use Carbon\Carbon;
 
 class PenggajianController extends Controller
@@ -43,6 +44,11 @@ class PenggajianController extends Controller
             });
         }
 
+        // Filter status pembayaran
+        if ($request->status_pembayaran) {
+            $query->where('status_pembayaran', $request->status_pembayaran);
+        }
+
         $penggajians = $query->latest()->get();
         return view('transaksi.penggajian.index', compact('penggajians'));
     }
@@ -52,7 +58,10 @@ class PenggajianController extends Controller
      */
     public function create()
     {
-        $pegawais = Pegawai::all();
+        // Clear any old validation errors from session
+        session()->forget('errors');
+
+        $pegawais = Pegawai::with('jabatanRelasi')->get();
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
         return view('transaksi.penggajian.create', compact('pegawais', 'kasbank'));
     }
@@ -73,22 +82,38 @@ class PenggajianController extends Controller
                 'coa_kasbank' => 'required|exists:coas,kode_akun',
                 'bonus' => 'nullable|numeric|min:0',
                 'potongan' => 'nullable|numeric|min:0',
-                'gaji_pokok' => 'required|numeric|min:0',
-                'tarif_per_jam' => 'required|numeric|min:0',
-                'tunjangan' => 'required|numeric|min:0',
+                'gaji_pokok' => 'nullable|numeric|min:0',
+                'tarif_per_jam' => 'nullable|numeric|min:0',
+                'tunjangan' => 'nullable|numeric|min:0',
                 'asuransi' => 'required|numeric|min:0',
                 'total_jam_kerja' => 'nullable|numeric|min:0',
-                'jenis_pegawai' => 'required|string|in:btkl,btktl',
+                'jenis_pegawai' => 'nullable|string|in:btkl,btktl',
             ]);
 
             $pegawai = Pegawai::findOrFail($request->pegawai_id);
 
             // Data dari form
-            $gajiPokok = (float) $request->gaji_pokok;
-            $tarifPerJam = (float) $request->tarif_per_jam;
-            $tunjangan = (float) $request->tunjangan;
+            $gajiPokok = (float) ($request->gaji_pokok ?? 0);
+            $tarifPerJam = (float) ($request->tarif_per_jam ?? 0);
+            // Get jenis_pegawai from form or from pegawai
+            $jenisPegawai = $request->jenis_pegawai ?? strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl');
+
+            // Get tunjangan from pegawai's jabatan (kualifikasi)
+            $jabatan = $pegawai->jabatanRelasi;
+            if ($jabatan) {
+                $tunjanganJabatan = (float) ($jabatan->tunjangan ?? 0);
+                $tunjanganTransport = (float) ($jabatan->tunjangan_transport ?? 0);
+                $tunjanganKonsumsi = (float) ($jabatan->tunjangan_konsumsi ?? 0);
+            } else {
+                // Fallback to pegawai stored values or accessor
+                $tunjanganJabatan = (float) ($pegawai->tunjangan_jabatan ?? 0);
+                $tunjanganTransport = (float) ($pegawai->tunjangan_transport ?? 0);
+                $tunjanganKonsumsi = (float) ($pegawai->tunjangan_konsumsi ?? 0);
+            }
+
+            // Calculate total tunjangan
+            $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
             $asuransi = (float) $request->asuransi;
-            $jenisPegawai = $request->jenis_pegawai;
 
             // Untuk BTKL: hitung total jam kerja otomatis dari presensi (bulan dari tanggal_penggajian)
             if ($jenisPegawai === 'btkl') {
@@ -116,7 +141,10 @@ class PenggajianController extends Controller
                 'jenis_pegawai' => $jenisPegawai,
                 'gaji_pokok' => $gajiPokok,
                 'tarif_per_jam' => $tarifPerJam,
-                'tunjangan' => $tunjangan,
+                'tunjangan_jabatan' => $tunjanganJabatan,
+                'tunjangan_transport' => $tunjanganTransport,
+                'tunjangan_konsumsi' => $tunjanganKonsumsi,
+                'total_tunjangan' => $totalTunjangan,
                 'asuransi' => $asuransi,
                 'total_jam_kerja' => $totalJamKerja,
                 'bonus' => $bonus,
@@ -126,14 +154,14 @@ class PenggajianController extends Controller
             // Hitung gaji dasar berdasarkan jenis pegawai
             if ($jenisPegawai === 'btkl') {
                 // BTKL = (Tarif × Jam Kerja)
-                $gajiDasar = ($tarifPerJam * $totalJamKerja);
+                $gajiDasar = $tarifPerJam * $totalJamKerja;
             } else {
                 // BTKTL = Gaji Pokok
                 $gajiDasar = $gajiPokok;
             }
 
-            // Total gaji = gaji dasar + tunjangan + asuransi + bonus - potongan
-            $totalGaji = $gajiDasar + $tunjangan + $asuransi + $bonus - $potongan;
+            // Total gaji = gaji dasar + total_tunjangan + asuransi + bonus - potongan
+            $totalGaji = $gajiDasar + $totalTunjangan + $asuransi + $bonus - $potongan;
 
             // Dapatkan akun kas/bank
             $coaKasBank = Coa::where('kode_akun', $request->coa_kasbank)->first();
@@ -164,7 +192,11 @@ class PenggajianController extends Controller
                 'coa_kasbank' => $coaKasBank->kode_akun,
                 'gaji_pokok' => $gajiPokok,
                 'tarif_per_jam' => $tarifPerJam,
-                'tunjangan' => $tunjangan,
+                'tunjangan' => $totalTunjangan, // Backward compatibility
+                'tunjangan_jabatan' => $tunjanganJabatan,
+                'tunjangan_transport' => $tunjanganTransport,
+                'tunjangan_konsumsi' => $tunjanganKonsumsi,
+                'total_tunjangan' => $totalTunjangan,
                 'asuransi' => $asuransi,
                 'bonus' => $bonus,
                 'potongan' => $potongan,
@@ -216,6 +248,13 @@ class PenggajianController extends Controller
     {
         try {
             $penggajian = Penggajian::findOrFail($id);
+
+            // Cegah hapus jika sudah dibayar
+            if ($penggajian->isPaid()) {
+                return redirect()->route('transaksi.penggajian.index')
+                    ->with('error', 'Penggajian tidak dapat dihapus karena sudah dibayar (status: ' . $penggajian->status_pembayaran . ')');
+            }
+
             $penggajian->delete();
 
             return redirect()->route('transaksi.penggajian.index')
@@ -225,6 +264,34 @@ class PenggajianController extends Controller
 
             return redirect()->route('transaksi.penggajian.index')
                 ->withErrors(['error' => 'Gagal menghapus penggajian: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Tandai penggajian sebagai sudah dibayar
+     */
+    public function markAsPaid($id)
+    {
+        try {
+            $penggajian = Penggajian::findOrFail($id);
+
+            // Hanya update jika status masih belum_lunas
+            if ($penggajian->status_pembayaran === 'belum_lunas') {
+                $penggajian->status_pembayaran = 'lunas';
+                $penggajian->tanggal_dibayar = now()->format('Y-m-d');
+                $penggajian->save();
+
+                return redirect()->back()
+                    ->with('success', 'Penggajian berhasil ditandai sebagai sudah dibayar.');
+            }
+
+            return redirect()->back()
+                ->with('info', 'Penggajian sudah berstatus ' . $penggajian->status_pembayaran);
+        } catch (\Exception $e) {
+            \Log::error('Error marking penggajian as paid: ' . $e->getMessage());
+
+            return redirect()->back()
+                ->withErrors(['error' => 'Gagal menandai penggajian sebagai dibayar: ' . $e->getMessage()]);
         }
     }
 
@@ -439,6 +506,151 @@ class PenggajianController extends Controller
             $penggajian->save();
             
             return back()->with('success', 'Transaksi berhasil dibatalkan');
+        }
+    }
+
+    /**
+     * Posting penggajian ke jurnal umum
+     * 
+     * Skema Jurnal:
+     * DEBIT:
+     * - Beban Gaji (BTKL/BTKTL) = gaji_dasar
+     * - Beban Tunjangan = total_tunjangan
+     * - Beban Asuransi = asuransi
+     * 
+     * KREDIT:
+     * - Kas/Bank (jika sudah dibayar) atau Utang Gaji (jika belum dibayar) = total_gaji
+     */
+    public function postToJournal($id)
+    {
+        // Check permission: hanya owner/admin
+        if (!in_array(auth()->user()->role, ['owner', 'admin'])) {
+            abort(403, 'Anda tidak memiliki akses untuk posting ke jurnal');
+        }
+
+        $penggajian = Penggajian::with('pegawai')->findOrFail($id);
+
+        // Cegah double posting
+        if ($penggajian->isPosted()) {
+            return back()->with('error', 'Penggajian ini sudah diposting ke jurnal');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Hitung komponen gaji
+            $pegawai = $penggajian->pegawai;
+            $jenisPegawai = strtolower($pegawai->jenis_pegawai ?? 'btktl');
+
+            // Gaji dasar
+            if ($jenisPegawai === 'btkl') {
+                $gajiDasar = ($penggajian->tarif_per_jam ?? 0) * ($penggajian->total_jam_kerja ?? 0);
+            } else {
+                $gajiDasar = $penggajian->gaji_pokok ?? 0;
+            }
+
+            $totalTunjangan = $penggajian->total_tunjangan ?? 0;
+            $asuransi = $penggajian->asuransi ?? 0;
+            $totalGaji = $penggajian->total_gaji ?? 0;
+
+            // Generate no bukti jurnal
+            $noBukti = $penggajian->generateNoBukti();
+
+            // Tentukan akun COA dari config
+            $config = config('penggajian_journal');
+            
+            // Pilih akun beban gaji berdasarkan jenis pegawai
+            $coaBebanGaji = Coa::where('kode_akun', $jenisPegawai === 'btkl' 
+                ? $config['beban_gaji_btkl'] 
+                : $config['beban_gaji_btklt'])->first();
+            
+            $coaBebanTunjangan = Coa::where('kode_akun', $config['beban_tunjangan'])->first();
+            $coaBebanAsuransi = Coa::where('kode_akun', $config['beban_asuransi'])->first();
+
+            // Tentukan akun kredit (Kas/Bank atau Utang Gaji)
+            $isPaid = $penggajian->status_pembayaran === 'lunas';
+            if ($isPaid) {
+                // Gunakan COA kasbank dari penggajian atau default
+                $coaKredit = Coa::where('kode_akun', $penggajian->coa_kasbank ?? $config['kas_bank_default'])->first();
+            } else {
+                $coaKredit = Coa::where('kode_akun', $config['utang_gaji'])->first();
+            }
+
+            // Validasi COA tersedia
+            if (!$coaBebanGaji || !$coaBebanTunjangan || !$coaBebanAsuransi || !$coaKredit) {
+                DB::rollBack();
+                return back()->with('error', 'COA untuk jurnal penggajian belum dikonfigurasi dengan benar');
+            }
+
+            // Buat jurnal entries (DEBIT)
+            $keterangan = "Penggajian {$pegawai->nama} ({$pegawai->kode_pegawai}) - " . 
+                         ($isPaid ? 'Dibayar' : 'Belum Dibayar');
+
+            // DEBIT: Beban Gaji
+            JurnalUmum::create([
+                'coa_id' => $coaBebanGaji->id,
+                'tanggal' => $penggajian->tanggal_penggajian,
+                'keterangan' => $keterangan,
+                'debit' => $gajiDasar,
+                'kredit' => 0,
+                'referensi' => $penggajian->id,
+                'tipe_referensi' => 'penggajian',
+                'created_by' => auth()->id(),
+            ]);
+
+            // DEBIT: Beban Tunjangan
+            if ($totalTunjangan > 0) {
+                JurnalUmum::create([
+                    'coa_id' => $coaBebanTunjangan->id,
+                    'tanggal' => $penggajian->tanggal_penggajian,
+                    'keterangan' => $keterangan,
+                    'debit' => $totalTunjangan,
+                    'kredit' => 0,
+                    'referensi' => $penggajian->id,
+                    'tipe_referensi' => 'penggajian',
+                    'created_by' => auth()->id(),
+                ]);
+            }
+
+            // DEBIT: Beban Asuransi
+            if ($asuransi > 0) {
+                JurnalUmum::create([
+                    'coa_id' => $coaBebanAsuransi->id,
+                    'tanggal' => $penggajian->tanggal_penggajian,
+                    'keterangan' => $keterangan,
+                    'debit' => $asuransi,
+                    'kredit' => 0,
+                    'referensi' => $penggajian->id,
+                    'tipe_referensi' => 'penggajian',
+                    'created_by' => auth()->id(),
+                ]);
+            }
+
+            // KREDIT: Kas/Bank atau Utang Gaji
+            JurnalUmum::create([
+                'coa_id' => $coaKredit->id,
+                'tanggal' => $penggajian->tanggal_penggajian,
+                'keterangan' => $keterangan,
+                'debit' => 0,
+                'kredit' => $totalGaji,
+                'referensi' => $penggajian->id,
+                'tipe_referensi' => 'penggajian',
+                'created_by' => auth()->id(),
+            ]);
+
+            // Update status posting penggajian
+            $penggajian->status_posting = 'posted';
+            $penggajian->tanggal_posting = now();
+            $penggajian->save();
+
+            DB::commit();
+
+            return back()->with('success', 'Penggajian berhasil diposting ke jurnal umum');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error posting penggajian to journal: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan saat posting ke jurnal: ' . $e->getMessage());
         }
     }
 }

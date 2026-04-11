@@ -104,16 +104,18 @@
                             <td class="fw-semibold">Rp {{ number_format($row->gaji_pokok,0,',','.') }}</td>
                             <td class="fw-semibold">Rp {{ number_format($row->tarif,0,',','.') }}</td>
                             <td class="text-center">
-                                <a href="{{ route('master-data.kualifikasi-tenaga-kerja.edit',$row->id) }}" class="btn btn-outline-primary btn-sm me-1">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form action="{{ route('master-data.kualifikasi-tenaga-kerja.destroy',$row->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus kualifikasi {{ $row->nama }}?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger btn-sm">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a href="{{ route('master-data.kualifikasi-tenaga-kerja.edit',$row->id) }}" class="btn btn-outline-primary btn-sm" style="padding: 0.25rem 0.5rem;">
+                                        <i class="fas fa-edit fa-xs"></i>
+                                    </a>
+                                    <form action="{{ route('master-data.kualifikasi-tenaga-kerja.destroy',$row->id) }}" method="POST" class="m-0" onsubmit="return confirm('Yakin ingin menghapus kualifikasi {{ $row->nama }}?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" style="padding: 0.25rem 0.5rem;">
+                                            <i class="fas fa-trash fa-xs"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @empty

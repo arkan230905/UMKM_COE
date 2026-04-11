@@ -51,6 +51,14 @@
                             <option value="btktl" {{ request('jenis_pegawai') == 'btktl' ? 'selected' : '' }}>BTKTL</option>
                         </select>
                     </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status Pembayaran</label>
+                        <select name="status_pembayaran" class="form-select">
+                            <option value="">Semua Status</option>
+                            <option value="belum_lunas" {{ request('status_pembayaran') == 'belum_lunas' ? 'selected' : '' }}>Belum Dibayar</option>
+                            <option value="lunas" {{ request('status_pembayaran') == 'lunas' ? 'selected' : '' }}>Sudah Dibayar</option>
+                        </select>
+                    </div>
                     <div class="col-md-12">
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-primary">
@@ -85,6 +93,7 @@
                             <th>Bulan Penggajian</th>
                             <th>Karyawan</th>
                             <th>Metode Pembayaran</th>
+                            <th class="text-center">Status</th>
                             <th class="text-end">Gaji Pokok</th>
                             <th class="text-end">Insentif</th>
                             <th class="text-center">Aksi</th>
@@ -120,24 +129,39 @@
                                     </div>
                                 </td>
                                 <td>{{ $coa->nama_akun ?? $gaji->coa_kasbank }}</td>
+                                <td class="text-center">
+                                    @if($gaji->status_pembayaran === 'lunas')
+                                        <span class="badge bg-success">Sudah Dibayar</span>
+                                    @else
+                                        <span class="badge bg-warning text-dark">Belum Dibayar</span>
+                                    @endif
+                                </td>
                                 <td class="text-end">Rp {{ number_format($gajiPokok, 0, ',', '.') }}</td>
                                 <td class="text-end">Rp {{ number_format($insentif, 0, ',', '.') }}</td>
                                 <td class="text-center">
-                                    <a href="{{ route('transaksi.penggajian.show', $gaji->id) }}" class="btn btn-outline-info btn-sm" title="Detail">
-                                        <i class="fas fa-eye"></i> Detail
-                                    </a>
-                                    <form action="{{ route('transaksi.penggajian.destroy', $gaji->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus data penggajian ini?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <a href="{{ route('transaksi.penggajian.show', $gaji->id) }}" class="btn btn-outline-info btn-sm" title="Detail">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        @if($gaji->status_pembayaran !== 'lunas')
+                                            <form action="{{ route('transaksi.penggajian.destroy', $gaji->id) }}" method="POST" class="m-0">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus" onclick="return confirm('Yakin ingin menghapus data penggajian ini?');">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        @else
+                                            <button class="btn btn-outline-secondary btn-sm" disabled title="Tidak dapat dihapus karena sudah dibayar">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4">
+                                <td colspan="9" class="text-center py-4">
                                     <i class="fas fa-money-check-alt fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data penggajian</p>
                                 </td>
