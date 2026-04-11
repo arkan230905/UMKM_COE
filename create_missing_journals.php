@@ -2,147 +2,80 @@
 
 require_once 'vendor/autoload.php';
 
+// Bootstrap Laravel
 $app = require_once 'bootstrap/app.php';
+$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+use App\Models\Pembelian;
+use App\Models\JournalEntry;
+use App\Services\PembelianJournalService;
 
-$kernel->bootstrap();
-
-echo "Creating missing journals for existing pembelian transactions...\n\n";
-
-// Get pembelian transactions without journals
-$pembelianIds = [12, 13, 14]; // IDs that need journals
-
-foreach ($pembelianIds as $pembelianId) {
-    echo "=== Processing Pembelian ID: {$pembelianId} ===\n";
+try {
+    echo "=== CREATING MISSING JOURNALS ===\n\n";
     
-    $pembelian = \App\Models\Pembelian::with([
-        'details.bahanBaku.coaPembelian',
-        'details.bahanPendukung.coaPembelian',
-        'vendor'
-    ])->find($pembelianId);
+    // Find purchases without journals
+    $purchasesWithoutJournals = Pembelian::whereDate('tanggal', '2026-04-09')
+        ->whereNotExists(function($query) {
+            $query->select('id')
+                  ->from('journal_entries')
+                  ->where('ref_type', 'purchase')
+                  ->whereColumn('ref_id', 'pembelians.id');
+        })
+        ->with(['details.bahanBaku', 'details.bahanPendukung', 'vendor'])
+        ->get();
     
-    if (!$pembelian) {
-        echo "Pembelian ID {$pembelianId} not found!\n\n";
-        continue;
-    }
+    echo "Found " . $purchasesWithoutJournals->count() . " purchases without journals:\n\n";
     
-    echo "Nomor: {$pembelian->nomor_pembelian}\n";
-    echo "Total: " . number_format($pembelian->total_harga, 0, ',', '.') . "\n";
-    echo "Payment Method: {$pembelian->payment_method}\n";
-    echo "Details: " . $pembelian->details->count() . "\n\n";
+    $journalService = new PembelianJournalService();
     
-    // Create journal entries using the same logic as observer
-    $entries = [];
-    $coaGroups = [];
-    
-    foreach($pembelian->details as $detail) {
-        $subtotal = ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+    foreach ($purchasesWithoutJournals as $purchase) {
+        echo "Creating journal for Purchase ID {$purchase->id}: {$purchase->nomor_pembelian}\n";
+        echo "- Vendor: {$purchase->vendor->nama_vendor}\n";
+        echo "- Total: Rp " . number_format($purchase->total_harga) . "\n";
+        echo "- Details: " . $purchase->details->count() . "\n";
         
-        // Get COA pembelian from master data
-        $coaPembelian = null;
-        if ($detail->bahanBaku && $detail->bahanBaku->coa_pembelian_id) {
-            $coaPembelian = $detail->bahanBaku->coaPembelian;
-        } elseif ($detail->bahanPendukung && $detail->bahanPendukung->coa_pembelian_id) {
-            $coaPembelian = $detail->bahanPendukung->coaPembelian;
-        }
-        
-        if ($coaPembelian) {
-            $coaCode = $coaPembelian->kode_akun;
-            if (!isset($coaGroups[$coaCode])) {
-                $coaGroups[$coaCode] = [
-                    'coa' => $coaPembelian,
-                    'total' => 0,
-                    'items' => []
-                ];
+        // Show what's in the purchase
+        foreach ($purchase->details as $detail) {
+            if ($detail->bahan_baku_id) {
+                echo "  * Bahan Baku: {$detail->bahanBaku->nama_bahan}\n";
             }
-            $coaGroups[$coaCode]['total'] += $subtotal;
-            $coaGroups[$coaCode]['items'][] = $detail->bahanBaku->nama_bahan ?? $detail->bahanPendukung->nama_bahan ?? 'Unknown';
-        } else {
-            echo "WARNING: COA pembelian not found for detail ID {$detail->id}\n";
-        }
-    }
-    
-    // Create debit entries for each COA group
-    foreach ($coaGroups as $coaCode => $group) {
-        $entries[] = [
-            'code' => $coaCode, 
-            'debit' => $group['total'], 
-            'credit' => 0,
-            'memo' => 'Pembelian ' . implode(', ', array_unique($group['items']))
-        ];
-        echo "Debit entry: {$coaCode} = " . number_format($group['total'], 0, ',', '.') . "\n";
-    }
-    
-    // Add PPN Masukan if exists
-    if (($pembelian->ppn_nominal ?? 0) > 0) {
-        $entries[] = [
-            'code' => '127', // PPN Masukkan
-            'debit' => $pembelian->ppn_nominal, 
-            'credit' => 0,
-            'memo' => 'PPN Masukan ' . ($pembelian->ppn_persen ?? 10) . '%'
-        ];
-        echo "PPN entry: 127 = " . number_format($pembelian->ppn_nominal, 0, ',', '.') . "\n";
-    }
-    
-    // Add credit entry
-    $totalAmount = $pembelian->total_harga;
-    if ($pembelian->payment_method === 'credit') {
-        // Credit Hutang Usaha
-        $entries[] = [
-            'code' => '210', // Hutang Usaha
-            'debit' => 0, 
-            'credit' => $totalAmount,
-            'memo' => 'Hutang pembelian kredit'
-        ];
-        echo "Credit entry (Hutang): 210 = " . number_format($totalAmount, 0, ',', '.') . "\n";
-    } else {
-        // Credit Kas/Bank
-        if ($pembelian->bank_id) {
-            $bankCoa = \App\Models\Coa::find($pembelian->bank_id);
-            if ($bankCoa) {
-                $entries[] = [
-                    'code' => $bankCoa->kode_akun, 
-                    'debit' => 0, 
-                    'credit' => $totalAmount,
-                    'memo' => 'Pembayaran ' . ($pembelian->payment_method === 'cash' ? 'tunai' : 'transfer') . ' pembelian'
-                ];
-                echo "Credit entry (Bank): {$bankCoa->kode_akun} = " . number_format($totalAmount, 0, ',', '.') . "\n";
+            if ($detail->bahan_pendukung_id) {
+                echo "  * Bahan Pendukung: {$detail->bahanPendukung->nama_bahan}\n";
             }
         }
-    }
-    
-    // Calculate totals to verify balance
-    $totalDebit = 0;
-    $totalCredit = 0;
-    foreach ($entries as $entry) {
-        $totalDebit += $entry['debit'];
-        $totalCredit += $entry['credit'];
-    }
-    
-    echo "Total Debit: " . number_format($totalDebit, 0, ',', '.') . "\n";
-    echo "Total Credit: " . number_format($totalCredit, 0, ',', '.') . "\n";
-    echo "Balanced: " . ($totalDebit == $totalCredit ? 'YES' : 'NO') . "\n";
-    
-    if ($totalDebit == $totalCredit) {
+        
         try {
-            $journalService = new \App\Services\JournalService();
+            $journal = $journalService->createJournalFromPembelian($purchase);
             
-            $journalService->post(
-                $pembelian->tanggal->format('Y-m-d'),
-                'purchase',
-                $pembelian->id,
-                'Pembelian ' . ($pembelian->vendor->nama_vendor ?? '') . ' - ' . ($pembelian->nomor_pembelian ?? $pembelian->id),
-                $entries
-            );
-            
-            echo "✓ Journal created successfully!\n\n";
-        } catch (\Exception $e) {
-            echo "✗ Error creating journal: " . $e->getMessage() . "\n\n";
+            if ($journal) {
+                echo "✅ Journal created (ID: {$journal->id})\n";
+                echo "   Memo: {$journal->memo}\n";
+            } else {
+                echo "❌ Failed to create journal\n";
+            }
+        } catch (Exception $e) {
+            echo "❌ Error creating journal: " . $e->getMessage() . "\n";
         }
-    } else {
-        echo "✗ Journal not balanced - skipping\n\n";
+        
+        echo "\n";
     }
+    
+    // Final summary
+    echo "🎯 FINAL STATUS:\n";
+    $allPurchases = Pembelian::whereDate('tanggal', '2026-04-09')
+        ->orderBy('id')
+        ->get();
+    
+    foreach ($allPurchases as $purchase) {
+        $journalCount = JournalEntry::where('ref_type', 'purchase')
+            ->where('ref_id', $purchase->id)
+            ->count();
+        
+        $journalStatus = $journalCount > 0 ? "✅ Has journal" : "❌ No journal";
+        
+        echo "- ID {$purchase->id}: {$purchase->nomor_pembelian} ({$journalStatus})\n";
+    }
+    
+} catch (Exception $e) {
+    echo "❌ Error: " . $e->getMessage() . "\n";
 }
-
-echo "\nDone.\n";

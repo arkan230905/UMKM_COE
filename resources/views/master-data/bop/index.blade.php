@@ -117,18 +117,18 @@
                             </tr>
                             @endforelse
                             
-                            <!-- Total Row - Total Biaya / produk -->
+                            <!-- Total Row - Total BOP / produk -->
                             @if($bopProses->count() > 0)
                             <tr class="table-active fw-bold">
                                 <td colspan="4" class="text-end">
-                                    <span class="text-muted">Total Biaya / produk:</span>
+                                    <span class="text-muted">Total BOP / produk:</span>
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center justify-content-end">
                                         @php
-                                            $totalBiayaPerProduk = $bopProses->sum('biaya_per_produk');
+                                            $totalBopPerProduk = $bopProses->sum('bop_per_unit');
                                         @endphp
-                                        <span class="fw-bold text-success fs-6">Rp {{ number_format($totalBiayaPerProduk, 2, ',', '.') }}</span>
+                                        <span class="fw-bold text-success fs-6">Rp {{ number_format($totalBopPerProduk, 2, ',', '.') }}</span>
                                     </div>
                                 </td>
                                 <td>-</td>

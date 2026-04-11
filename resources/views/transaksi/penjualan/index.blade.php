@@ -95,12 +95,20 @@
     line-height: 1.2;
 }
 
-/* Action Layout Style - Detail on Left, Others on Right */
+/* Action Layout Style - 2 Baris Grid di Tengah */
 .action-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.action-row {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.25rem;
 }
 
 /* Modal fixes */
@@ -137,13 +145,6 @@
     display: flex;
     flex-direction: column;
     gap: 0.15rem;
-}
-
-.action-row {
-    display: flex;
-    gap: 0.35rem;
-    align-items: center;
-    justify-content: center;
 }
 
 .btn-minimal {
@@ -244,6 +245,18 @@
 .btn-minimal.btn-jurnal:hover {
     background: #dbeafe;
     color: #1d4ed8;
+}
+
+/* CETAK */
+.btn-minimal.btn-success {
+    color: #e8884d;
+    border-color: #e8884d;
+}
+
+.btn-minimal.btn-success:hover {
+    background: #d1fae5;
+    border-color: #ba5414;
+    color: #ba5414;
 }
 
 .modal-body .row.mt-4 {
@@ -401,10 +414,10 @@
                     </thead>
                     <tbody>
                         @foreach($penjualans as $key => $penjualan)
-                            <tr>
+                            <tr class="{{ $key % 2 === 0 ? 'table-light' : '' }}">
                                 <td class="text-center">{{ $key + 1 }}</td>
-                                <td><strong>{{ $penjualan->nomor_penjualan ?? '-' }}</strong></td>
-                                <td>{{ optional($penjualan->tanggal)->format('d-m-Y') ?? $penjualan->tanggal }}</td>
+                                <td><strong>{{ 'SJ-' . optional($penjualan->tanggal)->format('ymd') . '-' . str_pad(($key + 1), 3, '0', STR_PAD_LEFT) }}</strong></td>
+                                <td>{{ optional($penjualan->tanggal)->format('d-m-Y H:i') ?? $penjualan->tanggal }}</td>
                                 <td>
                                     <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
                                         @switch($penjualan->payment_method ?? '')
@@ -418,7 +431,8 @@
                                 @php $detailCount = $penjualan->details->count(); @endphp
                                 <td>
                                     @if($detailCount > 1)
-                                        @foreach($penjualan->details as $d)
+                                        @foreach($penjualan->details as $index => $d)
+                                            @if($index > 0)<br>@endif
                                             <div>{{ $d->produk->nama_produk ?? '-' }}</div>
                                         @endforeach
                                     @elseif($detailCount === 1)
@@ -430,12 +444,16 @@
                                 <td class="text-end">
                                     @if($detailCount > 1)
                                         @foreach($penjualan->details as $d)
-                                            <div>{{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}</div>
+                                            @if($loop->first)
+                                                {{ $d->produk->nama_produk }} - {{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}
+                                            @else
+                                                &nbsp;&nbsp;{{ $d->produk->nama_produk }} - {{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}
+                                            @endif
                                         @endforeach
                                     @elseif($detailCount === 1)
-                                        {{ rtrim(rtrim(number_format($penjualan->details[0]->jumlah,4,',','.'),'0'),',') }}
+                                        {{ $penjualan->details[0]->produk->nama_produk }} - {{ rtrim(rtrim(number_format($penjualan->details[0]->jumlah,4,',','.'),'0'),',') }}
                                     @else
-                                        {{ rtrim(rtrim(number_format($penjualan->jumlah,4,',','.'),'0'),',') }}
+                                        {{ $penjualan->produk?->nama_produk }} - {{ rtrim(rtrim(number_format($penjualan->jumlah,4,',','.'),'0'),',') }}
                                     @endif
                                 </td>
                                 <td class="text-end">
@@ -458,15 +476,18 @@
                                 <td class="text-end">
                                     @if($detailCount > 1)
                                         @foreach($penjualan->details as $d)
-                                            @php $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal); @endphp
-                                            <div>Rp {{ number_format($actualHPP, 0, ',', '.') }}</div>
+                                            <div>Rp {{ number_format($d->produk->getHPPForSaleDate($penjualan->tanggal), 0, ',', '.') }}</div>
                                         @endforeach
                                     @elseif($detailCount === 1)
-                                        @php $actualHPP = $penjualan->details[0]->produk->getHPPForSaleDate($penjualan->tanggal); @endphp
-                                        Rp {{ number_format($actualHPP, 0, ',', '.') }}
+                                        Rp {{ number_format($penjualan->details[0]->produk->getHPPForSaleDate($penjualan->tanggal), 0, ',', '.') }}
                                     @else
-                                        @php $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0; @endphp
-                                        Rp {{ number_format($actualHPP, 0, ',', '.') }}
+                                        @php
+                                            $hdrHarga = $penjualan->harga_satuan;
+                                            if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
+                                                $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                                            }
+                                        @endphp
+                                        Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}
                                     @endif
                                 </td>
                                 <td class="text-end">
@@ -479,25 +500,30 @@
                                         @php $actualHPP = $penjualan->details[0]->produk->getHPPForSaleDate($penjualan->tanggal); $margin = ($penjualan->details[0]->harga_satuan - $actualHPP) * $penjualan->details[0]->jumlah; @endphp
                                         <div class="{{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
                                     @else
-                                        @php $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0; $margin = ($hdrHarga - $actualHPP) * ($penjualan->jumlah ?? 0); @endphp
-                                        <div class="{{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
+                                        @php
+                                            $hdrHarga = $penjualan->harga_satuan;
+                                            if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
+                                                $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                                            }
+                                        @endphp
+                                        Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}
                                     @endif
                                 </td>
                                 <td class="text-end">
                                     @if($detailCount > 1)
                                         @foreach($penjualan->details as $d)
                                             @php $sub = (float)$d->jumlah * (float)$d->harga_satuan; $disc = (float)($d->diskon_nominal ?? 0); $pct = $sub>0 ? ($disc/$sub*100) : 0; @endphp
-                                            <div>{{ number_format($pct, 2, ',', '.') }}% (Rp {{ number_format($disc, 0, ',', '.') }})</div>
+                                            <div>{{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})</div>
                                         @endforeach
                                     @elseif($detailCount === 1)
                                         @php $d=$penjualan->details[0]; $sub=(float)$d->jumlah*(float)$d->harga_satuan; $disc=(float)($d->diskon_nominal??0); $pct=$sub>0?($disc/$sub*100):0; @endphp
-                                        {{ number_format($pct, 2, ',', '.') }}% (Rp {{ number_format($disc, 0, ',', '.') }})
+                                        {{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})
                                     @else
                                         @php $pct=0; $disc=(float)($penjualan->diskon_nominal ?? 0); if(($penjualan->jumlah??0)>0){ $hdrHarga=$penjualan->harga_satuan; if(is_null($hdrHarga)){ $hdrHarga=((float)$penjualan->total + $disc)/(float)$penjualan->jumlah; } $subtotal=$penjualan->jumlah*$hdrHarga; $pct=$subtotal>0?($disc/$subtotal*100):0; } @endphp
-                                        {{ number_format($pct, 2, ',', '.') }}% (Rp {{ number_format($disc, 0, ',', '.') }})
+                                        {{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})
                                     @endif
                                 </td>
-                                <td class="text-end fw-semibold">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</td>
+                                <td class="text-end fw-semibold"><strong>Rp {{ number_format($penjualan->total, 0, ',', '.') }}</strong></td>
                                 <td>
                                     @php
                                         $totalQtyRetur = $penjualan->total_qty_retur;
@@ -514,32 +540,31 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="action-layout">
-                                        <div class="action-left">
+                                        <div class="action-row gap-1 mb-1">
                                             <button type="button" class="btn-minimal btn-detail" data-bs-toggle="modal" data-bs-target="#detailModal{{ $penjualan->id }}" title="Detail Transaksi">
                                                 Detail
                                             </button>
+                                            <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Transaksi">
+                                                Edit
+                                            </a>
+                                            <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn-minimal btn-jurnal" data-bs-toggle="tooltip" title="Lihat Jurnal">
+                                                Jurnal
+                                            </a>
                                         </div>
-                                        <div class="action-right">
-                                            <div class="action-row">
-                                                <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Transaksi">
-                                                    Edit
-                                                </a>
-                                                <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'sale', 'ref_id' => $penjualan->id]) }}" class="btn-minimal btn-jurnal" data-bs-toggle="tooltip" title="Lihat Jurnal">
-                                                    Jurnal
-                                                </a>
-                                            </div>
-                                            <div class="action-row">
-                                                <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Proses Retur">
-                                                    Retur
-                                                </a>
-                                                <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn-minimal btn-danger" data-bs-toggle="tooltip" title="Hapus Transaksi">
-                                                        Hapus
-                                                    </button>
-                                                </form>
-                                            </div>
+                                        <div class="action-row gap-1">
+                                            <button type="button" class="btn-minimal btn-success" data-bs-toggle="modal" data-bs-target="#strukModal{{ $penjualan->id }}" title="Cetak Struk">
+                                                Cetak
+                                            </button>
+                                            <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Proses Retur">
+                                                Retur
+                                            </a>
+                                            <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn-minimal btn-danger" data-bs-toggle="tooltip" title="Hapus Transaksi">
+                                                    Hapus
+                                                </button>
+                                            </form>
                                         </div>
                                     </div>
                                 </td>
@@ -935,6 +960,39 @@
 </div>
 @endforeach
 
+<!-- Struk Modal -->
+@foreach($penjualans as $penjualan)
+<div class="modal fade" id="strukModal{{ $penjualan->id }}" tabindex="-1" aria-labelledby="strukModalLabel{{ $penjualan->id }}" aria-hidden="true" style="z-index: 1055;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="strukModalLabel{{ $penjualan->id }}">
+                    <i class="fas fa-print me-2"></i>Struk Penjualan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="strukContent{{ $penjualan->id }}">
+                    <!-- Struk content akan dimuat via AJAX -->
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Memuat struk...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-primary" onclick="printStruk('strukContent{{ $penjualan->id }}')">
+                    <i class="fas fa-print me-1"></i>Cetak
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
+
 <!-- Retur Detail Modal -->
 @foreach($salesReturns as $retur)
 <div class="modal fade" id="returDetailModal{{ $retur->id }}" tabindex="-1" aria-labelledby="returDetailModalLabel{{ $retur->id }}" aria-hidden="true">
@@ -1021,6 +1079,54 @@
 @endforeach
 
 <script>
+function loadStruk(penjualanId) {
+    const strukContent = document.getElementById('strukContent' + penjualanId);
+    
+    fetch(`/transaksi/penjualan/${penjualanId}/struk`)
+        .then(response => response.text())
+        .then(html => {
+            strukContent.innerHTML = html;
+        })
+        .catch(error => {
+            strukContent.innerHTML = '<div class="alert alert-danger">Gagal memuat struk</div>';
+        });
+}
+
+function printStruk(elementId) {
+    const printContent = document.getElementById(elementId);
+    const printWindow = window.open('', '_blank');
+    
+    printWindow.document.write(`
+        <html>
+            <head>
+                <title>Struk Penjualan</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    @media print { body { margin: 0; } }
+                </style>
+            </head>
+            <body>
+                ${printContent.innerHTML}
+            </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.print();
+}
+
+// Load struk saat modal dibuka
+document.addEventListener('DOMContentLoaded', function() {
+    @foreach($penjualans as $penjualan)
+    const strukModal{{ $penjualan->id }} = document.getElementById('strukModal{{ $penjualan->id }}');
+    if(strukModal{{ $penjualan->id }}) {
+        strukModal{{ $penjualan->id }}.addEventListener('shown.bs.modal', function () {
+            loadStruk({{ $penjualan->id }});
+        });
+    }
+    @endforeach
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))

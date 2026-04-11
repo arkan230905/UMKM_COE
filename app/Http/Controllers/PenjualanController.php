@@ -97,13 +97,17 @@ class PenjualanController extends Controller
 
     public function store(Request $request, StockService $stock, JournalService $journal)
     {
-        return \DB::transaction(function () use ($request, $stock, $journal) {
-            // Multi-item path
-            if (is_array($request->produk_id)) {
+        
+        // Multi-item path
+        if (is_array($request->produk_id)) {
+            // Get valid kas/bank codes from database
+            $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
+            
             $request->validate([
                 'tanggal' => 'required|date',
+                'waktu' => 'required|date_format:H:i',
                 'payment_method' => 'required|in:cash,transfer,credit',
-                'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', \App\Helpers\AccountHelper::KAS_BANK_CODES),
+                'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', $validKasBankCodes),
                 'produk_id' => 'required|array|min:1',
                 'produk_id.*' => 'required|exists:produks,id',
                 'jumlah' => 'required|array',
@@ -114,7 +118,7 @@ class PenjualanController extends Controller
                 'diskon_persen.*' => 'nullable|numeric|min:0|max:100',
             ]);
 
-            $tanggal = $request->tanggal;
+            $tanggal = $request->tanggal . ' ' . ($request->waktu ?? now()->format('H:i'));
             $produkIds = $request->produk_id;
             $jumlahArr = $request->jumlah;
             // Override harga jual dengan harga_jual dari master produk
@@ -231,11 +235,14 @@ class PenjualanController extends Controller
         }
 
         // Single-item fallback (tetap mendukung)
+        // Get valid kas/bank codes from database
+        $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
+        
         $request->validate([
             'produk_id' => 'required|exists:produks,id',
             'tanggal' => 'required|date',
             'payment_method' => 'required|in:cash,transfer,credit',
-            'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', \App\Helpers\AccountHelper::KAS_BANK_CODES),
+            'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', $validKasBankCodes),
             'jumlah' => 'required|integer|min:1',
             'harga_satuan' => 'required|string', // Ubah ke string karena format dari JS
             'diskon_nominal' => 'nullable|numeric|min:0',
@@ -305,6 +312,16 @@ class PenjualanController extends Controller
         return view('transaksi.penjualan.show', compact('penjualan'));
     }
 
+    public function struk($id)
+    {
+        $penjualan = Penjualan::with('details.produk', 'produk')->findOrFail($id);
+        
+        // Ambil data perusahaan
+        $dataPerusahaan = \App\Models\Perusahaan::first();
+        
+        return view('transaksi.penjualan.struk', compact('penjualan', 'dataPerusahaan'));
+    }
+
     public function edit($id)
     {
         $penjualan = Penjualan::with('details.produk')->findOrFail($id);
@@ -327,10 +344,13 @@ class PenjualanController extends Controller
         
         // Multi-item path
         if (is_array($request->produk_id)) {
+            // Get valid kas/bank codes from database
+            $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
+            
             $request->validate([
                 'tanggal' => 'required|date',
                 'payment_method' => 'required|in:cash,transfer,credit',
-                'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', \App\Helpers\AccountHelper::KAS_BANK_CODES),
+                'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', $validKasBankCodes),
                 'produk_id' => 'required|array|min:1',
                 'produk_id.*' => 'required|exists:produks,id',
                 'jumlah' => 'required|array',
@@ -443,11 +463,14 @@ class PenjualanController extends Controller
         }
 
         // Single-item fallback
+        // Get valid kas/bank codes from database
+        $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
+        
         $request->validate([
             'produk_id' => 'required|exists:produks,id',
             'tanggal' => 'required|date',
             'payment_method' => 'required|in:cash,transfer,credit',
-            'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', \App\Helpers\AccountHelper::KAS_BANK_CODES),
+            'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', $validKasBankCodes),
             'jumlah' => 'required|integer|min:1',
             'harga_satuan' => 'required|string',
             'diskon_nominal' => 'nullable|numeric|min:0',
@@ -514,8 +537,19 @@ class PenjualanController extends Controller
     /**
      * Find product by barcode (API endpoint for barcode scanner)
      */
-    public function findByBarcode($barcode)
+    public function findByBarcode(Request $request)
     {
+        // Handle both direct parameter and request parameter for backward compatibility
+        $barcode = $request->get('barcode', '') ?: $request->route('barcode', '');
+        
+        if (empty($barcode)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Barcode is required',
+                'data' => null
+            ]);
+        }
+
         $produk = Produk::where('barcode', $barcode)->first();
         
         if (!$produk) {
@@ -525,7 +559,7 @@ class PenjualanController extends Controller
             ], 404);
         }
         
-        // Calculate available stock
+        // Calculate available stock using stock movements for accuracy
         $stokMasuk = \DB::table('stock_movements')
             ->where('item_type', 'product')
             ->where('item_id', $produk->id)
@@ -538,18 +572,59 @@ class PenjualanController extends Controller
             ->where('direction', 'out')
             ->sum('qty');
         
-        $stokTersedia = $stokMasuk - $stokKeluar;
+        $stokTersedia = max(0, $stokMasuk - $stokKeluar);
         
         return response()->json([
             'success' => true,
             'data' => [
                 'id' => $produk->id,
+                'nama' => $produk->nama_produk ?? $produk->nama,
                 'barcode' => $produk->barcode,
-                'nama_produk' => $produk->nama_produk,
-                'harga_jual' => $produk->harga_jual ?? 0,
-                'stok_tersedia' => $stokTersedia,
+                'harga' => round($produk->harga_jual ?? 0),
+                'stok' => $stokTersedia,
                 'foto' => $produk->foto ? asset('storage/' . $produk->foto) : null,
             ]
         ]);
     }
+
+    /**
+     * API endpoint for real-time product search by barcode or name
+     */
+    public function searchProducts(Request $request)
+    {
+        $search = $request->get('q', '');
+        
+        if (strlen($search) < 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Search term too short',
+                'data' => []
+            ]);
+        }
+
+        $products = Produk::where(function($query) use ($search) {
+                $query->where('barcode', 'LIKE', "%{$search}%")
+                      ->orWhere('nama_produk', 'LIKE', "%{$search}%")
+                      ->orWhere('nama', 'LIKE', "%{$search}%");
+            })
+            ->where('stok', '>', 0) // Only products with stock
+            ->select('id', 'nama_produk', 'nama', 'barcode', 'harga_jual', 'stok')
+            ->limit(10)
+            ->get()
+            ->map(function($product) {
+                return [
+                    'id' => $product->id,
+                    'nama' => $product->nama_produk ?? $product->nama,
+                    'barcode' => $product->barcode,
+                    'harga' => round($product->harga_jual ?? 0),
+                    'stok' => $product->stok ?? 0
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $products
+        ]);
+    }
+
 }

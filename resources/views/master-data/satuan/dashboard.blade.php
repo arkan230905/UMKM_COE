@@ -752,10 +752,12 @@ function updateHasil() {
 
 // Format number
 function formatNumber(num) {
-    if (num >= 1000000) {
-        return (num / 1000000).toFixed(2) + ' jt';
-    } else if (num >= 1000) {
-        return (num / 1000).toFixed(2) + ' rb';
+    // Format dengan pemisah ribuan menggunakan titik
+    if (num >= 1) {
+        return new Intl.NumberFormat('id-ID', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 4
+        }).format(num).replace(/,/g, '.');
     } else {
         return num.toFixed(4).replace(/\.?0+$/, '');
     }

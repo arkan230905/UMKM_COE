@@ -87,7 +87,15 @@ class PurchaseReturnController extends Controller
                 }
 
                 if ($requested - $maxAllow > 1e-9) {
-                    throw new \RuntimeException('Qty retur untuk '.$detail->bahanBaku->nama_bahan.' melebihi qty pembelian tersisa.');
+                    $materialName = '';
+                    if ($detail->bahan_baku_id && $detail->bahanBaku) {
+                        $materialName = $detail->bahanBaku->nama_bahan;
+                    } elseif ($detail->bahan_pendukung_id && $detail->bahanPendukung) {
+                        $materialName = $detail->bahanPendukung->nama_bahan;
+                    } else {
+                        $materialName = 'Item ID: ' . $detail->id;
+                    }
+                    throw new \RuntimeException('Qty retur untuk '.$materialName.' melebihi qty pembelian tersisa.');
                 }
 
                 $subtotal = $requested * (float) $detail->harga_satuan;
@@ -97,6 +105,7 @@ class PurchaseReturnController extends Controller
                     'purchase_return_id' => $return->id,
                     'pembelian_detail_id' => $detail->id,
                     'bahan_baku_id' => $detail->bahan_baku_id,
+                    'bahan_pendukung_id' => $detail->bahan_pendukung_id,
                     'unit' => $detail->satuan,
                     'quantity' => $requested,
                     'unit_price' => $detail->harga_satuan,
@@ -113,7 +122,7 @@ class PurchaseReturnController extends Controller
 
             return redirect()
                 ->route('transaksi.purchase-returns.show', $return->id)
-                ->with('success', 'Retur pembelian berhasil dibuat, silakan review dan approve.');
+                ->with('success', 'Retur pembelian berhasil dibuat dengan status pending.');
         });
     }
 
@@ -126,47 +135,20 @@ class PurchaseReturnController extends Controller
         ]);
     }
 
-    public function approve(PurchaseReturn $purchaseReturn, StockService $stock)
+    public function approve(PurchaseReturn $purchaseReturn)
     {
         if ($purchaseReturn->status === 'completed') {
             return back()->with('info', 'Retur ini sudah di-approve sebelumnya.');
         }
 
-        $purchaseReturn->load(['items.bahanBaku', 'pembelian']);
-
-        DB::transaction(function () use ($purchaseReturn, $stock) {
-            foreach ($purchaseReturn->items as $item) {
-                // Kurangi stok bahan baku via StockService (stock out)
-                $bahan = $item->bahanBaku;
-                $qty = (float) $item->quantity;
-
-                if ($qty <= 0) {
-                    continue;
-                }
-
-                // Validasi stok cukup
-                $available = $stock->getAvailableQty('material', $bahan->id);
-                if ($qty - $available > 1e-9) {
-                    throw new \RuntimeException('Stok bahan baku '.$bahan->nama_bahan.' tidak cukup untuk retur.');
-                }
-
-                $stock->consume(
-                    'material',
-                    $bahan->id,
-                    $qty,
-                    $item->unit ?? (string)($bahan->satuan->kode ?? $bahan->satuan->nama ?? 'unit'),
-                    'purchase_return',
-                    $purchaseReturn->id,
-                    $purchaseReturn->return_date->toDateString(),
-                );
-            }
-
+        // Simply change status to completed - stock changes will be handled by proses method
+        DB::transaction(function () use ($purchaseReturn) {
             $purchaseReturn->status = 'completed';
             $purchaseReturn->save();
         });
 
         return redirect()
             ->route('transaksi.purchase-returns.show', $purchaseReturn->id)
-            ->with('success', 'Retur pembelian berhasil di-approve dan stok sudah diperbarui.');
+            ->with('success', 'Retur pembelian berhasil di-approve. Stok akan diperbarui sesuai jenis retur.');
     }
 }

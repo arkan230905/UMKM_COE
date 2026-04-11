@@ -929,23 +929,40 @@ class LaporanController extends Controller
             // Header
             fputcsv($handle, [
                 'No', 'No. Transaksi', 'Tanggal', 'Vendor', 
-                'Keterangan', 'Total (Rp)'
+                'Metode Pembayaran', 'Keterangan', 'Total (Rp)'
             ]);
             
             // Data
             foreach ($pembelian as $index => $item) {
+                // Format payment method
+                $paymentMethodText = '';
+                switch($item->payment_method) {
+                    case 'cash':
+                        $paymentMethodText = 'Tunai';
+                        break;
+                    case 'transfer':
+                        $paymentMethodText = 'Transfer';
+                        break;
+                    case 'credit':
+                        $paymentMethodText = 'Kredit';
+                        break;
+                    default:
+                        $paymentMethodText = ucfirst($item->payment_method ?? 'Tunai');
+                }
+                
                 fputcsv($handle, [
                     $index + 1,
                     $item->no_pembelian,
                     $item->tanggal->format('d/m/Y'),
                     $item->vendor->nama_vendor ?? '-',
+                    $paymentMethodText,
                     $item->keterangan ?? '-',
                     number_format($item->total, 0, ',', '.')
                 ]);
             }
             
             // Total
-            fputcsv($handle, ['', '', '', '', 'TOTAL', number_format($total, 0, ',', '.')]);
+            fputcsv($handle, ['', '', '', '', '', 'TOTAL', number_format($total, 0, ',', '.')]);
             
             fclose($handle);
         }, $filename, [
@@ -1127,42 +1144,26 @@ class LaporanController extends Controller
     // === LAPORAN RETUR ===
     public function laporanRetur(Request $request)
     {
-        // Filter untuk Retur Penjualan
-        $salesReturnQuery = \App\Models\Retur::with(['penjualan', 'details.produk'])
-            ->where('type', 'sale')
-            ->when($request->sales_start_date && $request->sales_end_date, function($q) use ($request) {
-                return $q->whereBetween('tanggal', [$request->sales_start_date, $request->sales_end_date]);
-            })
-            ->orderBy('tanggal', 'desc');
-
-        // Filter untuk Retur Pembelian  
-        $purchaseReturnQuery = \App\Models\Retur::with(['pembelian.vendor', 'details.produk'])
-            ->where('type', 'purchase')
+        // Filter untuk Retur Pembelian - Use PurchaseReturn model
+        $purchaseReturnQuery = \App\Models\PurchaseReturn::with(['pembelian.vendor', 'items.bahanBaku', 'items.bahanPendukung'])
             ->when($request->purchase_start_date && $request->purchase_end_date, function($q) use ($request) {
-                return $q->whereBetween('tanggal', [$request->purchase_start_date, $request->purchase_end_date]);
+                return $q->whereBetween('return_date', [$request->purchase_start_date, $request->purchase_end_date]);
             })
-            ->orderBy('tanggal', 'desc');
+            ->when($request->purchase_status, function($q) use ($request) {
+                return $q->where('status', $request->purchase_status);
+            })
+            ->orderBy('return_date', 'desc');
 
         // Get data
-        $salesReturns = $salesReturnQuery->paginate(10, ['*'], 'sales_page');
-        $purchaseReturns = $purchaseReturnQuery->paginate(10, ['*'], 'purchase_page');
+        $purchaseReturns = $purchaseReturnQuery->paginate(15, ['*'], 'purchase_page');
 
-        // Calculate totals
-        $totalSalesReturns = $salesReturnQuery->get()->sum(function($retur) {
-            return $retur->details->sum(function($detail) {
-                return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0);
-            });
-        });
+        // Calculate totals (including PPN)
         $totalPurchaseReturns = $purchaseReturnQuery->get()->sum(function($retur) {
-            return $retur->details->sum(function($detail) {
-                return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0);
-            });
+            return $retur->total_with_ppn ?? 0;
         });
 
         return view('laporan.retur.index', compact(
-            'salesReturns', 
             'purchaseReturns', 
-            'totalSalesReturns', 
             'totalPurchaseReturns'
         ));
     }
@@ -1327,8 +1328,11 @@ class LaporanController extends Controller
                 return $pembelian->sisa_utang_numerik > 0;
             });
 
-        // Query untuk riwayat pelunasan
-        $query = \App\Models\ApSettlement::with(['pembelian.vendor', 'pembelian.details.bahanBaku'])
+        // Query untuk riwayat pelunasan - UPDATED to use PelunasanUtang
+        $query = \App\Models\PelunasanUtang::with(['pembelian.vendor', 'pembelian.details.bahanBaku', 'akunKas'])
+            ->whereHas('pembelian', function($q) {
+                $q->where('payment_method', 'credit'); // Only credit purchases
+            })
             ->when($request->bulan, function($q) use ($request) {
                 $bulan = \Carbon\Carbon::parse($request->bulan);
                 return $q->whereYear('tanggal', $bulan->year)
@@ -1337,7 +1341,13 @@ class LaporanController extends Controller
             ->orderBy('tanggal', 'desc');
 
         if ($request->has('export') && $request->export == 'pdf') {
-            $pelunasanUtang = $query->get();
+            $pelunasanUtang = $query->get()->map(function($item) {
+                // Add calculated fields for display
+                $item->total_tagihan = $item->pembelian->total_harga ?? 0;
+                $item->dibayar_bersih = $item->jumlah;
+                return $item;
+            });
+            
             $total = $pelunasanUtang->sum('dibayar_bersih');
             
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.pelunasan-utang.pdf', [
@@ -1349,7 +1359,15 @@ class LaporanController extends Controller
         }
 
         $pelunasanUtang = $query->paginate(15);
-        $total = $pelunasanUtang->sum('dibayar_bersih');
+        
+        // Add calculated fields for each item
+        $pelunasanUtang->getCollection()->transform(function($item) {
+            $item->total_tagihan = $item->pembelian->total_harga ?? 0;
+            $item->dibayar_bersih = $item->jumlah;
+            return $item;
+        });
+        
+        $total = $query->get()->sum('jumlah'); // Sum of all payments
 
         return view('laporan.pelunasan-utang.index', [
             'pelunasanUtang' => $pelunasanUtang,
