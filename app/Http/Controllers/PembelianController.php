@@ -1058,13 +1058,17 @@ class PembelianController extends Controller
         $hasBahanBaku = $pembelian->details->where('bahan_baku_id', '!=', null)->count() > 0;
         $hasBahanPendukung = $pembelian->details->where('bahan_pendukung_id', '!=', null)->count() > 0;
         
-        // Tentukan kategori pembelian
+        // Tentukan kategori pembelian - prioritas untuk single category
         $kategoriPembelian = 'mixed'; // default
         if ($hasBahanBaku && !$hasBahanPendukung) {
             $kategoriPembelian = 'bahan_baku';
         } elseif ($hasBahanPendukung && !$hasBahanBaku) {
             $kategoriPembelian = 'bahan_pendukung';
         }
+        
+        // Pass additional data for cleaner view logic
+        $showBahanBaku = ($kategoriPembelian === 'bahan_baku' || $kategoriPembelian === 'mixed');
+        $showBahanPendukung = ($kategoriPembelian === 'bahan_pendukung' || $kategoriPembelian === 'mixed');
         
         return view('transaksi.pembelian.edit', compact(
             'pembelian',
@@ -1075,7 +1079,9 @@ class PembelianController extends Controller
             'coas',
             'kasbank',
             'currentBalances',
-            'kategoriPembelian'
+            'kategoriPembelian',
+            'showBahanBaku',
+            'showBahanPendukung'
         ));
     }
 

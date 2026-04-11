@@ -250,7 +250,7 @@
             <li class="nav-item">
                 <a class="nav-link-rounded {{ request()->is('laporan/retur*') ? 'active' : '' }}" href="{{ route('laporan.retur') }}">
                     <i class="fas fa-undo"></i>
-                    <span>Laporan Retur</span>
+                    <span>Laporan Retur Pembelian</span>
                 </a>
             </li>
             <li class="nav-item">
