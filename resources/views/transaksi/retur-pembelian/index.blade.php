@@ -141,45 +141,44 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="action-buttons">
-                                <td class="text-center">
-                                    <div class="action-buttons">
                                         {{-- Detail Button --}}
                                         <a href="{{ route('transaksi.retur-pembelian.show', $retur->id) }}" 
                                            class="btn btn-sm btn-outline-info" 
                                            title="Lihat Detail">
-                                            <i class="fas fa-eye"></i>
+                                            <i class="fas fa-eye"></i> Detail
                                         </a>
 
-                                        {{-- Dynamic Action Button (menggunakan method model) --}}
-                                        @if($retur->action_button)
-                                            <form action="{{ route('transaksi.retur-pembelian.update-status', $retur->id) }}" 
-                                                  method="POST" 
-                                                  class="d-inline"
-                                                  onsubmit="return confirm('Yakin ingin melanjutkan ke tahap berikutnya?')">
-                                                @csrf
-                                                <button type="submit" 
-                                                        class="btn btn-sm {{ $retur->action_button['class'] }}" 
-                                                        title="{{ $retur->action_button['text'] }}">
-                                                    @if(in_array($retur->status, ['pending', 'menunggu_acc']))
-                                                        <i class="fas fa-check me-1"></i>
-                                                    @elseif($retur->status == 'disetujui')
-                                                        <i class="fas fa-shipping-fast me-1"></i>
-                                                    @elseif($retur->status == 'dikirim' && $retur->jenis_retur == 'tukar_barang')
-                                                        <i class="fas fa-cogs me-1"></i>
-                                                    @elseif($retur->status == 'dikirim' && $retur->jenis_retur == 'refund')
-                                                        <i class="fas fa-handshake me-1"></i>
-                                                    @elseif($retur->status == 'diproses')
-                                                        <i class="fas fa-check-circle me-1"></i>
-                                                    @elseif($retur->status == 'diterima')
-                                                        <i class="fas fa-money-bill-wave me-1"></i>
-                                                    @endif
-                                                    {{ $retur->action_button['text'] }}
-                                                </button>
-                                            </form>
+                                        {{-- Dynamic Action Buttons Based on Status and Jenis --}}
+                                        @if($retur->status == 'pending')
+                                            <a href="{{ route('transaksi.retur-pembelian.acc', $retur->id) }}" 
+                                               class="btn btn-warning btn-sm"
+                                               onclick="return confirm('Yakin vendor sudah menyetujui retur?')">
+                                                <i class="fas fa-check me-1"></i>ACC Vendor
+                                            </a>
+                                        @elseif($retur->status == 'disetujui')
+                                            <a href="{{ route('transaksi.retur-pembelian.kirim', $retur->id) }}" 
+                                               class="btn btn-primary btn-sm"
+                                               onclick="return confirm('Yakin barang sudah dikirim ke vendor?')">
+                                                <i class="fas fa-shipping-fast me-1"></i>Kirim Barang
+                                            </a>
+                                        @elseif($retur->status == 'dikirim')
+                                            @if($retur->jenis_retur == 'tukar_barang')
+                                                <a href="{{ route('transaksi.retur-pembelian.terimaBarang', $retur->id) }}" 
+                                                   class="btn btn-success btn-sm"
+                                                   onclick="return confirm('Yakin barang pengganti sudah diterima?')">
+                                                    <i class="fas fa-box me-1"></i>Terima Barang
+                                                </a>
+                                            @elseif($retur->jenis_retur == 'refund')
+                                                <a href="{{ route('transaksi.retur-pembelian.terimaRefund', $retur->id) }}" 
+                                                   class="btn btn-success btn-sm"
+                                                   onclick="return confirm('Yakin uang refund sudah diterima?')">
+                                                    <i class="fas fa-money-bill me-1"></i>Terima Uang
+                                                </a>
+                                            @endif
                                         @endif
 
                                         {{-- Delete Button (only if not completed) --}}
-                                        @if(!in_array($retur->status, ['selesai', 'refund_selesai']))
+                                        @if($retur->status != 'selesai')
                                             <form action="{{ route('transaksi.retur-pembelian.destroy', $retur->id) }}" 
                                                   method="POST" 
                                                   class="d-inline"

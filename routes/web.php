@@ -2288,9 +2288,15 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [ReturController::class, 'indexPembelian'])->name('index');
             Route::get('/create', [ReturController::class, 'createPembelian'])->name('create');
             Route::post('/', [ReturController::class, 'storePembelian'])->name('store');
-            Route::post('/update-status/{id}', [ReturController::class, 'updateStatus'])->name('update-status');
+            Route::put('/update-status/{id}', [ReturController::class, 'updateStatus'])->name('update-status');
             Route::get('/{id}', [ReturController::class, 'showPembelian'])->name('show');
             Route::delete('/{id}', [ReturController::class, 'destroyPembelian'])->name('destroy');
+            
+            // New simplified action routes
+            Route::get('/{id}/acc', [ReturController::class, 'acc'])->name('acc');
+            Route::get('/{id}/kirim', [ReturController::class, 'kirim'])->name('kirim');
+            Route::get('/{id}/terima-barang', [ReturController::class, 'terimaBarang'])->name('terimaBarang');
+            Route::get('/{id}/terima-refund', [ReturController::class, 'terimaRefund'])->name('terimaRefund');
             Route::get('debug-stock-pembelian/{pembelianId}', function($pembelianId) {
     $pembelian = \App\Models\Pembelian::with(['details.bahanBaku', 'details.bahanPendukung'])->find($pembelianId);
     
@@ -2548,7 +2554,9 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/stok', [LaporanController::class, 'stok'])->name('stok');
         
         // Laporan Kartu Stok
-        Route::get('/kartu-stok', [LaporanKartuStokController::class, 'index'])->name('kartu-stok');
+        Route::get('/kartu-stok', [LaporanKartuStokController::class, 'index'])->name('kartu-stok.index');
+        Route::get('/kartu-stok/summary', [LaporanKartuStokController::class, 'summary'])->name('kartu-stok.summary');
+        Route::get('/kartu-stok/export', [LaporanKartuStokController::class, 'export'])->name('kartu-stok.export');
         Route::get('/kartu-stok/reset', [LaporanKartuStokController::class, 'createResetForm'])->name('kartu-stok.reset');
         Route::post('/reset-produk-stok', [LaporanKartuStokController::class, 'resetProdukStok'])->name('reset-produk-stok');
         

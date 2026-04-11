@@ -78,91 +78,29 @@
                                         @endif
                                     </td>
                                     <td>
-                                        @if($retur->status === 'completed' || $retur->status === 'barang_diterima' || $retur->status === 'dana_diterima')
-                                            <span class="text-success fw-semibold">Selesai</span>
-                                        @elseif($retur->status === 'approved' || $retur->status === 'disetujui_vendor')
-                                            <span class="text-info fw-semibold">Disetujui</span>
-                                        @elseif($retur->status === 'diproses_vendor')
-                                            <span class="text-warning fw-semibold">Diproses Vendor</span>
-                                        @elseif($retur->status === 'barang_dikembalikan')
-                                            <span class="text-primary fw-semibold">Barang Dikembalikan</span>
-                                        @elseif($retur->status === 'menunggu_pembayaran')
-                                            <span class="text-info fw-semibold">Menunggu Pembayaran</span>
-                                        @elseif($retur->status === 'menunggu_vendor')
-                                            <span class="text-secondary fw-semibold">Menunggu Vendor</span>
-                                        @else
-                                            <span class="text-warning fw-semibold">Pending</span>
-                                        @endif
+                                        <span class="badge {{ $retur->status_badge['class'] }}">
+                                            {{ $retur->status_badge['text'] }}
+                                        </span>
                                     </td>
                                     <td class="text-center">
                                         <div class="d-flex gap-2 justify-content-center flex-wrap">
                                             <!-- Detail Button (Always Available) -->
                                             <a href="{{ route('transaksi.retur-pembelian.show', $retur->id) }}" 
-                                               class="btn btn-sm btn-success" title="Detail Retur">
+                                               class="btn btn-sm btn-info" title="Detail Retur">
                                                 <i class="fas fa-eye me-1"></i>Detail
                                             </a>
                                             
-                                            <!-- Dynamic Action Buttons Based on Status and Type -->
-                                            @if($retur->jenis_retur == 'tukar_barang')
-                                                @if($retur->status == 'pending' || $retur->status == 'menunggu_vendor')
-                                                    <a href="{{ route('retur.updateStatus', [$retur->id, 'disetujui_vendor']) }}" 
-                                                       class="btn btn-sm btn-primary" title="Setujui Vendor"
-                                                       onclick="return confirm('Yakin vendor sudah menyetujui tukar barang?')">
-                                                        <i class="fas fa-check me-1"></i>Setujui Vendor
-                                                    </a>
-                                                @endif
-                                                
-                                                @if($retur->status == 'disetujui_vendor')
-                                                    <a href="{{ route('retur.updateStatus', [$retur->id, 'diproses_vendor']) }}" 
-                                                       class="btn btn-sm btn-warning" title="Proses Barang"
-                                                       onclick="return confirm('Yakin vendor sudah memproses barang?')">
-                                                        <i class="fas fa-cogs me-1"></i>Proses Barang
-                                                    </a>
-                                                @endif
-                                                
-                                                @if($retur->status == 'diproses_vendor')
-                                                    <a href="{{ route('retur.updateStatus', [$retur->id, 'barang_diterima']) }}" 
-                                                       class="btn btn-sm btn-success" title="Barang Diterima"
-                                                       onclick="return confirm('Yakin barang pengganti sudah diterima?')">
-                                                        <i class="fas fa-box me-1"></i>Barang Diterima
-                                                    </a>
-                                                @endif
-                                            @endif
-                                            
-                                            @if($retur->jenis_retur == 'refund')
-                                                @if($retur->status == 'pending')
-                                                    <a href="{{ route('retur.updateStatus', [$retur->id, 'barang_dikembalikan']) }}" 
-                                                       class="btn btn-sm btn-warning" title="Barang Dikembalikan"
-                                                       onclick="return confirm('Yakin barang sudah dikembalikan ke vendor?')">
-                                                        <i class="fas fa-undo me-1"></i>Barang Dikembalikan
-                                                    </a>
-                                                @endif
-                                                
-                                                @if($retur->status == 'barang_dikembalikan')
-                                                    <a href="{{ route('retur.updateStatus', [$retur->id, 'menunggu_pembayaran']) }}" 
-                                                       class="btn btn-sm btn-info" title="Vendor Sudah Terima"
-                                                       onclick="return confirm('Yakin vendor sudah menerima barang?')">
-                                                        <i class="fas fa-handshake me-1"></i>Vendor Sudah Terima
-                                                    </a>
-                                                @endif
-                                                
-                                                @if($retur->status == 'menunggu_pembayaran')
-                                                    <a href="{{ route('retur.updateStatus', [$retur->id, 'dana_diterima']) }}" 
-                                                       class="btn btn-sm btn-success" title="Uang Diterima"
-                                                       onclick="return confirm('Yakin uang refund sudah diterima?')">
-                                                        <i class="fas fa-money-bill me-1"></i>Uang Diterima
-                                                    </a>
-                                                @endif
-                                            @endif
-                                            
-                                            <!-- Legacy Proses Button (for backward compatibility) -->
-                                            @if($retur->status === 'pending' && !in_array($retur->jenis_retur, ['tukar_barang', 'refund']))
-                                                <form action="{{ route('transaksi.retur-pembelian.proses', $retur->id) }}" 
-                                                      method="POST" class="d-inline" 
-                                                      onsubmit="return confirm('Yakin mau menyelesaikan retur ini?')">
+                                            <!-- Dynamic Action Button Based on Status -->
+                                            @if($retur->action_button)
+                                                <form method="POST" action="{{ route('transaksi.retur-pembelian.update-status', $retur->id) }}" 
+                                                      style="display: inline-block;">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-primary" title="Proses Retur">
-                                                        <i class="fas fa-check me-1"></i>Proses
+                                                    @method('PUT')
+                                                    <button type="submit" 
+                                                            class="btn btn-sm {{ $retur->action_button['class'] }}" 
+                                                            title="{{ $retur->action_button['text'] }}"
+                                                            onclick="return confirm('Yakin ingin mengubah status ke {{ $retur->status_badge['text'] }}?')">
+                                                        <i class="fas fa-arrow-right me-1"></i>{{ $retur->action_button['text'] }}
                                                     </button>
                                                 </form>
                                             @endif

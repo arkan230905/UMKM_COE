@@ -44,20 +44,21 @@
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d/m/Y') }}</td>
-                                    <td>PU-{{ $item->id }}</td>
-                                    <td>{{ $item->pembelian->vendor->nama_vendor ?? ($item->vendor->nama_vendor ?? '-') }}</td>
-                                    <td>PB-{{ $item->pembelian_id }}</td>
-                                    <td class="text-right">Rp {{ number_format($item->total_tagihan, 0, ',', '.') }}</td>
-                                    <td class="text-right">Rp {{ number_format($item->dibayar_bersih, 0, ',', '.') }}</td>
+                                    <td>{{ $item->kode_transaksi }}</td>
+                                    <td>{{ $item->pembelian->vendor->nama_vendor ?? '-' }}</td>
+                                    <td>{{ $item->pembelian->nomor_faktur ?? $item->pembelian->nomor_pembelian ?? '-' }}</td>
+                                    <td class="text-right">Rp {{ number_format($item->pembelian->total_harga ?? 0, 0, ',', '.') }}</td>
+                                    <td class="text-right">Rp {{ number_format($item->jumlah, 0, ',', '.') }}</td>
                                     <td>
                                         @php
-                                            $pembelian = $item->pembelian;
-                                            $isLunas = $pembelian && $pembelian->status == 'lunas';
+                                            $statusPembayaran = $item->pembelian->status_pembayaran;
                                         @endphp
-                                        @if($isLunas)
+                                        @if($statusPembayaran === 'Lunas')
                                             <span class="badge badge-success">Lunas</span>
+                                        @elseif($statusPembayaran === 'Sebagian')
+                                            <span class="badge badge-warning">Sebagian</span>
                                         @else
-                                            <span class="badge badge-warning">Belum Lunas</span>
+                                            <span class="badge badge-danger">Belum Bayar</span>
                                         @endif
                                     </td>
                                 </tr>
@@ -70,8 +71,10 @@
                             <tfoot>
                                 <tr>
                                     <th colspan="5" class="text-right">Total</th>
-                                    <th class="text-right">{{ format_rupiah($pelunasanUtang->sum('total_tagihan')) }}</th>
-                                    <th class="text-right">{{ format_rupiah($total) }}</th>
+                                    <th class="text-right">
+                                        Rp {{ number_format($pelunasanUtang->sum(function($item) { return $item->pembelian->total_harga ?? 0; }), 0, ',', '.') }}
+                                    </th>
+                                    <th class="text-right">Rp {{ number_format($total, 0, ',', '.') }}</th>
                                     <th></th>
                                 </tr>
                             </tfoot>

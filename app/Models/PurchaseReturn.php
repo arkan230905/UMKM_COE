@@ -24,15 +24,11 @@ class PurchaseReturn extends Model
         'total_return_amount' => 'decimal:2',
     ];
 
-    // Status constants
+    // Status constants - Updated flow
     const STATUS_PENDING = 'pending';
-    const STATUS_MENUNGGU_ACC = 'menunggu_acc';
-    const STATUS_DISETUJUI = 'disetujui';
+    const STATUS_DISETUJUI = 'disetujui';  // Changed from acc_vendor
     const STATUS_DIKIRIM = 'dikirim';
-    const STATUS_DIPROSES = 'diproses';
-    const STATUS_DITERIMA = 'diterima';
     const STATUS_SELESAI = 'selesai';
-    const STATUS_REFUND_SELESAI = 'refund_selesai';
 
     // Jenis retur constants
     const JENIS_TUKAR_BARANG = 'tukar_barang';
@@ -54,53 +50,100 @@ class PurchaseReturn extends Model
         return $this->items->sum('subtotal');
     }
 
+    // Accessor for calculated total (alias for total_retur)
+    public function getCalculatedTotalAttribute()
+    {
+        return $this->total_retur;
+    }
+
+    // Accessor for PPN amount (11%)
+    public function getPpnAmountAttribute()
+    {
+        return $this->total_retur * 0.11;
+    }
+
+    // Accessor for total with PPN
+    public function getTotalWithPpnAttribute()
+    {
+        return $this->total_retur + $this->ppn_amount;
+    }
+
+    // Accessor for formatted total with PPN in Rupiah
+    public function getTotalWithPpnFormattedAttribute()
+    {
+        return 'Rp ' . number_format($this->total_with_ppn, 0, ',', '.');
+    }
+
     // Accessor for formatted jenis retur display
     public function getJenisReturDisplayAttribute()
     {
-        return match($this->jenis_retur) {
-            self::JENIS_REFUND => 'Refund',
-            self::JENIS_TUKAR_BARANG => 'Tukar Barang',
-            default => ucfirst(str_replace('_', ' ', $this->jenis_retur))
-        };
+        switch($this->jenis_retur) {
+            case self::JENIS_REFUND:
+                return 'Refund';
+            case self::JENIS_TUKAR_BARANG:
+                return 'Tukar Barang';
+            default:
+                return ucfirst(str_replace('_', ' ', $this->jenis_retur));
+        }
     }
 
     // Accessor for status badge
     public function getStatusBadgeAttribute()
     {
-        return match($this->status) {
-            self::STATUS_PENDING => ['class' => 'bg-warning', 'text' => 'Pending'],
-            self::STATUS_MENUNGGU_ACC => ['class' => 'bg-warning', 'text' => 'Menunggu ACC'],
-            self::STATUS_DISETUJUI => ['class' => 'bg-primary', 'text' => 'Disetujui'],
-            self::STATUS_DIKIRIM => ['class' => 'bg-warning', 'text' => 'Dikirim'],
-            self::STATUS_DIPROSES => ['class' => 'bg-secondary', 'text' => 'Diproses Vendor'],
-            self::STATUS_DITERIMA => ['class' => 'bg-info', 'text' => 'Diterima Vendor'],
-            self::STATUS_SELESAI => ['class' => 'bg-success', 'text' => 'Selesai'],
-            self::STATUS_REFUND_SELESAI => ['class' => 'bg-success', 'text' => 'Refund Selesai'],
-            default => ['class' => 'bg-secondary', 'text' => ucfirst($this->status)]
-        };
+        if ($this->jenis_retur === self::JENIS_TUKAR_BARANG) {
+            switch($this->status) {
+                case self::STATUS_PENDING:
+                    return ['class' => 'bg-warning', 'text' => 'Pending'];
+                case self::STATUS_DISETUJUI:
+                    return ['class' => 'bg-primary', 'text' => 'Menunggu Kirim'];
+                case self::STATUS_DIKIRIM:
+                    return ['class' => 'bg-secondary', 'text' => 'Dikirim'];
+                case self::STATUS_SELESAI:
+                    return ['class' => 'bg-success', 'text' => 'Selesai'];
+                default:
+                    return ['class' => 'bg-secondary', 'text' => ucfirst($this->status)];
+            }
+        } else { // REFUND
+            switch($this->status) {
+                case self::STATUS_PENDING:
+                    return ['class' => 'bg-warning', 'text' => 'Pending'];
+                case self::STATUS_DISETUJUI:
+                    return ['class' => 'bg-primary', 'text' => 'Menunggu Kirim'];
+                case self::STATUS_DIKIRIM:
+                    return ['class' => 'bg-secondary', 'text' => 'Dikirim'];
+                case self::STATUS_SELESAI:
+                    return ['class' => 'bg-success', 'text' => 'Selesai'];
+                default:
+                    return ['class' => 'bg-secondary', 'text' => ucfirst($this->status)];
+            }
+        }
     }
 
     // Get next status based on current status and jenis retur
     public function getNextStatusAttribute()
     {
         if ($this->jenis_retur === self::JENIS_TUKAR_BARANG) {
-            return match($this->status) {
-                self::STATUS_PENDING => self::STATUS_DISETUJUI,
-                self::STATUS_MENUNGGU_ACC => self::STATUS_DISETUJUI,
-                self::STATUS_DISETUJUI => self::STATUS_DIKIRIM,
-                self::STATUS_DIKIRIM => self::STATUS_DIPROSES,
-                self::STATUS_DIPROSES => self::STATUS_SELESAI,
-                default => null
-            };
+            switch($this->status) {
+                case self::STATUS_PENDING:
+                    return self::STATUS_DISETUJUI;
+                case self::STATUS_DISETUJUI:
+                    return self::STATUS_DIKIRIM;
+                case self::STATUS_DIKIRIM:
+                    return self::STATUS_SELESAI;
+                default:
+                    return null;
+            }
         } else { // refund
-            return match($this->status) {
-                self::STATUS_PENDING => self::STATUS_DISETUJUI,
-                self::STATUS_MENUNGGU_ACC => self::STATUS_DISETUJUI,
-                self::STATUS_DISETUJUI => self::STATUS_DIKIRIM,
-                self::STATUS_DIKIRIM => self::STATUS_DITERIMA,
-                self::STATUS_DITERIMA => self::STATUS_REFUND_SELESAI,
-                default => null
-            };
+            switch($this->status) {
+                case self::STATUS_PENDING:
+                    return self::STATUS_DISETUJUI;
+                case self::STATUS_DISETUJUI:
+                    return self::STATUS_DIKIRIM;
+                case self::STATUS_DIKIRIM:
+                    return self::STATUS_SELESAI;
+                default:
+                    return null;
+            }
         }
     }
 
@@ -112,30 +155,34 @@ class PurchaseReturn extends Model
         }
 
         if ($this->jenis_retur === self::JENIS_TUKAR_BARANG) {
-            return match($this->status) {
-                self::STATUS_PENDING => ['text' => 'ACC Vendor', 'class' => 'btn-primary'],
-                self::STATUS_MENUNGGU_ACC => ['text' => 'ACC Vendor', 'class' => 'btn-primary'],
-                self::STATUS_DISETUJUI => ['text' => 'Kirim Barang', 'class' => 'btn-warning'],
-                self::STATUS_DIKIRIM => ['text' => 'Diproses Vendor', 'class' => 'btn-secondary'],
-                self::STATUS_DIPROSES => ['text' => 'Barang Diterima', 'class' => 'btn-success'],
-                default => null
-            };
+            switch($this->status) {
+                case self::STATUS_PENDING:
+                    return ['text' => 'ACC Vendor', 'class' => 'btn-primary'];
+                case self::STATUS_DISETUJUI:
+                    return ['text' => 'Kirim Barang', 'class' => 'btn-warning'];
+                case self::STATUS_DIKIRIM:
+                    return ['text' => 'Terima Barang', 'class' => 'btn-success'];
+                default:
+                    return null;
+            }
         } else { // refund
-            return match($this->status) {
-                self::STATUS_PENDING => ['text' => 'ACC Vendor', 'class' => 'btn-primary'],
-                self::STATUS_MENUNGGU_ACC => ['text' => 'ACC Vendor', 'class' => 'btn-primary'],
-                self::STATUS_DISETUJUI => ['text' => 'Kirim Barang', 'class' => 'btn-warning'],
-                self::STATUS_DIKIRIM => ['text' => 'Vendor Terima', 'class' => 'btn-info'],
-                self::STATUS_DITERIMA => ['text' => 'Terima Uang', 'class' => 'btn-success'],
-                default => null
-            };
+            switch($this->status) {
+                case self::STATUS_PENDING:
+                    return ['text' => 'ACC Vendor', 'class' => 'btn-primary'];
+                case self::STATUS_DISETUJUI:
+                    return ['text' => 'Kirim Barang', 'class' => 'btn-warning'];
+                case self::STATUS_DIKIRIM:
+                    return ['text' => 'Terima Uang', 'class' => 'btn-success'];
+                default:
+                    return null;
+            }
         }
     }
 
     // Check if status is final
     public function getIsCompletedAttribute()
     {
-        return in_array($this->status, [self::STATUS_SELESAI, self::STATUS_REFUND_SELESAI]);
+        return $this->status === self::STATUS_SELESAI;
     }
 
     // Accessor for formatted total retur in Rupiah
