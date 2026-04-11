@@ -66,8 +66,8 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead class="table-dark">
+                        <table class="table">
+                            <thead class="bg-primary text-white">
                                 <tr>
                                     <th>No</th>
                                     <th>Tanggal</th>
@@ -96,7 +96,7 @@
                                                     {{ date('H.i', strtotime($attendance->jam_keluar)) }}
                                                 </span>
                                             @else
-                                                <span class="badge bg-secondary">
+                                                <span class="badge bg-warning text-dark">
                                                     <i class="bi bi-dash me-1"></i>
                                                     Belum
                                                 </span>
@@ -122,9 +122,9 @@
                                     @endforeach
                                 @else
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">
-                                            <i class="bi bi-calendar-x fs-1"></i>
-                                            <p class="mt-2">Belum ada data presensi</p>
+                                        <td colspan="6" class="text-center py-4">
+                                            <i class="bi bi-calendar-x fs-1 text-info"></i>
+                                            <p class="mt-2 text-primary">Belum ada data presensi</p>
                                             <a href="{{ route('pegawai.presensi.absen-wajah') }}" class="btn btn-primary">
                                                 <i class="bi bi-camera-video me-1"></i> Absen Sekarang
                                             </a>

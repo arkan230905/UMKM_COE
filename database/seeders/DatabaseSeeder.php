@@ -26,8 +26,10 @@ class DatabaseSeeder extends Seeder
             CoaMasterDataSeeder::class, // Add the new COA master data seeder
             // CoaSeeder::class, // Disabled: COA harus kosong saat owner daftar
             PegawaiSeeder::class,
+            PegawaiDataSeeder::class, // Add PegawaiDataSeeder for specific employee data
             BopSeeder::class,
             PresensiSeeder::class, // Add PresensiSeeder after PegawaiSeeder
+            PresensiDataSeeder::class, // Add PresensiDataSeeder for specific attendance data
         ]);
 
         // Buat user tambahan jika diperlukan
