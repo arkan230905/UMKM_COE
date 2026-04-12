@@ -54,7 +54,7 @@ class PenggajianController extends Controller
     }
 
     /**
-     * Form tambah data penggajian.
+     * Tampilkan form tambah penggajian.
      */
     public function create()
     {
@@ -64,6 +64,53 @@ class PenggajianController extends Controller
         $pegawais = Pegawai::with('jabatanRelasi')->get();
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
         return view('transaksi.penggajian.create', compact('pegawais', 'kasbank'));
+    }
+
+    /**
+     * API endpoint to get real-time employee salary data
+     */
+    public function getEmployeeData($pegawaiId)
+    {
+        try {
+            $pegawai = Pegawai::with('jabatanRelasi')->findOrFail($pegawaiId);
+            
+            // Get current salary data from qualification (jabatan)
+            $jabatan = $pegawai->jabatanRelasi;
+            if ($jabatan) {
+                $gajiPokok = $jabatan->gaji_pokok ?? $pegawai->gaji_pokok ?? 0;
+                $tarif = $jabatan->tarif_per_jam ?? $pegawai->tarif_per_jam ?? 0;
+                $tunjanganJabatan = $jabatan->tunjangan ?? 0;
+                $tunjanganTransport = $jabatan->tunjangan_transport ?? 0;
+                $tunjanganKonsumsi = $jabatan->tunjangan_konsumsi ?? 0;
+                $asuransi = $jabatan->asuransi ?? 0;
+            } else {
+                // Fallback to pegawai stored values
+                $gajiPokok = $pegawai->gaji_pokok ?? 0;
+                $tarif = $pegawai->tarif_per_jam ?? 0;
+                $tunjanganJabatan = $pegawai->tunjangan_jabatan ?? 0;
+                $tunjanganTransport = $pegawai->tunjangan_transport ?? 0;
+                $tunjanganKonsumsi = $pegawai->tunjangan_konsumsi ?? 0;
+                $asuransi = $pegawai->asuransi ?? 0;
+            }
+            
+            $totalTunjangan = $tunjanganJabatan + $tunjanganTransport + $tunjanganKonsumsi;
+            
+            return response()->json([
+                'jenis' => strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl'),
+                'gaji_pokok' => $gajiPokok,
+                'tarif' => $tarif,
+                'total_tunjangan' => $totalTunjangan,
+                'asuransi' => $asuransi,
+                'nama' => $pegawai->nama,
+                'jabatan_nama' => $pegawai->jabatan_nama ?? 'Staff'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Employee not found',
+                'message' => $e->getMessage()
+            ], 404);
+        }
     }
 
     /**

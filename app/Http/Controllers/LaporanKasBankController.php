@@ -121,11 +121,10 @@ class LaporanKasBankController extends Controller
      */
     private function getTransaksiMasuk($akun, $startDate, $endDate)
     {
-        // Gunakan JournalLine dengan coa_id langsung untuk akurasi
-        $journalMasuk = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $akun->id)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->sum('journal_lines.debit') ?? 0;
+        // Gunakan JurnalUmum untuk akurasi
+        $journalMasuk = \App\Models\JurnalUmum::where('coa_id', $akun->id)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->sum('debit') ?? 0;
         
         return (float) $journalMasuk;
     }
@@ -135,11 +134,10 @@ class LaporanKasBankController extends Controller
      */
     private function getTransaksiKeluar($akun, $startDate, $endDate)
     {
-        // Gunakan JournalLine dengan coa_id langsung untuk akurasi
-        $journalKeluar = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $akun->id)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->sum('journal_lines.credit') ?? 0;
+        // Gunakan JurnalUmum untuk akurasi
+        $journalKeluar = \App\Models\JurnalUmum::where('coa_id', $akun->id)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->sum('kredit') ?? 0;
         
         return (float) $journalKeluar;
     }
@@ -177,30 +175,23 @@ class LaporanKasBankController extends Controller
             return response()->json([]);
         }
         
-        // Ambil transaksi masuk (debit) dari journal_lines
-        $transaksi = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $coa->id)
-            ->where('journal_lines.debit', '>', 0)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->select(
-                'journal_entries.tanggal',
-                'journal_entries.memo',
-                'journal_entries.ref_type',
-                'journal_entries.ref_id',
-                'journal_lines.debit'
-            )
-            ->orderBy('journal_entries.tanggal', 'desc')
-            ->orderBy('journal_entries.id', 'desc')
+        // Ambil transaksi masuk (debit) dari jurnal_umum
+        $transaksi = \App\Models\JurnalUmum::where('coa_id', $coa->id)
+            ->where('debit', '>', 0)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
             ->get()
             ->map(function($line) {
-                // Get detailed information based on ref_type
-                $detailInfo = $this->getTransactionDetail($line->ref_type, $line->ref_id);
+                // Get detailed information based on tipe_referensi
+                $refId = $this->extractRefId($line->referensi);
+                $detailInfo = $this->getTransactionDetail($line->tipe_referensi, $refId);
                 
                 return [
                     'tanggal' => date('d/m/Y', strtotime($line->tanggal)),
-                    'nomor_transaksi' => $detailInfo['nomor_transaksi'],
+                    'nomor_transaksi' => $line->referensi ?? $detailInfo['nomor_transaksi'],
                     'jenis' => $detailInfo['jenis'],
-                    'keterangan' => $detailInfo['keterangan'],
+                    'keterangan' => $line->keterangan ?? $detailInfo['keterangan'],
                     'nominal' => (float)$line->debit
                 ];
             })
@@ -227,31 +218,24 @@ class LaporanKasBankController extends Controller
             return response()->json([]);
         }
         
-        // Ambil transaksi keluar (credit) dari journal_lines
-        $transaksi = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $coa->id)
-            ->where('journal_lines.credit', '>', 0)
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
-            ->select(
-                'journal_entries.tanggal',
-                'journal_entries.memo',
-                'journal_entries.ref_type',
-                'journal_entries.ref_id',
-                'journal_lines.credit'
-            )
-            ->orderBy('journal_entries.tanggal', 'desc')
-            ->orderBy('journal_entries.id', 'desc')
+        // Ambil transaksi keluar (credit) dari jurnal_umum
+        $transaksi = \App\Models\JurnalUmum::where('coa_id', $coa->id)
+            ->where('kredit', '>', 0)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
             ->get()
             ->map(function($line) {
-                // Get detailed information based on ref_type
-                $detailInfo = $this->getTransactionDetail($line->ref_type, $line->ref_id);
+                // Get detailed information based on tipe_referensi
+                $refId = $this->extractRefId($line->referensi);
+                $detailInfo = $this->getTransactionDetail($line->tipe_referensi, $refId);
                 
                 return [
                     'tanggal' => date('d/m/Y', strtotime($line->tanggal)),
-                    'nomor_transaksi' => $detailInfo['nomor_transaksi'],
+                    'nomor_transaksi' => $line->referensi ?? $detailInfo['nomor_transaksi'],
                     'jenis' => $detailInfo['jenis'],
-                    'keterangan' => $detailInfo['keterangan'],
-                    'nominal' => (float)$line->credit
+                    'keterangan' => $line->keterangan ?? $detailInfo['keterangan'],
+                    'nominal' => (float)$line->kredit
                 ];
             })
             ->filter(function($item) {
@@ -260,6 +244,18 @@ class LaporanKasBankController extends Controller
             ->values();
         
         return response()->json($transaksi);
+    }
+
+    /**
+     * Extract ref_id from referensi string
+     */
+    private function extractRefId($referensi)
+    {
+        // Handle format like "PB-2" -> extract 2
+        if (preg_match('/(\d+)$/', $referensi, $matches)) {
+            return (int)$matches[1];
+        }
+        return null;
     }
 
     /**
@@ -306,6 +302,18 @@ class LaporanKasBankController extends Controller
                         $bebanName = $expense->bebanOperasional->nama_beban ?? 'Beban';
                         return [
                             'nomor_transaksi' => "BP-{$refId}",
+                            'jenis' => 'Pembayaran Beban',
+                            'keterangan' => "Pembayaran {$bebanName}"
+                        ];
+                    }
+                    break;
+                    
+                case 'pembayaran_beban':
+                    $pembayaranBeban = \App\Models\PembayaranBeban::with('bebanOperasional')->find($refId);
+                    if ($pembayaranBeban) {
+                        $bebanName = $pembayaranBeban->bebanOperasional->nama_beban ?? 'Beban';
+                        return [
+                            'nomor_transaksi' => "PB-{$refId}",
                             'jenis' => 'Pembayaran Beban',
                             'keterangan' => "Pembayaran {$bebanName}"
                         ];

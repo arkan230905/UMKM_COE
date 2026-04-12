@@ -228,6 +228,71 @@ let pegawaiData = {
 // Load data pegawai
 function loadPegawaiData() {
     const select = document.getElementById('pegawai_id');
+    const pegawaiId = select.value;
+    
+    if (pegawaiId) {
+        // Fetch real-time data from API
+        fetch(`/transaksi/penggajian/pegawai/${pegawaiId}/data`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error:', data.message);
+                    // Fallback to static data if API fails
+                    loadStaticPegawaiData();
+                    return;
+                }
+                
+                // Update pegawaiData with real-time values
+                pegawaiData.jenis = data.jenis || 'btktl';
+                pegawaiData.gajiPokok = parseFloat(data.gaji_pokok) || 0;
+                pegawaiData.tarif = parseFloat(data.tarif) || 0;
+                pegawaiData.totalTunjangan = parseFloat(data.total_tunjangan) || 0;
+                pegawaiData.asuransi = parseFloat(data.asuransi) || 0;
+
+                // Update hidden fields
+                document.getElementById('hidden_gaji_pokok').value = pegawaiData.gajiPokok;
+                document.getElementById('hidden_tarif_per_jam').value = pegawaiData.tarif;
+                document.getElementById('hidden_tunjangan').value = pegawaiData.totalTunjangan;
+                document.getElementById('hidden_asuransi').value = pegawaiData.asuransi;
+                document.getElementById('hidden_jenis_pegawai').value = pegawaiData.jenis;
+                document.getElementById('hidden_total_jam_kerja').value = pegawaiData.jamKerja;
+
+                // Update display
+                document.getElementById('display_gaji_pokok').value = pegawaiData.gajiPokok.toLocaleString('id-ID');
+                document.getElementById('display_tarif').value = pegawaiData.tarif.toLocaleString('id-ID');
+                document.getElementById('display_total_tunjangan').value = pegawaiData.totalTunjangan.toLocaleString('id-ID');
+                document.getElementById('display_asuransi').value = pegawaiData.asuransi.toLocaleString('id-ID');
+                document.getElementById('display_jam_kerja').value = '0';
+                document.getElementById('display_gaji_dasar').value = '0';
+
+                // Show/hide fields based on employee type
+                updateFieldVisibility();
+                
+                // Load jam kerja if BTKL
+                if (pegawaiData.jenis === 'btkl') {
+                    loadJamKerja();
+                } else {
+                    // Calculate gaji dasar for BTKTL
+                    pegawaiData.gajiDasar = pegawaiData.gajiPokok;
+                    document.getElementById('display_gaji_dasar').value = pegawaiData.gajiDasar.toLocaleString('id-ID');
+                }
+                
+                hitungTotal();
+            })
+            .catch(error => {
+                console.error('Error loading employee data:', error);
+                // Fallback to static data if API fails
+                loadStaticPegawaiData();
+            });
+    } else {
+        // Reset if no employee selected
+        resetPegawaiData();
+    }
+}
+
+// Fallback function to load from static data attributes
+function loadStaticPegawaiData() {
+    const select = document.getElementById('pegawai_id');
     const option = select.options[select.selectedIndex];
     
     if (option.value) {
@@ -257,23 +322,17 @@ function loadPegawaiData() {
         document.getElementById('display_jam_kerja').value = '0';
         document.getElementById('display_gaji_dasar').value = '0';
 
-        console.log('Pegawai data loaded:', pegawaiData);
-
-        // Show/hide fields based on jenis pegawai
+        // Show/hide fields based on employee type
+        updateFieldVisibility();
+        
+        // Load jam kerja if BTKL
         if (pegawaiData.jenis === 'btkl') {
-            document.getElementById('field-gaji-pokok').style.display = 'none';
-            document.getElementById('field-tarif').style.display = 'block';
-            document.getElementById('field-jam-kerja').style.display = 'block';
-            document.getElementById('field-gaji-dasar').style.display = 'block';
+            loadJamKerja();
         } else {
-            document.getElementById('field-gaji-pokok').style.display = 'block';
-            document.getElementById('field-tarif').style.display = 'none';
-            document.getElementById('field-jam-kerja').style.display = 'none';
-            document.getElementById('field-gaji-dasar').style.display = 'none';
+            // Calculate gaji dasar for BTKTL
+            pegawaiData.gajiDasar = pegawaiData.gajiPokok;
+            document.getElementById('display_gaji_dasar').value = pegawaiData.gajiDasar.toLocaleString('id-ID');
         }
-
-        // Load jam kerja
-        loadJamKerja();
     } else {
         // Reset hidden fields
         document.getElementById('hidden_gaji_pokok').value = 0;
@@ -346,6 +405,23 @@ function loadJamKerja() {
     }
 }
 
+// Update field visibility based on employee type
+function updateFieldVisibility() {
+    if (pegawaiData.jenis === 'btkl') {
+        // Show BTKL fields, hide BTKTL fields
+        document.getElementById('field-gaji-pokok').style.display = 'none';
+        document.getElementById('field-tarif').style.display = 'block';
+        document.getElementById('field-jam-kerja').style.display = 'block';
+        document.getElementById('field-gaji-dasar').style.display = 'block';
+    } else {
+        // Show BTKTL fields, hide BTKL fields
+        document.getElementById('field-gaji-pokok').style.display = 'block';
+        document.getElementById('field-tarif').style.display = 'none';
+        document.getElementById('field-jam-kerja').style.display = 'none';
+        document.getElementById('field-gaji-dasar').style.display = 'none';
+    }
+}
+
 // Hitung total gaji
 function hitungTotal() {
     const bonus = parseFloat(document.getElementById('bonus').value) || 0;
@@ -373,6 +449,10 @@ function hitungTotal() {
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     hitungTotal();
+    
+    // Add event listeners for real-time calculation
+    document.getElementById('bonus').addEventListener('input', hitungTotal);
+    document.getElementById('potongan').addEventListener('input', hitungTotal);
     
     // Debug form submission
     document.getElementById('formPenggajian').addEventListener('submit', function(e) {
