@@ -7,6 +7,7 @@ use App\Models\Penjualan;
 use App\Models\Produk;
 use App\Services\StockService;
 use App\Services\JournalService;
+use Illuminate\Support\Facades\DB;
 
 class PenjualanController extends Controller
 {
@@ -100,10 +101,11 @@ class PenjualanController extends Controller
         
         // Multi-item path
         if (is_array($request->produk_id)) {
-            // Get valid kas/bank codes from database
-            $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
-            
-            $request->validate([
+            return DB::transaction(function() use ($request, $stock, $journal) {
+                // Get valid kas/bank codes from database
+                $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
+                
+                $request->validate([
                 'tanggal' => 'required|date',
                 'waktu' => 'required|date_format:H:i',
                 'payment_method' => 'required|in:cash,transfer,credit',
@@ -232,6 +234,7 @@ class PenjualanController extends Controller
 
             return redirect()->route('transaksi.penjualan.index')
                              ->with('success', 'Data penjualan (multi item) berhasil ditambahkan.');
+            });
         }
 
         // Single-item fallback (tetap mendukung)
@@ -302,7 +305,6 @@ class PenjualanController extends Controller
 
         return redirect()->route('transaksi.penjualan.index')
                          ->with('success', 'Data penjualan berhasil ditambahkan.');
-        }); // End of DB transaction
     }
 
     public function show($id)

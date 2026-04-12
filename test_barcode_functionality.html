@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Barcode Functionality Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+        .barcode-input { padding: 10px; font-size: 16px; width: 300px; }
+    </style>
+</head>
+<body>
+    <h1>Barcode Functionality Test</h1>
+    
+    <div class="test-section">
+        <h3>Test Data</h3>
+        <p><strong>Available Products:</strong></p>
+        <ul>
+            <li>Ayam Crispy Macdi - Barcode: <strong>8992000000001</strong> - Price: Rp 45,000</li>
+            <li>Ayam Goreng Bundo - Barcode: <strong>8992000000002</strong> - Price: Rp 45,000</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h3>Test Instructions</h3>
+        <ol>
+            <li>Open the sales transaction page: <a href="http://127.0.0.1:8000/transaksi/penjualan/create" target="_blank">Click here to open</a></li>
+            <li>In the barcode scanner field, type: <strong>8992000000001</strong></li>
+            <li>Press Enter or wait for automatic processing</li>
+            <li>Verify that "Ayam Crispy Macdi" appears in the table with correct price and quantity</li>
+            <li>Test the same barcode again - it should increment quantity to 2</li>
+            <li>Test with barcode: <strong>8992000000002</strong> for "Ayam Goreng Bundo"</li>
+            <li>Test typing partial numbers like "8" to see real-time search results</li>
+        </ol>
+    </div>
+    
+    <div class="test-section">
+        <h3>Expected Behavior</h3>
+        <ul>
+            <li>Typing barcode numbers should show real-time search results</li>
+            <li>Pressing Enter or typing complete barcode should add product to table</li>
+            <li>Scanning same barcode twice should increment quantity</li>
+            <li>Success/error notifications should appear</li>
+            <li>Barcode input should maintain focus for continuous scanning</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h3>Debug Information</h3>
+        <p>Open browser console (F12) to see:</p>
+        <ul>
+            <li>Product Data loading</li>
+            <li>Barcode scanner initialization</li>
+            <li>Processing log messages</li>
+        </ul>
+    </div>
+    
+    <div class="test-section">
+        <h3>Quick Test</h3>
+        <button onclick="window.open('http://127.0.0.1:8000/transaksi/penjualan/create', '_blank')">
+            Open Sales Page
+        </button>
+        <p>The page should load with the barcode scanner ready to use.</p>
+    </div>
+
+    <script>
+        console.log('Barcode test page loaded');
+        console.log('Test with barcodes: 8992000000001, 8992000000002');
+    </script>
+</body>
+</html>

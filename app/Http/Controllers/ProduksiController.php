@@ -1174,8 +1174,8 @@ class ProduksiController extends Controller
             // Map BOP components to process names based on naming convention
             if (stripos($namaBiaya, 'penggorengan') !== false || stripos($namaBiaya, 'goreng') !== false) {
                 $namaProses = 'Penggorengan';
-            } elseif (stripos($namaBiaya, 'pembumbuan') !== false || stripos($namaBiaya, 'bumbu') !== false) {
-                $namaProses = 'Pembumbuan';
+            } elseif (stripos($namaBiaya, 'perbumbuan') !== false || stripos($namaBiaya, 'bumbu') !== false) {
+                $namaProses = 'Perbumbuan';
             } elseif (stripos($namaBiaya, 'pengemasan') !== false || stripos($namaBiaya, 'kemas') !== false) {
                 $namaProses = 'Pengemasan';
             }

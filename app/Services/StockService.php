@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\KartuStok;
 use App\Models\BahanBaku;
 use App\Models\BahanPendukung;
+use App\Models\StockLayer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -249,5 +250,195 @@ class StockService
             'entries' => $report,
             'saldo_akhir' => $runningBalance
         ];
+    }
+
+    /**
+     * Add stock layer with manual conversion data
+     */
+    public function addLayerWithManualConversion($itemType, $itemId, $qty, $satuan, $unitCost, $refType, $refId, $tanggal, $manualConversionData = null)
+    {
+        try {
+            $data = [
+                'item_type' => $itemType,
+                'item_id' => $itemId,
+                'tanggal' => $tanggal ?? now()->format('Y-m-d'),
+                'remaining_qty' => $qty,
+                'unit_cost' => $unitCost,
+                'satuan' => $satuan,
+                'ref_type' => $refType,
+                'ref_id' => $refId
+            ];
+
+            Log::info('Creating stock layer with manual conversion', array_merge($data, [
+                'manual_conversion_data' => $manualConversionData
+            ]));
+
+            return StockLayer::create($data);
+        } catch (\Exception $e) {
+            Log::error('Failed to create stock layer with manual conversion', [
+                'error' => $e->getMessage(),
+                'item_type' => $itemType,
+                'item_id' => $itemId,
+                'qty' => $qty
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Estimate cost for a given quantity of product
+     */
+    public function estimateCost($itemType, $itemId, $qty)
+    {
+        try {
+            if ($itemType === 'product') {
+                $product = \App\Models\Produk::find($itemId);
+                if (!$product) {
+                    return 0;
+                }
+
+                // Try to get cost from stock layers first
+                $totalCost = 0;
+                $remainingQty = $qty;
+
+                // Get stock layers ordered by date (FIFO)
+                $layers = \App\Models\StockLayer::where('item_type', 'product')
+                    ->where('item_id', $itemId)
+                    ->where('remaining_qty', '>', 0)
+                    ->orderBy('tanggal', 'asc')
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                foreach ($layers as $layer) {
+                    if ($remainingQty <= 0) break;
+
+                    $useQty = min($layer->remaining_qty, $remainingQty);
+                    $totalCost += $useQty * $layer->unit_cost;
+                    $remainingQty -= $useQty;
+                }
+
+                // If we still need more quantity, use BOM cost
+                if ($remainingQty > 0) {
+                    $bomCost = $this->calculateBOMCost($itemId);
+                    $totalCost += $remainingQty * $bomCost;
+                }
+
+                return $totalCost;
+            }
+
+            return 0;
+        } catch (\Exception $e) {
+            Log::error('Error estimating cost', [
+                'item_type' => $itemType,
+                'item_id' => $itemId,
+                'qty' => $qty,
+                'error' => $e->getMessage()
+            ]);
+            return 0;
+        }
+    }
+
+    /**
+     * Calculate BOM cost for a product
+     */
+    private function calculateBOMCost($productId)
+    {
+        try {
+            $bomTotal = \App\Models\Bom::where('produk_id', $productId)->sum('total_biaya');
+            $product = \App\Models\Produk::find($productId);
+            
+            $btkl = $product->btkl_default ?? 0;
+            $bop = $product->bop_default ?? 0;
+            
+            return $bomTotal + $btkl + $bop;
+        } catch (\Exception $e) {
+            Log::error('Error calculating BOM cost', [
+                'product_id' => $productId,
+                'error' => $e->getMessage()
+            ]);
+            return 0;
+        }
+    }
+
+    /**
+     * Consume stock (for sales/production)
+     */
+    public function consume($itemType, $itemId, $qty, $satuan = 'pcs', $refType = null, $refId = null, $tanggal = null)
+    {
+        try {
+            if ($itemType === 'product') {
+                $product = \App\Models\Produk::find($itemId);
+                if (!$product) {
+                    throw new \Exception("Product with ID {$itemId} not found");
+                }
+
+                // Check current stock
+                $currentStock = $product->stok ?? 0;
+                if ($currentStock < $qty) {
+                    throw new \Exception("Insufficient stock. Current: {$currentStock}, Required: {$qty}");
+                }
+
+                // Calculate cost using FIFO
+                $totalCost = 0;
+                $remainingQty = $qty;
+
+                // Get stock layers for FIFO cost calculation
+                $layers = \App\Models\StockLayer::where('item_type', 'product')
+                    ->where('item_id', $itemId)
+                    ->where('remaining_qty', '>', 0)
+                    ->orderBy('tanggal', 'asc')
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                foreach ($layers as $layer) {
+                    if ($remainingQty <= 0) break;
+
+                    $useQty = min($layer->remaining_qty, $remainingQty);
+                    $totalCost += $useQty * $layer->unit_cost;
+                    
+                    // Update layer remaining quantity
+                    $layer->remaining_qty -= $useQty;
+                    $layer->save();
+                    
+                    $remainingQty -= $useQty;
+                }
+
+                // If no layers found, use BOM cost
+                if ($totalCost == 0 && $qty > 0) {
+                    $bomCost = $this->calculateBOMCost($itemId);
+                    $totalCost = $qty * $bomCost;
+                }
+
+                // Update product stock
+                $product->stok = $currentStock - $qty;
+                $product->save();
+
+                // Create stock movement record
+                \DB::table('stock_movements')->insert([
+                    'item_type' => $itemType,
+                    'item_id' => $itemId,
+                    'direction' => 'out',
+                    'qty' => $qty,
+                    'satuan' => $satuan,
+                    'ref_type' => $refType,
+                    'ref_id' => $refId,
+                    'tanggal' => $tanggal ?? now()->format('Y-m-d'),
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                return $totalCost;
+            }
+
+            return 0;
+        } catch (\Exception $e) {
+            Log::error('Error consuming stock', [
+                'item_type' => $itemType,
+                'item_id' => $itemId,
+                'qty' => $qty,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 }
