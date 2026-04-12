@@ -103,7 +103,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($rows as $key => $item)
+                        @forelse($pembayaranBeban as $key => $item)
                             <tr>
                                 <td class="text-center">{{ $key + 1 }}</td>
                                 <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d-m-Y') }}</td>
@@ -164,7 +164,7 @@
             </div>
             
             <div class="card-footer">
-                {{ $rows->links() }}
+                {{ $pembayaranBeban->links() }}
             </div>
         </div>
     </div>

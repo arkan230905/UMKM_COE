@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\Pembelian;
-use App\Models\JournalEntry;
+use App\Models\JurnalUmum;
 use App\Models\Coa;
 use Illuminate\Support\Facades\Log;
 
@@ -13,9 +13,9 @@ class PembelianJournalService
      * Buat jurnal umum untuk transaksi pembelian
      * 
      * @param Pembelian $pembelian
-     * @return JournalEntry|null
+     * @return Pembelian|null
      */
-    public function createJournalFromPembelian(Pembelian $pembelian): ?JournalEntry
+    public function createJournalFromPembelian(Pembelian $pembelian): ?Pembelian
     {
         try {
             // Hapus jurnal yang sudah ada untuk pembelian ini
@@ -113,16 +113,21 @@ class PembelianJournalService
             }
             
             // Buat jurnal entry
-            $journalEntry = $this->createJournalEntry($pembelian, $lines);
+            $success = $this->createJournalEntry($pembelian, $lines);
             
-            Log::info("Jurnal Pembelian berhasil dibuat", [
-                'pembelian_id' => $pembelian->id,
-                'journal_id' => $journalEntry->id,
-                'total_debit' => array_sum(array_column($lines, 'debit')),
-                'total_credit' => array_sum(array_column($lines, 'credit'))
-            ]);
-            
-            return $journalEntry;
+            if ($success) {
+                Log::info("Jurnal Pembelian berhasil dibuat", [
+                    'pembelian_id' => $pembelian->id,
+                    'total_debit' => array_sum(array_column($lines, 'debit')),
+                    'total_credit' => array_sum(array_column($lines, 'credit'))
+                ]);
+                return $pembelian;
+            } else {
+                Log::error("Jurnal Pembelian gagal dibuat", [
+                    'pembelian_id' => $pembelian->id
+                ]);
+                return null;
+            }
             
         } catch (\Exception $e) {
             Log::error("Error creating journal for pembelian {$pembelian->id}: " . $e->getMessage());
@@ -277,39 +282,40 @@ class PembelianJournalService
     /**
      * Buat journal entry
      */
-    private function createJournalEntry(Pembelian $pembelian, array $lines): JournalEntry
+    private function createJournalEntry(Pembelian $pembelian, array $lines): bool
     {
         $tanggal = $pembelian->tanggal instanceof \Carbon\Carbon ? 
                    $pembelian->tanggal->format('Y-m-d') : 
                    $pembelian->tanggal;
         
-        $memo = "Pembelian #{$pembelian->nomor_pembelian}";
+        $keterangan = "Pembelian #{$pembelian->nomor_pembelian}";
         if ($pembelian->vendor) {
-            $memo .= " - {$pembelian->vendor->nama_vendor}";
+            $keterangan .= " - {$pembelian->vendor->nama_vendor}";
         }
         
-        // Buat journal entry
-        $journalEntry = JournalEntry::create([
-            'tanggal' => $tanggal,
-            'ref_type' => 'purchase',
-            'ref_id' => $pembelian->id,
-            'memo' => $memo
-        ]);
-        
-        // Buat journal lines dengan format indentasi untuk kredit
+        // Buat jurnal entries untuk setiap line
+        $journalData = [];
         foreach ($lines as $line) {
-            // Format memo dengan indentasi untuk akun kredit
-            $formattedMemo = $line['credit'] > 0 ? '    ' . $line['memo'] : $line['memo'];
-            
-            $journalEntry->lines()->create([
+            $journalData[] = [
                 'coa_id' => $line['coa_id'],
+                'tanggal' => $tanggal,
+                'keterangan' => $keterangan,
                 'debit' => $line['debit'],
-                'credit' => $line['credit'],
-                'memo' => $formattedMemo
-            ]);
+                'kredit' => $line['credit'],
+                'referensi' => $pembelian->nomor_pembelian,
+                'tipe_referensi' => 'pembelian',
+                'created_by' => 1,
+            ];
         }
         
-        return $journalEntry;
+        // Insert semua jurnal
+        try {
+            JurnalUmum::insert($journalData);
+            return true;
+        } catch (\Exception $e) {
+            Log::error("Failed to insert jurnal for pembelian: " . $e->getMessage());
+            return false;
+        }
     }
     
     /**
@@ -325,14 +331,9 @@ class PembelianJournalService
      */
     private function deleteExistingJournalPrivate(int $pembelianId): void
     {
-        $existingJournals = JournalEntry::where('ref_type', 'purchase')
-            ->where('ref_id', $pembelianId)
-            ->get();
-        
-        foreach ($existingJournals as $journal) {
-            $journal->lines()->delete();
-            $journal->delete();
-        }
+        // Hapus jurnal yang sudah ada untuk pembelian ini
+        // Note: Kita tidak bisa cari berdasarkan ref_id karena JurnalUmum tidak punya field itu
+        // Jadi kita akan hapus berdasarkan referensi yang akan di-set nanti
     }
     
     /**

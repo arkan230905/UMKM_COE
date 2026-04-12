@@ -3,9 +3,9 @@
 namespace App\Observers;
 
 use App\Models\Penjualan;
-use App\Models\JournalEntry;
-use App\Models\JournalLine;
-use App\Services\JournalService;
+use App\Models\JurnalUmum;
+use App\Models\Coa;
+use App\Services\AutoCoaService;
 
 class PenjualanObserver
 {
@@ -47,9 +47,6 @@ class PenjualanObserver
             'tanggal' => $penjualan->tanggal
         ]);
         
-        $journalService = new \App\Services\JournalService();
-        $entries = [];
-        
         // Hitung HPP (Harga Pokok Produksi)
         $hpp = $this->calculateHPP($penjualan);
         
@@ -58,40 +55,106 @@ class PenjualanObserver
             'penjualan_id' => $penjualan->id
         ]);
         
-        // 1. Debit Kas (untuk penjualan tunai)
-        $entries[] = ['code' => '1101', 'debit' => $penjualan->total_harga, 'credit' => 0];
-        
-        // 2. Credit Penjualan
-        $entries[] = ['code' => '41', 'debit' => 0, 'credit' => $penjualan->total_harga];
-        
-        // 3. Debit HPP (Harga Pokok Produksi)
-        if ($hpp > 0) {
-            $entries[] = ['code' => '5101', 'debit' => $hpp, 'credit' => 0]; // HPP
-            $entries[] = ['code' => '1107', 'debit' => 0, 'credit' => $hpp]; // Persediaan Barang Jadi
+        try {
+            // Prepare journal entries
+            $journalData = [];
             
-            \Log::info('Adding HPP entries', [
-                'hpp' => $hpp,
-                'entries_added' => 2
+            // 1. Debit Kas (untuk penjualan tunai) - find COA for payment method
+            $kasCoa = $this->getKasCoa($penjualan->payment_method, $penjualan->sumber_dana);
+            if ($kasCoa) {
+                $journalData[] = [
+                    'coa_id' => $kasCoa->id,
+                    'tanggal' => $penjualan->tanggal,
+                    'keterangan' => 'Penjualan Produk - ' . $penjualan->nomor_penjualan,
+                    'debit' => $penjualan->total_harga,
+                    'kredit' => 0,
+                    'referensi' => $penjualan->nomor_penjualan,
+                    'tipe_referensi' => 'penjualan',
+                    'created_by' => 1,
+                ];
+            }
+            
+            // 2. Credit Penjualan - find COA for penjualan
+            $penjualanCoa = AutoCoaService::getOrCreateCoa('Penjualan Produk', 'Penjualan', 'Revenue', 'Kredit');
+            if ($penjualanCoa) {
+                $journalData[] = [
+                    'coa_id' => $penjualanCoa->id,
+                    'tanggal' => $penjualan->tanggal,
+                    'keterangan' => 'Penjualan Produk - ' . $penjualan->nomor_penjualan,
+                    'debit' => 0,
+                    'kredit' => $penjualan->total_harga,
+                    'referensi' => $penjualan->nomor_penjualan,
+                    'tipe_referensi' => 'penjualan',
+                    'created_by' => 1,
+                ];
+            }
+            
+            // 3. Debit HPP (Harga Pokok Produksi)
+            if ($hpp > 0) {
+                $hppCoa = AutoCoaService::getOrCreateCoa('HPP', 'HPP', 'Expense', 'Debit');
+                
+                // Get the correct persediaan COA based on product
+                $persediaanCoa = null;
+                if ($penjualan->details->count() > 0) {
+                    $firstDetail = $penjualan->details->first();
+                    if ($firstDetail->produk_id) {
+                        $produk = \App\Models\Produk::find($firstDetail->produk_id);
+                        if ($produk) {
+                            $persediaanCoa = AutoCoaService::getOrCreatePersediaanBarangJadiCoa(
+                                $produk->nama_produk,
+                                $produk->id
+                            );
+                        }
+                    }
+                }
+                
+                // Fallback to default persediaan if no product found
+                if (!$persediaanCoa) {
+                    $persediaanCoa = AutoCoaService::getOrCreateCoa('Persediaan Barang Jadi', 'Persediaan Barang Jadi', 'Asset', 'Debit');
+                }
+                
+                if ($hppCoa) {
+                    $journalData[] = [
+                        'coa_id' => $hppCoa->id,
+                        'tanggal' => $penjualan->tanggal,
+                        'keterangan' => 'HPP Penjualan - ' . $penjualan->nomor_penjualan,
+                        'debit' => $hpp,
+                        'kredit' => 0,
+                        'referensi' => $penjualan->nomor_penjualan,
+                        'tipe_referensi' => 'penjualan',
+                        'created_by' => 1,
+                    ];
+                }
+                
+                if ($persediaanCoa) {
+                    $journalData[] = [
+                        'coa_id' => $persediaanCoa->id,
+                        'tanggal' => $penjualan->tanggal,
+                        'keterangan' => 'Persediaan Barang Jadi - ' . $penjualan->nomor_penjualan,
+                        'debit' => 0,
+                        'kredit' => $hpp,
+                        'referensi' => $penjualan->nomor_penjualan,
+                        'tipe_referensi' => 'penjualan',
+                        'created_by' => 1,
+                    ];
+                }
+            }
+            
+            // Insert all journal entries
+            if (!empty($journalData)) {
+                JurnalUmum::insert($journalData);
+                \Log::info('Journal entries created successfully', [
+                    'penjualan_id' => $penjualan->id,
+                    'entries_count' => count($journalData)
+                ]);
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to create journal entries for penjualan: ' . $e->getMessage(), [
+                'penjualan_id' => $penjualan->id,
+                'error' => $e->getMessage()
             ]);
         }
-        
-        \Log::info('Creating journal entry with entries', [
-            'entries_count' => count($entries),
-            'entries' => $entries
-        ]);
-        
-        // Create journal entry
-        $journal = $journalService->post(
-            $penjualan->tanggal->format('Y-m-d'),
-            'sale',
-            $penjualan->id,
-            'Penjualan Produk - ' . $penjualan->nomor_penjualan,
-            $entries
-        );
-        
-        \Log::info('Journal entry created', [
-            'journal_id' => $journal->id
-        ]);
     }
     
     /**
@@ -179,20 +242,33 @@ class PenjualanObserver
     }
     
     /**
+     * Get COA for Kas based on payment method
+     */
+    private function getKasCoa($paymentMethod, $sumberDana)
+    {
+        if ($paymentMethod === 'cash' || $paymentMethod === 'transfer') {
+            // Use sumber_dana to find the specific kas account
+            return Coa::where('kode_akun', $sumberDana)->first();
+        }
+        
+        // Default to Kas (112) for other methods
+        return Coa::where('kode_akun', '112')->first();
+    }
+
+    /**
      * Delete journal entries for a specific penjualan
      */
     private function deletePenjualanJournals($penjualanId)
     {
-        $journals = JournalEntry::where('ref_type', 'sale')
-                               ->where('ref_id', $penjualanId)
-                               ->get();
-        
-        foreach ($journals as $journal) {
-            // Delete journal lines first
-            JournalLine::where('journal_entry_id', $journal->id)->delete();
-            
-            // Delete journal entry
-            $journal->delete();
+        // Get penjualan to get the nomor_penjualan
+        $penjualan = Penjualan::find($penjualanId);
+        if (!$penjualan) {
+            return;
         }
+        
+        // Delete journals by referensi
+        JurnalUmum::where('tipe_referensi', 'penjualan')
+                  ->where('referensi', $penjualan->nomor_penjualan)
+                  ->delete();
     }
 }

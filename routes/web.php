@@ -1722,6 +1722,7 @@ use App\Http\Controllers\PenjualanController;
 use App\Http\Controllers\ReturController;
 use App\Http\Controllers\ReturPenjualanController;
 use App\Http\Controllers\PenggajianController;
+use App\Http\Controllers\Transaksi\PembayaranBebanController;
 use App\Http\Controllers\ExpensePaymentController;
 use App\Http\Controllers\ApSettlementController;
 use App\Http\Controllers\PelunasanUtangController;
@@ -2159,14 +2160,14 @@ Route::middleware('auth')->group(function () {
         // ✅ PEMBAYARAN BEBAN (Expense Payment)
         // ============================================================
         Route::prefix('pembayaran-beban')->name('pembayaran-beban.')->group(function() {
-            Route::get('/', [ExpensePaymentController::class, 'index'])->name('index');
-            Route::get('/create', [ExpensePaymentController::class, 'create'])->name('create');
-            Route::post('/', [ExpensePaymentController::class, 'store'])->name('store');
-            Route::get('/print/{id}', [ExpensePaymentController::class, 'print'])->name('print');
-            Route::get('/{id}', [ExpensePaymentController::class, 'show'])->name('show');
-            Route::get('/{id}/edit', [ExpensePaymentController::class, 'edit'])->name('edit');
-            Route::put('/{id}', [ExpensePaymentController::class, 'update'])->name('update');
-            Route::delete('/{id}', [ExpensePaymentController::class, 'destroy'])->name('destroy');
+            Route::get('/', [PembayaranBebanController::class, 'index'])->name('index');
+            Route::get('/create', [PembayaranBebanController::class, 'create'])->name('create');
+            Route::post('/', [PembayaranBebanController::class, 'store'])->name('store');
+            Route::get('/print/{id}', [PembayaranBebanController::class, 'print'])->name('print');
+            Route::get('/{id}', [PembayaranBebanController::class, 'show'])->name('show');
+            Route::get('/{id}/edit', [PembayaranBebanController::class, 'edit'])->name('edit');
+            Route::put('/{id}', [PembayaranBebanController::class, 'update'])->name('update');
+            Route::delete('/{id}', [PembayaranBebanController::class, 'destroy'])->name('destroy');
         });
 
         // Alias route untuk backward compatibility - LANGSUNG KE CONTROLLER
@@ -2255,6 +2256,9 @@ Route::middleware('auth')->group(function () {
 
             // Posting ke jurnal (owner/admin only)
             Route::post('/{id}/post-journal', [PenggajianController::class, 'postToJournal'])->name('post-journal')->middleware(['role:owner,admin']);
+            
+            // API untuk data pegawai real-time
+            Route::get('/pegawai/{pegawaiId}/data', [PenggajianController::class, 'getEmployeeData'])->name('pegawai.data');
         });
 
         // ============================================================
