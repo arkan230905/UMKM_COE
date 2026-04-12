@@ -416,7 +416,7 @@
                         @foreach($penjualans as $key => $penjualan)
                             <tr class="{{ $key % 2 === 0 ? 'table-light' : '' }}">
                                 <td class="text-center">{{ $key + 1 }}</td>
-                                <td><strong>{{ 'SJ-' . optional($penjualan->tanggal)->format('ymd') . '-' . str_pad(($key + 1), 3, '0', STR_PAD_LEFT) }}</strong></td>
+                                <td><strong>{{ $penjualan->nomor_penjualan ?? '-' }}</strong></td>
                                 <td>{{ optional($penjualan->tanggal)->format('d-m-Y H:i') ?? $penjualan->tanggal }}</td>
                                 <td>
                                     <span class="badge {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'bg-warning' : 'bg-success' }}">

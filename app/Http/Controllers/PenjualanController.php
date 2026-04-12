@@ -32,7 +32,7 @@ class PenjualanController extends Controller
             $query->where('payment_method', $request->payment_method);
         }
         
-        $penjualans = $query->with(['produk','details','returs'])->orderBy('tanggal','desc')->get();
+        $penjualans = $query->with(['produk','details','returs'])->orderBy('tanggal','desc')->orderBy('id','desc')->get();
         
         // Hitung ringkasan penjualan HARI INI saja
         $today = now()->format('Y-m-d');
@@ -129,14 +129,17 @@ class PenjualanController extends Controller
             }
             $diskonPctArr = $request->diskon_persen ?? [];
 
-            // Validasi stok cukup per item
+            // Validasi stok cukup per item menggunakan StockService
             foreach ($produkIds as $i => $pid) {
                 $p = Produk::findOrFail($pid);
                 $qty = (int)($jumlahArr[$i] ?? 0); // Cast to integer
                 
-                if ($qty > (float)($p->stok ?? 0)) {
+                // Get available stock from StockService untuk konsistensi
+                $availableStock = (float) $p->actual_stok;
+                
+                if ($qty > $availableStock + 1e-9) {
                     return back()->withErrors([
-                        'stok' => "Stok {$p->nama_produk} tidak cukup! Stok tersedia: " . number_format((float)($p->stok ?? 0), 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
+                        'stok' => "Stok {$p->nama_produk} tidak cukup! Stok tersedia: " . number_format($availableStock, 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
                     ])->withInput();
                 }
             }

@@ -95,7 +95,26 @@ class ReturPenjualan extends Model
 
     private function processTukarBarang()
     {
+        $stockService = app(\App\Services\StockService::class);
+        
         foreach ($this->detailReturPenjualans as $detail) {
+            // Get product to get current cost
+            $produk = \App\Models\Produk::find($detail->produk_id);
+            $unitCost = $produk ? $produk->hpp : 0;
+            
+            // Add stock back using StockService
+            $stockService->addLayerWithManualConversion(
+                'product',
+                $detail->produk_id,
+                $detail->qty_retur,
+                'pcs',
+                $unitCost,
+                'retur_penjualan',
+                $this->id,
+                $this->tanggal
+            );
+            
+            // Create movement record for tracking
             StockMovement::create([
                 'item_type' => 'product',
                 'item_id'   => $detail->produk_id,

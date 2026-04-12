@@ -81,8 +81,19 @@ class Penjualan extends Model
                 $tanggal = $penjualan->tanggal ?? now();
                 $date = is_string($tanggal) ? $tanggal : $tanggal->format('Ymd');
                 
-                // Hitung jumlah penjualan hari ini
-                $count = static::whereDate('tanggal', $tanggal)->count() + 1;
+                // Ambil nomor penjualan terakhir hari ini untuk menghindari duplikat
+                $lastNomor = static::whereDate('tanggal', $tanggal)
+                    ->where('nomor_penjualan', 'like', 'SJ-' . $date . '-%')
+                    ->orderBy('nomor_penjualan', 'desc')
+                    ->value('nomor_penjualan');
+                
+                if ($lastNomor) {
+                    // Extract nomor urut dari nomor penjualan terakhir
+                    $lastNumber = intval(substr($lastNomor, -3));
+                    $count = $lastNumber + 1;
+                } else {
+                    $count = 1;
+                }
                 
                 $penjualan->nomor_penjualan = 'SJ-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
             }

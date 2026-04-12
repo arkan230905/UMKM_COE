@@ -319,43 +319,63 @@ class StockService
     }
 
     /**
-     * Sync product stock to StockLayer if not exists
+     * Sync product stock to StockLayer - force sync even if exists
      */
     private function syncProductStockToLayer(int $productId): void
     {
-        $layerExists = StockLayer::where('item_type', 'product')
+        $produk = \App\Models\Produk::find($productId);
+        if (!$produk) {
+            return;
+        }
+        
+        $currentStockLayer = StockLayer::where('item_type', 'product')
             ->where('item_id', $productId)
-            ->exists();
+            ->sum('remaining_qty');
             
-        if (!$layerExists) {
-            $produk = \App\Models\Produk::find($productId);
-            if ($produk && $produk->stok > 0) {
-                // Calculate unit cost (estimate from selling price or use default)
-                $unitCost = 0;
-                if ($produk->harga_jual > 0) {
-                    $unitCost = $produk->harga_jual / 1.3; // Estimate cost as 77% of selling price
-                } else {
-                    // Fallback to BOM cost if available
-                    $sumBom = (float) \App\Models\Bom::where('produk_id', $productId)->sum('total_biaya');
-                    $btkl = (float) ($produk->btkl_default ?? 0);
-                    $bop = (float) ($produk->bop_default ?? 0);
-                    $unitCost = $sumBom + $btkl + $bop;
-                }
+        $productStok = (float) $produk->stok;
+        
+        // Force sync if there's a difference
+        if (abs($currentStockLayer - $productStok) > 1e-9) {
+            // Calculate unit cost (estimate from selling price or use default)
+            $unitCost = 0;
+            if ($produk->harga_jual > 0) {
+                $unitCost = $produk->harga_jual / 1.3; // Estimate cost as 77% of selling price
+            } else {
+                // Fallback to BOM cost if available
+                $sumBom = (float) \App\Models\Bom::where('produk_id', $productId)->sum('total_biaya');
+                $btkl = (float) ($produk->btkl_default ?? 0);
+                $bop = (float) ($produk->bop_default ?? 0);
+                $unitCost = $sumBom + $btkl + $bop;
+            }
+            
+            // Delete existing layers and create new one
+            StockLayer::where('item_type', 'product')
+                ->where('item_id', $productId)
+                ->delete();
                 
+            if ($productStok > 0) {
                 StockLayer::create([
                     'item_type' => 'product',
                     'item_id' => $productId,
                     'tanggal' => now()->subDays(30), // Set to past date for opening balance
-                    'remaining_qty' => $produk->stok,
+                    'remaining_qty' => $productStok,
                     'satuan' => 'pcs',
                     'unit_cost' => $unitCost,
                     'ref_type' => 'opening_balance',
                     'ref_id' => 0,
                 ]);
-                
-                \Log::info("Auto-synced product #{$productId} stock to StockLayer: {$produk->stok} pcs, unit_cost: {$unitCost}");
             }
+            
+            \Log::info("Force-synced product #{$productId} stock to StockLayer: {$productStok} pcs (was {$currentStockLayer}), unit_cost: {$unitCost}");
         }
+    }
+    
+    /**
+     * Public method to force sync product stock to StockLayer
+     */
+    public function forceSyncProductStock(int $productId): void
+    {
+        $this->syncProductStockToLayer($productId);
     }
 
     public function consume(string $itemType, int $itemId, float $qty, string $satuan, string $refType, int $refId, string $tanggal): float
