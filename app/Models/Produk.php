@@ -199,7 +199,29 @@ class Produk extends Model
      */
     public function getHargaPokokAttribute()
     {
-        return $this->getActualHPP();
+        return $this->hpp;
+    }
+    
+    /**
+     * Sync stok field dengan StockLayer
+     */
+    public function syncStok()
+    {
+        $actualStock = StockLayer::where('item_type', 'product')
+            ->where('item_id', $this->id)
+            ->sum('remaining_qty');
+            
+        $this->update(['stok' => $actualStock]);
+    }
+    
+    /**
+     * Get actual stock from StockLayer
+     */
+    public function getActualStokAttribute()
+    {
+        return StockLayer::where('item_type', 'product')
+            ->where('item_id', $this->id)
+            ->sum('remaining_qty');
     }
     
     /**
