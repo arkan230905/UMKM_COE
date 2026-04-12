@@ -1152,7 +1152,7 @@ class LaporanController extends Controller
             ->when($request->purchase_status, function($q) use ($request) {
                 return $q->where('status', $request->purchase_status);
             })
-            ->orderBy('return_date', 'desc');
+            ->orderBy('return_date', 'asc');
 
         // Get data
         $purchaseReturns = $purchaseReturnQuery->paginate(15, ['*'], 'purchase_page');

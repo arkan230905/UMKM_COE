@@ -71,7 +71,7 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th style="width:5%">#</th>
+                            <th style="width:5%">No</th>
                             <th>No. Retur</th>
                             <th>Tanggal</th>
                             <th>Nomor Transaksi</th>

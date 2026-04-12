@@ -36,7 +36,7 @@ class ReturController extends Controller
         // FIXED: Query with eager loading and sum calculation for better performance
         $returs = \App\Models\PurchaseReturn::with(['pembelian', 'items'])
             ->withSum('items as calculated_total', 'subtotal')
-            ->latest()
+            ->oldest()
             ->get();
         
         \Log::info('Retur pembelian index - data count: ' . $returs->count());
@@ -389,12 +389,9 @@ class ReturController extends Controller
             // Reduce stock when goods are sent to vendor (both tukar_barang and refund)
             $stock->processReturnSent($retur->id);
             
-            \Log::info("Stock processed, now creating journal entry");
+            \Log::info("Stock processed - no journal entry needed for goods sent (no hutang)");
             
-            // Create journal entry for return sent
-            $this->createReturnSentJournal($retur, $journal);
-            
-            \Log::info("Journal entry created for return sent");
+            // NOTE: No journal entry created here because there's no hutang to reduce
         }
 
         // Handle completion for tukar_barang (replacement goods received)
@@ -412,17 +409,7 @@ class ReturController extends Controller
             \Log::info("Tukar barang completion processed");
         }
 
-        // Handle completion for refund (money received)
-        if ($retur->jenis_retur === \App\Models\PurchaseReturn::JENIS_REFUND && 
-            $newStatus === \App\Models\PurchaseReturn::STATUS_SELESAI) {
-            
-            \Log::info("Processing refund completion for retur {$retur->id}");
-            
-            // Create journal entry for refund received
-            $this->createRefundReceivedJournal($retur, $journal);
-            
-            \Log::info("Refund completion processed");
-        }
+        // Note: Refund journal entries are now handled in terimaRefund() method to prevent duplicates
         
         \Log::info("HandleStatusChange completed");
     }
@@ -432,13 +419,31 @@ class ReturController extends Controller
      */
     private function createReturnSentJournal($retur, JournalService $journal)
     {
-        $totalAmount = $retur->total_return_amount;
+        $entries = [];
+        $totalAmount = 0;
         
-        // Hutang Usaha (Debit) - Persediaan (Kredit)
-        $entries = [
-            ['code' => '2101', 'debit' => $totalAmount, 'credit' => 0], // Hutang Usaha
-            ['code' => '1150', 'debit' => 0, 'credit' => $totalAmount], // Persediaan
-        ];
+        // Create entries for each returned item using specific COA persediaan
+        foreach ($retur->items as $item) {
+            $itemAmount = $item->subtotal;
+            $totalAmount += $itemAmount;
+            
+            // Get specific COA persediaan for this item
+            $coaPersediaanCode = null;
+            
+            if ($item->bahan_baku_id && $item->bahanBaku) {
+                $coaPersediaanCode = $item->bahanBaku->coaPersediaan->kode_akun ?? '1141'; // Default to generic bahan baku
+            } elseif ($item->bahan_pendukung_id && $item->bahanPendukung) {
+                $coaPersediaanCode = $item->bahanPendukung->coaPersediaan->kode_akun ?? '1150'; // Default to generic bahan pendukung
+            }
+            
+            // Add credit entry for specific persediaan account
+            if ($coaPersediaanCode) {
+                $entries[] = ['code' => $coaPersediaanCode, 'debit' => 0, 'credit' => $itemAmount];
+            }
+        }
+        
+        // Add debit entry for Hutang Usaha (total amount)
+        array_unshift($entries, ['code' => '2101', 'debit' => $totalAmount, 'credit' => 0]);
 
         $journal->post(
             $retur->return_date->format('Y-m-d'),
@@ -451,22 +456,51 @@ class ReturController extends Controller
 
     /**
      * Create journal entry when replacement goods are received
+     * For tukar_barang: Dr. Pers. Bahan Baku [specific], Cr. Kas/Bank (if paid) or no credit if no payment
      */
     private function createReplacementGoodsJournal($retur, JournalService $journal)
     {
-        $totalAmount = $retur->total_return_amount;
+        $entries = [];
         
-        // Persediaan (Debit) - Hutang Usaha (Kredit)
-        $entries = [
-            ['code' => '1150', 'debit' => $totalAmount, 'credit' => 0], // Persediaan
-            ['code' => '2101', 'debit' => 0, 'credit' => $totalAmount], // Hutang Usaha
-        ];
+        // Use total with PPN (11%) instead of subtotal only
+        $totalAmountWithPpn = $retur->total_with_ppn;
+        
+        // Create debit entries for each returned item using specific COA persediaan
+        // But calculate proportional amount including PPN for each item
+        $totalSubtotal = $retur->items->sum('subtotal');
+        
+        foreach ($retur->items as $item) {
+            // Calculate proportional amount with PPN for this item
+            $itemProportion = $totalSubtotal > 0 ? ($item->subtotal / $totalSubtotal) : 0;
+            $itemAmountWithPpn = $totalAmountWithPpn * $itemProportion;
+            
+            // Get specific COA persediaan for this item
+            $coaPersediaanCode = null;
+            
+            if ($item->bahan_baku_id && $item->bahanBaku) {
+                $coaPersediaanCode = $item->bahanBaku->coaPersediaan->kode_akun ?? '1141'; // Default to generic bahan baku
+            } elseif ($item->bahan_pendukung_id && $item->bahanPendukung) {
+                $coaPersediaanCode = $item->bahanPendukung->coaPersediaan->kode_akun ?? '1150'; // Default to generic bahan pendukung
+            }
+            
+            // Add debit entry for specific persediaan account (with PPN included)
+            if ($coaPersediaanCode) {
+                $entries[] = ['code' => $coaPersediaanCode, 'debit' => $itemAmountWithPpn, 'credit' => 0];
+            }
+        }
+        
+        // Get kas/bank COA for credit (assuming replacement goods are paid for)
+        $kasBank = $retur->pembelian->kasBank ?? null;
+        $kasBankCode = $kasBank ? $kasBank->kode_akun : '1101';
+        
+        // Add credit entry for Kas/Bank (payment for replacement goods with PPN)
+        $entries[] = ['code' => $kasBankCode, 'debit' => 0, 'credit' => $totalAmountWithPpn];
 
         $journal->post(
             now()->format('Y-m-d'),
             'purchase_return_replacement',
             $retur->id,
-            "Barang Pengganti Retur #{$retur->return_number}",
+            "Barang Pengganti Retur #{$retur->return_number} (termasuk PPN 11%)",
             $entries
         );
     }
@@ -476,23 +510,50 @@ class ReturController extends Controller
      */
     private function createRefundReceivedJournal($retur, JournalService $journal)
     {
-        $totalAmount = $retur->total_return_amount;
-        
         // Get the bank/cash account from pembelian
         $kasBank = $retur->pembelian->kasBank ?? null;
         $kasBankCode = $kasBank ? $kasBank->kode_akun : '1101'; // Default to Kas
         
-        // Kas/Bank (Debit) - Hutang Usaha (Kredit)
-        $entries = [
-            ['code' => $kasBankCode, 'debit' => $totalAmount, 'credit' => 0], // Kas/Bank
-            ['code' => '2101', 'debit' => 0, 'credit' => $totalAmount], // Hutang Usaha
-        ];
+        $entries = [];
+        
+        // Use total with PPN (11%) instead of subtotal only
+        $totalAmountWithPpn = $retur->total_with_ppn;
+        
+        // Create entries for each returned item using specific COA persediaan
+        // But calculate proportional amount including PPN for each item
+        $totalSubtotal = $retur->items->sum('subtotal');
+        
+        foreach ($retur->items as $item) {
+            // Calculate proportional amount with PPN for this item
+            $itemProportion = $totalSubtotal > 0 ? ($item->subtotal / $totalSubtotal) : 0;
+            $itemAmountWithPpn = $totalAmountWithPpn * $itemProportion;
+            
+            // Get specific COA persediaan for this item
+            $coaPersediaanCode = null;
+            $itemName = '';
+            
+            if ($item->bahan_baku_id && $item->bahanBaku) {
+                $coaPersediaanCode = $item->bahanBaku->coaPersediaan->kode_akun ?? '1141'; // Default to generic bahan baku
+                $itemName = $item->bahanBaku->nama_bahan;
+            } elseif ($item->bahan_pendukung_id && $item->bahanPendukung) {
+                $coaPersediaanCode = $item->bahanPendukung->coaPersediaan->kode_akun ?? '1150'; // Default to generic bahan pendukung
+                $itemName = $item->bahanPendukung->nama_bahan;
+            }
+            
+            // Add credit entry for specific persediaan account (with PPN included)
+            if ($coaPersediaanCode) {
+                $entries[] = ['code' => $coaPersediaanCode, 'debit' => 0, 'credit' => $itemAmountWithPpn];
+            }
+        }
+        
+        // Add debit entry for Kas/Bank (total amount with PPN)
+        array_unshift($entries, ['code' => $kasBankCode, 'debit' => $totalAmountWithPpn, 'credit' => 0]);
 
         $journal->post(
             now()->format('Y-m-d'),
             'purchase_return_refund',
             $retur->id,
-            "Refund Retur #{$retur->return_number}",
+            "Refund Retur #{$retur->return_number} (termasuk PPN 11%)",
             $entries
         );
     }
@@ -887,7 +948,7 @@ class ReturController extends Controller
     public function kirim($id)
     {
         try {
-            $retur = \App\Models\PurchaseReturn::with(['items.bahanBaku', 'items.bahanPendukung'])->findOrFail($id);
+            $retur = \App\Models\PurchaseReturn::with(['items.bahanBaku.coaPersediaan', 'items.bahanPendukung.coaPersediaan'])->findOrFail($id);
             
             if ($retur->status !== \App\Models\PurchaseReturn::STATUS_DISETUJUI) {
                 return back()->with('error', 'Status retur tidak valid untuk dikirim.');
@@ -976,6 +1037,11 @@ class ReturController extends Controller
                 }
             }
             
+            // Create journal entry for goods sent to vendor - REMOVED
+            // Tidak perlu jurnal saat kirim barang karena tidak ada hutang
+            // $journal = app(\App\Services\JournalService::class);
+            // $this->createReturnSentJournal($retur, $journal);
+            
             DB::commit();
             
             $jenisText = $retur->jenis_retur === \App\Models\PurchaseReturn::JENIS_REFUND ? 'refund' : 'tukar barang';
@@ -996,7 +1062,7 @@ class ReturController extends Controller
     public function terimaBarang($id)
     {
         try {
-            $retur = \App\Models\PurchaseReturn::with(['items.bahanBaku', 'items.bahanPendukung'])->findOrFail($id);
+            $retur = \App\Models\PurchaseReturn::with(['items.bahanBaku.coaPersediaan', 'items.bahanPendukung.coaPersediaan'])->findOrFail($id);
             
             if ($retur->jenis_retur !== \App\Models\PurchaseReturn::JENIS_TUKAR_BARANG) {
                 return back()->with('error', 'Fungsi ini hanya untuk retur tukar barang.');
@@ -1008,72 +1074,81 @@ class ReturController extends Controller
             
             DB::beginTransaction();
             
-            // Update status
-            $retur->status = \App\Models\PurchaseReturn::STATUS_SELESAI;
-            $retur->save();
-            
-            // Process stock addition for replacement goods - using exact quantities from retur data
-            foreach ($retur->items as $item) {
-                if ($item->quantity <= 0) continue;
+            try {
+                // Update status
+                $retur->status = \App\Models\PurchaseReturn::STATUS_SELESAI;
+                $retur->save();
                 
-                $itemType = null;
-                $itemId = null;
-                $itemName = 'Unknown';
-                
-                if ($item->bahan_baku_id) {
-                    $itemType = 'bahan_baku';
-                    $itemId = $item->bahan_baku_id;
-                    $itemName = $item->bahanBaku->nama_bahan ?? 'Unknown';
-                } elseif ($item->bahan_pendukung_id) {
-                    $itemType = 'bahan_pendukung';
-                    $itemId = $item->bahan_pendukung_id;
-                    $itemName = $item->bahanPendukung->nama_bahan ?? 'Unknown';
-                }
-                
-                if ($itemType && $itemId) {
-                    // Use exact quantity from purchase return item
-                    $exactQuantity = $item->quantity;
+                // Process stock addition for replacement goods - using exact quantities from retur data
+                foreach ($retur->items as $item) {
+                    if ($item->quantity <= 0) continue;
                     
-                    // Create kartu_stok entry (stock in) - using exact quantity from purchase return
-                    DB::table('kartu_stok')->insert([
-                        'item_id' => $itemId,
-                        'item_type' => $itemType,
-                        'tanggal' => now()->format('Y-m-d'),
-                        'qty_masuk' => $exactQuantity, // Use exact quantity from purchase return
-                        'qty_keluar' => null,
-                        'keterangan' => "Retur Pembelian - Barang Pengganti #{$retur->return_number}",
-                        'ref_type' => 'retur',
-                        'ref_id' => $retur->id,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
+                    $itemType = null;
+                    $itemId = null;
+                    $itemName = 'Unknown';
                     
-                    // Update bahan_baku stock if applicable - using exact quantity
-                    if ($itemType === 'bahan_baku') {
-                        DB::table('bahan_bakus')
-                            ->where('id', $itemId)
-                            ->increment('stok', $exactQuantity);
+                    if ($item->bahan_baku_id) {
+                        $itemType = 'bahan_baku';
+                        $itemId = $item->bahan_baku_id;
+                        $itemName = $item->bahanBaku->nama_bahan ?? 'Unknown';
+                    } elseif ($item->bahan_pendukung_id) {
+                        $itemType = 'bahan_pendukung';
+                        $itemId = $item->bahan_pendukung_id;
+                        $itemName = $item->bahanPendukung->nama_bahan ?? 'Unknown';
                     }
                     
-                    // Update bahan_pendukung stock if applicable - using exact quantity
-                    if ($itemType === 'bahan_pendukung') {
-                        DB::table('bahan_pendukungs')
-                            ->where('id', $itemId)
-                            ->increment('stok', $exactQuantity);
+                    if ($itemType && $itemId) {
+                        // Use exact quantity from purchase return item
+                        $exactQuantity = $item->quantity;
+                        
+                        // Create kartu_stok entry (stock in) - using exact quantity from purchase return
+                        DB::table('kartu_stok')->insert([
+                            'item_id' => $itemId,
+                            'item_type' => $itemType,
+                            'tanggal' => now()->format('Y-m-d'),
+                            'qty_masuk' => $exactQuantity, // Use exact quantity from purchase return
+                            'qty_keluar' => null,
+                            'keterangan' => "Retur Pembelian - Barang Pengganti #{$retur->return_number}",
+                            'ref_type' => 'retur',
+                            'ref_id' => $retur->id,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                        
+                        // Update bahan_baku stock if applicable - using exact quantity
+                        if ($itemType === 'bahan_baku') {
+                            DB::table('bahan_bakus')
+                                ->where('id', $itemId)
+                                ->increment('stok', $exactQuantity);
+                        }
+                        
+                        // Update bahan_pendukung stock if applicable - using exact quantity
+                        if ($itemType === 'bahan_pendukung') {
+                            DB::table('bahan_pendukungs')
+                                ->where('id', $itemId)
+                                ->increment('stok', $exactQuantity);
+                        }
+                        
+                        Log::info("Stock added for replacement {$itemName}: +{$exactQuantity} (Return ID: {$retur->id}, Item ID: {$itemId})");
                     }
-                    
-                    Log::info("Stock added for replacement {$itemName}: +{$exactQuantity} (Return ID: {$retur->id}, Item ID: {$itemId})");
                 }
+                
+                // Create journal entry for replacement goods received
+                $journal = app(\App\Services\JournalService::class);
+                $this->createReplacementGoodsJournal($retur, $journal);
+                
+                DB::commit();
+                
+                Log::info("Retur {$retur->id} barang pengganti diterima - all stock movements recorded with exact quantities and journal created");
+                
+                return redirect('/transaksi/pembelian?tab=retur')->with('success', 'Barang pengganti berhasil diterima dan jurnal telah dibuat');
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
             }
             
-            DB::commit();
-            
-            Log::info("Retur {$retur->id} barang pengganti diterima - all stock movements recorded with exact quantities");
-            
-            return redirect('/transaksi/pembelian?tab=retur')->with('success', 'Barang pengganti berhasil diterima');
-            
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error('Error terima barang retur: ' . $e->getMessage());
             return back()->with('error', 'Terjadi kesalahan saat terima barang: ' . $e->getMessage());
         }
@@ -1085,7 +1160,7 @@ class ReturController extends Controller
     public function terimaRefund($id)
     {
         try {
-            $retur = \App\Models\PurchaseReturn::findOrFail($id);
+            $retur = \App\Models\PurchaseReturn::with(['items.bahanBaku.coaPersediaan', 'items.bahanPendukung.coaPersediaan', 'pembelian.kasBank'])->findOrFail($id);
             
             if ($retur->jenis_retur !== \App\Models\PurchaseReturn::JENIS_REFUND) {
                 return back()->with('error', 'Fungsi ini hanya untuk retur refund.');
@@ -1095,13 +1170,27 @@ class ReturController extends Controller
                 return back()->with('error', 'Status retur tidak valid untuk terima refund.');
             }
             
-            // Update status (no additional stock changes for refund - already reduced when created)
-            $retur->status = \App\Models\PurchaseReturn::STATUS_SELESAI;
-            $retur->save();
+            DB::beginTransaction();
             
-            Log::info("Retur REFUND {$retur->id} completed - no additional stock changes (stock was reduced when retur was created)");
-            
-            return redirect('/transaksi/pembelian?tab=retur')->with('success', 'Refund berhasil diterima');
+            try {
+                // Update status
+                $retur->status = \App\Models\PurchaseReturn::STATUS_SELESAI;
+                $retur->save();
+                
+                // Create journal entry for refund received
+                $journal = app(\App\Services\JournalService::class);
+                $this->createRefundReceivedJournal($retur, $journal);
+                
+                DB::commit();
+                
+                Log::info("Retur REFUND {$retur->id} completed with journal entry created");
+                
+                return redirect('/transaksi/pembelian?tab=retur')->with('success', 'Refund berhasil diterima dan jurnal telah dibuat');
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
             
         } catch (\Exception $e) {
             Log::error('Error terima refund: ' . $e->getMessage());
