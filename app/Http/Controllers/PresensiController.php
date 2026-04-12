@@ -37,12 +37,45 @@ class PresensiController extends Controller
         $presensis = $query->paginate(15);
         
         return view('transaksi.presensi.index', compact(
-            'presensis', 
+            'presensis',
             'search',
             'dateFilter'
         ));
     }
-    
+
+    /**
+     * Cetak laporan presensi (owner/admin only)
+     */
+    public function cetak(Request $request)
+    {
+        $search = $request->get('search');
+        $dateFilter = $request->get('date_filter');
+
+        // Build query (same logic as index)
+        $query = Presensi::with('pegawai')->orderBy('tgl_presensi', 'desc')->orderBy('jam_masuk', 'desc');
+
+        // Apply date filter
+        if ($dateFilter) {
+            $query->whereDate('tgl_presensi', $dateFilter);
+        }
+
+        // Apply search
+        if ($search) {
+            $query->whereHas('pegawai', function($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('kode_pegawai', 'like', "%{$search}%");
+            });
+        }
+
+        $presensis = $query->get();
+
+        return view('transaksi.presensi.cetak', compact(
+            'presensis',
+            'search',
+            'dateFilter'
+        ));
+    }
+
     public function create()
     {
         $pegawais = Pegawai::all();

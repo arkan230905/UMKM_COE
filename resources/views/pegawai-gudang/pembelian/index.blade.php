@@ -443,7 +443,7 @@
             <table class="table table-hover align-middle">
                 <thead>
                     <tr>
-                        <th style="width: 50px">#</th>
+                        <th style="width: 50px">No</th>
                         <th style="width: 140px">Nomor Transaksi</th>
                         <th style="width: 100px">Tanggal</th>
                         <th style="width: 150px">Vendor</th>

@@ -37,7 +37,7 @@
         <table class="table table-bordered table-striped align-middle">
             <thead class="table-dark">
                 <tr>
-                    <th style="width:5%">#</th>
+                    <th style="width:5%">No</th>
                     <th>Nama Bahan</th>
                     <th class="text-end">Qty Retur</th>
                     <th>Satuan</th>

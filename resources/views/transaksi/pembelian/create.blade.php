@@ -50,6 +50,42 @@
     padding: 20px;
     text-align: center;
 }
+
+/* Price formatting improvements */
+.subtotal-display {
+    font-weight: 600;
+    color: #198754;
+}
+
+.input-group-text {
+    font-weight: 600;
+    background-color: #e9ecef;
+    border-color: #ced4da;
+}
+
+#total_harga {
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    letter-spacing: 1px;
+}
+
+.price-per-unit, .sub-satuan-price {
+    font-weight: 600;
+    color: #198754;
+}
+
+/* Calculation section improvements */
+.calculation-section .input-group-text {
+    background-color: #6c757d;
+    color: white;
+    font-weight: 600;
+    border-color: #6c757d;
+}
+
+.calculation-section input[readonly] {
+    background-color: #e9ecef !important;
+    font-weight: 600;
+    color: #198754;
+}
 </style>
 @endpush
 
@@ -63,20 +99,6 @@
             <i class="fas fa-arrow-left me-2"></i>Kembali
         </a>
     </div>
-
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
 
     @if ($errors->any())
         <div class="alert alert-danger">
@@ -233,7 +255,11 @@
                         
                         <div class="col-md-2">
                             <label class="form-label">Harga Total</label>
-                            <input type="number" name="subtotal[]" class="form-control" placeholder="0" readonly style="background-color: #f8f9fa;">
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="text" class="form-control subtotal-display" placeholder="0" readonly style="background-color: #f8f9fa; text-align: right;">
+                                <input type="hidden" name="subtotal[]" class="subtotal-value" value="0">
+                            </div>
                         </div>
                         
                         <div class="col-md-2">
@@ -358,30 +384,89 @@
 
         <!-- Calculation Section -->
         <div class="form-section">
-            <div class="section-header">
-                <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>Perhitungan Biaya</h6>
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>Perhitungan Biaya</h6>
+                </div>
+                <div class="card-body">
+                    <div class="calculation-section">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Subtotal</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rp</span>
+                                    <input type="text" id="subtotal_display" class="form-control" readonly style="background-color: #f8f9fa; text-align: right;">
+                                    <input type="hidden" name="subtotal_display" id="subtotal" value="0">
+                                </div>
+                                <small class="text-muted">Total semua item</small>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Biaya Kirim</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rp</span>
+                                    <input type="number" name="biaya_kirim" id="biaya_kirim" class="form-control" placeholder="0" min="0" onchange="calculateTotal()" onblur="formatCurrencyInput(this)" style="text-align: right;">
+                                </div>
+                                <small class="text-muted">Ongkos kirim (opsional)</small>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">PPN (%)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">%</span>
+                                    <input type="number" name="ppn_persen" id="ppn_persen" class="form-control" placeholder="0" min="0" max="100" step="0.01" onchange="calculateTotal()" style="text-align: right;">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('ppn_persen').value = 11; calculateTotal();" title="PPN 11%">11%</button>
+                                </div>
+                                <small class="text-muted">Pajak Pertambahan Nilai</small>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">PPN Nominal</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rp</span>
+                                    <input type="text" id="ppn_nominal_display" class="form-control" readonly style="background-color: #f8f9fa; text-align: right;">
+                                    <input type="hidden" name="ppn_nominal" id="ppn_nominal" value="0">
+                                </div>
+                                <small class="text-muted">Nilai PPN dalam rupiah</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <div class="calculation-section">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">Subtotal</label>
-                        <input type="number" name="subtotal_display" id="subtotal" class="form-control" readonly>
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <label class="form-label">Biaya Kirim</label>
-                        <input type="number" name="biaya_kirim" id="biaya_kirim" class="form-control" placeholder="0" min="0" onchange="calculateTotal()">
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <label class="form-label">PPN (%)</label>
-                        <input type="number" name="ppn_persen" id="ppn_persen" class="form-control" placeholder="0" min="0" max="100" step="0.01" onchange="calculateTotal()">
-                    </div>
-                    
-                    <div class="col-md-3">
-                        <label class="form-label">PPN Nominal</label>
-                        <input type="number" name="ppn_nominal" id="ppn_nominal" class="form-control" readonly>
+        </div>
+
+        <!-- Calculation Summary -->
+        <div class="form-section">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-receipt me-2"></i>Ringkasan Perhitungan</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between">
+                                <span>Subtotal Item:</span>
+                                <span class="fw-bold" id="summary_subtotal">Rp 0</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between">
+                                <span>Biaya Kirim:</span>
+                                <span class="fw-bold" id="summary_biaya_kirim">Rp 0</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between">
+                                <span>PPN:</span>
+                                <span class="fw-bold" id="summary_ppn">Rp 0</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between border-top pt-2">
+                                <span class="fw-bold">Total Keseluruhan:</span>
+                                <span class="fw-bold text-success" id="summary_total">Rp 0</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -390,9 +475,16 @@
         <!-- Total Section -->
         <div class="form-section">
             <div class="total-section">
-                <h4 class="mb-3">Total Harga</h4>
-                <h2 class="text-primary mb-0" id="total_harga">Rp 0</h2>
-                <input type="hidden" name="total_harga" id="total_harga_input" value="0">
+                <div class="card border-success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Total Harga Pembelian</h5>
+                    </div>
+                    <div class="card-body text-center py-4">
+                        <h2 class="text-success mb-0 fw-bold" id="total_harga" style="font-size: 2.5rem;">Rp 0</h2>
+                        <input type="hidden" name="total_harga" id="total_harga_input" value="0">
+                        <small class="text-muted">Total keseluruhan pembelian</small>
+                    </div>
+                </div>
             </div>
         </div>
         <!-- Keterangan -->
@@ -445,9 +537,47 @@ function formatCleanNumber(num) {
     return rounded.toFixed(2).replace(/\.?0+$/, '');
 }
 
-// Format number with thousand separators
+// Format number with thousand separators for Indonesian currency
 function formatNumber(num) {
-    return new Intl.NumberFormat('id-ID').format(num);
+    if (isNaN(num) || num === null || num === undefined) return '0';
+    return new Intl.NumberFormat('id-ID', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(Math.round(num));
+}
+
+// Format currency with Rp prefix
+function formatCurrency(num) {
+    if (isNaN(num) || num === null || num === undefined) return 'Rp 0';
+    return 'Rp ' + formatNumber(num);
+}
+
+// Initialize display formatting on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize calculation displays
+    document.getElementById('subtotal_display').value = '0';
+    document.getElementById('ppn_nominal_display').value = '0';
+    
+    // Initialize summary displays
+    document.getElementById('summary_subtotal').textContent = 'Rp 0';
+    document.getElementById('summary_biaya_kirim').textContent = 'Rp 0';
+    document.getElementById('summary_ppn').textContent = 'Rp 0';
+    document.getElementById('summary_total').textContent = 'Rp 0';
+    
+    // Add input formatting for biaya kirim
+    const biayaKirimInput = document.getElementById('biaya_kirim');
+    biayaKirimInput.addEventListener('input', function() {
+        // Remove any non-numeric characters except decimal point
+        this.value = this.value.replace(/[^0-9.]/g, '');
+    });
+});
+
+// Format input field on blur (for Biaya Kirim)
+function formatCurrencyInput(input) {
+    const value = parseFloat(input.value) || 0;
+    if (value > 0) {
+        input.value = value; // Keep as number for calculation
+    }
 }
 
 // Update sub satuan information when item is selected
@@ -608,13 +738,14 @@ function updateSubSatuanPrices(row) {
     if (jumlahSubSatuan > 0 && subtotal > 0) {
         // Calculate price per sub satuan: TOTAL HARGA ÷ JUMLAH SUB SATUAN
         const hargaPerSubSatuan = subtotal / jumlahSubSatuan;
-        subSatuanPrice.textContent = `Rp ${formatNumber(Math.round(hargaPerSubSatuan))}`;
+        subSatuanPrice.textContent = formatCurrency(hargaPerSubSatuan);
         
         // Calculate total for sub satuan
         const totalSubSatuan = jumlahSubSatuan * hargaPerSubSatuan;
-        subSatuanTotal.textContent = `Rp ${formatNumber(Math.round(totalSubSatuan))}`;
+        subSatuanTotal.textContent = formatCurrency(totalSubSatuan);
     } else {
         subSatuanPrice.textContent = 'Rp 0';
+        subSatuanTotal.textContent = 'Rp 0';
         subSatuanTotal.textContent = 'Rp 0';
     }
 }
@@ -639,6 +770,12 @@ function addItemRow() {
             input.selectedIndex = 0;
         }
         if (input.name === 'subtotal[]') {
+            input.value = '0';
+        }
+        if (input.classList.contains('subtotal-value')) {
+            input.value = '0';
+        }
+        if (input.classList.contains('subtotal-display')) {
             input.value = '0';
         }
         if (input.name === 'jumlah_satuan_utama[]') {
@@ -789,7 +926,12 @@ function calculateRowTotal(input) {
     
     // Calculate subtotal: jumlah × harga per satuan
     const subtotal = jumlah * harga;
-    row.querySelector('input[name="subtotal[]"]').value = subtotal.toFixed(2);
+    
+    // Update hidden input with raw value
+    row.querySelector('.subtotal-value').value = subtotal.toFixed(2);
+    
+    // Update display with formatted value
+    row.querySelector('.subtotal-display').value = formatNumber(subtotal);
     
     // Update conversion displays
     // Get selected satuan pembelian name for display
@@ -809,7 +951,7 @@ function calculateRowTotal(input) {
     
     // Calculate price per satuan utama: TOTAL HARGA ÷ JUMLAH SATUAN UTAMA
     const hargaPerSatuanUtama = jumlahSatuanUtama > 0 ? subtotal / jumlahSatuanUtama : 0;
-    row.querySelector('.price-per-unit').textContent = 'Rp ' + formatNumber(Math.round(hargaPerSatuanUtama));
+    row.querySelector('.price-per-unit').textContent = formatCurrency(hargaPerSatuanUtama);
     
     // Update sub satuan conversion if sub satuan is selected
     const subSatuanSelect = row.querySelector('.sub-satuan-select');
@@ -825,7 +967,7 @@ function calculateTotal() {
     let subtotal = 0;
     
     // Sum all row subtotals
-    document.querySelectorAll('input[name="subtotal[]"]').forEach(input => {
+    document.querySelectorAll('.subtotal-value').forEach(input => {
         subtotal += parseFloat(input.value) || 0;
     });
     
@@ -835,11 +977,19 @@ function calculateTotal() {
     const ppnNominal = (subtotal + biayaKirim) * (ppnPersen / 100);
     const totalHarga = subtotal + biayaKirim + ppnNominal;
     
-    // Update displays
+    // Update displays with proper formatting
     document.getElementById('subtotal').value = subtotal;
+    document.getElementById('subtotal_display').value = formatNumber(subtotal);
     document.getElementById('ppn_nominal').value = ppnNominal;
-    document.getElementById('total_harga').textContent = 'Rp ' + formatNumber(Math.round(totalHarga));
+    document.getElementById('ppn_nominal_display').value = formatNumber(ppnNominal);
+    document.getElementById('total_harga').textContent = formatCurrency(totalHarga);
     document.getElementById('total_harga_input').value = totalHarga;
+    
+    // Update summary section
+    document.getElementById('summary_subtotal').textContent = formatCurrency(subtotal);
+    document.getElementById('summary_biaya_kirim').textContent = formatCurrency(biayaKirim);
+    document.getElementById('summary_ppn').textContent = formatCurrency(ppnNominal);
+    document.getElementById('summary_total').textContent = formatCurrency(totalHarga);
 }
 
 // Debug form data before submission
@@ -986,7 +1136,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const satuanPembelianName = selectedSatuan ? selectedSatuan.getAttribute('data-nama') : 'Unit';
             
             subSatuanConversion.textContent = `${formatCleanNumber(jumlahDalamSubSatuan)} ${subSatuanNama} (dari ${formatNumber(jumlah)} ${satuanPembelianName})`;
-            subSatuanPrice.textContent = `Rp ${formatNumber(Math.round(hargaPerSubSatuan))}`;
+            subSatuanPrice.textContent = formatCurrency(hargaPerSubSatuan);
             
         } else {
             subSatuanConversion.textContent = 'Pilih sub satuan untuk melihat konversi';

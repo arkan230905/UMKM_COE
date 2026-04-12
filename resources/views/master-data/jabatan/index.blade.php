@@ -67,13 +67,15 @@
                     <thead class="table-light">
                         <tr>
                             <th class="text-center" style="width: 50px">No</th>
-                            <th>Nama Kualifikasi</th>
-                            <th>Kategori</th>
-                            <th>Tunjangan</th>
+                            <th>Nama</th>
+                            <th style="width: 70px">Kategori</th>
+                            <th style="min-width: 110px">Tunj. Jabatan</th>
+                            <th style="min-width: 110px">Tunj. Transport</th>
+                            <th style="min-width: 110px">Tunj. Konsumsi</th>
                             <th>Asuransi</th>
                             <th>Gaji Pokok</th>
                             <th>Tarif/Jam</th>
-                            <th class="text-center">Aksi</th>
+                            <th class="text-center" style="width: 90px">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -96,25 +98,29 @@
                                 </span>
                             </td>
                             <td class="fw-semibold">Rp {{ number_format($row->tunjangan,0,',','.') }}</td>
+                            <td class="fw-semibold">Rp {{ number_format($row->tunjangan_transport,0,',','.') }}</td>
+                            <td class="fw-semibold">Rp {{ number_format($row->tunjangan_konsumsi,0,',','.') }}</td>
                             <td class="fw-semibold">Rp {{ number_format($row->asuransi,0,',','.') }}</td>
-                            <td class="fw-semibold">Rp {{ number_format($row->gaji,0,',','.') }}</td>
+                            <td class="fw-semibold">Rp {{ number_format($row->gaji_pokok,0,',','.') }}</td>
                             <td class="fw-semibold">Rp {{ number_format($row->tarif,0,',','.') }}</td>
                             <td class="text-center">
-                                <a href="{{ route('master-data.kualifikasi-tenaga-kerja.edit',$row->id) }}" class="btn btn-outline-primary btn-sm me-1">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form action="{{ route('master-data.kualifikasi-tenaga-kerja.destroy',$row->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus kualifikasi {{ $row->nama }}?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger btn-sm">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a href="{{ route('master-data.kualifikasi-tenaga-kerja.edit',$row->id) }}" class="btn btn-outline-primary btn-sm" style="padding: 0.25rem 0.5rem;">
+                                        <i class="fas fa-edit fa-xs"></i>
+                                    </a>
+                                    <form action="{{ route('master-data.kualifikasi-tenaga-kerja.destroy',$row->id) }}" method="POST" class="m-0" onsubmit="return confirm('Yakin ingin menghapus kualifikasi {{ $row->nama }}?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" style="padding: 0.25rem 0.5rem;">
+                                            <i class="fas fa-trash fa-xs"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center py-4">
+                            <td colspan="10" class="text-center py-4">
                                 <i class="fas fa-briefcase fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">Belum ada data kualifikasi tenaga kerja</p>
                             </td>

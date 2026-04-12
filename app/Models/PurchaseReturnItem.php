@@ -11,6 +11,7 @@ class PurchaseReturnItem extends Model
         'purchase_return_id',
         'pembelian_detail_id',
         'bahan_baku_id',
+        'bahan_pendukung_id',
         'unit',
         'quantity',
         'unit_price',
@@ -36,5 +37,10 @@ class PurchaseReturnItem extends Model
     public function bahanBaku(): BelongsTo
     {
         return $this->belongsTo(BahanBaku::class);
+    }
+
+    public function bahanPendukung(): BelongsTo
+    {
+        return $this->belongsTo(BahanPendukung::class);
     }
 }

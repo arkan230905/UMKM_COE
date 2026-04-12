@@ -33,7 +33,7 @@ class PembelianController extends Controller
             $query->where('status', request()->status);
         }
         
-        $pembelians = $query->latest('tanggal')->paginate(15);
+        $pembelians = $query->oldest('tanggal')->paginate(15);
         $vendors = \App\Models\Vendor::orderBy('nama_vendor')->get();
         
         return view('pegawai-pembelian.pembelian.index', compact('pembelians', 'vendors'));

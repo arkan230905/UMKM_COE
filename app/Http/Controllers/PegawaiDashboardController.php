@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Presensi;
 use App\Models\Pegawai;
+use App\Models\Penggajian;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -102,5 +103,123 @@ class PegawaiDashboardController extends Controller
             ->get();
         
         return view('pegawai.rekap-harian', compact('pegawai', 'attendances', 'tanggal'));
+    }
+
+    /**
+     * Display daftar slip gaji pegawai.
+     */
+    public function slipGajiIndex(Request $request)
+    {
+        $user = Auth::user();
+        $pegawai = $user->pegawai;
+
+        if (!$pegawai) {
+            return redirect()->route('login')->with('error', 'Akun Anda belum terhubung dengan data pegawai.');
+        }
+
+        // Query penggajian milik pegawai login
+        $query = Penggajian::with('pegawai')
+            ->where('pegawai_id', $pegawai->id)
+            ->whereIn('status_pembayaran', ['disetujui', 'lunas']);
+
+        // Filter by month/year if provided
+        if ($request->has('month') && $request->has('year')) {
+            $query->whereMonth('tanggal_penggajian', $request->month)
+                  ->whereYear('tanggal_penggajian', $request->year);
+        }
+
+        $penggajians = $query->orderBy('tanggal_penggajian', 'desc')->paginate(10);
+
+        return view('pegawai.slip-gaji.index', compact('pegawai', 'penggajians'));
+    }
+
+    /**
+     * Display detail slip gaji.
+     */
+    public function slipGajiShow($id)
+    {
+        $user = Auth::user();
+        $pegawai = $user->pegawai;
+
+        if (!$pegawai) {
+            return redirect()->route('login')->with('error', 'Akun Anda belum terhubung dengan data pegawai.');
+        }
+
+        // Ambil penggajian dan pastikan milik pegawai login
+        $penggajian = Penggajian::with('pegawai')->findOrFail($id);
+
+        // Security: cek apakah penggajian milik pegawai login
+        if ($penggajian->pegawai_id !== $pegawai->id) {
+            abort(403, 'Anda tidak memiliki akses ke slip gaji ini.');
+        }
+
+        // Cek status penggajian - hanya tampilkan yang sudah disetujui/dibayar
+        if (!in_array($penggajian->status_pembayaran, ['disetujui', 'lunas'])) {
+            abort(403, 'Slip gaji belum tersedia. Penggajian ini belum disetujui atau dibayar.');
+        }
+
+        // Hitung komponen gaji
+        $jenis = strtolower($pegawai->jenis_pegawai ?? 'btktl');
+
+        if ($jenis === 'btkl') {
+            $gajiDasar = (float)($penggajian->tarif_per_jam ?? 0) * (float)($penggajian->total_jam_kerja ?? 0);
+        } else {
+            $gajiDasar = (float)($penggajian->gaji_pokok ?? 0);
+        }
+
+        $totalGajiHitung = $gajiDasar
+            + (float)($penggajian->tunjangan ?? 0)
+            + (float)($penggajian->asuransi ?? 0)
+            + (float)($penggajian->bonus ?? 0)
+            - (float)($penggajian->potongan ?? 0);
+
+        return view('pegawai.slip-gaji.show', compact('pegawai', 'penggajian', 'gajiDasar', 'totalGajiHitung', 'jenis'));
+    }
+
+    /**
+     * Generate PDF slip gaji.
+     */
+    public function slipGajiPdf($id)
+    {
+        $user = Auth::user();
+        $pegawai = $user->pegawai;
+
+        if (!$pegawai) {
+            return redirect()->route('login')->with('error', 'Akun Anda belum terhubung dengan data pegawai.');
+        }
+
+        // Ambil penggajian dan pastikan milik pegawai login
+        $penggajian = Penggajian::with('pegawai')->findOrFail($id);
+
+        // Security: cek apakah penggajian milik pegawai login
+        if ($penggajian->pegawai_id !== $pegawai->id) {
+            abort(403, 'Anda tidak memiliki akses ke slip gaji ini.');
+        }
+
+        // Cek status penggajian
+        if (!in_array($penggajian->status_pembayaran, ['disetujui', 'lunas'])) {
+            abort(403, 'Slip gaji belum tersedia. Penggajian ini belum disetujui atau dibayar.');
+        }
+
+        // Hitung komponen gaji
+        $jenis = strtolower($pegawai->jenis_pegawai ?? 'btktl');
+
+        if ($jenis === 'btkl') {
+            $gajiDasar = (float)($penggajian->tarif_per_jam ?? 0) * (float)($penggajian->total_jam_kerja ?? 0);
+        } else {
+            $gajiDasar = (float)($penggajian->gaji_pokok ?? 0);
+        }
+
+        $totalGajiHitung = $gajiDasar
+            + (float)($penggajian->tunjangan ?? 0)
+            + (float)($penggajian->asuransi ?? 0)
+            + (float)($penggajian->bonus ?? 0)
+            - (float)($penggajian->potongan ?? 0);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pegawai.slip-gaji.pdf', compact('pegawai', 'penggajian', 'gajiDasar', 'totalGajiHitung', 'jenis'));
+        
+        $filename = 'slip-gaji-' . $pegawai->nama . '-' . $penggajian->tanggal_penggajian->format('Y-m-d') . '.pdf';
+        
+        return $pdf->download($filename);
     }
 }

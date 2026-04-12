@@ -63,7 +63,7 @@ class Pegawai extends Model
     /**
      * Relasi ke jabatan
      */
-    public function jabatan(): BelongsTo
+    public function jabatanRelasi(): BelongsTo
     {
         return $this->belongsTo(Jabatan::class, 'jabatan_id');
     }
@@ -91,7 +91,7 @@ class Pegawai extends Model
     {
         return $query->where('nama', 'like', "%{$search}%")
                     ->orWhere('no_telepon', 'like', "%{$search}%")
-                    ->orWhereHas('jabatan', function($q) use ($search) {
+                    ->orWhereHas('jabatanRelasi', function($q) use ($search) {
                         $q->where('nama', 'like', "%{$search}%");
                     });
     }
@@ -101,7 +101,10 @@ class Pegawai extends Model
      */
     public function getJabatanNamaAttribute()
     {
-        return $this->jabatan ? $this->jabatan->nama : $this->attributes['jabatan'] ?? null;
+        if (is_object($this->jabatanRelasi)) {
+            return $this->jabatanRelasi->nama;
+        }
+        return $this->attributes['jabatan'] ?? null;
     }
 
     /**
@@ -109,7 +112,112 @@ class Pegawai extends Model
      */
     public function getKategoriNamaAttribute()
     {
-        return $this->kategori ? $this->kategori->nama : $this->attributes['jenis_pegawai'] ?? null;
+        if (is_object($this->kategori)) {
+            return $this->kategori->nama;
+        }
+        return $this->attributes['jenis_pegawai'] ?? null;
+    }
+
+    /**
+     * Get tunjangan jabatan from related jabatan (kualifikasi)
+     */
+    public function getTunjanganJabatanAttribute()
+    {
+        if (is_object($this->jabatanRelasi)) {
+            return $this->jabatanRelasi->tunjangan ?? 0;
+        }
+        return $this->attributes['tunjangan'] ?? 0;
+    }
+
+    /**
+     * Get tunjangan transport from related jabatan (kualifikasi)
+     */
+    public function getTunjanganTransportAttribute()
+    {
+        if (is_object($this->jabatanRelasi)) {
+            return $this->jabatanRelasi->tunjangan_transport ?? 0;
+        }
+        return 0;
+    }
+
+    /**
+     * Get tunjangan konsumsi from related jabatan (kualifikasi)
+     */
+    public function getTunjanganKonsumsiAttribute()
+    {
+        if (is_object($this->jabatanRelasi)) {
+            return $this->jabatanRelasi->tunjangan_konsumsi ?? 0;
+        }
+        return 0;
+    }
+
+    /**
+     * Get total tunjangan (sum of all tunjangan types)
+     */
+    public function getTotalTunjanganAttribute()
+    {
+        return $this->tunjangan_jabatan + $this->tunjangan_transport + $this->tunjangan_konsumsi;
+    }
+
+    /**
+     * Get gaji pokok from related jabatan (kualifikasi)
+     */
+    public function getGajiPokokFromJabatanAttribute()
+    {
+        if (is_object($this->jabatanRelasi)) {
+            return $this->jabatanRelasi->gaji_pokok ?? 0;
+        }
+        return $this->attributes['gaji_pokok'] ?? 0;
+    }
+
+    /**
+     * Get tarif per jam from related jabatan (kualifikasi)
+     */
+    public function getTarifPerJamFromJabatanAttribute()
+    {
+        if (is_object($this->jabatanRelasi)) {
+            return $this->jabatanRelasi->tarif_per_jam ?? 0;
+        }
+        return $this->attributes['tarif_per_jam'] ?? 0;
+    }
+
+    /**
+     * Get asuransi from related jabatan (kualifikasi)
+     */
+    public function getAsuransiFromJabatanAttribute()
+    {
+        if (is_object($this->jabatanRelasi)) {
+            return $this->jabatanRelasi->asuransi ?? 0;
+        }
+        return $this->attributes['asuransi'] ?? 0;
+    }
+
+    /**
+     * Get all komponen gaji from jabatan as array
+     */
+    public function getKomponenGajiAttribute()
+    {
+        if (!is_object($this->jabatanRelasi)) {
+            return [
+                'gaji_pokok' => $this->gaji_pokok ?? 0,
+                'tarif_per_jam' => $this->tarif_per_jam ?? 0,
+                'tunjangan_jabatan' => $this->tunjangan ?? 0,
+                'tunjangan_transport' => 0,
+                'tunjangan_konsumsi' => 0,
+                'total_tunjangan' => $this->tunjangan ?? 0,
+                'asuransi' => $this->asuransi ?? 0,
+            ];
+        }
+
+        return [
+            'gaji_pokok' => $this->jabatanRelasi->gaji_pokok ?? 0,
+            'tarif_per_jam' => $this->jabatanRelasi->tarif_per_jam ?? 0,
+            'tunjangan_jabatan' => $this->jabatanRelasi->tunjangan ?? 0,
+            'tunjangan_transport' => $this->jabatanRelasi->tunjangan_transport ?? 0,
+            'tunjangan_konsumsi' => $this->jabatanRelasi->tunjangan_konsumsi ?? 0,
+            'total_tunjangan' => ($this->jabatanRelasi->tunjangan ?? 0) + ($this->jabatanRelasi->tunjangan_transport ?? 0) + ($this->jabatanRelasi->tunjangan_konsumsi ?? 0),
+            'asuransi' => $this->jabatanRelasi->asuransi ?? 0,
+        ];
     }
 
     // Use default 'id' for route model binding so views can pass numeric IDs

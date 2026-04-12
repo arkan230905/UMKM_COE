@@ -58,12 +58,12 @@
             </div>
 
             <div class="col-md-6 mb-3">
-                <label for="kategori_id" class="form-label">Kategori Pegawai</label>
-                <select name="kategori_id" id="kategori_id" class="form-select" required onchange="loadJabatanByKategori()">
+                <label for="kategori" class="form-label">Kategori Pegawai</label>
+                <select name="kategori" id="kategori" class="form-select" required onchange="loadJabatanByKategori()">
                     <option value="">-- Pilih Kategori --</option>
                     @foreach($kategoris as $k)
-                        <option value="{{ $k->id }}" {{ old('kategori_id', $pegawai->kategori_id) == $k->id ? 'selected' : '' }}>
-                            {{ $k->nama }} - {{ $k->deskripsi }}
+                        <option value="{{ $k }}" {{ old('kategori', $pegawai->kategori) == $k ? 'selected' : '' }}>
+                            {{ strtoupper($k) }}
                         </option>
                     @endforeach
                 </select>
@@ -78,11 +78,11 @@
                     @foreach($jabatans as $j)
                         <option value="{{ $j->id }}"
                                 data-nama="{{ $j->nama }}"
-                                data-kategori-id="{{ $j->kategori_id }}"
+                                data-kategori="{{ $j->kategori }}"
                                 data-tunjangan="{{ $j->tunjangan }}"
                                 data-asuransi="{{ $j->asuransi }}"
-                                data-gaji-pokok="{{ $j->gaji_pokok }}"
-                                data-tarif-per-jam="{{ $j->tarif_per_jam }}"
+                                data-gaji="{{ $j->gaji }}"
+                                data-tarif="{{ $j->tarif }}"
                                 {{ old('jabatan_id', $pegawai->jabatan_id)==$j->id?'selected':'' }}>
                             {{ $j->nama }}
                         </option>
@@ -152,7 +152,7 @@ function formatNumber(num) {
 
 // Load jabatan berdasarkan kategori
 function loadJabatanByKategori() {
-    const kategoriId = document.getElementById('kategori_id').value;
+    const kategori = document.getElementById('kategori').value;
     const jabatanSelect = document.getElementById('jabatan_id');
     const currentJabatanId = "{{ $pegawai->jabatan_id }}";
     
@@ -160,8 +160,13 @@ function loadJabatanByKategori() {
     jabatanSelect.innerHTML = '<option value="">-- Pilih Jabatan --</option>';
     document.getElementById('preview-box').style.display = 'none';
     
+<<<<<<< HEAD
+    if (kategori) {
+        fetch(`/master-data/api/jabatan/by-kategori?kategori_id=${encodeURIComponent(kategori)}`)
+=======
     if (kategoriId) {
-        fetch(`/api/jabatan/by-kategori?kategori_id=${kategoriId}`)
+        fetch(`/master-data/api/jabatan/by-kategori?kategori_id=${kategoriId}`)
+>>>>>>> 09c795ee293c426b3d80634193e2fe2f90e330de
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -169,11 +174,11 @@ function loadJabatanByKategori() {
                         const option = document.createElement('option');
                         option.value = jabatan.id;
                         option.setAttribute('data-nama', jabatan.nama);
-                        option.setAttribute('data-kategori-id', jabatan.kategori_id);
+                        option.setAttribute('data-kategori', jabatan.kategori);
                         option.setAttribute('data-tunjangan', jabatan.tunjangan);
                         option.setAttribute('data-asuransi', jabatan.asuransi);
-                        option.setAttribute('data-gaji-pokok', jabatan.gaji_pokok);
-                        option.setAttribute('data-tarif-per-jam', jabatan.tarif_per_jam);
+                        option.setAttribute('data-gaji', jabatan.gaji_pokok);
+                        option.setAttribute('data-tarif', jabatan.tarif);
                         option.textContent = jabatan.nama;
                         
                         // Select if matches current jabatan
@@ -204,11 +209,11 @@ function loadJabatanDetail() {
     if (jabatanId && selectedOption) {
         jabatanData = {
             nama: selectedOption.getAttribute('data-nama'),
-            kategori_id: selectedOption.getAttribute('data-kategori-id'),
+            kategori: selectedOption.getAttribute('data-kategori'),
             tunjangan: parseFloat(selectedOption.getAttribute('data-tunjangan')) || 0,
             asuransi: parseFloat(selectedOption.getAttribute('data-asuransi')) || 0,
-            gaji_pokok: parseFloat(selectedOption.getAttribute('data-gaji-pokok')) || 0,
-            tarif_per_jam: parseFloat(selectedOption.getAttribute('data-tarif-per-jam')) || 0
+            gaji_pokok: parseFloat(selectedOption.getAttribute('data-gaji')) || 0,
+            tarif: parseFloat(selectedOption.getAttribute('data-tarif')) || 0
         };
         
         updatePreview();
@@ -220,14 +225,18 @@ function loadJabatanDetail() {
 // Update preview box
 function updatePreview() {
     if (jabatanData.nama) {
-        const kategoriOption = document.querySelector(`#kategori_id option[value="${jabatanData.kategori_id}"]`);
-        const kategoriName = kategoriOption ? kategoriOption.textContent.split(' - ')[0] : '-';
+<<<<<<< HEAD
+        document.getElementById('pv-kategori').textContent = jabatanData.kategori ? jabatanData.kategori.toUpperCase() : '-';
+=======
+        const kategoriSelect = document.getElementById('kategori_id');
+        const kategoriName = kategoriSelect.selectedIndex > 0 ? kategoriSelect.options[kategoriSelect.selectedIndex].textContent.trim().split(' - ')[0] : '-';
         
         document.getElementById('pv-kategori').textContent = kategoriName;
+>>>>>>> 09c795ee293c426b3d80634193e2fe2f90e330de
         document.getElementById('pv-tunjangan').textContent = formatNumber(jabatanData.tunjangan);
         document.getElementById('pv-asuransi').textContent = formatNumber(jabatanData.asuransi);
         document.getElementById('pv-gaji-pokok').textContent = formatNumber(jabatanData.gaji_pokok);
-        document.getElementById('pv-tarif-per-jam').textContent = formatNumber(jabatanData.tarif_per_jam);
+        document.getElementById('pv-tarif-per-jam').textContent = formatNumber(jabatanData.tarif);
         document.getElementById('preview-box').style.display = 'block';
     }
 }
@@ -235,8 +244,8 @@ function updatePreview() {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     // Load initial jabatan if kategori is pre-selected
-    const kategoriId = document.getElementById('kategori_id').value;
-    if (kategoriId) {
+    const kategori = document.getElementById('kategori').value;
+    if (kategori) {
         loadJabatanByKategori();
     }
     

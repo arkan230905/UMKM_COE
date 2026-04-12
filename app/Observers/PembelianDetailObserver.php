@@ -17,9 +17,23 @@ class PembelianDetailObserver
 
     /**
      * Handle the PembelianDetail "created" event.
+     * 
+     * DISABLED: Stock updates are now handled directly in PembelianController
+     * to prevent double counting. This observer was causing stock to be 
+     * updated twice (once in controller, once here).
      */
     public function created(PembelianDetail $pembelianDetail): void
     {
+        // DISABLED: Preventing double stock updates
+        // Stock is now handled exclusively in PembelianController->store()
+        Log::info("PembelianDetail created - stock handled by controller", [
+            'pembelian_detail_id' => $pembelianDetail->id,
+            'item_type' => $pembelianDetail->tipe_item ?? 'unknown',
+            'qty' => $pembelianDetail->jumlah,
+            'note' => 'Stock update handled by PembelianController to prevent double counting'
+        ]);
+        
+        /* ORIGINAL CODE - DISABLED TO PREVENT DOUBLE COUNTING:
         try {
             // Only handle stock if pembelian is confirmed/completed
             if ($pembelianDetail->pembelian && $pembelianDetail->pembelian->status !== 'draft') {
@@ -36,6 +50,7 @@ class PembelianDetailObserver
                 'error' => $e->getMessage()
             ]);
         }
+        */
     }
 
     /**

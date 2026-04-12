@@ -45,7 +45,7 @@
                         <td><strong>{{ $k->nama }}</strong></td>
                         <td>{{ $k->keterangan ?? '-' }}</td>
                         <td class="text-center">
-                            <span class="badge bg-info">{{ $k->bahan_pendukungs_count }} bahan</span>
+                            <span class="text-info fw-semibold">{{ $k->bahan_pendukungs_count }} bahan</span>
                         </td>
                         <td class="text-center">
                             @if($k->is_active)
