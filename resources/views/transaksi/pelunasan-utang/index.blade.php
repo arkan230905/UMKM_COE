@@ -84,7 +84,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 50px">#</th>
+                            <th class="text-center" style="width: 50px">No</th>
                             <th>Kode Transaksi</th>
                             <th>Tanggal</th>
                             <th>Pembelian</th>

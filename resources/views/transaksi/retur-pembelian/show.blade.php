@@ -71,13 +71,12 @@
                                 <tr>
                                     <td><strong>Status:</strong></td>
                                     <td>
-                                        @if($retur->status === 'completed')
-                                            <span class="text-success fw-semibold">Selesai</span>
-                                        @elseif($retur->status === 'approved')
-                                            <span class="text-info fw-semibold">Disetujui</span>
-                                        @else
-                                            <span class="text-warning fw-semibold">Pending</span>
-                                        @endif
+                                        @php
+                                            $statusBadge = $retur->status_badge;
+                                        @endphp
+                                        <span class="fw-semibold {{ $statusBadge['class'] === 'bg-success' ? 'text-success' : ($statusBadge['class'] === 'bg-primary' ? 'text-info' : ($statusBadge['class'] === 'bg-secondary' ? 'text-secondary' : 'text-warning')) }}">
+                                            {{ $statusBadge['text'] }}
+                                        </span>
                                     </td>
                                 </tr>
                                 <tr>

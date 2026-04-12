@@ -64,12 +64,12 @@ class PembelianController extends Controller
             }
         }
         
-        $pembelians = $query->latest()->get();
+        $pembelians = $query->oldest()->get();
         $vendors = Vendor::orderBy('nama_vendor')->get();
         
         // Add purchase return data for the Retur tab
         $returs = \App\Models\PurchaseReturn::with(['pembelian.vendor', 'items.bahanBaku'])
-            ->latest()
+            ->oldest()
             ->get();
         
         return view('transaksi.pembelian.index', compact('pembelians', 'vendors', 'returs'));

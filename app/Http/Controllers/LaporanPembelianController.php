@@ -13,7 +13,7 @@ class LaporanPembelianController extends Controller
     public function index()
     {
         $pembelian = Pembelian::with(['vendor', 'pembelianDetails.bahanBaku'])
-            ->latest()
+            ->oldest()
             ->paginate(10);
             
         $vendors = Vendor::all();
@@ -24,7 +24,7 @@ class LaporanPembelianController extends Controller
     public function export()
     {
         $pembelian = Pembelian::with(['vendor', 'pembelianDetails.bahanBaku'])
-            ->latest()
+            ->oldest()
             ->get();
             
         $pdf = PDF::loadView('laporan.pembelian.export', compact('pembelian'));
