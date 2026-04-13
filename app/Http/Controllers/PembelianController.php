@@ -556,9 +556,9 @@ class PembelianController extends Controller
                 $bankId = $request->bank_id;
                 $bank = \App\Models\Coa::find($bankId);
                 
-                if ($bank) {
-                    // Hitung saldo real-time menggunakan journal entries (lebih akurat)
-                    $journalLines = \App\Models\JournalLine::where('coa_id', $bank->id)
+                if ($bankKas) {
+                    // Hitung saldo real-time menggunakan journal entries (Lebih akurat)
+                    $journalLines = \App\Models\JournalLine::where('coa_id', $bankKas->id)
                         ->with('entry')
                         ->get();
                     
@@ -591,25 +591,16 @@ class PembelianController extends Controller
             }
 
             return DB::transaction(function () use ($request, $stock, $journal, $computedTotal, $subtotal, $biayaKirim, $ppnPersen, $ppnNominal) {
-                // Tentukan payment method berdasarkan bank_id
+                // Otomatis gunakan Kas Bank (111) untuk pembelian dengan transfer
+                // User tidak perlu memilih akun kas manual
+                $bankKas = \App\Models\Coa::where('kode_akun', '111')->first(); // Kas Bank
+                
                 $paymentMethod = 'transfer'; // default
                 if ($request->bank_id === 'credit') {
                     $paymentMethod = 'credit';
                 } else {
-                    // Cek apakah ini kas atau bank berdasarkan nama akun
-                    $bank = \App\Models\Coa::find($request->bank_id);
-                    if ($bank) {
-                        $namaAkun = strtolower($bank->nama_akun);
-                        // Jika nama akun mengandung 'kas' tapi BUKAN 'kas bank' atau 'kas di bank'
-                        if (str_contains($namaAkun, 'kas') && 
-                            !str_contains($namaAkun, 'bank') && 
-                            !str_contains($namaAkun, 'di bank')) {
-                            $paymentMethod = 'cash';
-                        } else {
-                            // Untuk semua akun bank (termasuk 'kas bank', 'kas di bank', dll)
-                            $paymentMethod = 'transfer';
-                        }
-                    }
+                    // Semua pembelian non-cash otomatis ke Kas Bank
+                    $paymentMethod = 'transfer';
                 }
                     
                     // Tentukan tipe pembelian berdasarkan vendor
@@ -630,7 +621,7 @@ class PembelianController extends Controller
                         'sisa_pembayaran' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? 0 : $computedTotal,
                         'status' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? 'lunas' : 'belum_lunas',
                         'payment_method' => $paymentMethod,
-                        'bank_id' => $request->bank_id === 'credit' ? null : $request->bank_id,
+                        'bank_id' => $request->bank_id === 'credit' ? null : $bankKas->id,
                         'keterangan' => $request->keterangan,
                     ]);
                     $pembelian->save();

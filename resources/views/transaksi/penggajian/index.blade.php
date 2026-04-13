@@ -137,18 +137,18 @@
                                             <i class="fas fa-eye"></i>
                                         </a>
                                         @if($gaji->status_pembayaran !== 'lunas')
-                                            <form action="{{ route('transaksi.penggajian.destroy', $gaji->id) }}" method="POST" class="m-0">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus" onclick="return confirm('Yakin ingin menghapus data penggajian ini?');">
+                                                <form action="{{ route('transaksi.penggajian.destroy', $gaji->id) }}" method="POST" class="m-0 d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus" onclick="return confirm('Yakin ingin menghapus data penggajian ini?');">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <button class="btn btn-outline-secondary btn-sm" disabled title="Tidak dapat dihapus karena sudah dibayar">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
-                                            </form>
-                                        @else
-                                            <button class="btn btn-outline-secondary btn-sm" disabled title="Tidak dapat dihapus karena sudah dibayar">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        @endif
+                                            @endif
                                     </div>
                                 </td>
                             </tr>

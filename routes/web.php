@@ -2563,6 +2563,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
     Route::prefix('laporan')->name('laporan.')->middleware('role:admin,owner')->group(function() {
         // Laporan Stok
         Route::get('/stok', [LaporanController::class, 'stok'])->name('stok');
+        Route::get('/stok/export', [LaporanController::class, 'exportStok'])->name('stok.export');
         
         // Laporan Kartu Stok
         Route::get('/kartu-stok', [LaporanKartuStokController::class, 'index'])->name('kartu-stok.index');
@@ -2600,7 +2601,6 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         // Laporan Kas & Bank
         Route::get('/kas-bank', [\App\Http\Controllers\LaporanKasBankController::class, 'index'])->name('kas-bank');
         Route::get('/kas-bank/export-pdf', [\App\Http\Controllers\LaporanKasBankController::class, 'exportPdf'])->name('kas-bank.export-pdf');
-        Route::get('/kas-bank/export-excel', [\App\Http\Controllers\LaporanKasBankController::class, 'exportExcel'])->name('kas-bank.export-excel');
         Route::get('/kas-bank/{coaId}/detail-masuk', [\App\Http\Controllers\LaporanKasBankController::class, 'getDetailMasuk'])->name('kas-bank.detail-masuk');
         Route::get('/kas-bank/{coaId}/detail-keluar', [\App\Http\Controllers\LaporanKasBankController::class, 'getDetailKeluar'])->name('kas-bank.detail-keluar');
         

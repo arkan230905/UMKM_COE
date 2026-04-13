@@ -8,9 +8,6 @@
             <a href="{{ route('laporan.kas-bank.export-pdf', request()->all()) }}" class="btn btn-danger" target="_blank">
                 <i class="bi bi-file-pdf"></i> Download PDF
             </a>
-            <a href="{{ route('laporan.kas-bank.export-excel', request()->all()) }}" class="btn btn-success">
-                <i class="bi bi-file-excel"></i> Download Excel
-            </a>
         </div>
     </div>
 

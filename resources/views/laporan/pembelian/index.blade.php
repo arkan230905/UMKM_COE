@@ -5,8 +5,8 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Laporan Pembelian</h3>
         <div>
-            <a href="{{ route('laporan.pembelian.export') }}" class="btn btn-success">
-                <i class="fas fa-file-excel me-1"></i> Export Excel
+            <a href="{{ route('laporan.pembelian.export') }}" class="btn btn-danger">
+                <i class="fas fa-file-pdf me-1"></i> Export PDF
             </a>
         </div>
     </div>

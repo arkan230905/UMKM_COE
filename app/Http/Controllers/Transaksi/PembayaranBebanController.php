@@ -123,7 +123,10 @@ class PembayaranBebanController extends Controller
         try {
             // Dapatkan data COA dengan pengecekan yang lebih ketat
             $beban = Coa::where('kode_akun', $request->kode_akun_beban)->first();
-            $kas = Coa::where('kode_akun', $request->kode_akun_kas)->first();
+            
+            // Otomatis pilih Kas Bank (111) untuk pembayaran beban
+            // User tidak perlu memilih akun kas manual
+            $kas = Coa::where('kode_akun', '111')->first(); // Kas Bank
             
             // Validasi COA
             if (!$beban) {

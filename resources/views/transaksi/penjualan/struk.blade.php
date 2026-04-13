@@ -21,7 +21,7 @@
         }
         .header {
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             border-bottom: 2px dashed #333;
             padding-bottom: 15px;
         }
@@ -35,11 +35,6 @@
             font-size: 11px;
             margin-bottom: 2px;
             text-align: center;
-        }
-        .struk-title {
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 10px;
         }
         .transaction-info {
             margin-bottom: 20px;
@@ -77,32 +72,8 @@
             border-top: 1px dashed #ddd;
             padding-top: 15px;
         }
-        .product-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            font-size: 11px;
-            line-height: 1.6;
-        }
-        .product-name {
-            flex: 1;
-            padding-right: 10px;
-        }
-        .product-qty {
-            width: 40px;
-            text-align: center;
-        }
-        .product-price {
-            width: 80px;
-            text-align: right;
-        }
-        .product-total {
-            width: 80px;
-            text-align: right;
-            font-weight: bold;
-        }
         .summary {
-            margin-top: 25px;
+            margin-top: 20px;
             border-top: 2px dashed #333;
             padding-top: 15px;
         }
@@ -119,15 +90,9 @@
             padding-top: 5px;
             margin-top: 10px;
         }
-        .summary-row span:first-child {
-            text-align: left;
-        }
-        .summary-row span:last-child {
-            text-align: right;
-        }
         .footer {
             text-align: center;
-            margin-top: 25px;
+            margin-top: 20px;
             font-size: 10px;
             color: #666;
             line-height: 1.5;
@@ -142,9 +107,9 @@
     <div class="struk-container">
         <!-- Header -->
         <div class="header">
-            <div class="company-name">{{ $dataPerusahaan->nama_perusahaan ?? 'MANUFAKTUR COE' }}</div>
-            <div class="company-address">{{ $dataPerusahaan->alamat_perusahaan ?? 'Jl. Kebon No. 123' }}</div>
-            <div class="company-phone">{{ $dataPerusahaan->telepon_perusahaan ?? 'Telp: 0812-3456-7890' }}</div>
+            <div class="company-name">{{ $dataPerusahaan->nama ?? 'MANUFAKTUR COE' }}</div>
+            <div class="company-address">{{ $dataPerusahaan->alamat ?? 'Jl. Kebon No. 123' }}</div>
+            <div class="company-phone">{{ $dataPerusahaan->telepon ?? 'Telp: 0812-3456-7890' }}</div>
         </div>
 
         <!-- Garis Pemisah -->
@@ -174,8 +139,8 @@
                     <div class="product-item">
                         <div class="product-name">{{ $detail->produk->nama_produk }}</div>
                         <div class="product-detail">
-                            <span>{{ $detail->jumlah }} x {{ number_format($detail->harga_satuan, 0, ',', '.') }}</span>
-                            <span class="product-total">Rp {{ number_format($detail->jumlah * $detail->harga_satuan, 0, ',', '.') }}</span>
+                            <span>{{ number_format($detail->jumlah, 0, ',', '.') }} x {{ formatCurrency($detail->harga_satuan) }}</span>
+                            <span class="product-total">{{ formatCurrency($detail->jumlah * $detail->harga_satuan) }}</span>
                         </div>
                     </div>
                     @php $totalItems += $detail->jumlah; @endphp
@@ -185,8 +150,8 @@
                 <div class="product-item">
                     <div class="product-name">{{ $penjualan->produk->nama_produk }}</div>
                     <div class="product-detail">
-                        <span>{{ ($penjualan->jumlah ?? 0) }} x {{ number_format($penjualan->harga_satuan ?? 0, 0, ',', '.') }}</span>
-                        <span class="product-total">Rp {{ number_format(($penjualan->harga_satuan ?? 0) * ($penjualan->jumlah ?? 0), 0, ',', '.') }}</span>
+                        <span>{{ number_format(($penjualan->jumlah ?? 0), 0, ',', '.') }} x {{ formatCurrency($penjualan->harga_satuan ?? 0) }}</span>
+                        <span class="product-total">{{ formatCurrency(($penjualan->harga_satuan ?? 0) * ($penjualan->jumlah ?? 0)) }}</span>
                     </div>
                 </div>
                 @php $totalItems = $penjualan->jumlah ?? 0; @endphp
@@ -201,17 +166,17 @@
         <div class="summary">
             <div class="summary-row">
                 <span>Subtotal           </span>
-                <span>Rp {{ number_format($penjualan->total + ($penjualan->diskon_nominal ?? 0), 0, ',', '.') }}</span>
+                <span>{{ formatCurrency($penjualan->total + ($penjualan->diskon_nominal ?? 0)) }}</span>
             </div>
             @if($penjualan->diskon_nominal > 0)
             <div class="summary-row">
                 <span>Diskon             </span>
-                <span>-{{ number_format($penjualan->diskon_nominal, 0, ',', '.') }}</span>
+                <span>-{{ formatCurrency($penjualan->diskon_nominal) }}</span>
             </div>
             @endif
             <div class="summary-row total">
                 <span>TOTAL:             </span>
-                <span>Rp {{ number_format($penjualan->total, 0, ',', '.') }}</span>
+                <span>{{ formatCurrency($penjualan->total) }}</span>
             </div>
         </div>
 
@@ -228,5 +193,13 @@
             <div>Terima kasih atas kunjungan Anda!</div>
         </div>
     </div>
+
+    @php
+    function formatCurrency($amount) {
+        // Ensure amount is numeric and handle decimal places properly
+        $amount = floatval($amount);
+        return 'Rp ' . number_format($amount, 0, ',', '.');
+    }
+    @endphp
 </body>
 </html>

@@ -1,21 +1,48 @@
 <?php
 
-$pdo = new PDO('mysql:host=localhost;dbname=umkm_coe', 'root', '');
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
-echo "=== CHECKING JOURNAL TABLES ===\n";
+echo "=== Checking Database Tables ===\n";
 
-$stmt = $pdo->query('SHOW TABLES LIKE "%journal%"');
-$tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
+// Check available tables
+$tables = \DB::select('SHOW TABLES');
+echo "Tables related to pembelian:\n";
 foreach ($tables as $table) {
-    echo "Table: {$table}\n";
-    
-    // Show table structure
-    $stmt2 = $pdo->query("DESCRIBE {$table}");
-    $columns = $stmt2->fetchAll(PDO::FETCH_ASSOC);
-    
-    foreach ($columns as $column) {
-        echo "  - {$column['Field']} ({$column['Type']})\n";
+    $tableName = array_values((array)$table)[0];
+    if (strpos($tableName, 'pembelian') !== false) {
+        echo "- {$tableName}\n";
     }
-    echo "\n";
+}
+
+// Check pembelian model relationships
+echo "\nChecking Pembelian model:\n";
+$pembelian = \App\Models\Pembelian::find(2);
+if ($pembelian) {
+    echo "Pembelian found: #{$pembelian->id}\n";
+    
+    // Try to get details using different possible table names
+    try {
+        $details = $pembelian->details;
+        echo "Details count: " . $details->count() . "\n";
+        
+        foreach ($details as $detail) {
+            echo "Detail: bahan_baku_id={$detail->bahan_baku_id}, jumlah={$detail->jumlah}\n";
+        }
+    } catch (Exception $e) {
+        echo "Error getting details: " . $e->getMessage() . "\n";
+    }
+}
+
+// Check if there's a different table name
+echo "\nChecking for alternative table names:\n";
+$possibleTables = ['pembelian_details', 'detail_pembelian', 'pembelian_detail'];
+foreach ($possibleTables as $tableName) {
+    try {
+        $count = \DB::table($tableName)->count();
+        echo "- {$tableName}: {$count} records\n";
+    } catch (Exception $e) {
+        echo "- {$tableName}: doesn't exist\n";
+    }
 }

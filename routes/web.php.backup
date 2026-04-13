@@ -623,7 +623,6 @@ Route::middleware('auth')->group(function () {
         // Laporan Kas & Bank
         Route::get('/kas-bank', [\App\Http\Controllers\LaporanKasBankController::class, 'index'])->name('kas-bank');
         Route::get('/kas-bank/export-pdf', [\App\Http\Controllers\LaporanKasBankController::class, 'exportPdf'])->name('kas-bank.export-pdf');
-        Route::get('/kas-bank/export-excel', [\App\Http\Controllers\LaporanKasBankController::class, 'exportExcel'])->name('kas-bank.export-excel');
         Route::get('/kas-bank/{coaId}/detail-masuk', [\App\Http\Controllers\LaporanKasBankController::class, 'getDetailMasuk'])->name('kas-bank.detail-masuk');
         Route::get('/kas-bank/{coaId}/detail-keluar', [\App\Http\Controllers\LaporanKasBankController::class, 'getDetailKeluar'])->name('kas-bank.detail-keluar');
         

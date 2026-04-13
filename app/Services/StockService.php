@@ -61,7 +61,120 @@ class StockService
 
         Log::info('Creating stock entry', $data);
 
-        return KartuStok::createEntry($data);
+        // Create entry in kartu_stok (existing functionality)
+        $kartuStokEntry = KartuStok::createEntry($data);
+        
+        // Also create entry in stock_movements for laporan stok
+        $this->createStockMovementEntry($itemId, $itemType, $qtyMasuk, $qtyKeluar, $keterangan, $refType, $refId, $tanggal);
+        
+        return $kartuStokEntry;
+    }
+
+    /**
+     * Create entry in stock_movements table for laporan stok
+     */
+    private function createStockMovementEntry($itemId, $itemType, $qtyMasuk, $qtyKeluar, $keterangan, $refType, $refId, $tanggal)
+    {
+        try {
+            // Convert item_type from kartu_stok format to stock_movements format
+            $stockMovementItemType = '';
+            if ($itemType === KartuStok::ITEM_TYPE_BAHAN_BAKU) {
+                $stockMovementItemType = 'material';
+            } elseif ($itemType === KartuStok::ITEM_TYPE_BAHAN_PENDUKUNG) {
+                $stockMovementItemType = 'support';
+            } else {
+                Log::warning('Unknown item_type for stock_movements', ['item_type' => $itemType]);
+                return;
+            }
+            
+            // Convert ref_type
+            $stockMovementRefType = $refType;
+            if ($refType === 'pembelian') {
+                $stockMovementRefType = 'purchase';
+            }
+            
+            // Determine direction and qty
+            $direction = '';
+            $qty = 0;
+            
+            if ($qtyMasuk > 0) {
+                $direction = 'in';
+                $qty = $qtyMasuk;
+            } elseif ($qtyKeluar > 0) {
+                $direction = 'out';
+                $qty = $qtyKeluar;
+            } else {
+                Log::warning('No qty_masuk or qty_keluar for stock_movement', [
+                    'item_id' => $itemId,
+                    'item_type' => $itemType
+                ]);
+                return;
+            }
+            
+            // Get unit cost from item master data
+            $unitCost = 0;
+            $totalCost = 0;
+            
+            if ($stockMovementItemType === 'material') {
+                $bahanBaku = BahanBaku::find($itemId);
+                $unitCost = $bahanBaku ? ($bahanBaku->harga_satuan ?? 0) : 0;
+            } elseif ($stockMovementItemType === 'support') {
+                $bahanPendukung = \App\Models\BahanPendukung::find($itemId);
+                $unitCost = $bahanPendukung ? ($bahanPendukung->harga_satuan ?? 0) : 0;
+            }
+            
+            $totalCost = $qty * $unitCost;
+            
+            // Check if stock_movement already exists to avoid duplicates
+            $existingMovement = \App\Models\StockMovement::where('item_type', $stockMovementItemType)
+                ->where('item_id', $itemId)
+                ->where('ref_type', $stockMovementRefType)
+                ->where('ref_id', $refId)
+                ->where('tanggal', $tanggal ?? now()->format('Y-m-d'))
+                ->where('direction', $direction)
+                ->where('qty', $qty)
+                ->first();
+            
+            if ($existingMovement) {
+                Log::info('Stock movement already exists, skipping', [
+                    'item_type' => $stockMovementItemType,
+                    'item_id' => $itemId,
+                    'ref_type' => $stockMovementRefType,
+                    'ref_id' => $refId
+                ]);
+                return;
+            }
+            
+            // Create stock_movement entry
+            $stockMovement = \App\Models\StockMovement::create([
+                'item_type' => $stockMovementItemType,
+                'item_id' => $itemId,
+                'tanggal' => $tanggal ?? now()->format('Y-m-d'),
+                'ref_type' => $stockMovementRefType,
+                'ref_id' => $refId,
+                'direction' => $direction,
+                'qty' => $qty,
+                'unit_cost' => $unitCost,
+                'total_cost' => $totalCost,
+                'keterangan' => $keterangan
+            ]);
+            
+            Log::info('Stock movement created', [
+                'stock_movement_id' => $stockMovement->id,
+                'item_type' => $stockMovementItemType,
+                'item_id' => $itemId,
+                'direction' => $direction,
+                'qty' => $qty
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error creating stock movement entry', [
+                'item_id' => $itemId,
+                'item_type' => $itemType,
+                'error' => $e->getMessage()
+            ]);
+            // Don't throw exception to avoid breaking the main flow
+        }
     }
 
     /**
@@ -111,10 +224,14 @@ class StockService
             }
 
             if ($itemType && $itemId) {
+                // Use jumlah_satuan_utama for stock (converted to main unit)
+                // instead of jumlah (purchase unit)
+                $stockQuantity = $detail->jumlah_satuan_utama ?? $detail->jumlah;
+                
                 $this->addStock(
                     $itemId,
                     $itemType,
-                    $detail->jumlah,
+                    $stockQuantity,
                     "Pembelian #{$pembelian->nomor_pembelian}",
                     KartuStok::REF_TYPE_PEMBELIAN,
                     $pembelianId,

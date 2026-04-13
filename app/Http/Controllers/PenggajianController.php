@@ -249,7 +249,7 @@ class PenggajianController extends Controller
                 'potongan' => $potongan,
                 'total_jam_kerja' => $totalJamKerja,
                 'total_gaji' => $totalGaji,
-                'status_pembayaran' => 'lunas', // Status default: Lunas
+                'status_pembayaran' => 'belum_lunas', // Status default: Belum Lunas
             ]);
 
             if (!$penggajian->save()) {
@@ -294,19 +294,37 @@ class PenggajianController extends Controller
     public function destroy($id)
     {
         try {
+            DB::beginTransaction();
+            
             $penggajian = Penggajian::findOrFail($id);
 
             // Cegah hapus jika sudah dibayar
-            if ($penggajian->isPaid()) {
+            if ($penggajian->status_pembayaran === 'lunas') {
                 return redirect()->route('transaksi.penggajian.index')
                     ->with('error', 'Penggajian tidak dapat dihapus karena sudah dibayar (status: ' . $penggajian->status_pembayaran . ')');
             }
 
+            // Hapus journal entries terkait terlebih dahulu
+            $journalEntries = \App\Models\JournalEntry::where('ref_type', 'penggajian')
+                ->where('ref_id', $penggajian->id)
+                ->get();
+
+            foreach ($journalEntries as $entry) {
+                // Hapus journal lines terlebih dahulu
+                \App\Models\JournalLine::where('journal_entry_id', $entry->id)->delete();
+                // Kemudian hapus journal entry
+                $entry->delete();
+            }
+
+            // Hapus data penggajian
             $penggajian->delete();
+
+            DB::commit();
 
             return redirect()->route('transaksi.penggajian.index')
                 ->with('success', 'Data penggajian berhasil dihapus!');
         } catch (\Exception $e) {
+            DB::rollBack();
             \Log::error('Error deleting penggajian: ' . $e->getMessage());
 
             return redirect()->route('transaksi.penggajian.index')
