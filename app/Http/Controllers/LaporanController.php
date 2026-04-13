@@ -8,6 +8,7 @@ use App\Models\Produk;
 use App\Models\StockMovement;
 use App\Models\StockLayer;
 use App\Models\BahanBaku;
+use App\Models\ReturPenjualan;
 use Illuminate\Http\Request;
 use App\Models\Pembelian as PembelianModel;
 
@@ -1050,13 +1051,36 @@ class LaporanController extends Controller
         
         $penjualan = $query->paginate(15);
 
+        // Get data retur penjualan untuk tab retur
+        try {
+            $returPenjualans = \App\Models\ReturPenjualan::with(['penjualan', 'pelanggan', 'detailReturPenjualans.produk'])
+                ->when($request->tanggal_mulai && $request->tanggal_selesai, function($q) use ($request) {
+                    return $q->whereBetween('tanggal', [$request->tanggal_mulai, $request->tanggal_selesai]);
+                })
+                ->when($request->status, function($q) use ($request) {
+                    return $q->where('status', $request->status);
+                })
+                ->orderBy('tanggal', 'desc')
+                ->get();
+        } catch (\Exception $e) {
+            // If there's an error, create empty collection
+            $returPenjualans = collect([]);
+            \Log::error('Error loading retur penjualans: ' . $e->getMessage());
+        }
+
+        // Debug: Log the count of return data
+        \Log::info('Retur Penjualan Count: ' . $returPenjualans->count());
+
+
+
         return view('laporan.penjualan.index', compact(
             'penjualan', 
             'totalPenjualan', 
             'totalTransaksi',
             'totalPenjualanFiltered',
             'totalPenjualanTunai',
-            'totalPenjualanKredit'
+            'totalPenjualanKredit',
+            'returPenjualans'
         ));
     }
     
@@ -1082,18 +1106,10 @@ class LaporanController extends Controller
         return $query;
     }
 
-    // === LAPORAN RETUR ===
+    // === LAPORAN RETUR (Purchase Returns Only) ===
     public function laporanRetur(Request $request)
     {
-        // Filter untuk Retur Penjualan
-        $salesReturnQuery = \App\Models\Retur::with(['penjualan', 'details.produk'])
-            ->where('type', 'sale')
-            ->when($request->sales_start_date && $request->sales_end_date, function($q) use ($request) {
-                return $q->whereBetween('tanggal', [$request->sales_start_date, $request->sales_end_date]);
-            })
-            ->orderBy('tanggal', 'desc');
-
-        // Filter untuk Retur Pembelian  
+        // Filter untuk Retur Pembelian saja (sales returns sudah dipindah ke laporan penjualan)
         $purchaseReturnQuery = \App\Models\Retur::with(['pembelian.vendor', 'details.produk'])
             ->where('type', 'purchase')
             ->when($request->purchase_start_date && $request->purchase_end_date, function($q) use ($request) {
@@ -1102,15 +1118,9 @@ class LaporanController extends Controller
             ->orderBy('tanggal', 'desc');
 
         // Get data
-        $salesReturns = $salesReturnQuery->paginate(10, ['*'], 'sales_page');
-        $purchaseReturns = $purchaseReturnQuery->paginate(10, ['*'], 'purchase_page');
+        $purchaseReturns = $purchaseReturnQuery->paginate(15);
 
         // Calculate totals
-        $totalSalesReturns = $salesReturnQuery->get()->sum(function($retur) {
-            return $retur->details->sum(function($detail) {
-                return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0);
-            });
-        });
         $totalPurchaseReturns = $purchaseReturnQuery->get()->sum(function($retur) {
             return $retur->details->sum(function($detail) {
                 return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0);
@@ -1118,9 +1128,7 @@ class LaporanController extends Controller
         });
 
         return view('laporan.retur.index', compact(
-            'salesReturns', 
             'purchaseReturns', 
-            'totalSalesReturns', 
             'totalPurchaseReturns'
         ));
     }

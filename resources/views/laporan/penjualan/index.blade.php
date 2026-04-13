@@ -11,6 +11,25 @@
         </div>
     </div>
 
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs mb-4" id="laporanTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="penjualan-tab" data-bs-toggle="tab" data-bs-target="#penjualan" type="button" role="tab" aria-controls="penjualan" aria-selected="true">
+                <i class="fas fa-shopping-cart me-2"></i>Penjualan
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="retur-tab" data-bs-toggle="tab" data-bs-target="#retur" type="button" role="tab" aria-controls="retur" aria-selected="false">
+                <i class="fas fa-undo me-2"></i>Retur
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="laporanTabsContent">
+        <!-- Penjualan Tab -->
+        <div class="tab-pane fade show active" id="penjualan" role="tabpanel" aria-labelledby="penjualan-tab">
+
     <!-- Filter Form -->
     <div class="card mb-4">
         <div class="card-body">
@@ -175,6 +194,174 @@
             </div>
         @endif
     </div>
+    </div>
+    <!-- End Penjualan Tab -->
+
+    <!-- Retur Tab -->
+    <div class="tab-pane fade" id="retur" role="tabpanel" aria-labelledby="retur-tab">
+        <!-- Filter Form -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form action="" method="GET" class="row g-3" id="returFilterForm">
+                    <input type="hidden" name="tab" value="retur">
+                    <div class="col-md-3">
+                        <label class="form-label">Tanggal Mulai</label>
+                        <input type="date" name="tanggal_mulai" class="form-control" value="{{ request('tanggal_mulai') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tanggal Selesai</label>
+                        <input type="date" name="tanggal_selesai" class="form-control" value="{{ request('tanggal_selesai') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="">Semua Status</option>
+                            <option value="belum_dibayar" {{ request('status') == 'belum_dibayar' ? 'selected' : '' }}>Belum Dibayar</option>
+                            <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
+                            <option value="selesai" {{ request('status') == 'selesai' ? 'selected' : '' }}>Selesai</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <div class="d-flex gap-2 w-100">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-filter me-1"></i>Filter
+                            </button>
+                            <a href="{{ route('laporan.penjualan') }}?tab=retur" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>Reset
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Summary Card -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h6 class="card-title mb-3">Total Retur Penjualan</h6>
+                <h3 class="text-primary mb-2">
+                    @php
+                        $totalReturPenjualan = isset($returPenjualans) ? $returPenjualans->sum('total_retur') : 0;
+                    @endphp
+                    Rp {{ number_format($totalReturPenjualan, 0, ',', '.') }}
+                </h3>
+                <small class="text-muted">
+                    @if(request('tanggal_mulai') && request('tanggal_selesai'))
+                        Periode: {{ \Carbon\Carbon::parse(request('tanggal_mulai'))->format('d/m/Y') }} - {{ \Carbon\Carbon::parse(request('tanggal_selesai'))->format('d/m/Y') }}
+                    @else
+                        Semua Periode
+                    @endif
+                </small>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 5%">No</th>
+                                <th>No. Retur</th>
+                                <th>Tanggal</th>
+                                <th>Nomor Transaksi</th>
+                                <th>Pelanggan</th>
+                                <th>Jenis Retur</th>
+                                <th>Item Diretur</th>
+                                <th>Catatan</th>
+                                <th class="text-end">Total Retur</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if(isset($returPenjualans) && $returPenjualans->count() > 0)
+                                @foreach($returPenjualans as $index => $retur)
+                                    <tr>
+                                        <td class="text-center">{{ $index + 1 }}</td>
+                                        <td><strong>{{ $retur->nomor_retur ?? '-' }}</strong></td>
+                                        <td>{{ $retur->tanggal ? $retur->tanggal->format('d/m/Y') : '-' }}</td>
+                                        <td>{{ $retur->penjualan->nomor_penjualan ?? '-' }}</td>
+                                        <td>{{ $retur->pelanggan->name ?? 'Umum' }}</td>
+                                        <td>
+                                            @switch($retur->jenis_retur ?? '')
+                                                @case('tukar_barang')
+                                                    <span class="badge bg-warning text-dark">Tukar Barang</span>
+                                                    @break
+                                                @case('refund')
+                                                    <span class="badge bg-info">Refund</span>
+                                                    @break
+                                                @case('kredit')
+                                                    <span class="badge bg-secondary">Kredit</span>
+                                                    @break
+                                                @default
+                                                    <span class="badge bg-light text-dark">{{ ucfirst($retur->jenis_retur ?? '-') }}</span>
+                                            @endswitch
+                                        </td>
+                                        <td>
+                                            @if($retur->detailReturPenjualans && $retur->detailReturPenjualans->count() > 0)
+                                                @foreach($retur->detailReturPenjualans as $detail)
+                                                    <div class="small mb-1">
+                                                        • {{ $detail->produk->nama_produk ?? '-' }}
+                                                        <span class="text-muted">({{ number_format($detail->qty_retur ?? 0, 0, ',', '.') }} pcs)</span>
+                                                        - Rp {{ number_format($detail->harga_barang ?? 0, 0, ',', '.') }}
+                                                    </div>
+                                                @endforeach
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                        <td>{{ $retur->keterangan ?? '-' }}</td>
+                                        <td class="text-end">
+                                            <strong>
+                                                @if(($retur->jenis_retur ?? '') === 'tukar_barang')
+                                                    <span class="text-muted">Rp 0</span>
+                                                @else
+                                                    Rp {{ number_format($retur->total_retur ?? 0, 0, ',', '.') }}
+                                                @endif
+                                            </strong>
+                                        </td>
+                                        <td class="text-center">
+                                            @switch($retur->status ?? '')
+                                                @case('belum_dibayar')
+                                                    <span class="badge bg-danger">Belum Dibayar</span>
+                                                    @break
+                                                @case('lunas')
+                                                    <span class="badge bg-success">Lunas</span>
+                                                    @break
+                                                @case('selesai')
+                                                    <span class="badge bg-primary">Selesai</span>
+                                                    @break
+                                                @default
+                                                    <span class="badge bg-secondary">{{ ucfirst($retur->status ?? '-') }}</span>
+                                            @endswitch
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            @else
+                                <tr>
+                                    <td colspan="10" class="text-center py-5">
+                                        <div class="text-muted">
+                                            <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+                                            <p class="mb-0">Tidak ada data retur penjualan</p>
+                                            @if(config('app.debug'))
+                                                <small class="text-info">
+                                                    Debug: returPenjualans = {{ isset($returPenjualans) ? 'set (' . $returPenjualans->count() . ' items)' : 'not set' }}
+                                                </small>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End Retur Tab -->
+    </div>
+    <!-- End Tab Content -->
 </div>
 
 @push('styles')
@@ -253,11 +440,71 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded');
+        
+        // Test if Bootstrap is loaded
+        if (typeof bootstrap !== 'undefined') {
+            console.log('Bootstrap is loaded');
+        } else {
+            console.log('Bootstrap is NOT loaded');
+        }
+        
+        // Test if tab elements exist
+        const returTab = document.getElementById('retur-tab');
+        const returPane = document.getElementById('retur');
+        console.log('Retur tab element:', returTab);
+        console.log('Retur pane element:', returPane);
+        
         // Inisialisasi tooltip
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl)
         });
+        
+        // Handle tab switching based on URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('tab');
+        console.log('Active tab from URL:', activeTab);
+        
+        if (activeTab === 'retur') {
+            console.log('Switching to retur tab');
+            // Switch to retur tab
+            const returTab = document.getElementById('retur-tab');
+            const returPane = document.getElementById('retur');
+            const penjualanTab = document.getElementById('penjualan-tab');
+            const penjualanPane = document.getElementById('penjualan');
+            
+            if (returTab && returPane && penjualanTab && penjualanPane) {
+                // Remove active from penjualan
+                penjualanTab.classList.remove('active');
+                penjualanTab.setAttribute('aria-selected', 'false');
+                penjualanPane.classList.remove('show', 'active');
+                
+                // Add active to retur
+                returTab.classList.add('active');
+                returTab.setAttribute('aria-selected', 'true');
+                returPane.classList.add('show', 'active');
+                console.log('Tab switched successfully');
+            } else {
+                console.log('Tab elements not found');
+            }
+        }
+        
+        // Update form action when switching tabs
+        const returTabElement = document.getElementById('retur-tab');
+        if (returTabElement) {
+            returTabElement.addEventListener('click', function() {
+                console.log('Retur tab clicked');
+                // Add tab parameter to retur filter form
+                const returForm = document.getElementById('returFilterForm');
+                if (returForm) {
+                    const tabInput = returForm.querySelector('input[name="tab"]');
+                    if (tabInput) {
+                        tabInput.value = 'retur';
+                    }
+                }
+            });
+        }
         
         // Perkecil pagination arrows
         setTimeout(function() {
