@@ -2568,9 +2568,14 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::post('/reset-produk-stok', [LaporanKartuStokController::class, 'resetProdukStok'])->name('reset-produk-stok');
         
         // Laporan Pembelian
-        Route::get('/pembelian', [LaporanController::class, 'pembelian'])->name('pembelian');
-        Route::get('/pembelian/{id}/invoice', [LaporanController::class, 'invoicePembelian'])->name('pembelian.invoice');
-        Route::get('/pembelian/export', [LaporanController::class, 'exportPembelian'])->name('pembelian.export');
+        Route::get('/pembelian', [\App\Http\Controllers\LaporanPembelianController::class, 'index'])->name('pembelian.index');
+        Route::get('/pembelian/export', [\App\Http\Controllers\LaporanPembelianController::class, 'export'])->name('pembelian.export');
+        Route::get('/pembelian/{pembelian}/invoice', [\App\Http\Controllers\LaporanPembelianController::class, 'invoice'])->name('pembelian.invoice');
+        
+        // Legacy routes for backward compatibility
+        Route::get('/pembelian-legacy', [LaporanController::class, 'pembelian'])->name('pembelian-legacy');
+        Route::get('/pembelian-legacy/{id}/invoice', [LaporanController::class, 'invoicePembelian'])->name('pembelian-legacy.invoice');
+        Route::get('/pembelian-legacy/export', [LaporanController::class, 'exportPembelian'])->name('pembelian-legacy.export');
         Route::get('/export/pembelian', [LaporanController::class, 'exportPembelian'])->name('export.pembelian');
         
         // Laporan Penjualan

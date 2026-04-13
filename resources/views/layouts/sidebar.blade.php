@@ -245,7 +245,7 @@
                 </div>
             </li>
             <li class="nav-item">
-                <a class="nav-link-rounded {{ request()->is('laporan/pembelian*') ? 'active' : '' }}" href="{{ route('laporan.pembelian') }}">
+                <a class="nav-link-rounded {{ request()->is('laporan/pembelian*') ? 'active' : '' }}" href="{{ route('laporan.pembelian.index') }}">
                     <i class="fas fa-shopping-cart"></i>
                     <span>Laporan Pembelian</span>
                 </a>
@@ -260,12 +260,6 @@
                 <a class="nav-link-rounded {{ request()->is('laporan/penjualan*') ? 'active' : '' }}" href="{{ route('laporan.penjualan') }}">
                     <i class="fas fa-shopping-bag"></i>
                     <span>Laporan Penjualan</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link-rounded {{ request()->is('laporan/retur*') ? 'active' : '' }}" href="{{ route('laporan.retur') }}">
-                    <i class="fas fa-undo"></i>
-                    <span>Laporan Retur Pembelian</span>
                 </a>
             </li>
             <li class="nav-item">

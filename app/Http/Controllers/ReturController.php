@@ -179,7 +179,11 @@ class ReturController extends Controller
 
     public function storePembelian(Request $request, StockService $stock, JournalService $journal)
     {
-        \Log::info('Retur form submission received');
+        \Log::info('Retur form submission received', [
+            'request_data' => $request->all(),
+            'user_id' => auth()->id(),
+            'timestamp' => now()
+        ]);
 
         // Validation
         $request->validate([

@@ -4,15 +4,16 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>Retur Pembelian #{{ $pembelian->id }}</h3>
-        <a href="{{ route('transaksi.pembelian.show', $pembelian->id) }}" class="btn btn-secondary">Kembali</a>
+        <a href="{{ route('transaksi.pembelian.index') }}?tab=retur" class="btn btn-secondary">Kembali</a>
     </div>
 
     @if(session('error'))
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
 
-    <form action="{{ route('transaksi.purchase-returns.store', $pembelian->id) }}" method="POST">
+    <form action="{{ route('transaksi.retur-pembelian.store') }}" method="POST">
         @csrf
+        <input type="hidden" name="pembelian_id" value="{{ $pembelian->id }}">
         <div class="card mb-3">
             <div class="card-body">
                 <div class="row g-3">
@@ -21,12 +22,23 @@
                         <input type="date" name="return_date" class="form-control" value="{{ old('return_date', now()->toDateString()) }}" required>
                     </div>
                     <div class="col-md-4">
+                        <label class="form-label">Jenis Retur <span class="text-danger">*</span></label>
+                        <select name="jenis_retur" class="form-control" required>
+                            <option value="">-- Pilih Jenis Retur --</option>
+                            <option value="refund" {{ old('jenis_retur') == 'refund' ? 'selected' : '' }}>Refund (Pengembalian Uang)</option>
+                            <option value="tukar_barang" {{ old('jenis_retur') == 'tukar_barang' ? 'selected' : '' }}>Tukar Barang</option>
+                        </select>
+                        @error('jenis_retur')
+                            <div class="text-danger small">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="col-md-4">
                         <label class="form-label">Alasan Singkat</label>
-                        <input type="text" name="reason" class="form-control" value="{{ old('reason') }}">
+                        <input type="text" name="alasan" class="form-control" value="{{ old('alasan') }}">
                     </div>
                     <div class="col-md-12">
                         <label class="form-label">Catatan</label>
-                        <textarea name="notes" class="form-control" rows="2">{{ old('notes') }}</textarea>
+                        <textarea name="memo" class="form-control" rows="2">{{ old('memo') }}</textarea>
                     </div>
                 </div>
             </div>
@@ -59,15 +71,24 @@
                         @endphp
                         <tr>
                             <td>{{ $i + 1 }}</td>
-                            <td>{{ $d->bahanBaku->nama_bahan ?? '-' }}</td>
+                            <td>
+                                @if($d->bahan_baku_id && $d->bahanBaku)
+                                    {{ $d->bahanBaku->nama_bahan }}
+                                @elseif($d->bahan_pendukung_id && $d->bahanPendukung)
+                                    {{ $d->bahanPendukung->nama_bahan }}
+                                @else
+                                    -
+                                @endif
+                            </td>
                             <td class="text-end">{{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}</td>
                             <td class="text-end">{{ rtrim(rtrim(number_format($returned,4,',','.'),'0'),',') }}</td>
                             <td class="text-end">{{ rtrim(rtrim(number_format($maxRet,4,',','.'),'0'),',') }}</td>
                             <td>
                                 <input type="hidden" name="items[{{ $i }}][pembelian_detail_id]" value="{{ $d->id }}">
-                                <input type="number" step="0.0001" min="0" max="{{ $maxRet }}" name="items[{{ $i }}][quantity]" class="form-control text-end" value="{{ old("items.$i.quantity", 0) }}">
+                                <input type="hidden" name="items[{{ $i }}][satuan]" value="{{ $d->satuan ?: ($d->bahanBaku->satuan->nama ?? $d->bahanPendukung->satuanRelation->nama ?? 'kg') }}">
+                                <input type="number" step="0.0001" min="0" max="{{ $maxRet }}" name="items[{{ $i }}][qty]" class="form-control text-end" value="{{ old("items.$i.qty", 0) }}">
                             </td>
-                            <td>{{ $d->satuan ?: ($d->bahanBaku->satuan ?? '-') }}</td>
+                            <td>{{ $d->satuan ?: ($d->bahanBaku->satuan->nama ?? $d->bahanPendukung->satuanRelation->nama ?? '-') }}</td>
                             <td class="text-end">Rp {{ number_format($d->harga_satuan,0,',','.') }}</td>
                             <td class="text-end text-muted small">Akan dihitung saat simpan</td>
                         </tr>
