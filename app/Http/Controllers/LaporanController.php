@@ -758,6 +758,14 @@ class LaporanController extends Controller
                                     $dailyOutNilai = 0;
                                     $dailySaleQty = (float)$m->qty;
                                     $dailySaleNilai = (float)($m->total_cost ?? 0);
+                                } elseif ($m->ref_type === 'retur' && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
+                                    // RETUR PEMBELIAN untuk material/bahan_pendukung - show in pembelian column as negative (OUT movement)
+                                    $dailyInQty = -(float)$m->qty; // Negative to show as return
+                                    $dailyInNilai = -(float)($m->total_cost ?? 0);
+                                    $dailyOutQty = 0;
+                                    $dailyOutNilai = 0;
+                                    $dailySaleQty = 0;
+                                    $dailySaleNilai = 0;
                                 } else {
                                     // Other OUT movements (production consumption, etc.)
                                     $dailyInQty = 0;
@@ -767,6 +775,20 @@ class LaporanController extends Controller
                                     $dailySaleQty = 0;
                                     $dailySaleNilai = 0;
                                 }
+                            }
+                            
+                            // SPECIAL HANDLING FOR RETUR MOVEMENTS (materials/bahan_pendukung)
+                            // This ensures retur movements are always shown in pembelian column with negative values
+                            if ($m->ref_type === 'retur' && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
+                                // Reset all other columns
+                                $dailyOutQty = 0;
+                                $dailyOutNilai = 0;
+                                $dailySaleQty = 0;
+                                $dailySaleNilai = 0;
+                                
+                                // Show in pembelian column as negative (regardless of direction)
+                                $dailyInQty = -(float)$m->qty; // Always negative for retur
+                                $dailyInNilai = -(float)($m->total_cost ?? 0);
                             }
                             
                             // Update running totals
@@ -789,6 +811,10 @@ class LaporanController extends Controller
                                     $runningQty -= $dailySaleQty;
                                     $runningNilai -= $dailySaleNilai;
                                 }
+                            } elseif ($m->ref_type === 'retur' && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
+                                // Retur movements for materials/bahan_pendukung - always reduce stock
+                                $runningQty -= (float)$m->qty; // Retur always reduces stock
+                                $runningNilai -= (float)($m->total_cost ?? 0);
                             } elseif ($m->ref_type === 'initial_stock') {
                                 // Initial stock should add to running totals
                                 if ($m->direction === 'in') {
@@ -970,90 +996,212 @@ class LaporanController extends Controller
     
     public function exportStok(Request $request)
     {
-        // Get all item types data
-        $materials = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
-            ->orderBy('nama_bahan', 'asc')
-            ->get();
-        $products = Produk::with('satuan')->orderBy('nama_produk', 'asc')->get();
-        $bahanPendukungs = \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
-            ->orderBy('nama_bahan', 'asc')
-            ->get();
+        // Check if item is selected
+        if (!$request->has('item_id') || !$request->item_id) {
+            return redirect()->back()->with('error', 'Silakan pilih item terlebih dahulu untuk export PDF.');
+        }
 
-        // Get ALL stock movements for ALL item types
-        $allMovements = \App\Models\StockMovement::orderBy('tanggal', 'asc')->get();
+        $tipe = $request->get('tipe', 'material');
+        $itemId = $request->item_id;
+        $satuanId = $request->satuan_id;
 
-        // Group movements by item type and calculate current stock per item
+        // Get selected item data
+        $selectedItem = null;
+        $itemName = '';
+        
+        if($tipe == 'material') {
+            $selectedItem = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+                ->find($itemId);
+            $itemName = $selectedItem->nama_bahan ?? 'Item';
+        } elseif($tipe == 'product') {
+            $selectedItem = Produk::with('satuan')->find($itemId);
+            $itemName = $selectedItem->nama_produk ?? 'Item';
+        } elseif($tipe == 'bahan_pendukung') {
+            $selectedItem = \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+                ->find($itemId);
+            $itemName = $selectedItem->nama_bahan ?? 'Item';
+        }
+
+        if (!$selectedItem) {
+            return redirect()->back()->with('error', 'Item yang dipilih tidak ditemukan.');
+        }
+
+        // Get available units for this item using CORRECT conversion ratios
+        $units = [];
+        if($selectedItem) {
+            if($tipe == 'material') {
+                $units = [
+                    ['id' => $selectedItem->satuan->id, 'name' => $selectedItem->satuan->nama, 'is_primary' => true, 'conversion' => 1]
+                ];
+                if($selectedItem->subSatuan1) {
+                    $units[] = ['id' => $selectedItem->subSatuan1->id, 'name' => $selectedItem->subSatuan1->nama, 'is_primary' => false, 'conversion' => $selectedItem->sub_satuan_1_nilai ?? 1];
+                }
+                if($selectedItem->subSatuan2) {
+                    $units[] = ['id' => $selectedItem->subSatuan2->id, 'name' => $selectedItem->subSatuan2->nama, 'is_primary' => false, 'conversion' => $selectedItem->sub_satuan_2_nilai ?? 1];
+                }
+                if($selectedItem->subSatuan3) {
+                    $units[] = ['id' => $selectedItem->subSatuan3->id, 'name' => $selectedItem->subSatuan3->nama, 'is_primary' => false, 'conversion' => $selectedItem->sub_satuan_3_nilai ?? 1];
+                }
+            } elseif($tipe == 'product') {
+                $units = [
+                    ['id' => $selectedItem->satuan->id, 'name' => $selectedItem->satuan->nama, 'is_primary' => true, 'conversion' => 1]
+                ];
+            } elseif($tipe == 'bahan_pendukung') {
+                $units = [
+                    ['id' => $selectedItem->satuanRelation->id, 'name' => $selectedItem->satuanRelation->nama, 'is_primary' => true, 'conversion' => 1]
+                ];
+                if($selectedItem->subSatuan1) {
+                    $units[] = ['id' => $selectedItem->subSatuan1->id, 'name' => $selectedItem->subSatuan1->nama, 'is_primary' => false, 'conversion' => $selectedItem->sub_satuan_1_nilai ?? 1];
+                }
+                if($selectedItem->subSatuan2) {
+                    $units[] = ['id' => $selectedItem->subSatuan2->id, 'name' => $selectedItem->subSatuan2->nama, 'is_primary' => false, 'conversion' => $selectedItem->sub_satuan_2_nilai ?? 1];
+                }
+                if($selectedItem->subSatuan3) {
+                    $units[] = ['id' => $selectedItem->subSatuan3->id, 'name' => $selectedItem->subSatuan3->nama, 'is_primary' => false, 'conversion' => $selectedItem->sub_satuan_3_nilai ?? 1];
+                }
+            }
+        }
+
+        // Filter by selected unit if specified
+        $selectedUnit = $satuanId;
+        $showAllUnits = empty($selectedUnit);
+
+        // Get stock movements for selected item - SIMPLIFIED VERSION
         $stockData = [];
-        
-        // Process Bahan Baku
-        foreach ($materials as $material) {
-            $materialMovements = $allMovements->where('item_type', 'bahan_baku')->where('item_id', $material->id);
-            $stockIn = $materialMovements->where('direction', 'in')->sum('qty');
-            $stockOut = $materialMovements->where('direction', 'out')->sum('qty');
-            $currentStock = $stockIn - $stockOut;
-            
-            $stockData['bahan_baku'][] = [
-                'item' => $material,
-                'movements' => $materialMovements,
-                'current_stock' => $currentStock,
-                'stock_in' => $stockIn,
-                'stock_out' => $stockOut
-            ];
-        }
-        
-        // Process Bahan Pendukung
-        foreach ($bahanPendukungs as $bahanPendukung) {
-            $pendukungMovements = $allMovements->where('item_type', 'bahan_pendukung')->where('item_id', $bahanPendukung->id);
-            $stockIn = $pendukungMovements->where('direction', 'in')->sum('qty');
-            $stockOut = $pendukungMovements->where('direction', 'out')->sum('qty');
-            $currentStock = $stockIn - $stockOut;
-            
-            $stockData['bahan_pendukung'][] = [
-                'item' => $bahanPendukung,
-                'movements' => $pendukungMovements,
-                'current_stock' => $currentStock,
-                'stock_in' => $stockIn,
-                'stock_out' => $stockOut
-            ];
-        }
-        
-        // Process Produk
-        foreach ($products as $product) {
-            $productMovements = $allMovements->where('item_type', 'produk')->where('item_id', $product->id);
-            $stockIn = $productMovements->where('direction', 'in')->sum('qty');
-            $stockOut = $productMovements->where('direction', 'out')->sum('qty');
-            $currentStock = $stockIn - $stockOut;
-            
-            $stockData['produk'][] = [
-                'item' => $product,
-                'movements' => $productMovements,
-                'current_stock' => $currentStock,
-                'stock_in' => $stockIn,
-                'stock_out' => $stockOut
-            ];
+        foreach($units as $unit) {
+            if($showAllUnits || $selectedUnit == $unit['id']) {
+                // Get actual stock movements from database
+                $itemType = $tipe == 'bahan_pendukung' ? 'support' : $tipe;
+                $movements = \App\Models\StockMovement::where('item_type', $itemType)
+                    ->where('item_id', $itemId)
+                    ->orderBy('tanggal', 'asc')
+                    ->get();
+                
+                $dailyStock = [];
+                $runningQty = 0;
+                $runningValue = 0;
+                
+                foreach($movements as $movement) {
+                    // Calculate running balance
+                    if($movement->direction === 'in') {
+                        $runningQty += $movement->qty;
+                        $runningValue += $movement->total_cost ?? 0;
+                    } else {
+                        $runningQty -= $movement->qty;
+                        $runningValue -= $movement->total_cost ?? 0;
+                    }
+                    
+                    // Convert to selected unit
+                    $convertedQty = $runningQty * $unit['conversion'];
+                    $unitPrice = $runningQty > 0 ? $runningValue / $runningQty : 0;
+                    $convertedPrice = $unit['conversion'] > 0 ? $unitPrice / $unit['conversion'] : $unitPrice;
+                    
+                    // Determine transaction type and amounts
+                    $saldoAwalQty = 0;
+                    $saldoAwalHarga = 0;
+                    $saldoAwalTotal = 0;
+                    $pembelianQty = 0;
+                    $pembelianHarga = 0;
+                    $pembelianTotal = 0;
+                    $produksiQty = 0;
+                    $produksiHarga = 0;
+                    $produksiTotal = 0;
+                    
+                    if($movement->ref_type === 'initial_stock') {
+                        $saldoAwalQty = $movement->qty * $unit['conversion'];
+                        $saldoAwalHarga = $unit['conversion'] > 0 ? ($movement->unit_cost ?? 0) / $unit['conversion'] : ($movement->unit_cost ?? 0);
+                        $saldoAwalTotal = $movement->total_cost ?? 0;
+                    } elseif($movement->ref_type === 'purchase' && $movement->direction === 'in') {
+                        $pembelianQty = $movement->qty * $unit['conversion'];
+                        $pembelianHarga = $unit['conversion'] > 0 ? ($movement->unit_cost ?? 0) / $unit['conversion'] : ($movement->unit_cost ?? 0);
+                        $pembelianTotal = $movement->total_cost ?? 0;
+                    } elseif($movement->ref_type === 'retur' && $movement->direction === 'out') {
+                        // RETUR PEMBELIAN - tampilkan di kolom pembelian dengan tanda minus
+                        $pembelianQty = -($movement->qty * $unit['conversion']); // Negatif untuk retur
+                        $pembelianHarga = $unit['conversion'] > 0 ? ($movement->unit_cost ?? 0) / $unit['conversion'] : ($movement->unit_cost ?? 0);
+                        $pembelianTotal = -($movement->total_cost ?? 0); // Negatif untuk retur
+                    } elseif($movement->ref_type === 'production' && $movement->direction === 'out') {
+                        $produksiQty = $movement->qty * $unit['conversion'];
+                        $produksiHarga = $unit['conversion'] > 0 ? ($movement->unit_cost ?? 0) / $unit['conversion'] : ($movement->unit_cost ?? 0);
+                        $produksiTotal = $movement->total_cost ?? 0;
+                    }
+                    
+                    $dailyStock[] = [
+                        'tanggal' => \Carbon\Carbon::parse($movement->tanggal)->format('d/m/Y'),
+                        'ref_type' => $movement->ref_type,
+                        'saldo_awal_qty' => $saldoAwalQty,
+                        'saldo_awal_harga' => $saldoAwalHarga,
+                        'saldo_awal_total' => $saldoAwalTotal,
+                        'pembelian_qty' => $pembelianQty,
+                        'pembelian_harga' => $pembelianHarga,
+                        'pembelian_total' => $pembelianTotal,
+                        'penjualan_qty' => 0, // For now, focus on materials
+                        'penjualan_harga' => 0,
+                        'penjualan_total' => 0,
+                        'produksi_qty' => $produksiQty,
+                        'produksi_harga' => $produksiHarga,
+                        'produksi_total' => $produksiTotal,
+                        'saldo_akhir_qty' => $convertedQty,
+                        'saldo_akhir_harga' => $convertedPrice,
+                        'saldo_akhir_total' => $runningValue,
+                    ];
+                }
+                
+                // If no movements, show current stock as initial
+                if(empty($dailyStock)) {
+                    $currentQty = $selectedItem->stok ?? 0;
+                    $currentPrice = $selectedItem->harga_satuan ?? 0;
+                    $convertedQty = $currentQty * $unit['conversion'];
+                    $convertedPrice = $unit['conversion'] > 0 ? $currentPrice / $unit['conversion'] : $currentPrice;
+                    
+                    $dailyStock = [[
+                        'tanggal' => '01/04/2026',
+                        'ref_type' => 'initial_stock',
+                        'saldo_awal_qty' => $convertedQty,
+                        'saldo_awal_harga' => $convertedPrice,
+                        'saldo_awal_total' => $currentQty * $currentPrice,
+                        'pembelian_qty' => 0,
+                        'pembelian_harga' => 0,
+                        'pembelian_total' => 0,
+                        'penjualan_qty' => 0,
+                        'penjualan_harga' => 0,
+                        'penjualan_total' => 0,
+                        'produksi_qty' => 0,
+                        'produksi_harga' => 0,
+                        'produksi_total' => 0,
+                        'saldo_akhir_qty' => $convertedQty,
+                        'saldo_akhir_harga' => $convertedPrice,
+                        'saldo_akhir_total' => $currentQty * $currentPrice,
+                    ]];
+                }
+                
+                $stockData[] = [
+                    'unit' => $unit,
+                    'itemName' => $itemName,
+                    'dailyStock' => $dailyStock
+                ];
+            }
         }
 
-        // Calculate summary totals
+        // Calculate summary for selected item
+        $totalMovements = \App\Models\StockMovement::where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe)
+            ->where('item_id', $itemId)
+            ->count();
+            
         $summary = [
-            'total_bahan_baku_items' => count($stockData['bahan_baku'] ?? []),
-            'total_bahan_pendukung_items' => count($stockData['bahan_pendukung'] ?? []),
-            'total_produk_items' => count($stockData['produk'] ?? []),
-            'total_bahan_baku_stock' => array_sum(array_column($stockData['bahan_baku'] ?? [], 'current_stock')),
-            'total_bahan_pendukung_stock' => array_sum(array_column($stockData['bahan_pendukung'] ?? [], 'current_stock')),
-            'total_produk_stock' => array_sum(array_column($stockData['produk'] ?? [], 'current_stock')),
-            'total_all_movements' => $allMovements->count()
+            'item_name' => $itemName,
+            'item_type' => $tipe,
+            'total_units' => count($stockData),
+            'total_movements' => $totalMovements
         ];
 
-        $pdf = PDF::loadView('laporan.stok.export', compact(
+        $pdf = PDF::loadView('laporan.stok.export-single', compact(
             'stockData',
-            'materials', 
-            'products', 
-            'bahanPendukungs',
-            'allMovements',
+            'selectedItem',
             'summary'
         ));
         
-        return $pdf->download('laporan-stok-komplit-' . date('Y-m-d') . '.pdf');
+        return $pdf->download('laporan-stok-' . str_replace(' ', '-', strtolower($itemName)) . '-' . date('Y-m-d') . '.pdf');
     }
     
     // === EKSPOR LAPORAN PEMBELIAN ===

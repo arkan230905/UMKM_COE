@@ -52,6 +52,9 @@ class KonversiProduksiService
                 $this->createKonversiUntukBahan($produksi, $group);
             }
 
+            // Catat stock movement untuk produksi
+            $this->createProductionStockMovement($produksi);
+
             DB::commit();
             
             Log::info('Konversi produksi berhasil disimpan', [
@@ -280,5 +283,56 @@ class KonversiProduksiService
             ->update(['is_active' => false]);
             
         Log::info('Konversi bahan baku direset', ['bahan_baku_id' => $bahanBakuId]);
+    }
+
+    /**
+     * Create stock movement entry for production
+     */
+    private function createProductionStockMovement(Produksi $produksi)
+    {
+        try {
+            $tanggal = $produksi->tanggal;
+            
+            // Get all bahan baku used in this production
+            $produksiDetails = $produksi->details;
+            
+            foreach ($produksiDetails as $detail) {
+                $bahanBaku = BahanBaku::find($detail->bahan_baku_id);
+                
+                if ($bahanBaku) {
+                    // Get conversion factor
+                    $konversi = $bahanBaku->getActiveKonversi($bahanBaku->satuan, 'potong');
+                    $faktorKonversi = $konversi ? $konversi->faktor_konversi : 1;
+                    
+                    // Convert quantity to primary unit
+                    $qtyInPrimaryUnit = $detail->qty_resep;
+                    
+                    // Create stock movement for production usage (OUT)
+                    StockMovement::create([
+                        'item_type' => 'material',
+                        'item_id' => $bahanBaku->id,
+                        'tanggal' => $tanggal,
+                        'direction' => 'out', // Production reduces stock
+                        'qty' => $qtyInPrimaryUnit, // Positive quantity for OUT direction
+                        'ref_type' => 'production', // Production reference type
+                        'ref_id' => $produksi->id,
+                        'keterangan' => 'Pemakaian Produksi - ' . $produksi->kode_produksi,
+                        'unit_cost' => $bahanBaku->getHargaRataRataSaatIni(),
+                        'total_cost' => $qtyInPrimaryUnit * $bahanBaku->getHargaRataRataSaatIni()
+                    ]);
+                }
+            }
+            
+            Log::info('Production stock movement created', [
+                'produksi_id' => $produksi->id,
+                'total_items' => $produksiDetails->count()
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to create production stock movement', [
+                'produksi_id' => $produksi->id,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 }
