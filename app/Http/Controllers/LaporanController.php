@@ -1120,48 +1120,26 @@ class LaporanController extends Controller
         $penjualan = $query->get();
         $total = $penjualan->sum('total');
         
-        $filename = 'laporan-penjualan-' . now()->format('Y-m-d') . '.xlsx';
+        // Calculate totals for summary
+        $totalPenjualanFiltered = $total;
+        $totalPenjualanTunai = $penjualan->where('payment_method', 'cash')->sum('total');
+        $totalPenjualanKredit = $penjualan->where('payment_method', 'credit')->sum('total');
         
-        return response()->streamDownload(function() use ($penjualan, $total) {
-            $handle = fopen('php://output', 'w');
-            
-            // Header
-            fputcsv($handle, [
-                'No', 'No. Transaksi', 'Tanggal', 'Produk', 
-                'Pembayaran', 'Total (Rp)'
-            ]);
-            
-            // Data
-            foreach ($penjualan as $index => $item) {
-                $produk = '';
-                if ($item->details && $item->details->count() > 0) {
-                    $produk = $item->details->map(function($d) {
-                        return $d->produk->nama_produk ?? 'Produk';
-                    })->implode(', ');
-                } else {
-                    $produk = $item->produk->nama_produk ?? '-';
-                }
-                
-                $payment = $item->payment_method === 'cash' ? 'Tunai' : ($item->payment_method === 'transfer' ? 'Transfer' : 'Kredit');
-                
-                fputcsv($handle, [
-                    $index + 1,
-                    $item->nomor_penjualan ?? '-',
-                    $item->tanggal->format('d/m/Y'),
-                    $produk,
-                    $payment,
-                    number_format($item->total, 0, ',', '.')
-                ]);
-            }
-            
-            // Total
-            fputcsv($handle, ['', '', '', '', 'TOTAL', number_format($total, 0, ',', '.')]);
-            
-            fclose($handle);
-        }, $filename, [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ]);
+        $filename = 'laporan-penjualan-' . now()->format('Y-m-d') . '.pdf';
+        
+        $data = [
+            'penjualan' => $penjualan,
+            'totalPenjualanFiltered' => $totalPenjualanFiltered,
+            'totalPenjualanTunai' => $totalPenjualanTunai,
+            'totalPenjualanKredit' => $totalPenjualanKredit,
+            'startDate' => $request->start_date,
+            'endDate' => $request->end_date,
+            'paymentMethod' => $request->payment_method,
+        ];
+        
+        $pdf = PDF::loadView('laporan.penjualan.export-pdf', $data);
+        
+        return $pdf->download($filename);
     }
     
     // Helper method untuk query pembelian
