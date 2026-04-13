@@ -938,21 +938,21 @@ class BopController extends Controller
         try {
             $bebanOperasional = BebanOperasional::findOrFail($id);
             
-            // TODO: Add validation for usage in transactions
-            // For now, allow delete but in production should check if used in transactions
-            // if ($bebanOperasional->transaksiPembayaran()->count() > 0) {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'Data tidak bisa dihapus karena sudah digunakan pada transaksi pembayaran beban.'
-            //     ], 422);
-            // }
+            // Check if data is used in transactions
+            $usageCount = \App\Models\PembayaranBeban::where('beban_operasional_id', $id)->count();
+            if ($usageCount > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data tidak bisa dihapus karena sudah digunakan pada ' . $usageCount . ' transaksi pembayaran beban.'
+                ], 422);
+            }
             
-            // Soft delete by setting status to nonaktif instead of hard delete
-            $bebanOperasional->update(['status' => 'nonaktif']);
+            // Hard delete the record
+            $bebanOperasional->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Master Beban Operasional berhasil dinonaktifkan'
+                'message' => 'Master Beban Operasional berhasil dihapus'
             ]);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

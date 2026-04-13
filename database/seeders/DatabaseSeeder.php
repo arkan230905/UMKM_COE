@@ -23,7 +23,8 @@ class DatabaseSeeder extends Seeder
         // Kemudian jalankan seeder lainnya
         $this->call([
             AccountsTableSeeder::class,
-            CoaMasterDataSeeder::class, // Add the new COA master data seeder
+            CurrentCoaSeeder::class, // COA seeder from current data (2026-04-13)
+            // CoaMasterDataSeeder::class, // Replaced by CurrentCoaSeeder
             // CoaSeeder::class, // Disabled: COA harus kosong saat owner daftar
             PegawaiSeeder::class,
             PegawaiDataSeeder::class, // Add PegawaiDataSeeder for specific employee data

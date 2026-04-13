@@ -1122,8 +1122,8 @@ class LaporanController extends Controller
     // Helper method untuk query penjualan
     private function getPenjualanQuery(Request $request)
     {
-        $query = Penjualan::with(['produk', 'details.produk'])
-            ->orderBy('tanggal', 'desc');
+        $query = Penjualan::with(['produk','details','returs'])
+            ->orderBy('tanggal', 'desc')->orderBy('id', 'desc');
             
         // Filter berdasarkan tanggal
         if ($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date) {
@@ -1215,10 +1215,10 @@ class LaporanController extends Controller
         
         foreach ($bebanOperasional as $beban) {
             // Get actual payments for this beban in the selected period
-            $aktual = \App\Models\ExpensePayment::where('beban_operasional_id', $beban->id)
+            $aktual = \App\Models\PembayaranBeban::where('beban_operasional_id', $beban->id)
                 ->whereYear('tanggal', $selectedMonth->year)
                 ->whereMonth('tanggal', $selectedMonth->month)
-                ->sum('nominal_pembayaran');
+                ->sum('jumlah');
             
             $budget = $beban->budget_bulanan ?? 0;
             $selisih = $budget - $aktual;

@@ -144,7 +144,7 @@ class AkuntansiController extends Controller
             ]);
 
             // Create journal using observer
-            $observer = new \App\Observers\PembelianObserver();
+            $observer = app(\App\Observers\PembelianObserver::class);
             $observer->created($pembelian);
 
             \Log::info('Auto-generated journal for purchase', [
@@ -444,16 +444,20 @@ class AkuntansiController extends Controller
 
         // Get accounts by category - hanya pendapatan usaha
         $revenue = \App\Models\Coa::where('tipe_akun','Revenue')
-                                  ->where('kategori_akun', 'Pendapatan Usaha')
+                                  ->where('kategori_akun', 'Pendapatan')
                                   ->get();
         
         // Get HPP accounts from COA (16xx accounts)
         $hppAccounts = \App\Models\Coa::where('tipe_akun','Expense')
-                                      ->where('kode_akun', 'LIKE', '16%') // HPP accounts
+                                      ->where(function($query) {
+                    $query->where('kode_akun', 'LIKE', '16%')
+                           ->orWhere('kode_akun', '161');
+                }) // HPP accounts
                                       ->get();
         
         $expense = \App\Models\Coa::where('tipe_akun','Expense')
-                                  ->where('kode_akun', 'NOT LIKE', '16%') // Non-HPP expenses
+                                  ->where('kode_akun', 'NOT LIKE', '16%')
+                          ->where('kode_akun', '!=', '52') // Non-HPP expenses
                                   ->get();
         
         $sum = function($coas) use ($from,$to) {
@@ -514,18 +518,36 @@ class AkuntansiController extends Controller
         };
         
         // Group accounts by category based on COA fields - NO DUPLICATES
-        $asetLancar = $allCoa->filter(function($coa) {
-            // Aset Lancar: kategori contains "Aset Lancar" or "Kas & Bank" 
-            // OR specific account types that are clearly current assets
-            return (stripos($coa->kategori_akun, 'Aset Lancar') !== false || 
-                   stripos($coa->kategori_akun, 'Kas & Bank') !== false ||
-                   stripos($coa->nama_akun, 'Kas') !== false ||
-                   stripos($coa->nama_akun, 'Bank') !== false ||
-                   stripos($coa->nama_akun, 'Persediaan') !== false ||
-                   stripos($coa->nama_akun, 'Piutang') !== false ||
-                   stripos($coa->nama_akun, 'PPN Masukan') !== false ||
-                   stripos($coa->nama_akun, 'Biaya Dibayar Dimuka') !== false) &&
-                   in_array($coa->tipe_akun, ['Asset', 'asset']);
+                $asetLancar = $allCoa->filter(function($coa) {
+            // Aset Lancar: All current assets including inventory, cash, receivables, etc.
+            return in_array($coa->tipe_akun, ['Asset', 'asset']) && (
+                // Kas & Bank accounts
+                stripos($coa->kategori_akun, 'Aset Lancar') !== false || 
+                stripos($coa->kategori_akun, 'Kas & Bank') !== false ||
+                stripos($coa->nama_akun, 'Kas') !== false ||
+                stripos($coa->nama_akun, 'Bank') !== false ||
+                
+                // Inventory accounts (Persediaan)
+                stripos($coa->nama_akun, 'Persediaan') !== false ||
+                stripos($coa->nama_akun, 'Pers.') !== false ||
+                stripos($coa->nama_akun, 'Barang Jadi') !== false ||
+                stripos($coa->nama_akun, 'Barang dalam Proses') !== false ||
+                stripos($coa->nama_akun, 'Bahan Baku') !== false ||
+                stripos($coa->nama_akun, 'Bahan Pendukung') !== false ||
+                
+                // Receivables and prepaid
+                stripos($coa->nama_akun, 'Piutang') !== false ||
+                stripos($coa->nama_akun, 'PPN Masukan') !== false ||
+                stripos($coa->nama_akun, 'Biaya Dibayar Dimuka') !== false ||
+                
+                // Exclude fixed assets
+                !(stripos($coa->nama_akun, 'Peralatan') !== false ||
+                  stripos($coa->nama_akun, 'Mesin') !== false ||
+                  stripos($coa->nama_akun, 'Kendaraan') !== false ||
+                  stripos($coa->nama_akun, 'Gedung') !== false ||
+                  stripos($coa->nama_akun, 'Tanah') !== false ||
+                  stripos($coa->nama_akun, 'Akumulasi Penyusutan') !== false)
+            );
         });
         
         $asetTidakLancar = $allCoa->filter(function($coa) {
@@ -619,12 +641,16 @@ class AkuntansiController extends Controller
         // Add current period P&L to equity (since we don't have closing entries)
         $currentPeriodPL = 0;
         
-        // Calculate revenue (credit balance)
+        // Calculate P&L from beginning of fiscal year (not just current month)
+        // Get the current fiscal year start date
+        $fiscalYearStart = now()->startOfYear()->format('Y-m-d');
+        
+        // Calculate revenue (credit balance) - from fiscal year start
         $revenueAccounts = \App\Models\Coa::where('tipe_akun', 'Revenue')->get();
         foreach ($revenueAccounts as $coa) {
             $journalLines = \App\Models\JournalLine::where('coa_id', $coa->id)
-                ->whereHas('entry', function($q) use ($periode) {
-                    $q->whereDate('tanggal', '<=', $periode . '-31');
+                ->whereHas('entry', function($q) use ($fiscalYearStart, $periode) {
+                    $q->whereBetween('tanggal', [$fiscalYearStart, $periode . '-31']);
                 })->get();
             
             $debit = $journalLines->sum('debit');
@@ -632,12 +658,12 @@ class AkuntansiController extends Controller
             $currentPeriodPL += ($credit - $debit); // Revenue increases P&L
         }
         
-        // Calculate expense (debit balance)
+        // Calculate expense (debit balance) - from fiscal year start
         $expenseAccounts = \App\Models\Coa::where('tipe_akun', 'Expense')->get();
         foreach ($expenseAccounts as $coa) {
             $journalLines = \App\Models\JournalLine::where('coa_id', $coa->id)
-                ->whereHas('entry', function($q) use ($periode) {
-                    $q->whereDate('tanggal', '<=', $periode . '-31');
+                ->whereHas('entry', function($q) use ($fiscalYearStart, $periode) {
+                    $q->whereBetween('tanggal', [$fiscalYearStart, $periode . '-31']);
                 })->get();
             
             $debit = $journalLines->sum('debit');

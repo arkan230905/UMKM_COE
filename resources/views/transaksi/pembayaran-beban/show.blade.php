@@ -30,11 +30,11 @@
                     <table class="table table-bordered">
                         <tr>
                             <th width="30%">Tanggal</th>
-                            <td>{{ $pembayaran->tanggal->format('d/m/Y') }}</td>
+                            <td>{{ \Carbon\Carbon::parse($pembayaran->tanggal)->format('d/m/Y') }}</td>
                         </tr>
                         <tr>
                             <th>Beban Operasional</th>
-                            <td>{{ $pembayaran->nama_beban_operasional }}</td>
+                            <td>{{ $pembayaran->bebanOperasional->nama_beban ?? '-' }}</td>
                         </tr>
                         <tr>
                             <th>Akun Beban</th>
@@ -43,10 +43,6 @@
                         <tr>
                             <th>Akun Kas/Bank</th>
                             <td>{{ $pembayaran->coaKasBank->kode_akun }} - {{ $pembayaran->coaKasBank->nama_akun }}</td>
-                        </tr>
-                        <tr>
-                            <th>Metode Bayar</th>
-                            <td>{{ ucfirst($pembayaran->metode_bayar) }}</td>
                         </tr>
                         <tr>
                             <th>Nominal Pembayaran</th>

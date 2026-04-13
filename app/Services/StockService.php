@@ -286,17 +286,12 @@ class StockService
     }
 
     /**
-     * Estimate cost for a given quantity of product
+     * Estimate cost for items using FIFO from stock layers
      */
     public function estimateCost($itemType, $itemId, $qty)
     {
         try {
             if ($itemType === 'product') {
-                $product = \App\Models\Produk::find($itemId);
-                if (!$product) {
-                    return 0;
-                }
-
                 // Try to get cost from stock layers first
                 $totalCost = 0;
                 $remainingQty = $qty;
@@ -336,6 +331,66 @@ class StockService
             ]);
             return 0;
         }
+    }
+
+    /**
+     * Sync product stock to StockLayer - force sync even if exists
+     */
+    private function syncProductStockToLayer($productId)
+    {
+        $produk = \App\Models\Produk::find($productId);
+        if (!$produk) {
+            return;
+        }
+        
+        $currentStockLayer = StockLayer::where('item_type', 'product')
+            ->where('item_id', $productId)
+            ->sum('remaining_qty');
+            
+        $productStok = (float) $produk->stok;
+        
+        // Force sync if there's a difference
+        if (abs($currentStockLayer - $productStok) > 1e-9) {
+            // Calculate unit cost (estimate from selling price or use default)
+            $unitCost = 0;
+            if ($produk->harga_jual > 0) {
+                $unitCost = $produk->harga_jual / 1.3; // Estimate cost as 77% of selling price
+            } else {
+                // Fallback to BOM cost if available
+                $sumBom = (float) \App\Models\Bom::where('produk_id', $productId)->sum('total_biaya');
+                $btkl = (float) ($produk->btkl_default ?? 0);
+                $bop = (float) ($produk->bop_default ?? 0);
+                $unitCost = $sumBom + $btkl + $bop;
+            }
+            
+            // Delete existing layers and create new one
+            StockLayer::where('item_type', 'product')
+                ->where('item_id', $productId)
+                ->delete();
+                
+            if ($productStok > 0) {
+                StockLayer::create([
+                    'item_type' => 'product',
+                    'item_id' => $productId,
+                    'tanggal' => now()->subDays(30), // Set to past date for opening balance
+                    'remaining_qty' => $productStok,
+                    'satuan' => 'pcs',
+                    'unit_cost' => $unitCost,
+                    'ref_type' => 'opening_balance',
+                    'ref_id' => 0,
+                ]);
+            }
+            
+            \Log::info("Force-synced product #{$productId} stock to StockLayer: {$productStok} pcs (was {$currentStockLayer}), unit_cost: {$unitCost}");
+        }
+    }
+    
+    /**
+     * Public method to force sync product stock to StockLayer
+     */
+    public function forceSyncProductStock(int $productId): void
+    {
+        $this->syncProductStockToLayer($productId);
     }
 
     /**

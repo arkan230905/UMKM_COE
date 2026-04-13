@@ -309,30 +309,30 @@
                                                     // Use fallback data
                                                 }
                                             @endphp
-                                            <div class="company-name">{{ $dataPerusahaan->nama ?? 'TOKO ANDA' }}</div>
+                                            <div class="company-name">{{ strtoupper($dataPerusahaan->nama ?? 'MANUFAKTUR COE') }}</div>
                                             <div class="company-info">
-                                                {{ $dataPerusahaan->alamat ?? 'Alamat Toko' }}<br>
-                                                Telp: {{ $dataPerusahaan->telepon ?? '021-12345678' }}
+                                                {{ $dataPerusahaan->alamat ?? 'Jl. Kebon No. 123' }}<br>
+                                                Telp: {{ $dataPerusahaan->telepon ?? '0812-3456-7890' }}
                                             </div>
                                         </div>
                                         
                                         {{-- Info Transaksi --}}
                                         <div class="transaction-info">
                                             <div class="info-row">
-                                                <span>No. Transaksi:</span>
-                                                <span>{{ $penjualan->nomor_penjualan ?? 'PJ-' . str_pad($penjualan->id, 4, '0', STR_PAD_LEFT) }}</span>
+                                                <span>No. Transaksi</span>
+                                                <span>: {{ $penjualan->nomor_penjualan ?? 'SJ-' . date('Ymd') . '-' . str_pad($penjualan->id, 3, '0', STR_PAD_LEFT) }}</span>
                                             </div>
                                             <div class="info-row">
-                                                <span>Tanggal:</span>
-                                                <span>{{ optional($penjualan->tanggal)->format('d/m/Y H:i') ?? date('d/m/Y H:i') }}</span>
+                                                <span>Tanggal</span>
+                                                <span>: {{ optional($penjualan->tanggal)->format('d/m/Y H:i') ?? date('d/m/Y H:i') }}</span>
                                             </div>
                                             <div class="info-row">
-                                                <span>Kasir:</span>
-                                                <span>{{ auth()->user()->name ?? 'Admin' }}</span>
+                                                <span>Kasir</span>
+                                                <span>: {{ strtoupper(auth()->user()->name ?? 'TIM COE PROCESS COSTING') }}</span>
                                             </div>
                                         </div>
                                         
-                                        <div class="divider">================================</div>
+                                        <div class="divider">--------------------------------</div>
                                         
                                         {{-- Items --}}
                                         <div class="items-section">
@@ -344,7 +344,7 @@
                                                     <div class="item">
                                                         <div class="item-name">{{ $detail->produk->nama_produk ?? '-' }}</div>
                                                         <div class="item-detail">
-                                                            <span>{{ number_format($detail->jumlah, 0) }} x Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}</span>
+                                                            <span>{{ number_format($detail->jumlah, 0) }} x {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}</span>
                                                             <span>Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
                                                         </div>
                                                         @if(($detail->diskon_nominal ?? 0) > 0)
@@ -381,26 +381,31 @@
                                         {{-- Summary --}}
                                         <div class="summary-section">
                                             <div class="summary-row">
-                                                <span>Subtotal:</span>
+                                                <span>Subtotal</span>
                                                 <span>Rp {{ number_format($totalSubtotal, 0, ',', '.') }}</span>
                                             </div>
                                             @if($totalDiskon > 0)
                                                 <div class="summary-row">
-                                                    <span>Total Diskon:</span>
+                                                    <span>Total Diskon</span>
                                                     <span>-Rp {{ number_format($totalDiskon, 0, ',', '.') }}</span>
                                                 </div>
                                             @endif
+                                        </div>
+                                        
+                                        <div class="total-section">
                                             <div class="total-row">
                                                 <span>TOTAL:</span>
                                                 <span>Rp {{ number_format($penjualan->total, 0, ',', '.') }}</span>
                                             </div>
                                         </div>
                                         
+                                        <div class="divider">--------------------------------</div>
+                                        
                                         {{-- Payment Info --}}
                                         <div class="payment-info">
                                             <div class="info-row">
-                                                <span>Pembayaran:</span>
-                                                <span>
+                                                <span>Pembayaran</span>
+                                                <span>: 
                                                     @switch($penjualan->payment_method ?? 'cash')
                                                         @case('cash') Tunai @break
                                                         @case('transfer') Transfer Bank @break
@@ -411,11 +416,11 @@
                                             </div>
                                         </div>
                                         
+                                        <div class="divider">--------------------------------</div>
+                                        
                                         {{-- Footer --}}
                                         <div class="footer">
-                                            Terima kasih atas kunjungan Anda<br>
-                                            <br>
-                                            {{ date('d/m/Y H:i:s') }}
+                                            Terima kasih atas kunjungan Anda!<br>
                                         </div>
                                     </div>
                                 </div>
@@ -556,7 +561,6 @@
 }
 
 .summary-section {
-    border-top: 1px dashed #333;
     padding-top: 6px;
     margin-bottom: 8px;
 }
@@ -566,6 +570,10 @@
     justify-content: space-between;
     margin-bottom: 2px;
     font-size: 10px;
+}
+
+.total-section {
+    margin-bottom: 8px;
 }
 
 .total-row {
@@ -662,7 +670,6 @@ function printStruk() {
                     .struk-header {
                         text-align: center;
                         margin-bottom: 10px;
-                        border-bottom: 1px dashed #333;
                         padding-bottom: 8px;
                     }
                     
@@ -726,7 +733,6 @@ function printStruk() {
                     }
                     
                     .summary-section {
-                        border-top: 1px dashed #333;
                         padding-top: 6px;
                         margin-bottom: 8px;
                     }
@@ -736,6 +742,10 @@ function printStruk() {
                         justify-content: space-between;
                         margin-bottom: 2px;
                         font-size: 10px;
+                    }
+                    
+                    .total-section {
+                        margin-bottom: 8px;
                     }
                     
                     .total-row {
@@ -755,7 +765,6 @@ function printStruk() {
                     
                     .footer {
                         text-align: center;
-                        border-top: 1px dashed #333;
                         padding-top: 8px;
                         font-size: 8px;
                         color: #666;
