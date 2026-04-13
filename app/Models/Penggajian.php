@@ -15,6 +15,19 @@ class Penggajian extends Model
         parent::boot();
 
         static::creating(function ($penggajian) {
+            // Auto-generate nomor penggajian
+            if (empty($penggajian->nomor_penggajian)) {
+                $lastPenggajian = self::orderBy('id', 'desc')->first();
+                if ($lastPenggajian) {
+                    // Extract number from last nomor (e.g., PGJ000001 -> 1)
+                    $lastNumber = (int) substr($lastPenggajian->nomor_penggajian, 3);
+                    $nextNumber = $lastNumber + 1;
+                } else {
+                    $nextNumber = 1;
+                }
+                $penggajian->nomor_penggajian = 'PGJ' . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+            }
+
             if (empty($penggajian->status_pembayaran)) {
                 $penggajian->status_pembayaran = 'belum_lunas';
             }
@@ -22,6 +35,7 @@ class Penggajian extends Model
     }
 
     protected $fillable = [
+        'nomor_penggajian',
         'pegawai_id',
         'tanggal_penggajian',
         'coa_kasbank',

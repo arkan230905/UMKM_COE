@@ -567,6 +567,17 @@ ul.nav {
     justify-content: center !important;
 }
 
+/* Specific override for tambah-satuan-btn */
+#tambah-satuan-btn {
+    background-color: #8B735C !important;
+    color: white !important;
+    border: none !important;
+}
+#tambah-satuan-btn:hover {
+    background-color: #A68D73 !important;
+    color: white !important;
+}
+
 .btn-primary:hover {
     background-color: var(--secondary-gold) !important;
     transform: translateY(-2px) !important;

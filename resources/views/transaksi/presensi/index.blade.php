@@ -358,13 +358,6 @@ a:active {
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success fade show alert-custom" role="alert">
-            <i class="fas fa-check-circle me-2"></i>
-            {{ session('success') }}
-        </div>
-    @endif
-
     <!-- Card dengan desain modern -->
     <div class="card">
         <div class="card-header py-3">
@@ -413,7 +406,7 @@ a:active {
             <div class="row mb-3">
                 <div class="col-12 text-end">
                     <a href="{{ route('transaksi.presensi.cetak', ['date_filter' => $dateFilter ?? '', 'search' => $search ?? '']) }}"
-                       target="_blank" class="btn btn-success">
+                       target="_blank" class="btn" style="background: #8B735C !important; color: white !important; border: none !important; border-radius: 25px !important; padding: 0.6rem 1.5rem !important; font-weight: 600 !important; box-shadow: 0 4px 15px rgba(0,0,0,0.15) !important;">
                         <i class="fas fa-print"></i> Cetak Laporan
                     </a>
                 </div>

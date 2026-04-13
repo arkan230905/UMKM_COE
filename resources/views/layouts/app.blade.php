@@ -24,6 +24,15 @@
             position: fixed !important;
             z-index: 9999;
         }
+        #tambah-satuan-btn {
+            background-color: #8B735C !important;
+            color: white !important;
+            border: none !important;
+        }
+        #tambah-satuan-btn:hover {
+            background-color: #A68D73 !important;
+            color: white !important;
+        }
         .alert-success {
             background-color: #28a745;
             border-color: #28a745;

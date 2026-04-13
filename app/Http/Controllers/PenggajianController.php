@@ -49,7 +49,7 @@ class PenggajianController extends Controller
             $query->where('status_pembayaran', $request->status_pembayaran);
         }
 
-        $penggajians = $query->latest()->get();
+        $penggajians = $query->orderBy('nomor_penggajian', 'asc')->get();
         return view('transaksi.penggajian.index', compact('penggajians'));
     }
 

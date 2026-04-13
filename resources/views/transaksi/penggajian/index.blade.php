@@ -132,24 +132,9 @@
                                 <td class="text-end">Rp {{ number_format($gajiPokok, 0, ',', '.') }}</td>
                                 <td class="text-end">Rp {{ number_format($insentif, 0, ',', '.') }}</td>
                                 <td class="text-center">
-                                    <div class="d-flex gap-1 justify-content-center">
-                                        <a href="{{ route('transaksi.penggajian.show', $gaji->id) }}" class="btn btn-outline-info btn-sm" title="Detail">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        @if($gaji->status_pembayaran !== 'lunas')
-                                            <form action="{{ route('transaksi.penggajian.destroy', $gaji->id) }}" method="POST" class="m-0">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Hapus" onclick="return confirm('Yakin ingin menghapus data penggajian ini?');">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        @else
-                                            <button class="btn btn-outline-secondary btn-sm" disabled title="Tidak dapat dihapus karena sudah dibayar">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        @endif
-                                    </div>
+                                    <a href="{{ route('transaksi.penggajian.show', $gaji->id) }}" class="btn btn-outline-info btn-sm" title="Detail">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
                                 </td>
                             </tr>
                         @empty
@@ -168,4 +153,3 @@
 </div>
 
 @endsection
-
