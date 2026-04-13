@@ -286,9 +286,57 @@ class StockService
     }
 
     /**
-     * Sync product stock to StockLayer - force sync even if exists
+     * Estimate cost for items using FIFO from stock layers
      */
     public function estimateCost($itemType, $itemId, $qty)
+    {
+        try {
+            if ($itemType === 'product') {
+                // Try to get cost from stock layers first
+                $totalCost = 0;
+                $remainingQty = $qty;
+
+                // Get stock layers ordered by date (FIFO)
+                $layers = \App\Models\StockLayer::where('item_type', 'product')
+                    ->where('item_id', $itemId)
+                    ->where('remaining_qty', '>', 0)
+                    ->orderBy('tanggal', 'asc')
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                foreach ($layers as $layer) {
+                    if ($remainingQty <= 0) break;
+
+                    $useQty = min($layer->remaining_qty, $remainingQty);
+                    $totalCost += $useQty * $layer->unit_cost;
+                    $remainingQty -= $useQty;
+                }
+
+                // If we still need more quantity, use BOM cost
+                if ($remainingQty > 0) {
+                    $bomCost = $this->calculateBOMCost($itemId);
+                    $totalCost += $remainingQty * $bomCost;
+                }
+
+                return $totalCost;
+            }
+
+            return 0;
+        } catch (\Exception $e) {
+            Log::error('Error estimating cost', [
+                'item_type' => $itemType,
+                'item_id' => $itemId,
+                'qty' => $qty,
+                'error' => $e->getMessage()
+            ]);
+            return 0;
+        }
+    }
+
+    /**
+     * Sync product stock to StockLayer - force sync even if exists
+     */
+    private function syncProductStockToLayer($productId)
     {
         $produk = \App\Models\Produk::find($productId);
         if (!$produk) {
@@ -343,47 +391,6 @@ class StockService
     public function forceSyncProductStock(int $productId): void
     {
         $this->syncProductStockToLayer($productId);
-    }
-
-                // Try to get cost from stock layers first
-                $totalCost = 0;
-                $remainingQty = $qty;
-
-                // Get stock layers ordered by date (FIFO)
-                $layers = \App\Models\StockLayer::where('item_type', 'product')
-                    ->where('item_id', $itemId)
-                    ->where('remaining_qty', '>', 0)
-                    ->orderBy('tanggal', 'asc')
-                    ->orderBy('id', 'asc')
-                    ->get();
-
-                foreach ($layers as $layer) {
-                    if ($remainingQty <= 0) break;
-
-                    $useQty = min($layer->remaining_qty, $remainingQty);
-                    $totalCost += $useQty * $layer->unit_cost;
-                    $remainingQty -= $useQty;
-                }
-
-                // If we still need more quantity, use BOM cost
-                if ($remainingQty > 0) {
-                    $bomCost = $this->calculateBOMCost($itemId);
-                    $totalCost += $remainingQty * $bomCost;
-                }
-
-                return $totalCost;
-            }
-
-            return 0;
-        } catch (\Exception $e) {
-            Log::error('Error estimating cost', [
-                'item_type' => $itemType,
-                'item_id' => $itemId,
-                'qty' => $qty,
-                'error' => $e->getMessage()
-            ]);
-            return 0;
-        }
     }
 
     /**
