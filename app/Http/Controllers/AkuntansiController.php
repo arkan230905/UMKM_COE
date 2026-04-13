@@ -144,7 +144,7 @@ class AkuntansiController extends Controller
             ]);
 
             // Create journal using observer
-            $observer = new \App\Observers\PembelianObserver();
+            $observer = app(\App\Observers\PembelianObserver::class);
             $observer->created($pembelian);
 
             \Log::info('Auto-generated journal for purchase', [

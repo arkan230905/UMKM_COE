@@ -92,17 +92,36 @@
                                             
                                             <!-- Dynamic Action Button Based on Status -->
                                             @if($retur->action_button)
-                                                <form method="POST" action="{{ route('transaksi.retur-pembelian.update-status', $retur->id) }}" 
-                                                      style="display: inline-block;">
-                                                    @csrf
-                                                    @method('PUT')
-                                                    <button type="submit" 
-                                                            class="btn btn-sm {{ $retur->action_button['class'] }}" 
-                                                            title="{{ $retur->action_button['text'] }}"
-                                                            onclick="return confirm('Yakin ingin mengubah status ke {{ $retur->status_badge['text'] }}?')">
+                                                @php
+                                                    // Determine the correct route based on current status
+                                                    $actionRoute = '';
+                                                    $confirmMessage = '';
+                                                    
+                                                    if ($retur->status === 'pending') {
+                                                        $actionRoute = route('transaksi.retur-pembelian.acc', $retur->id);
+                                                        $confirmMessage = 'Yakin ingin menyetujui retur ini?';
+                                                    } elseif ($retur->status === 'disetujui') {
+                                                        $actionRoute = route('transaksi.retur-pembelian.kirim', $retur->id);
+                                                        $confirmMessage = 'Yakin ingin mengirim barang retur ke vendor?';
+                                                    } elseif ($retur->status === 'dikirim') {
+                                                        if ($retur->jenis_retur === 'tukar_barang') {
+                                                            $actionRoute = route('transaksi.retur-pembelian.terimaBarang', $retur->id);
+                                                            $confirmMessage = 'Yakin sudah menerima barang pengganti dari vendor?';
+                                                        } else {
+                                                            $actionRoute = route('transaksi.retur-pembelian.terimaRefund', $retur->id);
+                                                            $confirmMessage = 'Yakin sudah menerima refund dari vendor?';
+                                                        }
+                                                    }
+                                                @endphp
+                                                
+                                                @if($actionRoute)
+                                                    <a href="{{ $actionRoute }}" 
+                                                       class="btn btn-sm {{ $retur->action_button['class'] }}" 
+                                                       title="{{ $retur->action_button['text'] }}"
+                                                       onclick="return confirm('{{ $confirmMessage }}')">
                                                         <i class="fas fa-arrow-right me-1"></i>{{ $retur->action_button['text'] }}
-                                                    </button>
-                                                </form>
+                                                    </a>
+                                                @endif
                                             @endif
                                         </div>
                                     </td>
