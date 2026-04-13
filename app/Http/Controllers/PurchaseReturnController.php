@@ -120,8 +120,7 @@ class PurchaseReturnController extends Controller
             $return->total_return_amount = $total;
             $return->save();
 
-            return redirect()
-                ->route('transaksi.purchase-returns.show', $return->id)
+            return redirect('/transaksi/pembelian?tab=retur')
                 ->with('success', 'Retur pembelian berhasil dibuat dengan status pending.');
         });
     }
