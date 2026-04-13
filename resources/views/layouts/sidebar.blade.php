@@ -57,7 +57,22 @@
                         <span>Rekap Harian</span>
                     </a>
                 </li>
-                
+
+                <!-- Penggajian Section -->
+                <li class="nav-item">
+                    <div class="nav-section-header-rounded">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>PENGAJIAN</span>
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link-rounded {{ request()->is('pegawai/slip-gaji*') ? 'active' : '' }}" href="{{ route('pegawai.slip-gaji.index') }}">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <span>Slip Gaji</span>
+                    </a>
+                </li>
+
                 <!-- Logout -->
                 <li class="nav-item mt-4">
                     <form method="POST" action="{{ route('logout') }}">
@@ -230,7 +245,7 @@
                 </div>
             </li>
             <li class="nav-item">
-                <a class="nav-link-rounded {{ request()->is('laporan/pembelian*') ? 'active' : '' }}" href="{{ route('laporan.pembelian') }}">
+                <a class="nav-link-rounded {{ request()->is('laporan/pembelian*') ? 'active' : '' }}" href="{{ route('laporan.pembelian.index') }}">
                     <i class="fas fa-shopping-cart"></i>
                     <span>Laporan Pembelian</span>
                 </a>
@@ -245,12 +260,6 @@
                 <a class="nav-link-rounded {{ request()->is('laporan/penjualan*') ? 'active' : '' }}" href="{{ route('laporan.penjualan') }}">
                     <i class="fas fa-shopping-bag"></i>
                     <span>Laporan Penjualan</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link-rounded {{ request()->is('laporan/retur*') ? 'active' : '' }}" href="{{ route('laporan.retur') }}">
-                    <i class="fas fa-undo"></i>
-                    <span>Laporan Retur Pembelian</span>
                 </a>
             </li>
             <li class="nav-item">

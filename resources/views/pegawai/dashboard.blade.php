@@ -17,7 +17,7 @@
                          style="width: 40px; height: 40px; object-fit: cover;">
                     <div>
                         <h6 class="mb-0">{{ $pegawai->nama }}</h6>
-                        <small class="text-muted">{{ $pegawai->jabatan ?? '-' }}</small>
+                        <small class="text-primary">{{ $pegawai->jabatan ?? '-' }}</small>
                     </div>
                 </div>
             </div>
@@ -106,29 +106,29 @@
                     @if($stats['today_status'])
                         <div class="row">
                             <div class="col-6">
-                                <small class="text-muted">Jam Masuk</small>
+                                <small class="text-primary">Jam Masuk</small>
                                 <div class="fw-bold text-success">
                                     <i class="bi bi-clock-fill me-1"></i> 
                                     {{ $stats['today_status']['jam_masuk'] }}
                                 </div>
                             </div>
                             <div class="col-6">
-                                <small class="text-muted">Jam Keluar</small>
-                                <div class="fw-bold text-{{ $stats['today_status']['jam_keluar'] ? 'danger' : 'muted' }}">
+                                <small class="text-primary">Jam Keluar</small>
+                                <div class="fw-bold text-{{ $stats['today_status']['jam_keluar'] ? 'danger' : 'primary' }}">
                                     <i class="bi bi-clock-fill me-1"></i> 
                                     {{ $stats['today_status']['jam_keluar'] ?: 'Belum' }}
                                 </div>
                             </div>
                         </div>
                         <div class="mt-3">
-                            <span class="badge bg-{{ $stats['today_status']['sudah_lengkap'] ? 'secondary' : 'warning' }}">
+                            <span class="badge bg-{{ $stats['today_status']['sudah_lengkap'] ? 'success' : 'warning' }}">
                                 {{ $stats['today_status']['sudah_lengkap'] ? '✅ Presensi Lengkap' : '⏰ Menunggu Absen Keluar' }}
                             </span>
                         </div>
                     @else
                         <div class="text-center py-3">
-                            <i class="bi bi-calendar-x fs-1 text-muted"></i>
-                            <p class="text-muted mt-2">Belum ada presensi hari ini</p>
+                            <i class="bi bi-calendar-x fs-1 text-info"></i>
+                            <p class="text-primary mt-2">Belum ada presensi hari ini</p>
                             <a href="{{ route('pegawai.presensi.absen-wajah') }}" class="btn btn-primary">
                                 <i class="bi bi-camera-video me-1"></i> Absen Sekarang
                             </a>
@@ -168,8 +168,8 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
+                        <table class="table">
+                            <thead class="bg-primary text-white">
                                 <tr>
                                     <th>Tanggal</th>
                                     <th>Jam Masuk</th>
@@ -201,7 +201,7 @@
                                     @endforeach
                                 @else
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted">
+                                        <td colspan="5" class="text-center text-primary">
                                             <i class="bi bi-calendar-x me-1"></i>
                                             Belum ada presensi dalam 7 hari terakhir
                                         </td>

@@ -111,7 +111,7 @@
         @php
             $laporanData = [
                 ['title'=>'Laporan Penjualan','icon'=>'bi-graph-up','route'=>'laporan.penjualan'],
-                ['title'=>'Laporan Pembelian','icon'=>'bi-receipt','route'=>'laporan.pembelian'],
+                ['title'=>'Laporan Pembelian','icon'=>'bi-receipt','route'=>'laporan.pembelian.index'],
                 ['title'=>'Laporan Stok','icon'=>'bi-clipboard-data','route'=>'laporan.stok'],
             ];
         @endphp

@@ -73,7 +73,8 @@ select.form-select option {
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h3 mb-0">
-            <i class="fas fa-edit me-2"></i>Edit Pembelian
+            <i class="fas fa-edit me-2"></i>Edit Pembelian #{{ $pembelian->id }}
+            <small class="text-muted">(Kategori: {{ $kategoriPembelian }})</small>
         </h2>
         <a href="{{ route('transaksi.pembelian.index') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-2"></i>Kembali
@@ -81,20 +82,6 @@ select.form-select option {
     </div>
 
     <!-- Notifications -->
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     @if ($errors->any())
         <div class="alert alert-danger">
             <ul class="mb-0">
@@ -120,27 +107,7 @@ select.form-select option {
                         <label class="form-label">Vendor <span class="text-danger">*</span></label>
                         <div class="vendor-select-container">
                             <select name="vendor_id" id="vendorSelect" class="form-select" required 
-                            style="position: relative !important;"
-                            onchange="
-                            var bahanBaku = document.getElementById('cardBahanBaku');
-                            var bahanPendukung = document.getElementById('cardBahanPendukung');
-                            var selectedOption = this.options[this.selectedIndex];
-                            var kategori = (selectedOption.getAttribute('data-kategori') || '').toLowerCase();
-                            
-                            // Hide both first with !important
-                            bahanBaku.style.setProperty('display', 'none', 'important');
-                            bahanPendukung.style.setProperty('display', 'none', 'important');
-                            
-                            if (kategori === 'bahan baku') {
-                                bahanBaku.style.setProperty('display', 'block', 'important');
-                            } else if (kategori === 'bahan pendukung') {
-                                bahanPendukung.style.setProperty('display', 'block', 'important');
-                            } else {
-                                // Default: show both
-                                bahanBaku.style.setProperty('display', 'block', 'important');
-                                bahanPendukung.style.setProperty('display', 'block', 'important');
-                            }
-                            ">
+                            style="position: relative !important;">
                                 <option value="">-- Pilih Vendor --</option>
                                 @foreach ($vendors as $vendor)
                                     <option value="{{ $vendor->id }}" 
@@ -186,14 +153,12 @@ select.form-select option {
         </div>
 
         <!-- Bahan Baku Section -->
+        @if($kategoriPembelian === 'bahan_baku' || $kategoriPembelian === 'mixed')
         <div class="card mb-4" id="cardBahanBaku">
-            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+            <div class="card-header bg-success text-white">
                 <h6 class="mb-0">
                     <i class="fas fa-box me-2"></i>Bahan Baku
                 </h6>
-                <button type="button" class="btn btn-sm btn-light" onclick="addBahanBakuRow()">
-                    <i class="fas fa-plus me-1"></i>Tambah Baris
-                </button>
             </div>
             <div class="card-body">
                 <div id="bahanBakuRows">
@@ -299,16 +264,15 @@ select.form-select option {
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- Bahan Pendukung Section -->
+        @if($kategoriPembelian === 'bahan_pendukung' || $kategoriPembelian === 'mixed')
         <div class="card mb-4" id="cardBahanPendukung">
-            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+            <div class="card-header bg-warning text-dark">
                 <h6 class="mb-0">
                     <i class="fas fa-tools me-2"></i>Bahan Pendukung
                 </h6>
-                <button type="button" class="btn btn-sm btn-light" onclick="addBahanPendukungRow()">
-                    <i class="fas fa-plus me-1"></i>Tambah Baris
-                </button>
             </div>
             <div class="card-body">
                 <div id="bahanPendukungRows">
@@ -376,6 +340,7 @@ select.form-select option {
                 </div>
             </div>
         </div>
+        @endif
 
         <div class="row">
             <div class="col-12">
@@ -394,12 +359,6 @@ select.form-select option {
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize vendor selection
-    const vendorSelect = document.getElementById('vendorSelect');
-    if (vendorSelect) {
-        vendorSelect.dispatchEvent(new Event('change'));
-    }
-
     // Initialize existing rows
     initializeExistingRows();
 });

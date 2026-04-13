@@ -57,7 +57,7 @@ class PembelianController extends Controller
             $query->where('payment_method', $request->payment_method);
         }
 
-        $pembelians = $query->orderBy('tanggal', 'desc')
+        $pembelians = $query->orderBy('tanggal', 'asc')
                            ->paginate(15);
         
         return view('pegawai-gudang.pembelian.index', [

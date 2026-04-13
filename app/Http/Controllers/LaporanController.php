@@ -146,7 +146,20 @@ class LaporanController extends Controller
      */
     private function ensureAccurateInitialStock($tipe, $itemId, $item)
     {
+        // DISABLED: This function was causing data corruption by overwriting correct initial stock
+        // The function kept resetting Ayam Kampung from 40 ekor back to 13 ekor based on master data
+        // All initial stock should be managed manually or through proper data migration
+        return;
+        
         if (!$item) {
+            return;
+        }
+        
+        // IMPORTANT: Do NOT create initial stock for products
+        // Products should only get stock from production, not initial stock
+        // The 'stok' field in produks table represents current stock level,
+        // but this should come from production movements, not initial_stock entries
+        if ($tipe == 'product') {
             return;
         }
         
@@ -818,19 +831,48 @@ class LaporanController extends Controller
                     $saldoPerItem[$m->item_id] = ($saldoPerItem[$m->item_id] ?? 0) + ($sign * (float)$m->qty);
                 }
                 
-                // Jika tidak ada filter tanggal, gunakan stok dari master table
+                // Jika tidak ada filter tanggal, gunakan stok dari stock movements (real-time)
                 if (!$from && !$to) {
+                    // Calculate stock from movements for real-time accuracy
                     if ($tipe == 'material') {
                         foreach ($materials as $m) {
-                            $saldoPerItem[$m->id] = (float)($m->stok ?? 0);
+                            $stockIn = StockMovement::where('item_type', 'bahan_baku')
+                                ->where('item_id', $m->id)
+                                ->where('direction', 'in')
+                                ->sum('qty');
+                            $stockOut = StockMovement::where('item_type', 'bahan_baku')
+                                ->where('item_id', $m->id)
+                                ->where('direction', 'out')
+                                ->sum('qty');
+                            $saldoPerItem[$m->id] = $stockIn - $stockOut;
                         }
                     } elseif ($tipe == 'product') {
                         foreach ($products as $p) {
-                            $saldoPerItem[$p->id] = (float)($p->stok ?? 0);
+                            $stockIn = StockMovement::where('item_type', 'product')
+                                ->where('item_id', $p->id)
+                                ->where('direction', 'in')
+                                ->sum('qty');
+                            $stockOut = StockMovement::where('item_type', 'product')
+                                ->where('item_id', $p->id)
+                                ->where('direction', 'out')
+                                ->sum('qty');
+                            $saldoPerItem[$p->id] = $stockIn - $stockOut;
+                            
+                            // Also update the master data for consistency
+                            $p->stok = $stockIn - $stockOut;
+                            $p->save();
                         }
                     } elseif ($tipe == 'bahan_pendukung') {
                         foreach ($bahanPendukungs as $bp) {
-                            $saldoPerItem[$bp->id] = (float)($bp->stok ?? 0);
+                            $stockIn = StockMovement::where('item_type', 'bahan_pendukung')
+                                ->where('item_id', $bp->id)
+                                ->where('direction', 'in')
+                                ->sum('qty');
+                            $stockOut = StockMovement::where('item_type', 'bahan_pendukung')
+                                ->where('item_id', $bp->id)
+                                ->where('direction', 'out')
+                                ->sum('qty');
+                            $saldoPerItem[$bp->id] = $stockIn - $stockOut;
                         }
                     }
                 }
@@ -888,23 +930,40 @@ class LaporanController extends Controller
             // Header
             fputcsv($handle, [
                 'No', 'No. Transaksi', 'Tanggal', 'Vendor', 
-                'Keterangan', 'Total (Rp)'
+                'Metode Pembayaran', 'Keterangan', 'Total (Rp)'
             ]);
             
             // Data
             foreach ($pembelian as $index => $item) {
+                // Format payment method
+                $paymentMethodText = '';
+                switch($item->payment_method) {
+                    case 'cash':
+                        $paymentMethodText = 'Tunai';
+                        break;
+                    case 'transfer':
+                        $paymentMethodText = 'Transfer';
+                        break;
+                    case 'credit':
+                        $paymentMethodText = 'Kredit';
+                        break;
+                    default:
+                        $paymentMethodText = ucfirst($item->payment_method ?? 'Tunai');
+                }
+                
                 fputcsv($handle, [
                     $index + 1,
                     $item->no_pembelian,
                     $item->tanggal->format('d/m/Y'),
                     $item->vendor->nama_vendor ?? '-',
+                    $paymentMethodText,
                     $item->keterangan ?? '-',
                     number_format($item->total, 0, ',', '.')
                 ]);
             }
             
             // Total
-            fputcsv($handle, ['', '', '', '', 'TOTAL', number_format($total, 0, ',', '.')]);
+            fputcsv($handle, ['', '', '', '', '', 'TOTAL', number_format($total, 0, ',', '.')]);
             
             fclose($handle);
         }, $filename, [
@@ -1113,18 +1172,19 @@ class LaporanController extends Controller
         $purchaseReturnQuery = \App\Models\Retur::with(['pembelian.vendor', 'details.produk'])
             ->where('type', 'purchase')
             ->when($request->purchase_start_date && $request->purchase_end_date, function($q) use ($request) {
-                return $q->whereBetween('tanggal', [$request->purchase_start_date, $request->purchase_end_date]);
+                return $q->whereBetween('return_date', [$request->purchase_start_date, $request->purchase_end_date]);
             })
-            ->orderBy('tanggal', 'desc');
+            ->when($request->purchase_status, function($q) use ($request) {
+                return $q->where('status', $request->purchase_status);
+            })
+            ->orderBy('return_date', 'asc');
 
         // Get data
         $purchaseReturns = $purchaseReturnQuery->paginate(15);
 
         // Calculate totals
         $totalPurchaseReturns = $purchaseReturnQuery->get()->sum(function($retur) {
-            return $retur->details->sum(function($detail) {
-                return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0);
-            });
+            return $retur->total_with_ppn ?? 0;
         });
 
         return view('laporan.retur.index', compact(
@@ -1180,10 +1240,10 @@ class LaporanController extends Controller
         
         foreach ($bebanOperasional as $beban) {
             // Get actual payments for this beban in the selected period
-            $aktual = \App\Models\ExpensePayment::where('beban_operasional_id', $beban->id)
+            $aktual = \App\Models\PembayaranBeban::where('beban_operasional_id', $beban->id)
                 ->whereYear('tanggal', $selectedMonth->year)
                 ->whereMonth('tanggal', $selectedMonth->month)
-                ->sum('nominal_pembayaran');
+                ->sum('jumlah');
             
             $budget = $beban->budget_bulanan ?? 0;
             $selisih = $budget - $aktual;
@@ -1293,8 +1353,11 @@ class LaporanController extends Controller
                 return $pembelian->sisa_utang_numerik > 0;
             });
 
-        // Query untuk riwayat pelunasan
-        $query = \App\Models\ApSettlement::with(['pembelian.vendor', 'pembelian.details.bahanBaku'])
+        // Query untuk riwayat pelunasan - UPDATED to use PelunasanUtang
+        $query = \App\Models\PelunasanUtang::with(['pembelian.vendor', 'pembelian.details.bahanBaku', 'akunKas'])
+            ->whereHas('pembelian', function($q) {
+                $q->where('payment_method', 'credit'); // Only credit purchases
+            })
             ->when($request->bulan, function($q) use ($request) {
                 $bulan = \Carbon\Carbon::parse($request->bulan);
                 return $q->whereYear('tanggal', $bulan->year)
@@ -1303,7 +1366,13 @@ class LaporanController extends Controller
             ->orderBy('tanggal', 'desc');
 
         if ($request->has('export') && $request->export == 'pdf') {
-            $pelunasanUtang = $query->get();
+            $pelunasanUtang = $query->get()->map(function($item) {
+                // Add calculated fields for display
+                $item->total_tagihan = $item->pembelian->total_harga ?? 0;
+                $item->dibayar_bersih = $item->jumlah;
+                return $item;
+            });
+            
             $total = $pelunasanUtang->sum('dibayar_bersih');
             
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.pelunasan-utang.pdf', [
@@ -1315,7 +1384,15 @@ class LaporanController extends Controller
         }
 
         $pelunasanUtang = $query->paginate(15);
-        $total = $pelunasanUtang->sum('dibayar_bersih');
+        
+        // Add calculated fields for each item
+        $pelunasanUtang->getCollection()->transform(function($item) {
+            $item->total_tagihan = $item->pembelian->total_harga ?? 0;
+            $item->dibayar_bersih = $item->jumlah;
+            return $item;
+        });
+        
+        $total = $query->get()->sum('jumlah'); // Sum of all payments
 
         return view('laporan.pelunasan-utang.index', [
             'pelunasanUtang' => $pelunasanUtang,

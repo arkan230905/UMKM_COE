@@ -52,6 +52,26 @@
                             <td>Metode Pembayaran</td>
                             <td>: <strong>{{ $coa->nama_akun ?? $penggajian->coa_kasbank }}</strong></td>
                         </tr>
+                        <tr>
+                            <td>Status Pembayaran</td>
+                            <td>:
+                                @if($penggajian->status_pembayaran === 'lunas')
+                                    <span class="badge bg-success">Sudah Dibayar</span>
+                                    @if($penggajian->tanggal_dibayar)
+                                        <small class="text-muted">({{ \Carbon\Carbon::parse($penggajian->tanggal_dibayar)->format('d F Y') }})</small>
+                                    @endif
+                                @else
+                                    <span class="badge bg-warning text-dark">Belum Dibayar</span>
+                                    <form action="{{ route('transaksi.penggajian.markAsPaid', $penggajian->id) }}" method="POST" class="d-inline ms-2">
+                                        @csrf
+                                        @method('PATCH')
+                                        <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Tandai penggajian ini sebagai sudah dibayar?')">
+                                            <i class="fas fa-check-circle me-1"></i>Tandai Sudah Dibayar
+                                        </button>
+                                    </form>
+                                @endif
+                            </td>
+                        </tr>
                     </table>
                 </div>
             </div>
@@ -83,10 +103,27 @@
                             </tr>
                         @endif
                         
-                        <tr>
-                            <td>Tunjangan</td>
-                            <td>: Rp {{ number_format($penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
+                        <!-- Tunjangan Detail -->
+                        <tr class="table-light">
+                            <td colspan="2"><strong>Tunjangan:</strong></td>
                         </tr>
+                        <tr>
+                            <td class="ps-4">&nbsp;&nbsp;• Tunjangan Jabatan</td>
+                            <td>: Rp {{ number_format($penggajian->tunjangan_jabatan ?? $penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4">&nbsp;&nbsp;• Tunjangan Transport</td>
+                            <td>: Rp {{ number_format($penggajian->tunjangan_transport ?? 0, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="ps-4">&nbsp;&nbsp;• Tunjangan Konsumsi</td>
+                            <td>: Rp {{ number_format($penggajian->tunjangan_konsumsi ?? 0, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr class="fw-bold">
+                            <td class="ps-4">&nbsp;&nbsp;Total Tunjangan</td>
+                            <td>: Rp {{ number_format($penggajian->total_tunjangan ?? $penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
+                        </tr>
+                        
                         <tr>
                             <td>Asuransi / BPJS</td>
                             <td>: Rp {{ number_format($penggajian->asuransi ?? 0, 0, ',', '.') }}</td>
@@ -115,11 +152,44 @@
         </div>
     </div>
 
-    <!-- Buttons -->
-    <div class="text-start">
-        <a href="{{ route('transaksi.penggajian.index') }}" class="btn btn-secondary btn-lg">
-            <i class="bi bi-arrow-left"></i> Kembali
-        </a>
+    <!-- Posting Status & Buttons -->
+    <div class="card border-0 mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <!-- Posting Status Badge -->
+                <div>
+                    <span class="me-2 text-muted">Status Posting:</span>
+                    @if($penggajian->status_posting === 'posted')
+                        <span class="badge bg-success">
+                            <i class="bi bi-check-circle"></i> Sudah Diposting ke Jurnal
+                        </span>
+                        <small class="text-muted ms-2">
+                            ({{ \Carbon\Carbon::parse($penggajian->tanggal_posting)->format('d F Y H:i') }})
+                        </small>
+                    @else
+                        <span class="badge bg-warning text-dark">
+                            <i class="bi bi-clock"></i> Belum Diposting ke Jurnal
+                        </span>
+                    @endif
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex gap-2">
+                    @if(in_array(auth()->user()->role, ['owner', 'admin']) && $penggajian->status_posting !== 'posted')
+                        <form action="{{ route('transaksi.penggajian.post-journal', $penggajian->id) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn btn-primary" onclick="return confirm('Apakah Anda yakin ingin memposting penggajian ini ke jurnal umum?')">
+                                <i class="bi bi-journal-check"></i> Posting ke Jurnal
+                            </button>
+                        </form>
+                    @endif
+
+                    <a href="{{ route('transaksi.penggajian.index') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Kembali
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

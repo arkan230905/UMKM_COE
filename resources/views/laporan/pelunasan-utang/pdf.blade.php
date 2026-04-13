@@ -44,16 +44,21 @@
             <tr>
                 <td class="text-center">{{ $loop->iteration }}</td>
                 <td>{{ $item->tanggal->format('d/m/Y') }}</td>
-                <td>{{ $item->no_pelunasan }}</td>
-                <td>{{ $item->vendor->nama_vendor ?? '-' }}</td>
-                <td>{{ $item->pembelian->no_faktur ?? '-' }}</td>
-                <td class="text-right">{{ format_rupiah($item->total_tagihan) }}</td>
-                <td class="text-right">{{ format_rupiah($item->total_bayar) }}</td>
+                <td>{{ $item->kode_transaksi }}</td>
+                <td>{{ $item->pembelian->vendor->nama_vendor ?? '-' }}</td>
+                <td>{{ $item->pembelian->nomor_faktur ?? $item->pembelian->nomor_pembelian ?? '-' }}</td>
+                <td class="text-right">{{ format_rupiah($item->pembelian->total_harga ?? 0) }}</td>
+                <td class="text-right">{{ format_rupiah($item->jumlah) }}</td>
                 <td class="text-center">
-                    @if($item->status == 'lunas')
+                    @php
+                        $statusPembayaran = $item->pembelian->status_pembayaran;
+                    @endphp
+                    @if($statusPembayaran === 'Lunas')
                         <span class="badge badge-success">Lunas</span>
+                    @elseif($statusPembayaran === 'Sebagian')
+                        <span class="badge badge-warning">Sebagian</span>
                     @else
-                        <span class="badge badge-warning">Belum Lunas</span>
+                        <span class="badge badge-danger">Belum Bayar</span>
                     @endif
                 </td>
             </tr>
@@ -66,7 +71,7 @@
         <tfoot>
             <tr>
                 <th colspan="5" class="text-right">Total</th>
-                <th class="text-right">{{ format_rupiah($pelunasanUtang->sum('total_tagihan')) }}</th>
+                <th class="text-right">{{ format_rupiah($pelunasanUtang->sum(function($item) { return $item->pembelian->total_harga ?? 0; })) }}</th>
                 <th class="text-right">{{ format_rupiah($total) }}</th>
                 <th></th>
             </tr>

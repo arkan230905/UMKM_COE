@@ -180,9 +180,9 @@
                                 $convertedPenjualanTotal = $convertedPembelianTotal;
                             } else {
                                 $convertedPembelianQty = $transaction['pembelian_qty'] * $unit['conversion'];
-                                $priceConversion = isset($unit['price_conversion']) ? $unit['price_conversion'] : $unit['conversion'];
-                                $convertedPembelianHarga = $priceConversion > 0 ? $transaction['pembelian_nilai'] / max($transaction['pembelian_qty'], 1) / $priceConversion : 0;
                                 $convertedPembelianTotal = $transaction['pembelian_nilai'];
+                                
+                                // Pembelian price will be calculated in the main logic below
                                 
                                 // No sales data for non-products
                                 $convertedPenjualanQty = 0;
@@ -190,28 +190,56 @@
                                 $convertedPenjualanTotal = 0;
                             }
                             
-                            // Convert prices using price_conversion if available, otherwise use quantity conversion
+                            // Convert prices using CONSISTENT unit cost approach
+                            // Calculate base unit cost and consistent unit price
                             $priceConversion = isset($unit['price_conversion']) ? $unit['price_conversion'] : $unit['conversion'];
-                            $convertedSaldoAwalHarga = $priceConversion > 0 ? $transaction['saldo_awal_nilai'] / max($transaction['saldo_awal_qty'], 1) / $priceConversion : 0;
-                            $convertedProduksiHarga = $priceConversion > 0 ? $transaction['produksi_nilai'] / max($transaction['produksi_qty'], 1) / $priceConversion : 0;
-                            $convertedSaldoAkhirHarga = $priceConversion > 0 ? $transaction['saldo_akhir_nilai'] / max($transaction['saldo_akhir_qty'], 1) / $priceConversion : 0;
+                            
+                            // Calculate unit prices only for columns that have transactions
+                            $convertedSaldoAwalHarga = 0;
+                            $convertedPembelianHarga = 0;
+                            $convertedProduksiHarga = 0;
+                            $convertedSaldoAkhirHarga = 0;
+                            
+                            // Saldo Awal - only show price if there's initial stock
+                            if ($transaction['saldo_awal_qty'] > 0 && $transaction['saldo_awal_nilai'] > 0) {
+                                $baseUnitCost = $transaction['saldo_awal_nilai'] / $transaction['saldo_awal_qty'];
+                                $convertedSaldoAwalHarga = $priceConversion > 0 ? $baseUnitCost / $priceConversion : $baseUnitCost;
+                            }
+                            
+                            // Pembelian - only show price if there's purchase
+                            if ($transaction['pembelian_qty'] > 0 && $transaction['pembelian_nilai'] > 0) {
+                                $baseUnitCost = $transaction['pembelian_nilai'] / $transaction['pembelian_qty'];
+                                $convertedPembelianHarga = $priceConversion > 0 ? $baseUnitCost / $priceConversion : $baseUnitCost;
+                            }
+                            
+                            // Produksi - only show price if there's production usage
+                            if ($transaction['produksi_qty'] > 0 && $transaction['produksi_nilai'] > 0) {
+                                $baseUnitCost = $transaction['produksi_nilai'] / $transaction['produksi_qty'];
+                                $convertedProduksiHarga = $priceConversion > 0 ? $baseUnitCost / $priceConversion : $baseUnitCost;
+                            }
+                            
+                            // Saldo Akhir - calculate from final values
+                            if ($transaction['saldo_akhir_qty'] > 0 && $transaction['saldo_akhir_nilai'] > 0) {
+                                $baseUnitCost = $transaction['saldo_akhir_nilai'] / $transaction['saldo_akhir_qty'];
+                                $convertedSaldoAkhirHarga = $priceConversion > 0 ? $baseUnitCost / $priceConversion : $baseUnitCost;
+                            }
                             
                             $stockData[] = [
                                 'tanggal' => \Carbon\Carbon::parse($transaction['tanggal'])->format('d/m/Y'),
                                 'saldo_awal_qty' => $convertedSaldoAwalQty,
-                                'saldo_awal_harga' => $convertedSaldoAwalHarga,
+                                'saldo_awal_harga' => $convertedSaldoAwalHarga, // Only show if there's initial stock
                                 'saldo_awal_total' => $transaction['saldo_awal_nilai'],
                                 'pembelian_qty' => $convertedPembelianQty,
-                                'pembelian_harga' => $convertedPembelianHarga,
+                                'pembelian_harga' => $convertedPembelianHarga, // Only show if there's purchase
                                 'pembelian_total' => $convertedPembelianTotal,
                                 'penjualan_qty' => $convertedPenjualanQty ?? 0,
-                                'penjualan_harga' => $convertedPenjualanHarga ?? 0,
+                                'penjualan_harga' => $convertedPenjualanHarga ?? 0, // Only show if there's sale
                                 'penjualan_total' => $convertedPenjualanTotal ?? 0,
                                 'produksi_qty' => $convertedProduksiQty,
-                                'produksi_harga' => $convertedProduksiHarga,
+                                'produksi_harga' => $convertedProduksiHarga, // Only show if there's production
                                 'produksi_total' => $transaction['produksi_nilai'],
                                 'saldo_akhir_qty' => $convertedSaldoAkhirQty,
-                                'saldo_akhir_harga' => $convertedSaldoAkhirHarga,
+                                'saldo_akhir_harga' => $convertedSaldoAkhirHarga, // Always show final price
                                 'saldo_akhir_total' => $transaction['saldo_akhir_nilai'],
                                 'ref_type' => $transaction['ref_type'] ?? '',
                                 'is_opening_balance' => $transaction['is_opening_balance'] ?? false
@@ -362,3 +390,21 @@
     @endif
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipeSelect = document.getElementById('tipeSelect');
+    const itemSelect = document.getElementById('itemSelect');
+    
+    // Handle material type change
+    tipeSelect.addEventListener('change', function() {
+        // Clear item selection
+        itemSelect.value = '';
+        
+        // Submit form to reload with new material type
+        this.form.submit();
+    });
+});
+</script>
+@endpush

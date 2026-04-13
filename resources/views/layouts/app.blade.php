@@ -17,6 +17,37 @@
 
     {{-- Modern Dashboard CSS - HIGHEST PRIORITY --}}
     <link href="{{ asset('css/modern-dashboard.css') }}?v={{ time() }}" rel="stylesheet">
+    
+    {{-- Auto Reset System CSS --}}
+    <style>
+        .position-fixed {
+            position: fixed !important;
+            z-index: 9999;
+        }
+        #tambah-satuan-btn {
+            background-color: #8B735C !important;
+            color: white !important;
+            border: none !important;
+        }
+        #tambah-satuan-btn:hover {
+            background-color: #A68D73 !important;
+            color: white !important;
+        }
+        .alert-success {
+            background-color: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+        .btn-close {
+            background: none;
+            border: none;
+            color: white;
+            opacity: 0.8;
+        }
+        .btn-close:hover {
+            opacity: 1;
+        }
+    </style>
 
     {{-- Custom Alert Styles --}}
     <style>
@@ -125,6 +156,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+{{-- Auto Reset System untuk Multi-Perusahaan --}}
+<script src="{{ asset('js/auto-reset.js') }}"></script>
 @stack('scripts')
 </body>
 </html>

@@ -51,6 +51,9 @@ class Pembelian extends Model
      */
     protected static function booted()
     {
+        // DISABLED: Conflicting with PembelianObserver and PembelianController
+        // Multiple systems trying to create journals causes conflicts
+        /*
         static::created(function ($pembelian) {
             // Create automatic journal entries
             \App\Services\JournalService::createJournalFromPembelian($pembelian);
@@ -60,6 +63,7 @@ class Pembelian extends Model
             // Recreate journal entries if transaction is updated
             \App\Services\JournalService::createJournalFromPembelian($pembelian);
         });
+        */
         
         static::deleting(function ($pembelian) {
             // Delete related pembelian details
@@ -138,6 +142,14 @@ class Pembelian extends Model
     }
     
     /**
+     * Get the pembayaran for the pembelian (alias for pelunasan).
+     */
+    public function pembayaran()
+    {
+        return $this->pelunasan();
+    }
+    
+    /**
      * Get the ap settlements for the pembelian.
      */
     public function apSettlements()
@@ -146,15 +158,22 @@ class Pembelian extends Model
     }
     
     /**
+     * Get the total dibayar attribute.
+     */
+    public function getTotalDibayarAttribute()
+    {
+        return $this->pelunasan()->sum('jumlah');
+    }
+    
+    /**
      * Get the sisa utang attribute.
      */
     public function getSisaUtangAttribute()
     {
-        // Gunakan sisa_pembayaran dari database jika ada, kalau tidak hitung dari total_harga - terbayar
-        if (isset($this->attributes['sisa_pembayaran'])) {
-            return max(0, $this->attributes['sisa_pembayaran']);
-        }
-        return max(0, ($this->total_harga ?? 0) - ($this->terbayar ?? 0));
+        // Calculate from total_harga - total payments
+        $totalHarga = $this->total_harga ?? 0;
+        $totalDibayar = $this->total_dibayar;
+        return max(0, $totalHarga - $totalDibayar);
     }
     
     /**
@@ -162,10 +181,20 @@ class Pembelian extends Model
      */
     public function getStatusPembayaranAttribute()
     {
-        if ($this->payment_method === 'cash' || $this->status === 'lunas') {
+        if ($this->payment_method === 'cash' || $this->payment_method === 'transfer') {
             return 'Lunas';
         }
-        return 'Belum Lunas';
+        
+        $totalDibayar = $this->total_dibayar;
+        $totalHarga = $this->total_harga ?? 0;
+        
+        if ($totalDibayar == 0) {
+            return 'Belum Bayar';
+        } elseif ($totalDibayar < $totalHarga) {
+            return 'Sebagian';
+        } else {
+            return 'Lunas';
+        }
     }
 
     /**

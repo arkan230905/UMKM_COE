@@ -7,8 +7,6 @@
     <a href="{{ route('transaksi.pembayaran-beban.create') }}" class="btn btn-primary">Tambah</a>
   </div>
 
-  @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-
   <table class="table table-bordered">
     <thead class="table-dark">
       <tr>

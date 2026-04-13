@@ -16,13 +16,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     @if(session('error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
@@ -150,7 +143,7 @@
                                 <td class="text-center">
                                     @if($jumlahBahanBaku > 0)
                                         <div class="mb-1">
-                                            <span class="badge bg-info">{{ $jumlahBahanBaku }} item</span>
+                                            <span class="text-warning fw-semibold">{{ $jumlahBahanBaku }} item</span>
                                         </div>
                                         <small class="text-muted d-block">
                                             Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}
@@ -162,7 +155,7 @@
                                 <td class="text-center">
                                     @if($jumlahBahanPendukung > 0)
                                         <div class="mb-1">
-                                            <span class="badge bg-warning text-dark">{{ $jumlahBahanPendukung }} item</span>
+                                            <span class="text-info fw-semibold">{{ $jumlahBahanPendukung }} item</span>
                                         </div>
                                         <small class="text-muted d-block">
                                             Rp {{ number_format($totalBiayaBahanPendukung, 0, ',', '.') }}

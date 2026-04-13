@@ -656,12 +656,12 @@ class BopController extends Controller
     {
         try {
             $validated = $request->validate([
-                'edit_komponen_name' => 'required|array|min:1',
-                'edit_komponen_name.*' => 'required|string',
-                'edit_komponen_rate' => 'required|array|min:1',
-                'edit_komponen_rate.*' => 'required|numeric|min:0',
-                'edit_komponen_desc' => 'nullable|array',
-                'edit_komponen_desc.*' => 'nullable|string',
+                'komponen_name' => 'sometimes|array',
+                'komponen_name.*' => 'sometimes|string',
+                'komponen_rate' => 'sometimes|array',
+                'komponen_rate.*' => 'sometimes|numeric|min:0',
+                'komponen_desc' => 'nullable|array',
+                'komponen_desc.*' => 'nullable|string',
                 'keterangan' => 'nullable|string'
             ]);
 
@@ -669,14 +669,30 @@ class BopController extends Controller
 
             $bopProses = BopProses::findOrFail($id);
             
+            // Debug: Log received data
+            \Log::info('BOP Update Debug - Received data:', [
+                'validated' => $validated,
+                'all_request_data' => $request->all()
+            ]);
+            
             // Build components array from form data
             $components = [];
-            foreach ($validated['edit_komponen_name'] as $index => $name) {
-                if (!empty(trim($name)) && floatval($validated['edit_komponen_rate'][$index]) > 0) {
+            $komponenNames = $validated['komponen_name'] ?? [];
+            $komponenRates = $validated['komponen_rate'] ?? [];
+            $komponenDescs = $validated['komponen_desc'] ?? [];
+            
+            \Log::info('BOP Update Debug - Component arrays:', [
+                'names' => $komponenNames,
+                'rates' => $komponenRates,
+                'descs' => $komponenDescs
+            ]);
+            
+            foreach ($komponenNames as $index => $name) {
+                if (!empty(trim($name)) && floatval($komponenRates[$index] ?? 0) > 0) {
                     $components[] = [
                         'component' => trim($name),
-                        'rate_per_hour' => floatval($validated['edit_komponen_rate'][$index]),
-                        'description' => $validated['edit_komponen_desc'][$index] ?? ''
+                        'rate_per_hour' => floatval($komponenRates[$index] ?? 0),
+                        'description' => $komponenDescs[$index] ?? ''
                     ];
                 }
             }
@@ -719,9 +735,19 @@ class BopController extends Controller
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             
+            $errors = $e->errors();
+            $errorMessages = [];
+            foreach ($errors as $field => $messages) {
+                if (is_array($messages)) {
+                    $errorMessages = array_merge($errorMessages, $messages);
+                } else {
+                    $errorMessages[] = $messages;
+                }
+            }
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Validasi gagal: ' . implode(', ', $e->errors()->all())
+                'message' => 'Validasi gagal: ' . implode(', ', $errorMessages)
             ], 422);
             
         } catch (\Exception $e) {
@@ -912,21 +938,21 @@ class BopController extends Controller
         try {
             $bebanOperasional = BebanOperasional::findOrFail($id);
             
-            // TODO: Add validation for usage in transactions
-            // For now, allow delete but in production should check if used in transactions
-            // if ($bebanOperasional->transaksiPembayaran()->count() > 0) {
-            //     return response()->json([
-            //         'success' => false,
-            //         'message' => 'Data tidak bisa dihapus karena sudah digunakan pada transaksi pembayaran beban.'
-            //     ], 422);
-            // }
+            // Check if data is used in transactions
+            $usageCount = \App\Models\PembayaranBeban::where('beban_operasional_id', $id)->count();
+            if ($usageCount > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data tidak bisa dihapus karena sudah digunakan pada ' . $usageCount . ' transaksi pembayaran beban.'
+                ], 422);
+            }
             
-            // Soft delete by setting status to nonaktif instead of hard delete
-            $bebanOperasional->update(['status' => 'nonaktif']);
+            // Hard delete the record
+            $bebanOperasional->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Master Beban Operasional berhasil dinonaktifkan'
+                'message' => 'Master Beban Operasional berhasil dihapus'
             ]);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

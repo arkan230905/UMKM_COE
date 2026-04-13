@@ -10,13 +10,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle me-2"></i>{{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
     @if(session('error'))
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="bi bi-exclamation-triangle me-2"></i>{{ session('error') }}
@@ -61,25 +54,18 @@
         
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 table-wide">
+                <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
                             <th class="text-center" style="width: 50px">No</th>
                             <th>Kode</th>
                             <th>Nama</th>
-                            <th>Email</th>
-                            <th>No. Telp</th>
-                            <th class="col-alamat">Alamat</th>
-                            <th>Jenis Kelamin</th>
                             <th>Jabatan</th>
                             <th class="text-center">Kategori</th>
                             <th>Bank</th>
                             <th>No. Rekening</th>
                             <th>Nama Rekening</th>
-                            <th class="text-end">Gaji Pokok</th>
-                            <th class="text-end">Tarif/Jam</th>
-                            <th class="text-end">Tunjangan</th>
-                            <th class="text-end">Asuransi</th>
+                            <th>Alamat</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -89,11 +75,10 @@
                         <tr>
                             <td class="text-center text-muted">{{ ($pegawais->currentPage() - 1) * $pegawais->perPage() + $loop->iteration }}</td>
                             <td>{{ $pegawai->kode_pegawai }}</td>
-                            <td>{{ $pegawai->nama }}</td>
-                            <td>{{ $pegawai->email }}</td>
-                            <td>{{ $pegawai->no_telepon }}</td>
-                            <td class="col-alamat">{{ Str::limit($pegawai->alamat, 40) }}</td>
-                            <td>{{ $pegawai->jenis_kelamin == 'L' ? 'Laki-laki' : 'Perempuan' }}</td>
+                            <td>
+                                <div class="fw-semibold">{{ $pegawai->nama }}</div>
+                                <small class="text-muted">{{ $pegawai->email }}</small>
+                            </td>
                             <td>{{ $pegawai->jabatan }}</td>
                             <td class="text-center">
                                 <span class="badge bg-{{ $pegawai->jenis_pegawai == 'btkl' ? 'primary' : 'success' }}">
@@ -103,23 +88,20 @@
                             <td>{{ strtoupper($pegawai->bank ?? '-') }}</td>
                             <td>{{ $pegawai->nomor_rekening ?? '-' }}</td>
                             <td>{{ $pegawai->nama_rekening ?? '-' }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->gaji_pokok ?? $pegawai->gaji ?? 0, 0, ',', '.') }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->tarif_per_jam ?? $pegawai->tarif ?? 0, 0, ',', '.') }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->tunjangan, 0, ',', '.') }}</td>
-                            <td class="text-end">Rp {{ number_format($pegawai->asuransi, 0, ',', '.') }}</td>
+                            <td><small>{{ $pegawai->alamat ?? '-' }}</small></td>
                             <td class="text-center">
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('master-data.pegawai.edit', $pegawai) }}" 
-                                       class="btn btn-outline-primary" 
-                                       data-bs-toggle="tooltip" 
+                                    <a href="{{ route('master-data.pegawai.edit', $pegawai) }}"
+                                       class="btn btn-outline-primary"
+                                       data-bs-toggle="tooltip"
                                        title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <form action="{{ route('master-data.pegawai.destroy', $pegawai) }}" method="POST" class="d-inline delete-form" data-pegawai-nama="{{ $pegawai->nama }}">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="button" 
-                                                class="btn btn-outline-danger delete-btn" 
+                                        <button type="button"
+                                                class="btn btn-outline-danger delete-btn"
                                                 title="Hapus">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -129,7 +111,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="17" class="text-center py-4">
+                            <td colspan="10" class="text-center py-4">
                                 <div class="text-muted">
                                     <i class="bi bi-people display-6 d-block mb-2"></i>
                                     Tidak ada data pegawai yang ditemukan.
@@ -222,7 +204,6 @@
 
 <style>
     .table-responsive { overflow-x: auto; }
-    .table-wide { min-width: 1800px; }
     .avatar {
         width: 36px;
         height: 36px;

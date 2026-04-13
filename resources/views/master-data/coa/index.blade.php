@@ -26,13 +26,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">
@@ -48,6 +41,7 @@
                             <th>Nama Akun</th>
                             <th>Kode Akun</th>
                             <th>Tipe</th>
+                            <th class="text-end">Saldo Awal</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -70,6 +64,16 @@
                                     <span class="badge {{ $coa->tipe_akun == 'Asset' || $coa->tipe_akun == 'Aset' ? 'bg-success' : ($coa->tipe_akun == 'Liability' || $coa->tipe_akun == 'Kewajiban' ? 'bg-warning' : ($coa->tipe_akun == 'Equity' || $coa->tipe_akun == 'Modal' ? 'bg-info' : ($coa->tipe_akun == 'Revenue' || $coa->tipe_akun == 'Pendapatan' ? 'bg-primary' : 'bg-danger'))) }}">
                                         {{ $coa->tipe_akun }}
                                     </span>
+                                </td>
+                                <td class="text-end">
+                                    @php
+                                        $saldo = $saldoPeriode[$coa->id] ?? 0;
+                                        if ($saldo == floor($saldo)) {
+                                            echo number_format($saldo, 0, ',', '.');
+                                        } else {
+                                            echo number_format($saldo, 2, ',', '.');
+                                        }
+                                    @endphp
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">

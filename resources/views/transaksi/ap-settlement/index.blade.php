@@ -6,8 +6,6 @@
     <h3>Pelunasan Utang</h3>
   </div>
 
-  @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-
   <div class="card mb-4">
     <div class="card-header bg-warning text-dark">
       <strong>Pembelian Kredit Belum Lunas</strong>

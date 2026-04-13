@@ -363,19 +363,16 @@ function findExistingProductRow(productId) {
     const table = document.getElementById('detailTableJual');
     const rows = table.querySelectorAll('tbody tr');
     
-    console.log('🔍 Looking for existing product ID:', productId);
+    console.log('Looking for existing product ID:', productId);
     
     for (let row of rows) {
         const select = row.querySelector('.produk-select');
         if (select && select.value) {
-            console.log('📋 Found row with product ID:', select.value);
             if (select.value == productId) {
-                console.log('✅ Found existing row for product:', productId);
                 return row;
             }
         }
     }
-    console.log('❌ No existing row found for product:', productId);
     return null;
 }
 
@@ -399,18 +396,18 @@ function performRealTimeSearch(query) {
         return;
     }
     
-    console.log('🔍 Searching for products with barcode starting with:', query);
+    console.log('Searching for products with barcode starting with:', query);
     
     // Search in products with priority for barcode prefix match
     const results = searchableProducts.filter(product => {
         // Priority 1: Barcode starts with query (exact prefix match)
         if (product.barcode && product.barcode.startsWith(query)) {
-            console.log('✅ Found barcode prefix match:', product.barcode, 'for product:', product.nama);
+            console.log('Found barcode prefix match:', product.barcode, 'for product:', product.nama);
             return true;
         }
         // Priority 2: Product name contains query (fallback for name search)
         if (product.searchText.includes(query.toLowerCase())) {
-            console.log('📝 Found name match:', product.nama, 'for query:', query);
+            console.log('Found name match:', product.nama, 'for query:', query);
             return true;
         }
         return false;
@@ -428,7 +425,7 @@ function performRealTimeSearch(query) {
     })
     .slice(0, 10); // Limit to 10 results for performance
     
-    console.log('📊 Search results count:', results.length);
+    console.log('Search results count:', results.length);
     
     if (results.length > 0) {
         searchCount.textContent = results.length;
@@ -462,7 +459,7 @@ function performRealTimeSearch(query) {
                      onmouseout="this.style.backgroundColor=''">
                     <div class="flex-grow-1">
                         <div class="fw-bold text-dark">${product.nama}</div>
-                        <small class="text-muted">${barcodeDisplay} • Rp ${product.harga.toLocaleString('id-ID')}</small>
+                        <small class="text-muted">${barcodeDisplay} * Rp ${product.harga.toLocaleString('id-ID')}</small>
                     </div>
                     <div class="text-end">
                         ${stockBadge}
@@ -499,7 +496,7 @@ function selectProductFromSearch(productId, productName, price, stock) {
     
     try {
         addProductByBarcode(product);
-        showNotification('✓ ' + productName + ' ditambahkan', 'success');
+        showNotification('Produk ditambahkan: ' + productName, 'success');
         
         // Clear search
         document.getElementById('barcode-scanner').value = '';
@@ -560,7 +557,7 @@ function handleBarcodeInputEnhanced(value) {
 function resetProcessingState() {
     const scanIndicator = document.getElementById('scan-indicator');
     if (isProcessing && scanIndicator && scanIndicator.textContent === 'Memproses...') {
-        console.log('⚠️ Resetting stuck processing state');
+        console.log('Resetting stuck processing state');
         isProcessing = false;
         scanIndicator.textContent = 'Siap Scan';
         scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
@@ -605,7 +602,7 @@ function processAutomaticBarcode(barcode) {
     if (isProcessing) return;
     
     isProcessing = true;
-    console.log('🔍 Auto-processing barcode:', barcode);
+    console.log('Auto-processing barcode:', barcode);
     
     const barcodeInput = document.getElementById('barcode-scanner');
     const scanIndicator = document.getElementById('scan-indicator');
@@ -625,7 +622,7 @@ function processAutomaticBarcode(barcode) {
         const product = productData[barcode];
         
         if (product) {
-            console.log('✅ Product found:', product);
+            console.log('Product found:', product);
             
             // Validate stock before adding
             if (product.stok <= 0) {
@@ -636,7 +633,7 @@ function processAutomaticBarcode(barcode) {
             addProductByBarcode(product);
             
             // Success feedback
-            scanIndicator.textContent = '✓ ' + product.nama.substring(0, 15) + (product.nama.length > 15 ? '...' : '');
+            scanIndicator.textContent = 'Produk ditambahkan';
             scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
             
             // Play success sound
@@ -646,7 +643,7 @@ function processAutomaticBarcode(barcode) {
             showNotification('Produk ditambahkan: ' + product.nama, 'success');
             
         } else {
-            console.log('❌ Product not found for barcode:', barcode);
+            console.log('Product not found for barcode:', barcode);
             
             // Product not found - show error without search results
             scanIndicator.textContent = 'Produk tidak ditemukan';
@@ -708,7 +705,7 @@ function showNotification(message, type) {
 
 // Manual reset function - Enhanced
 function resetScannerState() {
-    console.log('🔄 Manually resetting scanner state');
+    console.log('Manually resetting scanner state');
     isProcessing = false;
     barcodeBuffer = '';
     
@@ -761,7 +758,7 @@ function processBarcode(barcode) {
 }
 
 function addProductByBarcode(product) {
-    console.log('🛒 Adding product to cart:', product);
+    console.log('Adding product to cart:', product);
     
     const table = document.getElementById('detailTableJual');
     const tbody = table.querySelector('tbody');
@@ -770,7 +767,7 @@ function addProductByBarcode(product) {
     const existingRow = findExistingProductRow(product.id);
     
     if (existingRow) {
-        console.log('📈 Incrementing existing product quantity');
+        console.log('Incrementing existing product quantity');
         // Increment quantity
         const qtyInput = existingRow.querySelector('.jumlah');
         const currentQty = parseFloat(qtyInput.value) || 0;
@@ -788,7 +785,7 @@ function addProductByBarcode(product) {
         // Highlight row
         highlightRow(existingRow);
     } else {
-        console.log('➕ Adding new product to table');
+        console.log('Adding new product to table');
         // Find first empty row or create new one
         let targetRow = null;
         const rows = tbody.querySelectorAll('tr');
@@ -797,7 +794,7 @@ function addProductByBarcode(product) {
         for (let row of rows) {
             const select = row.querySelector('.produk-select');
             if (!select || !select.value) {
-                console.log('📝 Found empty row to use');
+                console.log('Found empty row to use');
                 targetRow = row;
                 break;
             }
@@ -805,7 +802,7 @@ function addProductByBarcode(product) {
         
         // If no empty row found, create new one
         if (!targetRow) {
-            console.log('🆕 Creating new row');
+            console.log('Creating new row');
             targetRow = createNewRow();
             tbody.appendChild(targetRow);
         }
@@ -816,7 +813,7 @@ function addProductByBarcode(product) {
         const hargaInput = targetRow.querySelector('.harga');
         const diskonInput = targetRow.querySelector('.diskon');
         
-        console.log('📋 Setting product data in row:', {
+        console.log('Setting product data in row:', {
             productId: product.id,
             name: product.nama,
             price: product.harga
@@ -905,7 +902,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const addBtn = document.getElementById('addRowJual');
     const barcodeInput = document.getElementById('barcode-scanner');
     
-    // 🎯 AUTOMATIC BARCODE SCANNING SYSTEM
+    // AUTOMATIC BARCODE SCANNING SYSTEM
     
     // Maintain focus on barcode input at all times
     function ensureBarcodeInputFocus() {
@@ -1160,7 +1157,7 @@ function navigateSearchResults(direction) {
         }, 100);
     });
     
-    // 🎯 END AUTOMATIC BARCODE SCANNING SYSTEM
+    // END AUTOMATIC BARCODE SCANNING SYSTEM
     
     // Auto-focus barcode input when pressing F2
     document.addEventListener('keydown', function(e) {

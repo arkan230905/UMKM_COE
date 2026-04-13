@@ -97,10 +97,14 @@
                                 <th rowspan="2" class="text-center align-middle" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">Referensi</th>
                                 <th colspan="3" class="text-center" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">Stok Awal</th>
                                 <th colspan="3" class="text-center" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">Pembelian</th>
+                                <th colspan="3" class="text-center" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">Retur</th>
                                 <th colspan="3" class="text-center" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">Produksi</th>
                                 <th colspan="4" class="text-center" style="background-color: #6c9f6c; color: white; border: 1px solid #5a8a5a;">Total Stok</th>
                             </tr>
                             <tr style="background-color: #6c9f6c; color: white;">
+                                <th class="text-center" style="border: 1px solid #5a8a5a;">Qty</th>
+                                <th class="text-center" style="border: 1px solid #5a8a5a;">Harga</th>
+                                <th class="text-center" style="border: 1px solid #5a8a5a;">Total</th>
                                 <th class="text-center" style="border: 1px solid #5a8a5a;">Qty</th>
                                 <th class="text-center" style="border: 1px solid #5a8a5a;">Harga</th>
                                 <th class="text-center" style="border: 1px solid #5a8a5a;">Total</th>
@@ -149,6 +153,12 @@
                                             Saldo Awal
                                         @elseif($movement->ref_type == 'purchase')
                                             Pembelian #{{ $movement->ref_id }}
+                                        @elseif($movement->ref_type == 'purchase_return')
+                                            @if($movement->direction == 'out')
+                                                Retur Keluar #{{ $movement->ref_id }}
+                                            @else
+                                                Retur Masuk #{{ $movement->ref_id }}
+                                            @endif
                                         @elseif($movement->ref_type == 'production')
                                             Production #{{ $movement->ref_id }}
                                         @else
@@ -172,6 +182,25 @@
                                         <td class="text-center">{{ number_format($movement->qty, 0) }} {{ $satuanUtama }}</td>
                                         <td class="text-end">Rp {{ number_format($movement->unit_cost, 2, ',', '.') }}</td>
                                         <td class="text-end">Rp {{ number_format($movement->qty * $movement->unit_cost, 0, ',', '.') }}</td>
+                                    @else
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    @endif
+                                    
+                                    <!-- Retur (3 columns) -->
+                                    @if($movement->ref_type == 'purchase_return')
+                                        @if($movement->direction == 'out')
+                                            {{-- Retur Keluar (Barang dikirim ke vendor) --}}
+                                            <td class="text-center text-danger">-{{ number_format($movement->qty, 0) }} {{ $satuanUtama }}</td>
+                                            <td class="text-end">Rp {{ number_format($movement->unit_cost, 2, ',', '.') }}</td>
+                                            <td class="text-end text-danger">-Rp {{ number_format($movement->qty * $movement->unit_cost, 0, ',', '.') }}</td>
+                                        @else
+                                            {{-- Retur Masuk (Barang pengganti diterima) --}}
+                                            <td class="text-center text-success">+{{ number_format($movement->qty, 0) }} {{ $satuanUtama }}</td>
+                                            <td class="text-end">Rp {{ number_format($movement->unit_cost, 2, ',', '.') }}</td>
+                                            <td class="text-end text-success">+Rp {{ number_format($movement->qty * $movement->unit_cost, 0, ',', '.') }}</td>
+                                        @endif
                                     @else
                                         <td></td>
                                         <td></td>
@@ -203,7 +232,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="14" class="text-center py-4">
+                                    <td colspan="17" class="text-center py-4">
                                         <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                                         <p class="text-muted">Belum ada pergerakan stok untuk material ini</p>
                                     </td>
@@ -228,6 +257,10 @@
 <script>
 // Auto update material dropdown when material type changes
 document.querySelector('select[name="material_type"]').addEventListener('change', function() {
+    // Clear material selection when type changes
+    document.querySelector('select[name="material_id"]').value = '';
+    
+    // Submit form to reload with new material type
     this.form.submit();
 });
 </script>

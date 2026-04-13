@@ -49,8 +49,18 @@
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Tunjangan (Rp)</label>
+                        <label class="form-label">Tunjangan Jabatan (Rp)</label>
                         <input type="text" name="tunjangan" class="form-control money-input" value="{{ old('tunjangan',$jabatan->tunjangan) }}">
+                        <small class="text-dark money-hint"></small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tunjangan Transport (Rp)</label>
+                        <input type="text" name="tunjangan_transport" class="form-control money-input" value="{{ old('tunjangan_transport',$jabatan->tunjangan_transport) }}">
+                        <small class="text-dark money-hint"></small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Tunjangan Konsumsi (Rp)</label>
+                        <input type="text" name="tunjangan_konsumsi" class="form-control money-input" value="{{ old('tunjangan_konsumsi',$jabatan->tunjangan_konsumsi) }}">
                         <small class="text-dark money-hint"></small>
                     </div>
                     <div class="col-md-6">
@@ -60,7 +70,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Gaji Pokok (Rp)</label>
-                        <input type="text" name="gaji" class="form-control money-input" value="{{ old('gaji',$jabatan->gaji) }}">
+                        <input type="text" name="gaji" class="form-control money-input" value="{{ old('gaji',$jabatan->gaji_pokok) }}">
                         <small class="text-dark money-hint"></small>
                         <small class="text-dark d-block">BTKTL: gaji per bulan. BTKL: isi 0.</small>
                     </div>

@@ -69,6 +69,16 @@
     </div>
     
     <div class="mb-3">
+      <label class="form-label">Nominal Pembayaran Sesungguhnya <span class="text-danger">*</span></label>
+      <input type="text" name="nominal_pembayaran_formatted" class="form-control" value="{{ old('nominal_pembayaran') ? number_format(old('nominal_pembayaran'), 0, '.', '.') : '' }}" required placeholder="Masukkan nominal pembayaran yang sebenarnya">
+      <input type="hidden" name="nominal_pembayaran" id="nominal_pembayaran_hidden" value="{{ old('nominal_pembayaran') }}">
+      <small class="form-text text-muted">Nominal pembayaran aktual yang dibayarkan (bisa berbeda dengan budget)</small>
+      @error('nominal_pembayaran')
+        <div class="text-danger small">{{ $message }}</div>
+      @enderror
+    </div>
+    
+    <div class="mb-3">
       <label class="form-label">Akun Beban <span class="text-danger">*</span></label>
       <select name="kode_akun_beban" class="form-select" required>
         <option value="">Pilih Akun Beban</option>
@@ -91,7 +101,7 @@
     </div>
     
     <div class="row g-3">
-      <div class="col-md-4">
+      <div class="col-md-6">
         <label class="form-label">Metode Bayar <span class="text-danger">*</span></label>
         <select name="metode_bayar" class="form-select" required>
           <option value="cash" {{ old('metode_bayar') == 'cash' ? 'selected' : '' }}>Cash</option>
@@ -101,7 +111,7 @@
           <div class="text-danger small">{{ $message }}</div>
         @enderror
       </div>
-      <div class="col-md-4">
+      <div class="col-md-6">
         <label class="form-label">Akun Kas/Bank <span class="text-danger">*</span></label>
         <select name="kode_akun_kas" class="form-select" required>
           <option value="">Pilih Akun Kas/Bank</option>
@@ -115,19 +125,12 @@
           <div class="text-danger small">{{ $message }}</div>
         @enderror
       </div>
-      <div class="col-md-4">
-        <label class="form-label">Nominal Pembayaran <span class="text-danger">*</span></label>
-        <input type="number" step="0.01" min="0" name="jumlah" class="form-control" value="{{ old('jumlah') }}" required placeholder="0.00">
-        @error('jumlah')
-          <div class="text-danger small">{{ $message }}</div>
-        @enderror
-      </div>
     </div>
     
     <div class="mb-3 mt-3">
-      <label class="form-label">Keterangan</label>
-      <textarea name="keterangan" class="form-control" rows="2" placeholder="Opsional">{{ old('keterangan') }}</textarea>
-      @error('keterangan')
+      <label class="form-label">Catatan</label>
+      <textarea name="catatan" class="form-control" rows="2" placeholder="Masukkan catatan pembayaran (opsional)">{{ old('catatan') }}</textarea>
+      @error('catatan')
         <div class="text-danger small">{{ $message }}</div>
       @enderror
     </div>
@@ -141,6 +144,49 @@
 document.addEventListener('DOMContentLoaded', function() {
     const bebanOperasionalSelect = document.getElementById('bebanOperasionalSelect');
     const budgetDisplay = document.getElementById('budgetDisplay');
+    const nominalPembayaranInput = document.querySelector('input[name="nominal_pembayaran_formatted"]');
+    const nominalPembayaranHidden = document.getElementById('nominal_pembayaran_hidden');
+    
+    // Format number with thousand separators
+    function formatNumber(input) {
+        // Remove all non-digit characters
+        let value = input.value.replace(/\D/g, '');
+        
+        // Convert to number and format with thousand separators
+        if (value) {
+            value = parseInt(value).toLocaleString('id-ID');
+        }
+        
+        // Update input value
+        input.value = value;
+        
+        // Update hidden field with numeric value
+        const numericValue = parseInt(value.replace(/\D/g, '')) || 0;
+        nominalPembayaranHidden.value = numericValue;
+    }
+    
+    // Get numeric value from formatted string
+    function getNumericValue(formattedString) {
+        return parseInt(formattedString.replace(/\D/g, '')) || 0;
+    }
+    
+    // Event listener untuk nominal pembayaran input
+    nominalPembayaranInput.addEventListener('input', function() {
+        formatNumber(this);
+    });
+    
+    // Event listener untuk nominal pembayaran input (paste event)
+    nominalPembayaranInput.addEventListener('paste', function(e) {
+        // Wait for paste to complete, then format
+        setTimeout(() => {
+            formatNumber(this);
+        }, 10);
+    });
+    
+    // Event listener untuk nominal pembayaran input (blur event)
+    nominalPembayaranInput.addEventListener('blur', function() {
+        formatNumber(this);
+    });
     
     // Event listener untuk Beban Operasional
     bebanOperasionalSelect.addEventListener('change', function() {
@@ -149,6 +195,59 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Tampilkan budget dari Beban Operasional
         budgetDisplay.value = budget || '';
+    });
+    
+    // Form submission handler
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        console.log('=== FORM SUBMISSION STARTED ===');
+        
+        // Ensure hidden field is updated before submission
+        const currentValue = nominalPembayaranInput.value.replace(/\D/g, '');
+        nominalPembayaranHidden.value = currentValue || 0;
+        
+        // Validate required fields
+        const tanggal = document.querySelector('input[name="tanggal"]').value;
+        const bebanOperasionalId = document.querySelector('select[name="beban_operasional_id"]').value;
+        const kodeAkunBeban = document.querySelector('select[name="kode_akun_beban"]').value;
+        const kodeAkunKas = document.querySelector('select[name="kode_akun_kas"]').value;
+        const metodeBayar = document.querySelector('select[name="metode_bayar"]').value;
+        const keterangan = document.querySelector('textarea[name="keterangan"]').value;
+        const nominalPembayaran = nominalPembayaranHidden.value;
+        
+        console.log('Form data:', {
+            tanggal,
+            bebanOperasionalId,
+            kodeAkunBeban,
+            kodeAkunKas,
+            metodeBayar,
+            keterangan,
+            nominalPembayaran
+        });
+        
+        // Check for missing required fields
+        const errors = [];
+        if (!tanggal) errors.push('Tanggal harus diisi');
+        if (!bebanOperasionalId) errors.push('Beban Operasional harus dipilih');
+        if (!kodeAkunBeban) errors.push('Akun Beban harus dipilih');
+        if (!kodeAkunKas) errors.push('Akun Kas/Bank harus dipilih');
+        if (!metodeBayar) errors.push('Metode Bayar harus dipilih');
+        if (!keterangan) errors.push('Keterangan harus diisi');
+        if (!nominalPembayaran || nominalPembayaran == 0) errors.push('Nominal Pembayaran harus diisi');
+        
+        if (errors.length > 0) {
+            console.error('VALIDATION ERRORS:', errors);
+            e.preventDefault(); // Prevent submission only if there are errors
+            alert('Mohon lengkapi semua field yang required:\n\n' + errors.join('\n'));
+            return false;
+        }
+        
+        console.log('=== VALIDATION PASSED, SUBMITTING FORM ===');
+        console.log('Form action:', form.action);
+        console.log('Form method:', form.method);
+        
+        // Allow form to submit normally if validation passes
+        return true;
     });
 });
 </script>

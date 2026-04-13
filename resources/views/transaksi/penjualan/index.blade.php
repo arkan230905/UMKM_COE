@@ -397,7 +397,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center" style="width: 50px">#</th>
+                            <th class="text-center" style="width: 50px">NO</th>
                             <th>Nomor Transaksi</th>
                             <th>Tanggal</th>
                             <th>Pembayaran</th>
@@ -419,8 +419,13 @@
                                 <td><strong>{{ $penjualan->nomor_penjualan ?? '-' }}</strong></td>
                                 <td>{{ optional($penjualan->tanggal)->format('d-m-Y H:i') ?? $penjualan->tanggal }}</td>
                                 <td>
-                                    <span class="badge {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'bg-warning' : 'bg-success' }}">
-                                        {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'Kredit' : 'Tunai' }}
+                                    <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
+                                        @switch($penjualan->payment_method ?? '')
+                                            @case('cash') Tunai @break
+                                            @case('transfer') Transfer @break
+                                            @case('credit') Kredit @break
+                                            @default Tidak Diketahui
+                                        @endswitch
                                     </span>
                                 </td>
                                 @php $detailCount = $penjualan->details->count(); @endphp
@@ -579,7 +584,7 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th class="text-center" style="width: 50px">#</th>
+                                    <th class="text-center" style="width: 50px">NO</th>
                                     <th>Tanggal</th>
                                     <th>Nomor Penjualan</th>
                                     <th>Deskripsi</th>
@@ -755,8 +760,13 @@
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <strong>Metode Pembayaran:</strong> 
-                        <span class="badge {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'bg-warning' : 'bg-success' }}">
-                            {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'Kredit' : 'Tunai' }}
+                        <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
+                            @switch($penjualan->payment_method ?? '')
+                                @case('cash') Tunai @break
+                                @case('transfer') Transfer @break
+                                @case('credit') Kredit @break
+                                @default Tidak Diketahui
+                            @endswitch
                         </span>
                     </div>
                     <div class="col-md-6">

@@ -149,7 +149,7 @@ function addItem(tipe) {
         satuanOptions += '<option value="' + s.kode + '">' + s.kode + '</option>';
     });
     
-    const badge = tipe === 'bahan_baku' ? '<span class="badge bg-primary">Bahan Baku</span>' : '<span class="badge bg-warning text-dark">Bahan Pendukung</span>';
+    const badge = tipe === 'bahan_baku' ? '<span class="text-primary fw-semibold">Bahan Baku</span>' : '<span class="text-warning fw-semibold">Bahan Pendukung</span>';
     
     row.innerHTML = '<td><input type="hidden" name="items[' + itemIndex + '][tipe]" value="' + tipe + '">' + badge + '</td>' +
         '<td><select name="items[' + itemIndex + '][item_id]" class="form-select form-select-sm item-select" required onchange="onItemChange(this,' + itemIndex + ')">' + itemOptions + '</select></td>' +

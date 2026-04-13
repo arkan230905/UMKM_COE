@@ -2,326 +2,341 @@
 
 namespace App\Services;
 
+use App\Models\KartuStok;
+use App\Models\BahanBaku;
+use App\Models\BahanPendukung;
 use App\Models\StockLayer;
-use App\Models\StockMovement;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class StockService
 {
-    public function getAvailableQty(string $itemType, int $itemId): float
+    /**
+     * Add stock (qty_masuk)
+     */
+    public function addStock($itemId, $itemType, $qty, $keterangan, $refType = null, $refId = null, $tanggal = null)
     {
-        $sum = (float) StockLayer::where('item_type', $itemType)
-            ->where('item_id', $itemId)
-            ->sum('remaining_qty');
-        return max($sum, 0.0);
-    }
-    protected function aggregateLayer(string $itemType, int $itemId): ?StockLayer
-    {
-        $layers = StockLayer::where('item_type', $itemType)
-            ->where('item_id', $itemId)
-            ->get();
-
-        if ($layers->isEmpty()) {
-            return null;
-        }
-
-        $totalQty = 0.0; $totalCost = 0.0; $satuan = $layers->first()->satuan;
-        foreach ($layers as $ly) {
-            $q = (float)($ly->remaining_qty ?? 0);
-            $c = (float)($ly->unit_cost ?? 0);
-            $totalQty += $q;
-            $totalCost += $q * $c;
-        }
-        $avgCost = $totalQty > 0 ? $totalCost / $totalQty : 0.0;
-
-        // Collapse into a single layer (moving average)
-        DB::table((new StockLayer)->getTable())
-            ->where('item_type', $itemType)
-            ->where('item_id', $itemId)
-            ->delete();
-
-        if ($totalQty <= 0) {
-            return null;
-        }
-
-        return StockLayer::create([
-            'item_type' => $itemType,
-            'item_id' => $itemId,
-            'tanggal' => Carbon::now()->toDateString(),
-            'remaining_qty' => $totalQty,
-            'unit_cost' => $avgCost,
-            'satuan' => $satuan,
-            'ref_type' => 'avg_rollup',
-            'ref_id' => 0,
-        ]);
+        return $this->createStockEntry($itemId, $itemType, $qty, null, $keterangan, $refType, $refId, $tanggal);
     }
 
     /**
-     * Add stock layer with optional manual conversion data
+     * Reduce stock (qty_keluar)
      */
-    public function addLayerWithManualConversion(string $itemType, int $itemId, float $qty, string $satuan, float $unitCost, string $refType, int $refId, string $tanggal, ?array $manualConversionData = null): void
+    public function reduceStock($itemId, $itemType, $qty, $keterangan, $refType = null, $refId = null, $tanggal = null)
     {
-        DB::transaction(function () use ($itemType, $itemId, $qty, $satuan, $unitCost, $refType, $refId, $tanggal, $manualConversionData) {
-            // Check if a stock movement with the same parameters already exists to prevent duplicates
-            $existingMovement = StockMovement::where('item_type', $itemType)
-                ->where('item_id', $itemId)
-                ->where('ref_type', $refType)
-                ->where('ref_id', $refId)
-                ->where('direction', 'in')
-                ->where('tanggal', $tanggal)
-                ->first();
-            
-            if ($existingMovement) {
-                \Log::warning('Duplicate stock movement prevented', [
-                    'item_type' => $itemType,
-                    'item_id' => $itemId,
-                    'ref_type' => $refType,
-                    'ref_id' => $refId,
-                    'existing_movement_id' => $existingMovement->id
-                ]);
-                return; // Skip creating duplicate movement
+        return $this->createStockEntry($itemId, $itemType, null, $qty, $keterangan, $refType, $refId, $tanggal);
+    }
+
+    /**
+     * Create stock entry
+     */
+    private function createStockEntry($itemId, $itemType, $qtyMasuk, $qtyKeluar, $keterangan, $refType, $refId, $tanggal)
+    {
+        // Validate item type
+        if (!in_array($itemType, [KartuStok::ITEM_TYPE_BAHAN_BAKU, KartuStok::ITEM_TYPE_BAHAN_PENDUKUNG])) {
+            throw new \InvalidArgumentException('Invalid item_type: ' . $itemType);
+        }
+
+        // Validate item exists
+        $this->validateItemExists($itemId, $itemType);
+
+        // Check stock availability for reduction
+        if ($qtyKeluar > 0) {
+            $currentStock = $this->getCurrentStock($itemId, $itemType);
+            if ($currentStock < $qtyKeluar) {
+                throw new \Exception("Insufficient stock. Current: {$currentStock}, Required: {$qtyKeluar}");
             }
+        }
+
+        $data = [
+            'tanggal' => $tanggal ?? now()->format('Y-m-d'),
+            'item_id' => $itemId,
+            'item_type' => $itemType,
+            'qty_masuk' => $qtyMasuk,
+            'qty_keluar' => $qtyKeluar,
+            'keterangan' => $keterangan,
+            'ref_type' => $refType,
+            'ref_id' => $refId
+        ];
+
+        Log::info('Creating stock entry', $data);
+
+        return KartuStok::createEntry($data);
+    }
+
+    /**
+     * Validate that item exists
+     */
+    private function validateItemExists($itemId, $itemType)
+    {
+        if ($itemType === KartuStok::ITEM_TYPE_BAHAN_BAKU) {
+            if (!BahanBaku::find($itemId)) {
+                throw new \Exception("Bahan Baku with ID {$itemId} not found");
+            }
+        } elseif ($itemType === KartuStok::ITEM_TYPE_BAHAN_PENDUKUNG) {
+            if (!BahanPendukung::find($itemId)) {
+                throw new \Exception("Bahan Pendukung with ID {$itemId} not found");
+            }
+        }
+    }
+
+    /**
+     * Get current stock balance
+     */
+    public function getCurrentStock($itemId, $itemType)
+    {
+        return KartuStok::getStockBalance($itemId, $itemType);
+    }
+
+    /**
+     * Process purchase stock entry
+     */
+    public function processPurchase($pembelianId)
+    {
+        $pembelian = \App\Models\Pembelian::with('details')->find($pembelianId);
+        if (!$pembelian) {
+            throw new \Exception("Pembelian with ID {$pembelianId} not found");
+        }
+
+        foreach ($pembelian->details as $detail) {
+            $itemType = null;
+            $itemId = null;
+
+            if ($detail->bahan_baku_id) {
+                $itemType = KartuStok::ITEM_TYPE_BAHAN_BAKU;
+                $itemId = $detail->bahan_baku_id;
+            } elseif ($detail->bahan_pendukung_id) {
+                $itemType = KartuStok::ITEM_TYPE_BAHAN_PENDUKUNG;
+                $itemId = $detail->bahan_pendukung_id;
+            }
+
+            if ($itemType && $itemId) {
+                $this->addStock(
+                    $itemId,
+                    $itemType,
+                    $detail->jumlah,
+                    "Pembelian #{$pembelian->nomor_pembelian}",
+                    KartuStok::REF_TYPE_PEMBELIAN,
+                    $pembelianId,
+                    $pembelian->tanggal->format('Y-m-d')
+                );
+            }
+        }
+    }
+
+    /**
+     * Process return stock entry (when goods are sent to vendor)
+     */
+    public function processReturnSent($returnId)
+    {
+        $return = \App\Models\PurchaseReturn::with(['items', 'pembelian'])->find($returnId);
+        if (!$return) {
+            throw new \Exception("Purchase Return with ID {$returnId} not found");
+        }
+
+        foreach ($return->items as $item) {
+            $itemType = null;
+            $itemId = null;
+
+            if ($item->bahan_baku_id) {
+                $itemType = KartuStok::ITEM_TYPE_BAHAN_BAKU;
+                $itemId = $item->bahan_baku_id;
+            } elseif ($item->bahan_pendukung_id) {
+                $itemType = KartuStok::ITEM_TYPE_BAHAN_PENDUKUNG;
+                $itemId = $item->bahan_pendukung_id;
+            }
+
+            if ($itemType && $itemId) {
+                $this->reduceStock(
+                    $itemId,
+                    $itemType,
+                    $item->quantity,
+                    "Retur Pembelian #{$return->return_number}",
+                    KartuStok::REF_TYPE_RETUR,
+                    $returnId,
+                    $return->return_date->format('Y-m-d')
+                );
+            }
+        }
+    }
+
+    /**
+     * Process return completion (when replacement goods are received - only for tukar_barang)
+     */
+    public function processReturnCompleted($returnId)
+    {
+        $return = \App\Models\PurchaseReturn::with(['items', 'pembelian'])->find($returnId);
+        if (!$return) {
+            throw new \Exception("Purchase Return with ID {$returnId} not found");
+        }
+
+        // Only process stock entry for tukar_barang
+        if ($return->jenis_retur !== \App\Models\PurchaseReturn::JENIS_TUKAR_BARANG) {
+            return;
+        }
+
+        foreach ($return->items as $item) {
+            $itemType = null;
+            $itemId = null;
+
+            if ($item->bahan_baku_id) {
+                $itemType = KartuStok::ITEM_TYPE_BAHAN_BAKU;
+                $itemId = $item->bahan_baku_id;
+            } elseif ($item->bahan_pendukung_id) {
+                $itemType = KartuStok::ITEM_TYPE_BAHAN_PENDUKUNG;
+                $itemId = $item->bahan_pendukung_id;
+            }
+
+            if ($itemType && $itemId) {
+                $this->addStock(
+                    $itemId,
+                    $itemType,
+                    $item->quantity,
+                    "Barang Pengganti dari Retur #{$return->return_number}",
+                    KartuStok::REF_TYPE_RETUR,
+                    $returnId,
+                    now()->format('Y-m-d')
+                );
+            }
+        }
+    }
+
+    /**
+     * Get stock report for an item
+     */
+    public function getStockReport($itemId, $itemType, $startDate = null, $endDate = null)
+    {
+        $query = KartuStok::forItem($itemId, $itemType)
+            ->orderBy('tanggal', 'asc')
+            ->orderBy('id', 'asc');
+
+        if ($startDate) {
+            $query->where('tanggal', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $query->where('tanggal', '<=', $endDate);
+        }
+
+        $entries = $query->get();
+
+        // Calculate running balance
+        $runningBalance = 0;
+        if ($startDate) {
+            // Get balance before start date
+            $runningBalance = KartuStok::getStockBalance($itemId, $itemType, 
+                \Carbon\Carbon::parse($startDate)->subDay()->format('Y-m-d'));
+        }
+
+        $report = [];
+        foreach ($entries as $entry) {
+            $runningBalance += ($entry->qty_masuk ?? 0) - ($entry->qty_keluar ?? 0);
             
-            // Convert input quantity to primary unit first
-            $primaryQty = $this->convertToPrimaryUnit($itemType, $itemId, $qty, $satuan);
-            $primaryUnitCost = $this->convertToPrimaryUnitCost($itemType, $itemId, $unitCost, $satuan);
-            
-            // Record movement IN first with converted quantities
-            StockMovement::create([
+            $report[] = [
+                'tanggal' => $entry->tanggal->format('d/m/Y'),
+                'keterangan' => $entry->keterangan,
+                'qty_masuk' => $entry->qty_masuk ?? 0,
+                'qty_keluar' => $entry->qty_keluar ?? 0,
+                'saldo' => $runningBalance,
+                'ref_type' => $entry->ref_type,
+                'ref_id' => $entry->ref_id
+            ];
+        }
+
+        return [
+            'saldo_awal' => $runningBalance - $entries->sum(function($e) { 
+                return ($e->qty_masuk ?? 0) - ($e->qty_keluar ?? 0); 
+            }),
+            'entries' => $report,
+            'saldo_akhir' => $runningBalance
+        ];
+    }
+
+    /**
+     * Add stock layer with manual conversion data
+     */
+    public function addLayerWithManualConversion($itemType, $itemId, $qty, $satuan, $unitCost, $refType, $refId, $tanggal, $manualConversionData = null)
+    {
+        try {
+            $data = [
                 'item_type' => $itemType,
                 'item_id' => $itemId,
-                'tanggal' => $tanggal,
-                'direction' => 'in',
-                'qty' => $primaryQty,
-                'satuan' => $this->getPrimarySatuan($itemType, $itemId),
-                'unit_cost' => $primaryUnitCost,
-                'total_cost' => $primaryQty * $primaryUnitCost,
+                'tanggal' => $tanggal ?? now()->format('Y-m-d'),
+                'remaining_qty' => $qty,
+                'unit_cost' => $unitCost,
+                'satuan' => $satuan,
                 'ref_type' => $refType,
-                'ref_id' => $refId,
-                'qty_as_input' => $qty,
-                'satuan_as_input' => $satuan,
-                'manual_conversion_data' => $manualConversionData ? json_encode($manualConversionData) : null,
-            ]);
+                'ref_id' => $refId
+            ];
 
-            // Moving average: compute new average with existing layers + this receipt
-            $existing = StockLayer::where('item_type', $itemType)
-                ->where('item_id', $itemId)
-                ->get();
+            Log::info('Creating stock layer with manual conversion', array_merge($data, [
+                'manual_conversion_data' => $manualConversionData
+            ]));
 
-            $oldQty = 0.0; $oldCost = 0.0;
-            foreach ($existing as $ly) {
-                $q = (float)($ly->remaining_qty ?? 0);
-                $c = (float)($ly->unit_cost ?? 0);
-                $oldQty += $q;
-                $oldCost += $q * $c;
-            }
-            $newQty = max($oldQty + $primaryQty, 0.0);
-            $newCost = max($oldCost + ($primaryQty * $primaryUnitCost), 0.0);
-            $avgCost = $newQty > 0 ? ($newCost / $newQty) : 0.0;
-
-            // Collapse to single layer
-            DB::table((new StockLayer)->getTable())
-                ->where('item_type', $itemType)
-                ->where('item_id', $itemId)
-                ->delete();
-
-            if ($newQty > 0) {
-                StockLayer::create([
-                    'item_type' => $itemType,
-                    'item_id' => $itemId,
-                    'tanggal' => $tanggal,
-                    'remaining_qty' => $newQty,
-                    'unit_cost' => $avgCost,
-                    'satuan' => $this->getPrimarySatuan($itemType, $itemId),
-                    'ref_type' => 'avg_layer',
-                    'ref_id' => 0,
-                    'qty_as_input' => $qty,
-                    'satuan_as_input' => $satuan,
-                    'manual_conversion_data' => $manualConversionData ? json_encode($manualConversionData) : null,
-                ]);
-            }
-        });
-    }
-    
-    /**
-     * Convert quantity to primary unit
-     */
-    private function convertToPrimaryUnit(string $itemType, int $itemId, float $qty, string $fromSatuan): float
-    {
-        // Get conversion ratio from database or use fallback
-        $conversionRatio = $this->getConversionRatio($itemType, $itemId, $fromSatuan);
-        return $qty * $conversionRatio;
-    }
-    
-    /**
-     * Convert unit cost to primary unit cost
-     */
-    private function convertToPrimaryUnitCost(string $itemType, int $itemId, float $unitCost, string $fromSatuan): float
-    {
-        // Get conversion ratio from database or use fallback
-        $conversionRatio = $this->getConversionRatio($itemType, $itemId, $fromSatuan);
-        return $unitCost / $conversionRatio;
-    }
-    
-    /**
-     * Get primary satuan for an item
-     */
-    private function getPrimarySatuan(string $itemType, int $itemId): string
-    {
-        // Get the primary satuan from the item
-        $item = null;
-        if ($itemType === 'material') {
-            $item = \App\Models\BahanBaku::find($itemId);
-        } elseif ($itemType === 'support') {
-            $item = \App\Models\BahanPendukung::find($itemId);
-        } elseif ($itemType === 'product') {
-            $item = \App\Models\Produk::find($itemId);
-        }
-        
-        return $item?->satuan?->nama ?? 'Unit';
-    }
-    
-    /**
-     * Get conversion ratio from database or use fallback logic
-     */
-    private function getConversionRatio(string $itemType, int $itemId, string $fromSatuan): float
-    {
-        // Try to get conversion from database table if exists
-        try {
-            $conversion = \App\Models\SatuanConversion::where(function($query) use ($itemType, $itemId, $fromSatuan) {
-                $query->where(function($subQuery) use ($itemType, $itemId, $fromSatuan) {
-                    // Find conversions where either source or target matches
-                    $subQuery->where(function($subSubQuery) use ($fromSatuan) {
-                        $subSubQuery->where('nama', 'like', '%' . $fromSatuan . '%');
-                    });
-                });
-            })
-                ->where(function($query) use ($itemId) {
-                    $query->where('item_id', $itemId);
-                })
-                ->first();
-                
-            if ($conversion) {
-                    // Determine conversion direction
-                    if ($conversion->source_satuan_id == $conversion->target_satuan_id) {
-                        return $conversion->amount_target / $conversion->amount_source;
-                    } else {
-                        return $conversion->amount_source / $conversion->amount_target;
-                    }
-            }
+            return StockLayer::create($data);
         } catch (\Exception $e) {
-            // Use item-specific conversion data from bahan baku/bahan pendukung
-            return $this->getItemSpecificConversionRatio($itemType, $itemId, $fromSatuan);
+            Log::error('Failed to create stock layer with manual conversion', [
+                'error' => $e->getMessage(),
+                'item_type' => $itemType,
+                'item_id' => $itemId,
+                'qty' => $qty
+            ]);
+            throw $e;
         }
-        
-        return 1.0; // Default: no conversion
     }
-    
+
     /**
-     * Get conversion ratio from item-specific data
+     * Estimate cost for items using FIFO from stock layers
      */
-    private function getItemSpecificConversionRatio(string $itemType, int $itemId, string $fromSatuan): float
+    public function estimateCost($itemType, $itemId, $qty)
     {
-        // Get the item and its conversion data
-        $item = null;
-        if ($itemType === 'material') {
-            $item = \App\Models\BahanBaku::find($itemId);
-        } elseif ($itemType === 'support') {
-            $item = \App\Models\BahanPendukung::find($itemId);
-        } elseif ($itemType === 'product') {
-            $item = \App\Models\Produk::find($itemId);
-        }
-        
-        if (!$item) {
-            return $this->getFallbackConversionRatio($fromSatuan);
-        }
-        
-        $primarySatuan = strtolower($item->satuan->nama ?? '');
-        $fromSatuanLower = strtolower($fromSatuan);
-        
-        // Check if fromSatuan is the primary satuan
-        if (str_contains($primarySatuan, $fromSatuanLower) || str_contains($fromSatuanLower, $primarySatuan)) {
-            return 1.0;
-        }
-        
-        // Only check sub-satuan for materials and supports (products don't have sub-satuan)
-        if ($itemType !== 'product') {
-            // Check sub satuan 1
-            if ($item->sub_satuan_1_id) {
-                $subSatuan1 = \App\Models\Satuan::find($item->sub_satuan_1_id);
-                if ($subSatuan1 && str_contains(strtolower($subSatuan1->nama), $fromSatuanLower)) {
-                    // sub_satuan_1_konversi: berapa primary unit = 1 sub unit
-                    // sub_satuan_1_nilai: berapa sub unit = 1 primary unit
-                    if ($item->sub_satuan_1_konversi > 0) {
-                        return 1 / $item->sub_satuan_1_konversi; // Convert sub unit to primary
-                    } elseif ($item->sub_satuan_1_nilai > 0) {
-                        return $item->sub_satuan_1_nilai; // Convert sub unit to primary
-                    }
+        try {
+            if ($itemType === 'product') {
+                // Try to get cost from stock layers first
+                $totalCost = 0;
+                $remainingQty = $qty;
+
+                // Get stock layers ordered by date (FIFO)
+                $layers = \App\Models\StockLayer::where('item_type', 'product')
+                    ->where('item_id', $itemId)
+                    ->where('remaining_qty', '>', 0)
+                    ->orderBy('tanggal', 'asc')
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                foreach ($layers as $layer) {
+                    if ($remainingQty <= 0) break;
+
+                    $useQty = min($layer->remaining_qty, $remainingQty);
+                    $totalCost += $useQty * $layer->unit_cost;
+                    $remainingQty -= $useQty;
                 }
-            }
-            
-            // Check sub satuan 2
-            if ($item->sub_satuan_2_id) {
-                $subSatuan2 = \App\Models\Satuan::find($item->sub_satuan_2_id);
-                if ($subSatuan2 && str_contains(strtolower($subSatuan2->nama), $fromSatuanLower)) {
-                    if ($item->sub_satuan_2_konversi > 0) {
-                        return 1 / $item->sub_satuan_2_konversi;
-                    } elseif ($item->sub_satuan_2_nilai > 0) {
-                        return $item->sub_satuan_2_nilai;
-                    }
+
+                // If we still need more quantity, use BOM cost
+                if ($remainingQty > 0) {
+                    $bomCost = $this->calculateBOMCost($itemId);
+                    $totalCost += $remainingQty * $bomCost;
                 }
+
+                return $totalCost;
             }
-            
-            // Check sub satuan 3
-            if ($item->sub_satuan_3_id) {
-                $subSatuan3 = \App\Models\Satuan::find($item->sub_satuan_3_id);
-                if ($subSatuan3 && str_contains(strtolower($subSatuan3->nama), $fromSatuanLower)) {
-                    if ($item->sub_satuan_3_konversi > 0) {
-                        return 1 / $item->sub_satuan_3_konversi;
-                    } elseif ($item->sub_satuan_3_nilai > 0) {
-                        return $item->sub_satuan_3_nilai;
-                    }
-                }
-            }
+
+            return 0;
+        } catch (\Exception $e) {
+            Log::error('Error estimating cost', [
+                'item_type' => $itemType,
+                'item_id' => $itemId,
+                'qty' => $qty,
+                'error' => $e->getMessage()
+            ]);
+            return 0;
         }
-        
-        // Fallback to common Indonesian conversions
-        return $this->getFallbackConversionRatio($fromSatuan);
-    }
-    
-    /**
-     * Get fallback conversion ratio for common Indonesian units
-     */
-    private function getFallbackConversionRatio(string $fromSatuan): float
-    {
-        $fromSatuan = strtolower($fromSatuan);
-        
-        // Common Indonesian unit conversions
-        $conversions = [
-            'gram' => ['kg' => 0.001, 'kilogram' => 0.001, 'ons' => 0.1, 'potong' => 0.25],
-            'kg' => ['gram' => 1000, 'kilogram' => 1000, 'ons' => 10, 'potong' => 4],
-            'liter' => ['ml' => 0.001, 'cl' => 0.01],
-            'meter' => ['cm' => 0.01, 'mm' => 0.001],
-            'ons' => ['ekor' => 0.1, 'potong' => 0.25],
-            'ekor' => ['potong' => 0.25, 'ons' => 0.1],
-            'pcs' => ['lusin' => 1],
-            'piece' => ['pcs' => 1],
-        ];
-        
-        foreach ($conversions as $primaryUnit => $subUnits) {
-            if (str_contains($fromSatuan, $primaryUnit)) {
-                return $subUnits[$fromSatuan] ?? 1.0;
-            }
-        }
-        
-        return 1.0; // Default: no conversion
     }
 
     /**
      * Sync product stock to StockLayer - force sync even if exists
      */
-    private function syncProductStockToLayer(int $productId): void
+    private function syncProductStockToLayer($productId)
     {
         $produk = \App\Models\Produk::find($productId);
         if (!$produk) {
@@ -378,89 +393,107 @@ class StockService
         $this->syncProductStockToLayer($productId);
     }
 
-    public function consume(string $itemType, int $itemId, float $qty, string $satuan, string $refType, int $refId, string $tanggal): float
+    /**
+     * Calculate BOM cost for a product
+     */
+    private function calculateBOMCost($productId)
     {
-        return DB::transaction(function () use ($itemType, $itemId, $qty, $satuan, $refType, $refId, $tanggal) {
-            // Convert input quantity to primary unit first
-            $primaryQty = $this->convertToPrimaryUnit($itemType, $itemId, $qty, $satuan);
+        try {
+            $bomTotal = \App\Models\Bom::where('produk_id', $productId)->sum('total_biaya');
+            $product = \App\Models\Produk::find($productId);
             
-            // Auto-sync product stock to StockLayer if not exists
-            if ($itemType === 'product') {
-                $this->syncProductStockToLayer($itemId);
-            }
+            $btkl = $product->btkl_default ?? 0;
+            $bop = $product->bop_default ?? 0;
             
-            // Get available stock after potential sync
-            $available = (float) StockLayer::where('item_type', $itemType)
-                ->where('item_id', $itemId)
-                ->sum('remaining_qty');
-                
-            // Strict check: do not allow consume beyond available
-            if ($primaryQty > $available + 1e-9) {
-                throw new \RuntimeException('Insufficient stock for '.$itemType.'#'.$itemId.' (need '.$primaryQty.', available '.$available.')');
-            }
-
-            // Lock the single (collapsed) layer; if multiple, collapse first
-            $layer = StockLayer::where('item_type', $itemType)
-                ->where('item_id', $itemId)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$layer) {
-                throw new \RuntimeException('Insufficient stock for '.$itemType.'#'.$itemId);
-            }
-
-            $unitCost = (float)($layer->unit_cost ?? 0);
-            $totalCost = $primaryQty * $unitCost;
-
-            $layer->remaining_qty = (float)$layer->remaining_qty - $primaryQty;
-            if ($layer->remaining_qty <= 0) {
-                $layer->delete();
-            } else {
-                $layer->save();
-            }
-
-            StockMovement::create([
-                'item_type' => $itemType,
-                'item_id' => $itemId,
-                'tanggal' => $tanggal,
-                'direction' => 'out',
-                'qty' => $primaryQty,
-                'satuan' => $this->getPrimarySatuan($itemType, $itemId),
-                'unit_cost' => $unitCost,
-                'total_cost' => $totalCost,
-                'ref_type' => $refType,
-                'ref_id' => $refId,
-                'qty_as_input' => $qty,
-                'satuan_as_input' => $satuan,
+            return $bomTotal + $btkl + $bop;
+        } catch (\Exception $e) {
+            Log::error('Error calculating BOM cost', [
+                'product_id' => $productId,
+                'error' => $e->getMessage()
             ]);
-
-            return $totalCost;
-        });
+            return 0;
+        }
     }
 
     /**
-     * Estimate total FIFO cost for a given quantity without mutating layers.
+     * Consume stock (for sales/production)
      */
-    public function estimateCost(string $itemType, int $itemId, float $qty): float
+    public function consume($itemType, $itemId, $qty, $satuan = 'pcs', $refType = null, $refId = null, $tanggal = null)
     {
-        if ($qty <= 0) return 0.0;
+        try {
+            if ($itemType === 'product') {
+                $product = \App\Models\Produk::find($itemId);
+                if (!$product) {
+                    throw new \Exception("Product with ID {$itemId} not found");
+                }
 
-        $layers = StockLayer::where('item_type', $itemType)
-            ->where('item_id', $itemId)
-            ->where('remaining_qty', '>', 0)
-            ->get();
+                // Check current stock
+                $currentStock = $product->stok ?? 0;
+                if ($currentStock < $qty) {
+                    throw new \Exception("Insufficient stock. Current: {$currentStock}, Required: {$qty}");
+                }
 
-        $totalQty = 0.0; $totalCost = 0.0;
-        foreach ($layers as $ly) {
-            $q = (float)($ly->remaining_qty ?? 0);
-            $c = (float)($ly->unit_cost ?? 0);
-            $totalQty += $q;
-            $totalCost += $q * $c;
+                // Calculate cost using FIFO
+                $totalCost = 0;
+                $remainingQty = $qty;
+
+                // Get stock layers for FIFO cost calculation
+                $layers = \App\Models\StockLayer::where('item_type', 'product')
+                    ->where('item_id', $itemId)
+                    ->where('remaining_qty', '>', 0)
+                    ->orderBy('tanggal', 'asc')
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                foreach ($layers as $layer) {
+                    if ($remainingQty <= 0) break;
+
+                    $useQty = min($layer->remaining_qty, $remainingQty);
+                    $totalCost += $useQty * $layer->unit_cost;
+                    
+                    // Update layer remaining quantity
+                    $layer->remaining_qty -= $useQty;
+                    $layer->save();
+                    
+                    $remainingQty -= $useQty;
+                }
+
+                // If no layers found, use BOM cost
+                if ($totalCost == 0 && $qty > 0) {
+                    $bomCost = $this->calculateBOMCost($itemId);
+                    $totalCost = $qty * $bomCost;
+                }
+
+                // Update product stock
+                $product->stok = $currentStock - $qty;
+                $product->save();
+
+                // Create stock movement record
+                \DB::table('stock_movements')->insert([
+                    'item_type' => $itemType,
+                    'item_id' => $itemId,
+                    'direction' => 'out',
+                    'qty' => $qty,
+                    'satuan' => $satuan,
+                    'ref_type' => $refType,
+                    'ref_id' => $refId,
+                    'tanggal' => $tanggal ?? now()->format('Y-m-d'),
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                return $totalCost;
+            }
+
+            return 0;
+        } catch (\Exception $e) {
+            Log::error('Error consuming stock', [
+                'item_type' => $itemType,
+                'item_id' => $itemId,
+                'qty' => $qty,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
         }
-        if ($totalQty <= 0) return 0.0;
-        $avg = $totalCost / $totalQty;
-        $est = min($qty, $totalQty) * $avg;
-        return $est;
     }
 }
-

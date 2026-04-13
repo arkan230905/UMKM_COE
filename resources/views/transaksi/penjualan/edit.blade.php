@@ -19,9 +19,10 @@
             <div class="col-md-3">
                 <label class="form-label">Metode Pembayaran</label>
                 <select name="payment_method" id="payment_method_jual" class="form-select" required>
-                    <option value="cash" {{ ($penjualan->payment_method ?? 'cash') == 'cash' ? 'selected' : '' }}>Tunai</option>
-                    <option value="transfer" {{ ($penjualan->payment_method ?? 'cash') == 'transfer' ? 'selected' : '' }}>Transfer Bank</option>
-                    <option value="credit" {{ ($penjualan->payment_method ?? 'cash') == 'credit' ? 'selected' : '' }}>Kredit</option>
+                    <option value="">-- Pilih Metode --</option>
+                    <option value="cash" {{ ($penjualan->payment_method ?? '') == 'cash' ? 'selected' : '' }}>Tunai</option>
+                    <option value="transfer" {{ ($penjualan->payment_method ?? '') == 'transfer' ? 'selected' : '' }}>Transfer Bank</option>
+                    <option value="credit" {{ ($penjualan->payment_method ?? '') == 'credit' ? 'selected' : '' }}>Kredit</option>
                 </select>
             </div>
             <div class="col-md-3" id="sumber_dana_wrapper_jual">
@@ -353,5 +354,63 @@ function formatCurrency(value) {
     const roundedValue = Math.round(parseFloat(value) * 1000) / 1000;
     return 'Rp ' + roundedValue.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 3 });
 }
+
+// Auto-update sumber dana berdasarkan metode pembayaran
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentMethodSelect = document.getElementById('payment_method_jual');
+    const sumberDanaSelect = document.getElementById('sumber_dana_jual');
+    
+    // Fungsi untuk update sumber dana berdasarkan metode pembayaran
+    function updateSumberDana() {
+        const paymentMethod = paymentMethodSelect.value;
+        let targetKode = '';
+        
+        // Tentukan kode akun target berdasarkan metode pembayaran
+        switch(paymentMethod) {
+            case 'cash':
+                // Pilih akun Kas (112 atau 113) - prioritaskan 112
+                targetKode = '112';
+                break;
+            case 'transfer':
+                // Pilih akun Bank (111)
+                targetKode = '111';
+                break;
+            case 'credit':
+                // Pilih akun Piutang (118)
+                targetKode = '118';
+                break;
+        }
+        
+        // Cari dan pilih option yang sesuai
+        if (targetKode) {
+            const targetOption = Array.from(sumberDanaSelect.options).find(option => 
+                option.value === targetKode
+            );
+            
+            if (targetOption) {
+                sumberDanaSelect.value = targetKode;
+            } else {
+                // Jika kode target tidak ditemukan, coba fallback
+                if (paymentMethod === 'cash') {
+                    // Coba cari akun kas lainnya (113)
+                    const fallbackOption = Array.from(sumberDanaSelect.options).find(option => 
+                        option.value === '113'
+                    );
+                    if (fallbackOption) {
+                        sumberDanaSelect.value = '113';
+                    }
+                }
+            }
+        }
+    }
+    
+    // Event listener untuk perubahan metode pembayaran
+    paymentMethodSelect.addEventListener('change', updateSumberDana);
+    
+    // Initialize saat pertama kali load hanya jika ada metode yang dipilih
+    if (paymentMethodSelect.value) {
+        updateSumberDana();
+    }
+});
 </script>
 @endsection

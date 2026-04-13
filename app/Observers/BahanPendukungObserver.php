@@ -7,6 +7,7 @@ use App\Models\BomJobBahanPendukung;
 use App\Models\BomJobCosting;
 use App\Models\BomDetail;
 use App\Models\Produk;
+use App\Models\StockMovement;
 use App\Support\UnitConverter;
 use Illuminate\Support\Facades\Log;
 
@@ -15,6 +16,15 @@ use Illuminate\Support\Facades\Log;
  */
 class BahanPendukungObserver
 {
+    /**
+     * Handle the BahanPendukung "created" event.
+     */
+    public function created(BahanPendukung $bahanPendukung): void
+    {
+        // Ensure initial stock movement exists for laporan stok
+        $this->ensureInitialStockMovement($bahanPendukung);
+    }
+    
     /**
      * Handle the BahanPendukung "updated" event.
      */
@@ -51,30 +61,43 @@ class BahanPendukungObserver
             ->get();
         
         foreach ($bomJobBahanPendukungs as $jobPendukung) {
-            // Update harga satuan
-            $jobPendukung->harga_satuan = $bahanPendukung->harga_satuan;
+            // Get base unit from bahan pendukung
+            $satuanBase = is_object($bahanPendukung->satuan) 
+                ? $bahanPendukung->satuan->nama 
+                : ($bahanPendukung->satuan ?? 'unit');
             
-            // Recalculate subtotal
+            // Get recipe unit from BOM
+            $satuanResep = $jobPendukung->satuan ?: $satuanBase;
+            
+            // Convert harga_satuan (per base unit) to harga per recipe unit
             try {
-                $satuanBase = is_object($bahanPendukung->satuan) 
-                    ? $bahanPendukung->satuan->nama 
-                    : ($bahanPendukung->satuan ?? 'unit');
+                if (strtolower($satuanBase) === 'liter' && strtolower($satuanResep) === 'mililiter') {
+                    // Special case: convert from Rp/liter to Rp/ml
+                    $hargaPerSatuanResep = $bahanPendukung->harga_satuan / 1000;
+                } elseif (strtolower($satuanBase) === 'kilogram' && strtolower($satuanResep) === 'gram') {
+                    // Special case: convert from Rp/kg to Rp/gram
+                    $hargaPerSatuanResep = $bahanPendukung->harga_satuan / 1000;
+                } else {
+                    // Use converter for other cases
+                    $conversionFactor = $converter->convert(1, $satuanBase, $satuanResep);
+                    $hargaPerSatuanResep = $bahanPendukung->harga_satuan / $conversionFactor;
+                }
                 
-                $qtyBase = $converter->convert(
-                    (float) $jobPendukung->jumlah,
-                    $jobPendukung->satuan ?: $satuanBase,
-                    $satuanBase
-                );
+                // Update harga satuan with converted price
+                $jobPendukung->harga_satuan = $hargaPerSatuanResep;
                 
-                $jobPendukung->subtotal = $bahanPendukung->harga_satuan * $qtyBase;
+                // Recalculate subtotal
+                $jobPendukung->subtotal = $jobPendukung->jumlah * $hargaPerSatuanResep;
                 $jobPendukung->save();
                 
                 Log::info('✅ BomJobBahanPendukung Updated', [
                     'job_pendukung_id' => $jobPendukung->id,
                     'produk' => $jobPendukung->bomJobCosting->produk->nama_produk ?? 'N/A',
                     'jumlah' => $jobPendukung->jumlah,
-                    'satuan' => $jobPendukung->satuan,
-                    'harga_baru' => $bahanPendukung->harga_satuan,
+                    'satuan_resep' => $satuanResep,
+                    'satuan_base' => $satuanBase,
+                    'harga_base' => $bahanPendukung->harga_satuan,
+                    'harga_resep' => $hargaPerSatuanResep,
                     'subtotal' => $jobPendukung->subtotal
                 ]);
                 
@@ -86,7 +109,9 @@ class BahanPendukungObserver
             } catch (\Exception $e) {
                 Log::error('❌ Error updating BomJobBahanPendukung', [
                     'job_pendukung_id' => $jobPendukung->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
+                    'satuan_base' => $satuanBase,
+                    'satuan_resep' => $satuanResep
                 ]);
             }
         }
@@ -446,5 +471,43 @@ class BahanPendukungObserver
             'bahan_pendukung_id' => $bahanPendukung->id,
             'nama_bahan' => $bahanPendukung->nama_bahan
         ]);
+    }
+    
+    /**
+     * Ensure initial stock movement exists for laporan stok
+     */
+    private function ensureInitialStockMovement(BahanPendukung $bahanPendukung): void
+    {
+        // Check if initial stock movement already exists
+        $hasInitialStock = \App\Models\StockMovement::where('item_type', 'support')
+            ->where('item_id', $bahanPendukung->id)
+            ->where('ref_type', 'initial_stock')
+            ->exists();
+            
+        if (!$hasInitialStock) {
+            // Create initial stock movement
+            $stokAwal = $bahanPendukung->stok ?? 0;
+            $hargaRataRata = $bahanPendukung->harga_rata_rata ?? 0;
+            
+            \App\Models\StockMovement::create([
+                'item_type' => 'support',
+                'item_id' => $bahanPendukung->id,
+                'tanggal' => '2026-04-01', // Set consistent initial date
+                'direction' => 'in',
+                'qty' => $stokAwal,
+                'satuan' => $bahanPendukung->satuan->nama ?? 'Unit',
+                'unit_cost' => $hargaRataRata,
+                'total_cost' => $stokAwal * $hargaRataRata,
+                'ref_type' => 'initial_stock',
+                'ref_id' => 0,
+                'keterangan' => 'Stok awal ' . $bahanPendukung->nama_bahan,
+            ]);
+            
+            Log::info('Created initial stock movement for new bahan pendukung', [
+                'item_id' => $bahanPendukung->id,
+                'nama_bahan' => $bahanPendukung->nama_bahan,
+                'stok_awal' => $stokAwal
+            ]);
+        }
     }
 }

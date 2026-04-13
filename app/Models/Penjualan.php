@@ -109,4 +109,41 @@ class Penjualan extends Model
             \App\Services\JournalService::createJournalFromPenjualan($penjualan);
         });
     }
+
+    /**
+     * Generate unique nomor penjualan to prevent duplicates
+     */
+    public static function generateUniqueNomorPenjualan($date)
+    {
+        // Use a while loop to ensure we get a unique number
+        $maxAttempts = 100;
+        $attempts = 0;
+        
+        while ($attempts < $maxAttempts) {
+            // Get the highest number for today
+            $lastNomor = static::where('nomor_penjualan', 'like', 'SJ-' . $date . '-%')
+                ->orderBy('nomor_penjualan', 'desc')
+                ->value('nomor_penjualan');
+            
+            if ($lastNomor) {
+                // Extract the number part and increment
+                $lastNumber = (int) substr($lastNomor, -3);
+                $newNumber = $lastNumber + 1;
+            } else {
+                $newNumber = 1;
+            }
+            
+            $newNomor = 'SJ-' . $date . '-' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+            
+            // Check if this number already exists (double-check)
+            if (!static::where('nomor_penjualan', $newNomor)->exists()) {
+                return $newNomor;
+            }
+            
+            $attempts++;
+        }
+        
+        // If we get here, something is seriously wrong
+        throw new \Exception('Unable to generate unique nomor penjualan after ' . $maxAttempts . ' attempts');
+    }
 }
