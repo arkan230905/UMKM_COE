@@ -88,23 +88,20 @@ class AsetController extends Controller
         // COA data for dropdowns - with fallback to prevent undefined variables
         $coaAsets = Coa::where('tipe_akun', 'LIKE', '%Asset%')
             ->orWhere('tipe_akun', 'LIKE', '%Aset%')
-            ->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC')
             ->get();
             
         // If no asset accounts found, get all COA as fallback
         if ($coaAsets->isEmpty()) {
-            $coaAsets = Coa::orderByRaw('CAST(kode_akun AS UNSIGNED) ASC')->get();
+            $coaAsets = Coa::all();
         }
             
         $coaAkumulasi = Coa::where('nama_akun', 'LIKE', '%akumulasi%')
             ->orWhere('nama_akun', 'LIKE', '%Akumulasi%')
-            ->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC')
             ->get();
             
         $coaBeban = Coa::where('nama_akun', 'LIKE', '%penyusutan%')
             ->orWhere('nama_akun', 'LIKE', '%Penyusutan%')
             ->orWhere('nama_akun', 'LIKE', '%Beban%')
-            ->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC')
             ->get();
         
         return view('master-data.aset.create', compact(

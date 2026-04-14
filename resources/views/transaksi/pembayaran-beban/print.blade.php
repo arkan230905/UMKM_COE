@@ -99,7 +99,9 @@
     <button class="print-button no-print" onclick="window.print()">🖨️ Print</button>
     
     <div class="header">
-        <div class="company-name">{{ config('app.name', 'UMKM System') }}</div>
+        <div style="text-align: center; margin-bottom: 10px;">
+            <img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 60px; border-radius: 50%; object-fit: cover;">
+        </div>
         <div class="document-title">BUKTI PEMBAYARAN BEBAN</div>
     </div>
 
@@ -110,23 +112,15 @@
         </div>
         <div class="info-row">
             <div class="info-label">Tanggal:</div>
-            <div class="info-value">{{ $pembayaran->tanggal->format('d/m/Y') }}</div>
+            <div class="info-value">{{ \Carbon\Carbon::parse($pembayaran->tanggal)->format('d/m/Y') }}</div>
         </div>
         <div class="info-row">
             <div class="info-label">Beban Operasional:</div>
             <div class="info-value">{{ $pembayaran->bebanOperasional->nama_beban ?? '-' }}</div>
         </div>
         <div class="info-row">
-            <div class="info-label">Kategori:</div>
-            <div class="info-value">{{ $pembayaran->bebanOperasional->kategori ?? '-' }}</div>
-        </div>
-        <div class="info-row">
             <div class="info-label">Akun Beban:</div>
             <div class="info-value">{{ $pembayaran->coaBeban->kode_akun ?? '-' }} - {{ $pembayaran->coaBeban->nama_akun ?? '-' }}</div>
-        </div>
-        <div class="info-row">
-            <div class="info-label">Metode Bayar:</div>
-            <div class="info-value">{{ ucfirst($pembayaran->metode_bayar) }}</div>
         </div>
         <div class="info-row">
             <div class="info-label">Akun Kas/Bank:</div>
@@ -142,7 +136,7 @@
 
     <div class="amount-section">
         <div class="amount-label">Nominal Pembayaran</div>
-        <div class="amount-value">Rp {{ number_format($pembayaran->nominal_pembayaran, 0, ',', '.') }}</div>
+        <div class="amount-value">Rp {{ number_format($pembayaran->jumlah, 0, ',', '.') }}</div>
     </div>
 
     <div class="footer">

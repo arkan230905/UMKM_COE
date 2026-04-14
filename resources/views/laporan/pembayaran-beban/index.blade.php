@@ -17,7 +17,6 @@
                                        style="min-width: 150px;">
                             </div>
                             <button type="submit" class="btn btn-primary btn-sm me-1">Filter</button>
-                            <a href="{{ route('laporan.pembayaran-beban') }}" class="btn btn-secondary btn-sm me-1">Reset</a>
                             <a href="{{ route('laporan.pembayaran-beban', ['export' => 'pdf', 'bulan' => request('bulan')]) }}" 
                                class="btn btn-danger btn-sm" target="_blank">
                                 <i class="fas fa-file-pdf"></i> PDF

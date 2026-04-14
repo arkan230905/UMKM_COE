@@ -69,12 +69,12 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <strong>Metode Pembayaran:</strong><br>
-                            <span class="badge {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'bg-warning' : 'bg-success' }}">
-                                @switch($penjualan->payment_method ?? 'cash')
+                            <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
+                                @switch($penjualan->payment_method ?? '')
                                     @case('cash') Tunai @break
                                     @case('transfer') Transfer Bank @break
                                     @case('credit') Kredit @break
-                                    @default Tunai
+                                    @default Tidak Diketahui
                                 @endswitch
                             </span>
                         </div>

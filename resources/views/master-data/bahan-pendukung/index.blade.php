@@ -50,20 +50,6 @@
         </a>
     </div>
 
-    @if (session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if (session('error'))
-        <div class="alert alert-danger alert-dismissible fade show">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">
@@ -99,9 +85,9 @@
                                 </td>
                                 <td>
                                     @if($bahan->satuan)
-                                        <span class="badge bg-info">{{ $bahan->satuan->nama }}</span>
+                                        {{ $bahan->satuan->nama }}
                                     @else
-                                        <span class="badge bg-secondary">-</span>
+                                        -
                                     @endif
                                 </td>
                                 <td class="text-end fw-semibold">
@@ -110,25 +96,25 @@
                                 <td>
                                     @if($bahan->coaPembelian)
                                         <small class="text-muted">{{ $bahan->coaPembelian->kode_akun }}</small><br>
-                                        <span class="badge bg-success">{{ $bahan->coaPembelian->nama_akun }}</span>
+                                        {{ $bahan->coaPembelian->nama_akun }}
                                     @else
-                                        <span class="badge bg-secondary">-</span>
+                                        -
                                     @endif
                                 </td>
                                 <td>
                                     @if($bahan->coaPersediaan)
                                         <small class="text-muted">{{ $bahan->coaPersediaan->kode_akun }}</small><br>
-                                        <span class="badge bg-info">{{ $bahan->coaPersediaan->nama_akun }}</span>
+                                        {{ $bahan->coaPersediaan->nama_akun }}
                                     @else
-                                        <span class="badge bg-secondary">-</span>
+                                        -
                                     @endif
                                 </td>
                                 <td>
                                     @if($bahan->coaHpp)
                                         <small class="text-muted">{{ $bahan->coaHpp->kode_akun }}</small><br>
-                                        <span class="badge bg-warning">{{ $bahan->coaHpp->nama_akun }}</span>
+                                        {{ $bahan->coaHpp->nama_akun }}
                                     @else
-                                        <span class="badge bg-secondary">-</span>
+                                        -
                                     @endif
                                 </td>
                                 <td class="text-center">

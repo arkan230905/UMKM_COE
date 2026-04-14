@@ -50,8 +50,8 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead class="table-dark">
+                        <table class="table">
+                            <thead class="bg-primary text-white">
                                 <tr>
                                     <th class="text-center" style="width: 50px">No</th>
                                     <th>Nama Pegawai</th>
@@ -83,7 +83,7 @@
                                                 {{ date('H.i', strtotime($attendance->jam_keluar)) }}
                                             </span>
                                         @else
-                                            <span class="badge bg-secondary">
+                                            <span class="badge bg-warning text-dark">
                                                 <i class="bi bi-dash me-1"></i>
                                                 Belum
                                             </span>
@@ -91,11 +91,11 @@
                                     </td>
                                     <td class="text-center">
                                         @if($attendance->jumlah_jam !== null)
-                                            <span class="badge bg-info text-dark">
+                                            <span class="badge bg-info text-white">
                                                 {{ $attendance->jumlah_jam }} jam
                                             </span>
                                         @else
-                                            <span class="text-muted">-</span>
+                                            <span class="text-primary">-</span>
                                         @endif
                                     </td>
                                     <td class="text-center">
@@ -106,9 +106,9 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">
-                                        <i class="bi bi-calendar-x fs-1"></i>
-                                        <p class="mt-2">Tidak ada data presensi pada tanggal ini</p>
+                                    <td colspan="7" class="text-center py-4">
+                                        <i class="bi bi-calendar-x fs-1 text-info"></i>
+                                        <p class="mt-2 text-primary">Tidak ada data presensi pada tanggal ini</p>
                                     </td>
                                 </tr>
                                 @endforelse

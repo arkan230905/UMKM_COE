@@ -398,7 +398,7 @@ a:active {
                         <label class="form-label small">Cari Pegawai</label>
                         <div class="input-group">
                             <input type="hidden" name="date_filter" value="{{ $dateFilter ?? '' }}">
-                            <input type="text" name="search" class="form-control" 
+                            <input type="text" name="search" class="form-control"
                                    placeholder="Cari pegawai..." value="{{ $search }}">
                             <button class="btn btn-outline-secondary" type="submit">
                                 <i class="fas fa-search"></i>
@@ -408,12 +408,24 @@ a:active {
                 </div>
             </div>
 
+            <!-- Cetak Laporan Button (Owner/Admin Only) -->
+            @if(auth()->user()->role === 'owner' || auth()->user()->role === 'admin')
+            <div class="row mb-3">
+                <div class="col-12 text-end">
+                    <a href="{{ route('transaksi.presensi.cetak', ['date_filter' => $dateFilter ?? '', 'search' => $search ?? '']) }}"
+                       target="_blank" class="btn btn-success">
+                        <i class="fas fa-print"></i> Cetak Laporan
+                    </a>
+                </div>
+            </div>
+            @endif
+
             <!-- Table dengan desain menarik -->
             <div class="table-responsive">
                 <table class="table table-hover" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
-                            <th class="text-center" width="5%">#</th>
+                            <th class="text-center" width="5%">No</th>
                             <th>Pegawai</th>
                             <th class="text-center" width="10%">Tanggal</th>
                             <th class="text-center" width="8%">Jam Masuk</th>

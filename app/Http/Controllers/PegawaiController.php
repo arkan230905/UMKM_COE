@@ -45,11 +45,16 @@ class PegawaiController extends Controller
     // Tampilkan form create
     public function create()
     {
-        $jabatans = \App\Models\Jabatan::with('kategori')
-            ->select('id','nama','kategori_id','tunjangan','asuransi','gaji_pokok','tarif_per_jam')
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif')
             ->orderBy('nama')
             ->get();
-        $kategoris = \App\Models\KategoriPegawai::orderBy('nama')->get();
+        // Get distinct kategori values from jabatans table
+        $kategoris = \App\Models\Jabatan::select('kategori')
+            ->whereNotNull('kategori')
+            ->where('kategori', '!=', '')
+            ->distinct()
+            ->orderBy('kategori')
+            ->pluck('kategori');
         
         return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
     }
@@ -63,18 +68,17 @@ class PegawaiController extends Controller
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
-            'kategori_id' => 'required|exists:kategori_pegawai,id',
+            'kategori' => 'required|string',
             'jenis_kelamin' => 'required|in:L,P',
             'bank' => 'required|string|max:100',
             'nomor_rekening' => 'required|string|max:50',
             'nama_rekening' => 'required|string|max:100',
         ]);
 
-        $jabatan = \App\Models\Jabatan::with('kategori')->find($validated['jabatan_id']);
-        $kategori = \App\Models\KategoriPegawai::find($validated['kategori_id']);
+        $jabatan = \App\Models\Jabatan::find($validated['jabatan_id']);
         
-        if (!$jabatan || !$kategori) {
-            return back()->withErrors(['error' => 'Jabatan atau kategori tidak ditemukan'])->withInput();
+        if (!$jabatan) {
+            return back()->withErrors(['error' => 'Jabatan tidak ditemukan'])->withInput();
         }
 
         $phoneColumn = Schema::hasColumn('pegawais', 'no_telephone') ? 'no_telephone' : 'no_telepon';
@@ -86,12 +90,11 @@ class PegawaiController extends Controller
             $phoneColumn => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
-            'jabatan_id' => $validated['jabatan_id'],
-            'kategori_id' => $validated['kategori_id'],
-            'jabatan' => $jabatan->nama, // Backward compatibility
-            'jenis_pegawai' => strtolower($kategori->nama), // Backward compatibility
-            'gaji_pokok' => $jabatan->gaji_pokok,
-            'tarif_per_jam' => $jabatan->tarif_per_jam,
+            'kategori' => $validated['kategori'],
+            'jabatan' => $jabatan->nama,
+            'jenis_pegawai' => strtolower($validated['kategori']),
+            'gaji_pokok' => $jabatan->gaji,
+            'tarif_per_jam' => $jabatan->tarif,
             'tunjangan' => $jabatan->tunjangan,
             'asuransi' => $jabatan->asuransi,
             'bank' => $validated['bank'],
@@ -129,7 +132,7 @@ class PegawaiController extends Controller
         }
         
         // Sync BOM when pegawai changes (affects BTKL calculations)
-        if (strtolower($kategori->nama) === 'btkl') {
+        if (strtolower($validated['kategori']) === 'btkl') {
             \App\Services\BomSyncService::syncBomFromJabatanChange($jabatan->id);
         }
 
@@ -139,11 +142,15 @@ class PegawaiController extends Controller
     // Form edit pegawai
     public function edit(Pegawai $pegawai)
     {
-        $jabatans = \App\Models\Jabatan::with('kategori')
-            ->select('id','nama','kategori_id','tunjangan','asuransi','gaji_pokok','tarif_per_jam')
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif')
             ->orderBy('nama')
             ->get();
-        $kategoris = \App\Models\KategoriPegawai::orderBy('nama')->get();
+        $kategoris = \App\Models\Jabatan::select('kategori')
+            ->whereNotNull('kategori')
+            ->where('kategori', '!=', '')
+            ->distinct()
+            ->orderBy('kategori')
+            ->pluck('kategori');
         
         return view('master-data.pegawai.edit', compact('pegawai','jabatans', 'kategoris'));
     }
@@ -158,18 +165,17 @@ class PegawaiController extends Controller
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
-            'kategori_id' => 'required|exists:kategori_pegawai,id',
+            'kategori' => 'required|string',
             'jenis_kelamin' => 'required|in:L,P',
             'bank' => 'nullable|string|max:100',
             'nomor_rekening' => 'nullable|string|max:50',
             'nama_rekening' => 'nullable|string|max:100',
         ]);
 
-        $jabatan = \App\Models\Jabatan::with('kategori')->find($validated['jabatan_id']);
-        $kategori = \App\Models\KategoriPegawai::find($validated['kategori_id']);
+        $jabatan = \App\Models\Jabatan::find($validated['jabatan_id']);
         
-        if (!$jabatan || !$kategori) {
-            return back()->withErrors(['error' => 'Jabatan atau kategori tidak ditemukan'])->withInput();
+        if (!$jabatan) {
+            return back()->withErrors(['error' => 'Jabatan tidak ditemukan'])->withInput();
         }
         
         $phoneColumn = Schema::hasColumn('pegawais', 'no_telephone') ? 'no_telephone' : 'no_telepon';
@@ -181,12 +187,11 @@ class PegawaiController extends Controller
             $phoneColumn => $validated['no_telepon'],
             'alamat' => $validated['alamat'],
             'jenis_kelamin' => $validated['jenis_kelamin'],
-            'jabatan_id' => $validated['jabatan_id'],
-            'kategori_id' => $validated['kategori_id'],
-            'jabatan' => $jabatan->nama, // Backward compatibility
-            'jenis_pegawai' => strtolower($kategori->nama), // Backward compatibility
-            'gaji_pokok' => $jabatan->gaji_pokok,
-            'tarif_per_jam' => $jabatan->tarif_per_jam,
+            'kategori' => $validated['kategori'],
+            'jabatan' => $jabatan->nama,
+            'jenis_pegawai' => strtolower($validated['kategori']),
+            'gaji_pokok' => $jabatan->gaji,
+            'tarif_per_jam' => $jabatan->tarif,
             'tunjangan' => $jabatan->tunjangan,
             'asuransi' => $jabatan->asuransi,
         ];

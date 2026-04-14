@@ -5,8 +5,8 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Laporan Penjualan</h3>
         <div>
-            <a href="{{ route('laporan.penjualan.export') }}" class="btn btn-success">
-                <i class="fas fa-file-excel me-1"></i> Export Excel
+            <a href="{{ route('laporan.penjualan.export') }}" class="btn btn-danger">
+                <i class="fas fa-file-pdf me-1"></i> Export PDF
             </a>
         </div>
     </div>
@@ -104,7 +104,7 @@
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th style="width:5%">#</th>
+                            <th style="width:5%">NO</th>
                             <th>No. Transaksi</th>
                             <th>Tanggal</th>
                             <th>Produk Terjual</th>

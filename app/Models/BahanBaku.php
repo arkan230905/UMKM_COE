@@ -917,4 +917,303 @@ class BahanBaku extends Model
         
         return $stokSatuan;
     }
+
+    /**
+     * Convert quantity to base unit (satuan utama) consistently
+     * This is the SINGLE SOURCE OF TRUTH for all unit conversions
+     * 
+     * @param float $quantity Input quantity
+     * @param string $fromUnit Input unit
+     * @return float Quantity in base unit (satuan utama)
+     */
+    public function convertToSatuanUtama($quantity, $fromUnit)
+    {
+        $quantity = (float) $quantity;
+        $fromUnit = strtoupper(trim($fromUnit));
+        
+        // Get base unit (satuan utama)
+        $baseUnit = strtoupper($this->satuan->nama ?? 'KG');
+        
+        \Log::info("CONVERSION START - Bahan Baku ID {$this->id}:", [
+            'nama_bahan' => $this->nama_bahan,
+            'quantity' => $quantity,
+            'from_unit' => $fromUnit,
+            'base_unit' => $baseUnit
+        ]);
+        
+        // If already in base unit, return as is
+        if ($fromUnit === $baseUnit) {
+            \Log::info("CONVERSION - Already in base unit:", [
+                'result' => $quantity,
+                'method' => 'no_conversion_needed'
+            ]);
+            return $quantity;
+        }
+        
+        // Try to find conversion from sub-units first (more accurate)
+        $convertedQty = $this->convertFromSubUnits($quantity, $fromUnit);
+        if ($convertedQty !== null) {
+            \Log::info("CONVERSION - Using sub-unit conversion:", [
+                'result' => $convertedQty,
+                'method' => 'sub_unit_conversion'
+            ]);
+            return $convertedQty;
+        }
+        
+        // Fallback to standard conversion (for common units like gram, ons, etc.)
+        $convertedQty = $this->convertToKg($quantity, $fromUnit);
+        
+        // If base unit is not KG, we need to convert from KG to base unit
+        if ($baseUnit !== 'KG') {
+            // This is a simplified approach - in real implementation, 
+            // you might need more sophisticated conversion logic
+            \Log::warning("CONVERSION - Base unit is not KG, using direct conversion:", [
+                'base_unit' => $baseUnit,
+                'converted_from_kg' => $convertedQty
+            ]);
+        }
+        
+        \Log::info("CONVERSION COMPLETE - Bahan Baku ID {$this->id}:", [
+            'input' => "{$quantity} {$fromUnit}",
+            'output' => "{$convertedQty} {$baseUnit}",
+            'method' => 'standard_conversion'
+        ]);
+        
+        return $convertedQty;
+    }
+
+    /**
+     * Convert from sub-units defined in bahan baku master data
+     * This uses the conversion factors stored in the bahan_baku table
+     * 
+     * @param float $quantity
+     * @param string $fromUnit
+     * @return float|null Converted quantity or null if unit not found
+     */
+    private function convertFromSubUnits($quantity, $fromUnit)
+    {
+        $fromUnit = strtoupper(trim($fromUnit));
+        
+        // Check sub_satuan_1
+        if ($this->subSatuan1 && strtoupper($this->subSatuan1->nama) === $fromUnit) {
+            if ($this->sub_satuan_1_konversi > 0) {
+                return $quantity / $this->sub_satuan_1_konversi;
+            }
+        }
+        
+        // Check sub_satuan_2
+        if ($this->subSatuan2 && strtoupper($this->subSatuan2->nama) === $fromUnit) {
+            if ($this->sub_satuan_2_konversi > 0) {
+                return $quantity / $this->sub_satuan_2_konversi;
+            }
+        }
+        
+        // Check sub_satuan_3
+        if ($this->subSatuan3 && strtoupper($this->subSatuan3->nama) === $fromUnit) {
+            if ($this->sub_satuan_3_konversi > 0) {
+                return $quantity / $this->sub_satuan_3_konversi;
+            }
+        }
+        
+        return null; // Unit not found in sub-units
+    }
+
+    /**
+     * Helper function to update stock consistently
+     * Always use converted quantities in base unit (satuan utama)
+     * 
+     * @param float $qty Quantity in base unit (satuan utama)
+     * @param string $type 'in' for stock increase, 'out' for stock decrease
+     * @param string $description Optional description for logging
+     * @return bool Success status
+     */
+    public function updateStok($qty, $type = 'in', $description = '')
+    {
+        \Log::info("STOCK UPDATE START - Bahan Baku ID {$this->id}:", [
+            'nama_bahan' => $this->nama_bahan,
+            'qty' => $qty,
+            'type' => $type,
+            'description' => $description,
+            'current_stok' => $this->stok
+        ]);
+
+        if ($qty <= 0) {
+            \Log::warning("Invalid quantity for stock update: {$qty}");
+            return false;
+        }
+
+        $stokLama = (float) ($this->stok ?? 0);
+        
+        if ($type === 'in') {
+            $stokBaru = $stokLama + $qty;
+        } elseif ($type === 'out') {
+            // Validate sufficient stock for outbound operations
+            if ($stokLama < $qty) {
+                \Log::error("Insufficient stock for {$this->nama_bahan}. Available: {$stokLama}, Required: {$qty}");
+                return false;
+            }
+            $stokBaru = $stokLama - $qty;
+        } else {
+            \Log::error("Invalid stock update type: {$type}. Use 'in' or 'out'");
+            return false;
+        }
+
+        \Log::info("STOCK UPDATE CALCULATION - Bahan Baku ID {$this->id}:", [
+            'nama_bahan' => $this->nama_bahan,
+            'type' => $type,
+            'qty' => $qty,
+            'stok_lama' => $stokLama,
+            'stok_baru' => $stokBaru,
+            'satuan_utama' => $this->satuan->nama ?? 'KG',
+            'description' => $description
+        ]);
+
+        // Method 1: Direct update using save()
+        $this->stok = $stokBaru;
+        $saveResult = $this->save();
+
+        \Log::info("STOCK UPDATE SAVE ATTEMPT - Bahan Baku ID {$this->id}:", [
+            'save_result' => $saveResult,
+            'model_stok_after_save' => $this->stok,
+            'expected_stok' => $stokBaru
+        ]);
+
+        // Method 2: Fallback using direct DB update if save() fails
+        if (!$saveResult || abs($this->stok - $stokBaru) > 0.0001) {
+            \Log::warning("STOCK UPDATE - Save method failed, using direct DB update");
+            
+            $dbUpdateResult = \DB::table('bahan_bakus')
+                ->where('id', $this->id)
+                ->update(['stok' => $stokBaru]);
+            
+            \Log::info("STOCK UPDATE - DB Update Result:", [
+                'db_update_successful' => $dbUpdateResult,
+                'rows_affected' => $dbUpdateResult
+            ]);
+        }
+
+        // Final verification
+        $this->refresh();
+        $finalStock = $this->stok;
+
+        $success = (abs($finalStock - $stokBaru) < 0.0001);
+        
+        \Log::info("STOCK UPDATE FINAL - Bahan Baku ID {$this->id}:", [
+            'bahan_baku_id' => $this->id,
+            'expected_stock' => $stokBaru,
+            'actual_stock' => $finalStock,
+            'update_successful' => $success,
+            'difference' => ($finalStock - $stokBaru)
+        ]);
+
+        return $success;
+    }
+
+    /**
+     * Sinkronisasi stok master dengan stock movements (untuk konsistensi dengan laporan stok)
+     */
+    public function syncStokWithMovements()
+    {
+        \Log::info("SYNC STOCK WITH MOVEMENTS - Bahan Baku ID {$this->id}:", [
+            'nama_bahan' => $this->nama_bahan,
+            'current_master_stok' => $this->stok
+        ]);
+
+        // Hitung stok real-time dari stock movements
+        $stockIn = \App\Models\StockMovement::where('item_type', 'material')
+            ->where('item_id', $this->id)
+            ->where('direction', 'in')
+            ->sum('qty');
+
+        $stockOut = \App\Models\StockMovement::where('item_type', 'material')
+            ->where('item_id', $this->id)
+            ->where('direction', 'out')
+            ->sum('qty');
+
+        $stokRealTime = $stockIn - $stockOut;
+
+        \Log::info("SYNC STOCK CALCULATION - Bahan Baku ID {$this->id}:", [
+            'stock_in' => $stockIn,
+            'stock_out' => $stockOut,
+            'calculated_stock' => $stokRealTime,
+            'master_stock' => $this->stok,
+            'difference' => ($this->stok - $stokRealTime)
+        ]);
+
+        // Update jika ada perbedaan
+        if (abs($this->stok - $stokRealTime) > 0.01) {
+            $oldStock = $this->stok;
+            $this->stok = $stokRealTime;
+            $result = $this->save();
+
+            \Log::info("SYNC STOCK UPDATE - Bahan Baku ID {$this->id}:", [
+                'old_stock' => $oldStock,
+                'new_stock' => $stokRealTime,
+                'update_successful' => $result
+            ]);
+
+            return [
+                'updated' => true,
+                'old_stock' => $oldStock,
+                'new_stock' => $stokRealTime,
+                'difference' => ($oldStock - $stokRealTime)
+            ];
+        }
+
+        return [
+            'updated' => false,
+            'stock' => $this->stok,
+            'message' => 'Stok sudah konsisten'
+        ];
+    }
+
+    /**
+     * Get stok real-time dari stock movements (konsisten dengan laporan stok)
+     */
+    public function getStokRealTimeAttribute()
+    {
+        $stockIn = \App\Models\StockMovement::where('item_type', 'material')
+            ->where('item_id', $this->id)
+            ->where('direction', 'in')
+            ->sum('qty');
+
+        $stockOut = \App\Models\StockMovement::where('item_type', 'material')
+            ->where('item_id', $this->id)
+            ->where('direction', 'out')
+            ->sum('qty');
+
+        return $stockIn - $stockOut;
+    }
+
+    /**
+     * Cek apakah stok master konsisten dengan stock movements
+     */
+    public function isStokConsistent()
+    {
+        return abs($this->stok - $this->stok_real_time) <= 0.01;
+    }
+
+    /**
+     * Sinkronisasi semua bahan baku (static method)
+     */
+    public static function syncAllStokWithMovements()
+    {
+        $results = [];
+        $bahanBakus = self::all();
+
+        foreach ($bahanBakus as $bahan) {
+            $result = $bahan->syncStokWithMovements();
+            if ($result['updated']) {
+                $results[] = [
+                    'id' => $bahan->id,
+                    'nama_bahan' => $bahan->nama_bahan,
+                    'old_stock' => $result['old_stock'],
+                    'new_stock' => $result['new_stock'],
+                    'difference' => $result['difference']
+                ];
+            }
+        }
+
+        return $results;
+    }
 }

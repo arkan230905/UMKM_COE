@@ -1,11 +1,54 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+.summary-section {
+    transition: all 0.3s ease-in-out;
+}
+
+.summary-table {
+    background: #f8f9fa;
+    border-radius: 0.375rem;
+    padding: 1rem;
+}
+
+.summary-table table {
+    margin-bottom: 0;
+}
+
+.summary-table .table-primary td {
+    background-color: #cfe2ff !important;
+    border-color: #9ec5fe !important;
+}
+
+.summary-table .table-info td {
+    background-color: #cff4fc !important;
+    border-color: #9eeaf9 !important;
+}
+
+#summary_placeholder {
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 0.375rem;
+    padding: 2rem;
+}
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     <h1 class="mb-4">Buat Retur Pembelian</h1>
 
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     @if($errors->any())
         <div class="alert alert-danger">
+            <h6><i class="fas fa-exclamation-triangle me-2"></i>Terjadi Kesalahan:</h6>
             <ul class="mb-0">
                 @foreach($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -13,6 +56,22 @@
             </ul>
         </div>
     @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger">
+            <h6><i class="fas fa-exclamation-triangle me-2"></i>Error:</h6>
+            {{ session('error') }}
+        </div>
+    @endif
+
+    <div class="alert alert-info">
+        <h6><i class="fas fa-info-circle me-2"></i>Panduan Pengisian Retur:</h6>
+        <ul class="mb-0">
+            <li><strong>Jenis Retur:</strong> Pilih "Tukar Barang" atau "Refund"</li>
+            <li><strong>Alasan Retur:</strong> Wajib diisi (contoh: "Barang rusak", "Salah kirim")</li>
+            <li><strong>Qty Retur:</strong> Masukkan jumlah yang akan diretur (harus lebih dari 0)</li>
+        </ul>
+    </div>
 
     <form action="{{ route('transaksi.retur-pembelian.store') }}" method="POST" id="returForm">
         @csrf
@@ -56,10 +115,26 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-md-12">
+                    <div class="col-md-6">
                         <div class="mb-3">
                             <label for="alasan" class="form-label">Alasan Retur <span class="text-danger">*</span></label>
-                            <textarea name="alasan" id="alasan" class="form-control" rows="2" required>{{ old('alasan') }}</textarea>
+                            <textarea name="alasan" id="alasan" class="form-control @error('alasan') is-invalid @enderror" rows="2" required placeholder="Masukkan alasan retur...">{{ old('alasan') }}</textarea>
+                            @error('alasan')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="jenis_retur" class="form-label">Jenis Retur <span class="text-danger">*</span></label>
+                            <select name="jenis_retur" id="jenis_retur" class="form-control @error('jenis_retur') is-invalid @enderror" required>
+                                <option value="">-- Pilih Jenis Retur --</option>
+                                <option value="tukar_barang" {{ old('jenis_retur') == 'tukar_barang' ? 'selected' : '' }}>Tukar Barang</option>
+                                <option value="refund" {{ old('jenis_retur') == 'refund' ? 'selected' : '' }}>Refund (Pengembalian Uang)</option>
+                            </select>
+                            @error('jenis_retur')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
                 </div>
@@ -84,8 +159,8 @@
                     <table class="table table-bordered" id="itemsTable">
                         <thead class="table-light">
                             <tr>
-                                <th width="5%">#</th>
-                                <th width="30%">Bahan Baku</th>
+                                <th width="5%">No.</th>
+                                <th width="30%">Item</th>
                                 <th width="15%">Qty Dibeli</th>
                                 <th width="15%">Qty Retur</th>
                                 <th width="10%">Satuan</th>
@@ -98,9 +173,27 @@
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
                                     <td>
-                                        {{ $detail->bahanBaku->nama_bahan ?? '-' }}
-                                        <input type="hidden" name="items[{{ $index }}][pembelian_detail_id]" value="{{ $detail->id }}">
-                                        <input type="hidden" name="items[{{ $index }}][bahan_baku_id]" value="{{ $detail->bahan_baku_id }}">
+                                        @if($detail->bahan_baku_id && $detail->bahanBaku)
+                                            <div class="d-flex align-items-center">
+                                                <span class="text-primary fw-semibold me-2">BB</span>
+                                                <span>{{ $detail->bahanBaku->nama_bahan }}</span>
+                                            </div>
+                                            <input type="hidden" name="items[{{ $index }}][pembelian_detail_id]" value="{{ $detail->id }}">
+                                            <input type="hidden" name="items[{{ $index }}][bahan_baku_id]" value="{{ $detail->bahan_baku_id }}">
+                                        @elseif($detail->bahan_pendukung_id && $detail->bahanPendukung)
+                                            <div class="d-flex align-items-center">
+                                                <span class="text-info fw-semibold me-2">BP</span>
+                                                <span>{{ $detail->bahanPendukung->nama_bahan }}</span>
+                                            </div>
+                                            <input type="hidden" name="items[{{ $index }}][pembelian_detail_id]" value="{{ $detail->id }}">
+                                            <input type="hidden" name="items[{{ $index }}][bahan_pendukung_id]" value="{{ $detail->bahan_pendukung_id }}">
+                                        @else
+                                            <span class="text-muted">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                                Item tidak diketahui
+                                            </span>
+                                            <input type="hidden" name="items[{{ $index }}][pembelian_detail_id]" value="{{ $detail->id }}">
+                                        @endif
                                     </td>
                                     <td>
                                         <input type="text" class="form-control" value="{{ $detail->jumlah }} {{ $detail->satuan_nama }}" readonly>
@@ -109,7 +202,10 @@
                                         <input type="number" step="0.01" name="items[{{ $index }}][qty]" 
                                                class="form-control qty-input" 
                                                data-price="{{ $detail->harga_satuan }}"
-                                               value="{{ old('items.'.$index.'.qty', 0) }}" min="0" max="{{ $detail->jumlah }}">
+                                               value="{{ old('items.'.$index.'.qty', '') }}" 
+                                               min="0.01" max="{{ $detail->jumlah }}"
+                                               placeholder="Masukkan qty > 0">
+                                        <small class="text-muted">Min: 0.01, Max: {{ $detail->jumlah }}</small>
                                     </td>
                                     <td>
                                         <input type="text" name="items[{{ $index }}][satuan]" class="form-control" 
@@ -126,21 +222,79 @@
                                 </tr>
                             @endforeach
                         </tbody>
-                        <tfoot>
-                            <tr>
-                                <th colspan="6" class="text-end">Total Retur:</th>
-                                <th>
-                                    <input type="text" id="totalDisplay" class="form-control fw-bold" readonly value="Rp 0">
-                                </th>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
             </div>
         </div>
 
+        <!-- Dynamic Summary Section -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-calculator me-2"></i>Summary Retur
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Summary untuk Refund (Pengembalian Uang) -->
+                <div id="summary_refund" class="summary-section" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-6 offset-md-6">
+                            <div class="summary-table">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td class="text-end"><strong>Total Harga:</strong></td>
+                                        <td class="text-end" id="refund_subtotal">Rp 0</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-end"><strong>PPN (11%):</strong></td>
+                                        <td class="text-end" id="refund_ppn">Rp 0</td>
+                                    </tr>
+                                    <tr class="table-primary">
+                                        <td class="text-end"><strong>Total Retur:</strong></td>
+                                        <td class="text-end"><strong id="refund_total">Rp 0</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary untuk Tukar Barang -->
+                <div id="summary_tukar" class="summary-section" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-6 offset-md-6">
+                            <div class="summary-table">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td class="text-end"><strong>Total Harga:</strong></td>
+                                        <td class="text-end" id="tukar_subtotal">Rp 0</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-end"><strong>PPN (11%):</strong></td>
+                                        <td class="text-end" id="tukar_ppn">Rp 0</td>
+                                    </tr>
+                                    <tr class="table-info">
+                                        <td class="text-end"><strong>Total Retur:</strong></td>
+                                        <td class="text-end"><strong id="tukar_total_qty">0 Unit</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Default message when no jenis retur selected -->
+                <div id="summary_placeholder">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Pilih jenis retur untuk melihat summary
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="d-flex justify-content-end gap-2">
-            <a href="{{ route('transaksi.retur.index') }}" class="btn btn-secondary">Batal</a>
+            <a href="{{ route('transaksi.retur-pembelian.index') }}" class="btn btn-secondary">Batal</a>
             <button type="submit" class="btn btn-primary">Simpan Retur</button>
         </div>
     </form>
@@ -149,31 +303,149 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Hitung subtotal dan total
+    console.log('Retur form loaded');
+    console.log('Form action:', document.getElementById('returForm').action);
+    console.log('CSRF token:', document.querySelector('input[name="_token"]').value);
+    
+    const jenisReturSelect = document.getElementById('jenis_retur');
+    const summaryRefund = document.getElementById('summary_refund');
+    const summaryTukar = document.getElementById('summary_tukar');
+    const summaryPlaceholder = document.getElementById('summary_placeholder');
+
+    // Toggle summary display based on jenis retur selection
+    function toggleSummaryDisplay() {
+        const jenisRetur = jenisReturSelect.value;
+        
+        // Hide all summaries first
+        summaryRefund.style.display = 'none';
+        summaryTukar.style.display = 'none';
+        summaryPlaceholder.style.display = 'none';
+        
+        if (jenisRetur === 'refund') {
+            summaryRefund.style.display = 'block';
+        } else if (jenisRetur === 'tukar_barang') {
+            summaryTukar.style.display = 'block';
+        } else {
+            summaryPlaceholder.style.display = 'block';
+        }
+        
+        // Recalculate totals when display changes
+        calculateTotals();
+    }
+
+    // Calculate totals and update appropriate summary
     function calculateTotals() {
-        let total = 0;
+        let totalAmount = 0;
+        let totalQty = 0;
+        let totalUnit = '';
+        const jenisRetur = jenisReturSelect.value;
         
         document.querySelectorAll('.qty-input').forEach(function(input) {
             const qty = parseFloat(input.value) || 0;
             const price = parseFloat(input.dataset.price) || 0;
             const subtotal = qty * price;
             
+            // Update individual row subtotal
             const row = input.closest('tr');
             const subtotalDisplay = row.querySelector('.subtotal-display');
             subtotalDisplay.value = 'Rp ' + subtotal.toLocaleString('id-ID');
             
-            total += subtotal;
+            // Add to totals
+            totalAmount += subtotal;
+            
+            // For quantity calculation, get the unit from the row
+            if (qty > 0) {
+                totalQty += qty;
+                const unitInput = row.querySelector('input[name*="[satuan]"]');
+                if (unitInput && unitInput.value) {
+                    totalUnit = unitInput.value; // Use the last non-empty unit
+                }
+            }
         });
         
-        document.getElementById('totalDisplay').value = 'Rp ' + total.toLocaleString('id-ID');
+        // Calculate PPN (11%)
+        const ppnAmount = totalAmount * 0.11;
+        const totalWithPpn = totalAmount + ppnAmount;
+        
+        // Update summary based on jenis retur
+        if (jenisRetur === 'refund') {
+            // Refund summary - show all in currency
+            document.getElementById('refund_subtotal').textContent = 'Rp ' + totalAmount.toLocaleString('id-ID');
+            document.getElementById('refund_ppn').textContent = 'Rp ' + ppnAmount.toLocaleString('id-ID');
+            document.getElementById('refund_total').textContent = 'Rp ' + totalWithPpn.toLocaleString('id-ID');
+        } else if (jenisRetur === 'tukar_barang') {
+            // Tukar barang summary - show total in quantity + unit
+            document.getElementById('tukar_subtotal').textContent = 'Rp ' + totalAmount.toLocaleString('id-ID');
+            document.getElementById('tukar_ppn').textContent = 'Rp ' + ppnAmount.toLocaleString('id-ID');
+            
+            // Format quantity with unit
+            let qtyDisplay = totalQty.toLocaleString('id-ID');
+            if (totalUnit) {
+                qtyDisplay += ' ' + totalUnit;
+            } else {
+                qtyDisplay += ' Unit';
+            }
+            document.getElementById('tukar_total_qty').textContent = qtyDisplay;
+        }
     }
     
-    // Event listener untuk qty input
+    // Event listeners
+    jenisReturSelect.addEventListener('change', toggleSummaryDisplay);
+    
     document.querySelectorAll('.qty-input').forEach(function(input) {
         input.addEventListener('input', calculateTotals);
     });
     
-    // Hitung awal
+    // Form validation before submit
+    document.getElementById('returForm').addEventListener('submit', function(e) {
+        let hasValidQty = false;
+        let jenisRetur = jenisReturSelect.value;
+        let alasan = document.getElementById('alasan').value.trim();
+        
+        console.log('Form submission attempt:', {
+            jenisRetur: jenisRetur,
+            alasan: alasan,
+            formAction: this.action,
+            formMethod: this.method
+        });
+        
+        // Check if jenis retur is selected
+        if (!jenisRetur) {
+            e.preventDefault();
+            alert('Silakan pilih Jenis Retur terlebih dahulu!');
+            jenisReturSelect.focus();
+            return false;
+        }
+        
+        // Check if alasan is filled
+        if (!alasan) {
+            e.preventDefault();
+            alert('Silakan isi Alasan Retur terlebih dahulu!');
+            document.getElementById('alasan').focus();
+            return false;
+        }
+        
+        // Check if at least one item has qty > 0
+        document.querySelectorAll('.qty-input').forEach(function(input) {
+            const qty = parseFloat(input.value) || 0;
+            if (qty > 0) {
+                hasValidQty = true;
+            }
+        });
+        
+        if (!hasValidQty) {
+            e.preventDefault();
+            alert('Silakan masukkan minimal satu item dengan Qty Retur lebih dari 0!');
+            document.querySelector('.qty-input').focus();
+            return false;
+        }
+        
+        console.log('Form validation passed, submitting...');
+        return true;
+    });
+    
+    // Initial setup
+    toggleSummaryDisplay();
     calculateTotals();
 });
 </script>

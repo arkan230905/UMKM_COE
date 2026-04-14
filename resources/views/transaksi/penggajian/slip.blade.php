@@ -187,9 +187,26 @@
                     <td class="amount">Rp {{ number_format($penggajian->gaji_pokok ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 @endif
+                <!-- Tunjangan Detail -->
                 <tr>
-                    <td>Tunjangan</td>
-                    <td class="amount">Rp {{ number_format($penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
+                    <td><strong>Tunjangan:</strong></td>
+                    <td class="amount"></td>
+                </tr>
+                <tr>
+                    <td>&nbsp;&nbsp;• Tunjangan Jabatan</td>
+                    <td class="amount">Rp {{ number_format($penggajian->tunjangan_jabatan ?? $penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
+                </tr>
+                <tr>
+                    <td>&nbsp;&nbsp;• Tunjangan Transport</td>
+                    <td class="amount">Rp {{ number_format($penggajian->tunjangan_transport ?? 0, 0, ',', '.') }}</td>
+                </tr>
+                <tr>
+                    <td>&nbsp;&nbsp;• Tunjangan Konsumsi</td>
+                    <td class="amount">Rp {{ number_format($penggajian->tunjangan_konsumsi ?? 0, 0, ',', '.') }}</td>
+                </tr>
+                <tr style="font-weight: bold; background: #f8f9fa;">
+                    <td>&nbsp;&nbsp;Total Tunjangan</td>
+                    <td class="amount">Rp {{ number_format($penggajian->total_tunjangan ?? $penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 <tr>
                     <td>Asuransi / BPJS</td>
@@ -230,8 +247,8 @@
                 </tr>
                 @endif
                 <tr>
-                    <td>+ Tunjangan</td>
-                    <td class="amount">Rp {{ number_format($penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
+                    <td>+ Total Tunjangan</td>
+                    <td class="amount">Rp {{ number_format($penggajian->total_tunjangan ?? $penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 <tr>
                     <td>+ Asuransi / BPJS</td>

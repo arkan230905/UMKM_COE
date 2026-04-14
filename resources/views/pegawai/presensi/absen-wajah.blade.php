@@ -35,7 +35,7 @@
                                     </button>
                                 </div>
                                 <div class="mt-3">
-                                    <small class="text-muted" id="cameraStatus">Klik "Mulai Kamera" untuk memulai</small>
+                                    <small class="text-primary" id="cameraStatus">Klik "Mulai Kamera" untuk memulai</small>
                                 </div>
                             </div>
                         </div>
@@ -63,7 +63,7 @@
                                         </div>
                                         <div>
                                             <h6 class="mb-1">{{ $pegawai->nama }}</h6>
-                                            <small class="text-muted">{{ $pegawai->nomor_induk_pegawai }}</small>
+                                            <small class="text-primary">{{ $pegawai->nomor_induk_pegawai }}</small>
                                             <div class="badge bg-primary mt-1">{{ $pegawai->jabatan ?? '-' }}</div>
                                         </div>
                                     </div>
@@ -78,20 +78,20 @@
                                     @foreach($attendances as $attendance)
                                     <div class="row">
                                         <div class="col-6">
-                                            <small class="text-muted">Jam Masuk</small>
+                                            <small class="text-primary">Jam Masuk</small>
                                             <div class="fw-bold text-success">
                                                 <i class="bi bi-clock-fill me-1"></i> {{ date('H.i', strtotime($attendance->jam_masuk)) }}
                                             </div>
                                         </div>
                                         <div class="col-6">
-                                            <small class="text-muted">Jam Keluar</small>
-                                            <div class="fw-bold text-{{ $attendance->jam_keluar ? 'danger' : 'muted' }}">
+                                            <small class="text-primary">Jam Keluar</small>
+                                            <div class="fw-bold text-{{ $attendance->jam_keluar ? 'danger' : 'primary' }}">
                                                 <i class="bi bi-clock-fill me-1"></i> {{ $attendance->jam_keluar ? date('H.i', strtotime($attendance->jam_keluar)) : 'Belum' }}
                                             </div>
                                         </div>
                                     </div>
                                     <div class="mt-2">
-                                        <span class="badge bg-{{ $attendance->jam_keluar ? 'secondary' : 'warning' }}">
+                                        <span class="badge bg-{{ $attendance->jam_keluar ? 'success' : 'warning' }}">
                                             {{ $attendance->jam_keluar ? '✅ Presensi Lengkap' : '⏰ Menunggu Absen Keluar' }}
                                         </span>
                                     </div>

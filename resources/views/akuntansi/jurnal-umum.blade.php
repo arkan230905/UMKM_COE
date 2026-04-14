@@ -119,14 +119,14 @@
   <div class="card shadow-sm">
     <div class="card-body p-0">
       <div class="table-responsive">
-        <table class="table table-hover mb-0" style="border: 2px solid #dee2e6;">
+        <table class="table table-hover mb-0" style="border: 2px solid #dee2e6; min-width: 1400px;">
           <thead class="table-light sticky-top">
             <tr>
               <th class="border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Tanggal</th>
               <th class="border-end" style="width:25%; border-bottom: 2px solid #dee2e6;">Deskripsi</th>
-              <th class="border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Kode Akun</th>
-              <th class="border-end" style="width:20%; border-bottom: 2px solid #dee2e6;">Nama Akun</th>
-              <th class="border-end" style="width:15%; border-bottom: 2px solid #dee2e6;">Keterangan</th>
+              <th class="border-end" style="width:8%; border-bottom: 2px solid #dee2e6;">Kode Akun</th>
+              <th class="border-end" style="width:25%; border-bottom: 2px solid #dee2e6;">Nama Akun</th>
+              <th class="border-end" style="width:12%; border-bottom: 2px solid #dee2e6;">Keterangan</th>
               <th class="text-end border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Debit</th>
               <th class="text-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Kredit</th>
             </tr>
@@ -142,7 +142,7 @@
                       </div>
                     </td>
                     <td rowspan="{{ $e->lines->count() }}" class="align-middle" style="border-right: 2px solid #dee2e6;">
-                      <div class="text-truncate" style="max-width: 200px;" title="{{ $e->memo }}">
+                      <div>
                         {{ $e->memo }}
                       </div>
                     </td>
@@ -151,7 +151,7 @@
                     <div class="fw-semibold">{{ $l->coa->kode_akun }}</div>
                   </td>
                   <td class="align-middle" style="border-right: 2px solid #dee2e6;">
-                    <div class="fw-semibold text-truncate" style="max-width: 200px;" title="{{ $l->coa->nama_akun }}">
+                    <div class="fw-semibold">
                       {{ $l->coa->nama_akun }}
                     </div>
                     @if($l->coa->tipe_akun)
@@ -200,6 +200,20 @@
 <style>
   .no-print {
     display: none !important;
+  }
+  
+  /* Ensure table cells don't truncate text */
+  .table td, .table th {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+  
+  /* Remove any text truncation */
+  .text-truncate {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
   }
   
   @media print {

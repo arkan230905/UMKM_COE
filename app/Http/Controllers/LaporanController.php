@@ -11,6 +11,7 @@ use App\Models\BahanBaku;
 use App\Models\ReturPenjualan;
 use Illuminate\Http\Request;
 use App\Models\Pembelian as PembelianModel;
+use PDF;
 
 class LaporanController extends Controller
 {
@@ -146,7 +147,20 @@ class LaporanController extends Controller
      */
     private function ensureAccurateInitialStock($tipe, $itemId, $item)
     {
+        // DISABLED: This function was causing data corruption by overwriting correct initial stock
+        // The function kept resetting Ayam Kampung from 40 ekor back to 13 ekor based on master data
+        // All initial stock should be managed manually or through proper data migration
+        return;
+        
         if (!$item) {
+            return;
+        }
+        
+        // IMPORTANT: Do NOT create initial stock for products
+        // Products should only get stock from production, not initial stock
+        // The 'stok' field in produks table represents current stock level,
+        // but this should come from production movements, not initial_stock entries
+        if ($tipe == 'product') {
             return;
         }
         
@@ -522,13 +536,22 @@ class LaporanController extends Controller
                                  ->orderBy('id', 'asc')
                                  ->get();
                                  
-                // Filter out invalid purchase movements (orphaned ones)
+                // Filter out invalid purchase movements (orphaned ones) and refund returns
                 $movements = $movements->filter(function($movement) {
                     if ($movement->ref_type === 'purchase' && $movement->ref_id) {
                         // Check if the referenced purchase still exists
                         return \DB::table('pembelians')->where('id', $movement->ref_id)->exists();
                     }
-                    return true; // Keep non-purchase movements
+                    
+                    // Filter out retur_penjualan movements for refund (barang cacat tidak masuk stok)
+                    if ($movement->ref_type === 'retur_penjualan') {
+                        $returPenjualan = \DB::table('retur_penjualans')->where('id', $movement->ref_id)->first();
+                        if ($returPenjualan && $returPenjualan->jenis_retur === 'refund') {
+                            return false; // Skip refund returns (barang cacat)
+                        }
+                    }
+                    
+                    return true; // Keep other movements
                 });
                                  
                 // Ensure accurate initial stock entry exists
@@ -559,13 +582,22 @@ class LaporanController extends Controller
                                  ->orderBy('id', 'asc')
                                  ->get();
                                  
-                // Filter out invalid purchase movements (orphaned ones)
+                // Filter out invalid purchase movements (orphaned ones) and refund returns
                 $movements = $movements->filter(function($movement) {
                     if ($movement->ref_type === 'purchase' && $movement->ref_id) {
                         // Check if the referenced purchase still exists
                         return \DB::table('pembelians')->where('id', $movement->ref_id)->exists();
                     }
-                    return true; // Keep non-purchase movements
+                    
+                    // Filter out retur_penjualan movements for refund (barang cacat tidak masuk stok)
+                    if ($movement->ref_type === 'retur_penjualan') {
+                        $returPenjualan = \DB::table('retur_penjualans')->where('id', $movement->ref_id)->first();
+                        if ($returPenjualan && $returPenjualan->jenis_retur === 'refund') {
+                            return false; // Skip refund returns (barang cacat)
+                        }
+                    }
+                    
+                    return true; // Keep other movements
                 });
             }
 
@@ -684,6 +716,14 @@ class LaporanController extends Controller
                                     $dailyOutNilai = 0;
                                     $dailySaleQty = 0;
                                     $dailySaleNilai = 0;
+                                } elseif (strpos($m->ref_type, 'retur') !== false && $tipe === 'product') {
+                                    // Retur IN movements for products (barang kembali) - show in penjualan column as negative
+                                    $dailyInQty = 0;
+                                    $dailyInNilai = 0;
+                                    $dailyOutQty = 0;
+                                    $dailyOutNilai = 0;
+                                    $dailySaleQty = -(float)$m->qty; // Negative to show as return
+                                    $dailySaleNilai = -(float)($m->total_cost ?? 0);
                                 } else {
                                     // Other IN movements - skip to avoid confusion
                                     $dailyInQty = 0;
@@ -697,6 +737,22 @@ class LaporanController extends Controller
                                 // OUT movements
                                 if ($m->ref_type === 'sale' && $tipe === 'product') {
                                     // Sales OUT for products goes to penjualan column
+                                    $dailyInQty = 0;
+                                    $dailyInNilai = 0;
+                                    $dailyOutQty = 0;
+                                    $dailyOutNilai = 0;
+                                    $dailySaleQty = (float)$m->qty;
+                                    
+                                    // Calculate sales cost using FIFO/Average method
+                                    if (!$m->total_cost || $m->total_cost == 0) {
+                                        // If no cost in stock movement, calculate from current average cost
+                                        $avgCost = $runningNilai > 0 && $runningQty > 0 ? $runningNilai / $runningQty : 0;
+                                        $dailySaleNilai = $dailySaleQty * $avgCost;
+                                    } else {
+                                        $dailySaleNilai = (float)($m->total_cost ?? 0);
+                                    }
+                                } elseif (strpos($m->ref_type, 'retur') !== false && $tipe === 'product') {
+                                    // Retur OUT movements for products (like retur_tukar_barang) go to penjualan column
                                     $dailyInQty = 0;
                                     $dailyInNilai = 0;
                                     $dailyOutQty = 0;
@@ -723,6 +779,17 @@ class LaporanController extends Controller
                                 // Sales OUT movements should reduce stock
                                 $runningQty -= $dailySaleQty; // Sales OUT reduces stock
                                 $runningNilai -= $dailySaleNilai;
+                            } elseif (strpos($m->ref_type, 'retur') !== false && $tipe === 'product') {
+                                // Retur movements for products
+                                if ($m->direction === 'in') {
+                                    // Retur IN (barang kembali) - add to stock, shown as negative penjualan
+                                    $runningQty += (float)$m->qty;
+                                    $runningNilai += (float)($m->total_cost ?? 0);
+                                } else {
+                                    // Retur OUT (tukar barang) - reduce stock, shown in penjualan column
+                                    $runningQty -= $dailySaleQty;
+                                    $runningNilai -= $dailySaleNilai;
+                                }
                             } elseif ($m->ref_type === 'initial_stock') {
                                 // Initial stock should add to running totals
                                 if ($m->direction === 'in') {
@@ -818,19 +885,48 @@ class LaporanController extends Controller
                     $saldoPerItem[$m->item_id] = ($saldoPerItem[$m->item_id] ?? 0) + ($sign * (float)$m->qty);
                 }
                 
-                // Jika tidak ada filter tanggal, gunakan stok dari master table
+                // Jika tidak ada filter tanggal, gunakan stok dari stock movements (real-time)
                 if (!$from && !$to) {
+                    // Calculate stock from movements for real-time accuracy
                     if ($tipe == 'material') {
                         foreach ($materials as $m) {
-                            $saldoPerItem[$m->id] = (float)($m->stok ?? 0);
+                            $stockIn = StockMovement::where('item_type', 'bahan_baku')
+                                ->where('item_id', $m->id)
+                                ->where('direction', 'in')
+                                ->sum('qty');
+                            $stockOut = StockMovement::where('item_type', 'bahan_baku')
+                                ->where('item_id', $m->id)
+                                ->where('direction', 'out')
+                                ->sum('qty');
+                            $saldoPerItem[$m->id] = $stockIn - $stockOut;
                         }
                     } elseif ($tipe == 'product') {
                         foreach ($products as $p) {
-                            $saldoPerItem[$p->id] = (float)($p->stok ?? 0);
+                            $stockIn = StockMovement::where('item_type', 'product')
+                                ->where('item_id', $p->id)
+                                ->where('direction', 'in')
+                                ->sum('qty');
+                            $stockOut = StockMovement::where('item_type', 'product')
+                                ->where('item_id', $p->id)
+                                ->where('direction', 'out')
+                                ->sum('qty');
+                            $saldoPerItem[$p->id] = $stockIn - $stockOut;
+                            
+                            // Also update the master data for consistency
+                            $p->stok = $stockIn - $stockOut;
+                            $p->save();
                         }
                     } elseif ($tipe == 'bahan_pendukung') {
                         foreach ($bahanPendukungs as $bp) {
-                            $saldoPerItem[$bp->id] = (float)($bp->stok ?? 0);
+                            $stockIn = StockMovement::where('item_type', 'bahan_pendukung')
+                                ->where('item_id', $bp->id)
+                                ->where('direction', 'in')
+                                ->sum('qty');
+                            $stockOut = StockMovement::where('item_type', 'bahan_pendukung')
+                                ->where('item_id', $bp->id)
+                                ->where('direction', 'out')
+                                ->sum('qty');
+                            $saldoPerItem[$bp->id] = $stockIn - $stockOut;
                         }
                     }
                 }
@@ -873,6 +969,94 @@ class LaporanController extends Controller
         ]);
     }
     
+    public function exportStok(Request $request)
+    {
+        // Get all item types data
+        $materials = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+            ->orderBy('nama_bahan', 'asc')
+            ->get();
+        $products = Produk::with('satuan')->orderBy('nama_produk', 'asc')->get();
+        $bahanPendukungs = \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+            ->orderBy('nama_bahan', 'asc')
+            ->get();
+
+        // Get ALL stock movements for ALL item types
+        $allMovements = \App\Models\StockMovement::orderBy('tanggal', 'asc')->get();
+
+        // Group movements by item type and calculate current stock per item
+        $stockData = [];
+        
+        // Process Bahan Baku
+        foreach ($materials as $material) {
+            $materialMovements = $allMovements->where('item_type', 'bahan_baku')->where('item_id', $material->id);
+            $stockIn = $materialMovements->where('direction', 'in')->sum('qty');
+            $stockOut = $materialMovements->where('direction', 'out')->sum('qty');
+            $currentStock = $stockIn - $stockOut;
+            
+            $stockData['bahan_baku'][] = [
+                'item' => $material,
+                'movements' => $materialMovements,
+                'current_stock' => $currentStock,
+                'stock_in' => $stockIn,
+                'stock_out' => $stockOut
+            ];
+        }
+        
+        // Process Bahan Pendukung
+        foreach ($bahanPendukungs as $bahanPendukung) {
+            $pendukungMovements = $allMovements->where('item_type', 'bahan_pendukung')->where('item_id', $bahanPendukung->id);
+            $stockIn = $pendukungMovements->where('direction', 'in')->sum('qty');
+            $stockOut = $pendukungMovements->where('direction', 'out')->sum('qty');
+            $currentStock = $stockIn - $stockOut;
+            
+            $stockData['bahan_pendukung'][] = [
+                'item' => $bahanPendukung,
+                'movements' => $pendukungMovements,
+                'current_stock' => $currentStock,
+                'stock_in' => $stockIn,
+                'stock_out' => $stockOut
+            ];
+        }
+        
+        // Process Produk
+        foreach ($products as $product) {
+            $productMovements = $allMovements->where('item_type', 'produk')->where('item_id', $product->id);
+            $stockIn = $productMovements->where('direction', 'in')->sum('qty');
+            $stockOut = $productMovements->where('direction', 'out')->sum('qty');
+            $currentStock = $stockIn - $stockOut;
+            
+            $stockData['produk'][] = [
+                'item' => $product,
+                'movements' => $productMovements,
+                'current_stock' => $currentStock,
+                'stock_in' => $stockIn,
+                'stock_out' => $stockOut
+            ];
+        }
+
+        // Calculate summary totals
+        $summary = [
+            'total_bahan_baku_items' => count($stockData['bahan_baku'] ?? []),
+            'total_bahan_pendukung_items' => count($stockData['bahan_pendukung'] ?? []),
+            'total_produk_items' => count($stockData['produk'] ?? []),
+            'total_bahan_baku_stock' => array_sum(array_column($stockData['bahan_baku'] ?? [], 'current_stock')),
+            'total_bahan_pendukung_stock' => array_sum(array_column($stockData['bahan_pendukung'] ?? [], 'current_stock')),
+            'total_produk_stock' => array_sum(array_column($stockData['produk'] ?? [], 'current_stock')),
+            'total_all_movements' => $allMovements->count()
+        ];
+
+        $pdf = PDF::loadView('laporan.stok.export', compact(
+            'stockData',
+            'materials', 
+            'products', 
+            'bahanPendukungs',
+            'allMovements',
+            'summary'
+        ));
+        
+        return $pdf->download('laporan-stok-komplit-' . date('Y-m-d') . '.pdf');
+    }
+    
     // === EKSPOR LAPORAN PEMBELIAN ===
     public function exportPembelian(Request $request)
     {
@@ -888,23 +1072,40 @@ class LaporanController extends Controller
             // Header
             fputcsv($handle, [
                 'No', 'No. Transaksi', 'Tanggal', 'Vendor', 
-                'Keterangan', 'Total (Rp)'
+                'Metode Pembayaran', 'Keterangan', 'Total (Rp)'
             ]);
             
             // Data
             foreach ($pembelian as $index => $item) {
+                // Format payment method
+                $paymentMethodText = '';
+                switch($item->payment_method) {
+                    case 'cash':
+                        $paymentMethodText = 'Tunai';
+                        break;
+                    case 'transfer':
+                        $paymentMethodText = 'Transfer';
+                        break;
+                    case 'credit':
+                        $paymentMethodText = 'Kredit';
+                        break;
+                    default:
+                        $paymentMethodText = ucfirst($item->payment_method ?? 'Tunai');
+                }
+                
                 fputcsv($handle, [
                     $index + 1,
                     $item->no_pembelian,
                     $item->tanggal->format('d/m/Y'),
                     $item->vendor->nama_vendor ?? '-',
+                    $paymentMethodText,
                     $item->keterangan ?? '-',
                     number_format($item->total, 0, ',', '.')
                 ]);
             }
             
             // Total
-            fputcsv($handle, ['', '', '', '', 'TOTAL', number_format($total, 0, ',', '.')]);
+            fputcsv($handle, ['', '', '', '', '', 'TOTAL', number_format($total, 0, ',', '.')]);
             
             fclose($handle);
         }, $filename, [
@@ -920,48 +1121,26 @@ class LaporanController extends Controller
         $penjualan = $query->get();
         $total = $penjualan->sum('total');
         
-        $filename = 'laporan-penjualan-' . now()->format('Y-m-d') . '.xlsx';
+        // Calculate totals for summary
+        $totalPenjualanFiltered = $total;
+        $totalPenjualanTunai = $penjualan->where('payment_method', 'cash')->sum('total');
+        $totalPenjualanKredit = $penjualan->where('payment_method', 'credit')->sum('total');
         
-        return response()->streamDownload(function() use ($penjualan, $total) {
-            $handle = fopen('php://output', 'w');
-            
-            // Header
-            fputcsv($handle, [
-                'No', 'No. Transaksi', 'Tanggal', 'Produk', 
-                'Pembayaran', 'Total (Rp)'
-            ]);
-            
-            // Data
-            foreach ($penjualan as $index => $item) {
-                $produk = '';
-                if ($item->details && $item->details->count() > 0) {
-                    $produk = $item->details->map(function($d) {
-                        return $d->produk->nama_produk ?? 'Produk';
-                    })->implode(', ');
-                } else {
-                    $produk = $item->produk->nama_produk ?? '-';
-                }
-                
-                $payment = $item->payment_method === 'cash' ? 'Tunai' : ($item->payment_method === 'transfer' ? 'Transfer' : 'Kredit');
-                
-                fputcsv($handle, [
-                    $index + 1,
-                    $item->nomor_penjualan ?? '-',
-                    $item->tanggal->format('d/m/Y'),
-                    $produk,
-                    $payment,
-                    number_format($item->total, 0, ',', '.')
-                ]);
-            }
-            
-            // Total
-            fputcsv($handle, ['', '', '', '', 'TOTAL', number_format($total, 0, ',', '.')]);
-            
-            fclose($handle);
-        }, $filename, [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-        ]);
+        $filename = 'laporan-penjualan-' . now()->format('Y-m-d') . '.pdf';
+        
+        $data = [
+            'penjualan' => $penjualan,
+            'totalPenjualanFiltered' => $totalPenjualanFiltered,
+            'totalPenjualanTunai' => $totalPenjualanTunai,
+            'totalPenjualanKredit' => $totalPenjualanKredit,
+            'startDate' => $request->start_date,
+            'endDate' => $request->end_date,
+            'paymentMethod' => $request->payment_method,
+        ];
+        
+        $pdf = PDF::loadView('laporan.penjualan.export-pdf', $data);
+        
+        return $pdf->download($filename);
     }
     
     // Helper method untuk query pembelian
@@ -1113,18 +1292,19 @@ class LaporanController extends Controller
         $purchaseReturnQuery = \App\Models\Retur::with(['pembelian.vendor', 'details.produk'])
             ->where('type', 'purchase')
             ->when($request->purchase_start_date && $request->purchase_end_date, function($q) use ($request) {
-                return $q->whereBetween('tanggal', [$request->purchase_start_date, $request->purchase_end_date]);
+                return $q->whereBetween('return_date', [$request->purchase_start_date, $request->purchase_end_date]);
             })
-            ->orderBy('tanggal', 'desc');
+            ->when($request->purchase_status, function($q) use ($request) {
+                return $q->where('status', $request->purchase_status);
+            })
+            ->orderBy('return_date', 'asc');
 
         // Get data
         $purchaseReturns = $purchaseReturnQuery->paginate(15);
 
         // Calculate totals
         $totalPurchaseReturns = $purchaseReturnQuery->get()->sum(function($retur) {
-            return $retur->details->sum(function($detail) {
-                return ($detail->qty ?? 0) * ($detail->harga_satuan_asal ?? 0);
-            });
+            return $retur->total_with_ppn ?? 0;
         });
 
         return view('laporan.retur.index', compact(
@@ -1180,10 +1360,10 @@ class LaporanController extends Controller
         
         foreach ($bebanOperasional as $beban) {
             // Get actual payments for this beban in the selected period
-            $aktual = \App\Models\ExpensePayment::where('beban_operasional_id', $beban->id)
+            $aktual = \App\Models\PembayaranBeban::where('beban_operasional_id', $beban->id)
                 ->whereYear('tanggal', $selectedMonth->year)
                 ->whereMonth('tanggal', $selectedMonth->month)
-                ->sum('nominal_pembayaran');
+                ->sum('jumlah');
             
             $budget = $beban->budget_bulanan ?? 0;
             $selisih = $budget - $aktual;
@@ -1293,8 +1473,11 @@ class LaporanController extends Controller
                 return $pembelian->sisa_utang_numerik > 0;
             });
 
-        // Query untuk riwayat pelunasan
-        $query = \App\Models\ApSettlement::with(['pembelian.vendor', 'pembelian.details.bahanBaku'])
+        // Query untuk riwayat pelunasan - UPDATED to use PelunasanUtang
+        $query = \App\Models\PelunasanUtang::with(['pembelian.vendor', 'pembelian.details.bahanBaku', 'akunKas'])
+            ->whereHas('pembelian', function($q) {
+                $q->where('payment_method', 'credit'); // Only credit purchases
+            })
             ->when($request->bulan, function($q) use ($request) {
                 $bulan = \Carbon\Carbon::parse($request->bulan);
                 return $q->whereYear('tanggal', $bulan->year)
@@ -1303,7 +1486,13 @@ class LaporanController extends Controller
             ->orderBy('tanggal', 'desc');
 
         if ($request->has('export') && $request->export == 'pdf') {
-            $pelunasanUtang = $query->get();
+            $pelunasanUtang = $query->get()->map(function($item) {
+                // Add calculated fields for display
+                $item->total_tagihan = $item->pembelian->total_harga ?? 0;
+                $item->dibayar_bersih = $item->jumlah;
+                return $item;
+            });
+            
             $total = $pelunasanUtang->sum('dibayar_bersih');
             
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('laporan.pelunasan-utang.pdf', [
@@ -1315,7 +1504,15 @@ class LaporanController extends Controller
         }
 
         $pelunasanUtang = $query->paginate(15);
-        $total = $pelunasanUtang->sum('dibayar_bersih');
+        
+        // Add calculated fields for each item
+        $pelunasanUtang->getCollection()->transform(function($item) {
+            $item->total_tagihan = $item->pembelian->total_harga ?? 0;
+            $item->dibayar_bersih = $item->jumlah;
+            return $item;
+        });
+        
+        $total = $query->get()->sum('jumlah'); // Sum of all payments
 
         return view('laporan.pelunasan-utang.index', [
             'pelunasanUtang' => $pelunasanUtang,
@@ -1328,8 +1525,8 @@ class LaporanController extends Controller
     public function laporanAliranKas(Request $request)
     {
         // Ambil saldo awal kas dan bank dari COA
-        $kas = \App\Models\Coa::where('kode_akun', '101')->first();
-        $bank = \App\Models\Coa::where('kode_akun', '102')->first();
+        $kas = \App\Models\Coa::where('kode_akun', '112')->first(); // Kas
+        $bank = \App\Models\Coa::where('kode_akun', '111')->first(); // Kas Bank
         
         $saldoAwalKas = $kas->saldo_awal ?? 0;
         $saldoAwalBank = $bank->saldo_awal ?? 0;
@@ -1341,17 +1538,29 @@ class LaporanController extends Controller
         // Ambil semua transaksi dalam periode
         $transaksi = collect();
         
-        // 1. Pendapatan dari Penjualan (Uang Masuk)
-        $penjualans = \App\Models\Penjualan::whereBetween('tanggal', [$startDate, $endDate])
-            ->where('payment_method', 'cash')
+        // 1. Pendapatan dari Penjualan (Uang Masuk) - Gunakan journal entries untuk konsistensi
+        $penjualanJournalEntries = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+            ->join('coas', 'journal_lines.coa_id', '=', 'coas.id')
+            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+            ->where('journal_lines.debit', '>', 0)
+            ->whereIn('coas.kode_akun', ['111', '112']) // Kas Bank (111) dan Kas (112)
+            ->where('journal_entries.ref_type', 'sale')
             ->get()
-            ->map(function($p) {
+            ->map(function($jl) {
+                $keterangan = 'Penjualan Produk';
+                if ($jl->ref_id) {
+                    $penjualan = \App\Models\Penjualan::find($jl->ref_id);
+                    if ($penjualan) {
+                        $keterangan .= ' - ' . ($penjualan->nomor_surat_jalan ?? 'SJ-' . date('Ymd', strtotime($jl->tanggal)) . '-' . str_pad($penjualan->id, 3, '0', STR_PAD_LEFT));
+                    }
+                }
+                
                 return [
-                    'tanggal' => $p->tanggal,
-                    'keterangan' => 'Pendapatan Penjualan #' . $p->id,
-                    'uang_masuk' => $p->total_harga ?? 0,
+                    'tanggal' => $jl->tanggal,
+                    'keterangan' => $keterangan,
+                    'uang_masuk' => $jl->debit,
                     'uang_keluar' => 0,
-                    'jenis' => 'kas'
+                    'jenis' => $jl->kode_akun == '112' ? 'kas' : 'bank'
                 ];
             });
         
@@ -1398,7 +1607,7 @@ class LaporanController extends Controller
             });
         
         // Gabungkan semua transaksi
-        $transaksi = $transaksi->concat($penjualans)
+        $transaksi = $transaksi->concat($penjualanJournalEntries)
             ->concat($bebans)
             ->concat($pelunasans)
             ->concat($penggajians)

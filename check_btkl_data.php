@@ -2,35 +2,52 @@
 
 require_once 'vendor/autoload.php';
 
-// Load Laravel
 $app = require_once 'bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-echo "🔍 Checking BTKL data for Ayam Crispy...\n\n";
+use Illuminate\Support\Facades\DB;
 
-$bomJobCosting = \App\Models\BomJobCosting::where('produk_id', 3)->first();
+echo "=== Checking BTKL Data ===\n\n";
 
-if (!$bomJobCosting) {
-    echo "❌ BOM Job Costing not found for product ID 3\n";
-    exit;
-}
+try {
+    // Check BTKL table
+    $btklCount = DB::table('btkls')->count();
+    echo "BTKL Records: {$btklCount}\n";
 
-$btkls = \App\Models\BomJobBTKL::where('bom_job_costing_id', $bomJobCosting->id)->get();
+    if ($btklCount > 0) {
+        $btkls = DB::table('btkls')->get();
+        foreach ($btkls as $b) {
+            echo "ID: {$b->id}, Name: {$b->nama_btkl}, Tarif: {$b->tarif_per_jam}, Kapasitas: {$b->kapasitas_per_jam}\n";
+        }
+    }
 
-echo "📋 BTKL processes for Ayam Crispy:\n";
-foreach ($btkls as $btkl) {
-    echo "- {$btkl->nama_proses}: Rp " . number_format($btkl->subtotal, 0, ',', '.') . "\n";
-}
-
-// Check if there's a typo in the source data
-$typoProcess = $btkls->where('nama_proses', 'Perbumbuan')->first();
-if ($typoProcess) {
-    echo "\n⚠️  Found typo in source data: 'Perbumbuan'\n";
-    echo "Fixing source data...\n";
+    echo "\n=== Checking ProsesProduksi Data ===\n";
     
-    $typoProcess->update(['nama_proses' => 'Pembumbuan']);
-    echo "✅ Fixed source BTKL data: 'Perbumbuan' → 'Pembumbuan'\n";
-}
+    // Check ProsesProduksi table
+    $prosesCount = DB::table('proses_produksis')->count();
+    echo "ProsesProduksi Records: {$prosesCount}\n";
 
-echo "\n🎉 Done!\n";
+    if ($prosesCount > 0) {
+        $proses = DB::table('proses_produksis')->get();
+        foreach ($proses as $p) {
+            echo "ID: {$p->id}, Name: {$p->nama_proses}, Tarif: {$p->tarif_btkl}, Kapasitas: {$p->kapasitas_per_jam}, Jabatan ID: {$p->jabatan_id}\n";
+        }
+    }
+
+    echo "\n=== Checking BOP Proses Data ===\n";
+    
+    // Check BOP Proses table
+    $bopCount = DB::table('bop_proses')->count();
+    echo "BOP Proses Records: {$bopCount}\n";
+
+    if ($bopCount > 0) {
+        $bop = DB::table('bop_proses')->get();
+        foreach ($bop as $b) {
+            echo "ID: {$b->id}, Proses ID: {$b->proses_produksi_id}, Kapasitas: {$b->kapasitas_per_jam}, BOP/Unit: {$b->bop_per_unit}\n";
+        }
+    }
+
+} catch (Exception $e) {
+    echo "Error: " . $e->getMessage() . "\n";
+}

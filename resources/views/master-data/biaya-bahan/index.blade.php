@@ -93,9 +93,9 @@
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover align-middle">
-                    <thead class="table-dark">
+                    <thead class="table-warning">
                         <tr>
-                            <th style="width: 3%;" class="text-center">#</th>
+                            <th style="width: 3%;" class="text-center">No</th>
                             <th style="width: 25%;">Produk</th>
                             <th style="width: 15%;" class="text-center">Bahan Baku</th>
                             <th style="width: 15%;" class="text-center">Bahan Pendukung</th>
@@ -150,7 +150,7 @@
                                 <td class="text-center">
                                     @if($jumlahBahanBaku > 0)
                                         <div class="mb-1">
-                                            <span class="badge bg-info">{{ $jumlahBahanBaku }} item</span>
+                                            <span class="text-warning fw-semibold">{{ $jumlahBahanBaku }} item</span>
                                         </div>
                                         <small class="text-muted d-block">
                                             Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}
@@ -162,7 +162,7 @@
                                 <td class="text-center">
                                     @if($jumlahBahanPendukung > 0)
                                         <div class="mb-1">
-                                            <span class="badge bg-warning text-dark">{{ $jumlahBahanPendukung }} item</span>
+                                            <span class="text-info fw-semibold">{{ $jumlahBahanPendukung }} item</span>
                                         </div>
                                         <small class="text-muted d-block">
                                             Rp {{ number_format($totalBiayaBahanPendukung, 0, ',', '.') }}
@@ -309,6 +309,15 @@
     
     .table td {
         vertical-align: middle;
+    }
+    
+    /* Custom cream header style to match filter section */
+    .table-warning th {
+        background-color: #f8f9fa !important;
+        border-color: #dee2e6 !important;
+        color: #495057 !important;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6 !important;
     }
     
     .badge {

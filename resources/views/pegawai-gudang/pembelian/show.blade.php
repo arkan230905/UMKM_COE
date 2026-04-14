@@ -253,7 +253,7 @@
                         <table class="table table-modern table-hover mb-0">
                             <thead>
                                 <tr>
-                                    <th style="width:5%">#</th>
+                                    <th style="width:5%">No</th>
                                     <th>Nama Bahan</th>
                                     <th class="text-end">Kuantitas</th>
                                     <th>Satuan</th>
@@ -378,7 +378,7 @@
                         <table class="table table-modern table-hover mb-0">
                             <thead>
                                 <tr>
-                                    <th style="width:5%">#</th>
+                                    <th style="width:5%">No</th>
                                     <th>Tanggal Retur</th>
                                     <th>Alasan</th>
                                     <th>Detail Retur</th>

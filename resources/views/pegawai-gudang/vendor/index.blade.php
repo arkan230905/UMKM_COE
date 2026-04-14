@@ -84,13 +84,7 @@
                             <tr>
                                 <td style="color: #000 !important;">{{ $vendor->nama_vendor }}</td>
                                 <td>
-                                    @if($vendor->kategori == 'Bahan Baku')
-                                        <span class="badge bg-primary">{{ $vendor->kategori }}</span>
-                                    @elseif($vendor->kategori == 'Bahan Pendukung')
-                                        <span class="badge bg-warning text-dark">{{ $vendor->kategori }}</span>
-                                    @else
-                                        <span class="badge bg-secondary">{{ $vendor->kategori }}</span>
-                                    @endif
+                                    {{ $vendor->kategori }}
                                 </td>
                                 <td style="color: #000 !important;">{{ $vendor->alamat }}</td>
                                 <td style="color: #000 !important;">{{ $vendor->no_telp }}</td>

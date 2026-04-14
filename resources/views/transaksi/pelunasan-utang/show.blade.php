@@ -27,7 +27,7 @@
                             <div class="col-md-6">
                                 <address>
                                     <strong>Vendor:</strong><br>
-                                    {{ $pelunasanUtang->pembelian->vendor->nama }}<br>
+                                    {{ $pelunasanUtang->pembelian->vendor->nama_vendor }}<br>
                                     {{ $pelunasanUtang->pembelian->vendor->alamat }}<br>
                                     {{ $pelunasanUtang->pembelian->vendor->telepon }}
                                 </address>
@@ -126,8 +126,15 @@
                             <div class="card-body">
                                 <div class="section-title">Akun Kas</div>
                                 <p class="section-lead">
-                                    <strong>{{ $pelunasanUtang->akunKas->kode_akun }}</strong> - {{ $pelunasanUtang->akunKas->nama }}
+                                    <strong>{{ $pelunasanUtang->akunKas->kode_akun }}</strong> - {{ $pelunasanUtang->akunKas->nama_akun }}
                                 </p>
+                                
+                                @if($pelunasanUtang->coaPelunasan)
+                                <div class="section-title mt-4">COA Pelunasan</div>
+                                <p class="section-lead">
+                                    <strong>{{ $pelunasanUtang->coaPelunasan->kode_akun }}</strong> - {{ $pelunasanUtang->coaPelunasan->nama_akun }}
+                                </p>
+                                @endif
                                 
                                 <div class="section-title mt-4">Tanggal Pembayaran</div>
                                 <p class="section-lead">{{ $pelunasanUtang->tanggal->format('d F Y') }}</p>

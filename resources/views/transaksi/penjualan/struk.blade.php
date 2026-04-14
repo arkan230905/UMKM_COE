@@ -144,9 +144,9 @@
     <div class="struk-container">
         <!-- Header -->
         <div class="header">
-            <div class="company-name">{{ $dataPerusahaan->nama_perusahaan ?? 'MANUFAKTUR COE' }}</div>
-            <div class="company-address">{{ $dataPerusahaan->alamat_perusahaan ?? 'Jl. Kebon No. 123' }}</div>
-            <div class="company-phone">{{ $dataPerusahaan->telepon_perusahaan ?? 'Telp: 0812-3456-7890' }}</div>
+            <div class="company-name">{{ $dataPerusahaan->nama ?? 'MANUFAKTUR COE' }}</div>
+            <div class="company-address">{{ $dataPerusahaan->alamat ?? 'Jl. Kebon No. 123' }}</div>
+            <div class="company-phone">{{ $dataPerusahaan->telepon ?? 'Telp: 0812-3456-7890' }}</div>
         </div>
 
         <!-- Garis Pemisah -->
@@ -289,5 +289,13 @@
             <div>Barang yang sudah dibeli tidak bisa dikembalikan</div>
         </div>
     </div>
+
+    @php
+    function formatCurrency($amount) {
+        // Ensure amount is numeric and handle decimal places properly
+        $amount = floatval($amount);
+        return 'Rp ' . number_format($amount, 0, ',', '.');
+    }
+    @endphp
 </body>
 </html>

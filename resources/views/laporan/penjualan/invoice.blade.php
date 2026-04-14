@@ -46,7 +46,7 @@
         <table class="table table-bordered table-striped align-middle">
             <thead class="table-light">
                 <tr>
-                    <th style="width:5%">#</th>
+                    <th style="width:5%">NO</th>
                     <th>Nama Produk</th>
                     <th class="text-end">Qty</th>
                     <th class="text-end">Harga</th>

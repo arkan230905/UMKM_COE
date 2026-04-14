@@ -117,18 +117,18 @@
                             </tr>
                             @endforelse
                             
-                            <!-- Total Row - Total Biaya / produk -->
+                            <!-- Total Row - Total BOP / produk -->
                             @if($bopProses->count() > 0)
                             <tr class="table-active fw-bold">
                                 <td colspan="4" class="text-end">
-                                    <span class="text-muted">Total Biaya / produk:</span>
+                                    <span class="text-muted">Total BOP / produk:</span>
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center justify-content-end">
                                         @php
-                                            $totalBiayaPerProduk = $bopProses->sum('biaya_per_produk');
+                                            $totalBopPerProduk = $bopProses->sum('bop_per_unit');
                                         @endphp
-                                        <span class="fw-bold text-success fs-6">Rp {{ number_format($totalBiayaPerProduk, 2, ',', '.') }}</span>
+                                        <span class="fw-bold text-success fs-6">Rp {{ number_format($totalBopPerProduk, 2, ',', '.') }}</span>
                                     </div>
                                 </td>
                                 <td>-</td>
@@ -686,7 +686,7 @@ function saveEditedBop() {
     formData.append('_method', 'PUT'); // Add method override for PUT request
     
     fetch(`/master-data/bop/update-proses-simple/${bopId}`, {
-        method: 'POST',
+        method: 'PUT',
         body: formData,
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
@@ -1230,10 +1230,75 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle edit BOP Proses form submit
     document.getElementById('editBopProsesForm').addEventListener('submit', function(e) {
+        console.log('BOP Edit - Form submit event triggered!');
         e.preventDefault();
         
-        const formData = new FormData(this);
+        // Manually build FormData to ensure all inputs are captured
+        const formData = new FormData();
         const bopId = document.getElementById('editBopProsesId').value;
+        
+        // Add CSRF token
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+        
+        // Add BOP ID
+        formData.append('id', bopId);
+        
+        // Add keterangan
+        const keterangan = document.getElementById('editKeteranganProses');
+        if (keterangan) {
+            formData.append('keterangan', keterangan.value);
+        }
+        
+        // Manually collect all component inputs
+        const componentNames = document.querySelectorAll('input[name="edit_komponen_name[]"]');
+        const componentRates = document.querySelectorAll('input[name="edit_komponen_rate[]"]');
+        const componentDescs = document.querySelectorAll('input[name="edit_komponen_desc[]"]');
+        
+        // Also try the create form field names in case they exist
+        const createNames = document.querySelectorAll('input[name="komponen_name[]"]');
+        const createRates = document.querySelectorAll('input[name="komponen_rate[]"]');
+        const createDescs = document.querySelectorAll('input[name="komponen_desc[]"]');
+        
+        // Use whichever is found
+        const finalNames = componentNames.length > 0 ? componentNames : createNames;
+        const finalRates = componentRates.length > 0 ? componentRates : createRates;
+        const finalDescs = componentDescs.length > 0 ? componentDescs : createDescs;
+        
+        console.log('BOP Edit - Component inputs found:', {
+            edit_names: componentNames.length,
+            edit_rates: componentRates.length,
+            edit_descs: componentDescs.length,
+            create_names: createNames.length,
+            create_rates: createRates.length,
+            create_descs: createDescs.length,
+            final_names: finalNames.length,
+            final_rates: finalRates.length,
+            final_descs: finalDescs.length
+        });
+        
+        // Add component data to FormData using create form field names
+        finalNames.forEach((input, index) => {
+            if (input.value.trim()) {
+                formData.append('komponen_name[]', input.value.trim());
+                console.log(`Adding name ${index}:`, input.value.trim());
+            }
+        });
+        
+        finalRates.forEach((input, index) => {
+            formData.append('komponen_rate[]', input.value || '0');
+            console.log(`Adding rate ${index}:`, input.value || '0');
+        });
+        
+        finalDescs.forEach((input, index) => {
+            formData.append('komponen_desc[]', input.value || '');
+            console.log(`Adding desc ${index}:`, input.value || '');
+        });
+        
+        // Debug: Log final FormData
+        console.log('Final FormData entries:');
+        for (let [key, value] of formData.entries()) {
+            console.log(key + ':', value);
+        }
         
         // Show loading
         const submitBtn = this.querySelector('button[type="submit"]');
@@ -1242,7 +1307,7 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...';
         
         fetch(`/master-data/bop/update-proses-simple/${bopId}`, {
-            method: 'POST',
+            method: 'PUT',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 'Accept': 'application/json'
@@ -1258,7 +1323,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Show success message
                 alert(data.message || 'BOP Proses berhasil diperbarui');
                 
-                // Reload page
+                // Reload page to show updated values
                 window.location.reload();
             } else {
                 alert(data.message || 'Gagal memperbarui BOP Proses');

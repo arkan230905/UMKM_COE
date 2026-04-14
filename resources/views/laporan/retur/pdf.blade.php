@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <title>Laporan Retur - {{ now()->format('d-m-Y') }}</title>
+    <title>Laporan Retur Pembelian - {{ now()->format('d-m-Y') }}</title>
     <style>
         body { font-family: Arial, sans-serif; font-size: 12px; }
         .header { text-align: center; margin-bottom: 20px; }
@@ -18,7 +18,7 @@
 </head>
 <body>
     <div class="header">
-        <h2>LAPORAN RETUR</h2>
+        <h2>LAPORAN RETUR PEMBELIAN</h2>
         <p>Periode: {{ request('bulan') ? \Carbon\Carbon::parse(request('bulan'))->format('F Y') : 'Semua Data' }}</p>
         <p>Tanggal Cetak: {{ now()->format('d/m/Y H:i:s') }}</p>
     </div>

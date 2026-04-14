@@ -15,8 +15,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
-use App\Exports\LaporanKasBankExport;
-use Maatwebsite\Excel\Facades\Excel;
 use App\Helpers\AccountHelper;
 
 class LaporanKasBankController extends Controller
@@ -121,13 +119,21 @@ class LaporanKasBankController extends Controller
      */
     private function getTransaksiMasuk($akun, $startDate, $endDate)
     {
-        // Gunakan JournalLine dengan coa_id langsung untuk akurasi
-        $journalMasuk = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+        // Sistem jurnal baru (JournalLine)
+        $journalMasukBaru = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
             ->where('journal_lines.coa_id', $akun->id)
             ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
             ->sum('journal_lines.debit') ?? 0;
         
-        return (float) $journalMasuk;
+        // Sistem jurnal lama (JurnalUmum) - untuk transaksi yang belum migrasi
+        $journalMasukLama = \App\Models\JurnalUmum::where('coa_id', $akun->id)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->sum('debit') ?? 0;
+        
+        // Check for potential duplicates by comparing transactions
+        $duplicateAmount = $this->detectDuplicateTransactions($akun, $startDate, $endDate, 'debit');
+        
+        return (float) ($journalMasukBaru + $journalMasukLama - $duplicateAmount);
     }
     
     /**
@@ -135,13 +141,21 @@ class LaporanKasBankController extends Controller
      */
     private function getTransaksiKeluar($akun, $startDate, $endDate)
     {
-        // Gunakan JournalLine dengan coa_id langsung untuk akurasi
-        $journalKeluar = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+        // Sistem jurnal baru (JournalLine)
+        $journalKeluarBaru = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
             ->where('journal_lines.coa_id', $akun->id)
             ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
             ->sum('journal_lines.credit') ?? 0;
         
-        return (float) $journalKeluar;
+        // Sistem jurnal lama (JurnalUmum) - untuk transaksi yang belum migrasi
+        $journalKeluarLama = \App\Models\JurnalUmum::where('coa_id', $akun->id)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->sum('kredit') ?? 0;
+        
+        // Check for potential duplicates by comparing transactions
+        $duplicateAmount = $this->detectDuplicateTransactions($akun, $startDate, $endDate, 'credit');
+        
+        return (float) ($journalKeluarBaru + $journalKeluarLama - $duplicateAmount);
     }
     
     /**
@@ -177,20 +191,23 @@ class LaporanKasBankController extends Controller
             return response()->json([]);
         }
         
-        // Ambil transaksi masuk (debit) dari journal_lines
-        $transaksi = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+        $transaksi = collect();
+        
+        // Ambil transaksi masuk (debit) dari journal_lines (sistem jurnal baru)
+        $transaksiBaru = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
             ->where('journal_lines.coa_id', $coa->id)
             ->where('journal_lines.debit', '>', 0)
             ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+            ->orderBy('journal_entries.tanggal', 'desc')
+            ->orderBy('journal_entries.id', 'desc')
             ->select(
                 'journal_entries.tanggal',
                 'journal_entries.memo',
                 'journal_entries.ref_type',
                 'journal_entries.ref_id',
-                'journal_lines.debit'
+                'journal_lines.debit',
+                'journal_lines.memo as line_memo'
             )
-            ->orderBy('journal_entries.tanggal', 'desc')
-            ->orderBy('journal_entries.id', 'desc')
             ->get()
             ->map(function($line) {
                 // Get detailed information based on ref_type
@@ -198,15 +215,59 @@ class LaporanKasBankController extends Controller
                 
                 return [
                     'tanggal' => date('d/m/Y', strtotime($line->tanggal)),
-                    'nomor_transaksi' => $detailInfo['nomor_transaksi'],
-                    'jenis' => $detailInfo['jenis'],
-                    'keterangan' => $detailInfo['keterangan'],
+                    'nomor_transaksi' => $detailInfo['nomor_transaksi'] ?? $line->memo,
+                    'jenis' => $detailInfo['jenis'] ?? ucfirst(str_replace('_', ' ', $line->ref_type)),
+                    'keterangan' => $line->line_memo ?? $line->memo ?? $detailInfo['keterangan'] ?? '-',
                     'nominal' => (float)$line->debit
                 ];
-            })
+            });
+
+        // Ambil transaksi masuk (debit) dari jurnal_umum (sistem jurnal lama)
+        $transaksiLama = \App\Models\JurnalUmum::where('coa_id', $coa->id)
+            ->where('debit', '>', 0)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->map(function($jurnal) {
+                return [
+                    'tanggal' => date('d/m/Y', strtotime($jurnal->tanggal)),
+                    'nomor_transaksi' => $jurnal->referensi ?? 'JU-' . $jurnal->id,
+                    'jenis' => ucfirst(str_replace('_', ' ', $jurnal->tipe_referensi ?? 'jurnal_umum')),
+                    'keterangan' => $jurnal->keterangan ?? '-',
+                    'nominal' => (float)$jurnal->debit,
+                    'source' => 'jurnal_umum',
+                    'ref_key' => $jurnal->tipe_referensi . '_' . $jurnal->referensi . '_' . $jurnal->debit
+                ];
+            });
+
+        // Gabungkan transaksi dari kedua sistem dan hindari duplikasi
+        $allTransactions = $transaksiBaru->map(function($item) {
+            $item['source'] = 'journal_line';
+            // Create reference key for deduplication
+            $item['ref_key'] = $item['jenis'] . '_' . $item['nomor_transaksi'] . '_' . $item['nominal'];
+            return $item;
+        })->concat($transaksiLama);
+
+        // Remove duplicates based on similar transactions (same type, amount, and date)
+        $uniqueTransactions = collect();
+        $processedKeys = collect();
+
+        foreach ($allTransactions as $transaction) {
+            $dedupeKey = $transaction['tanggal'] . '_' . $transaction['nominal'] . '_' . strtolower($transaction['jenis']) . '_' . $transaction['nomor_transaksi'];
+            
+            // Skip if we already have a transaction with same date, amount, and type
+            if (!$processedKeys->contains($dedupeKey)) {
+                $processedKeys->push($dedupeKey);
+                $uniqueTransactions->push($transaction);
+            }
+        }
+
+        $transaksi = $uniqueTransactions
             ->filter(function($item) {
                 return $item['nominal'] > 0;
             })
+            ->sortByDesc('tanggal')
             ->values();
         
         return response()->json($transaksi);
@@ -227,39 +288,105 @@ class LaporanKasBankController extends Controller
             return response()->json([]);
         }
         
-        // Ambil transaksi keluar (credit) dari journal_lines
-        $transaksi = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+        $transaksi = collect();
+        $processedTransactions = collect(); // Track processed transactions to avoid duplicates
+        
+        // Ambil transaksi keluar (credit) dari journal_lines (sistem jurnal baru)
+        $transaksiBaru = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
             ->where('journal_lines.coa_id', $coa->id)
             ->where('journal_lines.credit', '>', 0)
             ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+            ->orderBy('journal_entries.tanggal', 'desc')
+            ->orderBy('journal_entries.id', 'desc')
             ->select(
                 'journal_entries.tanggal',
                 'journal_entries.memo',
                 'journal_entries.ref_type',
                 'journal_entries.ref_id',
-                'journal_lines.credit'
+                'journal_lines.credit',
+                'journal_lines.memo as line_memo'
             )
-            ->orderBy('journal_entries.tanggal', 'desc')
-            ->orderBy('journal_entries.id', 'desc')
             ->get()
-            ->map(function($line) {
+            ->map(function($line) use ($processedTransactions) {
                 // Get detailed information based on ref_type
                 $detailInfo = $this->getTransactionDetail($line->ref_type, $line->ref_id);
                 
+                // Create unique key for deduplication (date + amount + type)
+                $uniqueKey = date('Y-m-d', strtotime($line->tanggal)) . '_' . $line->credit . '_' . $line->ref_type . '_' . $line->ref_id;
+                
+                // Mark as processed
+                $processedTransactions->push($uniqueKey);
+                
                 return [
                     'tanggal' => date('d/m/Y', strtotime($line->tanggal)),
-                    'nomor_transaksi' => $detailInfo['nomor_transaksi'],
-                    'jenis' => $detailInfo['jenis'],
-                    'keterangan' => $detailInfo['keterangan'],
+                    'nomor_transaksi' => $detailInfo['nomor_transaksi'] ?? $line->memo,
+                    'jenis' => $detailInfo['jenis'] ?? ucfirst(str_replace('_', ' ', $line->ref_type)),
+                    'keterangan' => $line->line_memo ?? $line->memo ?? $detailInfo['keterangan'] ?? '-',
                     'nominal' => (float)$line->credit
                 ];
-            })
+            });
+
+        // Ambil transaksi keluar (kredit) dari jurnal_umum (sistem jurnal lama)
+        $transaksiLama = \App\Models\JurnalUmum::where('coa_id', $coa->id)
+            ->where('kredit', '>', 0)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
+            ->get()
+            ->map(function($jurnal) {
+                return [
+                    'tanggal' => date('d/m/Y', strtotime($jurnal->tanggal)),
+                    'nomor_transaksi' => $jurnal->referensi ?? 'JU-' . $jurnal->id,
+                    'jenis' => ucfirst(str_replace('_', ' ', $jurnal->tipe_referensi ?? 'jurnal_umum')),
+                    'keterangan' => $jurnal->keterangan ?? '-',
+                    'nominal' => (float)$jurnal->kredit,
+                    'source' => 'jurnal_umum',
+                    'ref_key' => $jurnal->tipe_referensi . '_' . $jurnal->referensi . '_' . $jurnal->kredit
+                ];
+            });
+
+        // Gabungkan transaksi dari kedua sistem dan hindari duplikasi
+        $allTransactions = $transaksiBaru->map(function($item) {
+            $item['source'] = 'journal_line';
+            // Create reference key for deduplication
+            $item['ref_key'] = $item['jenis'] . '_' . $item['nomor_transaksi'] . '_' . $item['nominal'];
+            return $item;
+        })->concat($transaksiLama);
+
+        // Remove duplicates based on similar transactions (same type, amount, and date)
+        $uniqueTransactions = collect();
+        $processedKeys = collect();
+
+        foreach ($allTransactions as $transaction) {
+            $dedupeKey = $transaction['tanggal'] . '_' . $transaction['nominal'] . '_' . strtolower($transaction['jenis']) . '_' . $transaction['nomor_transaksi'];
+            
+            // Skip if we already have a transaction with same date, amount, and type
+            if (!$processedKeys->contains($dedupeKey)) {
+                $processedKeys->push($dedupeKey);
+                $uniqueTransactions->push($transaction);
+            }
+        }
+
+        $transaksi = $uniqueTransactions
             ->filter(function($item) {
-                return $item['nominal'] > 0;
+                return $item && $item['nominal'] > 0;
             })
+            ->sortByDesc('tanggal')
             ->values();
         
         return response()->json($transaksi);
+    }
+
+    /**
+     * Extract ref_id from referensi string
+     */
+    private function extractRefId($referensi)
+    {
+        // Handle format like "PB-2" -> extract 2
+        if (preg_match('/(\d+)$/', $referensi, $matches)) {
+            return (int)$matches[1];
+        }
+        return null;
     }
 
     /**
@@ -312,6 +439,18 @@ class LaporanKasBankController extends Controller
                     }
                     break;
                     
+                case 'pembayaran_beban':
+                    $pembayaranBeban = \App\Models\PembayaranBeban::with('bebanOperasional')->find($refId);
+                    if ($pembayaranBeban) {
+                        $bebanName = $pembayaranBeban->bebanOperasional->nama_beban ?? 'Beban';
+                        return [
+                            'nomor_transaksi' => "PB-{$refId}",
+                            'jenis' => 'Pembayaran Beban',
+                            'keterangan' => "Pembayaran {$bebanName}"
+                        ];
+                    }
+                    break;
+                    
                 case 'penggajian':
                 case 'payroll':
                     $penggajian = \App\Models\Penggajian::find($refId);
@@ -332,6 +471,28 @@ class LaporanKasBankController extends Controller
                             'nomor_transaksi' => "RTR-{$refId}",
                             'jenis' => 'Retur',
                             'keterangan' => 'Retur penjualan'
+                        ];
+                    }
+                    break;
+                    
+                case 'retur_penjualan':
+                    $returPenjualan = \DB::table('retur_penjualans')->find($refId);
+                    if ($returPenjualan) {
+                        return [
+                            'nomor_transaksi' => $returPenjualan->nomor_retur ?? "RET-{$refId}",
+                            'jenis' => 'Retur Penjualan',
+                            'keterangan' => 'Refund retur penjualan'
+                        ];
+                    }
+                    break;
+                    
+                case 'purchase_return_refund':
+                    $purchaseReturn = \DB::table('purchase_returns')->find($refId);
+                    if ($purchaseReturn) {
+                        return [
+                            'nomor_transaksi' => $purchaseReturn->return_number ?? "PRTN-{$refId}",
+                            'jenis' => 'Retur Pembelian',
+                            'keterangan' => 'Refund retur pembelian'
                         ];
                     }
                     break;
@@ -585,16 +746,77 @@ class LaporanKasBankController extends Controller
     }
 
     /**
-     * Export laporan kas bank ke Excel
+     * Detect duplicate transactions between JournalLine and JurnalUmum
      */
-    public function exportExcel(Request $request)
+    private function detectDuplicateTransactions($akun, $startDate, $endDate, $type)
     {
-        $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
-        $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
+        $duplicateAmount = 0;
         
-        return Excel::download(
-            new LaporanKasBankExport($startDate, $endDate), 
-            'laporan-kas-bank-'.date('Y-m-d').'.xlsx'
-        );
+        // Get transactions from both systems
+        if ($type === 'debit') {
+            $journalLines = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                ->where('journal_lines.coa_id', $akun->id)
+                ->where('journal_lines.debit', '>', 0)
+                ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+                ->select('journal_entries.tanggal', 'journal_entries.ref_type', 'journal_entries.ref_id', 'journal_lines.debit as amount')
+                ->get();
+                
+            $jurnalUmum = \App\Models\JurnalUmum::where('coa_id', $akun->id)
+                ->where('debit', '>', 0)
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->select('tanggal', 'tipe_referensi', 'referensi', 'debit as amount')
+                ->get();
+        } else {
+            $journalLines = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+                ->where('journal_lines.coa_id', $akun->id)
+                ->where('journal_lines.credit', '>', 0)
+                ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+                ->select('journal_entries.tanggal', 'journal_entries.ref_type', 'journal_entries.ref_id', 'journal_lines.credit as amount')
+                ->get();
+                
+            $jurnalUmum = \App\Models\JurnalUmum::where('coa_id', $akun->id)
+                ->where('kredit', '>', 0)
+                ->whereBetween('tanggal', [$startDate, $endDate])
+                ->select('tanggal', 'tipe_referensi', 'referensi', 'kredit as amount')
+                ->get();
+        }
+        
+        // Check for duplicates based on date, amount, and transaction type
+        foreach ($journalLines as $jl) {
+            foreach ($jurnalUmum as $ju) {
+                $jlDate = date('Y-m-d', strtotime($jl->tanggal));
+                $juDate = date('Y-m-d', strtotime($ju->tanggal));
+                
+                // Check if same date, same amount, and likely same transaction
+                if ($jlDate === $juDate && abs($jl->amount - $ju->amount) < 0.01) {
+                    // Additional check: if ref_type matches tipe_referensi
+                    $refTypeMatch = (
+                        ($jl->ref_type === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
+                        ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'penjualan') ||
+                        ($jl->ref_type === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
+                        ($jl->ref_type === 'penggajian' && $ju->tipe_referensi === 'penggajian')
+                    );
+                    
+                    // Also check for penjualan reference match by comparing ref_id with referensi
+                    $penjualanMatch = false;
+                    if ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'penjualan') {
+                        // Check if JournalLine ref_id matches the penjualan ID from referensi
+                        if (preg_match('/SJ-\d+-(\d+)/', $ju->referensi, $matches)) {
+                            $penjualanId = (int)$matches[1];
+                            if ($jl->ref_id == $penjualanId) {
+                                $penjualanMatch = true;
+                            }
+                        }
+                    }
+                    
+                    if ($refTypeMatch || $penjualanMatch) {
+                        $duplicateAmount += $jl->amount;
+                        break; // Avoid counting the same JL transaction multiple times
+                    }
+                }
+            }
+        }
+        
+        return $duplicateAmount;
     }
 }

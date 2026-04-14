@@ -33,6 +33,8 @@ use App\Models\Coa;
 use App\Observers\ConversionConsistencyObserver;
 use App\Models\User;
 use App\Observers\PelangganUserObserver;
+use App\Models\Pembelian;
+use App\Observers\PembelianObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -65,8 +67,12 @@ class AppServiceProvider extends ServiceProvider
         
         // Real-time stock tracking observers
         PembelianDetail::observe(PembelianDetailObserver::class);
+        Pembelian::observe(PembelianObserver::class);
         ProduksiDetail::observe(ProduksiDetailObserver::class);
         PenjualanDetail::observe(PenjualanDetailObserver::class);
+
+        // Auto-update BOM prices when stock movements occur (based on stock report calculations)
+        // DISABLED: StockMovement::observe(StockMovementBomObserver::class);
 
         // Sync pelanggan dari users ke pelanggans
         User::observe(PelangganUserObserver::class);
