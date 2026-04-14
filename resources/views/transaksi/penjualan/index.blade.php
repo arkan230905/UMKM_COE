@@ -727,6 +727,14 @@
                         $totalProfit = $margin;
                     }
                     
+                    // Additional costs
+                    $biayaOngkir = $penjualan->biaya_ongkir ?? 0;
+                    $biayaServis = $penjualan->biaya_servis ?? 0;
+                    $biayaPPN = $totalSubtotal * 0.11; // 11% PPN
+                    
+                    // Calculate grand total
+                    $grandTotal = $totalSubtotal + $biayaPPN + $biayaOngkir + $biayaServis;
+                    
                     // Check return status
                     $hasRetur = $penjualan->returs()->exists();
                     $returnCount = $penjualan->returs()->count();
@@ -875,7 +883,35 @@
                     <div class="col-md-3">
                         <div class="p-3 bg-light rounded">
                             <small class="text-muted d-block">Total Penjualan</small>
-                            <strong class="text-dark">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</strong>
+                            <strong class="text-dark">Rp {{ number_format($grandTotal, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Costs Summary -->
+                <div class="row mt-2">
+                    @if($biayaOngkir > 0)
+                    <div class="col-md-4">
+                        <div class="p-2 bg-secondary bg-opacity-10 rounded">
+                            <small class="text-muted d-block">Biaya Ongkir</small>
+                            <strong class="text-secondary">Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                    @endif
+                    
+                    @if($biayaServis > 0)
+                    <div class="col-md-4">
+                        <div class="p-2 bg-secondary bg-opacity-10 rounded">
+                            <small class="text-muted d-block">Biaya Servis</small>
+                            <strong class="text-secondary">Rp {{ number_format($biayaServis, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                    @endif
+                    
+                    <div class="col-md-4">
+                        <div class="p-2 bg-warning bg-opacity-10 rounded">
+                            <small class="text-muted d-block">Biaya PPN (11%)</small>
+                            <strong class="text-warning">Rp {{ number_format($biayaPPN, 0, ',', '.') }}</strong>
                         </div>
                     </div>
                 </div>
