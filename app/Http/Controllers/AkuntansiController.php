@@ -97,6 +97,76 @@ class AkuntansiController extends Controller
             $entries->push($entry);
         }
         
+        // TAMBAHAN: Ambil data dari tabel jurnal_umum (untuk penyusutan dan transaksi lain)
+        // Hanya ambil yang tidak ada di journal_entries untuk menghindari duplikasi
+        $jurnalUmumQuery = \DB::table('jurnal_umum as ju')
+            ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
+            ->select([
+                'ju.id',
+                'ju.tanggal',
+                'ju.keterangan as memo',
+                'ju.referensi',
+                'ju.tipe_referensi as ref_type',
+                'ju.debit',
+                'ju.kredit as credit',
+                'coas.kode_akun',
+                'coas.nama_akun',
+                'coas.tipe_akun'
+            ])
+            ->where(function($q) {
+                $q->where('ju.debit', '>', 0)
+                  ->orWhere('ju.kredit', '>', 0);
+            })
+            ->whereNotIn('ju.tipe_referensi', ['purchase', 'sale', 'retur_pembelian', 'retur_penjualan']) // Exclude yang sudah di journal_entries
+            ->orderBy('ju.tanggal','asc')
+            ->orderBy('ju.id','asc');
+            
+        if ($from) { $jurnalUmumQuery->whereDate('ju.tanggal','>=',$from); }
+        if ($to)   { $jurnalUmumQuery->whereDate('ju.tanggal','<=',$to); }
+        if ($refType) { $jurnalUmumQuery->where('ju.tipe_referensi', $refType); }
+        if ($accountCode) { 
+            $jurnalUmumQuery->where('coas.kode_akun', $accountCode);
+        }
+        
+        $jurnalUmumResults = $jurnalUmumQuery->get();
+        
+        // Group jurnal_umum results by date and memo untuk menggabungkan debit/kredit
+        $jurnalUmumGrouped = $jurnalUmumResults->groupBy(function($item) {
+            return $item->tanggal . '|' . $item->memo;
+        });
+        
+        foreach ($jurnalUmumGrouped as $key => $group) {
+            $firstItem = $group->first();
+            
+            $entry = (object) [
+                'id' => 'ju_' . $firstItem->id, // Prefix untuk membedakan dengan journal_entries
+                'tanggal' => $firstItem->tanggal,
+                'ref_type' => $firstItem->ref_type,
+                'ref_id' => null,
+                'memo' => $firstItem->memo,
+                'lines' => $group->map(function($item) {
+                    return (object) [
+                        'id' => $item->id,
+                        'debit' => $item->debit,
+                        'credit' => $item->credit,
+                        'memo' => null,
+                        'account_code' => $item->kode_akun,
+                        'account_name' => $item->nama_akun,
+                        'account_type' => $item->tipe_akun,
+                        'coa' => (object) [
+                            'kode_akun' => $item->kode_akun,
+                            'nama_akun' => $item->nama_akun,
+                            'tipe_akun' => $item->tipe_akun
+                        ]
+                    ];
+                })
+            ];
+            $entries->push($entry);
+        }
+        
+        // Sort all entries by date
+        $entries = $entries->sortBy('tanggal');
+        
         return view('akuntansi.jurnal-umum', compact('entries','from','to','refType','refId','accountCode'));
     }
 

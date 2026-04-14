@@ -1596,11 +1596,8 @@ class LaporanController extends Controller
                 return $pembelian->sisa_utang_numerik > 0;
             });
 
-        // Query untuk riwayat pelunasan - UPDATED to use PelunasanUtang
-        $query = \App\Models\PelunasanUtang::with(['pembelian.vendor', 'pembelian.details.bahanBaku', 'akunKas'])
-            ->whereHas('pembelian', function($q) {
-                $q->where('payment_method', 'credit'); // Only credit purchases
-            })
+        // Query untuk riwayat pelunasan - FIXED query
+        $query = \App\Models\PelunasanUtang::with(['pembelian.vendor', 'pembelian.details.bahanBaku'])
             ->when($request->bulan, function($q) use ($request) {
                 $bulan = \Carbon\Carbon::parse($request->bulan);
                 return $q->whereYear('tanggal', $bulan->year)
@@ -1635,7 +1632,7 @@ class LaporanController extends Controller
             return $item;
         });
         
-        $total = $query->get()->sum('jumlah'); // Sum of all payments
+        $total = $pelunasanUtang->sum('jumlah'); // Sum of displayed payments
 
         return view('laporan.pelunasan-utang.index', [
             'pelunasanUtang' => $pelunasanUtang,

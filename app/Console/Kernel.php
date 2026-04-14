@@ -15,6 +15,9 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         \App\Console\Commands\StockBackfillPembelian::class,
         \App\Console\Commands\SyncAccounts::class,
+        \App\Console\Commands\FixDepreciationDiscrepancy::class,
+        \App\Console\Commands\FixApril2026Depreciation::class,
+        \App\Console\Commands\UpdateApril2026JournalValues::class,
     ];
 
     /**
