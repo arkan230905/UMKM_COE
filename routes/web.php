@@ -2589,7 +2589,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/penjualan/export', [LaporanController::class, 'exportPenjualan'])->name('penjualan.export');
         Route::get('/export/penjualan', [LaporanController::class, 'exportPenjualan'])->name('export.penjualan');
         
-        // Laporan Retur
+        // Laporan Retur (now only handles purchase returns, sales returns moved to penjualan tab)
         Route::get('/retur', [LaporanController::class, 'laporanRetur'])->name('retur');
         
         // Laporan Penggajian

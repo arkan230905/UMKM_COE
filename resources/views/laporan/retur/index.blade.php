@@ -4,6 +4,9 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Laporan Retur Pembelian</h3>
+        <div class="alert alert-info mb-0">
+            <small><i class="fas fa-info-circle me-1"></i>Laporan Retur Penjualan telah dipindahkan ke <a href="{{ route('laporan.penjualan') }}?tab=retur" class="alert-link">Laporan Penjualan → Tab Retur</a></small>
+        </div>
     </div>
 
     <!-- Retur Pembelian Section -->
@@ -16,11 +19,11 @@
         <div class="card-body">
             <!-- Filter Form for Purchase Returns -->
             <form action="" method="GET" class="row g-3 mb-4">
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label">Tanggal Mulai</label>
                     <input type="date" name="purchase_start_date" class="form-control" value="{{ request('purchase_start_date') }}">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label">Tanggal Selesai</label>
                     <input type="date" name="purchase_end_date" class="form-control" value="{{ request('purchase_end_date') }}">
                 </div>

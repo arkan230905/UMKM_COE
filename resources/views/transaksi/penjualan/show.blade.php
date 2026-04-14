@@ -38,6 +38,14 @@
             $totalProfit = ($hdrHarga - $hpp) * ($penjualan->jumlah ?? 0);
             $totalDiskon = $penjualan->diskon_nominal ?? 0;
         }
+        
+        // Additional costs
+        $biayaOngkir = $penjualan->biaya_ongkir ?? 0;
+        $biayaServis = $penjualan->biaya_servis ?? 0;
+        $biayaPPN = $totalSubtotal * 0.11; // 11% PPN
+        
+        // Calculate grand total
+        $grandTotal = $totalSubtotal + $biayaPPN + $biayaOngkir + $biayaServis - $totalDiskon;
     @endphp
 
     {{-- Row 1: Informasi Transaksi + Ringkasan --}}
@@ -120,18 +128,49 @@
                             <strong class="{{ $totalProfit >= 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($totalProfit, 0, ',', '.') }}</strong>
                         </div>
                     </div>
+                    
+                    {{-- Additional Costs --}}
+                    @if($biayaOngkir > 0)
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Biaya Ongkir:</span>
+                            <strong class="text-secondary">Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                    @endif
+                    
+                    @if($biayaServis > 0)
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Biaya Servis:</span>
+                            <strong class="text-secondary">Rp {{ number_format($biayaServis, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                    @endif
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Biaya PPN (11%):</span>
+                            <strong class="text-warning">Rp {{ number_format($biayaPPN, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                    
                     <div class="mb-3">
                         <div class="d-flex justify-content-between">
                             <span>Total Diskon:</span>
-                            <strong class="text-warning">Rp {{ number_format($totalDiskon, 0, ',', '.') }}</strong>
+                            <strong class="text-danger">-Rp {{ number_format($totalDiskon, 0, ',', '.') }}</strong>
                         </div>
                     </div>
+                    
                     <hr>
                     <div class="mb-0">
                         <div class="d-flex justify-content-between">
                             <span><strong>Total Penjualan:</strong></span>
-                            <strong class="text-dark fs-5">Rp {{ number_format($penjualan->total, 0, ',', '.') }}</strong>
+                            <strong class="text-dark fs-5">Rp {{ number_format($grandTotal, 0, ',', '.') }}</strong>
                         </div>
+                        <small class="text-muted d-block mt-1">
+                            *Termasuk PPN, Ongkir & Servis
+                        </small>
                     </div>
                 </div>
             </div>

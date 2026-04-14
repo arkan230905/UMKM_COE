@@ -15,7 +15,7 @@
             <a href="{{ route('transaksi.retur-penjualan.create') }}" class="btn btn-primary me-2">
                 <i class="fas fa-plus me-2"></i>Tambah Retur
             </a>
-            <a href="{{ route('transaksi.retur-penjualan.laporan') }}" class="btn btn-info">
+            <a href="{{ route('laporan.penjualan') }}?tab=retur" class="btn btn-info">
                 <i class="fas fa-print me-2"></i>Laporan
             </a>
         </div>
