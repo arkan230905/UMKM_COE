@@ -9,9 +9,11 @@
             <i class="fas fa-boxes me-2"></i>Laporan Stok
         </h2>
         <div>
-            <a href="{{ route('laporan.stok.export', request()->query()) }}" class="btn btn-danger">
-                <i class="fas fa-file-pdf me-1"></i> Export PDF
-            </a>
+            @if(request('item_id'))
+                <a href="{{ route('laporan.stok.export', request()->query()) }}" class="btn btn-danger">
+                    <i class="fas fa-file-pdf me-1"></i> Export PDF
+                </a>
+            @endif
         </div>
     </div>
 
@@ -200,7 +202,8 @@
                                 } elseif ($transaction['ref_type'] === 'production') {
                                     $runningPotongBalance -= $convertedProduksiQty; // Subtract production usage
                                 } elseif ($transaction['ref_type'] === 'retur') {
-                                    $runningPotongBalance -= $transaction['produksi_qty'] * 3; // Subtract retur
+                                    // Retur data is in pembelian_qty as negative values
+                                    $runningPotongBalance += $transaction['pembelian_qty'] * 3; // Add negative retur (which reduces balance)
                                 }
                                 
                                 $convertedSaldoAkhirQty = $runningPotongBalance;
@@ -264,9 +267,9 @@
                                 $convertedSaldoAwalHarga = $saldoAwalPriceConversion > 0 ? $baseUnitCost / $saldoAwalPriceConversion : $baseUnitCost;
                             }
                             
-                            // Pembelian - only show price if there's purchase
-                            if ($transaction['pembelian_qty'] > 0 && $transaction['pembelian_nilai'] > 0) {
-                                $baseUnitCost = $transaction['pembelian_nilai'] / $transaction['pembelian_qty'];
+                            // Pembelian - show price if there's purchase (including negative retur)
+                            if ($transaction['pembelian_qty'] != 0 && $transaction['pembelian_nilai'] != 0) {
+                                $baseUnitCost = abs($transaction['pembelian_nilai']) / abs($transaction['pembelian_qty']);
                                 $convertedPembelianHarga = $priceConversion > 0 ? $baseUnitCost / $priceConversion : $baseUnitCost;
                             }
                             
@@ -395,6 +398,9 @@
                                                     case 'adjustment':
                                                         $keterangan = 'Penyesuaian Stok';
                                                         break;
+                                                    case 'retur':
+                                                        $keterangan = 'Retur';
+                                                        break;
                                                     case 'opening_balance':
                                                         $keterangan = 'Saldo Awal Bulan';
                                                         break;
@@ -418,9 +424,9 @@
                                                 <td class="text-end">{{ isset($row['penjualan_total']) && $row['penjualan_total'] > 0 ? 'RP' . number_format($row['penjualan_total'], 0, ',', '.') : '' }}</td>
                                             @else
                                                 <!-- For materials and bahan pendukung, show purchase data -->
-                                                <td class="text-end">{{ $row['pembelian_qty'] > 0 ? number_format($row['pembelian_qty'], (in_array($unit['name'], ['Potong', 'Ekor', 'Buah', 'Pcs']) ? 0 : ($unit['name'] == 'Gram' ? 0 : 2)), ',', '.') . ' ' . $unit['name'] : '' }}</td>
+                                                <td class="text-end">{{ $row['pembelian_qty'] != 0 ? number_format($row['pembelian_qty'], (in_array($unit['name'], ['Potong', 'Ekor', 'Buah', 'Pcs']) ? 0 : ($unit['name'] == 'Gram' ? 0 : 2)), ',', '.') . ' ' . $unit['name'] : '' }}</td>
                                                 <td class="text-end">{{ $row['pembelian_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['pembelian_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
-                                                <td class="text-end">{{ $row['pembelian_total'] > 0 ? 'RP' . number_format($row['pembelian_total'], 0, ',', '.') : '' }}</td>
+                                                <td class="text-end">{{ $row['pembelian_total'] != 0 ? 'RP' . number_format($row['pembelian_total'], 0, ',', '.') : '' }}</td>
                                             @endif
                                             <td class="text-end">{{ $row['produksi_qty'] > 0 ? number_format($row['produksi_qty'], (in_array($unit['name'], ['Potong', 'Ekor', 'Buah', 'Pcs']) ? 0 : ($unit['name'] == 'Gram' ? 0 : 2)), ',', '.') . ' ' . $unit['name'] : '' }}</td>
                                             <td class="text-end">{{ $row['produksi_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['produksi_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>

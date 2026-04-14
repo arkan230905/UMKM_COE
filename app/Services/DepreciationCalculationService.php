@@ -360,4 +360,74 @@ class DepreciationCalculationService
             );
         }
     }
+
+    /**
+     * Calculate monthly depreciation for current month
+     */
+    public function calculateCurrentMonthDepreciation(Aset $aset): float
+    {
+        $totalPerolehan = (float)($aset->harga_perolehan ?? 0) + (float)($aset->biaya_perolehan ?? 0);
+        $nilaiResidu = (float)($aset->nilai_residu ?? 0);
+        $umurManfaat = (int)($aset->umur_manfaat ?? 0);
+        
+        if ($umurManfaat <= 0 || $totalPerolehan <= 0) {
+            return 0;
+        }
+        
+        // Check if asset depreciation has started
+        $tanggalMulai = $aset->tanggal_akuisisi ?? $aset->tanggal_beli;
+        if (!$tanggalMulai) {
+            return 0;
+        }
+        
+        $startDate = Carbon::parse($tanggalMulai);
+        
+        // Rule: if date > 15, start next month
+        if ($startDate->day > 15) {
+            $startDate->addMonth()->day(1);
+        }
+        
+        // Check if current month is within depreciation period
+        $currentDate = now();
+        $endDate = $startDate->copy()->addMonths($umurManfaat * 12);
+        
+        if ($currentDate->lt($startDate) || $currentDate->gt($endDate)) {
+            return 0; // Outside depreciation period
+        }
+        
+        // Calculate based on method
+        switch ($aset->metode_penyusutan) {
+            case 'garis_lurus':
+                return ($totalPerolehan - $nilaiResidu) / ($umurManfaat * 12);
+                
+            case 'saldo_menurun':
+                // For declining balance, we need to calculate based on current book value
+                // For simplicity, use straight-line equivalent for now
+                // TODO: Implement proper declining balance calculation with current book value
+                $rateTahunan = 2 / $umurManfaat;
+                $monthlyRate = $rateTahunan / 12;
+                
+                // Estimate current book value (simplified)
+                $monthsElapsed = $startDate->diffInMonths($currentDate);
+                $estimatedBookValue = $totalPerolehan * pow(1 - $monthlyRate, $monthsElapsed);
+                
+                return max(0, min($estimatedBookValue * $monthlyRate, $estimatedBookValue - $nilaiResidu));
+                
+            case 'sum_of_years_digits':
+                // Calculate which year of depreciation we're in
+                $monthsElapsed = $startDate->diffInMonths($currentDate);
+                $yearOfDepreciation = floor($monthsElapsed / 12) + 1;
+                
+                if ($yearOfDepreciation > $umurManfaat) {
+                    return 0; // Fully depreciated
+                }
+                
+                $sumOfYears = ($umurManfaat * ($umurManfaat + 1)) / 2;
+                $yearRate = ($umurManfaat - $yearOfDepreciation + 1) / $sumOfYears;
+                return (($totalPerolehan - $nilaiResidu) * $yearRate) / 12;
+                
+            default:
+                return ($totalPerolehan - $nilaiResidu) / ($umurManfaat * 12);
+        }
+    }
 }

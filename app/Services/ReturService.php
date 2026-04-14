@@ -228,10 +228,10 @@ class ReturService
                 StockMovement::create([
                     'item_type' => 'bahan_baku',
                     'item_id' => $bahanBaku->id,
-                    'movement_type' => 'out',
-                    'quantity' => $detail->qty_retur,
-                    'reference_type' => 'retur',
-                    'reference_id' => $retur->id,
+                    'direction' => 'out',
+                    'qty' => $detail->qty_retur,
+                    'ref_type' => 'retur',
+                    'ref_id' => $retur->id,
                     'tanggal' => $retur->tanggal,
                     'keterangan' => 'Retur Pembelian - ' . $retur->kode_retur
                 ]);
@@ -274,10 +274,10 @@ class ReturService
                 StockMovement::create([
                     'item_type' => 'produk',
                     'item_id' => $produk->id,
-                    'movement_type' => 'out',
-                    'quantity' => $item['qty'],
-                    'reference_type' => 'retur_kompensasi',
-                    'reference_id' => $retur->id,
+                    'direction' => 'out',
+                    'qty' => $item['qty'],
+                    'ref_type' => 'retur_kompensasi',
+                    'ref_id' => $retur->id,
                     'tanggal' => now(),
                     'keterangan' => 'Kompensasi Retur Penjualan - ' . $retur->kode_retur
                 ]);

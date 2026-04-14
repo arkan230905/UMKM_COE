@@ -72,8 +72,30 @@
                             <td class="text-dark">: {{ $aset->umur_manfaat }} tahun</td>
                         </tr>
                         <tr>
+                            <td class="text-dark"><strong>Umur Manfaat</strong></td>
+                            <td class="text-dark">: {{ $aset->umur_manfaat }} tahun</td>
+                        </tr>
+                        <tr>
                             <td class="text-dark"><strong>Metode Penyusutan</strong></td>
                             <td class="text-dark">: {{ ucwords(str_replace('_', ' ', $aset->metode_penyusutan)) }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-dark"><strong>Akumulasi Penyusutan</strong></td>
+                            <td class="text-dark">: Rp {{ number_format($asetSummary['akumulasi_penyusutan'] ?? 0, 0, ',', '.') }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-dark"><strong>Nilai Buku Saat Ini</strong></td>
+                            <td class="text-dark"><strong>: Rp {{ number_format($asetSummary['nilai_buku_saat_ini'] ?? $totalPerolehan, 0, ',', '.') }}</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="text-dark"><strong>Status Posting</strong></td>
+                            <td class="text-dark">: 
+                                @if($asetSummary['sudah_diposting'] ?? false)
+                                    <span class="badge bg-success">Sudah Diposting</span>
+                                @else
+                                    <span class="badge bg-warning">Belum Diposting</span>
+                                @endif
+                            </td>
                         </tr>
                     </table>
                 </div>

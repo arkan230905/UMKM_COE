@@ -13,12 +13,18 @@
     </div>
     <div class="col-md-6 text-end">
       <div class="d-flex gap-2 justify-content-end">
-        <a href="{{ route('akuntansi.jurnal-umum.export-pdf', request()->all()) }}" class="btn btn-danger btn-sm">
-          <i class="bi bi-file-pdf me-1"></i> PDF
+        <a href="{{ route('akuntansi.jurnal-umum.export-pdf', request()->all()) }}" class="btn btn-danger btn-sm position-relative overflow-hidden group">
+          <span class="absolute inset-0 bg-gradient-to-r from-red-600 to-red-500 opacity-75 group-hover:opacity-100 transition-opacity duration-300"></span>
+          <span class="relative flex items-center">
+            <i class="bi bi-file-pdf me-2"></i>
+            <span class="font-semibold">Export PDF</span>
+          </span>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <svg class="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3v6m3-6v-6m-6 18v6m6-6h6m-6 6v6M9 9h6m-6 0v6"></path>
+            </svg>
+          </div>
         </a>
-        <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
-          <i class="bi bi-printer me-1"></i> Cetak
-        </button>
       </div>
     </div>
   </div>
@@ -82,31 +88,19 @@
   <!-- Summary Cards -->
   @if($entries->count() > 0)
   <div class="row mb-4">
-    <div class="col-md-4">
+    <div class="col-md-12">
       <div class="card border-left border-primary border-4">
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
+          <div class="row align-items-center">
+            <div class="col-6 text-center">
+              <i class="bi bi-arrow-up-circle fs-2 text-primary"></i>
               <h6 class="text-muted mb-2">Total Debit</h6>
               <h4 class="mb-0 text-primary">Rp {{ number_format($entries->flatMap->lines->sum('debit'), 0, ',', '.') }}</h4>
             </div>
-            <div class="text-primary">
-              <i class="bi bi-arrow-up-circle fs-2"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card border-left border-success border-4">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
+            <div class="col-6 text-center">
+              <i class="bi bi-arrow-down-circle fs-2 text-success"></i>
               <h6 class="text-muted mb-2">Total Kredit</h6>
               <h4 class="mb-0 text-success">Rp {{ number_format($entries->flatMap->lines->sum('credit'), 0, ',', '.') }}</h4>
-            </div>
-            <div class="text-success">
-              <i class="bi bi-arrow-down-circle fs-2"></i>
             </div>
           </div>
         </div>
