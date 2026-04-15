@@ -54,12 +54,12 @@ class RegisterController extends Controller
             'phone' => ['required', 'string', 'max:20'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'terms' => ['required', 'accepted'],
-            'role' => ['required', 'in:owner,admin,pegawai_pembelian,pelanggan'],
+            'role' => ['required', 'in:owner'],
             'company_nama' => ['required_if:role,owner', 'string', 'max:255'],
             'company_alamat' => ['required_if:role,owner', 'string'],
             'company_email' => ['required_if:role,owner', 'email', 'max:255'],
             'company_telepon' => ['required_if:role,owner', 'string', 'max:20'],
-            'kode_perusahaan' => ['required_if:role,pegawai_pembelian,admin', 'string', 'exists:perusahaan,kode'],
+            'kode_perusahaan' => ['required_if:role,never', 'string', 'exists:perusahaan,kode'],
         ]);
     }
 
@@ -85,7 +85,7 @@ class RegisterController extends Controller
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-        } elseif (in_array($data['role'] ?? null, ['admin', 'pegawai_pembelian'], true)) {
+        } elseif (in_array($data['role'] ?? null, ['never'], true)) {
             $perusahaan = DB::table('perusahaan')->where('kode', $data['kode_perusahaan'] ?? null)->first();
             $perusahaanId = $perusahaan?->id;
         }
@@ -94,7 +94,7 @@ class RegisterController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
-            'role' => $data['role'] ?? 'pelanggan',
+            'role' => $data['role'] ?? 'owner',
             'perusahaan_id' => $perusahaanId,
         ]);
     }

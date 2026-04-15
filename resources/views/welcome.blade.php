@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem ERP Manufaktur - Solusi Keuangan Terpadu</title>
+    <title>SIMACOST - Sistem Manufaktur Proses Costing</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
@@ -54,52 +54,89 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 100%);
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 100%);
             z-index: 0;
         }
 
         .welcome-container {
             display: flex;
-            max-width: 1200px;
+            max-width: 1000px;
             width: 100%;
-            background: rgba(15, 23, 42, 0.85); /* Dark semi-transparent background */
+            background: rgba(245, 243, 239, 0.95); /* Cream semi-transparent background */
             border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             position: relative;
             z-index: 1;
             backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #e2e8f0;
+            border: 1px solid rgba(222, 184, 135, 0.3);
+            color: #3e2723;
+            margin-top: 80px; /* Space for external logos */
         }
 
-        .welcome-left {
+        /* External Logo Section */
+        .logo-external {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: slideInRight 0.8s ease-out;
+        }
+
+        .logo-external-main {
+            width: 190px;
+            height: 150px;
+        }
+
+        .logo-external-partner {
+            width: 220px;
+            height: 220px;
+            object-fit: contain;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            display: block;
+            background: transparent;
+        }
+
+        .logo-external-main:hover {
+            transform: translateY(-3px) scale(1.05);
+        }
+
+        .logo-external-partners {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .logo-external-partner:hover {
+            transform: translateY(-2px) scale(1.1);
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .welcome-center {
             flex: 1;
             padding: 4rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
+            align-items: center;
+            text-align: center;
             background: transparent;
             position: relative;
             z-index: 2;
-            color: #e2e8f0;
-        }
-
-        .welcome-right {
-            flex: 1;
-            background: rgba(30, 41, 59, 0.7);
-            background-size: cover;
-            background-position: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 4rem;
-            color: white;
-            text-align: center;
-            position: relative;
-            z-index: 2;
-            backdrop-filter: blur(5px);
-            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            color: #3e2723;
         }
 
         .logo-container {
@@ -108,24 +145,64 @@
             position: relative;
         }
 
-        .logo {
+        .logo-main-welcome {
             max-width: 160px;
             height: 160px;
             margin: 0 auto 1.5rem;
             display: block;
-            border-radius: 50%;
+            border-radius: 20px;
             box-shadow: 0 10px 30px rgba(59, 130, 246, 0.25);
             transition: all 0.4s ease;
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
             padding: 20px;
             border: 3px solid rgba(59, 130, 246, 0.3);
             object-fit: contain;
+            animation: logoFloat 3s ease-in-out infinite;
         }
 
-        .logo:hover {
-            transform: translateY(-3px) rotate(5deg);
+        .logo-main-welcome:hover {
+            transform: translateY(-5px) scale(1.05);
             box-shadow: 0 15px 40px rgba(59, 130, 246, 0.35);
             border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .logo-partners-welcome {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+            opacity: 0;
+            animation: fadeInPartners 1s ease-out 0.5s forwards;
+        }
+
+        .logo-partner-welcome {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 10px;
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .logo-partner-welcome:hover {
+            transform: translateY(-3px) scale(1.1);
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes fadeInPartners {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .logo-glow {
@@ -147,64 +224,99 @@
         }
 
         h1 {
-            font-size: 2.8rem;
+            font-size: 2.2rem;
             font-weight: 700;
-            margin-bottom: 1.5rem;
-            color: #ffffff;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-            background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            line-height: 1.2;
+            margin-bottom: 2.5rem;
+            color: #3e2723;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            line-height: 1.3;
         }
 
         .welcome-text {
             font-size: 1.1rem;
-            color: #e2e8f0;
+            color: #5d4037;
+            margin-top: 2rem;
             margin-bottom: 2.5rem;
             line-height: 1.7;
             opacity: 0.9;
         }
 
-        .btn {
+        .button-center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 2rem;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn-login, .btn-register {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 0.8rem 2rem;
+            padding: 1rem 2.5rem;
             border-radius: 50px;
             font-weight: 600;
             text-decoration: none;
-            transition: all 0.3s ease;
-            margin: 0.5rem 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 1rem;
+            min-width: 140px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login::before, .btn-register::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
             width: 100%;
-            max-width: 250px;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
         }
 
-        .btn-primary {
-            background: #3b82f6; /* Brighter blue */
+        .btn-login:hover::before, .btn-register:hover::before {
+            left: 100%;
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, #d4a574 0%, #c19660 100%);
             color: white;
-            border: 2px solid #3b82f6;
-            transition: all 0.3s ease;
+            border: 2px solid rgba(212, 165, 116, 0.3);
+            box-shadow: 0 10px 30px rgba(212, 165, 116, 0.3);
+            transform: translateY(0);
         }
 
-        .btn-primary:hover {
-            background: #4338ca;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(67, 56, 202, 0.3);
+        .btn-login:hover {
+            background: linear-gradient(135deg, #e6b885 0%, #d4a574 100%);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(212, 165, 116, 0.4);
+            border-color: rgba(212, 165, 116, 0.5);
         }
 
-        .btn-outline {
-            background: transparent;
+        .btn-register {
+            background: linear-gradient(135deg, #8b6f47 0%, #6d5637 100%);
             color: white;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.3s ease;
+            border: 2px solid rgba(139, 111, 71, 0.3);
+            box-shadow: 0 10px 30px rgba(139, 111, 71, 0.3);
+            transform: translateY(0);
         }
 
-        .btn-outline:hover {
-            background: #f9fafb;
-            border-color: #d1d5db;
-            transform: translateY(-2px);
+        .btn-register:hover {
+            background: linear-gradient(135deg, #a08060 0%, #8b6f47 100%);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(139, 111, 71, 0.5);
+            border-color: rgba(139, 111, 71, 0.5);
+        }
+
+        .btn-login:active, .btn-register:active {
+            transform: translateY(-1px) scale(1.02);
+            transition: all 0.1s;
         }
 
         .feature-list {
@@ -299,29 +411,74 @@
             .welcome-container {
                 flex-direction: column;
                 max-width: 500px;
+                margin-top: 80px;
             }
 
-            .welcome-left, .welcome-right {
+            .welcome-center {
                 padding: 2.5rem;
             }
 
-            .welcome-right {
-                display: none;
+            .logo-external {
+                top: 20px;
+                right: 20px;
+            }
+
+            .logo-external-main {
+                width: 200px;
+                height: 200px;
+            }
+
+            .logo-external-partner {
+                width: 180px;
+                height: 180px;
+            }
+
+            .logo-external-partners {
+                gap: 0.8rem;
             }
         }
 
         @media (max-width: 640px) {
             h1 {
-                font-size: 2rem;
+                font-size: 1.6rem;
             }
 
             .welcome-text {
-                font-size: 1rem;
+                font-size: 0.95rem;
             }
 
-            .btn {
-                padding: 0.7rem 1.5rem;
-                font-size: 0.9rem;
+            .welcome-container {
+                margin-top: 60px;
+            }
+
+            .logo-external {
+                top: 15px;
+                right: 15px;
+            }
+
+            .logo-external-main {
+                width: 150px;
+                height: 150px;
+            }
+
+            .logo-external-partner {
+                width: 130px;
+                height: 130px;
+            }
+
+            .logo-external-partners {
+                gap: 0.6rem;
+            }
+
+            .button-row {
+                flex-direction: column;
+                gap: 0.8rem;
+                width: 100%;
+            }
+
+            .btn-login, .btn-register {
+                width: 100%;
+                max-width: 200px;
             }
         }
     </style>
@@ -334,77 +491,30 @@
             Browser Anda tidak mendukung video.
         </video>
         <div class="overlay"></div>
-        <div class="welcome-container animate-fade-in">
-            <!-- Left Side - Welcome Content -->
-            <div class="welcome-left">
-                <div class="logo-container">
-                    <div class="logo-glow"></div>
-                    <img src="{{ asset('images/logo.png') }}" alt="Manufacturing ERP Logo" class="logo">
-                </div>
-                <h1>Sistem Keuangan Manufaktur Terpadu</h1>
-                <p class="welcome-text">Solusi lengkap untuk mengelola keuangan dan operasional perusahaan manufaktur Anda. Dari pembelian bahan baku hingga laporan keuangan, semua terintegrasi dalam satu platform.</p>
-                
-                <div class="feature-list">
-                    <div class="feature-item">
-                        <i class="fas fa-industry feature-icon"></i>
-                        <span>Manajemen Produksi & BOM (Bill of Materials)</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-calculator feature-icon"></i>
-                        <span>Perhitungan Harga Pokok Produksi Otomatis</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-chart-line feature-icon"></i>
-                        <span>Laporan Keuangan & Analisis Biaya Real-time</span>
-                    </div>
-                    <div class="feature-item">
-                        <i class="fas fa-boxes feature-icon"></i>
-                        <span>Kontrol Inventaris Bahan Baku & Produk Jadi</span>
-                    </div>
-                </div>
-
-                <div class="mt-6">
-                    <a href="{{ route('login') }}" class="btn btn-primary">
-                        <i class="fas fa-sign-in-alt mr-2"></i> Masuk
-                    </a>
-                    
-                    <div class="divider">atau</div>
-                    
-                    <a href="{{ route('register') }}" class="btn btn-outline">
-                        <i class="fas fa-user-plus mr-2"></i> Daftar Akun Baru
-                    </a>
-                </div>
+        
+        <!-- Logo Section Outside Container -->
+        <div class="logo-external">
+            <img src="{{ asset('images/logo.png') }}" alt="UMKM Logo" class="logo-external-main">
+            <div class="logo-external-partners">
+                <img src="{{ asset('images/logo_telkom.png') }}" alt="Telkom Logo" class="logo-external-partner" title="Supported by Telkom">
+                <img src="{{ asset('images/logo_eadt.png') }}" alt="EADT Logo" class="logo-external-partner" title="Powered by EADT">
             </div>
+        </div>
+        
+        <div class="welcome-container animate-fade-in">
+            <!-- Center Content -->
+            <div class="welcome-center">
+                <h1><span style="font-size: 1.4rem; font-weight: 700;">Selamat Datang di SIMCOST</span><br><span style="font-size: 1.4rem; font-weight: 700;">(Sistem Manufaktur Proses Costing)</span></h1>
+                <p class="welcome-text">Solusi digital untuk otomatisasi perhitungan biaya produksi di setiap departemen dengan metode process costing yang akurat. Pantau penggunaan bahan baku, tenaga kerja, dan biaya overhead secara sistematis untuk transparansi data yang optimal. Hadirkan ketepatan kalkulasi Harga Pokok Produksi (HPP) guna mendukung efisiensi dan keputusan strategis bisnis Anda.</p>
 
-            <!-- Right Side - Image/Illustration -->
-            <div class="welcome-right">
-                <div>
-                    <h2 class="text-3xl font-bold mb-6">Solusi ERP Manufaktur Terdepan</h2>
-                    <p class="mb-8 text-lg">Tingkatkan efisiensi produksi dan kontrol keuangan perusahaan manufaktur Anda dengan sistem ERP yang komprehensif dan mudah digunakan.</p>
-                    
-                    <div class="space-y-4">
-                        <div class="flex items-center">
-                            <div class="w-3 h-3 bg-green-400 rounded-full mr-3"></div>
-                            <span class="text-green-100">Sistem Terintegrasi & Komprehensif</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="w-3 h-3 bg-blue-400 rounded-full mr-3"></div>
-                            <span class="text-blue-100">Interface Modern & User-Friendly</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="w-3 h-3 bg-purple-400 rounded-full mr-3"></div>
-                            <span class="text-purple-100">Laporan Real-time & Akurat</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="w-3 h-3 bg-yellow-400 rounded-full mr-3"></div>
-                            <span class="text-yellow-100">Efisiensi Maksimal & Hemat Biaya</span>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-8 p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-lg border border-blue-400/30">
-                        <p class="text-center text-blue-100 font-medium">
-                            "Platform yang dirancang khusus untuk memenuhi kebutuhan industri manufaktur modern dengan teknologi terdepan"
-                        </p>
+                <div class="button-center">
+                    <div class="button-row">
+                        <a href="{{ route('login') }}" class="btn-login">
+                            <i class="fas fa-sign-in-alt mr-2"></i> Masuk
+                        </a>
+                        <a href="{{ route('register') }}" class="btn-register">
+                            <i class="fas fa-user-plus mr-2"></i> Daftar
+                        </a>
                     </div>
                 </div>
             </div>
