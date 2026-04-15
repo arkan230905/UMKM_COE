@@ -26,16 +26,28 @@
             font-family: 'Poppins', sans-serif;
             overflow-x: hidden;
         }
+        
+        /* Hide scrollbar but keep functionality */
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        
+        body {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
 
         /* Video Background */
         .video-bg {
             position: fixed;
-            top: 0;
+            top: -5%;
             left: 0;
             width: 100%;
-            height: 100%;
+            height: 110%;
             object-fit: cover;
             z-index: -1;
+            filter: contrast(1.1) brightness(1.05) saturate(1.1);
+            transform: scale(1.02);
         }
 
         .gradient-bg {
@@ -71,7 +83,7 @@
             backdrop-filter: blur(8px);
             border: 1px solid rgba(222, 184, 135, 0.3);
             color: #3e2723;
-            margin-top: 80px; /* Space for external logos */
+            margin-top: 250px; /* Space for external logos */
         }
 
         /* External Logo Section */
@@ -486,7 +498,7 @@
 <body>
 
     <div class="gradient-bg">
-        <video autoplay muted loop playsinline class="video-bg">
+        <video autoplay muted loop playsinline preload="auto" class="video-bg">
             <source src="{{ asset('umkm.mp4') }}" type="video/mp4">
             Browser Anda tidak mendukung video.
         </video>
@@ -504,15 +516,35 @@
         <div class="welcome-container animate-fade-in">
             <!-- Center Content -->
             <div class="welcome-center">
-                <h1><span style="font-size: 1.4rem; font-weight: 700;">Selamat Datang di SIMCOST</span><br><span style="font-size: 1.4rem; font-weight: 700;">(Sistem Manufaktur Proses Costing)</span></h1>
-                <p class="welcome-text">Solusi digital untuk otomatisasi perhitungan biaya produksi di setiap departemen dengan metode process costing yang akurat. Pantau penggunaan bahan baku, tenaga kerja, dan biaya overhead secara sistematis untuk transparansi data yang optimal. Hadirkan ketepatan kalkulasi Harga Pokok Produksi (HPP) guna mendukung efisiensi dan keputusan strategis bisnis Anda.</p>
+                <h1><span style="font-size: 3rem; font-weight: 800;">Selamat Datang di SIMCOST</span><br><span style="font-size: 2.5rem; font-weight: 700;">(Sistem Manufaktur Process Costing)</span></h1>
+                <p class="welcome-text" style="font-size: 1.5rem;">SIMCOST adalah aplikasi berbasis web yang dirancang untuk membantu perusahaan manufaktur dalam mengelola dan menghitung biaya produksi secara otomatis, akurat, dan terintegrasi menggunakan metode process costing.</p>
+                
+                <div class="feature-list">
+                    <div style="color: #3e2723; font-weight: 700; font-size: 1.8rem; margin-bottom: 2rem; text-align: center;">Fitur Utama</div>
+                    <div class="feature-item" style="color: #3e2723; margin-bottom: 1.5rem;">
+                        <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 18px; font-weight: 700; width: 32px; height: 32px;">1</div>
+                        <span style="font-size: 1.4rem; font-weight: 500;">Otomatisasi perhitungan biaya produksi per departemen</span>
+                    </div>
+                    <div class="feature-item" style="color: #3e2723; margin-bottom: 1.5rem;">
+                        <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 18px; font-weight: 700; width: 32px; height: 32px;">2</div>
+                        <span style="font-size: 1.4rem; font-weight: 500;">Pemantauan bahan baku, tenaga kerja, dan overhead</span>
+                    </div>
+                    <div class="feature-item" style="color: #3e2723; margin-bottom: 1.5rem;">
+                        <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 18px; font-weight: 700; width: 32px; height: 32px;">3</div>
+                        <span style="font-size: 1.4rem; font-weight: 500;">Perhitungan Harga Pokok Produksi (HPP) yang akurat</span>
+                    </div>
+                    <div class="feature-item" style="color: #3e2723; margin-bottom: 1.5rem;">
+                        <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 18px; font-weight: 700; width: 32px; height: 32px;">4</div>
+                        <span style="font-size: 1.4rem; font-weight: 500;">Penyajian laporan yang transparan dan terstruktur</span>
+                    </div>
+                </div>
 
                 <div class="button-center">
                     <div class="button-row">
-                        <a href="{{ route('login') }}" class="btn-login">
+                        <a href="{{ route('login') }}" class="btn-login" style="padding: 1.2rem 3rem; font-size: 1.3rem; margin-right: 1rem; min-width: 160px;">
                             <i class="fas fa-sign-in-alt mr-2"></i> Masuk
                         </a>
-                        <a href="{{ route('register') }}" class="btn-register">
+                        <a href="{{ route('register') }}" class="btn-register" style="padding: 1.2rem 3rem; font-size: 1.3rem; margin-left: 1rem; min-width: 160px;">
                             <i class="fas fa-user-plus mr-2"></i> Daftar
                         </a>
                     </div>

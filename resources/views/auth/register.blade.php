@@ -21,15 +21,27 @@
             padding: 0;
             overflow-x: hidden;
         }
+        
+        /* Hide scrollbar but keep functionality */
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        
+        body {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
 
         .video-bg {
             position: fixed;
-            top: 0;
+            top: -5%;
             left: 0;
             width: 100%;
-            height: 100%;
+            height: 110%;
             object-fit: cover;
             z-index: -2;
+            filter: contrast(1.1) brightness(1.05) saturate(1.1);
+            transform: scale(1.02);
         }
 
         .overlay {
@@ -43,7 +55,8 @@
         }
 
         .register-container {
-            max-width: 500px;
+            max-width: 1000px;
+            width: 100%;
             margin: 2% auto;
             padding: 2.5rem;
             background: rgba(245, 243, 239, 0.95);
@@ -173,6 +186,7 @@
             .register-container {
                 margin: 5%;
                 padding: 1.5rem;
+                max-width: 95vw;
             }
         }
 
@@ -376,7 +390,7 @@
 </head>
 <body>
     <!-- Video Background -->
-    <video autoplay muted loop playsinline class="video-bg">
+    <video autoplay muted loop playsinline preload="auto" class="video-bg">
         <source src="{{ asset('umkm.mp4') }}" type="video/mp4">
         Browser Anda tidak mendukung video.
     </video>
