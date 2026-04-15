@@ -35,10 +35,6 @@ class AuthenticatedSessionController extends Controller
             return redirect()->intended(route('pegawai-pembelian.dashboard'));
         }
         
-        if ($user->role === 'pelanggan') {
-            return redirect()->intended(route('pelanggan.dashboard'));
-        }
-
         // Default untuk admin/owner
         return redirect()->intended(route('dashboard', absolute: false));
     }

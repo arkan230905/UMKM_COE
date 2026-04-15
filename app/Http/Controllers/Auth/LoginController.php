@@ -66,8 +66,6 @@ class LoginController extends Controller
                 return route('pegawai-pembelian.dashboard');
             case 'kasir':
                 return route('kasir.dashboard');
-            case 'pelanggan':
-                return route('pelanggan.dashboard');
             default:
                 return '/dashboard';
         }
@@ -84,7 +82,7 @@ class LoginController extends Controller
         
         // Validasi role terlebih dahulu
         $request->validate([
-            'login_role' => 'required|string|in:owner,admin,pegawai,pegawai_pembelian,kasir,pelanggan',
+            'login_role' => 'required|string|in:owner,admin,pegawai,pegawai_pembelian,kasir',
         ], [
             'login_role.required' => 'Silakan pilih role terlebih dahulu.',
             'login_role.in' => 'Role yang dipilih tidak valid.',
@@ -102,10 +100,16 @@ class LoginController extends Controller
         $messages['email.required'] = 'Email wajib diisi.';
         $messages['email.email'] = 'Format email tidak valid.';
 
-        // Untuk owner dan pelanggan - password wajib
-        if (in_array($role, ['owner', 'pelanggan'])) {
+        // Untuk owner - password wajib
+        if (in_array($role, ['owner'])) {
             $rules['password'] = 'required|string';
             $messages['password.required'] = 'Password wajib diisi.';
+        }
+        
+        // Untuk role lainnya - kode perusahaan wajib
+        if (in_array($role, ['admin', 'pegawai', 'pegawai_pembelian', 'kasir'])) {
+            $rules['kode_perusahaan'] = 'required|string';
+            $messages['kode_perusahaan.required'] = 'Kode perusahaan wajib diisi.';
         }
 
         \Log::info('Validation Rules:', $rules);
@@ -119,13 +123,20 @@ class LoginController extends Controller
         $role = $request->input('login_role');
         $email = $request->input('email');
         $password = $request->input('password');
+        $kodePerusahaan = $request->input('kode_perusahaan');
 
-        // Login tanpa password untuk admin
+        // Login dengan kode perusahaan untuk admin
         if ($role === 'admin') {
-            $user = User::where('email', $email)->first();
+            // Validasi kode perusahaan
+            $perusahaan = \App\Models\Company::where('kode_perusahaan', $kodePerusahaan)->first();
+            if (!$perusahaan) {
+                return back()->withInput()->withErrors(['kode_perusahaan' => 'Kode perusahaan tidak valid.']);
+            }
+            
+            $user = User::where('email', $email)->where('company_id', $perusahaan->id)->first();
             
             if (!$user) {
-                return back()->withInput()->withErrors(['email' => 'Data admin tidak ditemukan di sistem. Email: ' . $email]);
+                return back()->withInput()->withErrors(['email' => 'Data admin tidak ditemukan di perusahaan ini. Email: ' . $email]);
             }
             
             // Cek apakah user role sesuai
@@ -133,19 +144,25 @@ class LoginController extends Controller
                 return back()->withInput()->withErrors(['email' => 'Role user tidak sesuai dengan Admin. Role user saat ini: ' . $user->role]);
             }
             
-            // Login otomatis tanpa password untuk admin
+            // Login otomatis dengan kode perusahaan untuk admin
             auth()->login($user);
             $request->session()->regenerate();
             
             return redirect()->intended('/dashboard');
         }
 
-        // Login tanpa password untuk pegawai
+        // Login dengan kode perusahaan untuk pegawai
         if ($role === 'pegawai') {
-            $pegawai = Pegawai::where('email', $email)->first();
+            // Validasi kode perusahaan
+            $perusahaan = \App\Models\Company::where('kode_perusahaan', $kodePerusahaan)->first();
+            if (!$perusahaan) {
+                return back()->withInput()->withErrors(['kode_perusahaan' => 'Kode perusahaan tidak valid.']);
+            }
+            
+            $pegawai = Pegawai::where('email', $email)->where('perusahaan_id', $perusahaan->id)->first();
             
             if (!$pegawai) {
-                return back()->withInput()->withErrors(['email' => 'Data pegawai tidak ditemukan di sistem. Email: ' . $email]);
+                return back()->withInput()->withErrors(['email' => 'Data pegawai tidak ditemukan di perusahaan ini. Email: ' . $email]);
             }
             
             // Cek apakah user sudah ada untuk pegawai ini
@@ -157,32 +174,42 @@ class LoginController extends Controller
                     'password' => Hash::make(Str::random(32)),
                     'role' => User::ROLE_PEGAWAI,
                     'pegawai_id' => $pegawai->id,
+                    'company_id' => $perusahaan->id,
                     'email_verified_at' => now(),
                 ]);
             }
 
-            // Pastikan user terhubung ke pegawai
-            if (!$user->pegawai_id) {
-                $user->update(['pegawai_id' => $pegawai->id]);
+            // Pastikan user terhubung ke pegawai dan perusahaan
+            if (!$user->pegawai_id || !$user->company_id) {
+                $user->update([
+                    'pegawai_id' => $pegawai->id,
+                    'company_id' => $perusahaan->id
+                ]);
             }
             
             if ($user->role !== 'pegawai') {
                 return back()->withInput()->withErrors(['email' => 'Role user tidak sesuai dengan pegawai. Role user saat ini: ' . $user->role]);
             }
             
-            // Login otomatis tanpa password untuk pegawai
+            // Login otomatis dengan kode perusahaan untuk pegawai
             auth()->login($user);
             $request->session()->regenerate();
             
             return redirect()->intended(route('pegawai.presensi.absen-wajah'));
         }
 
-        // Login tanpa password untuk pegawai pembelian (sebenarnya bagian gudang)
+        // Login dengan kode perusahaan untuk pegawai pembelian/gudang
         if ($role === 'pegawai_pembelian') {
-            $pegawai = Pegawai::where('email', $email)->first();
+            // Validasi kode perusahaan
+            $perusahaan = \App\Models\Company::where('kode_perusahaan', $kodePerusahaan)->first();
+            if (!$perusahaan) {
+                return back()->withInput()->withErrors(['kode_perusahaan' => 'Kode perusahaan tidak valid.']);
+            }
+            
+            $pegawai = Pegawai::where('email', $email)->where('perusahaan_id', $perusahaan->id)->first();
             
             if (!$pegawai) {
-                return back()->withInput()->withErrors(['email' => 'Data pegawai tidak ditemukan di sistem. Email: ' . $email]);
+                return back()->withInput()->withErrors(['email' => 'Data pegawai tidak ditemukan di perusahaan ini. Email: ' . $email]);
             }
             
             // Cek apakah jabatan pegawai sesuai (gudang atau pembelian)
@@ -200,32 +227,42 @@ class LoginController extends Controller
                     'password' => Hash::make(Str::random(32)),
                     'role' => User::ROLE_PEGAWAI_PEMBELIAN,
                     'pegawai_id' => $pegawai->id,
+                    'company_id' => $perusahaan->id,
                     'email_verified_at' => now(),
                 ]);
             }
 
-            // Pastikan user terhubung ke pegawai
-            if (!$user->pegawai_id) {
-                $user->update(['pegawai_id' => $pegawai->id]);
+            // Pastikan user terhubung ke pegawai dan perusahaan
+            if (!$user->pegawai_id || !$user->company_id) {
+                $user->update([
+                    'pegawai_id' => $pegawai->id,
+                    'company_id' => $perusahaan->id
+                ]);
             }
             
             if ($user->role !== 'pegawai_pembelian') {
                 return back()->withInput()->withErrors(['email' => 'Role user tidak sesuai dengan pegawai pembelian. Role user saat ini: ' . $user->role]);
             }
             
-            // Login otomatis tanpa password untuk pegawai pembelian
+            // Login otomatis dengan kode perusahaan untuk pegawai pembelian
             auth()->login($user);
             $request->session()->regenerate();
             
             return redirect()->intended(route('pegawai-pembelian.dashboard'));
         }
 
-        // Login tanpa password untuk kasir
+        // Login dengan kode perusahaan untuk kasir
         if ($role === 'kasir') {
-            $kasir = Kasir::where('email', $email)->first();
+            // Validasi kode perusahaan
+            $perusahaan = \App\Models\Company::where('kode_perusahaan', $kodePerusahaan)->first();
+            if (!$perusahaan) {
+                return back()->withInput()->withErrors(['kode_perusahaan' => 'Kode perusahaan tidak valid.']);
+            }
+            
+            $kasir = Kasir::where('email', $email)->where('perusahaan_id', $perusahaan->id)->first();
             
             if (!$kasir) {
-                return back()->withInput()->withErrors(['email' => 'Data kasir tidak ditemukan di sistem.']);
+                return back()->withInput()->withErrors(['email' => 'Data kasir tidak ditemukan di perusahaan ini. Email: ' . $email]);
             }
             
             // Cek apakah user sudah ada untuk kasir ini
@@ -234,18 +271,23 @@ class LoginController extends Controller
                 return back()->withInput()->withErrors(['email' => 'Akun user untuk kasir ini belum dibuat.']);
             }
             
+            // Pastikan user terhubung ke perusahaan
+            if (!$user->company_id) {
+                $user->update(['company_id' => $perusahaan->id]);
+            }
+            
             if ($user->role !== 'kasir') {
                 return back()->withInput()->withErrors(['email' => 'Role user tidak sesuai dengan kasir. Role user saat ini: ' . $user->role]);
             }
             
-            // Login otomatis tanpa password untuk kasir
+            // Login otomatis dengan kode perusahaan untuk kasir
             auth()->login($user);
             $request->session()->regenerate();
             
             return redirect()->intended(route('kasir.dashboard'));
         }
 
-        // Login dengan password dan kode perusahaan untuk owner
+        // Login dengan password untuk owner
         if ($role === 'owner') {
             // Cek apakah user owner ada
             $user = User::where('email', $email)->first();
@@ -260,18 +302,6 @@ class LoginController extends Controller
             }
             
             // Login dengan password untuk owner
-            if (auth()->attempt(['email' => $email, 'password' => $password], $request->filled('remember'))) {
-                $request->session()->regenerate();
-                return redirect()->intended($this->redirectPath());
-            }
-
-            return back()->withErrors([
-                'email' => 'Email atau password salah.',
-            ]);
-        }
-
-        // Login dengan password untuk pelanggan
-        if ($role === 'pelanggan') {
             if (auth()->attempt(['email' => $email, 'password' => $password], $request->filled('remember'))) {
                 $request->session()->regenerate();
                 return redirect()->intended($this->redirectPath());

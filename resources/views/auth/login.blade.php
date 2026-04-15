@@ -10,16 +10,49 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
     <style>
+        /* IMPORTANT: Override Bootstrap completely */
+        #loginButton, #loginButton:hover, #loginButton:focus, #loginButton:active,
+        #loginButton.focus, #loginButton:focus:active, #loginButton.active:focus,
+        #loginButton:not(:disabled):not(.disabled):active,
+        #loginButton:not(:disabled):not(.disabled).active {
+            background: linear-gradient(135deg, #d4a574 0%, #c19a6b 100%) !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            color: #fff !important;
+        }
+
+        #loginButton:hover {
+            background: linear-gradient(135deg, #e6b885 0%, #d4a574 100%) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        /* Remove any possible focus rings or borders */
+        #loginButton:focus-visible {
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.3) !important;
+        }
+
         /* Video background */
         video#bg-video {
             position: fixed;
-            right: 0;
-            bottom: 0;
-            min-width: 100%;
-            min-height: 100%;
-            z-index: -1;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
             object-fit: cover;
-            filter: brightness(55%);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.1) 100%);
+            z-index: -1;
         }
 
         /* Overlay & form */
@@ -31,15 +64,15 @@
         }
 
         .login-box {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(245, 243, 239, 0.95);
             backdrop-filter: blur(20px);
             border-radius: 16px;
             padding: 2rem;
             width: 480px;
             max-width: 90vw;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #fff;
+            border: 1px solid rgba(222, 184, 135, 0.3);
+            color: #3e2723;
         }
 
         h1 {
@@ -52,15 +85,15 @@
 
         .form-label {
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.9);
+            color: #3e2723;
             margin-bottom: 0.5rem;
             font-size: 0.875rem;
         }
 
         .form-control, .form-select {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: #fff;
+            background: rgba(255, 255, 255, 0.7) !important;
+            border: 1px solid rgba(139, 69, 19, 0.2);
+            color: #3e2723 !important;
             border-radius: 8px;
             padding: 0.8rem 1rem;
             transition: all 0.3s;
@@ -73,41 +106,41 @@
         }
 
         .form-control:focus, .form-select:focus {
-            background: rgba(255, 255, 255, 0.25);
-            border-color: rgba(255, 255, 255, 0.6);
-            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
-            color: #fff;
+            background: rgba(255, 255, 255, 0.9) !important;
+            border-color: #8b6f47;
+            box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.2);
+            color: #3e2723 !important;
             outline: none;
         }
 
         .form-control::placeholder {
-            color: rgba(255, 255, 255, 0.7);
+            color: #8b6f47 !important;
             opacity: 1;
         }
 
         /* Dropdown options styling */
         .form-select option {
-            background: rgba(0, 0, 0, 0.9);
-            color: #fff;
+            background: #ffffff !important;
+            color: #000000 !important;
             padding: 0.75rem;
             border: none;
         }
 
         .form-select option:hover {
-            background: rgba(0, 0, 0, 0.8);
-            color: #fff;
+            background: #ffffff !important;
+            color: #000000 !important;
         }
 
         /* Fix dropdown background */
         .form-select {
-            background: rgba(255, 255, 255, 0.15) !important;
-            color: #fff !important;
+            background: rgba(255, 255, 255, 0.7) !important;
+            color: #3e2723 !important;
             height: 48px !important;
         }
 
         .form-select:focus {
-            background: rgba(255, 255, 255, 0.25) !important;
-            color: #fff !important;
+            background: rgba(255, 255, 255, 0.9) !important;
+            color: #3e2723 !important;
             height: 48px !important;
         }
 
@@ -121,7 +154,7 @@
             margin-bottom: 0.5rem;
         }
 
-        /* Remember me normal styling */
+        /* Remember me checkbox styling */
         .form-check {
             display: flex;
             align-items: center;
@@ -130,34 +163,60 @@
         }
 
         .form-check-input {
-            width: 1rem;
-            height: 1rem;
+            width: 1.2rem;
+            height: 1.2rem;
             margin: 0;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #8b6f47;
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.3s;
+            position: relative;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
         }
 
         .form-check-input:checked {
-            background: rgba(255, 255, 255, 0.9);
-            border-color: rgba(255, 255, 255, 0.8);
+            background: #8b6f47;
+            border-color: #8b6f47;
+        }
+
+        .form-check-input:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .form-check-input:hover {
+            border-color: #6d5637;
+            box-shadow: 0 0 0 2px rgba(139, 111, 71, 0.2);
+        }
+
+        .form-check-input:focus {
+            outline: none;
+            border-color: #6d5637;
+            box-shadow: 0 0 0 3px rgba(139, 111, 71, 0.3);
         }
 
         .form-check-label {
             margin: 0;
             cursor: pointer;
-            color: rgba(255, 255, 255, 0.9);
+            color: #3e2723;
         }
 
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
+        button, .btn {
+            background: linear-gradient(135deg, #d4a574 0%, #c19a6b 100%) !important;
+            border: none !important;
             width: 100%;
             padding: 0.8rem 1rem;
             border-radius: 8px;
-            color: #fff;
+            color: #fff !important;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
@@ -168,22 +227,69 @@
             align-items: center;
             justify-content: center;
             box-sizing: border-box;
+            outline: none !important;
+            box-shadow: none !important;
         }
 
-        button:hover {
+        button:hover, .btn:hover {
+            background: linear-gradient(135deg, #e6b885 0%, #d4a574 100%) !important;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+            border: none !important;
+            outline: none !important;
+        }
+
+        button:focus, .btn:focus {
+            background: linear-gradient(135deg, #d4a574 0%, #c19a6b 100%) !important;
+            border: none !important;
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.3) !important;
+        }
+
+        button:active, .btn:active {
+            background: linear-gradient(135deg, #c19a6b 0%, #b8935f 100%) !important;
+            transform: translateY(0);
+            border: none !important;
+            outline: none !important;
+        }
+
+        /* Remove all Bootstrap button borders and outlines */
+        .btn-primary, .btn-primary:hover, .btn-primary:focus, .btn-primary:active,
+        .btn-primary.focus, .btn-primary:focus:active, .btn-primary.active:focus,
+        .btn-primary:not(:disabled):not(.disabled):active,
+        .btn-primary:not(:disabled):not(.disabled).active {
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            background: linear-gradient(135deg, #d4a574 0%, #c19a6b 100%) !important;
+        }
+
+        /* Remove focus ring completely */
+        button:focus-visible, .btn:focus-visible {
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.3) !important;
+        }
+
+        /* Override Bootstrap focus states */
+        .btn:focus, .btn.focus {
+            outline: 0 !important;
+            box-shadow: none !important;
+        }
+
+        /* Override Bootstrap active states */
+        .btn:not(:disabled):not(.disabled):active, .btn:not(:disabled):not(.disabled).active {
+            box-shadow: none !important;
         }
 
         a {
-            color: rgba(255, 255, 255, 0.8);
+            color: #3e2723;
             text-decoration: none;
             font-size: 0.875rem;
             transition: all 0.3s;
         }
 
         a:hover {
-            color: #fff;
+            color: #5d4037;
             text-decoration: underline;
         }
 
@@ -239,6 +345,147 @@
         .text-center.mt-3 {
             margin-top: 1rem !important;
         }
+
+        /* External Logo Section */
+        .logo-external {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            animation: slideInRight 0.8s ease-out;
+        }
+
+        .logo-external-main {
+            width: 190px;
+            height: 150px;
+        }
+
+        .logo-external-partner {
+            width: 220px;
+            height: 220px;
+            object-fit: contain;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            display: block;
+            background: transparent;
+        }
+
+        .logo-external-main:hover {
+            transform: translateY(-3px) scale(1.05);
+        }
+
+        .logo-external-partners {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .logo-external-partner:hover {
+            transform: translateY(-2px) scale(1.1);
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .logo-external {
+                top: 20px;
+                right: 20px;
+            }
+
+            .logo-external-main {
+                width: 170px;
+                height: 130px;
+            }
+
+            .logo-external-partner {
+                width: 180px;
+                height: 180px;
+            }
+
+            .logo-external-partners {
+                gap: 0.8rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .logo-external {
+                top: 15px;
+                right: 15px;
+            }
+
+            .logo-external-main {
+                width: 120px;
+                height: 95px;
+            }
+
+            .logo-external-partner {
+                width: 130px;
+                height: 130px;
+            }
+
+            .logo-external-partners {
+                gap: 0.6rem;
+            }
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+            margin: 0;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            animation: fadeIn 1.2s ease-out;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 576px) {
+            .logo-main {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .logo-partner {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .logo-partners {
+                gap: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -247,11 +494,19 @@
     <video autoplay muted loop id="bg-video">
         <source src="{{ asset('umkm.mp4') }}" type="video/mp4">
     </video>
+    <div class="overlay"></div>
+
+    <!-- Logo Section Outside Container -->
+    <div class="logo-external">
+        <img src="{{ asset('images/logo.png') }}" alt="UMKM Logo" class="logo-external-main">
+        <div class="logo-external-partners">
+            <img src="{{ asset('images/logo_telkom.png') }}" alt="Telkom Logo" class="logo-external-partner" title="Supported by Telkom">
+            <img src="{{ asset('images/logo_eadt.png') }}" alt="EADT Logo" class="logo-external-partner" title="Powered by EADT">
+        </div>
+    </div>
 
     <div class="login-container px-3">
         <div class="login-box">
-            <h1>Login UMKM</h1>
-
             @if (session('status'))
                 <div class="alert alert-success py-2 mb-3">
                     {{ session('status') }}
@@ -276,7 +531,7 @@
             @endif
 
                 <div class="mb-3">
-                    <label for="login_role" class="form-label">masuk ke halaman:</label>
+                    <label for="login_role" class="form-label">Masuk Ke Halaman <span style="color: red;">*</span></label>
                     <select id="login_role" name="login_role" class="form-select" required>
                         <option value="" selected disabled>Pilih halaman</option>
                         <option value="owner">Owner</option>
@@ -291,10 +546,19 @@
                 </div>
 
                 <div id="login-fields" style="display: none;">
-                    <!-- Field Email (hanya untuk owner, admin, pegawai, pegawai_pembelian, kasir) -->
+                    <!-- Field Kode Perusahaan (untuk admin, pegawai, kasir) -->
+                    <div id="kode_perusahaan_field" class="mb-3" style="display: none;">
+                        <label for="kode_perusahaan" class="form-label">Kode Perusahaan <span style="color: red;">*</span></label>
+                        <input id="kode_perusahaan" type="text" name="kode_perusahaan" value="{{ old('kode_perusahaan') }}" class="form-control" placeholder="Masukkan kode perusahaan">
+                        @error('kode_perusahaan')
+                            <div class="text-danger small">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <!-- Field Email (untuk semua role) -->
                     <div id="email_field" class="mb-3" style="display: none;">
-                        <label for="email" class="form-label">Email</label>
-                        <input id="email" type="email" name="email" value="{{ old('email') }}" class="form-control">
+                        <label for="email" class="form-label">Email <span style="color: red;">*</span></label>
+                        <input id="email" type="email" name="email" value="{{ old('email') }}" class="form-control" placeholder="Masukkan email Anda">
                         @error('email')
                             <div class="text-danger small">{{ $message }}</div>
                         @enderror
@@ -302,8 +566,8 @@
 
                     <!-- Field Password (hanya untuk owner) -->
                     <div id="password_field" class="mb-3" style="display: none;">
-                        <label for="password" class="form-label">Password</label>
-                        <input id="password" type="password" name="password" class="form-control">
+                        <label for="password" class="form-label">Password <span style="color: red;">*</span></label>
+                        <input id="password" type="password" name="password" class="form-control" placeholder="Masukkan password">
                         @error('password')
                             <div class="text-danger small">{{ $message }}</div>
                         @enderror
@@ -317,7 +581,8 @@
                     <button type="submit" class="btn btn-primary w-100" id="loginButton">LOGIN</button>
 
                     <div class="text-center mt-3">
-                        <a href="{{ route('password.request') }}">Forgot your password?</a>
+                        <span style="color: #3e2723;">Belum punya akun?</span>
+                        <a href="{{ route('register') }}" style="color: #3e2723; font-weight: bold;">Daftar sekarang</a>
                     </div>
                 </div>
             </form>
@@ -340,27 +605,31 @@
                 
                 const role = this.value;
                 const loginFields = document.getElementById('login-fields');
+                const kodePerusahaanField = document.getElementById('kode_perusahaan_field');
                 const emailField = document.getElementById('email_field');
                 const passwordField = document.getElementById('password_field');
                 const rememberMeField = document.querySelector('.form-check');
                 
                 // Pastikan semua elemen ada
-                if (!loginFields || !emailField || !passwordField || !rememberMeField) {
+                if (!loginFields || !kodePerusahaanField || !emailField || !passwordField || !rememberMeField) {
                     console.error('Some form elements not found');
                     return;
                 }
                 
                 // Reset semua field
                 loginFields.style.display = 'none';
+                kodePerusahaanField.style.display = 'none';
                 emailField.style.display = 'none';
                 passwordField.style.display = 'none';
                 rememberMeField.style.display = 'none';
                 
                 // Reset required attributes
+                const kodePerusahaanInput = document.getElementById('kode_perusahaan');
                 const emailInput = document.getElementById('email');
                 const passwordInput = document.getElementById('password');
                 
                 // Remove all required first
+                if (kodePerusahaanInput) kodePerusahaanInput.removeAttribute('required');
                 if (emailInput) emailInput.removeAttribute('required');
                 if (passwordInput) passwordInput.removeAttribute('required');
                 
@@ -373,21 +642,31 @@
                         emailInput.setAttribute('required', 'required');
                     }
 
-                    // Role admin, pegawai, kasir: tanpa password
-                    if (role === 'admin' || role === 'pegawai' || role === 'pegawai_pembelian' || role === 'kasir') {
-                        // no extra fields
-                    }
-                    // Role owner: dengan password
-                    else if (role === 'owner') {
+                    // Role owner: email + password
+                    if (role === 'owner') {
                         passwordField.style.display = 'block';
                         rememberMeField.style.display = 'flex';
                         if (passwordInput) {
                             passwordInput.setAttribute('required', 'required');
                         }
                     }
+                    // Role lainnya: kode perusahaan + email
+                    else if (role === 'admin' || role === 'pegawai' || role === 'pegawai_pembelian' || role === 'kasir') {
+                        kodePerusahaanField.style.display = 'block';
+                        if (kodePerusahaanInput) {
+                            kodePerusahaanInput.setAttribute('required', 'required');
+                        }
+                    }
 
-                    if (emailInput) {
-                        setTimeout(() => emailInput.focus(), 100);
+                    // Focus ke field pertama yang relevan
+                    if (role === 'owner') {
+                        if (emailInput) {
+                            setTimeout(() => emailInput.focus(), 100);
+                        }
+                    } else {
+                        if (kodePerusahaanInput) {
+                            setTimeout(() => kodePerusahaanInput.focus(), 100);
+                        }
                     }
                 }
             });
@@ -420,13 +699,22 @@
                         return false;
                     }
 
-                    // Validasi email untuk role selain presensi
-                    {
-                        const email = document.getElementById('email').value;
-                        if (!email) {
+                    // Validasi email untuk semua role
+                    const email = document.getElementById('email').value;
+                    if (!email) {
+                        e.preventDefault();
+                        alert('Email wajib diisi');
+                        console.log('Form submission prevented: no email');
+                        return false;
+                    }
+
+                    // Validasi kode perusahaan untuk role selain owner
+                    if (['admin', 'pegawai', 'pegawai_pembelian', 'kasir'].includes(role)) {
+                        const kodePerusahaan = document.getElementById('kode_perusahaan').value;
+                        if (!kodePerusahaan) {
                             e.preventDefault();
-                            alert('Email wajib diisi');
-                            console.log('Form submission prevented: no email');
+                            alert('Kode perusahaan wajib diisi');
+                            console.log('Form submission prevented: no kode perusahaan');
                             return false;
                         }
                     }

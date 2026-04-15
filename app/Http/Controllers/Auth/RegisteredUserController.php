@@ -35,7 +35,7 @@ class RegisteredUserController extends Controller
             'username' => ['required', 'string', 'max:255', 'unique:users'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => ['required', 'in:pelanggan,pegawai_pembelian,admin,owner'],
+            'role' => ['required', 'in:owner'],
             'phone' => ['nullable', 'string', 'max:20'],
             'terms' => ['required', 'accepted'],
         ];
@@ -46,10 +46,8 @@ class RegisteredUserController extends Controller
             $rules['company_alamat'] = ['required', 'string'];
             $rules['company_email'] = ['required', 'email', 'max:255'];
             $rules['company_telepon'] = ['required', 'string', 'max:20'];
-        } elseif (in_array($request->role, ['admin', 'pegawai_pembelian'])) {
-            $rules['kode_perusahaan'] = ['required', 'string', 'exists:perusahaans,kode'];
         }
-        // Pelanggan tidak perlu validasi company
+        // Owner tidak perlu kode perusahaan karena mereka yang membuat perusahaan
 
         // Custom messages in Indonesian
         $messages = [
@@ -115,11 +113,7 @@ class RegisteredUserController extends Controller
             $userData['company_id'] = $company->id;
         }
 
-        // Handle company association for admin/pegawai
-        if (in_array($request->role, ['admin', 'pegawai_pembelian'])) {
-            $company = \App\Models\Company::where('kode_perusahaan', $validated['kode_perusahaan'])->first();
-            $userData['company_id'] = $company->id;
-        }
+        // Handle company association - tidak diperlukan untuk owner saja
 
         $user = User::create($userData);
 
@@ -127,11 +121,7 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        // Redirect based on role
-        if ($user->role === 'pelanggan') {
-            return redirect()->route('pelanggan.dashboard');
-        }
-
+        // Redirect to dashboard
         return redirect(route('dashboard', absolute: false));
     }
 }
