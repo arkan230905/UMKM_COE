@@ -18,6 +18,61 @@ class CoaResource extends Resource
     
     // Disable automatic ID column
     protected static bool $shouldRegisterNavigation = true;
+    
+    /**
+     * Get category options based on account type
+     */
+    protected function getKategoriOptions($tipeAkun): array
+    {
+        return match($tipeAkun) {
+            'Aset', 'Asset' => [
+                'Kas & Bank' => 'Kas & Bank',
+                'Persediaan' => 'Persediaan',
+                'Aset Tetap - Kendaraan' => 'Aset Tetap - Kendaraan',
+                'Aset Tetap - Gedung' => 'Aset Tetap - Gedung',
+                'Aset Tetap - Peralatan' => 'Aset Tetap - Peralatan',
+                'Aset Tetap - Mesin' => 'Aset Tetap - Mesin',
+                'Aset Tetap - Lainnya' => 'Aset Tetap - Lainnya',
+                'Akumulasi Penyusutan' => 'Akumulasi Penyusutan',
+                'Piutang' => 'Piutang',
+                'PPN Masukkan' => 'PPN Masukkan',
+                'Lainnya' => 'Lainnya'
+            ],
+            'Kewajiban', 'Liability' => [
+                'Hutang Jangka Pendek' => 'Hutang Jangka Pendek',
+                'Hutang Jangka Panjang' => 'Hutang Jangka Panjang',
+                'Hutang Usaha' => 'Hutang Usaha',
+                'Hutang Gaji' => 'Hutang Gaji',
+                'PPN Keluaran' => 'PPN Keluaran',
+                'Lainnya' => 'Lainnya'
+            ],
+            'Modal', 'Equity' => [
+                'Modal Usaha' => 'Modal Usaha',
+                'Modal Disetor' => 'Modal Disetor',
+                'Prive' => 'Prive',
+                'Laba Ditahan' => 'Laba Ditahan',
+                'Lainnya' => 'Lainnya'
+            ],
+            'Pendapatan', 'Revenue' => [
+                'Penjualan Produk' => 'Penjualan Produk',
+                'Penjualan Jasa' => 'Penjualan Jasa',
+                'Pendapatan Bunga' => 'Pendapatan Bunga',
+                'Pendapatan Sewa' => 'Pendapatan Sewa',
+                'Retur Penjualan' => 'Retur Penjualan',
+                'Diskon Pembelian' => 'Diskon Pembelian',
+                'Pendapatan Ongkir' => 'Pendapatan Ongkir',
+                'Lainnya' => 'Lainnya'
+            ],
+            default => [
+                'Biaya Bahan Baku' => 'Biaya Bahan Baku',
+                'Biaya Tenaga Kerja Langsung' => 'Biaya Tenaga Kerja Langsung',
+                'Biaya Overhead Pabrik' => 'Biaya Overhead Pabrik',
+                'Biaya Tenaga Kerja Tidak Langsung' => 'Biaya Tenaga Kerja Tidak Langsung',
+                'BOP Tidak Langsung Lainnya' => 'BOP Tidak Langsung Lainnya',
+                'Lainnya' => 'Lainnya'
+            ]
+        };
+    }
 
     public static function form(Schema $form): Schema
     {
@@ -53,10 +108,13 @@ class CoaResource extends Resource
                             'Biaya Overhead Pabrik'=>'Biaya Overhead Pabrik',
                             'Biaya Tenaga Kerja Tidak Langsung'=>'Biaya Tenaga Kerja Tidak Langsung',
                             'BOP Tidak Langsung Lainnya'=>'BOP Tidak Langsung Lainnya'
-                        ]),
-                    Forms\Components\TextInput::make('kategori_akun')
+                        ])
+                        ->reactive()
+                        ->afterStateUpdated(fn ($state, callable $set) => $set('kategori_akun', $this->getKategoriOptions($state))),
+                    Forms\Components\Select::make('kategori_akun')
                         ->label('Kategori Akun')
-                        ->maxLength(50)
+                        ->options(fn (callable $get) => $this->getKategoriOptions($get('tipe_akun')))
+                        ->required()
                         ->helperText('Kategori untuk pengelompokan akun'),
                 ])->columns(2),
             

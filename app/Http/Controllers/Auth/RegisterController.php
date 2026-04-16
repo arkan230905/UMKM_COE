@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Events\UserRegistered;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -90,13 +91,20 @@ class RegisterController extends Controller
             $perusahaanId = $perusahaan?->id;
         }
 
-        return User::create([
+        $user = User::create([
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'role' => $data['role'] ?? 'owner',
             'perusahaan_id' => $perusahaanId,
         ]);
+
+        // Trigger event untuk setup data awal (COA, dll)
+        if ($perusahaanId) {
+            event(new UserRegistered($user, $perusahaanId));
+        }
+
+        return $user;
     }
 
     protected function generateCompanyCode(): string
