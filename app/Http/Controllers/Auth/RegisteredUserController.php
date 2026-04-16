@@ -111,6 +111,13 @@ class RegisteredUserController extends Controller
             ]);
             
             $userData['company_id'] = $company->id;
+            
+            // Create default COA data for the new company
+            $coaService = new \App\Services\CoaService();
+            $coaCount = $coaService->createDefaultCoaForCompany($company->id);
+            
+            // Log the COA creation (optional)
+            \Log::info("Created {$coaCount} COA accounts for company: {$company->nama} (ID: {$company->id})");
         }
 
         // Handle company association - tidak diperlukan untuk owner saja

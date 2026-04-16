@@ -36,4 +36,68 @@ class CoaService
             }
         }
     }
+
+    /**
+     * Create default COA data for a new company
+     */
+    public function createDefaultCoaForCompany($companyId)
+    {
+        // Get current COA data from database as fixed template
+        $currentCoaData = Coa::withoutGlobalScopes()
+            ->orderBy('kode_akun')
+            ->get();
+            
+        $coaData = [];
+        
+        foreach ($currentCoaData as $coa) {
+            $coaData[] = [
+                'kode_akun' => $coa->kode_akun,
+                'nama_akun' => $coa->nama_akun,
+                'tipe_akun' => $coa->tipe_akun,
+                'saldo_awal' => 0, // Set all to 0 for new registrations (empty balance)
+            ];
+        }
+
+        foreach ($coaData as $coa) {
+            // Check if COA already exists for this company
+            $existingCoa = Coa::withoutGlobalScopes()
+                ->where('kode_akun', $coa['kode_akun'])
+                ->where('company_id', $companyId)
+                ->first();
+                
+            if ($existingCoa) {
+                // Update existing record
+                $existingCoa->update([
+                    'nama_akun' => $coa['nama_akun'],
+                    'tipe_akun' => $coa['tipe_akun'],
+                    'kategori_akun' => $coa['tipe_akun'],
+                    'saldo_awal' => 0,
+                    'tanggal_saldo_awal' => now(),
+                    'posted_saldo_awal' => false,
+                ]);
+            } else {
+                // Check if kode_akun exists globally without company_id
+                $globalCoa = Coa::withoutGlobalScopes()
+                    ->where('kode_akun', $coa['kode_akun'])
+                    ->whereNull('company_id')
+                    ->first();
+                    
+                if ($globalCoa) {
+                    // Create new COA for this company
+                    Coa::withoutGlobalScopes()->create([
+                        'kode_akun' => $coa['kode_akun'],
+                        'nama_akun' => $coa['nama_akun'],
+                        'tipe_akun' => $coa['tipe_akun'],
+                        'kategori_akun' => $coa['tipe_akun'],
+                        'saldo_awal' => 0,
+                        'tanggal_saldo_awal' => now(),
+                        'posted_saldo_awal' => false,
+                        'company_id' => $companyId,
+                    ]);
+                }
+            }
+        }
+
+        return count($coaData);
+    }
 }
