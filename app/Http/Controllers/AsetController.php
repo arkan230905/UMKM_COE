@@ -708,10 +708,18 @@ class AsetController extends Controller
      */
     public function addJenisAset(Request $request)
     {
-        $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'nama' => 'required|string|max:255|unique:jenis_asets,nama',
             'deskripsi' => 'nullable|string|max:500',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         try {
             $jenisAset = JenisAset::create([
@@ -741,14 +749,22 @@ class AsetController extends Controller
      */
     public function addKategoriAset(Request $request)
     {
-        $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'jenis_aset_id' => 'required|exists:jenis_asets,id',
             'nama' => 'required|string|max:255',
             'kode' => 'nullable|string|max:20|unique:kategori_asets,kode',
             'umur_ekonomis' => 'nullable|integer|min:0|max:100',
             'tarif_penyusutan' => 'nullable|numeric|min:0|max:100',
-            'disusutkan' => 'boolean',
+            'disusutkan' => 'nullable',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         try {
             // Generate kode otomatis jika tidak diisi
@@ -780,13 +796,22 @@ class AsetController extends Controller
                 $kode = $prefix . '-' . str_pad($newNumber, 2, '0', STR_PAD_LEFT);
             }
 
+            // Auto-calculate tarif penyusutan dari umur ekonomis jika tarif tidak diisi
+            $umurEkonomis = $request->umur_ekonomis ?? 0;
+            $tarifPenyusutan = $request->tarif_penyusutan ?? 0;
+            if ($umurEkonomis > 0 && $tarifPenyusutan == 0) {
+                $tarifPenyusutan = round(100 / $umurEkonomis, 2);
+            }
+
+            $disusutkan = $request->has('disusutkan') ? true : false;
+
             $kategoriAset = KategoriAset::create([
                 'jenis_aset_id' => $request->jenis_aset_id,
                 'kode' => $kode,
                 'nama' => $request->nama,
-                'umur_ekonomis' => $request->umur_ekonomis ?? 0,
-                'tarif_penyusutan' => $request->tarif_penyusutan ?? 0,
-                'disusutkan' => $request->disusutkan ?? true,
+                'umur_ekonomis' => $umurEkonomis,
+                'tarif_penyusutan' => $tarifPenyusutan,
+                'disusutkan' => $disusutkan,
             ]);
 
             return response()->json([

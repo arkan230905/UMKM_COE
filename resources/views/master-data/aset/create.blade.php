@@ -825,27 +825,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     
                     <div class="mb-3">
-                        <label for="kode_kategori_aset" class="form-label text-dark">Kode Kategori</label>
-                        <input type="text" class="form-control bg-white text-dark" id="kode_kategori_aset" name="kode" placeholder="Kosongkan untuk generate otomatis">
-                        <small class="text-muted">Kosongkan untuk generate otomatis berdasarkan jenis aset</small>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                    <div class="mb-3">
                         <label for="nama_kategori_aset" class="form-label text-dark">Nama Kategori <span class="text-danger">*</span></label>
                         <input type="text" class="form-control bg-white text-dark" id="nama_kategori_aset" name="nama" required>
                         <div class="invalid-feedback"></div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="umur_ekonomis_kategori" class="form-label text-dark">Umur Ekonomis (tahun)</label>
-                            <input type="number" class="form-control bg-white text-dark" id="umur_ekonomis_kategori" name="umur_ekonomis" min="0" max="100" value="0">
-                            <div class="invalid-feedback"></div>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="tarif_penyusutan_kategori" class="form-label text-dark">Tarif Penyusutan (%)</label>
-                            <input type="number" class="form-control bg-white text-dark" id="tarif_penyusutan_kategori" name="tarif_penyusutan" min="0" max="100" step="0.1" value="0">
-                            <div class="invalid-feedback"></div>
-                        </div>
                     </div>
                     <div class="mb-3">
                         <div class="form-check">
@@ -1028,10 +1010,16 @@ document.getElementById('formTambahJenisAset').addEventListener('submit', functi
         method: 'POST',
         body: formData,
         headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok && response.status !== 422) {
+            throw new Error('Server error: ' + response.status);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             // Add new option to dropdown
@@ -1110,10 +1098,16 @@ document.getElementById('formTambahKategoriAset').addEventListener('submit', fun
         method: 'POST',
         body: formData,
         headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok && response.status !== 422) {
+            throw new Error('Server error: ' + response.status);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             // Add new option to kategori dropdown
