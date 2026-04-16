@@ -36,6 +36,7 @@
             height: 100vh;
             position: fixed;
             width: 100%;
+            padding-bottom: 120px; /* Space for fixed footer */
         }
         
         /* Hide scrollbars on all elements */
@@ -103,16 +104,16 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin-top: 150px;
+            margin-top: 30px;
         }
 
         .login-box {
             background: rgba(245, 243, 239, 0.95);
             backdrop-filter: blur(20px);
             border-radius: 16px;
-            padding: 2.5rem;
+            padding: 2rem;
             width: 100%;
-            max-width: 1200px;
+            max-width: 900px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
             border: 1px solid rgba(222, 184, 135, 0.3);
             color: #3e2723;
@@ -130,7 +131,7 @@
             text-align: center;
             margin-bottom: 1rem;
             font-weight: 700;
-            font-size: 2.8rem;
+            font-size: 2.2rem;
             color: #3e2723;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
             animation: fadeInUp 0.8s ease-out;
@@ -140,7 +141,7 @@
             font-weight: 600;
             color: #3e2723;
             margin-bottom: 0.5rem;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
         }
 
         .form-control, .form-select {
@@ -148,10 +149,10 @@
             border: 2px solid rgba(139, 69, 19, 0.3) !important;
             color: #3e2723 !important;
             border-radius: 8px;
-            padding: 1.8rem 1.8rem !important;
+            padding: 1.2rem 1.2rem !important;
             transition: all 0.3s;
-            font-size: 1.3rem !important;
-            height: 85px !important;
+            font-size: 1.1rem !important;
+            height: 60px !important;
             line-height: 1.4 !important;
             box-sizing: border-box;
             display: block;
@@ -164,10 +165,10 @@
             background: rgba(255, 255, 255, 0.9) !important;
             border: 2px solid rgba(139, 69, 19, 0.3) !important;
             color: #3e2723 !important;
-            font-size: 1.3rem !important;
+            font-size: 1.1rem !important;
             font-weight: 500 !important;
-            height: 85px !important;
-            padding: 1.8rem 1.8rem !important;
+            height: 60px !important;
+            padding: 1.2rem 1.2rem !important;
             line-height: 1.4 !important;
         }
 
@@ -289,21 +290,21 @@
             margin: 0;
             cursor: pointer;
             color: #3e2723;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
         }
 
         button, .btn {
             background: linear-gradient(135deg, #d4a574 0%, #c19a6b 100%) !important;
             border: none !important;
             width: 100%;
-            padding: 1.8rem 1.8rem;
+            padding: 1.2rem 1.2rem;
             border-radius: 8px;
             color: #fff !important;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
-            font-size: 1.4rem;
-            height: 85px;
+            font-size: 1.2rem;
+            height: 60px;
             line-height: 1.4;
             display: flex;
             align-items: center;
@@ -366,7 +367,7 @@
         a {
             color: #3e2723;
             text-decoration: none;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             transition: all 0.3s;
         }
 
@@ -525,11 +526,16 @@
             .logo-external-partners {
                 gap: 0.6rem;
             }
+
+            /* Adjust body padding for mobile */
+            body {
+                padding-bottom: 140px; /* More space for mobile footer */
+            }
         }
 
         .subtitle {
             color: #6d4c41;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             margin: 0.3rem auto;
             font-weight: 500;
             letter-spacing: 0.5px;
@@ -556,6 +562,18 @@
             to {
                 opacity: 1;
             }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Developer Credits Hover Effects */
+        .developer-item:hover {
+            color: #d4a574 !important;
+            transform: translateY(-2px);
+            text-shadow: 0 2px 8px rgba(212, 165, 116, 0.3);
         }
 
         /* Responsive adjustments */
@@ -680,6 +698,105 @@
                     </div>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Developer Credits Footer -->
+    <div class="developer-credits" style="
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, rgba(62, 39, 35, 0.95) 0%, rgba(93, 64, 55, 0.95) 100%);
+        backdrop-filter: blur(10px);
+        padding: 1.5rem 0;
+        border-top: 1px solid rgba(212, 165, 116, 0.3);
+        z-index: 10;
+        animation: slideUp 0.8s ease-out;
+    ">
+        <div class="credits-container" style="
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            text-align: center;
+        ">
+            <div class="credits-title" style="
+                color: #d4a574;
+                font-size: 0.9rem;
+                font-weight: 600;
+                margin-bottom: 0.8rem;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                opacity: 0.9;
+            ">
+                Developed By
+            </div>
+            <div class="credits-list" style="
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 2rem;
+                align-items: center;
+            ">
+                <div class="developer-item" style="
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    cursor: default;
+                ">
+                    Dr. Nelsi Wisna, S.E., M.Si.
+                </div>
+                <div class="developer-item" style="
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    cursor: default;
+                ">
+                    Chindi Lestari
+                </div>
+                <div class="developer-item" style="
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    cursor: default;
+                ">
+                    Ghitha Nadhirah Yasin
+                </div>
+                <div class="developer-item" style="
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    cursor: default;
+                ">
+                    Muhammad Arkan Abiyyu
+                </div>
+                <div class="developer-item" style="
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    cursor: default;
+                ">
+                    Nayla Dzakira Yusuf
+                </div>
+            </div>
+            <div class="credits-divider" style="
+                width: 60px;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(212, 165, 116, 0.5), transparent);
+                margin: 1rem auto;
+            "></div>
+            <div class="credits-version" style="
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 0.8rem;
+                font-style: italic;
+            ">
+                © 2026 SIMACOST - Sistem Manufaktur Process Costing
+            </div>
         </div>
     </div>
 

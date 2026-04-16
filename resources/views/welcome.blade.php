@@ -25,6 +25,7 @@
             padding: 0;
             font-family: 'Poppins', sans-serif;
             overflow-x: hidden;
+            padding-bottom: 120px; /* Space for fixed footer */
         }
         
         /* Hide scrollbar but keep functionality */
@@ -72,7 +73,7 @@
 
         .welcome-container {
             display: flex;
-            max-width: 1000px;
+            max-width: 850px;
             width: 100%;
             background: rgba(245, 243, 239, 0.95); /* Cream semi-transparent background */
             border-radius: 20px;
@@ -83,7 +84,7 @@
             backdrop-filter: blur(8px);
             border: 1px solid rgba(222, 184, 135, 0.3);
             color: #3e2723;
-            margin-top: 250px; /* Space for external logos */
+            margin-top: 100px; /* Optimized for zoom 50% visibility */
         }
 
         /* External Logo Section */
@@ -139,7 +140,7 @@
 
         .welcome-center {
             flex: 1;
-            padding: 4rem;
+            padding: 2.5rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -236,19 +237,19 @@
         }
 
         h1 {
-            font-size: 2.2rem;
+            font-size: 1.8rem;
             font-weight: 700;
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
             color: #3e2723;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             line-height: 1.3;
         }
 
         .welcome-text {
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             color: #5d4037;
-            margin-top: 2rem;
-            margin-bottom: 2.5rem;
+            margin-top: 1.5rem;
+            margin-bottom: 2rem;
             line-height: 1.7;
             opacity: 0.9;
         }
@@ -414,8 +415,20 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .animate-fade-in {
             animation: fadeIn 0.6s ease-out forwards;
+        }
+
+        /* Developer Credits Hover Effects */
+        .developer-item:hover {
+            color: #d4a574 !important;
+            transform: translateY(-2px);
+            text-shadow: 0 2px 8px rgba(212, 165, 116, 0.3);
         }
 
         /* Responsive Design */
@@ -492,6 +505,39 @@
                 width: 100%;
                 max-width: 200px;
             }
+
+            /* Developer Credits Mobile Responsive */
+            .developer-credits {
+                padding: 1rem 0;
+            }
+
+            .credits-container {
+                padding: 0 1rem;
+            }
+
+            .credits-title {
+                font-size: 0.8rem;
+                margin-bottom: 0.6rem;
+                letter-spacing: 1px;
+            }
+
+            .credits-list {
+                gap: 1rem;
+                flex-direction: column;
+            }
+
+            .developer-item {
+                font-size: 0.85rem;
+            }
+
+            .credits-version {
+                font-size: 0.7rem;
+            }
+
+            /* Adjust body padding for mobile */
+            body, html {
+                padding-bottom: 140px; /* More space for mobile footer */
+            }
         }
     </style>
 </head>
@@ -516,38 +562,137 @@
         <div class="welcome-container animate-fade-in">
             <!-- Center Content -->
             <div class="welcome-center">
-                <h1><span style="font-size: 3rem; font-weight: 800;">Selamat Datang di SIMCOST</span><br><span style="font-size: 2.5rem; font-weight: 700;">(Sistem Manufaktur Process Costing)</span></h1>
-                <p class="welcome-text" style="font-size: 1.5rem;">SIMCOST adalah aplikasi berbasis web yang dirancang untuk membantu perusahaan manufaktur dalam mengelola dan menghitung biaya produksi secara otomatis, akurat, dan terintegrasi menggunakan metode process costing.</p>
+                <h1><span style="font-size: 2.2rem; font-weight: 800;">Selamat Datang di SIMCOST</span><br><span style="font-size: 1.8rem; font-weight: 700;">(Sistem Manufaktur Process Costing)</span></h1>
+                <p class="welcome-text" style="font-size: 1.1rem;">SIMCOST adalah aplikasi berbasis web yang dirancang untuk membantu perusahaan manufaktur dalam mengelola dan menghitung biaya produksi secara otomatis, akurat, dan terintegrasi menggunakan metode process costing.</p>
                 
                 <div class="feature-list">
-                    <div style="color: #3e2723; font-weight: 700; font-size: 1.8rem; margin-bottom: 2rem; text-align: center;">Fitur Utama</div>
+                    <div style="color: #3e2723; font-weight: 700; font-size: 1.5rem; margin-bottom: 1.5rem; text-align: center;">Fitur Utama</div>
                     <div class="feature-item" style="color: #3e2723; margin-bottom: 1.5rem;">
                         <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 18px; font-weight: 700; width: 32px; height: 32px;">1</div>
-                        <span style="font-size: 1.4rem; font-weight: 500;">Otomatisasi perhitungan biaya produksi per departemen</span>
+                        <span style="font-size: 1.2rem; font-weight: 500;">Otomatisasi perhitungan biaya produksi per departemen</span>
                     </div>
                     <div class="feature-item" style="color: #3e2723; margin-bottom: 1.5rem;">
                         <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 18px; font-weight: 700; width: 32px; height: 32px;">2</div>
-                        <span style="font-size: 1.4rem; font-weight: 500;">Pemantauan bahan baku, tenaga kerja, dan overhead</span>
+                        <span style="font-size: 1.2rem; font-weight: 500;">Pemantauan bahan baku, tenaga kerja, dan overhead</span>
                     </div>
                     <div class="feature-item" style="color: #3e2723; margin-bottom: 1.5rem;">
                         <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 18px; font-weight: 700; width: 32px; height: 32px;">3</div>
-                        <span style="font-size: 1.4rem; font-weight: 500;">Perhitungan Harga Pokok Produksi (HPP) yang akurat</span>
+                        <span style="font-size: 1.2rem; font-weight: 500;">Perhitungan Harga Pokok Produksi (HPP) yang akurat</span>
                     </div>
                     <div class="feature-item" style="color: #3e2723; margin-bottom: 1.5rem;">
                         <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 18px; font-weight: 700; width: 32px; height: 32px;">4</div>
-                        <span style="font-size: 1.4rem; font-weight: 500;">Penyajian laporan yang transparan dan terstruktur</span>
+                        <span style="font-size: 1.2rem; font-weight: 500;">Penyajian laporan yang transparan dan terstruktur</span>
                     </div>
                 </div>
 
                 <div class="button-center">
                     <div class="button-row">
-                        <a href="{{ route('login') }}" class="btn-login" style="padding: 1.2rem 3rem; font-size: 1.3rem; margin-right: 1rem; min-width: 160px;">
+                        <a href="{{ route('login') }}" class="btn-login" style="padding: 1rem 2.5rem; font-size: 1.1rem; margin-right: 1rem; min-width: 140px;">
                             <i class="fas fa-sign-in-alt mr-2"></i> Masuk
                         </a>
-                        <a href="{{ route('register') }}" class="btn-register" style="padding: 1.2rem 3rem; font-size: 1.3rem; margin-left: 1rem; min-width: 160px;">
+                        <a href="{{ route('register') }}" class="btn-register" style="padding: 1rem 2.5rem; font-size: 1.1rem; margin-left: 1rem; min-width: 140px;">
                             <i class="fas fa-user-plus mr-2"></i> Daftar
                         </a>
                     </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Developer Credits Footer -->
+        <div class="developer-credits" style="
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, rgba(62, 39, 35, 0.95) 0%, rgba(93, 64, 55, 0.95) 100%);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem 0;
+            border-top: 1px solid rgba(212, 165, 116, 0.3);
+            z-index: 10;
+            animation: slideUp 0.8s ease-out;
+        ">
+            <div class="credits-container" style="
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 0 2rem;
+                text-align: center;
+            ">
+                <div class="credits-title" style="
+                    color: #d4a574;
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                    margin-bottom: 0.8rem;
+                    text-transform: uppercase;
+                    letter-spacing: 2px;
+                    opacity: 0.9;
+                ">
+                    Developed By
+                </div>
+                <div class="credits-list" style="
+                    display: flex;
+                    flex-wrap: wrap;
+                    justify-content: center;
+                    gap: 2rem;
+                    align-items: center;
+                ">
+                    <div class="developer-item" style="
+                        color: rgba(255, 255, 255, 0.9);
+                        font-size: 0.95rem;
+                        font-weight: 500;
+                        transition: all 0.3s ease;
+                        cursor: default;
+                    ">
+                        Dr. Nelsi Wisna, S.E., M.Si.
+                    </div>
+                    <div class="developer-item" style="
+                        color: rgba(255, 255, 255, 0.9);
+                        font-size: 0.95rem;
+                        font-weight: 500;
+                        transition: all 0.3s ease;
+                        cursor: default;
+                    ">
+                        Chindi Lestari
+                    </div>
+                    <div class="developer-item" style="
+                        color: rgba(255, 255, 255, 0.9);
+                        font-size: 0.95rem;
+                        font-weight: 500;
+                        transition: all 0.3s ease;
+                        cursor: default;
+                    ">
+                        Ghitha Nadhirah Yasin
+                    </div>
+                    <div class="developer-item" style="
+                        color: rgba(255, 255, 255, 0.9);
+                        font-size: 0.95rem;
+                        font-weight: 500;
+                        transition: all 0.3s ease;
+                        cursor: default;
+                    ">
+                        Muhammad Arkan Abiyyu
+                    </div>
+                    <div class="developer-item" style="
+                        color: rgba(255, 255, 255, 0.9);
+                        font-size: 0.95rem;
+                        font-weight: 500;
+                        transition: all 0.3s ease;
+                        cursor: default;
+                    ">
+                        Nayla Dzakira Yusuf
+                    </div>
+                </div>
+                <div class="credits-divider" style="
+                    width: 60px;
+                    height: 1px;
+                    background: linear-gradient(90deg, transparent, rgba(212, 165, 116, 0.5), transparent);
+                    margin: 1rem auto;
+                "></div>
+                <div class="credits-version" style="
+                    color: rgba(255, 255, 255, 0.6);
+                    font-size: 0.8rem;
+                    font-style: italic;
+                ">
+                    © 2026 SIMACOST - Sistem Manufaktur Process Costing
                 </div>
             </div>
         </div>
