@@ -23,56 +23,70 @@ class BahanBakuService
 
         // Sub Satuan 1
         if ($bahan->sub_satuan_1_id && $bahan->sub_satuan_1_konversi > 0) {
-            $hargaPerUnit = $bahan->harga_satuan / $bahan->sub_satuan_1_konversi;
+            $hargaPerUnit = $bahan->harga_satuan / $bahan->sub_satuan_1_nilai;
             
             $subSatuanData[] = [
                 'satuan_nama' => $bahan->subSatuan1->nama ?? 'Unknown',
                 'konversi_nilai' => $bahan->sub_satuan_1_konversi,
                 'harga_per_unit' => round($hargaPerUnit, 2),
                 'formula_text' => "Rp " . number_format($bahan->harga_satuan, 0, ',', '.') . 
-                                " ÷ " . number_format($bahan->sub_satuan_1_konversi, 0, ',', '.') . 
+                                " ÷ " . $this->formatDecimal($bahan->sub_satuan_1_nilai) . 
                                 " = Rp " . number_format($hargaPerUnit, 0, ',', '.'),
-                'konversi_text' => "1 " . ($bahan->satuan->nama ?? 'unit') . " = " . 
-                                 number_format($bahan->sub_satuan_1_konversi, 0, ',', '.') . " " . 
+                'konversi_text' => number_format($bahan->sub_satuan_1_konversi, 0, ',', '.') . " " . 
+                                 ($bahan->satuan->nama ?? 'unit') . " = " . 
+                                 $this->formatDecimal($bahan->sub_satuan_1_nilai) . " " . 
                                  ($bahan->subSatuan1->nama ?? 'unit')
             ];
         }
 
         // Sub Satuan 2
         if ($bahan->sub_satuan_2_id && $bahan->sub_satuan_2_konversi > 0) {
-            $hargaPerUnit = $bahan->harga_satuan / $bahan->sub_satuan_2_konversi;
+            $hargaPerUnit = $bahan->harga_satuan / $bahan->sub_satuan_2_nilai;
             
             $subSatuanData[] = [
                 'satuan_nama' => $bahan->subSatuan2->nama ?? 'Unknown',
                 'konversi_nilai' => $bahan->sub_satuan_2_konversi,
                 'harga_per_unit' => round($hargaPerUnit, 2),
                 'formula_text' => "Rp " . number_format($bahan->harga_satuan, 0, ',', '.') . 
-                                " ÷ " . number_format($bahan->sub_satuan_2_konversi, 0, ',', '.') . 
+                                " ÷ " . $this->formatDecimal($bahan->sub_satuan_2_nilai) . 
                                 " = Rp " . number_format($hargaPerUnit, 0, ',', '.'),
-                'konversi_text' => "1 " . ($bahan->satuan->nama ?? 'unit') . " = " . 
-                                 number_format($bahan->sub_satuan_2_konversi, 0, ',', '.') . " " . 
+                'konversi_text' => number_format($bahan->sub_satuan_2_konversi, 0, ',', '.') . " " . 
+                                 ($bahan->satuan->nama ?? 'unit') . " = " . 
+                                 $this->formatDecimal($bahan->sub_satuan_2_nilai) . " " . 
                                  ($bahan->subSatuan2->nama ?? 'unit')
             ];
         }
 
         // Sub Satuan 3
         if ($bahan->sub_satuan_3_id && $bahan->sub_satuan_3_konversi > 0) {
-            $hargaPerUnit = $bahan->harga_satuan / $bahan->sub_satuan_3_konversi;
+            $hargaPerUnit = $bahan->harga_satuan / $bahan->sub_satuan_3_nilai;
             
             $subSatuanData[] = [
                 'satuan_nama' => $bahan->subSatuan3->nama ?? 'Unknown',
                 'konversi_nilai' => $bahan->sub_satuan_3_konversi,
                 'harga_per_unit' => round($hargaPerUnit, 2),
                 'formula_text' => "Rp " . number_format($bahan->harga_satuan, 0, ',', '.') . 
-                                " ÷ " . number_format($bahan->sub_satuan_3_konversi, 0, ',', '.') . 
+                                " ÷ " . $this->formatDecimal($bahan->sub_satuan_3_nilai) . 
                                 " = Rp " . number_format($hargaPerUnit, 0, ',', '.'),
-                'konversi_text' => "1 " . ($bahan->satuan->nama ?? 'unit') . " = " . 
-                                 number_format($bahan->sub_satuan_3_konversi, 0, ',', '.') . " " . 
+                'konversi_text' => number_format($bahan->sub_satuan_3_konversi, 0, ',', '.') . " " . 
+                                 ($bahan->satuan->nama ?? 'unit') . " = " . 
+                                 $this->formatDecimal($bahan->sub_satuan_3_nilai) . " " . 
                                  ($bahan->subSatuan3->nama ?? 'unit')
             ];
         }
 
         return $subSatuanData;
+    }
+    
+    /**
+     * Format decimal value for display, preserving decimal places
+     */
+    private function formatDecimal($value)
+    {
+        if ($value == floor($value)) {
+            return number_format($value, 0, ',', '.');
+        }
+        return rtrim(rtrim(number_format($value, 4, ',', '.'), '0'), ',');
     }
 
     /**
@@ -103,27 +117,18 @@ class BahanBakuService
         $updateData = [];
 
         // Update Sub Satuan 1
-        if ($bahan->sub_satuan_1_id && $bahan->sub_satuan_1_konversi > 0) {
-            $updateData['sub_satuan_1_nilai'] = $this->calculateSingleSubSatuanPrice(
-                $bahan->harga_satuan, 
-                $bahan->sub_satuan_1_konversi
-            );
+        if ($bahan->sub_satuan_1_id && $bahan->sub_satuan_1_nilai > 0) {
+            $updateData['sub_satuan_1_nilai'] = $bahan->sub_satuan_1_nilai;
         }
 
         // Update Sub Satuan 2
-        if ($bahan->sub_satuan_2_id && $bahan->sub_satuan_2_konversi > 0) {
-            $updateData['sub_satuan_2_nilai'] = $this->calculateSingleSubSatuanPrice(
-                $bahan->harga_satuan, 
-                $bahan->sub_satuan_2_konversi
-            );
+        if ($bahan->sub_satuan_2_id && $bahan->sub_satuan_2_nilai > 0) {
+            $updateData['sub_satuan_2_nilai'] = $bahan->sub_satuan_2_nilai;
         }
 
         // Update Sub Satuan 3
-        if ($bahan->sub_satuan_3_id && $bahan->sub_satuan_3_konversi > 0) {
-            $updateData['sub_satuan_3_nilai'] = $this->calculateSingleSubSatuanPrice(
-                $bahan->harga_satuan, 
-                $bahan->sub_satuan_3_konversi
-            );
+        if ($bahan->sub_satuan_3_id && $bahan->sub_satuan_3_nilai > 0) {
+            $updateData['sub_satuan_3_nilai'] = $bahan->sub_satuan_3_nilai;
         }
 
         if (!empty($updateData)) {

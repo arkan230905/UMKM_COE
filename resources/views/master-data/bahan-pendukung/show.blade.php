@@ -106,21 +106,21 @@
                                 $borderColors = ['border-primary', 'border-success', 'border-warning'];
                                 $textColors = ['text-primary', 'text-success', 'text-warning'];
                                 $alertColors = ['alert-primary', 'alert-success', 'alert-warning'];
-                                $borderColor = $borderColors[$index] ?? 'border-primary';
-                                $textColor = $textColors[$index] ?? 'text-primary';
-                                $alertColor = $alertColors[$index] ?? 'alert-primary';
+                                $borderColor = $borderColors[(int)$index] ?? 'border-primary';
+                                $textColor = $textColors[(int)$index] ?? 'text-primary';
+                                $alertColor = $alertColors[(int)$index] ?? 'alert-primary';
                             @endphp
                             <div class="card {{ $borderColor }}">
                                 <div class="card-header bg-light">
                                     <h6 class="mb-0 {{ $textColor }}">
-                                        <i class="fas fa-cube me-2"></i>Sub Satuan {{ $index + 1 }}
+                                        <i class="fas fa-cube me-2"></i>Sub Satuan {{ (int)$index + 1 }}
                                     </h6>
                                 </div>
                                 <div class="card-body text-center">
                                     <!-- Harga per Unit -->
                                     <div class="mb-3">
                                         <h5 class="{{ $textColor }} fw-bold">
-                                            Rp {{ number_format($subSatuan['harga_per_unit'], 0, ',', '.') }}
+                                            Rp {{ number_format((float) $subSatuan['harga_per_unit'], 0, ',', '.') }}
                                         </h5>
                                         <small class="text-muted">per {{ $subSatuan['satuan_nama'] }}</small>
                                     </div>

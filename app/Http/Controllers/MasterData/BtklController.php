@@ -39,6 +39,27 @@ class BtklController extends Controller
             ->with('pegawais')
             ->orderBy('nama')
             ->get();
+        
+        // Also get employees with Perbumbuan category who may not be assigned to positions
+        $perbumbuanEmployees = \App\Models\Pegawai::where(function($query) {
+            $query->where('jabatan_id', 8) // Perbumbuan position ID
+                  ->orWhereHas('jabatanRelasi', function($q) {
+                      $q->where('nama', 'like', '%Perbumbuan%');
+                  });
+        })->with(['jabatanRelasi', 'kategori'])->get();
+        
+        // Create a virtual position for Perbumbuan employees if they don't have proper positions
+        if ($perbumbuanEmployees->count() > 0) {
+            $virtualPosition = (object) [
+                'id' => 'perbumbuan_virtual',
+                'nama' => 'Perbumbuan',
+                'kategori' => 'btkl',
+                'tarif' => 18000,
+                'pegawai_count' => $perbumbuanEmployees->count(),
+                'pegawais' => $perbumbuanEmployees
+            ];
+            $jabatanBtkl->push($virtualPosition);
+        }
 
         // Generate next process code
         $lastBtkl = Btkl::orderBy('kode_proses', 'desc')->first();

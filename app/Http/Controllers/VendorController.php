@@ -26,9 +26,9 @@ class VendorController extends Controller
         $request->validate([
             'nama_vendor' => 'required|string|max:255',
             'kategori' => 'required|string|in:Bahan Baku,Bahan Pendukung,Aset',
-            'alamat' => 'nullable|string',
-            'no_telp' => 'nullable|string',
-            'email' => 'nullable|email',
+            'alamat' => 'required|string',
+            'no_telp' => 'required|string',
+            'email' => 'required|email',
         ]);
 
         $vendor = Vendor::create($request->all());
@@ -59,9 +59,9 @@ class VendorController extends Controller
         $request->validate([
             'nama_vendor' => 'required|string|max:255',
             'kategori' => 'required|string|in:Bahan Baku,Bahan Pendukung,Aset',
-            'alamat' => 'nullable|string',
-            'no_telp' => 'nullable|string',
-            'email' => 'nullable|email',
+            'alamat' => 'required|string',
+            'no_telp' => 'required|string',
+            'email' => 'required|email',
         ]);
 
         $vendor->update($request->all());

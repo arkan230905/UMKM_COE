@@ -30,7 +30,7 @@
             <table class="table table-hover">
                 <thead class="table-light">
                     <tr>
-                        <th width="5%">#</th>
+                        <th width="5%">NO</th>
                         <th width="25%">Nama Kategori</th>
                         <th width="35%">Keterangan</th>
                         <th width="15%" class="text-center">Jumlah Bahan</th>
