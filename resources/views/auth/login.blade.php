@@ -10,14 +10,44 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
     <style>
-        /* Hide scrollbar but keep functionality */
+        /* Hide scrollbar but keep functionality - COMPREHENSIVE */
+        html::-webkit-scrollbar {
+            display: none;
+        }
+        
         body::-webkit-scrollbar {
             display: none;
+        }
+        
+        *::-webkit-scrollbar {
+            display: none;
+        }
+        
+        html {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+            overflow: hidden;
         }
         
         body {
             -ms-overflow-style: none;  /* IE and Edge */
             scrollbar-width: none;  /* Firefox */
+            overflow: hidden;
+            height: 100vh;
+            position: fixed;
+            width: 100%;
+        }
+        
+        /* Hide scrollbars on all elements */
+        * {
+            -ms-overflow-style: none !important;  /* IE and Edge */
+            scrollbar-width: none !important;  /* Firefox */
+        }
+        
+        *::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
         }
         
         /* IMPORTANT: Override Bootstrap completely */

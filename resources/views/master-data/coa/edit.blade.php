@@ -48,7 +48,7 @@
                 <label class="form-label">Tipe Akun</label>
                 <select name="tipe_akun" id="tipe_akun" class="form-select" required>
                     <option value="">Pilih tipe</option>
-                    @php($tipeList=['Asset','Liability','Equity','Revenue','Expense','Beban'])
+                    @php($tipeList=['Aset','Asset','Kewajiban','Liability','Modal','Equity','Pendapatan','Revenue','Biaya Bahan Baku','Biaya Tenaga Kerja Langsung','Biaya Overhead Pabrik','Biaya Tenaga Kerja Tidak Langsung','BOP Tidak Langsung Lainnya'])
                     @foreach($tipeList as $t)
                         <option value="{{ $t }}" {{ old('tipe_akun', $coa->tipe_akun)===$t?'selected':'' }}>{{ $t }}</option>
                     @endforeach
