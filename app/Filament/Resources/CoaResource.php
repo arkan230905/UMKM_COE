@@ -40,11 +40,19 @@ class CoaResource extends Resource
                         ->label('Tipe Akun')
                         ->required()
                         ->options([
+                            'Aset'=>'Aset',
                             'Asset'=>'Asset',
+                            'Kewajiban'=>'Kewajiban',
                             'Liability'=>'Liability',
+                            'Modal'=>'Modal',
                             'Equity'=>'Equity',
+                            'Pendapatan'=>'Pendapatan',
                             'Revenue'=>'Revenue',
-                            'Expense'=>'Expense'
+                            'Biaya Bahan Baku'=>'Biaya Bahan Baku',
+                            'Biaya Tenaga Kerja Langsung'=>'Biaya Tenaga Kerja Langsung',
+                            'Biaya Overhead Pabrik'=>'Biaya Overhead Pabrik',
+                            'Biaya Tenaga Kerja Tidak Langsung'=>'Biaya Tenaga Kerja Tidak Langsung',
+                            'BOP Tidak Langsung Lainnya'=>'BOP Tidak Langsung Lainnya'
                         ]),
                     Forms\Components\TextInput::make('kategori_akun')
                         ->label('Kategori Akun')
@@ -97,10 +105,18 @@ class CoaResource extends Resource
                 ->badge()
                 ->color(fn (string $state): string => match ($state) {
                     'Asset' => 'success',
+                    'Aset' => 'success',
                     'Liability' => 'warning', 
+                    'Kewajiban' => 'warning',
                     'Equity' => 'info',
+                    'Modal' => 'info',
                     'Revenue' => 'primary',
-                    'Expense' => 'danger',
+                    'Pendapatan' => 'primary',
+                    'Biaya Bahan Baku' => 'danger',
+                    'Biaya Tenaga Kerja Langsung' => 'danger',
+                    'Biaya Overhead Pabrik' => 'danger',
+                    'Biaya Tenaga Kerja Tidak Langsung' => 'danger',
+                    'BOP Tidak Langsung Lainnya' => 'danger',
                     default => 'gray',
                 }),
             Tables\Columns\TextColumn::make('kategori_akun')->label('Kategori Akun'),
@@ -139,11 +155,19 @@ class CoaResource extends Resource
         ->filters([
             Tables\Filters\SelectFilter::make('tipe_akun')
                 ->options([
+                    'Aset' => 'Aset',
                     'Asset' => 'Asset',
+                    'Kewajiban' => 'Kewajiban',
                     'Liability' => 'Liability', 
+                    'Modal' => 'Modal',
                     'Equity' => 'Equity',
+                    'Pendapatan' => 'Pendapatan',
                     'Revenue' => 'Revenue',
-                    'Expense' => 'Expense',
+                    'Biaya Bahan Baku' => 'Biaya Bahan Baku',
+                    'Biaya Tenaga Kerja Langsung' => 'Biaya Tenaga Kerja Langsung',
+                    'Biaya Overhead Pabrik' => 'Biaya Overhead Pabrik',
+                    'Biaya Tenaga Kerja Tidak Langsung' => 'Biaya Tenaga Kerja Tidak Langsung',
+                    'BOP Tidak Langsung Lainnya' => 'BOP Tidak Langsung Lainnya',
                 ]),
         ])
         ->actions([
