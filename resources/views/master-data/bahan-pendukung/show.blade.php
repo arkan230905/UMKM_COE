@@ -98,136 +98,209 @@
             </h6>
         </div>
         <div class="card-body">
-            <div class="row">
-                <!-- Sub Satuan 1 -->
-                <div class="col-md-4">
-                    <div class="card border-primary">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0 text-primary">
-                                <i class="fas fa-cube me-2"></i>Sub Satuan 1
-                            </h6>
+            @if(isset($subSatuanPrices) && count($subSatuanPrices) > 0)
+                <div class="row">
+                    @foreach($subSatuanPrices as $index => $subSatuan)
+                        <div class="col-md-4 mb-3">
+                            @php
+                                $borderColors = ['border-primary', 'border-success', 'border-warning'];
+                                $textColors = ['text-primary', 'text-success', 'text-warning'];
+                                $alertColors = ['alert-primary', 'alert-success', 'alert-warning'];
+                                $borderColor = $borderColors[$index] ?? 'border-primary';
+                                $textColor = $textColors[$index] ?? 'text-primary';
+                                $alertColor = $alertColors[$index] ?? 'alert-primary';
+                            @endphp
+                            <div class="card {{ $borderColor }}">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0 {{ $textColor }}">
+                                        <i class="fas fa-cube me-2"></i>Sub Satuan {{ $index + 1 }}
+                                    </h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <!-- Harga per Unit -->
+                                    <div class="mb-3">
+                                        <h5 class="{{ $textColor }} fw-bold">
+                                            Rp {{ number_format($subSatuan['harga_per_unit'], 0, ',', '.') }}
+                                        </h5>
+                                        <small class="text-muted">per {{ $subSatuan['satuan_nama'] }}</small>
+                                    </div>
+                                    
+                                    <!-- Konversi -->
+                                    <div class="alert {{ $alertColor }} mb-3">
+                                        <small class="mb-0">
+                                            <strong>{{ $subSatuan['konversi_text'] }}</strong>
+                                        </small>
+                                    </div>
+                                    
+                                    <!-- Formula Perhitungan -->
+                                    <div class="bg-light p-2 rounded">
+                                        <small class="text-muted">
+                                            <strong>Rumus:</strong><br>
+                                            {{ $subSatuan['formula_text'] }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            @if($bahanPendukung->subSatuan1 && ($bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0) > 0)
-                                @php
-                                    $hargaUtama = $bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0;
-                                    $konversi1 = $bahanPendukung->sub_satuan_1_konversi ?? 1;
-                                    $nilai1 = $bahanPendukung->sub_satuan_1_nilai ?? 1;
-                                    $hargaSubSatuan1 = ($konversi1 * $hargaUtama) / $nilai1;
-                                @endphp
-                                <div class="text-center mb-3">
-                                    <h5 class="text-primary fw-bold">
-                                        Rp {{ number_format($hargaSubSatuan1, 0, ',', '.') }}
-                                    </h5>
-                                    <small class="text-muted">per {{ $bahanPendukung->subSatuan1->nama }}</small>
-                                </div>
-                                <div class="alert alert-info">
-                                    <small class="mb-0">
-                                        <strong>{{ rtrim(rtrim(number_format($konversi1, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->satuan ? $bahanPendukung->satuan->nama : '' }} = {{ rtrim(rtrim(number_format($nilai1, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->subSatuan1->nama }}</strong>
-                                    </small>
-                                </div>
-                                <div class="bg-light p-2 rounded">
-                                    <small class="text-muted">
-                                        <strong>Rumus:</strong><br>
-                                        ({{ rtrim(rtrim(number_format($konversi1, 5, ',', '.'), '0'), ',') }} × Rp {{ number_format($hargaUtama, 0, ',', '.') }}) ÷ {{ rtrim(rtrim(number_format($nilai1, 5, ',', '.'), '0'), ',') }} = Rp {{ number_format($hargaSubSatuan1, 0, ',', '.') }}
-                                    </small>
-                                </div>
-                            @else
-                                <div class="text-center text-muted">
-                                    <i class="fas fa-cube fa-2x mb-2"></i>
-                                    <p class="mb-0">Sub Satuan 1 tidak tersedia</p>
-                                </div>
-                            @endif
+                    @endforeach
+                </div>
+
+                <!-- Penjelasan Formula -->
+                <div class="alert alert-info mt-3">
+                    <h6><i class="fas fa-info-circle"></i> Cara Perhitungan:</h6>
+                    <p class="mb-1">
+                        <strong>Formula:</strong> Harga Sub Satuan = Harga Satuan Utama ÷ Nilai Konversi
+                    </p>
+                    <p class="mb-0">
+                        <strong>Contoh:</strong> Jika harga Rp 62.000/Kg dan 1 Kg = 1000 Gram, 
+                        maka harga per Gram = Rp 62.000 ÷ 1000 = Rp 62/Gram
+                    </p>
+                </div>
+            @else
+                <!-- Fallback ke perhitungan lama jika subSatuanPrices tidak ada -->
+                <div class="row">
+                    <!-- Sub Satuan 1 -->
+                    <div class="col-md-4">
+                        <div class="card border-primary">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0 text-primary">
+                                    <i class="fas fa-cube me-2"></i>Sub Satuan 1
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                @if($bahanPendukung->subSatuan1 && ($bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0) > 0)
+                                    @php
+                                        $hargaUtama = $bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0;
+                                        $konversi1 = $bahanPendukung->sub_satuan_1_konversi ?? 1;
+                                        // FORMULA YANG BENAR: harga_sub = harga_utama ÷ konversi
+                                        $hargaSubSatuan1 = $hargaUtama / $konversi1;
+                                    @endphp
+                                    <div class="text-center mb-3">
+                                        <h5 class="text-primary fw-bold">
+                                            Rp {{ number_format($hargaSubSatuan1, 0, ',', '.') }}
+                                        </h5>
+                                        <small class="text-muted">per {{ $bahanPendukung->subSatuan1->nama }}</small>
+                                    </div>
+                                    <div class="alert alert-primary">
+                                        <small class="mb-0">
+                                            <strong>1 {{ $bahanPendukung->satuan ? $bahanPendukung->satuan->nama : '' }} = {{ rtrim(rtrim(number_format($konversi1, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->subSatuan1->nama }}</strong>
+                                        </small>
+                                    </div>
+                                    <div class="bg-light p-2 rounded">
+                                        <small class="text-muted">
+                                            <strong>Rumus:</strong><br>
+                                            Rp {{ number_format($hargaUtama, 0, ',', '.') }} ÷ {{ rtrim(rtrim(number_format($konversi1, 5, ',', '.'), '0'), ',') }} = Rp {{ number_format($hargaSubSatuan1, 0, ',', '.') }}
+                                        </small>
+                                    </div>
+                                @else
+                                    <div class="text-center text-muted">
+                                        <i class="fas fa-cube fa-2x mb-2"></i>
+                                        <p class="mb-0">Sub Satuan 1 tidak tersedia</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub Satuan 2 -->
+                    <div class="col-md-4">
+                        <div class="card border-success">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0 text-success">
+                                    <i class="fas fa-cube me-2"></i>Sub Satuan 2
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                @if($bahanPendukung->subSatuan2 && ($bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0) > 0)
+                                    @php
+                                        $hargaUtama = $bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0;
+                                        $konversi2 = $bahanPendukung->sub_satuan_2_konversi ?? 1;
+                                        // FORMULA YANG BENAR: harga_sub = harga_utama ÷ konversi
+                                        $hargaSubSatuan2 = $hargaUtama / $konversi2;
+                                    @endphp
+                                    <div class="text-center mb-3">
+                                        <h5 class="text-success fw-bold">
+                                            Rp {{ number_format($hargaSubSatuan2, 0, ',', '.') }}
+                                        </h5>
+                                        <small class="text-muted">per {{ $bahanPendukung->subSatuan2->nama }}</small>
+                                    </div>
+                                    <div class="alert alert-success">
+                                        <small class="mb-0">
+                                            <strong>1 {{ $bahanPendukung->satuan ? $bahanPendukung->satuan->nama : '' }} = {{ rtrim(rtrim(number_format($konversi2, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->subSatuan2->nama }}</strong>
+                                        </small>
+                                    </div>
+                                    <div class="bg-light p-2 rounded">
+                                        <small class="text-muted">
+                                            <strong>Rumus:</strong><br>
+                                            Rp {{ number_format($hargaUtama, 0, ',', '.') }} ÷ {{ rtrim(rtrim(number_format($konversi2, 5, ',', '.'), '0'), ',') }} = Rp {{ number_format($hargaSubSatuan2, 0, ',', '.') }}
+                                        </small>
+                                    </div>
+                                @else
+                                    <div class="text-center text-muted">
+                                        <i class="fas fa-cube fa-2x mb-2"></i>
+                                        <p class="mb-0">Sub Satuan 2 tidak tersedia</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub Satuan 3 -->
+                    <div class="col-md-4">
+                        <div class="card border-warning">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0 text-warning">
+                                    <i class="fas fa-cube me-2"></i>Sub Satuan 3
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                @if($bahanPendukung->subSatuan3 && ($bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0) > 0)
+                                    @php
+                                        $hargaUtama = $bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0;
+                                        $konversi3 = $bahanPendukung->sub_satuan_3_konversi ?? 1;
+                                        // FORMULA YANG BENAR: harga_sub = harga_utama ÷ konversi
+                                        $hargaSubSatuan3 = $hargaUtama / $konversi3;
+                                    @endphp
+                                    <div class="text-center mb-3">
+                                        <h5 class="text-warning fw-bold">
+                                            Rp {{ number_format($hargaSubSatuan3, 0, ',', '.') }}
+                                        </h5>
+                                        <small class="text-muted">per {{ $bahanPendukung->subSatuan3->nama }}</small>
+                                    </div>
+                                    <div class="alert alert-warning">
+                                        <small class="mb-0">
+                                            <strong>1 {{ $bahanPendukung->satuan ? $bahanPendukung->satuan->nama : '' }} = {{ rtrim(rtrim(number_format($konversi3, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->subSatuan3->nama }}</strong>
+                                        </small>
+                                    </div>
+                                    <div class="bg-light p-2 rounded">
+                                        <small class="text-muted">
+                                            <strong>Rumus:</strong><br>
+                                            Rp {{ number_format($hargaUtama, 0, ',', '.') }} ÷ {{ rtrim(rtrim(number_format($konversi3, 5, ',', '.'), '0'), ',') }} = Rp {{ number_format($hargaSubSatuan3, 0, ',', '.') }}
+                                        </small>
+                                    </div>
+                                @else
+                                    <div class="text-center text-muted">
+                                        <i class="fas fa-cube fa-2x mb-2"></i>
+                                        <p class="mb-0">Sub Satuan 3 tidak tersedia</p>
+                                    </div>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Sub Satuan 2 -->
-                <div class="col-md-4">
-                    <div class="card border-success">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0 text-success">
-                                <i class="fas fa-cube me-2"></i>Sub Satuan 2
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            @if($bahanPendukung->subSatuan2 && ($bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0) > 0)
-                                @php
-                                    $hargaUtama = $bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0;
-                                    $konversi2 = $bahanPendukung->sub_satuan_2_konversi ?? 1;
-                                    $nilai2 = $bahanPendukung->sub_satuan_2_nilai ?? 1;
-                                    $hargaSubSatuan2 = ($konversi2 * $hargaUtama) / $nilai2;
-                                @endphp
-                                <div class="text-center mb-3">
-                                    <h5 class="text-success fw-bold">
-                                        Rp {{ number_format($hargaSubSatuan2, 0, ',', '.') }}
-                                    </h5>
-                                    <small class="text-muted">per {{ $bahanPendukung->subSatuan2->nama }}</small>
-                                </div>
-                                <div class="alert alert-success">
-                                    <small class="mb-0">
-                                        <strong>{{ rtrim(rtrim(number_format($konversi2, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->satuan ? $bahanPendukung->satuan->nama : '' }} = {{ rtrim(rtrim(number_format($nilai2, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->subSatuan2->nama }}</strong>
-                                    </small>
-                                </div>
-                                <div class="bg-light p-2 rounded">
-                                    <small class="text-muted">
-                                        <strong>Rumus:</strong><br>
-                                        ({{ rtrim(rtrim(number_format($konversi2, 5, ',', '.'), '0'), ',') }} × Rp {{ number_format($hargaUtama, 0, ',', '.') }}) ÷ {{ rtrim(rtrim(number_format($nilai2, 5, ',', '.'), '0'), ',') }} = Rp {{ number_format($hargaSubSatuan2, 0, ',', '.') }}
-                                    </small>
-                                </div>
-                            @else
-                                <div class="text-center text-muted">
-                                    <i class="fas fa-cube fa-2x mb-2"></i>
-                                    <p class="mb-0">Sub Satuan 2 tidak tersedia</p>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
+                <!-- Penjelasan Formula -->
+                <div class="alert alert-info mt-3">
+                    <h6><i class="fas fa-info-circle"></i> Cara Perhitungan:</h6>
+                    <p class="mb-1">
+                        <strong>Formula:</strong> Harga Sub Satuan = Harga Satuan Utama ÷ Nilai Konversi
+                    </p>
+                    <p class="mb-0">
+                        <strong>Contoh:</strong> Jika harga Rp 62.000/Kg dan 1 Kg = 1000 Gram, 
+                        maka harga per Gram = Rp 62.000 ÷ 1000 = Rp 62/Gram
+                    </p>
                 </div>
-
-                <!-- Sub Satuan 3 -->
-                <div class="col-md-4">
-                    <div class="card border-warning">
-                        <div class="card-header bg-light">
-                            <h6 class="mb-0 text-warning">
-                                <i class="fas fa-cube me-2"></i>Sub Satuan 3
-                            </h6>
-                        </div>
-                        <div class="card-body">
-                            @if($bahanPendukung->subSatuan3 && ($bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0) > 0)
-                                @php
-                                    $hargaUtama = $bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0;
-                                    $konversi3 = $bahanPendukung->sub_satuan_3_konversi ?? 1;
-                                    $nilai3 = $bahanPendukung->sub_satuan_3_nilai ?? 1;
-                                    $hargaSubSatuan3 = ($konversi3 * $hargaUtama) / $nilai3;
-                                @endphp
-                                <div class="text-center mb-3">
-                                    <h5 class="text-warning fw-bold">
-                                        Rp {{ number_format($hargaSubSatuan3, 0, ',', '.') }}
-                                    </h5>
-                                    <small class="text-muted">per {{ $bahanPendukung->subSatuan3->nama }}</small>
-                                </div>
-                                <div class="alert alert-warning">
-                                    <small class="mb-0">
-                                        <strong>{{ rtrim(rtrim(number_format($konversi3, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->satuan ? $bahanPendukung->satuan->nama : '' }} = {{ rtrim(rtrim(number_format($nilai3, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->subSatuan3->nama }}</strong>
-                                    </small>
-                                </div>
-                                <div class="bg-light p-2 rounded">
-                                    <small class="text-muted">
-                                        <strong>Rumus:</strong><br>
-                                        ({{ rtrim(rtrim(number_format($konversi3, 5, ',', '.'), '0'), ',') }} × Rp {{ number_format($hargaUtama, 0, ',', '.') }}) ÷ {{ rtrim(rtrim(number_format($nilai3, 5, ',', '.'), '0'), ',') }} = Rp {{ number_format($hargaSubSatuan3, 0, ',', '.') }}
-                                    </small>
-                                </div>
-                            @else
-                                <div class="text-center text-muted">
-                                    <i class="fas fa-cube fa-2x mb-2"></i>
-                                    <p class="mb-0">Sub Satuan 3 tidak tersedia</p>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            </div>
+            @endif
         </div>
     </div>
 

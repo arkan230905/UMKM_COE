@@ -167,7 +167,10 @@ class BahanPendukungController extends Controller
             $bahanPendukung->harga_satuan_display = $bahanPendukung->harga_satuan;
         }
         
-        return view('master-data.bahan-pendukung.show', compact('bahanPendukung'));
+        // Hitung sub satuan prices dengan formula yang benar
+        $subSatuanPrices = $this->calculateSubSatuanPrices($bahanPendukung);
+        
+        return view('master-data.bahan-pendukung.show', compact('bahanPendukung', 'subSatuanPrices'));
     }
 
     public function edit(BahanPendukung $bahanPendukung)
@@ -284,5 +287,68 @@ class BahanPendukungController extends Controller
         $averageHarga = $totalQuantity > 0 ? $totalHarga / $totalQuantity : 0;
         
         return $averageHarga;
+    }
+
+    /**
+     * Hitung harga sub satuan berdasarkan konversi dengan formula yang benar
+     */
+    private function calculateSubSatuanPrices($bahanPendukung)
+    {
+        $subSatuanPrices = [];
+        $hargaUtama = $bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan;
+
+        // Sub Satuan 1
+        if ($bahanPendukung->subSatuan1 && $bahanPendukung->sub_satuan_1_konversi > 0) {
+            // Formula yang benar: harga_sub = harga_utama ÷ nilai_konversi
+            $hargaPerUnit = $hargaUtama / $bahanPendukung->sub_satuan_1_konversi;
+            
+            $subSatuanPrices[] = [
+                'satuan_nama' => $bahanPendukung->subSatuan1->nama,
+                'konversi_nilai' => $bahanPendukung->sub_satuan_1_konversi,
+                'harga_per_unit' => round($hargaPerUnit, 2),
+                'formula_text' => "Rp " . number_format($hargaUtama, 0, ',', '.') . 
+                                " ÷ " . number_format($bahanPendukung->sub_satuan_1_konversi, 0, ',', '.') . 
+                                " = Rp " . number_format($hargaPerUnit, 0, ',', '.'),
+                'konversi_text' => "1 {$bahanPendukung->satuan->nama} = " . 
+                                 number_format($bahanPendukung->sub_satuan_1_konversi, 0, ',', '.') . 
+                                 " {$bahanPendukung->subSatuan1->nama}"
+            ];
+        }
+
+        // Sub Satuan 2
+        if ($bahanPendukung->subSatuan2 && $bahanPendukung->sub_satuan_2_konversi > 0) {
+            $hargaPerUnit = $hargaUtama / $bahanPendukung->sub_satuan_2_konversi;
+            
+            $subSatuanPrices[] = [
+                'satuan_nama' => $bahanPendukung->subSatuan2->nama,
+                'konversi_nilai' => $bahanPendukung->sub_satuan_2_konversi,
+                'harga_per_unit' => round($hargaPerUnit, 2),
+                'formula_text' => "Rp " . number_format($hargaUtama, 0, ',', '.') . 
+                                " ÷ " . number_format($bahanPendukung->sub_satuan_2_konversi, 0, ',', '.') . 
+                                " = Rp " . number_format($hargaPerUnit, 0, ',', '.'),
+                'konversi_text' => "1 {$bahanPendukung->satuan->nama} = " . 
+                                 number_format($bahanPendukung->sub_satuan_2_konversi, 0, ',', '.') . 
+                                 " {$bahanPendukung->subSatuan2->nama}"
+            ];
+        }
+
+        // Sub Satuan 3
+        if ($bahanPendukung->subSatuan3 && $bahanPendukung->sub_satuan_3_konversi > 0) {
+            $hargaPerUnit = $hargaUtama / $bahanPendukung->sub_satuan_3_konversi;
+            
+            $subSatuanPrices[] = [
+                'satuan_nama' => $bahanPendukung->subSatuan3->nama,
+                'konversi_nilai' => $bahanPendukung->sub_satuan_3_konversi,
+                'harga_per_unit' => round($hargaPerUnit, 2),
+                'formula_text' => "Rp " . number_format($hargaUtama, 0, ',', '.') . 
+                                " ÷ " . number_format($bahanPendukung->sub_satuan_3_konversi, 0, ',', '.') . 
+                                " = Rp " . number_format($hargaPerUnit, 0, ',', '.'),
+                'konversi_text' => "1 {$bahanPendukung->satuan->nama} = " . 
+                                 number_format($bahanPendukung->sub_satuan_3_konversi, 0, ',', '.') . 
+                                 " {$bahanPendukung->subSatuan3->nama}"
+            ];
+        }
+
+        return $subSatuanPrices;
     }
 }
