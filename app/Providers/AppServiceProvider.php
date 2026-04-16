@@ -33,6 +33,7 @@ use App\Models\Coa;
 use App\Observers\ConversionConsistencyObserver;
 use App\Models\User;
 use App\Observers\PelangganUserObserver;
+use App\Observers\UserObserver;
 use App\Models\Pembelian;
 use App\Observers\PembelianObserver;
 
@@ -76,6 +77,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Sync pelanggan dari users ke pelanggans
         User::observe(PelangganUserObserver::class);
+        
+        // Initialize master data untuk user baru
+        User::observe(UserObserver::class);
 
         // View composer global untuk semua tampilan
         View::composer('*', function ($view) {
