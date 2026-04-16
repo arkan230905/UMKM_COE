@@ -224,9 +224,10 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="harga_perolehan" class="form-label text-dark">Harga Perolehan (Rp) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" class="form-control bg-white text-dark @error('harga_perolehan') is-invalid @enderror" 
-                               id="harga_perolehan" name="harga_perolehan" value="{{ old('harga_perolehan', $aset->harga_perolehan) }}" 
-                               required oninput="hitungTotal()">
+                        <input type="text" class="form-control bg-white text-dark @error('harga_perolehan') is-invalid @enderror" 
+                               id="harga_perolehan" name="harga_perolehan" value="{{ old('harga_perolehan', $aset->harga_perolehan) ? number_format($aset->harga_perolehan, 0, ',', '.') : '' }}" 
+                               placeholder="0"
+                               required inputmode="numeric" oninput="hitungTotal()" onblur="formatRupiahInput(this)">
                         @error('harga_perolehan')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -279,8 +280,10 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="nilai_residu" class="form-label text-dark">Nilai Residu (Rp)</label>
-                            <input type="number" step="0.01" class="form-control bg-white text-dark" 
-                                   id="nilai_residu" name="nilai_residu" value="{{ old('nilai_residu', $aset->nilai_residu) }}">
+                            <input type="text" class="form-control bg-white text-dark" 
+                                   id="nilai_residu" name="nilai_residu" value="{{ old('nilai_residu', $aset->nilai_residu) ? number_format($aset->nilai_residu, 0, ',', '.') : '' }}"
+                                   placeholder="0"
+                                   inputmode="numeric" oninput="hitungPenyusutan()" onblur="formatRupiahInput(this)">
                         </div>
 
                         <div class="col-md-6 mb-3">
@@ -404,10 +407,8 @@
                     <span id="alasan_tidak_disusutkan"></span>
                 </div>
 
-                <div class="mb-3">
-                    <label for="keterangan" class="form-label text-dark">Keterangan</label>
-                    <textarea class="form-control bg-white text-dark" id="keterangan" name="keterangan" rows="3">{{ old('keterangan', $aset->keterangan) }}</textarea>
-                </div>
+                <!-- Keterangan field hidden per user request -->
+                <input type="hidden" id="keterangan" name="keterangan" value="{{ old('keterangan', $aset->keterangan ?? '') }}">
 
                 <div class="d-flex justify-content-between">
                     <a href="{{ route('master-data.aset.index') }}" class="btn btn-secondary">Kembali</a>
@@ -436,12 +437,40 @@
 
 <script>
 // JavaScript functions for dynamic form behavior
+
+// Format angka ke format rupiah Indonesia (dengan titik sebagai pemisah ribuan, tanpa desimal)
 function formatRupiah(angka) {
-    return angka.toLocaleString('id-ID');
+    // Hapus semua karakter non-digit
+    let numStr = angka.toString().replace(/\D/g, '');
+    // Konversi ke integer untuk memastikan tidak ada desimal
+    let num = parseInt(numStr) || 0;
+    // Format dengan titik sebagai pemisah ribuan
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+// Format input saat blur (bukan oninput untuk mencegah infinite loop)
+function formatRupiahInput(input) {
+    // Hapus semua karakter non-digit
+    let value = input.value.replace(/\D/g, '');
+    
+    // Jika kosong, set ke kosong
+    if (value === '') {
+        input.value = '';
+        return;
+    }
+    
+    // Format dengan titik sebagai pemisah ribuan
+    input.value = formatRupiah(value);
+}
+
+// Unformat rupiah (hilangkan titik) untuk perhitungan
+function unformatRupiah(value) {
+    if (typeof value !== 'string') return value;
+    return parseFloat(value.replace(/\./g, '')) || 0;
 }
 
 function hitungTotal() {
-    const harga = parseFloat(document.getElementById('harga_perolehan').value) || 0;
+    const harga = unformatRupiah(document.getElementById('harga_perolehan').value);
     const biaya = parseFloat(document.getElementById('biaya_perolehan').value) || 0;
     const total = harga + biaya;
     document.getElementById('total_perolehan_display').textContent = 'Rp ' + formatRupiah(total);
@@ -450,9 +479,10 @@ function hitungTotal() {
 }
 
 function hitungPenyusutan() {
-    const total = (parseFloat(document.getElementById('harga_perolehan').value) || 0) + 
-                  (parseFloat(document.getElementById('biaya_perolehan').value) || 0);
-    const residu = parseFloat(document.getElementById('nilai_residu').value) || 0;
+    const harga = unformatRupiah(document.getElementById('harga_perolehan').value);
+    const biaya = parseFloat(document.getElementById('biaya_perolehan').value) || 0;
+    const total = harga + biaya;
+    const residu = unformatRupiah(document.getElementById('nilai_residu').value);
     const umur = parseInt(document.getElementById('umur_manfaat').value) || 0;
     const metode = document.getElementById('metode_penyusutan').value;
     
@@ -608,6 +638,17 @@ function checkPenyusutan() {
 
 // Event listeners untuk perhitungan otomatis
 document.addEventListener('DOMContentLoaded', function() {
+    // Clean up any ",00" in input fields on page load (browser auto-format)
+    const hargaInput = document.getElementById('harga_perolehan');
+    const residuInput = document.getElementById('nilai_residu');
+    
+    if (hargaInput && hargaInput.value) {
+        hargaInput.value = hargaInput.value.replace(/,00/g, '').replace(/,/g, '');
+    }
+    if (residuInput && residuInput.value) {
+        residuInput.value = residuInput.value.replace(/,00/g, '').replace(/,/g, '');
+    }
+    
     hitungTotal();
     loadKategoriAset();
     
@@ -617,6 +658,20 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('nilai_residu').addEventListener('input', hitungPenyusutan);
     document.getElementById('umur_manfaat').addEventListener('input', hitungPenyusutan);
     document.getElementById('metode_penyusutan').addEventListener('change', hitungPenyusutan);
+});
+
+// Strip formatting before form submission
+document.getElementById('asetForm').addEventListener('submit', function(e) {
+    const hargaInput = document.getElementById('harga_perolehan');
+    const residuInput = document.getElementById('nilai_residu');
+    
+    // Unformat values before submission
+    if (hargaInput) {
+        hargaInput.value = unformatRupiah(hargaInput.value);
+    }
+    if (residuInput) {
+        residuInput.value = unformatRupiah(residuInput.value);
+    }
 });
 </script>
 @endsection

@@ -65,9 +65,10 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="harga_perolehan" class="form-label text-dark">Harga Perolehan (Rp) <span class="text-danger">*</span></label>
-                        <input type="number" step="0.01" class="form-control bg-white text-dark @error('harga_perolehan') is-invalid @enderror" 
-                               id="harga_perolehan" name="harga_perolehan" value="{{ old('harga_perolehan', 0) }}" 
-                               required oninput="hitungTotal()">
+                        <input type="text" class="form-control bg-white text-dark @error('harga_perolehan') is-invalid @enderror" 
+                               id="harga_perolehan" name="harga_perolehan" value="{{ old('harga_perolehan') ? number_format(old('harga_perolehan'), 0, ',', '.') : '' }}" 
+                               placeholder="0"
+                               required inputmode="numeric" oninput="hitungTotal()" onblur="formatRupiahInput(this)">
                         @error('harga_perolehan')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -175,9 +176,10 @@
 
                         <div class="col-md-4 mb-3">
                             <label for="nilai_residu" class="form-label text-dark">Nilai Residu (Rp)</label>
-                            <input type="number" step="0.01" class="form-control bg-white text-dark @error('nilai_residu') is-invalid @enderror" 
-                                   id="nilai_residu" name="nilai_residu" value="{{ old('nilai_residu', 0) }}" 
-                                   oninput="hitungPenyusutan()">
+                            <input type="text" class="form-control bg-white text-dark @error('nilai_residu') is-invalid @enderror" 
+                                   id="nilai_residu" name="nilai_residu" value="{{ old('nilai_residu') ? number_format(old('nilai_residu'), 0, ',', '.') : '' }}" 
+                                   placeholder="0"
+                                   inputmode="numeric" oninput="hitungPenyusutan()" onblur="formatRupiahInput(this)">
                             <small class="text-muted">Nilai sisa di akhir umur manfaat</small>
                             @error('nilai_residu')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -296,14 +298,8 @@
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label for="keterangan" class="form-label text-dark">Keterangan</label>
-                    <textarea class="form-control bg-white text-dark @error('keterangan') is-invalid @enderror" 
-                              id="keterangan" name="keterangan" rows="3">{{ old('keterangan') }}</textarea>
-                    @error('keterangan')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
+                <!-- Keterangan field hidden per user request -->
+                <input type="hidden" id="keterangan" name="keterangan" value="">
 
                 <!-- Section COA -->
                 <div class="card border-0 shadow-sm mb-4 bg-white">
@@ -477,7 +473,7 @@ function checkPenyusutan() {
             // Set nilai default untuk aset yang tidak disusutkan
             metodePenyusutan.value = '';
             umurManfaat.value = 0;
-            nilaiResidu.value = 0;
+            nilaiResidu.value = '';
             
             // Tampilkan alasan
             let alasan = '';
@@ -501,9 +497,40 @@ function checkPenyusutan() {
     }
 }
 
+// Format angka ke format rupiah Indonesia (dengan titik sebagai pemisah ribuan, tanpa desimal)
+function formatRupiah(angka) {
+    // Hapus semua karakter non-digit
+    let numStr = angka.toString().replace(/\D/g, '');
+    // Konversi ke integer untuk memastikan tidak ada desimal
+    let num = parseInt(numStr) || 0;
+    // Format dengan titik sebagai pemisah ribuan
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+// Format input saat blur (bukan oninput untuk mencegah infinite loop)
+function formatRupiahInput(input) {
+    // Hapus semua karakter non-digit
+    let value = input.value.replace(/\D/g, '');
+    
+    // Jika kosong, set ke kosong
+    if (value === '') {
+        input.value = '';
+        return;
+    }
+    
+    // Format dengan titik sebagai pemisah ribuan
+    input.value = formatRupiah(value);
+}
+
+// Unformat rupiah (hilangkan titik) untuk perhitungan
+function unformatRupiah(value) {
+    if (typeof value !== 'string') return value;
+    return parseFloat(value.replace(/\./g, '')) || 0;
+}
+
 // Hitung total perolehan
 function hitungTotal() {
-    const harga = parseFloat(document.getElementById('harga_perolehan').value) || 0;
+    const harga = unformatRupiah(document.getElementById('harga_perolehan').value);
     const biaya = parseFloat(document.getElementById('biaya_perolehan').value) || 0;
     const total = harga + biaya;
     
@@ -610,10 +637,10 @@ function hitungPerhitunganTahunan(total, residu, umur, tarifPersen, bulanMulai) 
 
 // Hitung penyusutan
 function hitungPenyusutan() {
-    const harga = parseFloat(document.getElementById('harga_perolehan').value) || 0;
+    const harga = unformatRupiah(document.getElementById('harga_perolehan').value);
     const biaya = parseFloat(document.getElementById('biaya_perolehan').value) || 0;
     const total = harga + biaya;
-    const residu = parseFloat(document.getElementById('nilai_residu').value) || 0;
+    const residu = unformatRupiah(document.getElementById('nilai_residu').value);
     const umur = parseFloat(document.getElementById('umur_manfaat').value) || 1;
     const metode = document.getElementById('metode_penyusutan').value;
     
@@ -758,15 +785,20 @@ function updateDepreciationInfo(metode, ratePersen = 0) {
         infoDiv.style.display = 'none';
     }
 }
-function formatRupiah(angka) {
-    return new Intl.NumberFormat('id-ID', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(angka);
-}
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Clean up any ",00" in input fields on page load (browser auto-format)
+    const hargaInput = document.getElementById('harga_perolehan');
+    const residuInput = document.getElementById('nilai_residu');
+    
+    if (hargaInput && hargaInput.value) {
+        hargaInput.value = hargaInput.value.replace(/,00/g, '').replace(/,/g, '');
+    }
+    if (residuInput && residuInput.value) {
+        residuInput.value = residuInput.value.replace(/,00/g, '').replace(/,/g, '');
+    }
+    
     // Load kategori if jenis already selected
     if ('{{ old("jenis_aset_id") }}') {
         loadKategoriAset();
@@ -790,11 +822,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="mb-3">
                         <label for="nama_jenis_aset" class="form-label text-dark">Nama Jenis Aset <span class="text-danger">*</span></label>
                         <input type="text" class="form-control bg-white text-dark" id="nama_jenis_aset" name="nama" required>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="deskripsi_jenis_aset" class="form-label text-dark">Deskripsi</label>
-                        <textarea class="form-control bg-white text-dark" id="deskripsi_jenis_aset" name="deskripsi" rows="3"></textarea>
                         <div class="invalid-feedback"></div>
                     </div>
                 </div>
@@ -966,7 +993,7 @@ function checkPenyusutan() {
             // Set nilai default untuk aset yang tidak disusutkan
             metodePenyusutan.value = '';
             umurManfaat.value = 0;
-            nilaiResidu.value = 0;
+            nilaiResidu.value = '';
             
             // Tampilkan alasan
             let alasan = '';
@@ -1169,6 +1196,20 @@ document.getElementById('formTambahKategoriAset').addEventListener('submit', fun
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
     });
+});
+
+// Strip formatting before form submission
+document.getElementById('asetForm').addEventListener('submit', function(e) {
+    const hargaInput = document.getElementById('harga_perolehan');
+    const residuInput = document.getElementById('nilai_residu');
+    
+    // Unformat values before submission
+    if (hargaInput) {
+        hargaInput.value = unformatRupiah(hargaInput.value);
+    }
+    if (residuInput) {
+        residuInput.value = unformatRupiah(residuInput.value);
+    }
 });
 </script>
 @endsection
