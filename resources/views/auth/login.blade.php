@@ -10,6 +10,16 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     
     <style>
+        /* Hide scrollbar but keep functionality */
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        
+        body {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        
         /* IMPORTANT: Override Bootstrap completely */
         #loginButton, #loginButton:hover, #loginButton:focus, #loginButton:active,
         #loginButton.focus, #loginButton:focus:active, #loginButton.active:focus,
@@ -37,12 +47,14 @@
         /* Video background */
         video#bg-video {
             position: fixed;
-            top: 0;
+            top: -5%;
             left: 0;
             width: 100%;
-            height: 100%;
+            height: 110%;
             z-index: -2;
             object-fit: cover;
+            filter: contrast(1.1) brightness(1.05) saturate(1.1);
+            transform: scale(1.02);
         }
 
         .overlay {
@@ -61,15 +73,16 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
+            margin-top: 150px;
         }
 
         .login-box {
             background: rgba(245, 243, 239, 0.95);
             backdrop-filter: blur(20px);
             border-radius: 16px;
-            padding: 2rem;
-            width: 480px;
-            max-width: 90vw;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 1200px;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
             border: 1px solid rgba(222, 184, 135, 0.3);
             color: #3e2723;
@@ -83,26 +96,64 @@
             color: #fff;
         }
 
+        .welcome-title {
+            text-align: center;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            font-size: 2.8rem;
+            color: #3e2723;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
         .form-label {
             font-weight: 600;
             color: #3e2723;
             margin-bottom: 0.5rem;
-            font-size: 0.875rem;
+            font-size: 1.3rem;
         }
 
         .form-control, .form-select {
-            background: rgba(255, 255, 255, 0.7) !important;
-            border: 1px solid rgba(139, 69, 19, 0.2);
+            background: rgba(255, 255, 255, 0.9) !important;
+            border: 2px solid rgba(139, 69, 19, 0.3) !important;
             color: #3e2723 !important;
             border-radius: 8px;
-            padding: 0.8rem 1rem;
+            padding: 1.8rem 1.8rem !important;
             transition: all 0.3s;
-            font-size: 0.875rem;
-            height: 48px;
-            line-height: 1.5;
+            font-size: 1.3rem !important;
+            height: 85px !important;
+            line-height: 1.4 !important;
             box-sizing: border-box;
             display: block;
             width: 100%;
+            font-weight: 500 !important;
+        }
+
+        /* Khusus untuk dropdown Masuk Ke Halaman */
+        #login_role {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border: 2px solid rgba(139, 69, 19, 0.3) !important;
+            color: #3e2723 !important;
+            font-size: 1.3rem !important;
+            font-weight: 500 !important;
+            height: 85px !important;
+            padding: 1.8rem 1.8rem !important;
+            line-height: 1.4 !important;
+        }
+
+        #login_role:focus {
+            background: rgba(255, 255, 255, 1) !important;
+            border-color: #8b6f47 !important;
+            box-shadow: 0 0 0 4px rgba(139, 111, 71, 0.3) !important;
+        }
+
+        /* Dropdown options styling */
+        #login_role option {
+            background: #ffffff !important;
+            color: #3e2723 !important;
+            font-size: 1.2rem !important;
+            font-weight: 500 !important;
+            padding: 1rem !important;
         }
 
         .form-control:focus, .form-select:focus {
@@ -208,21 +259,22 @@
             margin: 0;
             cursor: pointer;
             color: #3e2723;
+            font-size: 1.3rem;
         }
 
         button, .btn {
             background: linear-gradient(135deg, #d4a574 0%, #c19a6b 100%) !important;
             border: none !important;
             width: 100%;
-            padding: 0.8rem 1rem;
+            padding: 1.8rem 1.8rem;
             border-radius: 8px;
             color: #fff !important;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
-            font-size: 0.875rem;
-            height: 48px;
-            line-height: 1.5;
+            font-size: 1.4rem;
+            height: 85px;
+            line-height: 1.4;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -284,7 +336,7 @@
         a {
             color: #3e2723;
             text-decoration: none;
-            font-size: 0.875rem;
+            font-size: 1.3rem;
             transition: all 0.3s;
         }
 
@@ -420,6 +472,11 @@
         }
 
         @media (max-width: 640px) {
+            .login-box {
+                max-width: 95vw;
+                padding: 1.5rem;
+            }
+            
             .logo-external {
                 top: 15px;
                 right: 15px;
@@ -441,12 +498,13 @@
         }
 
         .subtitle {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.9rem;
-            margin: 0;
-            font-weight: 300;
+            color: #6d4c41;
+            font-size: 1.3rem;
+            margin: 0.3rem auto;
+            font-weight: 500;
             letter-spacing: 0.5px;
             animation: fadeIn 1.2s ease-out;
+            max-width: 85%;
         }
 
         /* Animations */
@@ -491,7 +549,7 @@
 <body>
 
     <!-- Background video -->
-    <video autoplay muted loop id="bg-video">
+    <video autoplay muted loop playsinline preload="auto" id="bg-video">
         <source src="{{ asset('umkm.mp4') }}" type="video/mp4">
     </video>
     <div class="overlay"></div>
@@ -507,6 +565,12 @@
 
     <div class="login-container px-3">
         <div class="login-box">
+            <!-- Welcome Section -->
+            <div class="text-center mb-4">
+                <h1 class="welcome-title">Selamat Datang</h1>
+                <p class="subtitle">Sistem Manajemen Manufaktur Proces Costing Terpadu - Kelola bisnis Anda dengan mudah dan efisien</p>
+            </div>
+            
             @if (session('status'))
                 <div class="alert alert-success py-2 mb-3">
                     {{ session('status') }}
