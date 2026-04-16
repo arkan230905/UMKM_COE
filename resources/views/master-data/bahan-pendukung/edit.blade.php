@@ -146,9 +146,9 @@
                         <!-- Sub Satuan 1 -->
                         <div class="row align-items-end mb-3">
                             <div class="col-md-2">
-                                <label class="form-label">Konversi 1 <span class="text-danger">*</span></label>
+                                <label class="form-label">Konversi 1</label>
                                 <input type="text" name="sub_satuan_1_konversi" class="form-control decimal-input @error('sub_satuan_1_konversi') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_1_konversi', $bahanPendukung->sub_satuan_1_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_1_konversi, 5, ',', '.'), '0'), ',') : '1') }}" placeholder="1" required>
+                                       value="{{ old('sub_satuan_1_konversi', $bahanPendukung->sub_satuan_1_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_1_konversi, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1">
                                 @error('sub_satuan_1_konversi')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -161,16 +161,16 @@
                                 <span class="fw-bold">=</span>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Nilai 1 <span class="text-danger">*</span></label>
+                                <label class="form-label">Nilai 1</label>
                                 <input type="text" name="sub_satuan_1_nilai" class="form-control decimal-input @error('sub_satuan_1_nilai') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_1_nilai', $bahanPendukung->sub_satuan_1_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_1_nilai, 5, ',', '.'), '0'), ',') : '1') }}" placeholder="1" required>
+                                       value="{{ old('sub_satuan_1_nilai', $bahanPendukung->sub_satuan_1_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_1_nilai, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1">
                                 @error('sub_satuan_1_nilai')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Sub Satuan 1 <span class="text-danger">*</span></label>
-                                <select name="sub_satuan_1_id" class="form-select @error('sub_satuan_1_id') is-invalid @enderror" required>
+                                <label class="form-label">Sub Satuan 1</label>
+                                <select name="sub_satuan_1_id" class="form-select @error('sub_satuan_1_id') is-invalid @enderror">
                                     <option value="">- Pilih Satuan -</option>
                                     @foreach($satuans as $satuan)
                                         <option value="{{ $satuan->id }}" {{ old('sub_satuan_1_id', $bahanPendukung->sub_satuan_1_id) == $satuan->id ? 'selected' : '' }}>
@@ -192,9 +192,9 @@
                         <!-- Sub Satuan 2 -->
                         <div class="row align-items-end mb-3">
                             <div class="col-md-2">
-                                <label class="form-label">Konversi 2 <span class="text-danger">*</span></label>
+                                <label class="form-label">Konversi 2</label>
                                 <input type="text" name="sub_satuan_2_konversi" class="form-control decimal-input @error('sub_satuan_2_konversi') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_2_konversi', $bahanPendukung->sub_satuan_2_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_2_konversi, 5, ',', '.'), '0'), ',') : '1') }}" placeholder="1" required>
+                                       value="{{ old('sub_satuan_2_konversi', $bahanPendukung->sub_satuan_2_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_2_konversi, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1">
                                 @error('sub_satuan_2_konversi')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -206,16 +206,16 @@
                                 <span class="fw-bold">=</span>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Nilai 2 <span class="text-danger">*</span></label>
+                                <label class="form-label">Nilai 2</label>
                                 <input type="text" name="sub_satuan_2_nilai" class="form-control decimal-input @error('sub_satuan_2_nilai') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_2_nilai', $bahanPendukung->sub_satuan_2_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_2_nilai, 5, ',', '.'), '0'), ',') : '1') }}" placeholder="1" required>
+                                       value="{{ old('sub_satuan_2_nilai', $bahanPendukung->sub_satuan_2_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_2_nilai, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1">
                                 @error('sub_satuan_2_nilai')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Sub Satuan 2 <span class="text-danger">*</span></label>
-                                <select name="sub_satuan_2_id" class="form-select @error('sub_satuan_2_id') is-invalid @enderror" required>
+                                <label class="form-label">Sub Satuan 2</label>
+                                <select name="sub_satuan_2_id" class="form-select @error('sub_satuan_2_id') is-invalid @enderror">
                                     <option value="">- Pilih Satuan -</option>
                                     @foreach($satuans as $satuan)
                                         <option value="{{ $satuan->id }}" {{ old('sub_satuan_2_id', $bahanPendukung->sub_satuan_2_id) == $satuan->id ? 'selected' : '' }}>
@@ -237,9 +237,9 @@
                         <!-- Sub Satuan 3 -->
                         <div class="row align-items-end mb-3">
                             <div class="col-md-2">
-                                <label class="form-label">Konversi 3 <span class="text-danger">*</span></label>
+                                <label class="form-label">Konversi 3</label>
                                 <input type="text" name="sub_satuan_3_konversi" class="form-control decimal-input @error('sub_satuan_3_konversi') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_3_konversi', $bahanPendukung->sub_satuan_3_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_3_konversi, 5, ',', '.'), '0'), ',') : '1') }}" placeholder="1" required>
+                                       value="{{ old('sub_satuan_3_konversi', $bahanPendukung->sub_satuan_3_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_3_konversi, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1">
                                 @error('sub_satuan_3_konversi')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -251,16 +251,16 @@
                                 <span class="fw-bold">=</span>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Nilai 3 <span class="text-danger">*</span></label>
+                                <label class="form-label">Nilai 3</label>
                                 <input type="text" name="sub_satuan_3_nilai" class="form-control decimal-input @error('sub_satuan_3_nilai') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_3_nilai', $bahanPendukung->sub_satuan_3_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_3_nilai, 5, ',', '.'), '0'), ',') : '1') }}" placeholder="1" required>
+                                       value="{{ old('sub_satuan_3_nilai', $bahanPendukung->sub_satuan_3_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_3_nilai, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1">
                                 @error('sub_satuan_3_nilai')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Sub Satuan 3 <span class="text-danger">*</span></label>
-                                <select name="sub_satuan_3_id" class="form-select @error('sub_satuan_3_id') is-invalid @enderror" required>
+                                <label class="form-label">Sub Satuan 3</label>
+                                <select name="sub_satuan_3_id" class="form-select @error('sub_satuan_3_id') is-invalid @enderror">
                                     <option value="">- Pilih Satuan -</option>
                                     @foreach($satuans as $satuan)
                                         <option value="{{ $satuan->id }}" {{ old('sub_satuan_3_id', $bahanPendukung->sub_satuan_3_id) == $satuan->id ? 'selected' : '' }}>

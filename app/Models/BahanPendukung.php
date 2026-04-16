@@ -39,7 +39,13 @@ class BahanPendukung extends Model
         'harga_satuan' => 'decimal:2',
         'stok' => 'decimal:4',
         'stok_minimum' => 'decimal:4',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
+        'sub_satuan_1_konversi' => 'decimal:4',
+        'sub_satuan_1_nilai' => 'decimal:4',
+        'sub_satuan_2_konversi' => 'decimal:4',
+        'sub_satuan_2_nilai' => 'decimal:4',
+        'sub_satuan_3_konversi' => 'decimal:4',
+        'sub_satuan_3_nilai' => 'decimal:4',
     ];
 
     protected $appends = ['stok_aman', 'status_stok'];

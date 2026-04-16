@@ -39,7 +39,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="name" class="form-label fw-bold">
-                                        <i class="fas fa-user me-1"></i> Nama Lengkap
+                                        <i class="fas fa-user me-1"></i> Nama Lengkap <span style="color: red;">*</span>
                                     </label>
                                     <input type="text" 
                                            class="form-control @error('name') is-invalid @enderror" 
@@ -59,7 +59,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="email" class="form-label fw-bold">
-                                        <i class="fas fa-envelope me-1"></i> Email
+                                        <i class="fas fa-envelope me-1"></i> Email <span style="color: red;">*</span>
                                     </label>
                                     <input type="email" 
                                            class="form-control @error('email') is-invalid @enderror" 
@@ -81,7 +81,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="phone" class="form-label fw-bold">
-                                        <i class="fas fa-phone me-1"></i> No. Telepon
+                                        <i class="fas fa-phone me-1"></i> No. Telepon <span style="color: red;">*</span>
                                     </label>
                                     <input type="tel" 
                                            class="form-control @error('phone') is-invalid @enderror" 
@@ -101,7 +101,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="password" class="form-label fw-bold">
-                                        <i class="fas fa-lock me-1"></i> Password
+                                        <i class="fas fa-lock me-1"></i> Password <span style="color: red;">*</span>
                                     </label>
                                     <div class="input-group">
                                         <input type="password" 
@@ -127,7 +127,7 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="password_confirmation" class="form-label fw-bold">
-                                        <i class="fas fa-lock me-1"></i> Konfirmasi Password
+                                        <i class="fas fa-lock me-1"></i> Konfirmasi Password <span style="color: red;">*</span>
                                     </label>
                                     <div class="input-group">
                                         <input type="password" 

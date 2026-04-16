@@ -127,15 +127,15 @@ class BahanPendukungController extends Controller
             'stok' => 'nullable|numeric|min:0',
             'stok_minimum' => 'nullable|numeric|min:0',
             'kategori_id' => 'required|exists:kategori_bahan_pendukung,id',
-            'sub_satuan_1_id' => 'required|exists:satuans,id',
-            'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
-            'sub_satuan_1_nilai' => 'required|numeric',
-            'sub_satuan_2_id' => 'required|exists:satuans,id',
-            'sub_satuan_2_konversi' => 'required|numeric|min:0.01',
-            'sub_satuan_2_nilai' => 'required|numeric',
-            'sub_satuan_3_id' => 'required|exists:satuans,id',
-            'sub_satuan_3_konversi' => 'required|numeric|min:0.01',
-            'sub_satuan_3_nilai' => 'required|numeric',
+            'sub_satuan_1_id' => 'nullable|exists:satuans,id',
+            'sub_satuan_1_konversi' => 'nullable|numeric|min:0.01',
+            'sub_satuan_1_nilai' => 'nullable|numeric',
+            'sub_satuan_2_id' => 'nullable|exists:satuans,id',
+            'sub_satuan_2_konversi' => 'nullable|numeric|min:0.01',
+            'sub_satuan_2_nilai' => 'nullable|numeric',
+            'sub_satuan_3_id' => 'nullable|exists:satuans,id',
+            'sub_satuan_3_konversi' => 'nullable|numeric|min:0.01',
+            'sub_satuan_3_nilai' => 'nullable|numeric',
             'coa_pembelian_id' => 'nullable|exists:coas,kode_akun',
             'coa_persediaan_id' => 'nullable|exists:coas,kode_akun',
             'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
@@ -168,7 +168,8 @@ class BahanPendukungController extends Controller
         }
         
         // Hitung sub satuan prices dengan formula yang benar
-        $subSatuanPrices = $this->calculateSubSatuanPrices($bahanPendukung);
+        $subSatuanData = $this->getDirectSubSatuanPrices($bahanPendukung);
+        $subSatuanPrices = $subSatuanData['sub_satuan_prices'] ?? [];
         
         return view('master-data.bahan-pendukung.show', compact('bahanPendukung', 'subSatuanPrices'));
     }
@@ -194,15 +195,15 @@ class BahanPendukungController extends Controller
             'stok' => 'nullable|numeric|min:0',
             'stok_minimum' => 'nullable|numeric|min:0',
             'kategori_id' => 'required|exists:kategori_bahan_pendukung,id',
-            'sub_satuan_1_id' => 'required|exists:satuans,id',
-            'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
-            'sub_satuan_1_nilai' => 'required|numeric',
-            'sub_satuan_2_id' => 'required|exists:satuans,id',
-            'sub_satuan_2_konversi' => 'required|numeric|min:0.01',
-            'sub_satuan_2_nilai' => 'required|numeric',
-            'sub_satuan_3_id' => 'required|exists:satuans,id',
-            'sub_satuan_3_konversi' => 'required|numeric|min:0.01',
-            'sub_satuan_3_nilai' => 'required|numeric',
+            'sub_satuan_1_id' => 'nullable|exists:satuans,id',
+            'sub_satuan_1_konversi' => 'nullable|numeric|min:0.01',
+            'sub_satuan_1_nilai' => 'nullable|numeric',
+            'sub_satuan_2_id' => 'nullable|exists:satuans,id',
+            'sub_satuan_2_konversi' => 'nullable|numeric|min:0.01',
+            'sub_satuan_2_nilai' => 'nullable|numeric',
+            'sub_satuan_3_id' => 'nullable|exists:satuans,id',
+            'sub_satuan_3_konversi' => 'nullable|numeric|min:0.01',
+            'sub_satuan_3_nilai' => 'nullable|numeric',
             'coa_pembelian_id' => 'nullable|exists:coas,kode_akun',
             'coa_persediaan_id' => 'nullable|exists:coas,kode_akun',
             'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
@@ -298,57 +299,68 @@ class BahanPendukungController extends Controller
         $hargaUtama = $bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan;
 
         // Sub Satuan 1
-        if ($bahanPendukung->subSatuan1 && $bahanPendukung->sub_satuan_1_konversi > 0) {
-            // Formula yang benar: harga_sub = harga_utama ÷ nilai_konversi
-            $hargaPerUnit = $hargaUtama / $bahanPendukung->sub_satuan_1_konversi;
+        if ($bahanPendukung->sub_satuan_1_id && $bahanPendukung->sub_satuan_1_konversi > 0) {
+            $hargaPerUnit = $hargaUtama / $bahanPendukung->sub_satuan_1_nilai;
             
             $subSatuanPrices[] = [
                 'satuan_nama' => $bahanPendukung->subSatuan1->nama,
                 'konversi_nilai' => $bahanPendukung->sub_satuan_1_konversi,
                 'harga_per_unit' => round($hargaPerUnit, 2),
                 'formula_text' => "Rp " . number_format($hargaUtama, 0, ',', '.') . 
-                                " ÷ " . number_format($bahanPendukung->sub_satuan_1_konversi, 0, ',', '.') . 
+                                " ÷ " . number_format($bahanPendukung->sub_satuan_1_nilai, 0, ',', '.') . 
                                 " = Rp " . number_format($hargaPerUnit, 0, ',', '.'),
-                'konversi_text' => "1 {$bahanPendukung->satuan->nama} = " . 
-                                 number_format($bahanPendukung->sub_satuan_1_konversi, 0, ',', '.') . 
+                'konversi_text' => number_format($bahanPendukung->sub_satuan_1_konversi, 0, ',', '.') . " " . 
+                                 "{$bahanPendukung->satuan->nama} = " . 
+                                 number_format($bahanPendukung->sub_satuan_1_nilai, 0, ',', '.') . 
                                  " {$bahanPendukung->subSatuan1->nama}"
             ];
         }
 
         // Sub Satuan 2
-        if ($bahanPendukung->subSatuan2 && $bahanPendukung->sub_satuan_2_konversi > 0) {
-            $hargaPerUnit = $hargaUtama / $bahanPendukung->sub_satuan_2_konversi;
+        if ($bahanPendukung->sub_satuan_2_id && $bahanPendukung->sub_satuan_2_konversi > 0) {
+            $hargaPerUnit = $hargaUtama / $bahanPendukung->sub_satuan_2_nilai;
             
             $subSatuanPrices[] = [
                 'satuan_nama' => $bahanPendukung->subSatuan2->nama,
                 'konversi_nilai' => $bahanPendukung->sub_satuan_2_konversi,
                 'harga_per_unit' => round($hargaPerUnit, 2),
                 'formula_text' => "Rp " . number_format($hargaUtama, 0, ',', '.') . 
-                                " ÷ " . number_format($bahanPendukung->sub_satuan_2_konversi, 0, ',', '.') . 
+                                " ÷ " . number_format($bahanPendukung->sub_satuan_2_nilai, 0, ',', '.') . 
                                 " = Rp " . number_format($hargaPerUnit, 0, ',', '.'),
-                'konversi_text' => "1 {$bahanPendukung->satuan->nama} = " . 
-                                 number_format($bahanPendukung->sub_satuan_2_konversi, 0, ',', '.') . 
+                'konversi_text' => number_format($bahanPendukung->sub_satuan_2_konversi, 0, ',', '.') . " " . 
+                                 "{$bahanPendukung->satuan->nama} = " . 
+                                 number_format($bahanPendukung->sub_satuan_2_nilai, 0, ',', '.') . 
                                  " {$bahanPendukung->subSatuan2->nama}"
             ];
         }
 
         // Sub Satuan 3
-        if ($bahanPendukung->subSatuan3 && $bahanPendukung->sub_satuan_3_konversi > 0) {
-            $hargaPerUnit = $hargaUtama / $bahanPendukung->sub_satuan_3_konversi;
+        if ($bahanPendukung->sub_satuan_3_id && $bahanPendukung->sub_satuan_3_konversi > 0) {
+            $hargaPerUnit = $hargaUtama / $bahanPendukung->sub_satuan_3_nilai;
             
             $subSatuanPrices[] = [
                 'satuan_nama' => $bahanPendukung->subSatuan3->nama,
                 'konversi_nilai' => $bahanPendukung->sub_satuan_3_konversi,
                 'harga_per_unit' => round($hargaPerUnit, 2),
                 'formula_text' => "Rp " . number_format($hargaUtama, 0, ',', '.') . 
-                                " ÷ " . number_format($bahanPendukung->sub_satuan_3_konversi, 0, ',', '.') . 
+                                " ÷ " . number_format($bahanPendukung->sub_satuan_3_nilai, 0, ',', '.') . 
                                 " = Rp " . number_format($hargaPerUnit, 0, ',', '.'),
-                'konversi_text' => "1 {$bahanPendukung->satuan->nama} = " . 
-                                 number_format($bahanPendukung->sub_satuan_3_konversi, 0, ',', '.') . 
+                'konversi_text' => number_format($bahanPendukung->sub_satuan_3_konversi, 0, ',', '.') . " " . 
+                                 "{$bahanPendukung->satuan->nama} = " . 
+                                 number_format($bahanPendukung->sub_satuan_3_nilai, 0, ',', '.') . 
                                  " {$bahanPendukung->subSatuan3->nama}"
             ];
         }
 
         return $subSatuanPrices;
+    }
+
+    /**
+     * Get direct sub satuan prices from bahan_pendukungs table
+     */
+    private function getDirectSubSatuanPrices($bahanPendukung)
+    {
+        $service = new \App\Services\BahanPendukungService();
+        return $service->getDirectSubSatuanPrices($bahanPendukung->id);
     }
 }

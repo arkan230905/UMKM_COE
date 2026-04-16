@@ -2524,8 +2524,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit/{id}', [BiayaBahanController::class, 'edit'])->name('edit');
             Route::put('/update/{id}', [BiayaBahanController::class, 'update'])->name('update');
             Route::delete('/{id}', [BiayaBahanController::class, 'destroy'])->name('destroy');
-            Route::post('/recalculate', [BiayaBahanController::class, 'recalculate'])->name('recalculate');
-            
+                        
             // New routes for price change handling
             Route::post('/update-on-price-change', [BiayaBahanController::class, 'updateOnPriceChange'])->name('update-on-price-change');
             Route::get('/harga-change-report/{bahanBakuId}', [BiayaBahanController::class, 'getHargaChangeReport'])->name('harga-change-report');

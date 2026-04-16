@@ -707,11 +707,15 @@ class LaporanController extends Controller
                                     $dailySaleNilai = 0;
                                     // Set saldo awal for this row
                                     $saldoAwalQty = (float)$m->qty;
-                                    $saldoAwalNilai = (float)($m->total_cost ?? 0);
+                                    // Use item's harga_satuan as fallback when movement total_cost is 0
+                                    $totalCost = ($m->total_cost ?? 0) > 0 ? ($m->total_cost ?? 0) : (($m->qty * ($item->harga_satuan ?? 0)));
+                                    $saldoAwalNilai = (float)$totalCost;
                                 } elseif ($m->ref_type === 'purchase') {
                                     // Only actual purchases go to pembelian column
                                     $dailyInQty = (float)$m->qty;
-                                    $dailyInNilai = (float)($m->total_cost ?? 0);
+                                    // Use item's harga_satuan as fallback when movement total_cost is 0
+                                    $totalCost = ($m->total_cost ?? 0) > 0 ? ($m->total_cost ?? 0) : (($m->qty * ($item->harga_satuan ?? 0)));
+                                    $dailyInNilai = (float)$totalCost;
                                     $dailyOutQty = 0;
                                     $dailyOutNilai = 0;
                                     $dailySaleQty = 0;
@@ -889,6 +893,9 @@ class LaporanController extends Controller
                         'produksi_nilai' => 0,
                         'saldo_akhir_qty' => $saldoAwalQty,
                         'saldo_akhir_nilai' => $saldoAwalNilai,
+                        'ref_type' => 'initial_stock',
+                        'ref_id' => '',
+                        'is_opening_balance' => false
                     ];
                 }
             }
@@ -1110,21 +1117,29 @@ class LaporanController extends Controller
                     
                     if($movement->ref_type === 'initial_stock') {
                         $saldoAwalQty = $movement->qty * $unit['conversion'];
-                        $saldoAwalHarga = $unit['conversion'] > 0 ? ($movement->unit_cost ?? 0) / $unit['conversion'] : ($movement->unit_cost ?? 0);
-                        $saldoAwalTotal = $movement->total_cost ?? 0;
+                        // Use item's harga_satuan as fallback when movement unit_cost is 0
+                        $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
+                        $saldoAwalHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
+                        $saldoAwalTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost);
                     } elseif($movement->ref_type === 'purchase' && $movement->direction === 'in') {
                         $pembelianQty = $movement->qty * $unit['conversion'];
-                        $pembelianHarga = $unit['conversion'] > 0 ? ($movement->unit_cost ?? 0) / $unit['conversion'] : ($movement->unit_cost ?? 0);
-                        $pembelianTotal = $movement->total_cost ?? 0;
+                        // Use item's harga_satuan as fallback when movement unit_cost is 0
+                        $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
+                        $pembelianHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
+                        $pembelianTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost);
                     } elseif($movement->ref_type === 'retur' && $movement->direction === 'out') {
                         // RETUR PEMBELIAN - tampilkan di kolom pembelian dengan tanda minus
                         $pembelianQty = -($movement->qty * $unit['conversion']); // Negatif untuk retur
-                        $pembelianHarga = $unit['conversion'] > 0 ? ($movement->unit_cost ?? 0) / $unit['conversion'] : ($movement->unit_cost ?? 0);
-                        $pembelianTotal = -($movement->total_cost ?? 0); // Negatif untuk retur
+                        // Use item's harga_satuan as fallback when movement unit_cost is 0
+                        $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
+                        $pembelianHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
+                        $pembelianTotal = $movement->total_cost > 0 ? -($movement->total_cost) : -($movement->qty * $unitCost); // Negatif untuk retur
                     } elseif($movement->ref_type === 'production' && $movement->direction === 'out') {
                         $produksiQty = $movement->qty * $unit['conversion'];
-                        $produksiHarga = $unit['conversion'] > 0 ? ($movement->unit_cost ?? 0) / $unit['conversion'] : ($movement->unit_cost ?? 0);
-                        $produksiTotal = $movement->total_cost ?? 0;
+                        // Use item's harga_satuan as fallback when movement unit_cost is 0
+                        $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
+                        $produksiHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
+                        $produksiTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost);
                     }
                     
                     $dailyStock[] = [

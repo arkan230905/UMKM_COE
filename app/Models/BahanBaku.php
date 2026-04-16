@@ -47,6 +47,12 @@ class BahanBaku extends Model
         'harga_rata_rata' => 'float',
         'stok' => 'float',
         'stok_minimum' => 'float',
+        'sub_satuan_1_konversi' => 'decimal:4',
+        'sub_satuan_1_nilai' => 'decimal:4',
+        'sub_satuan_2_konversi' => 'decimal:4',
+        'sub_satuan_2_nilai' => 'decimal:4',
+        'sub_satuan_3_konversi' => 'decimal:4',
+        'sub_satuan_3_nilai' => 'decimal:4',
     ];
     
     protected $appends = ['stok_aman', 'status_stok', 'harga_per_gram', 'stok_dalam_gram'];

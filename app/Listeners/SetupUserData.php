@@ -4,6 +4,8 @@ namespace App\Listeners;
 
 use App\Events\UserRegistered;
 use Database\Seeders\CoaTemplateSeeder;
+use Database\Seeders\JabatanSeeder;
+use Database\Seeders\PegawaiSeeder;
 use Illuminate\Support\Facades\Log;
 
 class SetupUserData
@@ -17,7 +19,7 @@ class SetupUserData
         try {
             // Jika user adalah owner dan memiliki company_id, copy COA template
             if ($event->user->role === 'owner' && $event->companyId) {
-                Log::info('Setting up COA for new user', [
+                Log::info('Setting up initial data for new user', [
                     'user_id' => $event->user->id,
                     'company_id' => $event->companyId,
                 ]);
@@ -25,7 +27,15 @@ class SetupUserData
                 // Copy COA template untuk company ini
                 CoaTemplateSeeder::copyCoaTemplateForCompany($event->companyId);
 
-                Log::info('COA setup completed for new user', [
+                // Seed Jabatan (Kualifikasi Tenaga Kerja) default
+                $jabatanSeeder = new JabatanSeeder();
+                $jabatanSeeder->run();
+
+                // Seed Pegawai default
+                $pegawaiSeeder = new PegawaiSeeder();
+                $pegawaiSeeder->run();
+
+                Log::info('Initial data setup completed for new user', [
                     'user_id' => $event->user->id,
                     'company_id' => $event->companyId,
                 ]);
