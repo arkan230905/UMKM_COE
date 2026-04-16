@@ -122,7 +122,7 @@
                                     </div>
                                     <div class="bg-light p-2 rounded">
                                         <p class="mb-0">
-                                            {{ $subSatuan['formula_text'] }}
+                                            <strong>Rumus:</strong> {{ $subSatuan['formula_text'] }}
                                         </p>
                                     </div>
                                 </div>

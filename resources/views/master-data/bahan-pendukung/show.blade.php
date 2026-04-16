@@ -148,7 +148,7 @@
                 <!-- Penjelasan Formula -->
                 <div class="alert alert-info mt-3">
                     <p class="mb-0">
-                        Rp 62.000 ÷ 1000 = Rp 62/Gram
+                        <strong>Rumus:</strong> Rp 62.000 ÷ 1000 = Rp 62/Gram
                     </p>
                 </div>
             @else
@@ -287,7 +287,7 @@
                 <!-- Penjelasan Formula -->
                 <div class="alert alert-info mt-3">
                     <p class="mb-0">
-                        Rp 62.000 ÷ 1000 = Rp 62/Gram
+                        <strong>Rumus:</strong> Rp 62.000 ÷ 1000 = Rp 62/Gram
                     </p>
                 </div>
             @endif
