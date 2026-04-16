@@ -90,7 +90,9 @@
             {{-- Kategori Akun --}}
             <div class="col-md-6">
                 <label class="form-label">Kategori Akun</label>
-                <input type="text" name="kategori_akun" id="kategori_akun" class="form-control" value="{{ old('kategori_akun') }}" placeholder="Misal: Kas & Bank, Persediaan">
+                <select name="kategori_akun" id="kategori_akun" class="form-select" required>
+                    <option value="">Pilih kategori</option>
+                </select>
             </div>
 
             {{-- Saldo Awal --}}

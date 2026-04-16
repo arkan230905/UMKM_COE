@@ -35,7 +35,7 @@ class AsetResource extends Resource
                 ->maxLength(255),
             Forms\Components\Select::make('kategori_aset_id')
                 ->label('Kategori Aset')
-                ->relationship('kategori', 'nama_kategori')
+                ->relationship('kategori', 'nama')
                 ->searchable()
                 ->required(),
             Forms\Components\DatePicker::make('tanggal_perolehan')
@@ -97,7 +97,7 @@ class AsetResource extends Resource
                     ->label('Nama Aset')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('kategori.nama_kategori')
+                Tables\Columns\TextColumn::make('kategori.nama')
                     ->label('Kategori')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('tanggal_perolehan')
