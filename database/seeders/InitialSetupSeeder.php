@@ -12,12 +12,12 @@ class InitialSetupSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     * Seeder ini untuk setup awal Satuan, Jenis Aset, dan Kategori Aset untuk user baru yang daftar
+     * Seeder ini untuk setup awal Jenis Aset dan Kategori Aset untuk user baru yang daftar
      * COA sudah dipindahkan ke CoaTemplateSeeder
+     * Satuan sudah dipindahkan ke SatuanSeeder
      */
     public function run(): void
     {
-        $this->seedSatuan();
         $this->seedJenisAset();
         $this->seedKategoriAset();
     }

@@ -15,10 +15,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Setup awal: COA Template (untuk user baru yang daftar)
+        // Setup awal: COA Template dan Satuan (untuk user baru yang daftar)
         $this->call([
             CoaTemplateSeeder::class,  // COA template yang akan di-copy saat registrasi
-            InitialSetupSeeder::class, // Satuan, Jenis Aset, Kategori Aset
+            SatuanSeeder::class,       // Satuan (global, tidak per company)
+            InitialSetupSeeder::class, // Jenis Aset, Kategori Aset
         ]);
 
         // Pastikan user admin dibuat terlebih dahulu
