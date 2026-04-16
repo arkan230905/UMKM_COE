@@ -76,8 +76,7 @@ class JabatanController extends Controller
 
         Jabatan::create($data);
 
-        return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')
-            ->with('success','Jabatan berhasil ditambahkan');
+        return redirect()->route('master-data.kualifikasi-tenaga-kerja.index', ['notify' => 'Kualifikasi berhasil ditambahkan.']);
     }
 
     public function edit(Jabatan $kualifikasi_tenaga_kerja)
@@ -136,8 +135,7 @@ class JabatanController extends Controller
             BomSyncService::syncBomFromJabatanChange($jabatan->id);
         }
 
-        return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')
-            ->with('success','Jabatan berhasil diperbarui');
+        return redirect()->route('master-data.kualifikasi-tenaga-kerja.index', ['notify' => 'Kualifikasi berhasil diperbarui.']);
     }
 
     public function destroy(Jabatan $kualifikasi_tenaga_kerja)
@@ -149,19 +147,17 @@ class JabatanController extends Controller
                 $pegawaiNames = \App\Models\Pegawai::where('jabatan', $kualifikasi_tenaga_kerja->nama)
                     ->pluck('nama')->implode(', ');
 
-                return back()->with('error', 
-                    "❌ Jabatan '{$kualifikasi_tenaga_kerja->nama}' tidak dapat dihapus karena digunakan oleh {$pegawaiCount} pegawai:<br><br>" .
-                    "<strong>Pegawai:</strong> {$pegawaiNames}"
-                );
+                return redirect()->route('master-data.kualifikasi-tenaga-kerja.index', [
+                    'notify_error' => "Jabatan '{$kualifikasi_tenaga_kerja->nama}' tidak dapat dihapus karena digunakan oleh {$pegawaiCount} pegawai: {$pegawaiNames}"
+                ]);
             }
 
             $kualifikasi_tenaga_kerja->delete();
 
-            return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')
-                ->with('success', "✅ Jabatan berhasil dihapus");
+            return redirect()->route('master-data.kualifikasi-tenaga-kerja.index', ['notify' => 'Kualifikasi berhasil dihapus.']);
 
         } catch (\Exception $e) {
-            return back()->with('error', '❌ Error: ' . $e->getMessage());
+            return redirect()->route('master-data.kualifikasi-tenaga-kerja.index', ['notify_error' => 'Error: ' . $e->getMessage()]);
         }
     }
 
