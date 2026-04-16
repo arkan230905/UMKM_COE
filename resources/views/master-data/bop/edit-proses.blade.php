@@ -84,19 +84,19 @@
                             </div>
                             <small class="text-white-50">
                                 Kapasitas {{ $bopProses->prosesProduksi->kapasitas_per_jam }} pcs/jam, 
-                                Tarif Rp {{ number_format($bopProses->prosesProduksi->tarif_per_jam, 2, ',', '.') }}/jam, 
-                                BTKL per pcs Rp {{ number_format($bopProses->prosesProduksi->btkl_per_pcs, 2, ',', '.') }}
+                                Tarif Rp {{ formatNumberClean($bopProses->prosesProduksi->tarif_per_jam) }}/jam, 
+                                BTKL per pcs Rp {{ formatNumberClean($bopProses->prosesProduksi->btkl_per_pcs) }}
                             </small>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label text-white-50">Kapasitas (pcs/jam)</label>
-                            <input type="number" class="form-control bg-dark text-white" 
-                                   value="{{ $bopProses->prosesProduksi->kapasitas_per_jam }}" readonly>
+                            <input type="text" class="form-control bg-dark text-white" 
+                                   value="{{ formatNumberClean($bopProses->prosesProduksi->kapasitas_per_jam) }}" readonly>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label text-white-50">BTKL / Jam</label>
                             <input type="text" class="form-control bg-dark text-white" 
-                                   value="{{ number_format($bopProses->prosesProduksi->tarif_per_jam, 2, ',', '.') }}" readonly>
+                                   value="{{ formatNumberClean($bopProses->prosesProduksi->tarif_per_jam) }}" readonly>
                         </div>
                     </div>
                     <div class="row mt-3">
@@ -104,7 +104,7 @@
                             <label class="form-label text-white-50">BTKL / produk</label>
                             <input type="text" class="form-control bg-dark text-white" 
                                    id="btklPerProdukDisplay"
-                                   value="{{ number_format($bopProses->prosesProduksi->btkl_per_pcs, 2, ',', '.') }}" readonly>
+                                   value="{{ formatNumberClean($bopProses->prosesProduksi->btkl_per_pcs) }}" readonly>
                         </div>
                     </div>
                 </div>
