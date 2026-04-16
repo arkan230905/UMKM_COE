@@ -168,11 +168,11 @@
             <div class="row g-3 mb-3">
                 <div class="col-md-3">
                     <strong>Harga Perolehan</strong>
-                    <div>Rp {{ number_format((float)$asset->harga_perolehan, 2, ',', '.') }}</div>
+                    <div>Rp {{ number_format((float)$asset->harga_perolehan, 0, ',', '.') }}</div>
                 </div>
                 <div class="col-md-3">
                     <strong>Nilai Residu</strong>
-                    <div>Rp {{ number_format((float)$asset->nilai_residu, 2, ',', '.') }}</div>
+                    <div>Rp {{ number_format((float)$asset->nilai_residu, 0, ',', '.') }}</div>
                 </div>
                 <div class="col-md-3">
                     <strong>Umur Manfaat</strong>
@@ -199,9 +199,9 @@
                         @forelse($depreciation_schedule as $row)
                         <tr>
                             <td>{{ $row['tahun'] }}</td>
-                            <td class="text-end">Rp {{ number_format((float)$row['beban_penyusutan'], 2, ',', '.') }}</td>
-                            <td class="text-end">Rp {{ number_format((float)$row['akumulasi_penyusutan'], 2, ',', '.') }}</td>
-                            <td class="text-end">Rp {{ number_format((float)$row['nilai_buku_akhir'], 2, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format((float)$row['beban_penyusutan'], 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format((float)$row['akumulasi_penyusutan'], 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ number_format((float)$row['nilai_buku_akhir'], 0, ',', '.') }}</td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary"
                                     onclick="showMonthlyDetail(
