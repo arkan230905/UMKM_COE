@@ -104,6 +104,18 @@ class Coa extends Model
             }
         });
         
+        // Filter COA berdasarkan company_id user yang login (kecuali untuk template)
+        static::addGlobalScope('filterByCompany', function ($builder) {
+            $user = auth()->user();
+            if ($user && $user->perusahaan_id) {
+                // Hanya tampilkan COA milik company user
+                $builder->where('company_id', $user->perusahaan_id);
+            } else {
+                // Jika tidak ada user atau company_id, hanya tampilkan template
+                $builder->whereNull('company_id');
+            }
+        });
+        
         // Default order hierarkis: parent diikuti children (11 → 111 → 1131 → 112 → ...)
         static::addGlobalScope('orderByKodeAkun', function ($builder) {
             $builder->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)");
