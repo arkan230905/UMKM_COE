@@ -147,13 +147,8 @@
 
                 <!-- Penjelasan Formula -->
                 <div class="alert alert-info mt-3">
-                    <h6><i class="fas fa-info-circle"></i> Cara Perhitungan:</h6>
-                    <p class="mb-1">
-                        <strong>Formula:</strong> Harga Sub Satuan = Harga Satuan Utama ÷ Nilai Konversi
-                    </p>
                     <p class="mb-0">
-                        <strong>Contoh:</strong> Jika harga Rp 62.000/Kg dan 1 Kg = 1000 Gram, 
-                        maka harga per Gram = Rp 62.000 ÷ 1000 = Rp 62/Gram
+                        Rp 62.000 ÷ 1000 = Rp 62/Gram
                     </p>
                 </div>
             @else
@@ -291,13 +286,8 @@
 
                 <!-- Penjelasan Formula -->
                 <div class="alert alert-info mt-3">
-                    <h6><i class="fas fa-info-circle"></i> Cara Perhitungan:</h6>
-                    <p class="mb-1">
-                        <strong>Formula:</strong> Harga Sub Satuan = Harga Satuan Utama ÷ Nilai Konversi
-                    </p>
                     <p class="mb-0">
-                        <strong>Contoh:</strong> Jika harga Rp 62.000/Kg dan 1 Kg = 1000 Gram, 
-                        maka harga per Gram = Rp 62.000 ÷ 1000 = Rp 62/Gram
+                        Rp 62.000 ÷ 1000 = Rp 62/Gram
                     </p>
                 </div>
             @endif

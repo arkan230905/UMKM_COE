@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BahanBaku;
 use App\Models\Satuan;
 use App\Services\BomSyncService;
+use App\Services\BahanBakuService;
 use Illuminate\Http\Request;
 
 class BahanBakuController extends Controller
@@ -43,8 +44,12 @@ class BahanBakuController extends Controller
         } else {
             $bahanBaku->harga_satuan_display = $bahanBaku->harga_satuan;
         }
+
+        // Hitung sub satuan prices dengan formula yang benar
+        $bahanBakuService = new BahanBakuService();
+        $subSatuanPrices = $bahanBakuService->calculateSubSatuanPrices($bahanBaku->id);
         
-        return view('master-data.bahan-baku.show', compact('bahanBaku'));
+        return view('master-data.bahan-baku.show', compact('bahanBaku', 'subSatuanPrices'));
     }
 
     // Menampilkan form tambah data
@@ -244,6 +249,34 @@ class BahanBakuController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('master-data.bahan-baku.index')
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update sub satuan prices untuk bahan baku tertentu
+     */
+    public function updateSubSatuanPrices($id)
+    {
+        try {
+            $bahanBakuService = new BahanBakuService();
+            $result = $bahanBakuService->updateSubSatuanPrices($id);
+            
+            if ($result) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Harga sub satuan berhasil diperbarui'
+                ]);
+            } else {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak ada perubahan yang diperlukan'
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
         }
     }
 
