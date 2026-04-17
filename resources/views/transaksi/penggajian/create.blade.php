@@ -45,14 +45,14 @@
                             @foreach ($pegawais as $pegawai)
                                 <option value="{{ $pegawai->id }}"
                                         data-jenis="{{ strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl') }}"
-                                        data-gaji-pokok="{{ $pegawai->jabatanRelasi->gaji ?? $pegawai->gaji_pokok ?? 0 }}"
-                                        data-tarif="{{ $pegawai->jabatanRelasi->tarif ?? $pegawai->tarif_per_jam ?? 0 }}"
+                                        data-gaji-pokok="{{ $pegawai->jabatanRelasi->gaji_pokok ?? $pegawai->gaji_pokok ?? 0 }}"
+                                        data-tarif="{{ $pegawai->jabatanRelasi->tarif_per_jam ?? $pegawai->tarif_per_jam ?? 0 }}"
                                         data-tunjangan-jabatan="{{ $pegawai->jabatanRelasi->tunjangan ?? 0 }}"
                                         data-tunjangan-transport="{{ $pegawai->jabatanRelasi->tunjangan_transport ?? 0 }}"
                                         data-tunjangan-konsumsi="{{ $pegawai->jabatanRelasi->tunjangan_konsumsi ?? 0 }}"
                                         data-asuransi="{{ $pegawai->jabatanRelasi->asuransi ?? 0 }}">
                                     {{ $pegawai->nama }} - {{ $pegawai->jabatan_nama ?? 'Staff' }} ({{ strtoupper($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'BTKTL') }})
-                                    [Gaji: {{ number_format($pegawai->jabatanRelasi->gaji ?? $pegawai->gaji_pokok ?? 0, 0, ',', '.') }}, Tarif: {{ number_format($pegawai->jabatanRelasi->tarif ?? $pegawai->tarif_per_jam ?? 0, 0, ',', '.') }}]
+                                    [Gaji: {{ number_format($pegawai->jabatanRelasi->gaji_pokok ?? $pegawai->gaji_pokok ?? 0, 0, ',', '.') }}, Tarif: {{ number_format($pegawai->jabatanRelasi->tarif_per_jam ?? $pegawai->tarif_per_jam ?? 0, 0, ',', '.') }}]
                                 </option>
                             @endforeach
                         </select>
