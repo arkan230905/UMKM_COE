@@ -403,11 +403,30 @@ class BopController extends Controller
      */
     public function updateProses(Request $request, $id)
     {
-        $validated = $request->validate([
-            'komponen_bop' => 'required|array|min:1',
-            'komponen_bop.*.component' => 'required|string',
-            'komponen_bop.*.rate_per_hour' => 'required|numeric|min:0',
+        // Debug: Log all request data
+        \Log::info('BOP Update - Raw Request Data:', [
+            'all_data' => $request->all(),
+            'komponen_bop' => $request->input('komponen_bop'),
+            'has_komponen_bop' => $request->has('komponen_bop'),
+            'is_array' => is_array($request->input('komponen_bop'))
         ]);
+
+        try {
+            $validated = $request->validate([
+                'komponen_bop' => 'required|array|min:1',
+                'komponen_bop.*.component' => 'required|string',
+                'komponen_bop.*.rate_per_hour' => 'required|numeric|min:0',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('BOP Update - Validation Failed:', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
+            throw $e;
+        }
+
+        // Debug: Log validated data
+        \Log::info('BOP Update - Validated Data:', $validated);
 
         try {
             DB::beginTransaction();
@@ -416,11 +435,40 @@ class BopController extends Controller
             
             // Filter out empty components and validate at least one has rate > 0
             $validComponents = collect($validated['komponen_bop'])->filter(function($component) {
-                return !empty($component['component']) && floatval($component['rate_per_hour']) > 0;
+                $hasComponent = !empty($component['component']);
+                $rateValue = floatval($component['rate_per_hour'] ?? 0);
+                $hasRate = $rateValue > 0;
+                
+                // Debug log each component
+                \Log::info('BOP Update - Checking component:', [
+                    'component' => $component,
+                    'hasComponent' => $hasComponent,
+                    'hasRate' => $hasRate,
+                    'rate_value' => $rateValue,
+                    'rate_original' => $component['rate_per_hour'] ?? 'NULL'
+                ]);
+                
+                return $hasComponent && $hasRate;
             });
 
+            // Debug: Log valid components
+            \Log::info('BOP Update - Valid Components:', [
+                'count' => $validComponents->count(),
+                'components' => $validComponents->toArray(),
+                'all_components_count' => count($validated['komponen_bop'])
+            ]);
+
             if ($validComponents->isEmpty()) {
-                throw new \Exception('Harap isi minimal satu komponen BOP dengan nominal lebih dari 0.');
+                $errorMsg = 'Harap isi minimal satu komponen BOP dengan nominal lebih dari 0. ';
+                $errorMsg .= 'Total komponen diterima: ' . count($validated['komponen_bop']) . '. ';
+                $errorMsg .= 'Komponen valid (rate > 0): ' . $validComponents->count() . '.';
+                
+                \Log::error('BOP Update - No Valid Components:', [
+                    'all_components' => $validated['komponen_bop'],
+                    'error_message' => $errorMsg
+                ]);
+                
+                throw new \Exception($errorMsg);
             }
 
             // Check for duplicate components
@@ -654,57 +702,51 @@ class BopController extends Controller
      */
     public function updateProsesSimple(Request $request, $id)
     {
+        \Log::info('BOP Update Simple - Called!', [
+            'id' => $id,
+            'all_data' => $request->all(),
+            'has_komponen_bop' => $request->has('komponen_bop'),
+            'komponen_bop' => $request->input('komponen_bop')
+        ]);
+
         try {
             $validated = $request->validate([
-                'komponen_name' => 'sometimes|array',
-                'komponen_name.*' => 'sometimes|string',
-                'komponen_rate' => 'sometimes|array',
-                'komponen_rate.*' => 'sometimes|numeric|min:0',
-                'komponen_desc' => 'nullable|array',
-                'komponen_desc.*' => 'nullable|string',
+                'komponen_bop' => 'sometimes|array',
+                'komponen_bop.*.component' => 'sometimes|required_with:komponen_bop|string',
+                'komponen_bop.*.rate_per_hour' => 'sometimes|required_with:komponen_bop|numeric|min:0',
                 'keterangan' => 'nullable|string'
             ]);
+
+            \Log::info('BOP Update Simple - Validated:', $validated);
 
             DB::beginTransaction();
 
             $bopProses = BopProses::findOrFail($id);
             
-            // Debug: Log received data
-            \Log::info('BOP Update Debug - Received data:', [
-                'validated' => $validated,
-                'all_request_data' => $request->all()
-            ]);
+            // Check if komponen_bop exists in validated data
+            if (!isset($validated['komponen_bop']) || empty($validated['komponen_bop'])) {
+                \Log::error('BOP Update Simple - No komponen_bop in validated data');
+                throw new \Exception('Data komponen BOP tidak ditemukan. Silakan refresh halaman dan coba lagi.');
+            }
             
             // Build components array from form data
             $components = [];
-            $komponenNames = $validated['komponen_name'] ?? [];
-            $komponenRates = $validated['komponen_rate'] ?? [];
-            $komponenDescs = $validated['komponen_desc'] ?? [];
-            
-            \Log::info('BOP Update Debug - Component arrays:', [
-                'names' => $komponenNames,
-                'rates' => $komponenRates,
-                'descs' => $komponenDescs
-            ]);
-            
-            foreach ($komponenNames as $index => $name) {
-                if (!empty(trim($name)) && floatval($komponenRates[$index] ?? 0) > 0) {
+            foreach ($validated['komponen_bop'] as $index => $komponen) {
+                if (!empty($komponen['component']) && floatval($komponen['rate_per_hour'] ?? 0) > 0) {
                     $components[] = [
-                        'component' => trim($name),
-                        'rate_per_hour' => floatval($komponenRates[$index] ?? 0),
-                        'description' => $komponenDescs[$index] ?? ''
+                        'component' => trim($komponen['component']),
+                        'rate_per_hour' => floatval($komponen['rate_per_hour']),
                     ];
                 }
             }
 
+            \Log::info('BOP Update Simple - Components built:', [
+                'count' => count($components),
+                'components' => $components
+            ]);
+
             if (empty($components)) {
                 throw new \Exception('Harap isi minimal satu komponen BOP dengan nominal lebih dari 0.');
-            }
-
-            // Check for duplicate components
-            $componentNames = array_column($components, 'component');
-            if (count($componentNames) !== count(array_unique($componentNames))) {
-                throw new \Exception('Komponen BOP tidak boleh duplikat.');
             }
 
             // Calculate values - using per-product basis
@@ -725,15 +767,32 @@ class BopController extends Controller
                 'keterangan' => $validated['keterangan'] ?? $bopProses->keterangan,
             ]);
 
+            \Log::info('BOP Update Simple - Success!', [
+                'id' => $bopProses->id,
+                'components_count' => count($components)
+            ]);
+
             DB::commit();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'BOP Proses berhasil diperbarui dengan ' . count($components) . ' komponen.'
-            ]);
+            // Return JSON for AJAX requests
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'BOP Proses berhasil diperbarui dengan ' . count($components) . ' komponen.'
+                ]);
+            }
+
+            return redirect()
+                ->route('master-data.bop.index')
+                ->with('success', 'BOP Proses berhasil diperbarui dengan ' . count($components) . ' komponen.');
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
+            
+            \Log::error('BOP Update Simple - Validation Error:', [
+                'errors' => $e->errors(),
+                'request' => $request->all()
+            ]);
             
             $errors = $e->errors();
             $errorMessages = [];
@@ -745,25 +804,25 @@ class BopController extends Controller
                 }
             }
             
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal: ' . implode(', ', $errorMessages)
-            ], 422);
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Validasi gagal: ' . implode(', ', $errorMessages));
             
         } catch (\Exception $e) {
             DB::rollBack();
             
             // Log error for debugging
-            \Log::error('BOP Update Error: ' . $e->getMessage(), [
+            \Log::error('BOP Update Simple - Error: ' . $e->getMessage(), [
                 'id' => $id,
                 'request_data' => $request->all(),
                 'trace' => $e->getTraceAsString()
             ]);
             
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memperbarui BOP Proses: ' . $e->getMessage()
-            ], 500);
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Gagal memperbarui BOP Proses: ' . $e->getMessage());
         }
     }
 

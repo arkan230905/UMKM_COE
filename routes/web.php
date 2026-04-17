@@ -2558,7 +2558,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/get-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'getBopProses'])->name('get-proses');
             Route::get('/edit-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'editProses'])->name('edit-proses');
             Route::put('/update-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProses'])->name('update-proses');
+            Route::post('/update-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProses'])->name('update-proses-post');
             Route::put('/update-proses-simple/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProsesSimple'])->name('update-proses-simple');
+            Route::post('/update-proses-simple/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProsesSimple'])->name('update-proses-simple-post');
             Route::delete('/destroy-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroyProses'])->name('destroy-proses');
             
             // Beban Operasional Routes
