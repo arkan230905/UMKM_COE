@@ -69,15 +69,7 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-        </div>
-    @endif
-
+    
     <div class="card shadow mb-4">
         <div class="card-body">
             <div class="scroll-hint">← Geser tabel ke kiri/kanan untuk melihat semua kolom →</div>
