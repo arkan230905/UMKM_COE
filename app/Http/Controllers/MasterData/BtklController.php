@@ -159,8 +159,18 @@ class BtklController extends Controller
                 ->orderBy('nama')
                 ->get();
             $satuanOptions = ['Jam', 'Unit', 'Batch'];
+            
+            // Map employee data dengan pegawai_count yang benar
+            $employeeData = $jabatanBtkl->map(function($jabatan) {
+                return [
+                    'id' => $jabatan->id,
+                    'nama' => $jabatan->nama,
+                    'pegawai_count' => $jabatan->pegawais->count(),
+                    'tarif' => $jabatan->tarif ?? 0
+                ];
+            });
                 
-            return view('master-data.btkl.edit', compact('btkl', 'jabatanBtkl', 'satuanOptions'));
+            return view('master-data.btkl.edit', compact('btkl', 'jabatanBtkl', 'satuanOptions', 'employeeData'));
             
         } catch (\Exception $e) {
             return redirect()

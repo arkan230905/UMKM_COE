@@ -182,8 +182,8 @@
 </div>
 
 <script>
-// Employee data
-const employeeData = @json($jabatanBtkl ?? []);
+// Employee data - FIXED: menggunakan employeeData yang sudah di-map dengan pegawai_count
+const employeeData = @json($employeeData ?? []);
 
 document.addEventListener('DOMContentLoaded', function() {
     const jabatanSelect = document.getElementById('jabatan_id');

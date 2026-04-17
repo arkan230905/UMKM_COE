@@ -1294,28 +1294,14 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('BOP Edit - Form submit event triggered!');
         e.preventDefault();
         
-        // Manually build FormData to ensure all inputs are captured
-        const formData = new FormData();
         const bopId = document.getElementById('editBopProsesId').value;
         
-        // Add CSRF token
-        formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
-        
-        // Add BOP ID
-        formData.append('id', bopId);
-        
-        // Add keterangan
-        const keterangan = document.getElementById('editKeteranganProses');
-        if (keterangan) {
-            formData.append('keterangan', keterangan.value);
-        }
-        
-        // Manually collect all component inputs
+        // Collect component data
         const componentNames = document.querySelectorAll('input[name="edit_komponen_name[]"]');
         const componentRates = document.querySelectorAll('input[name="edit_komponen_rate[]"]');
         const componentDescs = document.querySelectorAll('input[name="edit_komponen_desc[]"]');
         
-        // Also try the create form field names in case they exist
+        // Also try the create form field names
         const createNames = document.querySelectorAll('input[name="komponen_name[]"]');
         const createRates = document.querySelectorAll('input[name="komponen_rate[]"]');
         const createDescs = document.querySelectorAll('input[name="komponen_desc[]"]');
@@ -1325,41 +1311,33 @@ document.addEventListener('DOMContentLoaded', function() {
         const finalRates = componentRates.length > 0 ? componentRates : createRates;
         const finalDescs = componentDescs.length > 0 ? componentDescs : createDescs;
         
-        console.log('BOP Edit - Component inputs found:', {
-            edit_names: componentNames.length,
-            edit_rates: componentRates.length,
-            edit_descs: componentDescs.length,
-            create_names: createNames.length,
-            create_rates: createRates.length,
-            create_descs: createDescs.length,
-            final_names: finalNames.length,
-            final_rates: finalRates.length,
-            final_descs: finalDescs.length
-        });
+        console.log('BOP Edit - Component inputs found:', finalNames.length);
         
-        // Add component data to FormData using create form field names
+        // Build komponen_bop array
+        const komponenBop = [];
         finalNames.forEach((input, index) => {
-            if (input.value.trim()) {
-                formData.append('komponen_name[]', input.value.trim());
-                console.log(`Adding name ${index}:`, input.value.trim());
+            if (input.value.trim() && finalRates[index]) {
+                komponenBop.push({
+                    component: input.value.trim(),
+                    rate_per_hour: parseFloat(finalRates[index].value) || 0
+                });
+                console.log(`Component ${index}:`, input.value.trim(), '=', finalRates[index].value);
             }
         });
         
-        finalRates.forEach((input, index) => {
-            formData.append('komponen_rate[]', input.value || '0');
-            console.log(`Adding rate ${index}:`, input.value || '0');
-        });
+        console.log('Total components:', komponenBop.length);
+        console.log('Components data:', komponenBop);
         
-        finalDescs.forEach((input, index) => {
-            formData.append('komponen_desc[]', input.value || '');
-            console.log(`Adding desc ${index}:`, input.value || '');
-        });
+        // Get keterangan
+        const keterangan = document.getElementById('editKeteranganProses');
         
-        // Debug: Log final FormData
-        console.log('Final FormData entries:');
-        for (let [key, value] of formData.entries()) {
-            console.log(key + ':', value);
-        }
+        // Build request data as JSON
+        const requestData = {
+            komponen_bop: komponenBop,
+            keterangan: keterangan ? keterangan.value : ''
+        };
+        
+        console.log('Sending data:', requestData);
         
         // Show loading
         const submitBtn = this.querySelector('button[type="submit"]');
@@ -1368,12 +1346,13 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...';
         
         fetch(`/master-data/bop/update-proses-simple/${bopId}`, {
-            method: 'PUT',
+            method: 'POST',  // Changed to POST
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            body: formData
+            body: JSON.stringify(requestData)
         })
         .then(response => response.json())
         .then(data => {
@@ -1391,6 +1370,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => {
+            console.error('Error:', error);
             alert('Terjadi kesalahan: ' + error.message);
         })
         .finally(() => {
