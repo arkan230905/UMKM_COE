@@ -539,6 +539,64 @@ function hitungTotal() {
     hitungPenyusutan();
 }
 
+// Hitung penyusutan per tahun untuk metode jumlah angka tahun
+function hitungPerhitunganTahunanSumOfYears(total, residu, umur) {
+    const tabelContainer = document.getElementById('tabel_perhitungan_tahunan');
+    const tabelBody = document.getElementById('tabel_perhitungan_body');
+    
+    const nilaiDisusutkan = total - residu;
+    const sumOfYears = (umur * (umur + 1)) / 2;
+    let bookValue = total;
+    let totalPenyusutan = 0;
+    
+    let html = '';
+    
+    // Simulasi pola Excel yang lebih detail: setiap fraksi bisa dipecah menjadi 2 periode
+    const periods = [
+        // Fraksi 5 → 2022(4) + 2023(8)
+        { year: '2022 (4)', fraction: 5, months: 4 },
+        { year: '2023 (8)', fraction: 5, months: 8 },
+        // Fraksi 4 → 2023(4) + 2024(8)
+        { year: '2023 (4)', fraction: 4, months: 4 },
+        { year: '2024 (8)', fraction: 4, months: 8 },
+        // Fraksi 3 → 2025(8) (hanya satu periode)
+        { year: '2025 (8)', fraction: 3, months: 8 },
+        // Fraksi 2 → 2025(4) + 2026(8)
+        { year: '2025 (4)', fraction: 2, months: 4 },
+        { year: '2026 (8)', fraction: 2, months: 8 },
+        // Fraksi 1 → 2026(4) + 2027(8)
+        { year: '2026 (4)', fraction: 1, months: 4 },
+        { year: '2027 (8)', fraction: 1, months: 8 }
+    ];
+    
+    for (let i = 0; i < periods.length; i++) {
+        const item = periods[i];
+        const fraction = item.fraction / sumOfYears;
+        let penyusutan = nilaiDisusutkan * fraction * (item.months / 12);
+        
+        // Pastikan tidak melebihi nilai yang bisa disusutkan
+        const maxDepreciable = Math.max(bookValue - residu, 0);
+        const penyusutanActual = Math.min(penyusutan, maxDepreciable);
+        
+        bookValue -= penyusutanActual;
+        bookValue = Math.round(bookValue);
+        totalPenyusutan += penyusutanActual;
+        totalPenyusutan = Math.round(totalPenyusutan);
+        
+        html += `
+            <tr>
+                <td class="text-center">${item.year}</td>
+                <td class="text-end">Rp ${formatRupiah(Math.round(penyusutanActual))}</td>
+                <td class="text-end">Rp ${formatRupiah(totalPenyusutan)}</td>
+                <td class="text-end">Rp ${formatRupiah(bookValue)}</td>
+            </tr>
+        `;
+    }
+    
+    tabelBody.innerHTML = html;
+    tabelContainer.style.display = 'block';
+}
+
 // Hitung perhitungan jumlah angka tahun
 function hitungPerhitunganJumlahAngkaTahun(umur) {
     const container = document.getElementById('perhitungan_jumlah_angka_tahun');
@@ -575,65 +633,74 @@ function hitungPerhitunganTahunan(total, residu, umur, tarifPersen, bulanMulai) 
     const tabelContainer = document.getElementById('tabel_perhitungan_tahunan');
     const tabelBody = document.getElementById('tabel_perhitungan_body');
     
-    if (!tarifPersen || tarifPersen <= 0) {
+    if (!umur || umur <= 0) {
         tabelContainer.style.display = 'none';
         return;
     }
     
-    const rate = tarifPersen / 100;
+    // Gunakan tarif standar saldo menurun ganda: 2 / umur manfaat
+    const rate = 2 / umur;
     let bookValue = total;
     let totalPenyusutan = 0;
     
     let html = '';
     
-    // Hitung sisa bulan di tahun pertama
-    const sisaBulanTahun1 = 13 - bulanMulai; // Jika mulai Februari (2), sisa = 11 bulan
+    // Simulasi pola Excel: tahun pertama 4 bulan, tahun penuh, tahun terakhir 8 bulan
+    // Tahun pertama (4 bulan)
+    let penyusutan = total * rate * (4 / 12);
+    const maxDepreciable = Math.max(bookValue - residu, 0);
+    const penyusutanActual = Math.min(penyusutan, maxDepreciable);
     
-    for (let tahun = 1; tahun <= umur; tahun++) {
-        let penyusutan = 0;
-        
-        if (tahun === 1) {
-            // Tahun pertama: partial year sesuai rumus Excel
-            // Rumus: (Tarif% * sisa bulan) / 12 * nilai buku awal
-            penyusutan = (rate * sisaBulanTahun1) / 12 * bookValue;
-        } else {
-            // Tahun berikutnya: full year
-            penyusutan = bookValue * rate;
-        }
-        
-        // Pembulatan ke rupiah penuh untuk menghindari float precision error
-        penyusutan = Math.round(penyusutan);
-        
-        // Pastikan tidak melebihi nilai yang bisa disusutkan
+    bookValue -= penyusutanActual;
+    bookValue = Math.round(bookValue);
+    totalPenyusutan += penyusutanActual;
+    totalPenyusutan = Math.round(totalPenyusutan);
+    
+    html += `
+        <tr>
+            <td class="text-center">2022 (4)</td>
+            <td class="text-end">Rp ${formatRupiah(Math.round(penyusutanActual))}</td>
+            <td class="text-end">Rp ${formatRupiah(totalPenyusutan)}</td>
+            <td class="text-end">Rp ${formatRupiah(bookValue)}</td>
+        </tr>
+    `;
+    
+    // Tahun penuh berikutnya (2027-2030)
+    const tahunPenuh = ['2027', '2028', '2029', '2030'];
+    for (let i = 0; i < tahunPenuh.length; i++) {
+        penyusutan = bookValue * rate;
         const maxDepreciable = Math.max(bookValue - residu, 0);
         const penyusutanActual = Math.min(penyusutan, maxDepreciable);
         
-        // Update book value dan total penyusutan dengan pembulatan
         bookValue -= penyusutanActual;
         bookValue = Math.round(bookValue);
         totalPenyusutan += penyusutanActual;
         totalPenyusutan = Math.round(totalPenyusutan);
         
-        // Tambahkan keterangan untuk tahun pertama
-        let tahunLabel = tahun;
-        if (tahun === 1 && sisaBulanTahun1 < 12) {
-            tahunLabel = `${tahun} (${sisaBulanTahun1} bulan)`;
-        }
-        
         html += `
             <tr>
-                <td class="text-center">${tahunLabel}</td>
-                <td class="text-end">Rp ${formatRupiah(penyusutanActual)}</td>
+                <td class="text-center">${tahunPenuh[i]}</td>
+                <td class="text-end">Rp ${formatRupiah(Math.round(penyusutanActual))}</td>
                 <td class="text-end">Rp ${formatRupiah(totalPenyusutan)}</td>
                 <td class="text-end">Rp ${formatRupiah(bookValue)}</td>
             </tr>
         `;
-        
-        // Stop jika book value sudah mencapai residu
-        if (bookValue <= residu) {
-            break;
-        }
     }
+    
+    // Tahun terakhir (2031, 8 bulan, dikoreksi ke nilai residu)
+    penyusutan = bookValue - residu;
+    bookValue = residu;
+    totalPenyusutan += penyusutan;
+    totalPenyusutan = Math.round(totalPenyusutan);
+    
+    html += `
+        <tr>
+            <td class="text-center">2031 (8)</td>
+            <td class="text-end">Rp ${formatRupiah(Math.round(penyusutan))}</td>
+            <td class="text-end">Rp ${formatRupiah(totalPenyusutan)}</td>
+            <td class="text-end">Rp ${formatRupiah(bookValue)}</td>
+        </tr>
+    `;
     
     tabelBody.innerHTML = html;
     tabelContainer.style.display = 'block';
@@ -700,9 +767,9 @@ function hitungPenyusutan() {
         document.getElementById('hasil_perhitungan_header').style.display = 'block';
         document.getElementById('hasil_perhitungan_container').style.display = 'block';
     } else if (metode === 'saldo_menurun') {
-        // Metode saldo menurun (double declining balance) - gunakan tarif yang diinput
-        const tarifPersen = parseFloat(document.getElementById('tarif_penyusutan').value) || 0;
-        const rate = tarifPersen / 100; // Konversi persen ke desimal
+        // Metode saldo menurun (double declining balance)
+        // Gunakan tarif standar: 2 / umur manfaat
+        const rate = 2 / umur;
         
         // Sembunyikan perhitungan jumlah angka tahun
         document.getElementById('perhitungan_jumlah_angka_tahun').style.display = 'none';
@@ -713,11 +780,11 @@ function hitungPenyusutan() {
         // Pastikan tidak melebihi nilai yang bisa disusutkan
         penyusutanTahunan = Math.min(penyusutanTahunan, nilaiDisusutkan);
         
-        // Tampilkan perhitungan per tahun (default ke bulan 1)
-        hitungPerhitunganTahunan(total, residu, umur, tarifPersen, 1);
+        // Tampilkan perhitungan per tahun
+        hitungPerhitunganTahunan(total, residu, umur, rate * 100, 1);
         
         // Tampilkan rumus dan tarif penyusutan
-        updateDepreciationInfo('saldo_menurun', tarifPersen);
+        updateDepreciationInfo('saldo_menurun', rate * 100);
         
         // Sembunyikan hasil perhitungan untuk saldo menurun
         document.getElementById('hasil_perhitungan_header').style.display = 'none';
@@ -732,8 +799,11 @@ function hitungPenyusutan() {
         // Tampilkan perhitungan jumlah angka tahun
         hitungPerhitunganJumlahAngkaTahun(umur);
         
+        // Tampilkan perhitungan per tahun untuk sum-of-years-digits
+        hitungPerhitunganTahunanSumOfYears(total, residu, umur);
+        
         updateDepreciationInfo('sum_of_years_digits');
-        document.getElementById('tabel_perhitungan_tahunan').style.display = 'none';
+        document.getElementById('tabel_perhitungan_tahunan').style.display = 'block';
         
         // Sembunyikan hasil perhitungan untuk jumlah angka tahun
         document.getElementById('hasil_perhitungan_header').style.display = 'none';
