@@ -524,7 +524,7 @@ function hitungPenyusutan() {
         document.getElementById('perhitungan_jumlah_angka_tahun').style.display = 'none';
     }
     
-    const penyusutanBulanan = penyusutanTahunan / 12;
+    const penyusutanBulanan = Math.round(penyusutanTahunan / 12);
     
     document.getElementById('penyusutan_tahunan_display').textContent = 'Rp ' + formatRupiah(penyusutanTahunan);
     document.getElementById('penyusutan_bulanan_display').textContent = 'Rp ' + formatRupiah(penyusutanBulanan);
@@ -575,20 +575,26 @@ function hitungPerhitunganTahunan(total, residu, umur, tarifPersen, bulanMulai) 
     for (let tahun = 1; tahun <= umur; tahun++) {
         let penyusutan = bookValue * rate;
         
+        // Pembulatan ke rupiah penuh untuk menghindari float precision error
+        penyusutan = Math.round(penyusutan);
+        
         if (tahun === umur || bookValue - penyusutan <= residu) {
             penyusutan = bookValue - residu;
         }
         
         const maxDepreciable = Math.max(bookValue - residu, 0);
-        const penyusunanActual = Math.min(penyusutan, maxDepreciable);
+        const penyusutanActual = Math.min(penyusutan, maxDepreciable);
         
-        bookValue -= penyusunanActual;
-        totalPenyusutan += penyusunanActual;
+        // Update book value dan total penyusutan dengan pembulatan
+        bookValue -= penyusutanActual;
+        bookValue = Math.round(bookValue);
+        totalPenyusutan += penyusutanActual;
+        totalPenyusutan = Math.round(totalPenyusutan);
         
         html += `
             <tr>
                 <td class="text-center">${tahun}</td>
-                <td class="text-end">Rp ${formatRupiah(penyusunanActual)}</td>
+                <td class="text-end">Rp ${formatRupiah(penyusutanActual)}</td>
                 <td class="text-end">Rp ${formatRupiah(totalPenyusutan)}</td>
                 <td class="text-end">Rp ${formatRupiah(bookValue)}</td>
             </tr>
