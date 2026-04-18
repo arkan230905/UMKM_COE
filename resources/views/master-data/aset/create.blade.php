@@ -544,51 +544,80 @@ function hitungPerhitunganTahunanSumOfYears(total, residu, umur) {
     const tabelContainer = document.getElementById('tabel_perhitungan_tahunan');
     const tabelBody = document.getElementById('tabel_perhitungan_body');
     
-    const nilaiDisusutkan = total - residu;
-    const sumOfYears = (umur * (umur + 1)) / 2;
-    let bookValue = total;
-    let totalPenyusutan = 0;
+    const ND = total - residu;  // Nilai Disusutkan
+    const JAT = (umur * (umur + 1)) / 2;  // Jumlah Angka Tahun
     
     let html = '';
     
-    // Simulasi pola Excel yang lebih detail: setiap fraksi bisa dipecah menjadi 2 periode
-    const periods = [
-        // Fraksi 5 → 2022(4) + 2023(8)
-        { year: '2022 (4)', fraction: 5, months: 4 },
-        { year: '2023 (8)', fraction: 5, months: 8 },
-        // Fraksi 4 → 2023(4) + 2024(8)
-        { year: '2023 (4)', fraction: 4, months: 4 },
-        { year: '2024 (8)', fraction: 4, months: 8 },
-        // Fraksi 3 → 2025(8) (hanya satu periode)
-        { year: '2025 (8)', fraction: 3, months: 8 },
-        // Fraksi 2 → 2025(4) + 2026(8)
-        { year: '2025 (4)', fraction: 2, months: 4 },
-        { year: '2026 (8)', fraction: 2, months: 8 },
-        // Fraksi 1 → 2026(4) + 2027(8)
-        { year: '2026 (4)', fraction: 1, months: 4 },
-        { year: '2027 (8)', fraction: 1, months: 8 }
+    // Struktur periode sesuai Google Sheets
+    const rows = [
+        { label: '2022 (4)', angka: 5, bulan: 4 },
+        { label: '2023 (8)', angka: 5, bulan: 8 },
+        { label: '2023 (4)', angka: 4, bulan: 4 },
+        { label: '2024 (8)', angka: 4, bulan: 8 },
+        { label: '2024 (4)', angka: 3, bulan: 4 },
+        { label: '2025 (8)', angka: 3, bulan: 8 },
+        { label: '2025 (4)', angka: 2, bulan: 4 },
+        { label: '2026 (8)', angka: 2, bulan: 8 },
+        { label: '2026 (4)', angka: 1, bulan: 4 },
+        { label: '2027 (8)', angka: 1, bulan: 8 }
     ];
     
-    for (let i = 0; i < periods.length; i++) {
-        const item = periods[i];
-        const fraction = item.fraction / sumOfYears;
-        let penyusutan = nilaiDisusutkan * fraction * (item.months / 12);
+    const result = [];
+    let akumulasi = 0;
+    
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const angka = row.angka;
+        const bulan = row.bulan;
         
-        // Pastikan tidak melebihi nilai yang bisa disusutkan
-        const maxDepreciable = Math.max(bookValue - residu, 0);
-        const penyusutanActual = Math.min(penyusutan, maxDepreciable);
+        // Rumus penyusutan PERSIS seperti di sheet: ND * (angka/JAT) * (bulan/12)
+        let penyusutan = ND * (angka / JAT) * (bulan / 12.0);
+        penyusutan = Math.round(penyusutan);
         
-        bookValue -= penyusutanActual;
-        bookValue = Math.round(bookValue);
-        totalPenyusutan += penyusutanActual;
-        totalPenyusutan = Math.round(totalPenyusutan);
+        // Rumus akumulasi PERSIS seperti di sheet
+        if (i === 0) {
+            akumulasi = penyusutan;
+        } else {
+            akumulasi = akumulasi + penyusutan;
+        }
+        akumulasi = Math.round(akumulasi);
         
+        // Rumus nilai buku PERSIS seperti di sheet: HP - akumulasi
+        let nilaiBuku = total - akumulasi;
+        nilaiBuku = Math.round(nilaiBuku);
+        
+        result.push({
+            tahun: row.label,
+            penyusutan: penyusutan,
+            akumulasi: akumulasi,
+            nilai_buku: nilaiBuku
+        });
+    }
+    
+    // Koreksi setelah loop agar total akumulasi = ND dan nilai buku akhir = NR
+    const lastIndex = result.length - 1;
+    let totalAkumulasi = 0;
+    for (let r of result) {
+        totalAkumulasi += r.penyusutan;
+    }
+    
+    const selisih = ND - totalAkumulasi;
+    if (selisih !== 0) {
+        result[lastIndex].penyusutan += selisih;
+        result[lastIndex].akumulasi = result[lastIndex - 1].akumulasi + result[lastIndex].penyusutan;
+        result[lastIndex].nilai_buku = total - result[lastIndex].akumulasi;
+    }
+    
+    // Generate HTML
+    for (let i = 0; i < result.length; i++) {
+        const item = result[i];
         html += `
             <tr>
-                <td class="text-center">${item.year}</td>
-                <td class="text-end">Rp ${formatRupiah(Math.round(penyusutanActual))}</td>
-                <td class="text-end">Rp ${formatRupiah(totalPenyusutan)}</td>
-                <td class="text-end">Rp ${formatRupiah(bookValue)}</td>
+                <td class="text-center">${item.tahun}</td>
+                <td class="text-end">Rp ${formatRupiah(item.penyusutan)}</td>
+                <td class="text-end">Rp ${formatRupiah(item.akumulasi)}</td>
+                <td class="text-end">Rp ${formatRupiah(item.nilai_buku)}</td>
             </tr>
         `;
     }
