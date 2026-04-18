@@ -85,8 +85,13 @@ return new class extends Migration
             $hppAccounts[] = $account;
         }
 
-        // Insert HPP accounts
-        DB::table('coas')->insert($hppAccounts);
+        // Insert HPP accounts with existence check
+        foreach ($hppAccounts as $account) {
+            $exists = DB::table('coas')->where('kode_akun', $account['kode_akun'])->exists();
+            if (!$exists) {
+                DB::table('coas')->insert($account);
+            }
+        }
     }
 
     public function down()
