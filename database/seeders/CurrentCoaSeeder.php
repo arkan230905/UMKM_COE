@@ -13,8 +13,8 @@ class CurrentCoaSeeder extends Seeder
      */
     public function run(): void
     {
-        // Clear existing COA data
-        Coa::truncate();
+        // Do NOT truncate - use firstOrCreate to prevent wiping existing data
+        // This prevents duplicates while preserving existing accounts
         
         $coaData = [
             [
@@ -767,10 +767,13 @@ class CurrentCoaSeeder extends Seeder
         ];
 
         foreach ($coaData as $data) {
-            Coa::create($data);
+            Coa::firstOrCreate(
+                ['kode_akun' => $data['kode_akun']],
+                $data
+            );
         }
         
         $this->command->info('COA seeder completed successfully!');
-        $this->command->info('Total accounts created: ' . count($coaData));
+        $this->command->info('Total accounts processed: ' . count($coaData));
     }
 }
