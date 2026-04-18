@@ -556,9 +556,9 @@ class PembelianController extends Controller
                 $bankId = $request->bank_id;
                 $bank = \App\Models\Coa::find($bankId);
                 
-                if ($bankKas) {
+                if ($bank) {
                     // Hitung saldo real-time menggunakan journal entries (Lebih akurat)
-                    $journalLines = \App\Models\JournalLine::where('coa_id', $bankKas->id)
+                    $journalLines = \App\Models\JournalLine::where('coa_id', $bank->id)
                         ->with('entry')
                         ->get();
                     
@@ -594,6 +594,11 @@ class PembelianController extends Controller
                 // Otomatis gunakan Kas Bank (111) untuk pembelian dengan transfer
                 // User tidak perlu memilih akun kas manual
                 $bankKas = \App\Models\Coa::where('kode_akun', '111')->first(); // Kas Bank
+                
+                // Safety check: Ensure COA exists
+                if (!$bankKas && $request->bank_id !== 'credit') {
+                    throw new \Exception('COA Kas Bank (kode 111) tidak ditemukan. Silakan hubungi administrator.');
+                }
                 
                 $paymentMethod = 'transfer'; // default
                 if ($request->bank_id === 'credit') {

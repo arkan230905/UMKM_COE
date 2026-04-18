@@ -84,9 +84,10 @@ class PenjualanController extends Controller
 
     public function create()
     {
-        // Ambil produk dengan stok dari tabel produks
+        // Ambil produk dengan stok dari StockLayer (kartu stok) untuk akurasi
         $produks = Produk::all()->map(function($p) {
-            $p->stok_tersedia = (float)($p->stok ?? 0);
+            // Gunakan actual_stok dari StockLayer, bukan stok dari tabel produks
+            $p->stok_tersedia = (float)$p->actual_stok;
             return $p;
         });
         
@@ -131,12 +132,12 @@ class PenjualanController extends Controller
             }
             $diskonPctArr = $request->diskon_persen ?? [];
 
-            // Validasi stok cukup per item menggunakan StockService
+            // Validasi stok cukup per item menggunakan actual_stok dari StockLayer
             foreach ($produkIds as $i => $pid) {
                 $p = Produk::findOrFail($pid);
                 $qty = (int)($jumlahArr[$i] ?? 0); // Cast to integer
                 
-                // Get available stock from StockService untuk konsistensi
+                // Get available stock from actual_stok (StockLayer) untuk konsistensi dengan kartu stok
                 $availableStock = (float) $p->actual_stok;
                 
                 if ($qty > $availableStock + 1e-9) {
@@ -265,10 +266,10 @@ class PenjualanController extends Controller
         }
         $total = max(($qty * $price) - $disc, 0);
 
-        // Validasi stok cukup
-        if ((int)($produk->stok ?? 0) < $qty) {
+        // Validasi stok cukup menggunakan actual_stok dari StockLayer
+        if ((float)$produk->actual_stok < $qty) {
             return back()->withErrors([
-                'stok' => "Stok tidak cukup! Stok tersedia: " . number_format((float)($produk->stok ?? 0), 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
+                'stok' => "Stok tidak cukup! Stok tersedia: " . number_format((float)$produk->actual_stok, 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
             ])->withInput();
         }
 
@@ -331,9 +332,10 @@ class PenjualanController extends Controller
     {
         $penjualan = Penjualan::with('details.produk')->findOrFail($id);
         
-        // Ambil produk dengan stok dari tabel produks
+        // Ambil produk dengan stok dari StockLayer (kartu stok) untuk akurasi
         $produks = Produk::all()->map(function($p) {
-            $p->stok_tersedia = (float)($p->stok ?? 0);
+            // Gunakan actual_stok dari StockLayer, bukan stok dari tabel produks
+            $p->stok_tersedia = (float)$p->actual_stok;
             return $p;
         });
         
@@ -387,14 +389,14 @@ class PenjualanController extends Controller
                 }
             }
 
-            // Validasi stok cukup per item
+            // Validasi stok cukup per item menggunakan actual_stok dari StockLayer
             foreach ($produkIds as $i => $pid) {
                 $p = Produk::findOrFail($pid);
                 $qty = (int)($jumlahArr[$i] ?? 0);
                 
-                if ($qty > (float)($p->stok ?? 0)) {
+                if ($qty > (float)$p->actual_stok) {
                     return back()->withErrors([
-                        'stok' => "Stok {$p->nama_produk} tidak cukup! Stok tersedia: " . number_format((float)($p->stok ?? 0), 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
+                        'stok' => "Stok {$p->nama_produk} tidak cukup! Stok tersedia: " . number_format((float)$p->actual_stok, 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
                     ])->withInput();
                 }
             }
@@ -500,10 +502,10 @@ class PenjualanController extends Controller
         }
         $total = max(($qty * $price) - $disc, 0);
 
-        // Validasi stok cukup
-        if ((int)($produk->stok ?? 0) < $qty) {
+        // Validasi stok cukup menggunakan actual_stok dari StockLayer
+        if ((float)$produk->actual_stok < $qty) {
             return back()->withErrors([
-                'stok' => "Stok tidak cukup! Stok tersedia: " . number_format((float)($produk->stok ?? 0), 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
+                'stok' => "Stok tidak cukup! Stok tersedia: " . number_format((float)$produk->actual_stok, 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
             ])->withInput();
         }
 
@@ -564,20 +566,8 @@ class PenjualanController extends Controller
             ], 404);
         }
         
-        // Calculate available stock using stock movements for accuracy
-        $stokMasuk = \DB::table('stock_movements')
-            ->where('item_type', 'product')
-            ->where('item_id', $produk->id)
-            ->where('direction', 'in')
-            ->sum('qty');
-        
-        $stokKeluar = \DB::table('stock_movements')
-            ->where('item_type', 'product')
-            ->where('item_id', $produk->id)
-            ->where('direction', 'out')
-            ->sum('qty');
-        
-        $stokTersedia = max(0, $stokMasuk - $stokKeluar);
+        // Use actual_stok from StockLayer for consistency with kartu stok
+        $stokTersedia = (float)$produk->actual_stok;
         
         return response()->json([
             'success' => true,
@@ -612,17 +602,20 @@ class PenjualanController extends Controller
                       ->orWhere('nama_produk', 'LIKE', "%{$search}%")
                       ->orWhere('nama', 'LIKE', "%{$search}%");
             })
-            ->where('stok', '>', 0) // Only products with stock
-            ->select('id', 'nama_produk', 'nama', 'barcode', 'harga_jual', 'stok')
+            ->select('id', 'nama_produk', 'nama', 'barcode', 'harga_jual')
             ->limit(10)
             ->get()
+            ->filter(function($product) {
+                // Filter products with actual stock > 0 from StockLayer
+                return $product->actual_stok > 0;
+            })
             ->map(function($product) {
                 return [
                     'id' => $product->id,
                     'nama' => $product->nama_produk ?? $product->nama,
                     'barcode' => $product->barcode,
                     'harga' => round($product->harga_jual ?? 0),
-                    'stok' => $product->stok ?? 0
+                    'stok' => $product->actual_stok ?? 0
                 ];
             });
 
