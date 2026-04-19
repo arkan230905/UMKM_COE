@@ -544,7 +544,7 @@ class AkuntansiController extends Controller
         };
         
         $totalRevenue = $sum($revenue);
-        $totalHpp = $sum($hppAccounts); // HPP from journal entries (neraca saldo)
+        $totalHpp = $sum($hppAccounts); // HPP from journal entries (trial balance)
         $totalExpense = $sum($expense);
         
         $labaKotor = $totalRevenue - $totalHpp;
@@ -556,7 +556,7 @@ class AkuntansiController extends Controller
         ));
     }
 
-    public function neraca(Request $request)
+    public function laporanPosisiKeuangan(Request $request)
     {
         $periode = $request->get('periode', now()->format('Y-m'));
         
@@ -749,7 +749,7 @@ class AkuntansiController extends Controller
         $totalKewajiban = $totalKewajibanPendek + $totalKewajibanPanjang;
         $totalKewajibanEkuitas = $totalKewajiban + $totalEkuitas;
         
-        return view('akuntansi.neraca', compact(
+        return view('akuntansi.laporan_posisi_keuangan', compact(
             'periode', 
             'asetLancar', 'asetTidakLancar', 
             'kewajibanPendek', 'kewajibanPanjang', 'ekuitas',
