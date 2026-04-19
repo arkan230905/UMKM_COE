@@ -3,9 +3,14 @@
 namespace App\Observers;
 
 use App\Models\Penjualan;
-use App\Models\JurnalUmum;
-use App\Models\Coa;
+use App\Models\DetailPenjualan;
+use App\Models\Produk;
+use App\Models\BahanBaku;
+use App\Models\BahanPendukung;
+use App\Models\JournalEntry;
+use App\Models\JournalLine;
 use App\Services\AutoCoaService;
+use Illuminate\Support\Facades\Log;
 
 class PenjualanObserver
 {
@@ -140,12 +145,31 @@ class PenjualanObserver
                 }
             }
             
-            // Insert all journal entries
+            // Insert all journal entries using JournalEntry/JournalLine
             if (!empty($journalData)) {
-                JurnalUmum::insert($journalData);
+                // Create JournalEntry
+                $journalEntry = JournalEntry::create([
+                    'tanggal' => $penjualan->tanggal,
+                    'memo' => 'Penjualan #' . $penjualan->nomor_penjualan . ' - ' . $penjualan->pelanggan->nama ?? 'Umum',
+                    'ref_type' => 'penjualan',
+                    'ref_id' => $penjualan->id
+                ]);
+
+                // Create JournalLines
+                foreach ($journalData as $lineData) {
+                    JournalLine::create([
+                        'journal_entry_id' => $journalEntry->id,
+                        'coa_id' => $lineData['coa_id'],
+                        'debit' => $lineData['debit'],
+                        'credit' => $lineData['kredit'],
+                        'memo' => $lineData['keterangan']
+                    ]);
+                }
+
                 \Log::info('Journal entries created successfully', [
                     'penjualan_id' => $penjualan->id,
-                    'entries_count' => count($journalData)
+                    'journal_entry_id' => $journalEntry->id,
+                    'lines_count' => count($journalData)
                 ]);
             }
             
@@ -260,15 +284,9 @@ class PenjualanObserver
      */
     private function deletePenjualanJournals($penjualanId)
     {
-        // Get penjualan to get the nomor_penjualan
-        $penjualan = Penjualan::find($penjualanId);
-        if (!$penjualan) {
-            return;
-        }
-        
-        // Delete journals by referensi
-        JurnalUmum::where('tipe_referensi', 'penjualan')
-                  ->where('referensi', $penjualan->nomor_penjualan)
-                  ->delete();
+        // Delete journal entries for this penjualan
+        JournalEntry::where('ref_type', 'penjualan')
+                   ->where('ref_id', $penjualanId)
+                   ->delete(); // journal_lines will cascade delete
     }
 }
