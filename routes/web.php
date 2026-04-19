@@ -3138,6 +3138,9 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/neraca-saldo', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldo'])->name('neraca-saldo');
         Route::get('/neraca-saldo/pdf', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldoPdf'])->name('neraca-saldo.pdf');
         Route::get('/neraca', [\App\Http\Controllers\AkuntansiController::class, 'neraca'])->name('neraca');
+        Route::get('/laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('laporan-posisi-keuangan');
+        Route::get('/laporan-posisi-keuangan/pdf', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuanganPdf'])->name('laporan-posisi-keuangan.pdf');
+        Route::get('/laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'neraca'])->name('laporan-posisi-keuangan');
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
 
         // Redirect old URL to new URL for backward compatibility
