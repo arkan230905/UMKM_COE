@@ -305,7 +305,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link-rounded {{ request()->is('akuntansi/laporan-posisi-keuangan') ? 'active' : '' }}" href="{{ route('akuntansi.laporan.posisi.keuangan') }}">
+                <a class="nav-link-rounded {{ request()->is('akuntansi/laporan-posisi-keuangan') ? 'active' : '' }}" href="{{ route('akuntansi.laporan-posisi-keuangan') }}">
                     <i class="fas fa-balance-scale"></i>
                     <span>Laporan Posisi Keuangan</span>
                 </a>
