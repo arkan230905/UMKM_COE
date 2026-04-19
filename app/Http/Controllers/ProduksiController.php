@@ -546,9 +546,9 @@ class ProduksiController extends Controller
         $totalLaborOverhead = $produksi->total_btkl + $produksi->total_bop;
         
         if ($totalLaborOverhead > 0) {
-            $coaWIP = \App\Models\Coa::where('kode_akun', '1301')->first(); // Barang Dalam Proses
-            $coaBTKL = \App\Models\Coa::where('kode_akun', '5201')->first(); // Biaya Tenaga Kerja Langsung
-            $coaBOP = \App\Models\Coa::where('kode_akun', '5301')->first(); // Biaya Overhead Pabrik
+            $coaWIP = \App\Models\Coa::where('kode_akun', '117')->first(); // Barang Dalam Proses
+            $coaBTKL = \App\Models\Coa::where('kode_akun', '52')->first(); // Biaya Tenaga Kerja Langsung
+            $coaBOP = \App\Models\Coa::where('kode_akun', '53')->first(); // Biaya Overhead Pabrik
             
             if ($coaWIP) {
                 $laborOverheadEntries[] = [
@@ -593,7 +593,7 @@ class ProduksiController extends Controller
         
         if ($totalBiaya > 0) {
             // Cari COA Persediaan Barang Jadi
-            $coaBarangJadi = \App\Models\Coa::where('kode_akun', '1106')->first();
+            $coaBarangJadi = \App\Models\Coa::where('kode_akun', '116')->first();
             if (!$coaBarangJadi) {
                 $coaBarangJadi = \App\Models\Coa::where('nama_akun', 'like', '%Barang Jadi%')
                     ->orWhere('nama_akun', 'like', '%Finished Goods%')
@@ -602,7 +602,7 @@ class ProduksiController extends Controller
             }
             
             // Cari COA WIP
-            $coaWIP = \App\Models\Coa::where('kode_akun', '1105')->first();
+            $coaWIP = \App\Models\Coa::where('kode_akun', '117')->first();
             if (!$coaWIP) {
                 $coaWIP = \App\Models\Coa::where('nama_akun', 'like', '%WIP%')
                     ->orWhere('nama_akun', 'like', '%Dalam Proses%')
@@ -1080,7 +1080,7 @@ class ProduksiController extends Controller
         
         // Add WIP debit entry for materials
         if ($totalMaterialCost > 0) {
-            $coaWIP = \App\Models\Coa::where('kode_akun', '1301')->first(); // Barang Dalam Proses
+            $coaWIP = \App\Models\Coa::where('kode_akun', '117')->first(); // Barang Dalam Proses
             if ($coaWIP) {
                 array_unshift($materialEntries, [
                     'code' => $coaWIP->kode_akun,
@@ -1262,7 +1262,7 @@ class ProduksiController extends Controller
         
         // Add WIP debit entry for materials
         if ($totalMaterialCost > 0) {
-            $coaWIP = \App\Models\Coa::where('kode_akun', '1301')->first(); // Barang Dalam Proses
+            $coaWIP = \App\Models\Coa::where('kode_akun', '117')->first(); // Barang Dalam Proses
             if ($coaWIP) {
                 array_unshift($materialEntries, [
                     'code' => $coaWIP->kode_akun,
@@ -1280,9 +1280,9 @@ class ProduksiController extends Controller
         $totalLaborOverhead = $produksi->total_btkl + $produksi->total_bop;
         
         if ($totalLaborOverhead > 0) {
-            $coaWIP = \App\Models\Coa::where('kode_akun', '1301')->first(); // Barang Dalam Proses
-            $coaBTKL = \App\Models\Coa::where('kode_akun', '5201')->first(); // Biaya Tenaga Kerja Langsung
-            $coaBOP = \App\Models\Coa::where('kode_akun', '5301')->first(); // Biaya Overhead Pabrik
+            $coaWIP = \App\Models\Coa::where('kode_akun', '117')->first(); // Barang Dalam Proses
+            $coaBTKL = \App\Models\Coa::where('kode_akun', '52')->first(); // Biaya Tenaga Kerja Langsung
+            $coaBOP = \App\Models\Coa::where('kode_akun', '53')->first(); // Biaya Overhead Pabrik
             
             if ($coaWIP) {
                 $laborOverheadEntries[] = [
@@ -1321,8 +1321,8 @@ class ProduksiController extends Controller
         $totalProductionCost = $produksi->total_biaya;
         
         if ($totalProductionCost > 0) {
-            $coaWIP = \App\Models\Coa::where('kode_akun', '1301')->first(); // Barang Dalam Proses
-            $coaFinishedGoods = \App\Models\Coa::where('kode_akun', '1201')->first(); // Persediaan Barang Jadi
+            $coaWIP = \App\Models\Coa::where('kode_akun', '117')->first(); // Barang Dalam Proses
+            $coaFinishedGoods = \App\Models\Coa::where('kode_akun', '116')->first(); // Persediaan Barang Jadi
             
             if ($coaFinishedGoods && $coaWIP) {
                 $finishedGoodsEntries = [

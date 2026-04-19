@@ -625,24 +625,32 @@ class AkuntansiController extends Controller
     {
         $periode = $request->get('periode', now()->format('Y-m'));
         
-        // Get all COA accounts
-        $allCoa = \App\Models\Coa::all();
+        // Get all COA accounts - handle duplicates properly
+        $allCoa = \App\Models\Coa::withoutGlobalScopes()
+            ->select('*')
+            ->whereIn('id', function($query) {
+                $query->select(\DB::raw('MIN(id)'))
+                      ->from('coas')
+                      ->groupBy('kode_akun');
+            })
+            ->get();
         
         // Calculate balances for each account from journal entries
         $calculateBalance = function($coa) use ($periode) {
             $saldo = 0;
             
-            // Get journal lines for this account up to selected period
-            $journalLines = \App\Models\JournalLine::where('coa_id', $coa->id)
-                ->whereHas('entry', function($q) use ($periode) {
-                    $q->whereDate('tanggal', '<=', $periode . '-31');
-                })->get();
+            // Get journal entries for this account up to selected period
+            $journalEntries = \App\Models\JurnalUmum::where('coa_id', $coa->id)
+                ->whereDate('tanggal', '<=', $periode . '-31')
+                ->get();
             
-            foreach ($journalLines as $line) {
-                if ($coa->saldo_normal === 'debit') {
-                    $saldo += $line->debit - $line->credit;
+            foreach ($journalEntries as $entry) {
+                // For assets: debit increases, credit decreases
+                // For liabilities & equity: credit increases, debit decreases
+                if (in_array($coa->tipe_akun, ['Asset', 'asset'])) {
+                    $saldo += $entry->debit - $entry->kredit;
                 } else {
-                    $saldo += $line->credit - $line->debit;
+                    $saldo += $entry->kredit - $entry->debit;
                 }
             }
             
@@ -781,28 +789,44 @@ class AkuntansiController extends Controller
         $fiscalYearStart = now()->startOfYear()->format('Y-m-d');
         
         // Calculate revenue (credit balance) - from fiscal year start
-        $revenueAccounts = \App\Models\Coa::where('tipe_akun', 'Revenue')->get();
-        foreach ($revenueAccounts as $coa) {
-            $journalLines = \App\Models\JournalLine::where('coa_id', $coa->id)
-                ->whereHas('entry', function($q) use ($fiscalYearStart, $periode) {
-                    $q->whereBetween('tanggal', [$fiscalYearStart, $periode . '-31']);
-                })->get();
+        $revenueAccounts = \App\Models\Coa::withoutGlobalScopes()
+            ->where('tipe_akun', 'Revenue')
+            ->whereIn('id', function($query) {
+                $query->select(\DB::raw('MIN(id)'))
+                      ->from('coas')
+                      ->where('tipe_akun', 'Revenue')
+                      ->groupBy('kode_akun');
+            })
+            ->get();
             
-            $debit = $journalLines->sum('debit');
-            $credit = $journalLines->sum('credit');
+        foreach ($revenueAccounts as $coa) {
+            $journalEntries = \App\Models\JurnalUmum::where('coa_id', $coa->id)
+                ->whereBetween('tanggal', [$fiscalYearStart, $periode . '-31'])
+                ->get();
+            
+            $debit = $journalEntries->sum('debit');
+            $credit = $journalEntries->sum('kredit');
             $currentPeriodPL += ($credit - $debit); // Revenue increases P&L
         }
         
         // Calculate expense (debit balance) - from fiscal year start
-        $expenseAccounts = \App\Models\Coa::where('tipe_akun', 'Expense')->get();
-        foreach ($expenseAccounts as $coa) {
-            $journalLines = \App\Models\JournalLine::where('coa_id', $coa->id)
-                ->whereHas('entry', function($q) use ($fiscalYearStart, $periode) {
-                    $q->whereBetween('tanggal', [$fiscalYearStart, $periode . '-31']);
-                })->get();
+        $expenseAccounts = \App\Models\Coa::withoutGlobalScopes()
+            ->where('tipe_akun', 'Expense')
+            ->whereIn('id', function($query) {
+                $query->select(\DB::raw('MIN(id)'))
+                      ->from('coas')
+                      ->where('tipe_akun', 'Expense')
+                      ->groupBy('kode_akun');
+            })
+            ->get();
             
-            $debit = $journalLines->sum('debit');
-            $credit = $journalLines->sum('credit');
+        foreach ($expenseAccounts as $coa) {
+            $journalEntries = \App\Models\JurnalUmum::where('coa_id', $coa->id)
+                ->whereBetween('tanggal', [$fiscalYearStart, $periode . '-31'])
+                ->get();
+            
+            $debit = $journalEntries->sum('debit');
+            $credit = $journalEntries->sum('kredit');
             $currentPeriodPL -= ($debit - $credit); // Expense decreases P&L
         }
         
