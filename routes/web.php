@@ -3137,6 +3137,8 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/buku-besar/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesarExportExcel'])->name('buku-besar.export-excel');
         Route::get('/neraca-saldo', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldo'])->name('neraca-saldo');
         Route::get('/neraca-saldo/pdf', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldoPdf'])->name('neraca-saldo.pdf');
+        Route::get('/laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('laporan-posisi-keuangan');
+        Route::get('/laporan-posisi-keuangan/pdf', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuanganPdf'])->name('laporan-posisi-keuangan.pdf');
         Route::get('/laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'neraca'])->name('laporan-posisi-keuangan');
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
 
@@ -3155,6 +3157,9 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
     
     // Temporary route without middleware for testing
     Route::get('/test-laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('test.laporan.posisi.keuangan');
+    
+    // Temporary route without middleware for direct access
+    Route::get('/debug-laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('debug.laporan.posisi.keuangan');
     
     // User role diagnostic
     Route::get('/check-user', function() {
