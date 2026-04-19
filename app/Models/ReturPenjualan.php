@@ -175,6 +175,9 @@ class ReturPenjualan extends Model
 
     private function processKredit()
     {
+        // Create journal entry using JournalService
+        \App\Services\JournalService::createJournalFromReturPenjualan($this);
+        
         foreach ($this->detailReturPenjualans as $detail) {
             StockMovement::create([
                 'item_type' => 'product',
@@ -189,5 +192,29 @@ class ReturPenjualan extends Model
 
         $this->status = 'belum_dibayar';
         $this->save();
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::created(function ($returPenjualan) {
+            // Create automatic journal entries for all return types except tukar_barang
+            if ($returPenjualan->jenis_retur !== 'tukar_barang') {
+                \App\Services\JournalService::createJournalFromReturPenjualan($returPenjualan);
+            }
+        });
+        
+        static::updated(function ($returPenjualan) {
+            // Recreate journal entries if transaction is updated
+            if ($returPenjualan->jenis_retur !== 'tukar_barang') {
+                \App\Services\JournalService::createJournalFromReturPenjualan($returPenjualan);
+            }
+        });
+        
+        static::deleting(function ($returPenjualan) {
+            // Delete journal entries when return is deleted
+            \App\Services\JournalService::deleteByRef('sales_return', $returPenjualan->id);
+        });
     }
 }

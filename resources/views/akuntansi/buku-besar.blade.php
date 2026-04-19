@@ -14,7 +14,7 @@
     <div class="col-md-6 text-end">
       <div class="d-flex gap-2 justify-content-end">
         <a href="{{ route('akuntansi.buku-besar.export-excel', ['from' => $from, 'to' => $to]) }}" class="btn btn-success btn-sm">
-          <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+          <i class="bi bi-file-earmark-excel me-1"></i> Export CSV
         </a>
         <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
           <i class="bi bi-printer me-1"></i> Cetak
@@ -81,6 +81,17 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <h5 class="mb-1">Informasi Akun</h5>
+              @if($month && $year)
+                <small class="text-warning">
+                  <i class="bi bi-funnel me-1"></i>
+                  Filter aktif: {{ DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}
+                </small>
+              @else
+                <small class="text-success">
+                  <i class="bi bi-check-circle me-1"></i>
+                  Menampilkan semua transaksi
+                </small>
+              @endif
             </div>
             <div class="text-end">
               <h6 class="mb-0">Saldo Awal</h6>
@@ -90,6 +101,7 @@
         </div>
       </div>
     </div>
+  </div>
   @endif
 
   <!-- Buku Besar Table -->

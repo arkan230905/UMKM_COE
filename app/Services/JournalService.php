@@ -49,6 +49,30 @@ class JournalService
                     'memo' => $lineMemo, // Add memo to journal line if supported
                 ]);
                 $totalDebit += $debit; $totalCredit += $credit;
+                
+                // AUTOMATIC POSTING TO JURNAL UMUM (GENERAL LEDGER)
+                // This ensures all journal entries automatically appear in Buku Besar
+                // Check if entry already exists to prevent duplicates
+                $existingJurnalUmum = \App\Models\JurnalUmum::where('coa_id', $aid)
+                    ->where('tanggal', $tanggal)
+                    ->where('referensi', $refType . '#' . $refId)
+                    ->where('tipe_referensi', $refType)
+                    ->where('debit', $debit)
+                    ->where('kredit', $credit)
+                    ->first();
+                
+                if (!$existingJurnalUmum) {
+                    \App\Models\JurnalUmum::create([
+                        'coa_id' => $aid,
+                        'tanggal' => $tanggal,
+                        'keterangan' => $lineMemo ?? $memo,
+                        'debit' => $debit,
+                        'kredit' => $credit,
+                        'referensi' => $refType . '#' . $refId,
+                        'tipe_referensi' => $refType,
+                        'created_by' => auth()->id(),
+                    ]);
+                }
             }
 
             // Optional: basic balance check
@@ -66,10 +90,16 @@ class JournalService
     public function deleteByRef(string $refType, int $refId): void
     {
         DB::transaction(function () use ($refType, $refId) {
+            // Delete from JournalEntry system
             $entries = JournalEntry::where('ref_type', $refType)->where('ref_id', $refId)->get();
             foreach ($entries as $e) {
                 $e->delete(); // journal_lines will cascade
             }
+            
+            // Delete from JurnalUmum system (General Ledger)
+            \App\Models\JurnalUmum::where('tipe_referensi', $refType)
+                ->where('referensi', $refType . '#' . $refId)
+                ->delete();
         });
     }
 
@@ -484,5 +514,155 @@ class JournalService
                    $pelunasanUtang->tanggal;
         
         $service->post($tanggal, 'debt_payment', $pelunasanUtang->id, $memo, $lines);
+    }
+
+    /**
+     * Create journal entries from ReturPenjualan (Sales Return)
+     * Dr. Retur Penjualan | Cr. Kas/Bank (for refund)
+     * Dr. Persediaan | Cr. HPP (for stock return)
+     */
+    public static function createJournalFromReturPenjualan($returPenjualan): void
+    {
+        $service = new static();
+        
+        // Delete existing journal entries for this retur penjualan
+        $service->deleteByRef('sales_return', $returPenjualan->id);
+        
+        // Skip journal for tukar_barang (no financial impact)
+        if ($returPenjualan->jenis_retur === 'tukar_barang') {
+            return;
+        }
+        
+        $lines = [];
+        $totalAmount = $returPenjualan->total_retur ?? 0;
+        
+        // Create debit entry for sales return (Retur Penjualan account)
+        $returCoa = Coa::where('tipe_akun', 'Revenue')
+            ->where(function($query) {
+                $query->where('nama_akun', 'like', '%retur%')
+                      ->orWhere('nama_akun', 'like', '%return%');
+            })
+            ->orWhere('kode_akun', '4201')
+            ->first();
+        
+        $returAccount = $returCoa ? $returCoa->kode_akun : '4201'; // Retur Penjualan
+        
+        $lines[] = [
+            'code' => $returAccount,
+            'debit' => $totalAmount,
+            'credit' => 0,
+            'memo' => 'Retur penjualan - ' . $returPenjualan->jenis_retur
+        ];
+        
+        // Create credit entry based on return type
+        if ($returPenjualan->jenis_retur === 'refund') {
+            // Credit to Kas/Bank (cash refund)
+            $kasCoa = Coa::where('tipe_akun', 'Asset')
+                ->where(function($query) {
+                    $query->where('nama_akun', 'like', '%kas%')
+                          ->where('nama_akun', 'not like', '%bank%');
+                })
+                ->orWhere('kode_akun', '1101')
+                ->first();
+            
+            $kasAccount = $kasCoa ? $kasCoa->kode_akun : '1101';
+            
+            $lines[] = [
+                'code' => $kasAccount,
+                'debit' => 0,
+                'credit' => $totalAmount,
+                'memo' => 'Refund retur penjualan'
+            ];
+        } elseif ($returPenjualan->jenis_retur === 'kredit') {
+            // Credit to Piutang (credit note)
+            $piutangCoa = Coa::where('tipe_akun', 'Asset')
+                ->where(function($query) {
+                    $query->where('nama_akun', 'like', '%piutang%')
+                          ->orWhere('nama_akun', 'like', '%receivable%');
+                })
+                ->orWhere('kode_akun', '1103')
+                ->first();
+            
+            $piutangAccount = $piutangCoa ? $piutangCoa->kode_akun : '1103';
+            
+            $lines[] = [
+                'code' => $piutangAccount,
+                'debit' => 0,
+                'credit' => $totalAmount,
+                'memo' => 'Kredit note retur penjualan'
+            ];
+        }
+        
+        // Create journal entry
+        $memo = 'Retur Penjualan #' . $returPenjualan->nomor_retur . ' - ' . ucfirst($returPenjualan->jenis_retur);
+        $tanggal = $returPenjualan->tanggal instanceof \Carbon\Carbon ? 
+                   $returPenjualan->tanggal->format('Y-m-d') : 
+                   $returPenjualan->tanggal;
+        
+        $service->post($tanggal, 'sales_return', $returPenjualan->id, $memo, $lines);
+    }
+
+    /**
+     * Sync existing transactions to ensure all are posted to both journal systems
+     */
+    public static function syncAllTransactionsToJurnalUmum(): array
+    {
+        $stats = ['synced' => 0, 'errors' => 0, 'skipped' => 0];
+        
+        try {
+            // Sync all Penjualan transactions
+            $penjualans = \App\Models\Penjualan::all();
+            foreach ($penjualans as $penjualan) {
+                try {
+                    static::createJournalFromPenjualan($penjualan);
+                    $stats['synced']++;
+                } catch (\Exception $e) {
+                    $stats['errors']++;
+                    \Log::error('Error syncing penjualan journal: ' . $e->getMessage(), ['penjualan_id' => $penjualan->id]);
+                }
+            }
+            
+            // Sync all Pembelian transactions
+            $pembelians = \App\Models\Pembelian::all();
+            foreach ($pembelians as $pembelian) {
+                try {
+                    static::createJournalFromPembelian($pembelian);
+                    $stats['synced']++;
+                } catch (\Exception $e) {
+                    $stats['errors']++;
+                    \Log::error('Error syncing pembelian journal: ' . $e->getMessage(), ['pembelian_id' => $pembelian->id]);
+                }
+            }
+            
+            // Sync all ReturPenjualan transactions
+            $returPenjualans = \App\Models\ReturPenjualan::all();
+            foreach ($returPenjualans as $retur) {
+                try {
+                    static::createJournalFromReturPenjualan($retur);
+                    $stats['synced']++;
+                } catch (\Exception $e) {
+                    $stats['errors']++;
+                    \Log::error('Error syncing retur penjualan journal: ' . $e->getMessage(), ['retur_id' => $retur->id]);
+                }
+            }
+            
+            // Sync all PelunasanUtang transactions
+            $pelunasanUtangs = \App\Models\PelunasanUtang::all();
+            foreach ($pelunasanUtangs as $pelunasan) {
+                try {
+                    static::createJournalFromPelunasanUtang($pelunasan);
+                    $stats['synced']++;
+                } catch (\Exception $e) {
+                    $stats['errors']++;
+                    \Log::error('Error syncing pelunasan utang journal: ' . $e->getMessage(), ['pelunasan_id' => $pelunasan->id]);
+                }
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('Error in syncAllTransactionsToJurnalUmum: ' . $e->getMessage());
+            $stats['errors']++;
+        }
+        
+        return $stats;
     }
 }
