@@ -217,4 +217,4 @@ class JabatanController extends Controller
         $v = str_replace(['.', ','], ['', '.'], $value);
         return $v;
     }
-}
+}xa
