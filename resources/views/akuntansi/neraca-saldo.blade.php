@@ -99,22 +99,22 @@
                   'data' => $data
                 ];
 
-                switch($coa->tipe_akun) {
-                  case 'Asset':
-                    $assetAccounts[] = $accountData;
-                    break;
-                  case 'Liability':
-                    $liabilityAccounts[] = $accountData;
-                    break;
-                  case 'Equity':
-                    $equityAccounts[] = $accountData;
-                    break;
-                  case 'Revenue':
-                    $revenueAccounts[] = $accountData;
-                    break;
-                  case 'Expense':
-                    $expenseAccounts[] = $accountData;
-                    break;
+                // Normalize tipe_akun to handle variations
+                $tipeAkun = strtolower($coa->tipe_akun);
+
+                if (in_array($tipeAkun, ['asset', 'aset'])) {
+                  $assetAccounts[] = $accountData;
+                } elseif (in_array($tipeAkun, ['liability', 'kewajiban'])) {
+                  $liabilityAccounts[] = $accountData;
+                } elseif (in_array($tipeAkun, ['equity', 'modal', 'ekuitas'])) {
+                  $equityAccounts[] = $accountData;
+                } elseif (in_array($tipeAkun, ['revenue', 'pendapatan', 'penjualan'])) {
+                  $revenueAccounts[] = $accountData;
+                } elseif (in_array($tipeAkun, ['expense', 'beban', 'biaya'])) {
+                  $expenseAccounts[] = $accountData;
+                } else {
+                  // Default to asset if unknown type
+                  $assetAccounts[] = $accountData;
                 }
               }
             @endphp
@@ -144,10 +144,10 @@
                 <td class="text-center">{{ $rowNumber++ }}</td>
                 <td><strong>{{ $coa->kode_akun }}</strong></td>
                 <td>{{ $coa->nama_akun }}</td>
-                <td class="text-end">{{ $saldoAwal != 0 ? 'Rp '.number_format($saldoAwal, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $debit > 0 ? 'Rp '.number_format($debit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $kredit > 0 ? 'Rp '.number_format($kredit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end fw-bold">{{ $saldoAkhir != 0 ? 'Rp '.number_format($saldoAkhir, 0, ',', '.') : '-' }}</td>
+                <td class="text-end">Rp {{ number_format($saldoAwal, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($debit, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($kredit, 0, ',', '.') }}</td>
+                <td class="text-end fw-bold">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</td>
               </tr>
             @endforeach
             
@@ -175,10 +175,10 @@
                 <td class="text-center">{{ $rowNumber++ }}</td>
                 <td><strong>{{ $coa->kode_akun }}</strong></td>
                 <td>{{ $coa->nama_akun }}</td>
-                <td class="text-end">{{ $saldoAwal != 0 ? 'Rp '.number_format($saldoAwal, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $debit > 0 ? 'Rp '.number_format($debit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $kredit > 0 ? 'Rp '.number_format($kredit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end fw-bold">{{ $saldoAkhir != 0 ? 'Rp '.number_format($saldoAkhir, 0, ',', '.') : '-' }}</td>
+                <td class="text-end">Rp {{ number_format($saldoAwal, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($debit, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($kredit, 0, ',', '.') }}</td>
+                <td class="text-end fw-bold">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</td>
               </tr>
             @endforeach
             
@@ -206,10 +206,10 @@
                 <td class="text-center">{{ $rowNumber++ }}</td>
                 <td><strong>{{ $coa->kode_akun }}</strong></td>
                 <td>{{ $coa->nama_akun }}</td>
-                <td class="text-end">{{ $saldoAwal != 0 ? 'Rp '.number_format($saldoAwal, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $debit > 0 ? 'Rp '.number_format($debit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $kredit > 0 ? 'Rp '.number_format($kredit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end fw-bold">{{ $saldoAkhir != 0 ? 'Rp '.number_format($saldoAkhir, 0, ',', '.') : '-' }}</td>
+                <td class="text-end">Rp {{ number_format($saldoAwal, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($debit, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($kredit, 0, ',', '.') }}</td>
+                <td class="text-end fw-bold">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</td>
               </tr>
             @endforeach
             
@@ -237,10 +237,10 @@
                 <td class="text-center">{{ $rowNumber++ }}</td>
                 <td><strong>{{ $coa->kode_akun }}</strong></td>
                 <td>{{ $coa->nama_akun }}</td>
-                <td class="text-end">{{ $saldoAwal != 0 ? 'Rp '.number_format($saldoAwal, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $debit > 0 ? 'Rp '.number_format($debit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $kredit > 0 ? 'Rp '.number_format($kredit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end fw-bold">{{ $saldoAkhir != 0 ? 'Rp '.number_format($saldoAkhir, 0, ',', '.') : '-' }}</td>
+                <td class="text-end">Rp {{ number_format($saldoAwal, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($debit, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($kredit, 0, ',', '.') }}</td>
+                <td class="text-end fw-bold">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</td>
               </tr>
             @endforeach
             
@@ -273,10 +273,10 @@
                     <small class="badge bg-warning text-dark ms-2">HPP</small>
                   @endif
                 </td>
-                <td class="text-end">{{ $saldoAwal != 0 ? 'Rp '.number_format($saldoAwal, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $debit > 0 ? 'Rp '.number_format($debit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $kredit > 0 ? 'Rp '.number_format($kredit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end fw-bold">{{ $saldoAkhir != 0 ? 'Rp '.number_format($saldoAkhir, 0, ',', '.') : '-' }}</td>
+                <td class="text-end">Rp {{ number_format($saldoAwal, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($debit, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($kredit, 0, ',', '.') }}</td>
+                <td class="text-end fw-bold">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</td>
               </tr>
             @endforeach
           </tbody>
