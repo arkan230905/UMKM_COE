@@ -39,6 +39,27 @@ class BtklController extends Controller
             ->with('pegawais')
             ->orderBy('nama')
             ->get();
+        
+        // Also get employees with Perbumbuan category who may not be assigned to positions
+        $perbumbuanEmployees = \App\Models\Pegawai::where(function($query) {
+            $query->where('jabatan_id', 8) // Perbumbuan position ID
+                  ->orWhereHas('jabatanRelasi', function($q) {
+                      $q->where('nama', 'like', '%Perbumbuan%');
+                  });
+        })->with(['jabatanRelasi', 'kategori'])->get();
+        
+        // Create a virtual position for Perbumbuan employees if they don't have proper positions
+        if ($perbumbuanEmployees->count() > 0) {
+            $virtualPosition = (object) [
+                'id' => 'perbumbuan_virtual',
+                'nama' => 'Perbumbuan',
+                'kategori' => 'btkl',
+                'tarif' => 18000,
+                'pegawai_count' => $perbumbuanEmployees->count(),
+                'pegawais' => $perbumbuanEmployees
+            ];
+            $jabatanBtkl->push($virtualPosition);
+        }
 
         // Generate next process code
         $lastBtkl = Btkl::orderBy('kode_proses', 'desc')->first();
@@ -53,7 +74,35 @@ class BtklController extends Controller
 
         $satuanOptions = ['Jam', 'Unit', 'Batch'];
 
-        $employeeData = $jabatanBtkl->map(function($jabatan) { return [ "id" => $jabatan->id, "nama" => $jabatan->nama, "pegawai_count" => $jabatan->pegawais->count() ?? 0, "tarif" => $jabatan->tarif ?? 0 ]; }); return view("master-data.btkl.create", compact("jabatanBtkl", "nextKode", "satuanOptions", "employeeData"));
+        // Map employee data dengan pegawai_count yang benar
+        $employeeData = $jabatanBtkl->map(function($jabatan) {
+            $pegawaiCount = 0;
+            
+            // Handle both real and virtual positions
+            if (isset($jabatan->pegawai_count)) {
+                // Virtual position already has count
+                $pegawaiCount = $jabatan->pegawai_count;
+            } elseif (isset($jabatan->pegawais)) {
+                // Real position - count from relation
+                $pegawaiCount = $jabatan->pegawais->count();
+            }
+            
+            \Log::info('BTKL Create - Jabatan Data:', [
+                'id' => $jabatan->id,
+                'nama' => $jabatan->nama,
+                'pegawai_count' => $pegawaiCount,
+                'tarif' => $jabatan->tarif ?? 0
+            ]);
+            
+            return [
+                'id' => $jabatan->id,
+                'nama' => $jabatan->nama,
+                'pegawai_count' => $pegawaiCount,
+                'tarif' => $jabatan->tarif ?? 0
+            ];
+        });
+        
+        return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satuanOptions', 'employeeData'));
     }
 
     /**
@@ -138,8 +187,18 @@ class BtklController extends Controller
                 ->orderBy('nama')
                 ->get();
             $satuanOptions = ['Jam', 'Unit', 'Batch'];
+            
+            // Map employee data dengan pegawai_count yang benar
+            $employeeData = $jabatanBtkl->map(function($jabatan) {
+                return [
+                    'id' => $jabatan->id,
+                    'nama' => $jabatan->nama,
+                    'pegawai_count' => $jabatan->pegawais->count(),
+                    'tarif' => $jabatan->tarif ?? 0
+                ];
+            });
                 
-            return view('master-data.btkl.edit', compact('btkl', 'jabatanBtkl', 'satuanOptions'));
+            return view('master-data.btkl.edit', compact('btkl', 'jabatanBtkl', 'satuanOptions', 'employeeData'));
             
         } catch (\Exception $e) {
             return redirect()

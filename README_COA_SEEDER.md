@@ -133,7 +133,7 @@ Setelah seeder dijalankan, COA ini dapat digunakan untuk:
 - Jurnal proses produksi (BBB, BTKL, BOP)
 - Jurnal BTKTL dengan dual-purpose accounts
 - Jurnal penjualan dan HPP
-- Laporan keuangan (Neraca, Laba Rugi)
+- Laporan keuangan (Laporan Posisi Keuangan, Laba Rugi)
 - Analisis biaya produksi
 
 ## Maintenance

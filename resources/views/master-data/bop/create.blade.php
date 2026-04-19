@@ -79,7 +79,7 @@
                         <input type="text" 
                                class="form-control form-control-lg bg-dark text-white money-input @error('budget') is-invalid @enderror" 
                                id="budget_display" 
-                               value="{{ old('budget') ? number_format(old('budget'), 0, ',', '.') : '' }}"
+                               value="{{ old('budget') ? formatNumberClean(old('budget')) : '' }}"
                                placeholder="Ketik nominal..."
                                style="color: #ffffff !important; font-size: 1.25rem; font-weight: 500;"
                                required>

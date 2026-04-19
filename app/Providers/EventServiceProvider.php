@@ -28,6 +28,9 @@ class EventServiceProvider extends ServiceProvider
         'App\Events\BopUpdated' => [
             'App\Listeners\UpdateBopAktual',
         ],
+        'App\Events\UserRegistered' => [
+            'App\Listeners\SetupUserData',
+        ],
     ];
 
     /**

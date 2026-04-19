@@ -24,6 +24,9 @@ class PembelianObserver
     public function created(Pembelian $pembelian)
     {
         try {
+            // DISABLED: Stock and journal processing already handled in PembelianController
+            // Preventing double processing and transaction rollback
+            /*
             // Process stock entries for purchase
             $this->stockService->processPurchase($pembelian->id);
             
@@ -36,6 +39,12 @@ class PembelianObserver
             $this->journalService->createJournalFromPurchase($pembelian);
             
             Log::info('Journal entries created for purchase', [
+                'pembelian_id' => $pembelian->id,
+                'nomor_pembelian' => $pembelian->nomor_pembelian
+            ]);
+            */
+            
+            Log::info('Purchase observer disabled - processing handled in controller', [
                 'pembelian_id' => $pembelian->id,
                 'nomor_pembelian' => $pembelian->nomor_pembelian
             ]);

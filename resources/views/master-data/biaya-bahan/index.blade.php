@@ -6,14 +6,6 @@
         <h2 class="mb-0 text-dark">
             <i class="fas fa-calculator me-2"></i>Perhitungan Biaya Bahan
         </h2>
-        <div class="btn-group">
-            <form action="{{ route('master-data.biaya-bahan.recalculate') }}" method="POST" class="d-inline">
-                @csrf
-                <button type="submit" class="btn btn-warning" onclick="return confirm('Yakin ingin menghitung ulang semua biaya bahan?')">
-                    <i class="fas fa-sync-alt"></i> Hitung Ulang Semua
-                </button>
-            </form>
-        </div>
     </div>
 
     @if(session('success'))

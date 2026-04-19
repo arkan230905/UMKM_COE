@@ -15,22 +15,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Setup awal: COA Template dan Satuan (untuk user baru yang daftar)
+        $this->call([
+            CoaTemplateSeeder::class,  // COA template yang akan di-copy saat registrasi
+            SatuanSeeder::class,       // Satuan (global, tidak per company)
+            JabatanSeeder::class,      // Jabatan/Kualifikasi Tenaga Kerja (global, tidak per company)
+            PegawaiSeeder::class,      // Pegawai default (global, tidak per company)
+            InitialSetupSeeder::class, // Jenis Aset, Kategori Aset
+        ]);
+
         // Pastikan user admin dibuat terlebih dahulu
         $this->call([
             UserSeeder::class,
-        ]);
-
-        // Kemudian jalankan seeder lainnya
-        $this->call([
-            AccountsTableSeeder::class,
-            CurrentCoaSeeder::class, // COA seeder from current data (2026-04-13)
-            // CoaMasterDataSeeder::class, // Replaced by CurrentCoaSeeder
-            // CoaSeeder::class, // Disabled: COA harus kosong saat owner daftar
-            PegawaiSeeder::class,
-            PegawaiDataSeeder::class, // Add PegawaiDataSeeder for specific employee data
-            BopSeeder::class,
-            PresensiSeeder::class, // Add PresensiSeeder after PegawaiSeeder
-            PresensiDataSeeder::class, // Add PresensiDataSeeder for specific attendance data
         ]);
 
         // Buat user tambahan jika diperlukan
@@ -42,5 +38,18 @@ class DatabaseSeeder extends Seeder
                 'email_verified_at' => now(),
             ]);
         }
+
+        // OPTIONAL: Seeder berikut hanya untuk development/testing
+        // Uncomment jika ingin data sample
+        /*
+        $this->call([
+            AccountsTableSeeder::class,
+            PegawaiSeeder::class,
+            PegawaiDataSeeder::class,
+            BopSeeder::class,
+            PresensiSeeder::class,
+            PresensiDataSeeder::class,
+        ]);
+        */
     }
 }

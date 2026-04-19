@@ -65,13 +65,13 @@
             <div class="col-md-3">
                 <div class="d-flex justify-content-between border-bottom pb-2">
                     <strong>BTKL / jam:</strong>
-                    <span>Rp {{ number_format($btklPerJam, 0, ',', '.') }}</span>
+                    <span class="text-primary">Rp {{ formatNumberClean($btklPerJam) }}</span>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="d-flex justify-content-between border-bottom pb-2">
                     <strong>BTKL / produk:</strong>
-                    <span>Rp {{ number_format($btklPerProduk, 0, ',', '.') }}</span>
+                    <span>Rp {{ formatNumberClean($btklPerProduk) }}</span>
                 </div>
             </div>
         </div>
@@ -101,7 +101,7 @@
                         <tr>
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $komponen['component'] ?? 'N/A' }}</td>
-                            <td class="text-end">Rp {{ number_format($rate, 0, ',', '.') }}</td>
+                            <td class="text-end">Rp {{ formatNumberClean($rate) }}</td>
                             <td>{{ $komponen['description'] ?? $komponen['keterangan'] ?? '-' }}</td>
                         </tr>
                     @endforeach
@@ -109,7 +109,7 @@
                 <tfoot class="table-secondary">
                     <tr class="fw-bold">
                         <td colspan="2">Total BOP / produk</td>
-                        <td class="text-end">Rp {{ number_format($totalBopPerProduk, 0, ',', '.') }}</td>
+                        <td class="text-end">Rp {{ formatNumberClean($totalBopPerProduk) }}</td>
                         <td></td>
                     </tr>
                 </tfoot>
@@ -135,13 +135,13 @@
             <div class="col-md-6">
                 <div class="d-flex justify-content-between border-bottom pb-2">
                     <strong>Total BOP / produk:</strong>
-                    <span class="text-primary">Rp {{ number_format($totalBopPerProduk, 0, ',', '.') }}</span>
+                    <strong class="text-primary fs-5">Rp {{ formatNumberClean($totalBopPerProduk) }}</strong>
                 </div>
             </div>
             <div class="col-md-6">
                 <div class="d-flex justify-content-between border-bottom pb-2">
                     <strong>Biaya / produk:</strong>
-                    <span class="text-success">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</span>
+                    <strong class="text-success fs-5">Rp {{ formatNumberClean($biayaPerProduk) }}</strong>
                 </div>
             </div>
         </div>

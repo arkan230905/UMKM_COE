@@ -384,82 +384,150 @@ class AkuntansiController extends Controller
             $coa = \App\Models\Coa::where('kode_akun', $accountCode)->first();
             
             if (!$coa) {
-                return view('akuntansi.buku-besar', compact('coas','accountId','lines','from','to','saldoAwal','month','year'));
+                return view('akuntansi.buku-besar', compact('coas','accountCode','lines','from','to','saldoAwal','month','year'));
             }
             
-            // Jika bulan dan tahun dipilih, buat rentang tanggal
+            // Get saldo awal dari COA berdasarkan kode_akun
+            $saldoAwal = $coa->saldo_awal ?? 0;
+            
+            // Build query untuk journal entries (from JournalEntry system)
+            $query = \DB::table('journal_entries as je')
+                ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
+                ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
+                ->select([
+                    'je.*',
+                    'jl.id as line_id',
+                    'jl.debit',
+                    'jl.credit',
+                    'jl.memo as line_memo',
+                    'coas.kode_akun',
+                    'coas.nama_akun',
+                    'coas.tipe_akun'
+                ])
+                ->where(function($q) {
+                    $q->where('jl.debit', '>', 0)
+                      ->orWhere('jl.credit', '>', 0);
+                })
+                ->where('coas.kode_akun', $accountCode)
+                ->orderBy('je.tanggal','asc')
+                ->orderBy('je.id','asc')
+                ->orderBy('jl.id','asc');
+            
+            // Apply date filter only if both month and year are provided
             if ($month && $year) {
                 $from = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01';
                 $to = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-' . date('t', mktime(0, 0, 0, $month, 1, $year));
                 
-                // Get saldo awal dari COA berdasarkan kode_akun
-                $saldoAwal = $coa->saldo_awal ?? 0;
-                
-                // Gunakan relasi/logika yang sama dengan jurnal umum
-                // Query jurnal umum berdasarkan kode_akun
-                $query = \DB::table('journal_entries as je')
-                    ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
-                    ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id') // Join berdasarkan coa_id (sama dengan jurnal umum)
-                    ->select([
-                        'je.*',
-                        'jl.id as line_id',
-                        'jl.debit',
-                        'jl.credit',
-                        'jl.memo as line_memo',
-                        'coas.kode_akun',
-                        'coas.nama_akun',
-                        'coas.tipe_akun'
-                    ])
-                    ->where(function($q) {
-                        $q->where('jl.debit', '>', 0)
-                          ->orWhere('jl.credit', '>', 0);
-                    })
-                    ->where('coas.kode_akun', $accountCode) // Filter per kode_akun langsung
-                    ->whereMonth('je.tanggal', $month)
-                    ->whereYear('je.tanggal', $year)
-                    ->orderBy('je.tanggal','asc')
-                    ->orderBy('je.id','asc')
-                    ->orderBy('jl.id','asc');
-                
-                $results = $query->get();
-                
-                // Group results by journal entry (sama seperti jurnal umum)
-                $entries = collect();
-                $groupedResults = $results->groupBy('id');
-                
-                foreach ($groupedResults as $entryId => $lines) {
-                    $firstLine = $lines->first();
-                    
-                    if ($lines->isEmpty()) continue;
-                    
-                    $entry = (object) [
-                        'id' => $firstLine->id,
-                        'tanggal' => $firstLine->tanggal,
-                        'ref_type' => $firstLine->ref_type,
-                        'ref_id' => $firstLine->ref_id,
-                        'memo' => $firstLine->memo,
-                        'lines' => $lines->map(function($line) {
-                            return (object) [
-                                'id' => $line->line_id,
-                                'debit' => $line->debit,
-                                'credit' => $line->credit,
-                                'memo' => $line->line_memo,
-                                'account_code' => $line->kode_akun,
-                                'account_name' => $line->nama_akun,
-                                'account_type' => $line->tipe_akun,
-                                'coa' => (object) [
-                                    'kode_akun' => $line->kode_akun,
-                                    'nama_akun' => $line->nama_akun,
-                                    'tipe_akun' => $line->tipe_akun
-                                ]
-                            ];
-                        })
-                    ];
-                    $entries->push($entry);
-                }
-                
-                $lines = $entries;
+                $query->whereMonth('je.tanggal', $month)
+                      ->whereYear('je.tanggal', $year);
             }
+            
+            $results = $query->get();
+            
+            // Group results by journal entry
+            $entries = collect();
+            $groupedResults = $results->groupBy('id');
+            
+            foreach ($groupedResults as $entryId => $lines) {
+                $firstLine = $lines->first();
+                
+                if ($lines->isEmpty()) continue;
+                
+                $entry = (object) [
+                    'id' => $firstLine->id,
+                    'tanggal' => $firstLine->tanggal,
+                    'ref_type' => $firstLine->ref_type,
+                    'ref_id' => $firstLine->ref_id,
+                    'memo' => $firstLine->memo,
+                    'lines' => $lines->map(function($line) {
+                        return (object) [
+                            'id' => $line->line_id,
+                            'debit' => $line->debit,
+                            'credit' => $line->credit,
+                            'memo' => $line->line_memo,
+                            'account_code' => $line->kode_akun,
+                            'account_name' => $line->nama_akun,
+                            'account_type' => $line->tipe_akun,
+                            'coa' => (object) [
+                                'kode_akun' => $line->kode_akun,
+                                'nama_akun' => $line->nama_akun,
+                                'tipe_akun' => $line->tipe_akun
+                            ]
+                        ];
+                    })
+                ];
+                $entries->push($entry);
+            }
+            
+            // TAMBAHAN: Ambil data dari tabel jurnal_umum (untuk transaksi yang hanya ada di sana)
+            // Exclude transactions that already exist in journal_entries to avoid duplicates
+            $jurnalUmumQuery = \DB::table('jurnal_umum as ju')
+                ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
+                ->select([
+                    'ju.id',
+                    'ju.tanggal',
+                    'ju.keterangan as memo',
+                    'ju.referensi',
+                    'ju.tipe_referensi as ref_type',
+                    'ju.debit',
+                    'ju.kredit as credit',
+                    'coas.kode_akun',
+                    'coas.nama_akun',
+                    'coas.tipe_akun'
+                ])
+                ->where(function($q) {
+                    $q->where('ju.debit', '>', 0)
+                      ->orWhere('ju.kredit', '>', 0);
+                })
+                ->where('coas.kode_akun', $accountCode)
+                ->whereNotIn('ju.tipe_referensi', ['purchase', 'sale', 'sales_return', 'debt_payment', 'penggajian']) // Exclude types that exist in journal_entries
+                ->orderBy('ju.tanggal','asc')
+                ->orderBy('ju.id','asc');
+            
+            // Apply date filter for jurnal_umum as well
+            if ($month && $year) {
+                $jurnalUmumQuery->whereMonth('ju.tanggal', $month)
+                               ->whereYear('ju.tanggal', $year);
+            }
+            
+            $jurnalUmumResults = $jurnalUmumQuery->get();
+            
+            // Group jurnal_umum results by date and memo untuk menggabungkan debit/kredit
+            $jurnalUmumGrouped = $jurnalUmumResults->groupBy(function($item) {
+                return $item->tanggal . '|' . $item->memo;
+            });
+            
+            foreach ($jurnalUmumGrouped as $key => $group) {
+                $firstItem = $group->first();
+                
+                $entry = (object) [
+                    'id' => 'ju_' . $firstItem->id, // Prefix untuk membedakan dengan journal_entries
+                    'tanggal' => $firstItem->tanggal,
+                    'ref_type' => $firstItem->ref_type,
+                    'ref_id' => null,
+                    'memo' => $firstItem->memo,
+                    'lines' => $group->map(function($item) {
+                        return (object) [
+                            'id' => $item->id,
+                            'debit' => $item->debit,
+                            'credit' => $item->credit,
+                            'memo' => null,
+                            'account_code' => $item->kode_akun,
+                            'account_name' => $item->nama_akun,
+                            'account_type' => $item->tipe_akun,
+                            'coa' => (object) [
+                                'kode_akun' => $item->kode_akun,
+                                'nama_akun' => $item->nama_akun,
+                                'tipe_akun' => $item->tipe_akun
+                            ]
+                        ];
+                    })
+                ];
+                $entries->push($entry);
+            }
+            
+            // Sort all entries by date
+            $lines = $entries->sortBy('tanggal');
         }
 
         return view('akuntansi.buku-besar', compact('coas','accountCode','lines','from','to','saldoAwal','month','year'));
@@ -470,10 +538,8 @@ class AkuntansiController extends Controller
         $from = $request->get('from');
         $to   = $request->get('to');
 
-        return Excel::download(
-            new BukuBesarExport($from, $to),
-            'buku-besar-'.date('Y-m-d').'.xlsx'
-        );
+        $export = new BukuBesarExport($from, $to);
+        return $export->download('buku-besar-'.date('Y-m-d').'.csv');
     }
 
     public function neracaSaldo(Request $request)
@@ -666,7 +732,7 @@ class AkuntansiController extends Controller
         };
         
         $totalRevenue = $sum($revenue);
-        $totalHpp = $sum($hppAccounts); // HPP from journal entries (neraca saldo)
+        $totalHpp = $sum($hppAccounts); // HPP from journal entries (trial balance)
         $totalExpense = $sum($expense);
         
         $labaKotor = $totalRevenue - $totalHpp;
@@ -678,28 +744,36 @@ class AkuntansiController extends Controller
         ));
     }
 
-    public function neraca(Request $request)
+    public function laporanPosisiKeuangan(Request $request)
     {
         $periode = $request->get('periode', now()->format('Y-m'));
         
-        // Get all COA accounts
-        $allCoa = \App\Models\Coa::all();
+        // Get all COA accounts - handle duplicates properly
+        $allCoa = \App\Models\Coa::withoutGlobalScopes()
+            ->select('*')
+            ->whereIn('id', function($query) {
+                $query->select(\DB::raw('MIN(id)'))
+                      ->from('coas')
+                      ->groupBy('kode_akun');
+            })
+            ->get();
         
         // Calculate balances for each account from journal entries
         $calculateBalance = function($coa) use ($periode) {
             $saldo = 0;
             
-            // Get journal lines for this account up to selected period
-            $journalLines = \App\Models\JournalLine::where('coa_id', $coa->id)
-                ->whereHas('entry', function($q) use ($periode) {
-                    $q->whereDate('tanggal', '<=', $periode . '-31');
-                })->get();
+            // Get journal entries for this account up to selected period
+            $journalEntries = \App\Models\JurnalUmum::where('coa_id', $coa->id)
+                ->whereDate('tanggal', '<=', $periode . '-31')
+                ->get();
             
-            foreach ($journalLines as $line) {
-                if ($coa->saldo_normal === 'debit') {
-                    $saldo += $line->debit - $line->credit;
+            foreach ($journalEntries as $entry) {
+                // For assets: debit increases, credit decreases
+                // For liabilities & equity: credit increases, debit decreases
+                if (in_array($coa->tipe_akun, ['Asset', 'asset'])) {
+                    $saldo += $entry->debit - $entry->kredit;
                 } else {
-                    $saldo += $line->credit - $line->debit;
+                    $saldo += $entry->kredit - $entry->debit;
                 }
             }
             
@@ -838,28 +912,44 @@ class AkuntansiController extends Controller
         $fiscalYearStart = now()->startOfYear()->format('Y-m-d');
         
         // Calculate revenue (credit balance) - from fiscal year start
-        $revenueAccounts = \App\Models\Coa::where('tipe_akun', 'Revenue')->get();
-        foreach ($revenueAccounts as $coa) {
-            $journalLines = \App\Models\JournalLine::where('coa_id', $coa->id)
-                ->whereHas('entry', function($q) use ($fiscalYearStart, $periode) {
-                    $q->whereBetween('tanggal', [$fiscalYearStart, $periode . '-31']);
-                })->get();
+        $revenueAccounts = \App\Models\Coa::withoutGlobalScopes()
+            ->where('tipe_akun', 'Revenue')
+            ->whereIn('id', function($query) {
+                $query->select(\DB::raw('MIN(id)'))
+                      ->from('coas')
+                      ->where('tipe_akun', 'Revenue')
+                      ->groupBy('kode_akun');
+            })
+            ->get();
             
-            $debit = $journalLines->sum('debit');
-            $credit = $journalLines->sum('credit');
+        foreach ($revenueAccounts as $coa) {
+            $journalEntries = \App\Models\JurnalUmum::where('coa_id', $coa->id)
+                ->whereBetween('tanggal', [$fiscalYearStart, $periode . '-31'])
+                ->get();
+            
+            $debit = $journalEntries->sum('debit');
+            $credit = $journalEntries->sum('kredit');
             $currentPeriodPL += ($credit - $debit); // Revenue increases P&L
         }
         
         // Calculate expense (debit balance) - from fiscal year start
-        $expenseAccounts = \App\Models\Coa::where('tipe_akun', 'Expense')->get();
-        foreach ($expenseAccounts as $coa) {
-            $journalLines = \App\Models\JournalLine::where('coa_id', $coa->id)
-                ->whereHas('entry', function($q) use ($fiscalYearStart, $periode) {
-                    $q->whereBetween('tanggal', [$fiscalYearStart, $periode . '-31']);
-                })->get();
+        $expenseAccounts = \App\Models\Coa::withoutGlobalScopes()
+            ->where('tipe_akun', 'Expense')
+            ->whereIn('id', function($query) {
+                $query->select(\DB::raw('MIN(id)'))
+                      ->from('coas')
+                      ->where('tipe_akun', 'Expense')
+                      ->groupBy('kode_akun');
+            })
+            ->get();
             
-            $debit = $journalLines->sum('debit');
-            $credit = $journalLines->sum('credit');
+        foreach ($expenseAccounts as $coa) {
+            $journalEntries = \App\Models\JurnalUmum::where('coa_id', $coa->id)
+                ->whereBetween('tanggal', [$fiscalYearStart, $periode . '-31'])
+                ->get();
+            
+            $debit = $journalEntries->sum('debit');
+            $credit = $journalEntries->sum('kredit');
             $currentPeriodPL -= ($debit - $credit); // Expense decreases P&L
         }
         
@@ -871,7 +961,7 @@ class AkuntansiController extends Controller
         $totalKewajiban = $totalKewajibanPendek + $totalKewajibanPanjang;
         $totalKewajibanEkuitas = $totalKewajiban + $totalEkuitas;
         
-        return view('akuntansi.neraca', compact(
+        return view('akuntansi.laporan_posisi_keuangan', compact(
             'periode', 
             'asetLancar', 'asetTidakLancar', 
             'kewajibanPendek', 'kewajibanPanjang', 'ekuitas',

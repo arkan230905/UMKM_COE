@@ -2,6 +2,56 @@
 
 @section('title', 'Laporan Stok')
 
+@php
+    /**
+     * Format number with proper decimal handling
+     * Removes ,00 when no decimal parts, keeps decimals when they exist
+     */
+    function formatNumberClean($number, $decimals = 2) {
+        if ($number == 0) return '0';
+        
+        // Format with specified decimals first
+        $formatted = number_format($number, $decimals, ',', '.');
+        
+        // Check if there's a decimal point
+        $commaPos = strrpos($formatted, ',');
+        if ($commaPos !== false) {
+            // If decimals part is all zeros, remove it
+            $decimalPart = substr($formatted, $commaPos + 1);
+            if (preg_match('/^0+$/', $decimalPart)) {
+                // Remove decimal part and comma
+                return substr($formatted, 0, $commaPos);
+            }
+            
+            // Remove trailing zeros after decimal point
+            $formatted = rtrim(rtrim($formatted, '0'), ',');
+        }
+        
+        return $formatted;
+    }
+    
+    /**
+     * Format currency with proper decimal handling
+     */
+    function formatCurrency($number, $decimals = 2) {
+        return 'RP' . formatNumberClean($number, $decimals);
+    }
+    
+    /**
+     * Format quantity with unit-specific decimal rules
+     */
+    function formatQuantity($number, $unitName) {
+        $decimals = 0;
+        
+        // Units that should show decimals
+        if (!in_array($unitName, ['Potong', 'Ekor', 'Buah', 'Pcs', 'Gram'])) {
+            $decimals = 2;
+        }
+        
+        return formatNumberClean($number, $decimals) . ' ' . $unitName;
+    }
+@endphp
+
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -414,26 +464,26 @@
                                         <tr class="{{ (isset($row['is_opening_balance']) && $row['is_opening_balance']) ? 'table-info' : '' }}">
                                             <td class="text-center">{{ $row['tanggal'] }}</td>
                                             <td class="text-center">{{ $keterangan }}</td>
-                                            <td class="text-end">{{ $row['saldo_awal_qty'] > 0 ? number_format($row['saldo_awal_qty'], (in_array($unit['name'], ['Potong', 'Ekor', 'Buah', 'Pcs']) ? 0 : ($unit['name'] == 'Gram' ? 0 : 2)), ',', '.') . ' ' . $unit['name'] : '' }}</td>
-                                            <td class="text-end">{{ $row['saldo_awal_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['saldo_awal_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
-                                            <td class="text-end">{{ $row['saldo_awal_total'] > 0 ? 'RP' . number_format($row['saldo_awal_total'], 0, ',', '.') : '' }}</td>
+                                            <td class="text-end">{{ (isset($row['saldo_awal_qty']) && $row['saldo_awal_qty'] != 0) ? formatQuantity($row['saldo_awal_qty'], $unit['name']) : '' }}</td>
+                                            <td class="text-end">{{ $row['saldo_awal_harga'] > 0 ? formatCurrency($row['saldo_awal_harga']) : '' }}</td>
+                                            <td class="text-end">{{ $row['saldo_awal_total'] > 0 ? formatCurrency($row['saldo_awal_total'], 0) : '' }}</td>
                                             @if($tipe == 'product')
                                                 <!-- For products, show sales data instead of purchase data -->
-                                            <td class="text-end">{{ isset($row['penjualan_qty']) && $row['penjualan_qty'] > 0 ? number_format($row['penjualan_qty'], (in_array($unit['name'], ['Potong', 'Ekor', 'Buah', 'Pcs']) ? 0 : ($unit['name'] == 'Gram' ? 0 : 2)), ',', '.') . ' ' . $unit['name'] : '' }}</td>
-                                                <td class="text-end">{{ isset($row['penjualan_harga']) && $row['penjualan_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['penjualan_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
-                                                <td class="text-end">{{ isset($row['penjualan_total']) && $row['penjualan_total'] > 0 ? 'RP' . number_format($row['penjualan_total'], 0, ',', '.') : '' }}</td>
+                                            <td class="text-end">{{ isset($row['penjualan_qty']) && $row['penjualan_qty'] != 0 ? formatQuantity($row['penjualan_qty'], $unit['name']) : '' }}</td>
+                                                <td class="text-end">{{ isset($row['penjualan_harga']) && $row['penjualan_harga'] > 0 ? formatCurrency($row['penjualan_harga']) : '' }}</td>
+                                                <td class="text-end">{{ isset($row['penjualan_total']) && $row['penjualan_total'] > 0 ? formatCurrency($row['penjualan_total'], 0) : '' }}</td>
                                             @else
                                                 <!-- For materials and bahan pendukung, show purchase data -->
-                                                <td class="text-end">{{ $row['pembelian_qty'] != 0 ? number_format($row['pembelian_qty'], (in_array($unit['name'], ['Potong', 'Ekor', 'Buah', 'Pcs']) ? 0 : ($unit['name'] == 'Gram' ? 0 : 2)), ',', '.') . ' ' . $unit['name'] : '' }}</td>
-                                                <td class="text-end">{{ $row['pembelian_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['pembelian_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
-                                                <td class="text-end">{{ $row['pembelian_total'] != 0 ? 'RP' . number_format($row['pembelian_total'], 0, ',', '.') : '' }}</td>
+                                                <td class="text-end">{{ isset($row['pembelian_qty']) && $row['pembelian_qty'] != 0 ? formatQuantity($row['pembelian_qty'], $unit['name']) : '' }}</td>
+                                                <td class="text-end">{{ $row['pembelian_harga'] > 0 ? formatCurrency($row['pembelian_harga']) : '' }}</td>
+                                                <td class="text-end">{{ $row['pembelian_total'] != 0 ? formatCurrency($row['pembelian_total'], 0) : '' }}</td>
                                             @endif
-                                            <td class="text-end">{{ $row['produksi_qty'] > 0 ? number_format($row['produksi_qty'], (in_array($unit['name'], ['Potong', 'Ekor', 'Buah', 'Pcs']) ? 0 : ($unit['name'] == 'Gram' ? 0 : 2)), ',', '.') . ' ' . $unit['name'] : '' }}</td>
-                                            <td class="text-end">{{ $row['produksi_harga'] > 0 ? 'RP' . rtrim(rtrim(number_format($row['produksi_harga'], 2, ',', '.'), '0'), ',') : '' }}</td>
-                                            <td class="text-end">{{ $row['produksi_total'] > 0 ? 'RP' . number_format($row['produksi_total'], 0, ',', '.') : '' }}</td>
-                                            <td class="text-end fw-bold">{{ number_format($row['saldo_akhir_qty'], (in_array($unit['name'], ['Potong', 'Ekor', 'Buah', 'Pcs']) ? 0 : ($unit['name'] == 'Gram' ? 0 : 2)), ',', '.') }} {{ $unit['name'] }}</td>
-                                            <td class="text-end">RP{{ rtrim(rtrim(number_format($row['saldo_akhir_harga'], 2, ',', '.'), '0'), ',') }}</td>
-                                            <td class="text-end">RP{{ number_format($row['saldo_akhir_total'], 0, ',', '.') }}</td>
+                                            <td class="text-end">{{ isset($row['produksi_qty']) && $row['produksi_qty'] != 0 ? formatQuantity($row['produksi_qty'], $unit['name']) : '' }}</td>
+                                            <td class="text-end">{{ $row['produksi_harga'] > 0 ? formatCurrency($row['produksi_harga']) : '' }}</td>
+                                            <td class="text-end">{{ $row['produksi_total'] > 0 ? formatCurrency($row['produksi_total'], 0) : '' }}</td>
+                                            <td class="text-end fw-bold">{{ formatQuantity($row['saldo_akhir_qty'], $unit['name']) }}</td>
+                                            <td class="text-end">{{ formatCurrency($row['saldo_akhir_harga']) }}</td>
+                                            <td class="text-end">{{ formatCurrency($row['saldo_akhir_total'], 0) }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar - UMKM Management</title>
+    <title>Register Owner SIMCOST</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -20,6 +20,7 @@
             margin: 0;
             padding: 0;
             overflow-x: hidden;
+            padding-bottom: 120px; /* Space for fixed footer */
         }
         
         /* Hide scrollbar but keep functionality */
@@ -55,10 +56,10 @@
         }
 
         .register-container {
-            max-width: 1000px;
+            max-width: 850px;
             width: 100%;
             margin: 2% auto;
-            padding: 2.5rem;
+            padding: 2rem;
             background: rgba(245, 243, 239, 0.95);
             border-radius: 16px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -365,6 +366,18 @@
             }
         }
 
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Developer Credits Hover Effects */
+        .developer-item:hover {
+            color: #d4a574 !important;
+            transform: translateY(-2px);
+            text-shadow: 0 2px 8px rgba(212, 165, 116, 0.3);
+        }
+
         /* Responsive adjustments for register */
         @media (max-width: 640px) {
             .register-container {
@@ -384,6 +397,11 @@
             
             .logo-partners-reg {
                 gap: 0.6rem;
+            }
+
+            /* Adjust body padding for mobile */
+            body, html {
+                padding-bottom: 140px; /* More space for mobile footer */
             }
         }
     </style>
@@ -408,10 +426,10 @@
     <div class="min-h-screen flex items-center justify-center p-4">
         <div class="register-container w-full">
             <div class="text-center mb-8">
-                <h1 class="text-3xl font-extrabold text-amber-950 mt-3">Daftar Sebagai Owner</h1>
-                <p class="text-amber-800 mt-2">Buat akun owner untuk memulai mengelola bisnis Anda</p>
+                <h1 class="text-2xl font-extrabold text-amber-950 mt-3">Daftar Sebagai Owner</h1>
+                <p class="text-amber-800 mt-2 text-sm">Buat akun owner untuk memulai mengelola bisnis Anda</p>
                 <div class="mt-4 p-3 bg-amber-100 rounded-lg border border-amber-300">
-                    <p class="text-sm text-amber-800">
+                    <p class="text-xs text-amber-800">
                         <strong>Catatan:</strong> Hanya owner yang dapat mendaftar di halaman ini. 
                         Admin, pegawai, dan kasir dapat login langsung di halaman login dengan email dan kode perusahaan.
                     </p>
@@ -441,7 +459,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="form-group">
-                        <label class="form-label" for="name" style="color: #8b4513;">Nama Lengkap <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="name" style="color: #8b4513; font-size: 0.9rem;">Nama Lengkap <span class="text-red-500">*</span></label>
                         <input
                             id="name"
                             type="text"
@@ -458,7 +476,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="username" style="color: #8b4513;">Username <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="username" style="color: #8b4513; font-size: 0.9rem;">Username <span class="text-red-500">*</span></label>
                         <input
                             id="username"
                             type="text"
@@ -475,7 +493,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="email" style="color: #8b4513;">Email <span class="text-red-500">*</span></label>
+                    <label class="form-label" for="email" style="color: #8b4513; font-size: 0.9rem;">Email <span class="text-red-500">*</span></label>
                     <input
                         id="email"
                         type="email"
@@ -493,7 +511,7 @@
                 </div> <!-- end common-fields-section -->
 
                 <div class="form-group">
-                    <label class="form-label" for="phone" style="color: #8b4513;">Nomor Telepon <span class="text-red-500">*</span></label>
+                    <label class="form-label" for="phone" style="color: #8b4513; font-size: 0.9rem;">Nomor Telepon <span class="text-red-500">*</span></label>
                     <div class="relative">
                         <input
                             id="phone"
@@ -513,28 +531,28 @@
 
                 <div id="company-owner-section" class="space-y-3" style="display: none;">
                     <div class="form-group">
-                        <label class="form-label" for="company_nama" style="color: #8b4513;">Nama Perusahaan <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="company_nama" style="color: #8b4513; font-size: 0.9rem;">Nama Perusahaan <span class="text-red-500">*</span></label>
                         <input id="company_nama" type="text" name="company_nama" value="{{ old('company_nama') }}" class="form-input @error('company_nama') border-red-500 @enderror" placeholder="Nama perusahaan">
                         @error('company_nama')
                             <p class="error-message">{{ $message }}</p>
                         @enderror
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="company_alamat" style="color: #8b4513;">Alamat Perusahaan <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="company_alamat" style="color: #8b4513; font-size: 0.9rem;">Alamat Perusahaan <span class="text-red-500">*</span></label>
                         <textarea id="company_alamat" name="company_alamat" rows="2" class="form-input @error('company_alamat') border-red-500 @enderror" placeholder="Alamat perusahaan">{{ old('company_alamat') }}</textarea>
                         @error('company_alamat')
                             <p class="error-message">{{ $message }}</p>
                         @enderror
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="company_email" style="color: #8b4513;">Email Perusahaan <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="company_email" style="color: #8b4513; font-size: 0.9rem;">Email Perusahaan <span class="text-red-500">*</span></label>
                         <input id="company_email" type="email" name="company_email" value="{{ old('company_email') }}" class="form-input @error('company_email') border-red-500 @enderror" placeholder="email@perusahaan.com">
                         @error('company_email')
                             <p class="error-message">{{ $message }}</p>
                         @enderror
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="company_telepon" style="color: #8b4513;">Telepon Perusahaan <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="company_telepon" style="color: #8b4513; font-size: 0.9rem;">Telepon Perusahaan <span class="text-red-500">*</span></label>
                         <input id="company_telepon" type="text" name="company_telepon" value="{{ old('company_telepon') }}" class="form-input @error('company_telepon') border-red-500 @enderror" placeholder="Nomor telepon perusahaan">
                         @error('company_telepon')
                             <p class="error-message">{{ $message }}</p>
@@ -543,7 +561,7 @@
                 </div>
 
                 <div id="kode-perusahaan-section" class="form-group" style="display: none;">
-                    <label class="form-label" for="kode_perusahaan">Kode Perusahaan <span class="text-amber-900">*</span></label>
+                    <label class="form-label" for="kode_perusahaan" style="font-size: 0.9rem;">Kode Perusahaan <span class="text-amber-900">*</span></label>
                     <input
                         id="kode_perusahaan"
                         type="text"
@@ -559,7 +577,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="form-group">
-                        <label class="form-label" for="password" style="color: #8b4513;">Password <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="password" style="color: #8b4513; font-size: 0.9rem;">Password <span class="text-red-500">*</span></label>
                         <div class="relative">
                             <input
                                 id="password"
@@ -578,7 +596,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="password_confirmation" style="color: #8b4513;">Konfirmasi Password <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="password_confirmation" style="color: #8b4513; font-size: 0.9rem;">Konfirmasi Password <span class="text-red-500">*</span></label>
                         <div class="relative">
                             <input
                                 id="password_confirmation"
@@ -601,7 +619,7 @@
                             class="rounded border-gray-400 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 mt-1"
                             required
                         >
-                        <span style="color: #8b4513;">
+                        <span style="color: #8b4513; font-size: 0.9rem;">
                             Saya setuju dengan <a href="#" class="hover:underline">Syarat & Ketentuan</a> dan <a href="#" class="hover:underline">Kebijakan Privasi</a> <span class="text-red-500">*</span>
                         </span>
                     </label>
@@ -610,11 +628,11 @@
                     @enderror
                 </div>
 
-                <button type="submit" class="btn-register mt-6">
+                <button type="submit" class="btn-register mt-6" style="font-size: 1rem; padding: 0.8rem;">
                     Daftar Sekarang
                 </button>
 
-                <div class="login-link">
+                <div class="login-link" style="font-size: 0.9rem;">
                     Sudah punya akun? <a href="{{ route('login') }}" class="hover:underline">Masuk disini</a>
                 </div>
             </form>
@@ -679,5 +697,104 @@
             handleRoleChange();
         });
     </script>
+
+    <!-- Developer Credits Footer -->
+    <div class="developer-credits" style="
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, rgba(62, 39, 35, 0.95) 0%, rgba(93, 64, 55, 0.95) 100%);
+        backdrop-filter: blur(10px);
+        padding: 1.5rem 0;
+        border-top: 1px solid rgba(212, 165, 116, 0.3);
+        z-index: 10;
+        animation: slideUp 0.8s ease-out;
+    ">
+        <div class="credits-container" style="
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            text-align: center;
+        ">
+            <div class="credits-title" style="
+                color: #d4a574;
+                font-size: 0.9rem;
+                font-weight: 600;
+                margin-bottom: 0.8rem;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                opacity: 0.9;
+            ">
+                Developed By
+            </div>
+            <div class="credits-list" style="
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 2rem;
+                align-items: center;
+            ">
+                <div class="developer-item" style="
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    cursor: default;
+                ">
+                    Dr. Nelsi Wisna, S.E., M.Si.
+                </div>
+                <div class="developer-item" style="
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    cursor: default;
+                ">
+                    Chindi Lestari
+                </div>
+                <div class="developer-item" style="
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    cursor: default;
+                ">
+                    Ghitha Nadhirah Yasin
+                </div>
+                <div class="developer-item" style="
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    cursor: default;
+                ">
+                    Muhammad Arkan Abiyyu
+                </div>
+                <div class="developer-item" style="
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                    cursor: default;
+                ">
+                    Nayla Dzakira Yusuf
+                </div>
+            </div>
+            <div class="credits-divider" style="
+                width: 60px;
+                height: 1px;
+                background: linear-gradient(90deg, transparent, rgba(212, 165, 116, 0.5), transparent);
+                margin: 1rem auto;
+            "></div>
+            <div class="credits-version" style="
+                color: rgba(255, 255, 255, 0.6);
+                font-size: 0.8rem;
+                font-style: italic;
+            ">
+                © 2026 SIMACOST - Sistem Manufaktur Process Costing
+            </div>
+        </div>
+    </div>
 </body>
 </html>

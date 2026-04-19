@@ -1,5 +1,36 @@
 @extends('layouts.app')
 
+@php
+    /**
+     * Format number with proper decimal handling
+     * Removes ,00 when no decimal parts, keeps decimals when they exist
+     */
+    function formatNumberClean($number, $decimals = 2) {
+        if ($number == 0) return '0';
+        
+        // Jika nilai adalah integer (tidak ada desimal), tampilkan tanpa desimal
+        if ($number == floor($number)) {
+            return number_format($number, 0, ',', '.');
+        }
+        
+        // Format dengan desimal
+        $formatted = number_format($number, $decimals, ',', '.');
+        
+        // Hapus trailing zeros setelah koma
+        $formatted = rtrim($formatted, '0');
+        $formatted = rtrim($formatted, ',');
+        
+        return $formatted;
+    }
+    
+    /**
+     * Format currency with proper decimal handling
+     */
+    function formatCurrency($number, $decimals = 2) {
+        return 'Rp ' . formatNumberClean($number, $decimals);
+    }
+@endphp
+
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -58,7 +89,7 @@
                                     <div class="d-flex align-items-center">
                                         <i class="bi bi-box-seam me-2 text-warning opacity-50"></i>
                                         <div>
-                                            <div class="fw-semibold text-warning">Rp {{ number_format($bop->bop_per_unit, 2, ',', '.') }}</div>
+                                            <div class="fw-semibold text-warning">Rp {{ formatNumberClean($bop->bop_per_unit) }}</div>
                                             <small class="text-muted">Per produk</small>
                                         </div>
                                     </div>
@@ -128,7 +159,7 @@
                                         @php
                                             $totalBopPerProduk = $bopProses->sum('bop_per_unit');
                                         @endphp
-                                        <span class="fw-bold text-success fs-6">Rp {{ number_format($totalBopPerProduk, 2, ',', '.') }}</span>
+                                        <span class="fw-bold text-success fs-6">Rp {{ formatNumberClean($totalBopPerProduk) }}</span>
                                     </div>
                                 </td>
                                 <td>-</td>
@@ -243,7 +274,7 @@
                             <strong>Informasi:</strong>
                             <ul class="mb-0 mt-1 small">
                                 <li>Proses: {{ $bop->prosesProduksi->nama_proses ?? 'Tidak Diketahui' }}</li>
-                                <li>BOP / produk: Rp {{ number_format($bop->bop_per_unit, 2, ',', '.') }}</li>
+                                <li>BOP / produk: Rp {{ formatNumberClean($bop->bop_per_unit) }}</li>
                                                             </ul>
                         </div>
                     </div>
@@ -305,15 +336,17 @@ function setupBtklAutoFill() {
                 
                 // Fill BTKL fields with data from ProsesProduksi
                 document.getElementById('kapasitas').value = kapasitas;
-                document.getElementById('btkl_per_jam').value = tarif;
-                document.getElementById('btkl_per_pcs').value = biayaPerUnit.toFixed(2);
+                document.getElementById('btkl_per_jam').value = formatCurrencyInput(tarif);
+                document.getElementById('btkl_per_pcs').value = formatCurrencyInput(biayaPerUnit);
                 
                 // Show info if data is available
                 if (kapasitas > 0 && tarif > 0) {
                     btklInfo.classList.remove('d-none');
                     btklInfo.classList.remove('alert-warning');
                     btklInfo.classList.add('alert-info');
-                    btklInfoText.textContent = `Data BTKL tersedia: Kapasitas ${kapasitas} pcs/jam, Tarif Rp ${tarif.toLocaleString('id-ID')}/jam, BTKL per pcs Rp ${biayaPerUnit.toFixed(2)}`;
+                    const formattedTarif = formatRupiahDisplay(tarif);
+                    const formattedBiayaPerUnit = formatRupiahDisplay(biayaPerUnit);
+                    btklInfoText.textContent = `Data BTKL tersedia: Kapasitas ${kapasitas} pcs/jam, Tarif ${formattedTarif}/jam, BTKL per pcs ${formattedBiayaPerUnit}`;
                 } else {
                     btklInfo.classList.remove('d-none');
                     btklInfo.classList.remove('alert-info');
@@ -398,6 +431,32 @@ function setupComponentRateListeners() {
     });
 }
 
+// Helper function to format number - remove trailing zeros and add Rp prefix
+function formatCurrencyInput(value) {
+    if (value == 0) return '0';
+    
+    // If integer, no decimal
+    if (value == Math.floor(value)) {
+        return new Intl.NumberFormat('id-ID').format(value);
+    }
+    
+    // If decimal, format and remove trailing zeros
+    let formatted = value.toFixed(2);
+    formatted = formatted.replace(/\.?0+$/, ''); // Remove trailing zeros
+    
+    // Add thousand separator
+    const parts = formatted.split('.');
+    parts[0] = new Intl.NumberFormat('id-ID').format(parseInt(parts[0]));
+    
+    return parts.join(',');
+}
+
+// Helper function to format display with Rp prefix
+function formatRupiahDisplay(value) {
+    const formatted = formatCurrencyInput(value);
+    return 'Rp ' + formatted;
+}
+
 // Calculate BOP summary based on per-product formula
 function calculateBopSummary() {
     // Get BTKL values
@@ -418,22 +477,22 @@ function calculateBopSummary() {
     // Calculate Biaya per produk: BTKL per produk + BOP per produk
     const biayaPerProduk = btklPerPcs + bopPerProduk;
     
-    // Update readonly fields
+    // Update readonly fields with clean format
     const totalBopInput = document.getElementById('total_bop_per_jam');
     if (totalBopInput) {
-        totalBopInput.value = totalBopPerProduk.toFixed(2);
+        totalBopInput.value = formatCurrencyInput(totalBopPerProduk);
     }
     
     // Update BOP per produk field
     const bopPerPcsInput = document.getElementById('bop_per_pcs');
     if (bopPerPcsInput) {
-        bopPerPcsInput.value = bopPerProduk.toFixed(2);
+        bopPerPcsInput.value = formatCurrencyInput(bopPerProduk);
     }
     
     // Update Biaya per produk field
     const biayaPerProdukInput = document.getElementById('biaya_per_produk');
     if (biayaPerProdukInput) {
-        biayaPerProdukInput.value = biayaPerProduk.toFixed(2);
+        biayaPerProdukInput.value = formatCurrencyInput(biayaPerProduk);
     }
 }
 
@@ -501,13 +560,15 @@ function editBopProses(id) {
                 const btklPerPcs = bop.proses_produksi?.biaya_per_produk || (kapasitas > 0 ? tarif / kapasitas : 0);
                 
                 document.getElementById('editKapasitas').value = kapasitas;
-                document.getElementById('editBtklPerJam').value = tarif;
-                document.getElementById('editBtklPerPcs').value = btklPerPcs.toFixed(2);
+                document.getElementById('editBtklPerJam').value = formatCurrencyInput(tarif);
+                document.getElementById('editBtklPerPcs').value = formatCurrencyInput(btklPerPcs);
                 
                 // Show BTKL info
                 const editBtklInfoText = document.getElementById('editBtklInfoText');
                 if (editBtklInfoText) {
-                    editBtklInfoText.textContent = `Kapasitas ${kapasitas} pcs/jam, Tarif Rp ${tarif.toLocaleString('id-ID')}/jam, BTKL per pcs Rp ${btklPerPcs.toFixed(2)}`;
+                    const formattedTarif = formatRupiahDisplay(tarif);
+                    const formattedBtklPerPcs = formatRupiahDisplay(btklPerPcs);
+                    editBtklInfoText.textContent = `Kapasitas ${kapasitas} pcs/jam, Tarif ${formattedTarif}/jam, BTKL per pcs ${formattedBtklPerPcs}`;
                 }
                 
                 // Load components
@@ -652,20 +713,20 @@ function calculateEditBopSummary() {
     // Calculate Biaya per produk: BTKL per produk + BOP per produk
     const biayaPerProduk = btklPerPcs + bopPerProduk;
     
-    // Update readonly fields in edit modal
+    // Update readonly fields in edit modal with clean format
     const editTotalBopInput = document.getElementById('editTotalBopPerJam');
     if (editTotalBopInput) {
-        editTotalBopInput.value = totalBopPerProduk.toFixed(2);
+        editTotalBopInput.value = formatCurrencyInput(totalBopPerProduk);
     }
     
     const editBopPerPcsInput = document.getElementById('editBopPerPcs');
     if (editBopPerPcsInput) {
-        editBopPerPcsInput.value = bopPerProduk.toFixed(2);
+        editBopPerPcsInput.value = formatCurrencyInput(bopPerProduk);
     }
     
     const editBiayaPerProdukInput = document.getElementById('editBiayaPerProduk');
     if (editBiayaPerProdukInput) {
-        editBiayaPerProdukInput.value = biayaPerProduk.toFixed(2);
+        editBiayaPerProdukInput.value = formatCurrencyInput(biayaPerProduk);
     }
 }
 
@@ -1233,28 +1294,14 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('BOP Edit - Form submit event triggered!');
         e.preventDefault();
         
-        // Manually build FormData to ensure all inputs are captured
-        const formData = new FormData();
         const bopId = document.getElementById('editBopProsesId').value;
         
-        // Add CSRF token
-        formData.append('_token', document.querySelector('meta[name="csrf-token"]').content);
-        
-        // Add BOP ID
-        formData.append('id', bopId);
-        
-        // Add keterangan
-        const keterangan = document.getElementById('editKeteranganProses');
-        if (keterangan) {
-            formData.append('keterangan', keterangan.value);
-        }
-        
-        // Manually collect all component inputs
+        // Collect component data
         const componentNames = document.querySelectorAll('input[name="edit_komponen_name[]"]');
         const componentRates = document.querySelectorAll('input[name="edit_komponen_rate[]"]');
         const componentDescs = document.querySelectorAll('input[name="edit_komponen_desc[]"]');
         
-        // Also try the create form field names in case they exist
+        // Also try the create form field names
         const createNames = document.querySelectorAll('input[name="komponen_name[]"]');
         const createRates = document.querySelectorAll('input[name="komponen_rate[]"]');
         const createDescs = document.querySelectorAll('input[name="komponen_desc[]"]');
@@ -1264,41 +1311,33 @@ document.addEventListener('DOMContentLoaded', function() {
         const finalRates = componentRates.length > 0 ? componentRates : createRates;
         const finalDescs = componentDescs.length > 0 ? componentDescs : createDescs;
         
-        console.log('BOP Edit - Component inputs found:', {
-            edit_names: componentNames.length,
-            edit_rates: componentRates.length,
-            edit_descs: componentDescs.length,
-            create_names: createNames.length,
-            create_rates: createRates.length,
-            create_descs: createDescs.length,
-            final_names: finalNames.length,
-            final_rates: finalRates.length,
-            final_descs: finalDescs.length
-        });
+        console.log('BOP Edit - Component inputs found:', finalNames.length);
         
-        // Add component data to FormData using create form field names
+        // Build komponen_bop array
+        const komponenBop = [];
         finalNames.forEach((input, index) => {
-            if (input.value.trim()) {
-                formData.append('komponen_name[]', input.value.trim());
-                console.log(`Adding name ${index}:`, input.value.trim());
+            if (input.value.trim() && finalRates[index]) {
+                komponenBop.push({
+                    component: input.value.trim(),
+                    rate_per_hour: parseFloat(finalRates[index].value) || 0
+                });
+                console.log(`Component ${index}:`, input.value.trim(), '=', finalRates[index].value);
             }
         });
         
-        finalRates.forEach((input, index) => {
-            formData.append('komponen_rate[]', input.value || '0');
-            console.log(`Adding rate ${index}:`, input.value || '0');
-        });
+        console.log('Total components:', komponenBop.length);
+        console.log('Components data:', komponenBop);
         
-        finalDescs.forEach((input, index) => {
-            formData.append('komponen_desc[]', input.value || '');
-            console.log(`Adding desc ${index}:`, input.value || '');
-        });
+        // Get keterangan
+        const keterangan = document.getElementById('editKeteranganProses');
         
-        // Debug: Log final FormData
-        console.log('Final FormData entries:');
-        for (let [key, value] of formData.entries()) {
-            console.log(key + ':', value);
-        }
+        // Build request data as JSON
+        const requestData = {
+            komponen_bop: komponenBop,
+            keterangan: keterangan ? keterangan.value : ''
+        };
+        
+        console.log('Sending data:', requestData);
         
         // Show loading
         const submitBtn = this.querySelector('button[type="submit"]');
@@ -1307,12 +1346,13 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Menyimpan...';
         
         fetch(`/master-data/bop/update-proses-simple/${bopId}`, {
-            method: 'PUT',
+            method: 'POST',  // Changed to POST
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json',
                 'Accept': 'application/json'
             },
-            body: formData
+            body: JSON.stringify(requestData)
         })
         .then(response => response.json())
         .then(data => {
@@ -1330,6 +1370,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => {
+            console.error('Error:', error);
             alert('Terjadi kesalahan: ' + error.message);
         })
         .finally(() => {

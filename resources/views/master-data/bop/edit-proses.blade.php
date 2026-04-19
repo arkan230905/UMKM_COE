@@ -69,9 +69,15 @@
                 }
             </style>
             
-            <form action="{{ route('master-data.bop.update-proses', $bopProses->id) }}" method="POST" id="editBopForm">
+            <form action="{{ route('master-data.bop.update-proses-post', $bopProses->id) }}?v={{ time() }}" method="POST" id="editBopForm">
                 @csrf
-                @method('PUT')
+                
+                <!-- Debug: Show form action -->
+                <div style="display:none;">
+                    Form Action: {{ route('master-data.bop.update-proses-post', $bopProses->id) }}
+                    BOP ID: {{ $bopProses->id }}
+                    Timestamp: {{ time() }}
+                </div>
                 
                 <!-- Proses Produksi Info -->
                 <div class="info-card">
@@ -84,19 +90,19 @@
                             </div>
                             <small class="text-white-50">
                                 Kapasitas {{ $bopProses->prosesProduksi->kapasitas_per_jam }} pcs/jam, 
-                                Tarif Rp {{ number_format($bopProses->prosesProduksi->tarif_per_jam, 2, ',', '.') }}/jam, 
-                                BTKL per pcs Rp {{ number_format($bopProses->prosesProduksi->btkl_per_pcs, 2, ',', '.') }}
+                                Tarif Rp {{ formatNumberClean($bopProses->prosesProduksi->tarif_per_jam) }}/jam, 
+                                BTKL per pcs Rp {{ formatNumberClean($bopProses->prosesProduksi->btkl_per_pcs) }}
                             </small>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label text-white-50">Kapasitas (pcs/jam)</label>
-                            <input type="number" class="form-control bg-dark text-white" 
-                                   value="{{ $bopProses->prosesProduksi->kapasitas_per_jam }}" readonly>
+                            <input type="text" class="form-control bg-dark text-white" 
+                                   value="{{ formatNumberClean($bopProses->prosesProduksi->kapasitas_per_jam) }}" readonly>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label text-white-50">BTKL / Jam</label>
                             <input type="text" class="form-control bg-dark text-white" 
-                                   value="{{ number_format($bopProses->prosesProduksi->tarif_per_jam, 2, ',', '.') }}" readonly>
+                                   value="{{ formatNumberClean($bopProses->prosesProduksi->tarif_per_jam) }}" readonly>
                         </div>
                     </div>
                     <div class="row mt-3">
@@ -104,7 +110,7 @@
                             <label class="form-label text-white-50">BTKL / produk</label>
                             <input type="text" class="form-control bg-dark text-white" 
                                    id="btklPerProdukDisplay"
-                                   value="{{ number_format($bopProses->prosesProduksi->btkl_per_pcs, 2, ',', '.') }}" readonly>
+                                   value="{{ formatNumberClean($bopProses->prosesProduksi->btkl_per_pcs) }}" readonly>
                         </div>
                     </div>
                 </div>
@@ -130,18 +136,37 @@
                                         $komponenBop = json_decode($komponenBop, true) ?? [];
                                     }
                                     
+                                    // Debug: Log komponen structure
+                                    \Log::info('BOP Edit - Komponen BOP Structure:', [
+                                        'type' => gettype($komponenBop),
+                                        'data' => $komponenBop
+                                    ]);
+                                    
+                                    // Create a map of component name => rate for easier lookup
+                                    $komponenMap = [];
+                                    foreach ($komponenBop as $komp) {
+                                        if (isset($komp['component']) && isset($komp['rate_per_hour'])) {
+                                            $komponenMap[$komp['component']] = $komp['rate_per_hour'];
+                                        }
+                                    }
+                                    
                                     $components = [
                                         ['name' => 'Listrik Mixer', 'field' => 'listrik_per_jam', 'icon' => 'fas fa-bolt', 'color' => 'text-warning'],
                                         ['name' => 'Mesin Ringan', 'field' => 'gas_bbm_per_jam', 'icon' => 'fas fa-fire', 'color' => 'text-danger'],
                                         ['name' => 'Penyusutan Alat', 'field' => 'penyusutan_mesin_per_jam', 'icon' => 'fas fa-chart-line-down', 'color' => 'text-secondary'],
                                         ['name' => 'Drum / Mixer', 'field' => 'maintenance_per_jam', 'icon' => 'fas fa-tools', 'color' => 'text-info'],
                                         ['name' => 'Maintenace', 'field' => 'gaji_mandor_per_jam', 'icon' => 'fas fa-wrench', 'color' => 'text-primary'],
-                                        ['name' => 'Rutin', 'field' => 'lain_lain_per_jam', 'icon' => 'fas fa-sync', 'color' => 'text-success'],
-                                        ['name' => 'Kebersihan', 'field' => 'lain_lain_per_jam', 'icon' => 'fas fa-broom', 'color' => 'text-info']
+                                        ['name' => 'Rutin', 'field' => 'rutin_per_jam', 'icon' => 'fas fa-sync', 'color' => 'text-success'],
+                                        ['name' => 'Kebersihan', 'field' => 'kebersihan_per_jam', 'icon' => 'fas fa-broom', 'color' => 'text-info']
                                     ];
                                 @endphp
                                 
                                 @foreach($components as $index => $component)
+                                @php
+                                    // Get value from map by component name, fallback to index-based lookup
+                                    $currentValue = $komponenMap[$component['name']] ?? 
+                                                   ($komponenBop[$index]['rate_per_hour'] ?? 0);
+                                @endphp
                                 <tr>
                                     <td>
                                         <i class="{{ $component['icon'] }} {{ $component['color'] }} me-2"></i>
@@ -154,7 +179,7 @@
                                                    name="komponen_bop[{{ $index }}][rate_per_hour]" 
                                                    id="{{ $component['field'] }}" 
                                                    class="form-control bg-dark text-white" 
-                                                   value="{{ old('komponen_bop.' . $index . '.rate_per_hour', $komponenBop[$index]['rate_per_hour'] ?? 0) }}"
+                                                   value="{{ old('komponen_bop.' . $index . '.rate_per_hour', $currentValue) }}"
                                                    min="0" 
                                                    step="0.01" 
                                                    placeholder="0"
@@ -243,9 +268,68 @@
 </div>
 
 <script>
+// Debug: Log form data before submission
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('editBopForm');
+    
+    // Debug: Log form action and method
+    console.log('=== FORM INFO ===');
+    console.log('Form action:', form.action);
+    console.log('Form method:', form.method);
+    console.log('Form elements count:', form.elements.length);
+    
+    // Check for _method field
+    const methodField = form.querySelector('input[name="_method"]');
+    console.log('_method field:', methodField ? methodField.value : 'NOT FOUND');
+    
+    form.addEventListener('submit', function(e) {
+        console.log('=== FORM SUBMISSION DEBUG ===');
+        console.log('Submitting to:', form.action);
+        console.log('Method:', form.method);
+        
+        // Get all komponen_bop inputs
+        const komponenInputs = document.querySelectorAll('input[name^="komponen_bop"]');
+        console.log('Total inputs found:', komponenInputs.length);
+        
+        // Build komponen array
+        const komponenData = [];
+        for (let i = 0; i < 7; i++) {
+            const rateInput = document.querySelector(`input[name="komponen_bop[${i}][rate_per_hour]"]`);
+            const componentInput = document.querySelector(`input[name="komponen_bop[${i}][component]"]`);
+            
+            if (rateInput && componentInput) {
+                const data = {
+                    index: i,
+                    component: componentInput.value,
+                    rate_per_hour: rateInput.value,
+                    rate_float: parseFloat(rateInput.value) || 0
+                };
+                komponenData.push(data);
+                console.log(`Component ${i}:`, data);
+            }
+        }
+        
+        // Check valid components (rate > 0)
+        const validComponents = komponenData.filter(k => parseFloat(k.rate_per_hour) > 0);
+        console.log('Valid components (rate > 0):', validComponents.length);
+        console.log('Valid components data:', validComponents);
+        
+        if (validComponents.length === 0) {
+            console.error('❌ NO VALID COMPONENTS! Form will fail validation.');
+            alert('DEBUG: Tidak ada komponen dengan nilai > 0. Cek console (F12) untuk detail.');
+            // Uncomment line below to prevent submission for debugging
+            // e.preventDefault();
+        } else {
+            console.log('✅ Form has', validComponents.length, 'valid components');
+        }
+        
+        console.log('=== END DEBUG ===');
+    });
+});
+
 function calculateTotal() {
-    // Get all component values
-    const components = ['listrik_per_jam', 'gas_bbm_per_jam', 'penyusutan_mesin_per_jam', 'maintenance_per_jam', 'gaji_mandor_per_jam', 'lain_lain_per_jam'];
+    // Get all component values - updated to include all 7 components
+    const components = ['listrik_per_jam', 'gas_bbm_per_jam', 'penyusutan_mesin_per_jam', 'maintenance_per_jam', 'gaji_mandor_per_jam', 'rutin_per_jam', 'kebersihan_per_jam'];
     let total = 0;
     
     components.forEach(field => {

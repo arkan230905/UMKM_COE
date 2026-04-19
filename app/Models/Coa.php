@@ -29,6 +29,7 @@ class Coa extends Model
         'saldo_awal',
         'tanggal_saldo_awal',
         'posted_saldo_awal',
+        'company_id',
     ];
     
     protected $appends = ['kode', 'nama'];
@@ -100,6 +101,18 @@ class Coa extends Model
         static::creating(function ($coa) {
             if (empty($coa->kode_akun)) {
                 $coa->kode_akun = $coa->generateKodeAkun();
+            }
+        });
+        
+        // Filter COA berdasarkan company_id user yang login (kecuali untuk template)
+        static::addGlobalScope('filterByCompany', function ($builder) {
+            $user = auth()->user();
+            if ($user && $user->perusahaan_id) {
+                // Hanya tampilkan COA milik company user
+                $builder->where('company_id', $user->perusahaan_id);
+            } else {
+                // Jika tidak ada user atau company_id, hanya tampilkan template
+                $builder->whereNull('company_id');
             }
         });
         

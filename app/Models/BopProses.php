@@ -123,10 +123,25 @@ class BopProses extends Model
 
     /**
      * Format BOP per unit untuk tampilan
+     * Hanya tampilkan desimal jika ada nilai desimal
      */
     public function getBopPerUnitFormattedAttribute(): string
     {
-        return 'Rp ' . number_format($this->bop_per_unit, 2, ',', '.');
+        $value = $this->bop_per_unit;
+        
+        // Jika nilai adalah integer (tidak ada desimal), tampilkan tanpa desimal
+        if ($value == floor($value)) {
+            return 'Rp ' . number_format($value, 0, ',', '.');
+        }
+        
+        // Jika ada desimal, format dengan 2 desimal dan hapus trailing zeros
+        $formatted = number_format($value, 2, ',', '.');
+        
+        // Hapus trailing zeros setelah koma
+        $formatted = rtrim($formatted, '0');
+        $formatted = rtrim($formatted, ',');
+        
+        return 'Rp ' . $formatted;
     }
 
     /**
@@ -170,10 +185,25 @@ class BopProses extends Model
 
     /**
      * Format biaya per produk untuk tampilan
+     * Hanya tampilkan desimal jika ada nilai desimal
      */
     public function getBiayaPerProdukFormattedAttribute(): string
     {
-        return 'Rp ' . number_format($this->biaya_per_produk, 2, ',', '.');
+        $value = $this->biaya_per_produk;
+        
+        // Jika nilai adalah integer (tidak ada desimal), tampilkan tanpa desimal
+        if ($value == floor($value)) {
+            return 'Rp ' . number_format($value, 0, ',', '.');
+        }
+        
+        // Jika ada desimal, format dengan 2 desimal dan hapus trailing zeros
+        $formatted = number_format($value, 2, ',', '.');
+        
+        // Hapus trailing zeros setelah koma
+        $formatted = rtrim($formatted, '0');
+        $formatted = rtrim($formatted, ',');
+        
+        return 'Rp ' . $formatted;
     }
 
 }

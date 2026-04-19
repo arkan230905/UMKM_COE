@@ -44,11 +44,17 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">BTKL / Jam</label>
-                            <input type="number" id="btkl_per_jam" name="btkl_per_jam" class="form-control" readonly>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="text" id="btkl_per_jam" name="btkl_per_jam" class="form-control text-end" readonly>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">BTKL / produk</label>
-                            <input type="number" id="btkl_per_pcs" name="btkl_per_pcs" class="form-control" readonly>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="text" id="btkl_per_pcs" name="btkl_per_pcs" class="form-control text-end" readonly>
+                            </div>
                         </div>
                     </div>
                     
@@ -80,10 +86,15 @@
                                                 <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">Hapus</button></td>
                                             </tr>
                                         </tbody>
-                        <tfoot>
+                                        <tfoot>
                                             <tr class="table-primary fw-bold">
                                                 <td>Total BOP / produk</td>
-                                                <td><input type="number" id="total_bop_per_jam" name="total_bop_per_jam" class="form-control" readonly></td>
+                                                <td>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">Rp</span>
+                                                        <input type="text" id="total_bop_per_jam" name="total_bop_per_jam" class="form-control text-end" readonly>
+                                                    </div>
+                                                </td>
                                                 <td></td>
                                                 <td></td>
                                             </tr>
@@ -101,11 +112,17 @@
                     <div class="row mt-3">
                         <div class="col-md-3">
                             <label class="form-label">BOP / produk</label>
-                            <input type="number" id="bop_per_pcs" class="form-control" readonly>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="text" id="bop_per_pcs" class="form-control text-end" readonly>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Biaya / produk</label>
-                            <input type="number" id="biaya_per_produk" class="form-control" readonly>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="text" id="biaya_per_produk" class="form-control text-end" readonly>
+                            </div>
                         </div>
                     </div>
                     
@@ -161,11 +178,17 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">BTKL / Jam</label>
-                            <input type="number" id="editBtklPerJam" name="btkl_per_jam" class="form-control" readonly>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="text" id="editBtklPerJam" name="btkl_per_jam" class="form-control text-end" readonly>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">BTKL / produk</label>
-                            <input type="number" id="editBtklPerPcs" class="form-control" readonly>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="text" id="editBtklPerPcs" class="form-control text-end" readonly>
+                            </div>
                         </div>
                     </div>
                     
@@ -190,7 +213,12 @@
                                         <tfoot>
                                             <tr class="table-primary fw-bold">
                                                 <td>Total BOP / produk</td>
-                                                <td><input type="number" id="editTotalBopPerJam" name="total_bop_per_jam" class="form-control" readonly></td>
+                                                <td>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">Rp</span>
+                                                        <input type="text" id="editTotalBopPerJam" name="total_bop_per_jam" class="form-control text-end" readonly>
+                                                    </div>
+                                                </td>
                                                 <td></td>
                                                 <td></td>
                                             </tr>
@@ -208,11 +236,17 @@
                     <div class="row mt-3">
                         <div class="col-md-4">
                             <label class="form-label">BOP / produk</label>
-                            <input type="number" id="editBopPerPcs" class="form-control" readonly>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="text" id="editBopPerPcs" class="form-control text-end" readonly>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Biaya / produk</label>
-                            <input type="number" id="editBiayaPerProduk" class="form-control" readonly>
+                            <div class="input-group">
+                                <span class="input-group-text">Rp</span>
+                                <input type="text" id="editBiayaPerProduk" class="form-control text-end" readonly>
+                            </div>
                         </div>
                     </div>
                     

@@ -2524,8 +2524,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/edit/{id}', [BiayaBahanController::class, 'edit'])->name('edit');
             Route::put('/update/{id}', [BiayaBahanController::class, 'update'])->name('update');
             Route::delete('/{id}', [BiayaBahanController::class, 'destroy'])->name('destroy');
-            Route::post('/recalculate', [BiayaBahanController::class, 'recalculate'])->name('recalculate');
-            
+                        
             // New routes for price change handling
             Route::post('/update-on-price-change', [BiayaBahanController::class, 'updateOnPriceChange'])->name('update-on-price-change');
             Route::get('/harga-change-report/{bahanBakuId}', [BiayaBahanController::class, 'getHargaChangeReport'])->name('harga-change-report');
@@ -2559,7 +2558,9 @@ Route::middleware('auth')->group(function () {
             Route::get('/get-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'getBopProses'])->name('get-proses');
             Route::get('/edit-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'editProses'])->name('edit-proses');
             Route::put('/update-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProses'])->name('update-proses');
+            Route::post('/update-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProses'])->name('update-proses-post');
             Route::put('/update-proses-simple/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProsesSimple'])->name('update-proses-simple');
+            Route::post('/update-proses-simple/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'updateProsesSimple'])->name('update-proses-simple-post');
             Route::delete('/destroy-proses/{id}', [\App\Http\Controllers\MasterData\BopController::class, 'destroyProses'])->name('destroy-proses');
             
             // Beban Operasional Routes
@@ -3138,7 +3139,46 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/neraca-saldo/pdf', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldoPdf'])->name('neraca-saldo.pdf');
         Route::get('/neraca', [\App\Http\Controllers\AkuntansiController::class, 'neraca'])->name('neraca');
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
+        
+        // Redirect old URL to new URL for backward compatibility
+        Route::redirect('/neraca', '/akuntansi/laporan-posisi-keuangan', 301);
     });
+
+    // ================================================================
+    // TEMPORARY FIXES FOR LAPORAN POSISI KEUANGAN ACCESS
+    // ================================================================
+    
+    // Handle direct access to /laporan-posisi-keuangan (redirect to correct URL)
+    Route::get('/laporan-posisi-keuangan', function() {
+        return redirect('/akuntansi/laporan-posisi-keuangan');
+    });
+    
+    // Temporary route without middleware for testing
+    Route::get('/test-laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('test.laporan.posisi.keuangan');
+    
+    // User role diagnostic
+    Route::get('/check-user', function() {
+        $user = auth()->user();
+        
+        if (!$user) {
+            return response()->json([
+                'authenticated' => false,
+                'message' => 'No user logged in',
+                'login_url' => route('login')
+            ]);
+        }
+        
+        return response()->json([
+            'authenticated' => true,
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'valid_roles' => \App\Models\User::VALID_ROLES,
+            'has_admin_access' => in_array($user->role, ['admin', 'owner']),
+            'can_access_akuntansi' => $user->hasAnyRole(['admin', 'owner'])
+        ]);
+    })->middleware('auth');
 
     // ================================================================
     // COA PERIOD MANAGEMENT

@@ -53,10 +53,10 @@ class BahanPendukungService
                 'konversi_nilai' => $konversi->konversi_nilai,
                 'harga_per_unit' => round($hargaSubSatuan, 2),
                 'formula_text' => "Rp " . number_format($bahan->harga_satuan, 0, ',', '.') . 
-                                " ÷ " . number_format($konversi->konversi_nilai, 0, ',', '.') . 
+                                " ÷ " . $this->formatDecimal($konversi->konversi_nilai) . 
                                 " = Rp " . number_format($hargaSubSatuan, 0, ',', '.'),
                 'konversi_text' => "1 {$bahan->satuan_utama_nama} = " . 
-                                 number_format($konversi->konversi_nilai, 0, ',', '.') . 
+                                 $this->formatDecimal($konversi->konversi_nilai) . 
                                  " {$konversi->satuan_nama}"
             ];
         }
@@ -95,15 +95,18 @@ class BahanPendukungService
 
         // Sub Satuan 1
         if ($bahan->sub_satuan_1_id && $bahan->sub_satuan_1_konversi > 0) {
+            $hargaPerUnit = (float) $bahan->harga_satuan / (float) $bahan->sub_satuan_1_nilai;
+            
             $subSatuanData[] = [
                 'satuan_nama' => $bahan->sub_satuan_1_nama,
                 'konversi_nilai' => $bahan->sub_satuan_1_konversi,
-                'harga_per_unit' => $bahan->sub_satuan_1_nilai,
+                'harga_per_unit' => round($hargaPerUnit, 2),
                 'formula_text' => "Rp " . number_format($bahan->harga_satuan, 0, ',', '.') . 
-                                " ÷ " . number_format($bahan->sub_satuan_1_konversi, 0, ',', '.') . 
-                                " = Rp " . number_format($bahan->sub_satuan_1_nilai, 0, ',', '.'),
-                'konversi_text' => "1 {$bahan->satuan_utama_nama} = " . 
-                                 number_format($bahan->sub_satuan_1_konversi, 0, ',', '.') . 
+                                " ÷ " . $this->formatDecimal($bahan->sub_satuan_1_nilai) . 
+                                " = Rp " . number_format($hargaPerUnit, 0, ',', '.'),
+                'konversi_text' => number_format($bahan->sub_satuan_1_konversi, 0, ',', '.') . " " . 
+                                 "{$bahan->satuan_utama_nama} = " . 
+                                 $this->formatDecimal($bahan->sub_satuan_1_nilai) . 
                                  " {$bahan->sub_satuan_1_nama}"
             ];
         }
@@ -113,12 +116,13 @@ class BahanPendukungService
             $subSatuanData[] = [
                 'satuan_nama' => $bahan->sub_satuan_2_nama,
                 'konversi_nilai' => $bahan->sub_satuan_2_konversi,
-                'harga_per_unit' => $bahan->sub_satuan_2_nilai,
+                'harga_per_unit' => round($bahan->harga_satuan / $bahan->sub_satuan_2_nilai, 2),
                 'formula_text' => "Rp " . number_format($bahan->harga_satuan, 0, ',', '.') . 
-                                " ÷ " . number_format($bahan->sub_satuan_2_konversi, 0, ',', '.') . 
+                                " ÷ " . $this->formatDecimal($bahan->sub_satuan_2_nilai) . 
                                 " = Rp " . number_format($bahan->sub_satuan_2_nilai, 0, ',', '.'),
-                'konversi_text' => "1 {$bahan->satuan_utama_nama} = " . 
-                                 number_format($bahan->sub_satuan_2_konversi, 0, ',', '.') . 
+                'konversi_text' => number_format($bahan->sub_satuan_2_konversi, 0, ',', '.') . " " . 
+                                 "{$bahan->satuan_utama_nama} = " . 
+                                 $this->formatDecimal($bahan->sub_satuan_2_nilai) . 
                                  " {$bahan->sub_satuan_2_nama}"
             ];
         }
@@ -128,12 +132,13 @@ class BahanPendukungService
             $subSatuanData[] = [
                 'satuan_nama' => $bahan->sub_satuan_3_nama,
                 'konversi_nilai' => $bahan->sub_satuan_3_konversi,
-                'harga_per_unit' => $bahan->sub_satuan_3_nilai,
+                'harga_per_unit' => round($bahan->harga_satuan / $bahan->sub_satuan_3_nilai, 2),
                 'formula_text' => "Rp " . number_format($bahan->harga_satuan, 0, ',', '.') . 
-                                " ÷ " . number_format($bahan->sub_satuan_3_konversi, 0, ',', '.') . 
+                                " ÷ " . $this->formatDecimal($bahan->sub_satuan_3_nilai) . 
                                 " = Rp " . number_format($bahan->sub_satuan_3_nilai, 0, ',', '.'),
-                'konversi_text' => "1 {$bahan->satuan_utama_nama} = " . 
-                                 number_format($bahan->sub_satuan_3_konversi, 0, ',', '.') . 
+                'konversi_text' => number_format($bahan->sub_satuan_3_konversi, 0, ',', '.') . " " . 
+                                 "{$bahan->satuan_utama_nama} = " . 
+                                 $this->formatDecimal($bahan->sub_satuan_3_nilai) . 
                                  " {$bahan->sub_satuan_3_nama}"
             ];
         }
@@ -142,5 +147,16 @@ class BahanPendukungService
             'bahan' => $bahan,
             'sub_satuan_prices' => $subSatuanData
         ];
+    }
+    
+    /**
+     * Format decimal value for display, preserving decimal places
+     */
+    public function formatDecimal($value)
+    {
+        if ($value == floor($value)) {
+            return number_format($value, 0, ',', '.');
+        }
+        return rtrim(rtrim(number_format($value, 4, ',', '.'), '0'), ',');
     }
 }
