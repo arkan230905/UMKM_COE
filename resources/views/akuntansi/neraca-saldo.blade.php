@@ -7,35 +7,39 @@
     <div class="d-flex gap-2">
       <form method="get" class="d-flex gap-2 align-items-end">
         <div>
-          <label class="form-label">Pilih Periode</label>
-          <select name="period_id" class="form-select" onchange="this.form.submit()" style="min-width: 200px;">
-            @foreach($periods as $p)
-              <option value="{{ $p->id }}" {{ $periode && $periode->id == $p->id ? 'selected' : '' }}>
-                {{ \Carbon\Carbon::parse($p->periode.'-01')->isoFormat('MMMM YYYY') }}
-                {{ $p->is_closed ? '✓' : '' }}
-              </option>
-            @endforeach
+          <label class="form-label">Bulan</label>
+          <select name="bulan" class="form-select" style="min-width: 150px;">
+            <option value="01" {{ request('bulan') == '01' ? 'selected' : '' }}>Januari</option>
+            <option value="02" {{ request('bulan') == '02' ? 'selected' : '' }}>Februari</option>
+            <option value="03" {{ request('bulan') == '03' ? 'selected' : '' }}>Maret</option>
+            <option value="04" {{ request('bulan') == '04' ? 'selected' : '' }}>April</option>
+            <option value="05" {{ request('bulan') == '05' ? 'selected' : '' }}>Mei</option>
+            <option value="06" {{ request('bulan') == '06' ? 'selected' : '' }}>Juni</option>
+            <option value="07" {{ request('bulan') == '07' ? 'selected' : '' }}>Juli</option>
+            <option value="08" {{ request('bulan') == '08' ? 'selected' : '' }}>Agustus</option>
+            <option value="09" {{ request('bulan') == '09' ? 'selected' : '' }}>September</option>
+            <option value="10" {{ request('bulan') == '10' ? 'selected' : '' }}>Oktober</option>
+            <option value="11" {{ request('bulan') == '11' ? 'selected' : '' }}>November</option>
+            <option value="12" {{ request('bulan') == '12' ? 'selected' : '' }}>Desember</option>
           </select>
         </div>
+        <div>
+          <label class="form-label">Tahun</label>
+          <input type="number" name="tahun" class="form-control" value="{{ request('tahun', date('Y')) }}" style="min-width: 100px;" min="2020" max="2030">
+        </div>
+        <div>
+          <label class="form-label">&nbsp;</label>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-eye"></i> Tampilkan
+          </button>
+        </div>
       </form>
-      
-      @if($periode && !$periode->is_closed)
-        <form method="post" action="{{ route('coa-period.post', $periode->id) }}" onsubmit="return confirm('Yakin ingin menutup periode ini dan posting saldo ke periode berikutnya?')">
-          @csrf
-          <label class="form-label">&nbsp;</label>
-          <button type="submit" class="btn btn-success d-block">
-            <i class="bi bi-check-circle"></i> Post Saldo Akhir
-          </button>
-        </form>
-      @else
-        <form method="post" action="{{ route('coa-period.reopen', $periode->id) }}" onsubmit="return confirm('Yakin ingin membuka kembali periode ini?')">
-          @csrf
-          <label class="form-label">&nbsp;</label>
-          <button type="submit" class="btn btn-warning d-block">
-            <i class="bi bi-unlock"></i> Buka Periode
-          </button>
-        </form>
-      @endif
+      <div>
+        <label class="form-label">&nbsp;</label>
+        <a href="{{ route('akuntansi.neraca-saldo.pdf', ['bulan' => request('bulan', date('m')), 'tahun' => request('tahun', date('Y'))]) }}" class="btn btn-danger" target="_blank">
+          <i class="bi bi-file-pdf"></i> Cetak PDF
+        </a>
+      </div>
     </div>
   </div>
 
@@ -57,12 +61,7 @@
     <div class="card-header bg-primary text-white">
       <strong>NERACA SALDO</strong>
       <div class="float-end">
-        <strong>Periode: {{ \Carbon\Carbon::parse($periode->periode.'-01')->isoFormat('MMMM YYYY') }}</strong>
-        @if($periode->is_closed)
-          <span class="badge bg-success ms-2">Periode Ditutup</span>
-        @else
-          <span class="badge bg-warning ms-2">Periode Aktif</span>
-        @endif
+        <strong>Periode: {{ \Carbon\Carbon::parse(request('tahun', date('Y')) . '-' . request('bulan', date('m')) . '-01')->isoFormat('MMMM YYYY') }}</strong>
       </div>
     </div>
     <div class="card-body">
@@ -80,42 +79,42 @@
             </tr>
           </thead>
           <tbody>
-            @php 
+            @php
               $totalSaldoAwal = 0;
-              $totalDebit = 0; 
-              $totalKredit = 0; 
+              $totalDebit = 0;
+              $totalKredit = 0;
               $totalSaldoAkhir = 0;
-              
+
               // Group accounts by type
               $assetAccounts = [];
               $liabilityAccounts = [];
               $equityAccounts = [];
               $revenueAccounts = [];
               $expenseAccounts = [];
-              
+
               foreach($coas as $coa) {
                 $data = $totals[$coa->kode_akun] ?? ['saldo_awal' => 0, 'debit' => 0, 'kredit' => 0, 'saldo_akhir' => 0];
                 $accountData = [
                   'coa' => $coa,
                   'data' => $data
                 ];
-                
-                switch($coa->tipe_akun) {
-                  case 'Asset':
-                    $assetAccounts[] = $accountData;
-                    break;
-                  case 'Liability':
-                    $liabilityAccounts[] = $accountData;
-                    break;
-                  case 'Equity':
-                    $equityAccounts[] = $accountData;
-                    break;
-                  case 'Revenue':
-                    $revenueAccounts[] = $accountData;
-                    break;
-                  case 'Expense':
-                    $expenseAccounts[] = $accountData;
-                    break;
+
+                // Normalize tipe_akun to handle variations
+                $tipeAkun = strtolower($coa->tipe_akun);
+
+                if (in_array($tipeAkun, ['asset', 'aset'])) {
+                  $assetAccounts[] = $accountData;
+                } elseif (in_array($tipeAkun, ['liability', 'kewajiban'])) {
+                  $liabilityAccounts[] = $accountData;
+                } elseif (in_array($tipeAkun, ['equity', 'modal', 'ekuitas'])) {
+                  $equityAccounts[] = $accountData;
+                } elseif (in_array($tipeAkun, ['revenue', 'pendapatan', 'penjualan'])) {
+                  $revenueAccounts[] = $accountData;
+                } elseif (in_array($tipeAkun, ['expense', 'beban', 'biaya'])) {
+                  $expenseAccounts[] = $accountData;
+                } else {
+                  // Default to asset if unknown type
+                  $assetAccounts[] = $accountData;
                 }
               }
             @endphp
@@ -128,14 +127,14 @@
             </tr>
             @php $rowNumber = 1; @endphp
             @foreach($assetAccounts as $item)
-              @php 
+              @php
                 $coa = $item['coa'];
                 $data = $item['data'];
                 $saldoAwal = $data['saldo_awal'];
                 $debit = $data['debit'];
                 $kredit = $data['kredit'];
                 $saldoAkhir = $data['saldo_akhir'];
-                
+
                 $totalSaldoAwal += $saldoAwal;
                 $totalSaldoAkhir += $saldoAkhir;
                 $totalDebit += $debit;
@@ -145,10 +144,10 @@
                 <td class="text-center">{{ $rowNumber++ }}</td>
                 <td><strong>{{ $coa->kode_akun }}</strong></td>
                 <td>{{ $coa->nama_akun }}</td>
-                <td class="text-end">{{ $saldoAwal != 0 ? 'Rp '.number_format($saldoAwal, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $debit > 0 ? 'Rp '.number_format($debit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $kredit > 0 ? 'Rp '.number_format($kredit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end fw-bold">{{ $saldoAkhir != 0 ? 'Rp '.number_format($saldoAkhir, 0, ',', '.') : '-' }}</td>
+                <td class="text-end">Rp {{ number_format($saldoAwal, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($debit, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($kredit, 0, ',', '.') }}</td>
+                <td class="text-end fw-bold">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</td>
               </tr>
             @endforeach
             
@@ -159,16 +158,16 @@
               </td>
             </tr>
             @foreach($liabilityAccounts as $item)
-              @php 
+              @php
                 $coa = $item['coa'];
                 $data = $item['data'];
                 $saldoAwal = $data['saldo_awal'];
                 $debit = $data['debit'];
                 $kredit = $data['kredit'];
                 $saldoAkhir = $data['saldo_akhir'];
-                
-                $totalSaldoAwal += $saldoAwal;
-                $totalSaldoAkhir += $saldoAkhir;
+
+                $totalSaldoAwal -= $saldoAwal;
+                $totalSaldoAkhir -= $saldoAkhir;
                 $totalDebit += $debit;
                 $totalKredit += $kredit;
               @endphp
@@ -176,10 +175,10 @@
                 <td class="text-center">{{ $rowNumber++ }}</td>
                 <td><strong>{{ $coa->kode_akun }}</strong></td>
                 <td>{{ $coa->nama_akun }}</td>
-                <td class="text-end">{{ $saldoAwal != 0 ? 'Rp '.number_format($saldoAwal, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $debit > 0 ? 'Rp '.number_format($debit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $kredit > 0 ? 'Rp '.number_format($kredit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end fw-bold">{{ $saldoAkhir != 0 ? 'Rp '.number_format($saldoAkhir, 0, ',', '.') : '-' }}</td>
+                <td class="text-end">Rp {{ number_format($saldoAwal, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($debit, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($kredit, 0, ',', '.') }}</td>
+                <td class="text-end fw-bold">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</td>
               </tr>
             @endforeach
             
@@ -190,16 +189,16 @@
               </td>
             </tr>
             @foreach($equityAccounts as $item)
-              @php 
+              @php
                 $coa = $item['coa'];
                 $data = $item['data'];
                 $saldoAwal = $data['saldo_awal'];
                 $debit = $data['debit'];
                 $kredit = $data['kredit'];
                 $saldoAkhir = $data['saldo_akhir'];
-                
-                $totalSaldoAwal += $saldoAwal;
-                $totalSaldoAkhir += $saldoAkhir;
+
+                $totalSaldoAwal -= $saldoAwal;
+                $totalSaldoAkhir -= $saldoAkhir;
                 $totalDebit += $debit;
                 $totalKredit += $kredit;
               @endphp
@@ -207,10 +206,10 @@
                 <td class="text-center">{{ $rowNumber++ }}</td>
                 <td><strong>{{ $coa->kode_akun }}</strong></td>
                 <td>{{ $coa->nama_akun }}</td>
-                <td class="text-end">{{ $saldoAwal != 0 ? 'Rp '.number_format($saldoAwal, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $debit > 0 ? 'Rp '.number_format($debit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $kredit > 0 ? 'Rp '.number_format($kredit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end fw-bold">{{ $saldoAkhir != 0 ? 'Rp '.number_format($saldoAkhir, 0, ',', '.') : '-' }}</td>
+                <td class="text-end">Rp {{ number_format($saldoAwal, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($debit, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($kredit, 0, ',', '.') }}</td>
+                <td class="text-end fw-bold">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</td>
               </tr>
             @endforeach
             
@@ -221,16 +220,16 @@
               </td>
             </tr>
             @foreach($revenueAccounts as $item)
-              @php 
+              @php
                 $coa = $item['coa'];
                 $data = $item['data'];
                 $saldoAwal = $data['saldo_awal'];
                 $debit = $data['debit'];
                 $kredit = $data['kredit'];
                 $saldoAkhir = $data['saldo_akhir'];
-                
-                $totalSaldoAwal += $saldoAwal;
-                $totalSaldoAkhir += $saldoAkhir;
+
+                $totalSaldoAwal -= $saldoAwal;
+                $totalSaldoAkhir -= $saldoAkhir;
                 $totalDebit += $debit;
                 $totalKredit += $kredit;
               @endphp
@@ -238,10 +237,10 @@
                 <td class="text-center">{{ $rowNumber++ }}</td>
                 <td><strong>{{ $coa->kode_akun }}</strong></td>
                 <td>{{ $coa->nama_akun }}</td>
-                <td class="text-end">{{ $saldoAwal != 0 ? 'Rp '.number_format($saldoAwal, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $debit > 0 ? 'Rp '.number_format($debit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $kredit > 0 ? 'Rp '.number_format($kredit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end fw-bold">{{ $saldoAkhir != 0 ? 'Rp '.number_format($saldoAkhir, 0, ',', '.') : '-' }}</td>
+                <td class="text-end">Rp {{ number_format($saldoAwal, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($debit, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($kredit, 0, ',', '.') }}</td>
+                <td class="text-end fw-bold">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</td>
               </tr>
             @endforeach
             
@@ -252,14 +251,14 @@
               </td>
             </tr>
             @foreach($expenseAccounts as $item)
-              @php 
+              @php
                 $coa = $item['coa'];
                 $data = $item['data'];
                 $saldoAwal = $data['saldo_awal'];
                 $debit = $data['debit'];
                 $kredit = $data['kredit'];
                 $saldoAkhir = $data['saldo_akhir'];
-                
+
                 $totalSaldoAwal += $saldoAwal;
                 $totalSaldoAkhir += $saldoAkhir;
                 $totalDebit += $debit;
@@ -274,23 +273,23 @@
                     <small class="badge bg-warning text-dark ms-2">HPP</small>
                   @endif
                 </td>
-                <td class="text-end">{{ $saldoAwal != 0 ? 'Rp '.number_format($saldoAwal, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $debit > 0 ? 'Rp '.number_format($debit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end">{{ $kredit > 0 ? 'Rp '.number_format($kredit, 0, ',', '.') : '-' }}</td>
-                <td class="text-end fw-bold">{{ $saldoAkhir != 0 ? 'Rp '.number_format($saldoAkhir, 0, ',', '.') : '-' }}</td>
+                <td class="text-end">Rp {{ number_format($saldoAwal, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($debit, 0, ',', '.') }}</td>
+                <td class="text-end">Rp {{ number_format($kredit, 0, ',', '.') }}</td>
+                <td class="text-end fw-bold">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</td>
               </tr>
             @endforeach
           </tbody>
           <tfoot class="table-dark">
             <tr>
               <th colspan="3" class="text-end">TOTAL</th>
-              <th class="text-end">Rp {{ number_format($totalSaldoAwal, 0, ',', '.') }}</th>
+              <th class="text-end">Rp {{ number_format(abs($totalSaldoAwal), 0, ',', '.') }}</th>
               <th class="text-end">Rp {{ number_format($totalDebit, 0, ',', '.') }}</th>
               <th class="text-end">Rp {{ number_format($totalKredit, 0, ',', '.') }}</th>
-              <th class="text-end">Rp {{ number_format($totalSaldoAkhir, 0, ',', '.') }}</th>
+              <th class="text-end">Rp {{ number_format(abs($totalSaldoAkhir), 0, ',', '.') }}</th>
             </tr>
             <tr>
-              <th colspan="6" class="text-end">BALANCE CHECK:</th>
+              <th colspan="5" class="text-end">BALANCE CHECK:</th>
               <th class="text-end {{ $totalDebit == $totalKredit ? 'text-success' : 'text-danger' }}">
                 {{ $totalDebit - $totalKredit }}
               </th>

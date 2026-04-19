@@ -130,6 +130,7 @@ class CoaSeederAdaptive extends Seeder
         foreach ($coaData as $coa) {
             // Buat array data yang akan disimpan berdasarkan kolom yang tersedia
             $dataToSave = [
+                'kode_akun' => $coa['kode_akun'],
                 'nama_akun' => $coa['nama_akun'],
                 'tipe_akun' => $coa['tipe_akun'],
                 'kategori_akun' => $coa['kategori_akun'],
@@ -154,19 +155,16 @@ class CoaSeederAdaptive extends Seeder
                 $dataToSave['tanggal_saldo_awal'] = '2026-03-01 00:00:00';
             }
             
-            if (in_array('posted_saldo_awal', $columns)) {
-                $dataToSave['posted_saldo_awal'] = 0;
-            }
-
-            Coa::updateOrCreate(
+            Coa::firstOrCreate(
                 ['kode_akun' => $coa['kode_akun']],
                 $dataToSave
             );
         }
-
-        $this->command->info('COA seeder adaptive completed successfully!');
-        $this->command->info('Total: ' . count($coaData) . ' akun COA berhasil dibuat/diupdate');
+        
+        $this->command->info('COA seeder completed successfully!');
+        $this->command->info('Total accounts processed: ' . count($coaData));
     }
+
     private function getKodeInduk($kodeAkun)
     {
         // Tentukan kode induk berdasarkan hierarki

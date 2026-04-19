@@ -71,7 +71,7 @@ Sistem sekarang dapat membuat jurnal otomatis untuk:
 
 ### Laporan yang Akurat
 Dengan COA yang terstruktur, laporan keuangan akan lebih akurat:
-- Neraca menampilkan nilai aset bersih (aset - akumulasi penyusutan)
+- Laporan Posisi Keuangan menampilkan nilai aset bersih (aset - akumulasi penyusutan)
 - Laba rugi menampilkan beban penyusutan yang tepat
 
 ## Cara Penggunaan

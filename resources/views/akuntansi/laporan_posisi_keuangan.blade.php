@@ -4,7 +4,7 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
-            <i class="fas fa-balance-scale me-2"></i>Neraca
+            <i class="fas fa-balance-scale me-2"></i>Laporan Posisi Keuangan
         </h2>
         <div class="d-flex gap-2">
             <form method="get" class="d-flex gap-2 align-items-end">
@@ -19,7 +19,7 @@
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">
-                <i class="fas fa-balance-scale me-2"></i>Neraca per {{ \Carbon\Carbon::parse($periode.'-01')->isoFormat('MMMM YYYY') }}
+                <i class="fas fa-balance-scale me-2"></i>Laporan Posisi Keuangan per {{ \Carbon\Carbon::parse($periode.'-01')->isoFormat('MMMM YYYY') }}
             </h5>
         </div>
         <div class="card-body">
@@ -40,13 +40,11 @@
                             </tr>
                             @foreach($asetLancar as $item)
                                 @php $saldo = $calculateBalance($item); @endphp
-                                @if($saldo != 0)
                                 <tr>
                                     <td class="ps-5">{{ $item->nama_akun }}</td>
                                     <td class="text-muted small">{{ $item->kode_akun }}</td>
                                     <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
                                 </tr>
-                                @endif
                             @endforeach
                             @if($negativeLiabilities > 0)
                             <tr>
@@ -67,13 +65,11 @@
                             </tr>
                             @foreach($asetTidakLancar as $item)
                                 @php $saldo = $calculateBalance($item); @endphp
-                                @if($saldo != 0)
                                 <tr>
                                     <td class="ps-5">{{ $item->nama_akun }}</td>
                                     <td class="text-muted small">{{ $item->kode_akun }}</td>
                                     <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
                                 </tr>
-                                @endif
                             @endforeach
                             <tr class="border-bottom">
                                 <td colspan="2" class="fw-bold ps-4">Jumlah Aset Tidak Lancar</td>
@@ -103,13 +99,11 @@
                             </tr>
                             @foreach($kewajibanPendek as $item)
                                 @php $saldo = $calculateBalance($item); @endphp
-                                @if($saldo > 0)
                                 <tr>
                                     <td class="ps-5">{{ $item->nama_akun }}</td>
                                     <td class="text-muted small">{{ $item->kode_akun }}</td>
-                                    <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                                    <td class="text-end">Rp {{ number_format($saldo > 0 ? $saldo : 0, 0, ',', '.') }}</td>
                                 </tr>
-                                @endif
                             @endforeach
                             <tr class="border-bottom">
                                 <td colspan="2" class="fw-bold ps-4">Jumlah Kewajiban Jangka Pendek</td>
@@ -123,13 +117,11 @@
                             </tr>
                             @foreach($kewajibanPanjang as $item)
                                 @php $saldo = $calculateBalance($item); @endphp
-                                @if($saldo > 0)
                                 <tr>
                                     <td class="ps-5">{{ $item->nama_akun }}</td>
                                     <td class="text-muted small">{{ $item->kode_akun }}</td>
-                                    <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                                    <td class="text-end">Rp {{ number_format($saldo > 0 ? $saldo : 0, 0, ',', '.') }}</td>
                                 </tr>
-                                @endif
                             @endforeach
                             <tr class="border-bottom">
                                 <td colspan="2" class="fw-bold ps-4">Jumlah Kewajiban Jangka Panjang</td>
@@ -143,14 +135,19 @@
                             </tr>
                             @foreach($ekuitas as $item)
                                 @php $saldo = $calculateBalance($item); @endphp
-                                @if($saldo != 0)
                                 <tr>
                                     <td class="ps-5">{{ $item->nama_akun }}</td>
                                     <td class="text-muted small">{{ $item->kode_akun }}</td>
                                     <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
                                 </tr>
-                                @endif
                             @endforeach
+                            @if($currentPeriodPL != 0)
+                            <tr>
+                                <td class="ps-5">Laba/Rugi Periode Berjalan</td>
+                                <td class="text-muted small">-</td>
+                                <td class="text-end">Rp {{ number_format($currentPeriodPL, 0, ',', '.') }}</td>
+                            </tr>
+                            @endif
                             <tr class="border-bottom">
                                 <td colspan="2" class="fw-bold ps-4">Jumlah Ekuitas</td>
                                 <td class="text-end fw-bold">Rp {{ number_format($totalEkuitas, 0, ',', '.') }}</td>
@@ -175,8 +172,17 @@
                                     <i class="fas fa-check-circle ms-2"></i> <strong>SEIMBANG</strong>
                                 @else
                                     <i class="fas fa-exclamation-triangle ms-2"></i> <strong>TIDAK SEIMBANG</strong>
+                                    <br><small>Selisih: Rp {{ number_format($totalAset - $totalKewajibanEkuitas, 0, ',', '.') }}</small>
                                 @endif
                             </div>
+                            
+                            @if($currentPeriodPL != 0)
+                            <div class="alert alert-info">
+                                <strong>Informasi Laba/Rugi Periode Berjalan:</strong>
+                                Rp {{ number_format($currentPeriodPL, 0, ',', '.') }}
+                                <br><small>Laba/rugi ini sudah termasuk dalam total ekuitas di atas</small>
+                            </div>
+                            @endif
                         </div>
                     </div>
                 </div>

@@ -3136,9 +3136,49 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/buku-besar', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesar'])->name('buku-besar');
         Route::get('/buku-besar/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesarExportExcel'])->name('buku-besar.export-excel');
         Route::get('/neraca-saldo', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldo'])->name('neraca-saldo');
-        Route::get('/neraca', [\App\Http\Controllers\AkuntansiController::class, 'neraca'])->name('neraca');
+        Route::get('/neraca-saldo/pdf', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldoPdf'])->name('neraca-saldo.pdf');
+        Route::get('/laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'neraca'])->name('laporan-posisi-keuangan');
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
+
+        // Redirect old URL to new URL for backward compatibility
+        Route::redirect('/akuntansi/neraca', '/akuntansi/laporan-posisi-keuangan', 301);
     });
+
+    // ================================================================
+    // TEMPORARY FIXES FOR LAPORAN POSISI KEUANGAN ACCESS
+    // ================================================================
+    
+    // Handle direct access to /laporan-posisi-keuangan (redirect to correct URL)
+    Route::get('/laporan-posisi-keuangan', function() {
+        return redirect('/akuntansi/laporan-posisi-keuangan');
+    });
+    
+    // Temporary route without middleware for testing
+    Route::get('/test-laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('test.laporan.posisi.keuangan');
+    
+    // User role diagnostic
+    Route::get('/check-user', function() {
+        $user = auth()->user();
+        
+        if (!$user) {
+            return response()->json([
+                'authenticated' => false,
+                'message' => 'No user logged in',
+                'login_url' => route('login')
+            ]);
+        }
+        
+        return response()->json([
+            'authenticated' => true,
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'valid_roles' => \App\Models\User::VALID_ROLES,
+            'has_admin_access' => in_array($user->role, ['admin', 'owner']),
+            'can_access_akuntansi' => $user->hasAnyRole(['admin', 'owner'])
+        ]);
+    })->middleware('auth');
 
     // ================================================================
     // COA PERIOD MANAGEMENT
