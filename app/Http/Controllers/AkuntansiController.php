@@ -13,9 +13,63 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use App\Exports\JurnalUmumExport;
 use App\Exports\BukuBesarExport;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AkuntansiController extends Controller
 {
+    /**
+     * Hitung saldo akhir berdasarkan tipe akun
+     */
+    private function hitungSaldoAkhir($saldoAwal, $totalDebit, $totalKredit, $tipeAkun)
+    {
+        // Normalisasi tipe akun (handle case insensitive)
+        $tipeAkun = ucfirst(strtolower($tipeAkun));
+        
+        if (in_array($tipeAkun, ['Asset', 'Aset', 'Expense', 'Beban', 'Biaya'])) {
+            // Akun normal DEBIT
+            $saldo = $saldoAwal + $totalDebit - $totalKredit;
+        } else {
+            // Akun normal KREDIT: Kewajiban, Modal, Pendapatan
+            $saldo = $saldoAwal - $totalDebit + $totalKredit;
+        }
+
+        return $saldo;
+    }
+
+    /**
+     * Tentukan posisi debit/kredit untuk neraca saldo
+     */
+    private function posisiNeracaSaldo($saldo, $tipeAkun)
+    {
+        // Normalisasi tipe akun
+        $tipeAkun = ucfirst(strtolower($tipeAkun));
+        
+        $debit  = 0;
+        $kredit = 0;
+
+        if ($saldo > 0) {
+            if (in_array($tipeAkun, ['Asset', 'Aset', 'Expense', 'Beban', 'Biaya'])) {
+                // saldo normalnya di DEBIT
+                $debit = $saldo;
+            } else {
+                // saldo normalnya di KREDIT
+                $kredit = $saldo;
+            }
+        } elseif ($saldo < 0) {
+            // kalau minus, pindahkan ke sisi sebaliknya (saldo abnormal)
+            $nilai = abs($saldo);
+
+            if (in_array($tipeAkun, ['Asset', 'Aset', 'Expense', 'Beban', 'Biaya'])) {
+                $kredit = $nilai;
+            } else {
+                $debit = $nilai;
+            }
+        }
+
+        return ['debit' => $debit, 'kredit' => $kredit];
+    }
+
     public function jurnalUmum(Request $request)
     {
         $from = $request->get('from');
@@ -424,57 +478,125 @@ class AkuntansiController extends Controller
 
     public function neracaSaldo(Request $request)
     {
-        // Get periode yang dipilih atau periode saat ini
-        $periodId = $request->get('period_id');
-        $periode = null;
-        
-        if ($periodId) {
-            $periode = CoaPeriod::find($periodId);
-        }
-        
-        // Jika tidak ada periode dipilih, gunakan periode saat ini
-        if (!$periode) {
-            $periode = CoaPeriod::getCurrentPeriod();
-        }
-        
-        $from = $periode->tanggal_mulai->format('Y-m-d');
-        $to = $periode->tanggal_selesai->format('Y-m-d');
+        // Get bulan & tahun dari request
+        $bulan = $request->get('bulan', date('m'));
+        $tahun = $request->get('tahun', date('Y'));
 
-        // Get semua periode untuk dropdown
-        $periods = CoaPeriod::orderBy('periode', 'desc')->get();
+        // Hitung tanggal awal dan akhir bulan
+        $from = Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
+        $to = Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
 
         // Get semua COA
         $coas = Coa::all();
         
+        // Hitung total debit/kredit per akun dari journal_lines (buku besar)
+        $mutasi = [];
+        $journalEntryIds = JournalEntry::whereBetween('tanggal', [$from, $to])->pluck('id');
+        
+        $journalLines = JournalLine::whereIn('journal_entry_id', $journalEntryIds)
+            ->select('coa_id', DB::raw('COALESCE(SUM(debit),0) as total_debit'), DB::raw('COALESCE(SUM(credit),0) as total_kredit'))
+            ->groupBy('coa_id')
+            ->get();
+        
+        // Convert to array for easier lookup
+        foreach ($journalLines as $line) {
+            $mutasi[$line->coa_id] = [
+                'total_debit' => $line->total_debit,
+                'total_kredit' => $line->total_kredit
+            ];
+        }
+
         $totals = [];
         foreach ($coas as $coa) {
-            // Get saldo awal dari COA table (proper accounting method)
-            $saldoAwal = $coa->saldo_awal ?? 0;
-            
-            // Hitung mutasi dalam periode menggunakan JournalEntry dan JournalLine (data baru)
-            $journalEntryIds = JournalEntry::whereBetween('tanggal', [$from, $to])->pluck('id');
-            
-            $debit = JournalLine::whereIn('journal_entry_id', $journalEntryIds)
-                ->where('coa_id', $coa->id)
-                ->sum('debit');
-                
-            $credit = JournalLine::whereIn('journal_entry_id', $journalEntryIds)
-                ->where('coa_id', $coa->id)
-                ->sum('credit');
-            
-            // Hitung saldo akhir dengan metode yang sama seperti buku besar
-            // (selalu: saldo_akhir = saldo_awal + debit - credit)
-            $saldoAkhir = $saldoAwal + $debit - $credit;
-            
+            $totalDebit  = $mutasi[$coa->id]['total_debit']  ?? 0;
+            $totalKredit = $mutasi[$coa->id]['total_kredit'] ?? 0;
+            $saldoAwal   = $coa->saldo_awal ?? 0;
+
+            // Hitung saldo akhir menggunakan helper function
+            $saldoAkhir = $this->hitungSaldoAkhir(
+                $saldoAwal,
+                $totalDebit,
+                $totalKredit,
+                $coa->tipe_akun
+            );
+
+            // Tentukan penempatan saldo akhir di debit/kredit
+            $posisi = $this->posisiNeracaSaldo($saldoAkhir, $coa->tipe_akun);
+
             $totals[$coa->kode_akun] = [
                 'saldo_awal' => $saldoAwal,
-                'debit' => $debit,
-                'kredit' => $credit,
+                'debit' => $totalDebit,          // mutasi debit
+                'kredit' => $totalKredit,        // mutasi kredit
+                'saldo_debit' => $posisi['debit'],
+                'saldo_kredit' => $posisi['kredit'],
                 'saldo_akhir' => $saldoAkhir
             ];
         }
 
-        return view('akuntansi.neraca-saldo', compact('periode','periods','coas','totals'));
+        return view('akuntansi.neraca-saldo', compact('coas','totals'));
+    }
+
+    public function neracaSaldoPdf(Request $request)
+    {
+        // Get bulan & tahun dari request
+        $bulan = $request->get('bulan', date('m'));
+        $tahun = $request->get('tahun', date('Y'));
+
+        // Hitung tanggal awal dan akhir bulan
+        $from = Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
+        $to = Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
+
+        // Get semua COA
+        $coas = Coa::all();
+
+        // Hitung total debit/kredit per akun dari journal_lines (buku besar)
+        $mutasi = [];
+        $journalEntryIds = JournalEntry::whereBetween('tanggal', [$from, $to])->pluck('id');
+
+        $journalLines = JournalLine::whereIn('journal_entry_id', $journalEntryIds)
+            ->select('coa_id', DB::raw('COALESCE(SUM(debit),0) as total_debit'), DB::raw('COALESCE(SUM(credit),0) as total_kredit'))
+            ->groupBy('coa_id')
+            ->get();
+
+        // Convert to array for easier lookup
+        foreach ($journalLines as $line) {
+            $mutasi[$line->coa_id] = [
+                'total_debit' => $line->total_debit,
+                'total_kredit' => $line->total_kredit
+            ];
+        }
+
+        $totals = [];
+        foreach ($coas as $coa) {
+            $totalDebit  = $mutasi[$coa->id]['total_debit']  ?? 0;
+            $totalKredit = $mutasi[$coa->id]['total_kredit'] ?? 0;
+            $saldoAwal   = $coa->saldo_awal ?? 0;
+
+            // Hitung saldo akhir menggunakan helper function
+            $saldoAkhir = $this->hitungSaldoAkhir(
+                $saldoAwal,
+                $totalDebit,
+                $totalKredit,
+                $coa->tipe_akun
+            );
+
+            // Tentukan penempatan saldo akhir di debit/kredit
+            $posisi = $this->posisiNeracaSaldo($saldoAkhir, $coa->tipe_akun);
+
+            $totals[$coa->kode_akun] = [
+                'saldo_awal' => $saldoAwal,
+                'debit' => $totalDebit,
+                'kredit' => $totalKredit,
+                'saldo_debit' => $posisi['debit'],
+                'saldo_kredit' => $posisi['kredit'],
+                'saldo_akhir' => $saldoAkhir
+            ];
+        }
+
+        $pdf = Pdf::loadView('akuntansi.neraca-saldo-pdf', compact('coas','totals','bulan','tahun'))
+            ->setPaper('a4', 'landscape');
+
+        return $pdf->download('neraca-saldo-'.$tahun.'-'.$bulan.'.pdf');
     }
 
     /**

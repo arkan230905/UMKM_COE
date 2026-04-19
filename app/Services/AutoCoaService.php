@@ -45,8 +45,17 @@ class AutoCoaService
             return $existingCoa;
         }
         
+        // Generate the next code first to check if it already exists
+        $nextCode = self::getNextCoaCode('116');
+        
+        // Check if this code already exists (prevent duplicates)
+        if (Coa::where('kode_akun', $nextCode)->exists()) {
+            Log::warning("COA code {$nextCode} already exists, skipping creation for product: {$productName}");
+            return Coa::where('kode_akun', $nextCode)->first();
+        }
+        
         // Create new COA
-        $newCoa = self::createPersediaanBarangJadiCoa($productName, $productId);
+        $newCoa = self::createPersediaanBarangJadiCoa($productName, $productId, $nextCode);
         
         Log::info("Created new COA for product: {$productName} -> {$newCoa->kode_akun}");
         
@@ -56,10 +65,12 @@ class AutoCoaService
     /**
      * Create new COA for persediaan barang jadi
      */
-    private static function createPersediaanBarangJadiCoa($productName, $productId = null)
+    private static function createPersediaanBarangJadiCoa($productName, $productId = null, $nextCode = null)
     {
-        // Get the next available COA code
-        $nextCode = self::getNextCoaCode('116');
+        // Get the next available COA code if not provided
+        if (!$nextCode) {
+            $nextCode = self::getNextCoaCode('116');
+        }
         
         $coaName = "Pers. Barang Jadi {$productName}";
         
@@ -132,6 +143,12 @@ class AutoCoaService
         
         // Generate new COA code
         $nextCode = self::generateCoaCode($tipeAkun, $kategoriAkun);
+        
+        // Check if this code already exists (prevent duplicates)
+        if (Coa::where('kode_akun', $nextCode)->exists()) {
+            Log::warning("COA code {$nextCode} already exists, skipping creation for: {$namaAkun}");
+            return Coa::where('kode_akun', $nextCode)->first();
+        }
         
         // Create new COA
         $newCoa = Coa::create([

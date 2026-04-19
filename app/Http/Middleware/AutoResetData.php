@@ -88,7 +88,8 @@ class AutoResetData
             'produksi_details', 'pembelians', 'pembelian_details', 'penjualans',
             'detail_penjualans', 'retur_penjualans', 'detail_retur_penjualans',
             'stocks', 'stock_mutations', 'bahan_bakus', 'bahan_pendukungs',
-            'pegawais', 'jabatans', 'asets', 'coas'
+            'pegawais', 'jabatans', 'asets'
+            // 'coas' - REMOVED: Jangan reset COA karena ini master data penting
         ];
         
         $backupData = [];
@@ -123,7 +124,8 @@ class AutoResetData
             'produksi_details', 'pembelians', 'pembelian_details', 'penjualans',
             'detail_penjualans', 'retur_penjualans', 'detail_retur_penjualans',
             'stocks', 'stock_mutations', 'bahan_bakus', 'bahan_pendukungs',
-            'pegawais', 'jabatans', 'asets', 'coas'
+            'pegawais', 'jabatans', 'asets'
+            // 'coas' - REMOVED: Jangan reset COA karena ini master data penting
         ];
         
         // Disable foreign key checks
