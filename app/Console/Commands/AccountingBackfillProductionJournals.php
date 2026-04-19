@@ -34,12 +34,16 @@ class AccountingBackfillProductionJournals extends Command
                     if ($dry) {
                         $this->line("DRY: production_material produksi#{$p->id} tanggal={$tanggal} cost={$matCost}");
                     } else {
-                        $journal->post($tanggal, 'production_material', (int)$p->id, 'Backfill konsumsi bahan ke WIP', [
-                            ['code' => '122', 'debit' => $matCost, 'credit' => 0],
-                            ['code' => '121', 'debit' => 0, 'credit' => $matCost],
-                        ]);
+                        try {
+                            $journal->post($tanggal, 'production_material', (int)$p->id, 'Backfill konsumsi bahan ke WIP', [
+                                ['code' => '122', 'debit' => $matCost, 'credit' => 0],
+                                ['code' => '121', 'debit' => 0, 'credit' => $matCost],
+                            ]);
+                            $posted++;
+                        } catch (\Exception $e) {
+                            $this->error("ERROR posting production_material for produksi#{$p->id}: " . $e->getMessage());
+                        }
                     }
-                    $posted++;
                 }
             } else { $skipped++; }
 
@@ -53,12 +57,16 @@ class AccountingBackfillProductionJournals extends Command
                     if ($dry) {
                         $this->line("DRY: production_labor_overhead produksi#{$p->id} tanggal={$tanggal} btkl={$btkl} bop={$bop}");
                     } else {
-                        $lines = [ ['code' => '122', 'debit' => $sum, 'credit' => 0] ];
-                        if ($btkl > 0) { $lines[] = ['code' => '211', 'debit' => 0, 'credit' => $btkl]; }
-                        if ($bop  > 0) { $lines[] = ['code' => '212', 'debit' => 0, 'credit' => $bop]; }
-                        $journal->post($tanggal, 'production_labor_overhead', (int)$p->id, 'Backfill BTKL/BOP ke WIP', $lines);
+                        try {
+                            $lines = [ ['code' => '122', 'debit' => $sum, 'credit' => 0] ];
+                            if ($btkl > 0) { $lines[] = ['code' => '211', 'debit' => 0, 'credit' => $btkl]; }
+                            if ($bop  > 0) { $lines[] = ['code' => '212', 'debit' => 0, 'credit' => $bop]; }
+                            $journal->post($tanggal, 'production_labor_overhead', (int)$p->id, 'Backfill BTKL/BOP ke WIP', $lines);
+                            $posted++;
+                        } catch (\Exception $e) {
+                            $this->error("ERROR posting production_labor_overhead for produksi#{$p->id}: " . $e->getMessage());
+                        }
                     }
-                    $posted++;
                 }
             } else { $skipped++; }
 
@@ -74,12 +82,16 @@ class AccountingBackfillProductionJournals extends Command
                     if ($dry) {
                         $this->line("DRY: production_finish produksi#{$p->id} tanggal={$tanggal} cost={$fgCost}");
                     } else {
-                        $journal->post($tanggal, 'production_finish', (int)$p->id, 'Backfill selesai produksi', [
-                            ['code' => '123', 'debit' => $fgCost, 'credit' => 0],
-                            ['code' => '122', 'debit' => 0, 'credit' => $fgCost],
-                        ]);
+                        try {
+                            $journal->post($tanggal, 'production_finish', (int)$p->id, 'Backfill selesai produksi', [
+                                ['code' => '123', 'debit' => $fgCost, 'credit' => 0],
+                                ['code' => '122', 'debit' => 0, 'credit' => $fgCost],
+                            ]);
+                            $posted++;
+                        } catch (\Exception $e) {
+                            $this->error("ERROR posting production_finish for produksi#{$p->id}: " . $e->getMessage());
+                        }
                     }
-                    $posted++;
                 }
             } else { $skipped++; }
         }
