@@ -8,15 +8,30 @@
 <section class="hero-slider">
     <div class="slider-container-full">
         <div class="slider-wrapper">
+            @forelse($produks->take(3) as $index => $produk)
+            <div class="slide {{ $index == 0 ? 'active' : '' }}">
+                @if($produk->foto)
+                    <img src="{{ asset('storage/'.$produk->foto) }}" alt="{{ $produk->nama_produk }}">
+                @else
+                    <img src="/images/no-image.png" alt="{{ $produk->nama_produk }}">
+                @endif
+            </div>
+            @empty
+            <!-- Fallback images if no products -->
             <div class="slide active">
-                <img src="/images/karangpakuanumkm.jpg" alt="UMKM Karangpakuan">
+                <img src="/images/umkm-default-1.jpg" alt="UMKM Produk">
             </div>
+            @if($produks->count() < 2)
             <div class="slide">
-                <img src="/images/karangpakuanwaduk.jpg" alt="Waduk Karangpakuan">
+                <img src="/images/umkm-default-2.jpg" alt="UMKM Produk">
             </div>
+            @endif
+            @if($produks->count() < 3)
             <div class="slide">
-                <img src="/images/karangpakuancamp.jpg" alt="Camp Karangpakuan">
+                <img src="/images/umkm-default-3.jpg" alt="UMKM Produk">
             </div>
+            @endif
+            @endforelse
         </div>
         
         <!-- Slider Controls -->
@@ -36,29 +51,38 @@
     </div>
 </section>
 
-<!-- ================= TENTANG DESA ================= -->
+<!-- ================= TENTANG PERUSAHAAN ================= -->
+@if($company)
 <section class="section-white">
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-12">
                 <div class="row g-4 align-items-center">
                     <div class="col-md-6">
-                        <img src="/images/fotobersamadesa.jpg" alt="Bersama Desa Karangpakuan" class="img-fluid rounded-3 shadow">
+                        @if($company->foto)
+                            <img src="{{ asset('storage/'.$company->foto) }}" alt="Logo {{ $company->nama }}" class="img-fluid rounded-3 shadow">
+                        @else
+                            <img src="/images/company-default.jpg" alt="Logo {{ $company->nama }}" class="img-fluid rounded-3 shadow">
+                        @endif
                     </div>
                     <div class="col-md-6">
                         <div class="desa-content">
-                            <h1 class="section-title mb-4">Tentang Desa Karangpakuan</h1>
+                            <h1 class="section-title mb-4">Tentang {{ $company->nama }}</h1>
                             <p class="desa-description">
-                                Desa Karangpakuan adalah sebuah desa yang kaya akan potensi alam dan budaya, 
-                                terletak di kawasan Sumedang, Jawa Barat. Desa ini menawarkan keindahan alam yang memukau 
-                                dengan latar belakang pegunungan yang hijau dan udara yang segar, menciptakan suasana yang tenang 
-                                dan nyaman untuk dikunjungi.
+                                {{ $company->nama }} adalah sebuah UMKM yang bergerak di bidang {{ $company->jenis_usaha ?? 'produksi makanan' }}, 
+                                terletak di {{ $company->alamat }}. Perusahaan ini berkomitmen untuk menyediakan produk berkualitas tinggi 
+                                dengan bahan baku pilihan dan proses produksi yang higienis.
                             </p>
                             <p class="desa-description">
-                                Sebagai bagian dari Kabupaten Sumedang di Jawa Barat, Desa Karangpakuan memiliki 
-                                karakteristik desa yang khas dengan masyarakat yang ramah dan menjunjung tinggi nilai-nilai gotong royong. 
-                                Potensi wisata alam menjadi daya tarik utama dengan adanya curug yang memukau, waduk yang indah, 
-                                dan area perkemahan yang asri dan terawat.
+                                Dengan pengalaman dalam industri {{ $company->jenis_usaha ?? 'makanan' }}, {{ $company->nama }} 
+                                terus berinovasi untuk menghadirkan produk terbaik bagi konsumen. Kami menjunjung tinggi nilai-nilai 
+                                kualitas, kebersihan, dan kepuasan pelanggan dalam setiap produk yang kami hasilkan.
+                            </p>
+                            <p class="desa-description">
+                                <strong>Kontak:</strong><br>
+                                📧 {{ $company->email }}<br>
+                                📞 {{ $company->telepon }}<br>
+                                📍 {{ $company->alamat }}
                             </p>
                         </div>
                     </div>
@@ -67,17 +91,34 @@
         </div>
     </div>
 </section>
+@else
+<!-- Default section jika tidak ada company yang login -->
+<section class="section-white">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-12 text-center">
+                <h2 class="section-title mb-4">Selamat Datang di Katalog UMKM</h2>
+                <p class="desa-description">
+                    Silakan login untuk melihat katalog produk dari UMKM pilihan Anda.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+@endif
 
 <!-- ================= PETA LOKASI ================= -->
+@if($company)
 <section class="section-white">
     <div class="container">
         <div class="row">
             <div class="col-lg-12">
-                <h2 class="section-title mb-4 text-center">Lokasi Desa Karangpakuan</h2>
+                <h2 class="section-title mb-4 text-center">Lokasi {{ $company->nama }}</h2>
                 <div class="map-container">
                     <div class="map-wrapper">
+                        @if($company->latitude && $company->longitude)
                         <iframe 
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3960.1234567890123!2d107.9234567890123!3d-6.8234567890123!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e68f123456789ab%3A0x123456789abcdef0!2sDesa%20Karangpakuan%2C%20Darmaraja%2C%20Kabupaten%20Sumedang%2C%20Jawa%20Barat!5e0!3m2!1sen!2sid!4v1234567890123"
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!2d{{ $company->longitude }}!3d{{ $company->latitude }}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1sen!2sid!4v1234567890123"
                             width="100%" 
                             height="450" 
                             style="border:0; border-radius: 15px;" 
@@ -85,14 +126,26 @@
                             loading="lazy" 
                             referrerpolicy="no-referrer-when-downgrade">
                         </iframe>
+                        @else
+                        <!-- Fallback map if no coordinates -->
+                        <iframe 
+                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!2d107.9234567890123!3d-6.8234567890123!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1sen!2sid!4v1234567890123"
+                            width="100%" 
+                            height="450" 
+                            style="border:0; border-radius: 15px;" 
+                            allowfullscreen="" 
+                            loading="lazy" 
+                            referrerpolicy="no-referrer-when-downgrade">
+                        </iframe>
+                        @endif
                     </div>
                     <div class="map-info mt-3">
                         <p class="text-center mb-0">
                             <i class="fas fa-map-marker-alt me-2"></i>
-                            <strong>Desa Karangpakuan</strong>, Kecamatan Darmaraja, Kab. Sumedang, Jawa Barat. Kode Pos: 45372
+                            <strong>{{ $company->nama }}</strong>, {{ $company->alamat }}
                         </p>
                         <p class="text-center mt-2">
-                            <a href="https://maps.google.com/?q=Desa+Karangpakuan+Darmaraja+Sumedang+Jawa+Barat" 
+                            <a href="https://maps.google.com/?q={{ urlencode($company->alamat) }}" 
                                target="_blank" 
                                class="btn btn-outline-primary btn-sm">
                                 <i class="fas fa-external-link-alt me-2"></i>Buka di Google Maps
@@ -104,13 +157,15 @@
         </div>
     </div>
 </section>
+@endif
 
 <!-- ================= PRODUK UMKM ================= -->
+@if($company)
 <section class="section-white">
     <div class="container">
         <div class="row">
             <div class="col-lg-12">
-                <h2 class="section-title mb-4 text-center">PRODUK UMKM</h2>
+                <h2 class="section-title mb-4 text-center">PRODUK {{ strtoupper($company->nama) }}</h2>
                 <div class="produk-box">
                     <div class="row g-4">
                         @forelse($produks as $produk)
@@ -144,6 +199,21 @@
         </div>
     </div>
 </section>
+@else
+<!-- Section jika tidak ada company yang login -->
+<section class="section-white">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12 text-center">
+                <h3 class="section-title mb-4">Produk Tidak Tersedia</h3>
+                <p class="desa-description">
+                    Silakan login terlebih dahulu untuk melihat produk dari UMKM pilihan Anda.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+@endif
 
 <!-- ================= TOMBOL BELI ================= -->
 <section class="section-white">

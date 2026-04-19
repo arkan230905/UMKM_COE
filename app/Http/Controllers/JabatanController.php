@@ -179,7 +179,7 @@ class JabatanController extends Controller
 
             $jabatans = Jabatan::where(function($q) use ($kategoriName, $kategoriId) {
                 $q->where('kategori', $kategoriName)
-                  ->orWhere('kategori_id', $kategoriId);
+                      ->orWhere('kategori_id', $kategoriId);
             });
         } else {
             $jabatans = Jabatan::where('kategori', strtolower($kategoriId));
@@ -214,7 +214,7 @@ class JabatanController extends Controller
     {
         if (!$value) return $value;
 
-        $v = str_replace(['.', ','], ['', '.'], $value);
+        $v = str_replace(['.', ''], ['', '.'], $value);
         return $v;
     }
-}xa
+}

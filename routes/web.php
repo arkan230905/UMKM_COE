@@ -1734,6 +1734,7 @@ use App\Http\Controllers\LaporanKartuStokController;
 
 // Profile
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\KelolaCatalogController;
 
 // Auth
 use App\Http\Controllers\Auth\LoginController;
@@ -3192,6 +3193,18 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
     Route::post('/coa-period/{periodId}/post', [\App\Http\Controllers\CoaPeriodController::class, 'postPeriod'])->name('coa-period.post');
     Route::post('/coa-period/{periodId}/reopen', [\App\Http\Controllers\CoaPeriodController::class, 'reopenPeriod'])->name('coa-period.reopen');
 
+
+    // ================================================================
+    // KELOLA CATALOG (OWNER & ADMIN)
+    // ================================================================
+    Route::prefix('kelola-catalog')->name('kelola-catalog.')->group(function () {
+        Route::get('/', [KelolaCatalogController::class, 'index'])->name('index');
+        Route::get('/settings', [KelolaCatalogController::class, 'settings'])->name('settings');
+        Route::post('/settings/update', [KelolaCatalogController::class, 'updateSettings'])->name('settings.update');
+        Route::post('/{id}/toggle-visibility', [KelolaCatalogController::class, 'toggleVisibility'])->name('toggle-visibility');
+        Route::post('/{id}/update-catalog-info', [KelolaCatalogController::class, 'updateProductCatalog'])->name('update-catalog-info');
+        Route::post('/bulk-visibility', [KelolaCatalogController::class, 'bulkUpdateVisibility'])->name('bulk-visibility');
+    });
 
     // ================================================================
     // PROFIL ADMIN

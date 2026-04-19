@@ -28,14 +28,27 @@
                         <select name="produk_id" id="produk_id" class="form-select form-select-lg" required>
                             <option value="">-- Pilih Produk --</option>
                             @foreach($produks as $prod)
-                                <option value="{{ $prod->id }}">
+                                <option value="{{ $prod->id }}" data-coa-persediaan="{{ $prod->coa_persediaan_id ?? '' }}">
                                     {{ $prod->nama_produk }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">📋 Akun COA Persediaan Barang Jadi</label>
+                        <select name="coa_persediaan_barang_jadi_id" id="coa_persediaan_barang_jadi_id" class="form-select form-select-lg">
+                            <option value="">-- Pilih Akun COA --</option>
+                            @foreach(\App\Models\Coa::where('kode_akun', 'like', '11%')->orWhere('nama_akun', 'like', '%Persediaan%')->orWhere('nama_akun', 'like', '%Barang Jadi%')->orderBy('kode_akun')->get() as $coa)
+                                <option value="{{ $coa->id }}" {{ $coa->kode_akun == '116' ? 'selected' : '' }}>
+                                    {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">Pilih akun COA untuk persediaan barang jadi yang akan digunakan dalam jurnal</small>
+                    </div>
                 </div>
 
+                
                 <!-- Job Process Costing Fields -->
                 <div class="card bg-light mb-4">
                     <div class="card-header bg-secondary text-white">
@@ -413,6 +426,22 @@ function hideAllSections() {
 // Event listeners
 document.getElementById('produk_id').addEventListener('change', function() {
     const produkId = this.value;
+    const selectedOption = this.options[this.selectedIndex];
+    const coaPersediaanId = selectedOption.getAttribute('data-coa-persediaan');
+    
+    // Auto-fill COA persediaan field
+    const coaSelect = document.getElementById('coa_persediaan_barang_jadi_id');
+    if (coaPersediaanId) {
+        // Find and select the COA option
+        for (let i = 0; i < coaSelect.options.length; i++) {
+            if (coaSelect.options[i].value === coaPersediaanId) {
+                coaSelect.selectedIndex = i;
+                break;
+            }
+        }
+    } else {
+        coaSelect.selectedIndex = 0;
+    }
     
     if (!produkId) {
         currentBomData = null;

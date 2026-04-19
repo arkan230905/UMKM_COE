@@ -30,6 +30,7 @@ class Produk extends Model
         'bopb_rate',
         'labor_hours_per_unit',
         'btkl_per_unit',
+        'coa_persediaan_id',
     ];
     
     /**
