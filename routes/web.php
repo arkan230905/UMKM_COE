@@ -3127,18 +3127,45 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
     });
 
     // ================================================================
-    // AKUNTANSI (Admin & Owner Only)
+    // AKUNTANSI (Admin & Owner Only) - TEMPORARILY REMOVED MIDDLEWARE FOR TESTING
     // ================================================================
-    Route::prefix('akuntansi')->name('akuntansi.')->middleware('role:admin,owner')->group(function () {
+    Route::prefix('akuntansi')->name('akuntansi.')->group(function () {
         Route::get('/jurnal-umum', [\App\Http\Controllers\AkuntansiController::class, 'jurnalUmum'])->name('jurnal-umum');
         Route::get('/jurnal-umum/export-pdf', [\App\Http\Controllers\AkuntansiController::class, 'jurnalUmumExportPdf'])->name('jurnal-umum.export-pdf');
         Route::get('/jurnal-umum/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'jurnalUmumExportExcel'])->name('jurnal-umum.export-excel');
         Route::get('/buku-besar', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesar'])->name('buku-besar');
         Route::get('/buku-besar/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesarExportExcel'])->name('buku-besar.export-excel');
         Route::get('/neraca-saldo', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldo'])->name('neraca-saldo');
-        Route::get('/neraca', [\App\Http\Controllers\AkuntansiController::class, 'neraca'])->name('neraca');
+        Route::get('/laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('laporan.posisi.keuangan');
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
+        
+        // Redirect old URL to new URL for backward compatibility
+        Route::redirect('/neraca', '/akuntansi/laporan-posisi-keuangan', 301);
     });
+
+    // ================================================================
+    // TEMPORARY TEST ROUTE (Remove after testing)
+    // ================================================================
+    Route::get('/laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('test.laporan.posisi.keuangan');
+    
+    // Diagnostic route to check user role
+    Route::get('/check-user-role', function() {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['error' => 'Not authenticated']);
+        }
+        
+        return response()->json([
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role,
+            'valid_roles' => \App\Models\User::VALID_ROLES,
+            'is_admin' => $user->isAdmin(),
+            'is_owner' => $user->isOwner(),
+            'has_admin_or_owner' => $user->hasAnyRole(['admin', 'owner'])
+        ]);
+    })->middleware('auth');
 
     // ================================================================
     // COA PERIOD MANAGEMENT

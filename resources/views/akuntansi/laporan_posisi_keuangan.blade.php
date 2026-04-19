@@ -4,7 +4,7 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
-            <i class="fas fa-balance-scale me-2"></i>Neraca
+            <i class="fas fa-balance-scale me-2"></i>Laporan Posisi Keuangan
         </h2>
         <div class="d-flex gap-2">
             <form method="get" class="d-flex gap-2 align-items-end">
@@ -19,7 +19,7 @@
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">
-                <i class="fas fa-balance-scale me-2"></i>Neraca per {{ \Carbon\Carbon::parse($periode.'-01')->isoFormat('MMMM YYYY') }}
+                <i class="fas fa-balance-scale me-2"></i>Laporan Posisi Keuangan per {{ \Carbon\Carbon::parse($periode.'-01')->isoFormat('MMMM YYYY') }}
             </h5>
         </div>
         <div class="card-body">
