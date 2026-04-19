@@ -393,14 +393,23 @@ class AsetController extends Controller
             ->where('credit', '>', 0) // Akumulasi penyusutan di credit
             ->sum('credit');
         
+        // Hitung akumulasi penyusutan teoretis dari tanggal perolehan hingga bulan sebelumnya
+        $tanggalPerolehan = Carbon::parse($aset->tanggal_perolehan ?? $aset->tanggal_beli ?? $aset->created_at);
+        // Gunakan akhir bulan sebelumnya karena bulan ini belum diposting
+        $tanggalSekarang = Carbon::now()->subMonth()->endOfMonth();
+        $akumulasiPenyusutanTeoretis = $this->hitungAkumulasiPenyusutan($aset, $tanggalPerolehan, $tanggalSekarang);
+        
+        // Gunakan akumulasi penyusutan yang lebih besar antara jurnal dan teoretis
+        $akumulasiPenyusutanAkhir = max($akumulasiPenyusutanJurnal, $akumulasiPenyusutanTeoretis);
+        
         // Update akumulasi penyusutan di database jika berbeda
-        if (abs($akumulasiPenyusutanJurnal - ($aset->akumulasi_penyusutan ?? 0)) > 0.01) {
-            $aset->update(['akumulasi_penyusutan' => $akumulasiPenyusutanJurnal]);
+        if (abs($akumulasiPenyusutanAkhir - ($aset->akumulasi_penyusutan ?? 0)) > 0.01) {
+            $aset->update(['akumulasi_penyusutan' => $akumulasiPenyusutanAkhir]);
             $aset->refresh();
         }
         
         // Hitung nilai buku saat ini
-        $nilaiBukuSaatIni = $totalPerolehan - $akumulasiPenyusutanJurnal;
+        $nilaiBukuSaatIni = $totalPerolehan - $akumulasiPenyusutanAkhir;
         
         // Data summary untuk view
         $asetSummary = [
@@ -416,10 +425,106 @@ class AsetController extends Controller
     }
 
     /**
+     * Hitung akumulasi penyusutan teoretis dari tanggal perolehan hingga tanggal tertentu
+     */
+    private function hitungAkumulasiPenyusutan($aset, $tanggalPerolehan, $tanggalSekarang)
+    {
+        $totalPerolehan = (float)($aset->harga_perolehan ?? 0) + (float)($aset->biaya_perolehan ?? 0);
+        $nilaiResidu = (float)($aset->nilai_residu ?? 0);
+        $umurManfaat = (int)($aset->umur_manfaat ?? 0);
+        $metode = $aset->metode_penyusutan ?? 'garis_lurus';
+        
+        if ($totalPerolehan <= 0 || $umurManfaat <= 0 || $tanggalPerolehan >= $tanggalSekarang) {
+            return 0;
+        }
+        
+        $akumulasi = 0;
+        $nilaiBuku = $totalPerolehan;
+        $tahunMulai = $tanggalPerolehan->year;
+        $bulanMulai = $tanggalPerolehan->month;
+        $tahunAkhir = $tanggalSekarang->year;
+        $bulanAkhir = $tanggalSekarang->month;
+        
+        switch ($metode) {
+            case 'saldo_menurun':
+                // Double Declining Balance Method - Hitung per bulan untuk akurasi
+                $rate = 2 / $umurManfaat; // 40% untuk umur 5 tahun
+                
+                $currentDate = $tanggalPerolehan->copy();
+                $bulanCount = 0;
+                
+                while ($currentDate <= $tanggalSekarang && $nilaiBuku > $nilaiResidu) {
+                    $bulanCount++;
+                    
+                    // Hitung penyusutan bulanan berdasarkan nilai buku awal bulan
+                    $penyusutanBulanan = min($nilaiBuku * $rate / 12, $nilaiBuku - $nilaiResidu);
+                    
+                    $akumulasi += $penyusutanBulanan;
+                    $nilaiBuku -= $penyusutanBulanan;
+                    
+                    $currentDate->addMonth();
+                    
+                    // Jika sudah mencapai nilai residu, stop
+                    if ($nilaiBuku <= $nilaiResidu) {
+                        $akumulasi = $totalPerolehan - $nilaiResidu;
+                        break;
+                    }
+                }
+                break;
+                
+            case 'sum_of_years_digits':
+                // Sum of Years Digits Method - Hitung per bulan
+                $sumOfYears = $umurManfaat * ($umurManfaat + 1) / 2; // 15 untuk umur 5 tahun
+                $tahunKe = 1;
+                
+                $currentDate = $tanggalPerolehan->copy();
+                
+                while ($currentDate <= $tanggalSekarang && $akumulasi < ($totalPerolehan - $nilaiResidu)) {
+                    $sisaUmur = max(0, $umurManfaat - ($tahunKe - 1));
+                    $penyusutanTahunan = ($totalPerolehan - $nilaiResidu) * $sisaUmur / $sumOfYears;
+                    $penyusutanBulanan = $penyusutanTahunan / 12;
+                    
+                    // Cek apakah masih dalam tahun yang sama
+                    if ($currentDate->month == 1) {
+                        $tahunKe++;
+                    }
+                    
+                    $akumulasi += $penyusutanBulanan;
+                    $currentDate->addMonth();
+                    
+                    // Jika sudah mencapai nilai residu, stop
+                    if ($akumulasi >= ($totalPerolehan - $nilaiResidu)) {
+                        $akumulasi = $totalPerolehan - $nilaiResidu;
+                        break;
+                    }
+                }
+                break;
+                
+            case 'garis_lurus':
+            default:
+                // Straight Line Method - Hitung per bulan
+                $totalPenyusutan = $totalPerolehan - $nilaiResidu;
+                $penyusutanPerTahun = $totalPenyusutan / $umurManfaat;
+                $penyusutanPerBulan = $penyusutanPerTahun / 12;
+                
+                // Hitung total bulan dari perolehan hingga sekarang
+                $totalBulan = $tanggalSekarang->diffInMonths($tanggalPerolehan) + 1;
+                $akumulasi = min($penyusutanPerBulan * $totalBulan, $totalPenyusutan);
+                break;
+        }
+    }
+
+    /**
      * Show the form for editing the specified asset.
      */
     public function edit(Aset $aset)
     {
+        // Cek apakah aset terkunci
+        if ($aset->locked) {
+            return redirect()->route('master-data.aset.index')
+                ->with('error', 'Aset "' . $aset->nama_aset . '" terkunci dan tidak dapat diedit.');
+        }
+        
         $jenisAsets = JenisAset::with('kategories')->get();
         $metodePenyusutan = [
             'garis_lurus' => 'Garis Lurus (Straight Line)',
@@ -427,24 +532,10 @@ class AsetController extends Controller
             'sum_of_years_digits' => 'Jumlah Angka Tahun (Sum of Years Digits)',
         ];
         
-        // COA data for dropdowns - with fallback to prevent undefined variables
-        $coaAsets = Coa::where('tipe_akun', 'LIKE', '%Asset%')
-            ->orWhere('tipe_akun', 'LIKE', '%Aset%')
-            ->get();
-            
-        // If no asset accounts found, get all COA as fallback
-        if ($coaAsets->isEmpty()) {
-            $coaAsets = Coa::all();
-        }
-            
-        $coaAkumulasi = Coa::where('nama_akun', 'LIKE', '%akumulasi%')
-            ->orWhere('nama_akun', 'LIKE', '%Akumulasi%')
-            ->get();
-            
-        $coaBeban = Coa::where('nama_akun', 'LIKE', '%penyusutan%')
-            ->orWhere('nama_akun', 'LIKE', '%Penyusutan%')
-            ->orWhere('nama_akun', 'LIKE', '%Beban%')
-            ->get();
+        // COA data for dropdowns - get all COA to ensure dropdowns are populated
+        $coaAsets = Coa::orderBy('kode_akun')->get();
+        $coaAkumulasi = Coa::orderBy('kode_akun')->get();
+        $coaBeban = Coa::orderBy('kode_akun')->get();
         
         // Load relasi untuk aset yang akan diedit
         $aset->load('kategori.jenisAset', 'assetCoa', 'accumDepreciationCoa', 'expenseCoa');
@@ -554,6 +645,12 @@ class AsetController extends Controller
      */
     public function update(Request $request, Aset $aset)
     {
+        // Cek apakah aset terkunci
+        if ($aset->locked) {
+            return redirect()->route('master-data.aset.index')
+                ->with('error', 'Aset "' . $aset->nama_aset . '" terkunci dan tidak dapat diperbarui.');
+        }
+        
         // Cek apakah kategori aset disusutkan
         $kategori = KategoriAset::find($request->kategori_aset_id);
         $disusutkan = $kategori ? $kategori->disusutkan : true;
@@ -584,6 +681,13 @@ class AsetController extends Controller
             ];
             $rules = array_merge($rules, $depreciationRules);
         }
+        
+        // Normalize input data sebelum validasi
+        $request->merge([
+            'harga_perolehan' => $this->normalizeMoney($request->input('harga_perolehan')),
+            'biaya_perolehan' => $this->normalizeMoney($request->input('biaya_perolehan')),
+            'nilai_residu' => $this->normalizeMoney($request->input('nilai_residu')),
+        ]);
         
         $validated = $request->validate($rules);
 
@@ -680,6 +784,12 @@ class AsetController extends Controller
 
     public function destroy(Aset $aset)
     {
+        // Cek apakah aset terkunci
+        if ($aset->locked) {
+            return redirect()->route('master-data.aset.index')
+                ->with('error', 'Aset "' . $aset->nama_aset . '" terkunci dan tidak dapat dihapus.');
+        }
+        
         $aset->delete();
         return redirect()->route('master-data.aset.index')->with('success', 'Aset berhasil dihapus');
     }
@@ -917,5 +1027,17 @@ class AsetController extends Controller
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Normalize money format from Indonesian to database format
+     */
+    private function normalizeMoney($value): ?string
+    {
+        if (!$value) return $value;
+
+        // Remove Rp, spaces, dots, and convert to decimal format
+        $v = str_replace(['Rp', '.', ' '], ['', ''], $value);
+        return $v;
     }
 }

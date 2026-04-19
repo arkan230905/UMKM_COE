@@ -11,6 +11,7 @@ class Produksi extends Model
 
     protected $fillable = [
         'produk_id',
+        'coa_persediaan_barang_jadi_id',
         'tanggal',
         'qty_produksi',
         'jumlah_produksi_bulanan',
@@ -54,6 +55,14 @@ class Produksi extends Model
     public function proses() 
     { 
         return $this->hasMany(ProduksiProses::class)->orderBy('urutan'); 
+    }
+    
+    /**
+     * Get COA persediaan barang jadi for this production
+     */
+    public function coaPersediaanBarangJadi()
+    {
+        return $this->belongsTo(Coa::class, 'coa_persediaan_barang_jadi_id');
     }
 
     // Helper methods for status

@@ -11,7 +11,7 @@ class Perusahaan extends Model
 
     protected $table = 'perusahaan';
 
-    protected $fillable = ['nama', 'alamat', 'email', 'telepon', 'kode'];
+    protected $fillable = ['nama', 'alamat', 'email', 'telepon', 'kode', 'foto'];
 
     public function kasirs()
     {

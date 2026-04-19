@@ -140,7 +140,7 @@ class CoaTemplateSeeder extends Seeder
 
         foreach ($coaTemplate as $coa) {
             Coa::withoutGlobalScopes()->updateOrCreate(
-                ['kode_akun' => $coa['kode_akun'], 'company_id' => null],
+                ['kode_akun' => $coa['kode_akun']],
                 [
                     'nama_akun' => $coa['nama_akun'],
                     'tipe_akun' => $coa['tipe_akun'],
@@ -148,7 +148,6 @@ class CoaTemplateSeeder extends Seeder
                     'saldo_awal' => $coa['saldo_awal'] ?? 0,
                     'tanggal_saldo_awal' => now(),
                     'posted_saldo_awal' => false,
-                    'company_id' => null, // Template, akan di-copy dengan company_id saat registrasi
                 ]
             );
         }
@@ -157,27 +156,14 @@ class CoaTemplateSeeder extends Seeder
     }
 
     /**
-     * Copy COA template untuk company tertentu
-     * Method ini akan dipanggil saat user baru registrasi
+     * COA bersifat global untuk multi-tenant
+     * Tidak perlu copy karena semua perusahaan menggunakan struktur COA yang sama
+     * Method ini tidak digunakan lagi karena tabel coas tidak memiliki company_id
      */
     public static function copyCoaTemplateForCompany(int $companyId): void
     {
-        // Ambil semua COA template (company_id = null)
-        $templates = Coa::withoutGlobalScopes()
-            ->whereNull('company_id')
-            ->get();
-
-        foreach ($templates as $template) {
-            Coa::withoutGlobalScopes()->create([
-                'kode_akun' => $template->kode_akun,
-                'nama_akun' => $template->nama_akun,
-                'tipe_akun' => $template->tipe_akun,
-                'kategori_akun' => $template->kategori_akun,
-                'saldo_awal' => $template->saldo_awal,
-                'tanggal_saldo_awal' => now(),
-                'posted_saldo_awal' => false,
-                'company_id' => $companyId,
-            ]);
-        }
+        // COA bersifat global, tidak perlu copy per perusahaan
+        // Semua perusahaan menggunakan struktur COA yang sama
+        return;
     }
 }

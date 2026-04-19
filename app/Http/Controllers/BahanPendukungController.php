@@ -120,7 +120,7 @@ class BahanPendukungController extends Controller
         $this->convertCommaToDecimal($request);
         
         $validated = $request->validate([
-            'nama_bahan' => 'required|string|max:255',
+            'nama_bahan' => 'required|string|max:255|unique:bahan_pendukungs,nama_bahan',
             'deskripsi' => 'nullable|string',
             'satuan_id' => 'required|exists:satuans,id',
             'harga_satuan' => 'required|numeric|min:0',

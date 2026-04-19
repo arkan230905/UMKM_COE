@@ -255,7 +255,14 @@ class ProdukController extends Controller
      */
     public function catalog(Request $request)
     {
-        // Get products with stock and pricing info
+        // Get current logged-in company
+        $company = null;
+        if (auth()->check()) {
+            $user = auth()->user();
+            $company = \App\Models\Company::find($user->company_id);
+        }
+
+        // Get products with stock and pricing info for current company
         $query = Produk::with(['bomJobCosting'])
             ->where('stok', '>=', 0); // Show all products including those with zero stock
 
@@ -383,6 +390,6 @@ class ProdukController extends Controller
             }
         }
 
-        return view('catalog.index', compact('produks'));
+        return view('catalog.index', compact('produks', 'company'));
     }
 }
