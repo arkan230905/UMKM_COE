@@ -13,6 +13,12 @@
                     <input type="month" name="periode" class="form-select" value="{{ $periode }}" onchange="this.form.submit()">
                 </div>
             </form>
+            <div>
+                <label class="form-label">&nbsp;</label>
+                <a href="{{ route('akuntansi.laporan-posisi-keuangan.pdf', ['bulan' => substr($periode, 5, 2), 'tahun' => substr($periode, 0, 4)]) }}" class="btn btn-danger" target="_blank">
+                    <i class="fas fa-file-pdf"></i> Cetak PDF
+                </a>
+            </div>
         </div>
     </div>
 
@@ -39,20 +45,13 @@
                                 <td class="text-end"></td>
                             </tr>
                             @foreach($asetLancar as $item)
-                                @php $saldo = $calculateBalance($item); @endphp
+                                @php $saldo = $getFinalBalance($item); @endphp
                                 <tr>
                                     <td class="ps-5">{{ $item->nama_akun }}</td>
                                     <td class="text-muted small">{{ $item->kode_akun }}</td>
                                     <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
                                 </tr>
                             @endforeach
-                            @if($negativeLiabilities > 0)
-                            <tr>
-                                <td class="ps-5">Piutang dari Overpayment</td>
-                                <td class="text-muted small">-</td>
-                                <td class="text-end">Rp {{ number_format($negativeLiabilities, 0, ',', '.') }}</td>
-                            </tr>
-                            @endif
                             <tr class="border-bottom">
                                 <td colspan="2" class="fw-bold ps-4">Jumlah Aset Lancar</td>
                                 <td class="text-end fw-bold">Rp {{ number_format($totalAsetLancar, 0, ',', '.') }}</td>
@@ -64,7 +63,7 @@
                                 <td class="text-end"></td>
                             </tr>
                             @foreach($asetTidakLancar as $item)
-                                @php $saldo = $calculateBalance($item); @endphp
+                                @php $saldo = $getFinalBalance($item); @endphp
                                 <tr>
                                     <td class="ps-5">{{ $item->nama_akun }}</td>
                                     <td class="text-muted small">{{ $item->kode_akun }}</td>
@@ -98,7 +97,7 @@
                                 <td class="text-end"></td>
                             </tr>
                             @foreach($kewajibanPendek as $item)
-                                @php $saldo = $calculateBalance($item); @endphp
+                                @php $saldo = $getFinalBalance($item); @endphp
                                 <tr>
                                     <td class="ps-5">{{ $item->nama_akun }}</td>
                                     <td class="text-muted small">{{ $item->kode_akun }}</td>
@@ -116,7 +115,7 @@
                                 <td class="text-end"></td>
                             </tr>
                             @foreach($kewajibanPanjang as $item)
-                                @php $saldo = $calculateBalance($item); @endphp
+                                @php $saldo = $getFinalBalance($item); @endphp
                                 <tr>
                                     <td class="ps-5">{{ $item->nama_akun }}</td>
                                     <td class="text-muted small">{{ $item->kode_akun }}</td>
@@ -134,18 +133,18 @@
                                 <td class="text-end"></td>
                             </tr>
                             @foreach($ekuitas as $item)
-                                @php $saldo = $calculateBalance($item); @endphp
+                                @php $saldo = $getFinalBalance($item); @endphp
                                 <tr>
                                     <td class="ps-5">{{ $item->nama_akun }}</td>
                                     <td class="text-muted small">{{ $item->kode_akun }}</td>
                                     <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
                                 </tr>
                             @endforeach
-                            @if($currentPeriodPL != 0)
+                            @if($profitLoss != 0)
                             <tr>
                                 <td class="ps-5">Laba/Rugi Periode Berjalan</td>
                                 <td class="text-muted small">-</td>
-                                <td class="text-end">Rp {{ number_format($currentPeriodPL, 0, ',', '.') }}</td>
+                                <td class="text-end">Rp {{ number_format($profitLoss, 0, ',', '.') }}</td>
                             </tr>
                             @endif
                             <tr class="border-bottom">
@@ -176,11 +175,12 @@
                                 @endif
                             </div>
                             
-                            @if($currentPeriodPL != 0)
+                            @if($profitLoss != 0)
                             <div class="alert alert-info">
                                 <strong>Informasi Laba/Rugi Periode Berjalan:</strong>
-                                Rp {{ number_format($currentPeriodPL, 0, ',', '.') }}
+                                Rp {{ number_format($profitLoss, 0, ',', '.') }}
                                 <br><small>Laba/rugi ini sudah termasuk dalam total ekuitas di atas</small>
+                                <br><small>Total Pendapatan: Rp {{ number_format($totalRevenue, 0, ',', '.') }} | Total Beban: Rp {{ number_format($totalExpense, 0, ',', '.') }}</small>
                             </div>
                             @endif
                         </div>
