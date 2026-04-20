@@ -1,0 +1,18 @@
+ATURAN PENCEGAHAN DUPLIKASI JURNAL:
+=====================================
+
+1. HANYA gunakan journal_entries untuk transaksi produksi
+2. JANGAN gunakan jurnal_umum untuk tipe:
+   - production_material
+   - production_labor_overhead
+   - production_finished
+   - produksi (tipe lama)
+
+3. ProduksiObserver telah DINONAKTIFKAN untuk mencegah duplikasi
+4. Semua jurnal produksi dibuat melalui JournalService di ProduksiController
+5. Filter di AkuntansiController sudah diperbarui untuk exclude tipe produksi
+
+JIKA TERJADI DUPLIKASI LAGI:
+- Periksa apakah ada kode yang menulis ke jurnal_umum dengan tipe produksi
+- Pastikan ProduksiObserver tetap dinonaktifkan
+- Jalankan script ini lagi untuk membersihkan data duplikat

@@ -84,10 +84,10 @@ class PenjualanController extends Controller
 
     public function create()
     {
-        // Ambil produk dengan stok dari StockLayer (kartu stok) untuk akurasi
+        // Ambil produk dengan stok dari kolom stok di tabel produks
         $produks = Produk::all()->map(function($p) {
-            // Gunakan actual_stok dari StockLayer, bukan stok dari tabel produks
-            $p->stok_tersedia = (float)$p->actual_stok;
+            // Gunakan stok dari tabel produks, bukan actual_stok dari StockLayer
+            $p->stok_tersedia = (float)($p->stok ?? 0);
             return $p;
         });
         
@@ -132,13 +132,13 @@ class PenjualanController extends Controller
             }
             $diskonPctArr = $request->diskon_persen ?? [];
 
-            // Validasi stok cukup per item menggunakan actual_stok dari StockLayer
+            // Validasi stok cukup per item menggunakan kolom stok dari tabel produks
             foreach ($produkIds as $i => $pid) {
                 $p = Produk::findOrFail($pid);
                 $qty = (int)($jumlahArr[$i] ?? 0); // Cast to integer
                 
-                // Get available stock from actual_stok (StockLayer) untuk konsistensi dengan kartu stok
-                $availableStock = (float) $p->actual_stok;
+                // Get available stock from kolom stok di tabel produks
+                $availableStock = (float) ($p->stok ?? 0);
                 
                 if ($qty > $availableStock + 1e-9) {
                     return back()->withErrors([
@@ -266,10 +266,10 @@ class PenjualanController extends Controller
         }
         $total = max(($qty * $price) - $disc, 0);
 
-        // Validasi stok cukup menggunakan actual_stok dari StockLayer
-        if ((float)$produk->actual_stok < $qty) {
+        // Validasi stok cukup menggunakan kolom stok dari tabel produks
+        if ((float)($produk->stok ?? 0) < $qty) {
             return back()->withErrors([
-                'stok' => "Stok tidak cukup! Stok tersedia: " . number_format((float)$produk->actual_stok, 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
+                'stok' => "Stok tidak cukup! Stok tersedia: " . number_format((float)($produk->stok ?? 0), 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
             ])->withInput();
         }
 
@@ -332,10 +332,10 @@ class PenjualanController extends Controller
     {
         $penjualan = Penjualan::with('details.produk')->findOrFail($id);
         
-        // Ambil produk dengan stok dari StockLayer (kartu stok) untuk akurasi
+        // Ambil produk dengan stok dari kolom stok di tabel produks
         $produks = Produk::all()->map(function($p) {
-            // Gunakan actual_stok dari StockLayer, bukan stok dari tabel produks
-            $p->stok_tersedia = (float)$p->actual_stok;
+            // Gunakan stok dari tabel produks, bukan actual_stok dari StockLayer
+            $p->stok_tersedia = (float)($p->stok ?? 0);
             return $p;
         });
         
@@ -389,14 +389,14 @@ class PenjualanController extends Controller
                 }
             }
 
-            // Validasi stok cukup per item menggunakan actual_stok dari StockLayer
+            // Validasi stok cukup per item menggunakan kolom stok dari tabel produks
             foreach ($produkIds as $i => $pid) {
                 $p = Produk::findOrFail($pid);
                 $qty = (int)($jumlahArr[$i] ?? 0);
                 
-                if ($qty > (float)$p->actual_stok) {
+                if ($qty > (float)($p->stok ?? 0)) {
                     return back()->withErrors([
-                        'stok' => "Stok {$p->nama_produk} tidak cukup! Stok tersedia: " . number_format((float)$p->actual_stok, 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
+                        'stok' => "Stok {$p->nama_produk} tidak cukup! Stok tersedia: " . number_format((float)($p->stok ?? 0), 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
                     ])->withInput();
                 }
             }
@@ -502,10 +502,10 @@ class PenjualanController extends Controller
         }
         $total = max(($qty * $price) - $disc, 0);
 
-        // Validasi stok cukup menggunakan actual_stok dari StockLayer
-        if ((float)$produk->actual_stok < $qty) {
+        // Validasi stok cukup menggunakan kolom stok dari tabel produks
+        if ((float)($produk->stok ?? 0) < $qty) {
             return back()->withErrors([
-                'stok' => "Stok tidak cukup! Stok tersedia: " . number_format((float)$produk->actual_stok, 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
+                'stok' => "Stok tidak cukup! Stok tersedia: " . number_format((float)($produk->stok ?? 0), 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
             ])->withInput();
         }
 
@@ -566,8 +566,8 @@ class PenjualanController extends Controller
             ], 404);
         }
         
-        // Use actual_stok from StockLayer for consistency with kartu stok
-        $stokTersedia = (float)$produk->actual_stok;
+        // Use stok from produks table as requested by user
+        $stokTersedia = (float)($produk->stok ?? 0);
         
         return response()->json([
             'success' => true,
@@ -602,12 +602,12 @@ class PenjualanController extends Controller
                       ->orWhere('nama_produk', 'LIKE', "%{$search}%")
                       ->orWhere('nama', 'LIKE', "%{$search}%");
             })
-            ->select('id', 'nama_produk', 'nama', 'barcode', 'harga_jual')
+            ->select('id', 'nama_produk', 'nama', 'barcode', 'harga_jual', 'stok')
             ->limit(10)
             ->get()
             ->filter(function($product) {
-                // Filter products with actual stock > 0 from StockLayer
-                return $product->actual_stok > 0;
+                // Filter products with stok > 0 from produks table
+                return (float)($product->stok ?? 0) > 0;
             })
             ->map(function($product) {
                 return [
@@ -615,7 +615,7 @@ class PenjualanController extends Controller
                     'nama' => $product->nama_produk ?? $product->nama,
                     'barcode' => $product->barcode,
                     'harga' => round($product->harga_jual ?? 0),
-                    'stok' => $product->actual_stok ?? 0
+                    'stok' => (float)($product->stok ?? 0)
                 ];
             });
 

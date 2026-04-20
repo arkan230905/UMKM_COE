@@ -1,11 +1,41 @@
 @extends('layouts.catalog')
 
-@section('title', 'E-Catalog UMKM Desa')
+@section('title', 'Preview & Edit Catalog')
 
 @section('content')
+<!-- Edit Mode Indicator -->
+<div class="edit-mode-indicator">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-edit me-2"></i>
+                <span><strong>Mode Edit Catalog</strong> - Hover pada elemen untuk edit</span>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ route('catalog') }}" target="_blank" class="btn btn-success btn-sm">
+                    <i class="fas fa-external-link-alt me-1"></i>Lihat Publik
+                </a>
+                <a href="{{ route('kelola-catalog.index') }}" class="btn btn-light btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i>Kembali
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+        {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
 
 <!-- ================= HERO SLIDER ================= -->
-<section class="hero-slider">
+<section class="hero-slider editable-section" data-section="hero">
+    <div class="edit-fab" onclick="openPhotoModal()">
+        <i class="fas fa-images"></i>
+    </div>
+    
     <div class="slider-container-full">
         <div class="slider-wrapper">
             @forelse($catalogPhotos as $index => $photo)
@@ -71,7 +101,11 @@
 
 <!-- ================= TENTANG PERUSAHAAN ================= -->
 @if($company)
-<section class="section-white">
+<section class="section-white editable-section" data-section="company">
+    <div class="edit-fab" onclick="editCompanyInfo()">
+        <i class="fas fa-building"></i>
+    </div>
+    
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-12">
@@ -101,30 +135,16 @@
                                 terus berinovasi untuk menghadirkan produk terbaik bagi konsumen. Kami menjunjung tinggi nilai-nilai 
                                 kualitas, kebersihan, dan kepuasan pelanggan dalam setiap produk yang kami hasilkan.
                             </p>
+                            @endif
                             <p class="desa-description">
                                 <strong>Kontak:</strong><br>
                                 <i class="fas fa-envelope me-1"></i>{{ $company->email }}<br>
                                 <i class="fas fa-phone me-1"></i>{{ $company->telepon }}<br>
                                 <i class="fas fa-map-marker-alt me-1"></i>{{ $company->alamat }}
                             </p>
-                            @endif
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</section>
-@else
-<!-- Default section jika tidak ada company yang login -->
-<section class="section-white">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-12 text-center">
-                <h2 class="section-title mb-4">Selamat Datang di Katalog UMKM</h2>
-                <p class="desa-description">
-                    Silakan login untuk melihat katalog produk dari UMKM pilihan Anda.
-                </p>
             </div>
         </div>
     </div>
@@ -133,7 +153,11 @@
 
 <!-- ================= PETA LOKASI ================= -->
 @if($company)
-<section class="section-white">
+<section class="section-white editable-section" data-section="maps">
+    <div class="edit-fab" onclick="editMaps()">
+        <i class="fas fa-map-marker-alt"></i>
+    </div>
+    
     <div class="container">
         <div class="row">
             <div class="col-lg-12">
@@ -205,7 +229,11 @@
 
 <!-- ================= PRODUK UMKM ================= -->
 @if($company)
-<section class="section-white">
+<section class="section-white editable-section" data-section="products">
+    <div class="edit-fab" onclick="window.location.href='{{ route('kelola-catalog.index') }}'">
+        <i class="fas fa-box"></i>
+    </div>
+    
     <div class="container">
         <div class="row">
             <div class="col-lg-12">
@@ -213,6 +241,7 @@
                 <div class="produk-box">
                     <div class="row g-4">
                         @forelse($produks as $produk)
+                        @if($produk->show_in_catalog)
                         <div class="col-md-4">
                             <div class="card-produk">
                                 @if($produk->foto)
@@ -224,7 +253,7 @@
                                 <div class="card-body text-center">
                                     <h5>{{ $produk->nama_produk }}</h5>
                                     <p class="deskripsi">
-                                        {{ $produk->deskripsi ? Str::limit($produk->deskripsi, 100) : 'Tidak ada deskripsi' }}
+                                        {{ $produk->deskripsi_catalog ? Str::limit($produk->deskripsi_catalog, 100) : ($produk->deskripsi ? Str::limit($produk->deskripsi, 100) : 'Tidak ada deskripsi') }}
                                     </p>
                                     <p class="price">
                                         Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}
@@ -232,9 +261,10 @@
                                 </div>
                             </div>
                         </div>
+                        @endif
                         @empty
                         <div class="col-12 text-center">
-                            <p class="text-muted">Belum ada produk tersedia</p>
+                            <p class="text-muted">Belum ada produk tersedia untuk ditampilkan di catalog</p>
                         </div>
                         @endforelse
                     </div>
@@ -243,24 +273,14 @@
         </div>
     </div>
 </section>
-@else
-<!-- Section jika tidak ada company yang login -->
-<section class="section-white">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-12 text-center">
-                <h3 class="section-title mb-4">Produk Tidak Tersedia</h3>
-                <p class="desa-description">
-                    Silakan login terlebih dahulu untuk melihat produk dari UMKM pilihan Anda.
-                </p>
-            </div>
-        </div>
-    </div>
-</section>
 @endif
 
 <!-- ================= TOMBOL BELI ================= -->
-<section class="section-white">
+<section class="section-white editable-section" data-section="action">
+    <div class="edit-fab" onclick="editBuyButton()">
+        <i class="fas fa-shopping-cart"></i>
+    </div>
+    
     <div class="container">
         <div class="row">
             <div class="col-lg-12 text-center">
@@ -272,10 +292,201 @@
     </div>
 </section>
 
+<!-- Edit Company Info Modal -->
+<div class="modal fade" id="editCompanyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Informasi Perusahaan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editCompanyForm">
+                @csrf
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Nama Perusahaan</label>
+                            <input type="text" name="nama" class="form-control" value="{{ $company->nama ?? '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" value="{{ $company->email ?? '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Telepon</label>
+                            <input type="text" name="telepon" class="form-control" value="{{ $company->telepon ?? '' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Logo Perusahaan</label>
+                            <input type="file" name="foto" class="form-control" accept="image/*">
+                            <small class="text-muted">Kosongkan jika tidak ingin mengubah logo</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Alamat</label>
+                            <textarea name="alamat" class="form-control" rows="2" required>{{ $company->alamat ?? '' }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Deskripsi Catalog</label>
+                            <textarea name="catalog_description" class="form-control" rows="4" placeholder="Deskripsi singkat tentang perusahaan">{{ $company->catalog_description ?? '' }}</textarea>
+                            <small class="text-muted">Deskripsi ini akan ditampilkan di halaman catalog</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
+<!-- Edit Maps Modal -->
+<div class="modal fade" id="editMapsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Peta Lokasi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editMapsForm">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Link Google Maps</label>
+                        <input type="url" name="maps_link" class="form-control" value="{{ $company->maps_link ?? '' }}" 
+                               placeholder="https://maps.google.com/?q=alamat">
+                        <small class="text-muted">Link embed Google Maps untuk lokasi perusahaan</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label">Latitude</label>
+                            <input type="number" step="any" name="latitude" class="form-control" 
+                                   value="{{ $company->latitude ?? '' }}" placeholder="-6.823456">
+                            <small class="text-muted">Koordinat latitude (opsional)</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Longitude</label>
+                            <input type="number" step="any" name="longitude" class="form-control" 
+                                   value="{{ $company->longitude ?? '' }}" placeholder="107.923456">
+                            <small class="text-muted">Koordinat longitude (opsional)</small>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Cara mendapatkan link:</strong><br>
+                        1. Buka Google Maps<br>
+                        2. Cari lokasi perusahaan<br>
+                        3. Klik "Bagikan" -> "Embed peta"<br>
+                        4. Salin URL src dari iframe
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-<!-- ================= STYLE ================= -->
+<!-- Add Photo Modal -->
+<div class="modal fade" id="addPhotoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Tambah Foto Catalog</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addPhotoForm" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Judul Foto</label>
+                        <input type="text" name="judul" class="form-control" placeholder="Judul foto (opsional)">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Foto *</label>
+                        <input type="file" name="foto" class="form-control" accept="image/*" required>
+                        <small class="text-muted">Format: JPG, PNG, GIF (Maks: 4MB)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Deskripsi</label>
+                        <textarea name="deskripsi" class="form-control" rows="3" placeholder="Deskripsi foto (opsional)"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">Unggah Foto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <style>
+/* Edit Mode Indicator */
+.edit-mode-indicator {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Editable Sections */
+.editable-section {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.editable-section:hover {
+    outline: 2px dashed #667eea;
+    outline-offset: -2px;
+}
+
+/* FAB Buttons */
+.edit-fab {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.editable-section:hover .edit-fab {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.edit-fab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 25px rgba(102, 126, 234, 0.5);
+}
+
+.edit-fab:active {
+    transform: scale(0.95);
+}
+
+/* Catalog Styles (same as original catalog) */
 .hero-slider {
     position: relative;
     width: 100%;
@@ -401,7 +612,6 @@
     color: #3a3a3a;
 }
 
-/* Tentang Desa Styles */
 .desa-content {
     padding-left: 2rem;
     padding-right: 0;
@@ -421,14 +631,12 @@
     font-weight: 800;
 }
 
-/* Gambar lebih besar */
 .section-white img {
     max-height: 450px;
     width: 100%;
     object-fit: cover;
 }
 
-/* Map Styles */
 .map-container {
     margin-top: 2rem;
 }
@@ -450,25 +658,6 @@
     color: #555;
 }
 
-.map-info .btn-outline-primary {
-    color: #007bff;
-    border-color: #007bff;
-    transition: all 0.3s ease;
-}
-
-.map-info .btn-outline-primary:hover {
-    background-color: #007bff;
-    color: white;
-}
-
-/* Responsive untuk Map */
-@media (max-width: 768px) {
-    .map-wrapper iframe {
-        height: 300px;
-    }
-}
-
-/* Produk Box Styles */
 .produk-box {
     background: #f8f9fa;
     border: 2px solid #e9ecef;
@@ -476,92 +665,6 @@
     padding: 2rem;
     box-shadow: 0 5px 15px rgba(0,0,0,0.08);
     margin-top: 1rem;
-}
-
-.produk-box .section-title {
-    color: #3a3a3a;
-    font-weight: 600;
-    margin-bottom: 2rem;
-}
-
-/* Responsive untuk Produk Box */
-@media (max-width: 768px) {
-    .produk-box {
-        padding: 1.5rem;
-        margin-top: 0.5rem;
-    }
-}
-
-/* Tombol Beli Styles */
-.btn-beli {
-    background: linear-gradient(135deg, #ffc107, #ff9800);
-    color: #3a3a3a;
-    border: none;
-    padding: 15px 40px;
-    font-size: 1.2rem;
-    font-weight: 600;
-    border-radius: 50px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.btn-beli:hover {
-    background: linear-gradient(135deg, #ff9800, #f57c00);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(255, 152, 0, 0.4);
-}
-
-.btn-beli:active {
-    transform: translateY(0);
-}
-
-/* Responsive untuk Tentang Desa */
-@media (max-width: 901px) {
-    .desa-content {
-        padding-left: 1.5rem;
-        padding-right: 0;
-        margin-top: 1rem;
-    }
-    
-    .desa-description {
-        font-size: 1rem;
-        line-height: 1.6;
-    }
-    
-    .desa-content .section-title {
-        font-size: 1.8rem;
-        text-align: center;
-    }
-    
-    .section-white img {
-        max-height: 400px;
-    }
-}
-
-@media (max-width: 768px) {
-    .desa-content {
-        padding-left: 1rem;
-        padding-right: 0;
-        margin-top: 1rem;
-    }
-    
-    .desa-description {
-        font-size: 0.95rem;
-        line-height: 1.5;
-    }
-    
-    .desa-content .section-title {
-        font-size: 1.6rem;
-        text-align: center;
-    }
-    
-    .section-white img {
-        max-height: 350px;
-    }
 }
 
 .card-produk {
@@ -588,11 +691,31 @@
     margin-bottom: 1rem;
     min-height: 2.8rem;
 }
-.step {
-    background: #f7f4ef;
-    padding: 20px;
-    border-radius: 15px;
+
+.btn-beli {
+    background: linear-gradient(135deg, #ffc107, #ff9800);
+    color: #3a3a3a;
+    border: none;
+    padding: 15px 40px;
+    font-size: 1.2rem;
     font-weight: 600;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-beli:hover {
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 152, 0, 0.4);
+}
+
+.btn-beli:active {
+    transform: translateY(0);
 }
 
 /* Responsive */
@@ -629,22 +752,31 @@
     .indicator.active {
         width: 25px;
     }
-}
-
-@media (max-width: 480px) {
-    .slider-container-full {
-        height: 50vh;
-        min-height: 350px;
+    
+    .desa-content {
+        padding-left: 1rem;
+        padding-right: 0;
+        margin-top: 1rem;
+    }
+    
+    .desa-description {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+    
+    .desa-content .section-title {
+        font-size: 1.8rem;
+        text-align: center;
+    }
+    
+    .section-white img {
+        max-height: 400px;
     }
 }
 </style>
 
-<!-- ================= SCRIPT ================= -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script>
-function orderProduct(id) {
-    window.location.href = '/pelanggan/login?redirect=catalog&product=' + id;
-}
-
 // Slider functionality
 let currentSlide = 0;
 const slides = document.querySelectorAll('.slide');
@@ -652,6 +784,8 @@ const indicators = document.querySelectorAll('.indicator');
 const totalSlides = slides.length;
 
 function showSlide(index) {
+    if (slides.length === 0) return;
+    
     // Hide all slides
     slides.forEach(slide => slide.classList.remove('active'));
     indicators.forEach(indicator => indicator.classList.remove('active'));
@@ -666,6 +800,8 @@ function showSlide(index) {
 }
 
 function changeSlide(direction) {
+    if (totalSlides === 0) return;
+    
     currentSlide += direction;
     
     if (currentSlide >= totalSlides) {
@@ -678,15 +814,18 @@ function changeSlide(direction) {
 }
 
 function goToSlide(index) {
+    if (totalSlides === 0) return;
     currentSlide = index;
     showSlide(currentSlide);
 }
 
 // Auto-slide functionality
 function startAutoSlide() {
+    if (totalSlides === 0) return;
+    
     setInterval(() => {
         changeSlide(1);
-    }, 4000); // Change slide every 4 seconds
+    }, 4000);
 }
 
 // Initialize slider
@@ -708,6 +847,117 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-</script>
 
+// Edit functions
+function editCompanyInfo() {
+    const modal = new bootstrap.Modal(document.getElementById('editCompanyModal'));
+    modal.show();
+}
+
+function editMaps() {
+    const modal = new bootstrap.Modal(document.getElementById('editMapsModal'));
+    modal.show();
+}
+
+function openPhotoModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addPhotoModal'));
+    modal.show();
+}
+
+function managePhotos() {
+    window.location.href = '/kelola-catalog/photos';
+}
+
+function editBuyButton() {
+    alert('Fitur edit tombol beli akan segera tersedia');
+}
+
+// Form submissions
+document.getElementById('editCompanyForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('/kelola-catalog/settings/update', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('editCompanyModal')).hide();
+            location.reload();
+        } else {
+            alert('Gagal menyimpan: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan');
+    });
+});
+
+document.getElementById('editMapsForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const data = {
+        maps_link: formData.get('maps_link'),
+        latitude: formData.get('latitude'),
+        longitude: formData.get('longitude')
+    };
+    
+    fetch('/kelola-catalog/settings/catalog', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('editMapsModal')).hide();
+            location.reload();
+        } else {
+            alert('Gagal menyimpan: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan');
+    });
+});
+
+document.getElementById('addPhotoForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('/kelola-catalog/photos', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('addPhotoModal')).hide();
+            location.reload();
+        } else {
+            alert('Gagal mengunggah: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan');
+    });
+});
+</script>
 @endsection

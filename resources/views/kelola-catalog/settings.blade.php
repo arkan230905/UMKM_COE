@@ -25,7 +25,7 @@
                         </div>
                     @endif
 
-                    <form method="POST" action="{{ route('kelola-catalog.settings.update') }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('kelola-catalog.settings.update') }}" enctype="multipart/form-data" id="companySettingsForm">
                         @csrf
                         
                         <!-- Company Information -->
@@ -123,11 +123,59 @@
                             </div>
                         </div>
 
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-12">
+                                <label for="catalog_description" class="form-label">Deskripsi Catalog</label>
+                                <textarea name="catalog_description" 
+                                          id="catalog_description" 
+                                          class="form-control" 
+                                          rows="4" 
+                                          placeholder="Deskripsi singkat tentang perusahaan yang akan ditampilkan di halaman catalog">{{ $company->catalog_description ?? '' }}</textarea>
+                                <small class="text-muted">Deskripsi ini akan ditampilkan di bagian tentang perusahaan pada halaman catalog</small>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label for="maps_link" class="form-label">Link Google Maps</label>
+                                <input type="url" 
+                                       name="maps_link" 
+                                       id="maps_link" 
+                                       class="form-control" 
+                                       value="{{ $company->maps_link ?? '' }}" 
+                                       placeholder="https://maps.google.com/?q=alamat">
+                                <small class="text-muted">Link Google Maps untuk lokasi perusahaan</small>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label for="latitude" class="form-label">Latitude</label>
+                                <input type="number" 
+                                       step="any" 
+                                       name="latitude" 
+                                       id="latitude" 
+                                       class="form-control" 
+                                       value="{{ $company->latitude ?? '' }}" 
+                                       placeholder="-6.823456">
+                                <small class="text-muted">Koordinat latitude</small>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label for="longitude" class="form-label">Longitude</label>
+                                <input type="number" 
+                                       step="any" 
+                                       name="longitude" 
+                                       id="longitude" 
+                                       class="form-control" 
+                                       value="{{ $company->longitude ?? '' }}" 
+                                       placeholder="107.923456">
+                                <small class="text-muted">Koordinat longitude</small>
+                            </div>
+                        </div>
+
                         <div class="row g-3">
                             <div class="col-md-12">
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle me-2"></i>
                                     <strong>Catatan:</strong> Pengaturan ini akan mempengaruhi tampilan catalog publik yang dapat diakses oleh pelanggan.
+                                    <br>Foto catalog dapat dikelola di halaman <a href="{{ route('kelola-catalog.photos') }}" class="alert-link">Kelola Foto Catalog</a>.
                                 </div>
                             </div>
                         </div>
@@ -287,8 +335,10 @@ form.addEventListener('input', function() {
     }, 5000);
 });
 
-// Form validation
+// Form validation and submission
 form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
     const requiredFields = form.querySelectorAll('[required]');
     let isValid = true;
     
@@ -302,9 +352,69 @@ form.addEventListener('submit', function(e) {
     });
     
     if (!isValid) {
-        e.preventDefault();
         alert('Mohon lengkapi semua field yang wajib diisi.');
+        return;
     }
+    
+    // Create FormData for file upload
+    const formData = new FormData(form);
+    
+    // Submit company settings
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Now submit catalog settings
+            submitCatalogSettings();
+        } else {
+            showToast('Gagal menyimpan pengaturan perusahaan: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Terjadi kesalahan saat menyimpan pengaturan perusahaan', 'error');
+    });
 });
+
+// Submit catalog settings separately
+function submitCatalogSettings() {
+    const catalogData = {
+        catalog_description: document.getElementById('catalog_description').value,
+        maps_link: document.getElementById('maps_link').value,
+        latitude: document.getElementById('latitude').value,
+        longitude: document.getElementById('longitude').value
+    };
+    
+    fetch('/kelola-catalog/settings/catalog', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify(catalogData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Semua pengaturan catalog berhasil disimpan!', 'success');
+            // Reload page after a short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showToast('Gagal menyimpan pengaturan catalog: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Terjadi kesalahan saat menyimpan pengaturan catalog', 'error');
+    });
+}
 </script>
 @endsection
