@@ -112,8 +112,8 @@ class AsetController extends Controller
         ];
         
         // COA data for dropdowns - with fallback to prevent undefined variables
-        $coaAsets = Coa::where('tipe_akun', 'LIKE', '%Asset%')
-            ->orWhere('tipe_akun', 'LIKE', '%Aset%')
+        $coaAsets = Coa::where('tipe_akun', 'LIKE', '%Aset%')
+            ->orWhere('tipe_akun', 'LIKE', '%ASET%')
             ->get();
             
         // If no asset accounts found, get all COA as fallback
@@ -461,10 +461,24 @@ class AsetController extends Controller
             'sum_of_years_digits' => 'Jumlah Angka Tahun (Sum of Years Digits)',
         ];
         
-        // COA data for dropdowns - get all COA to ensure dropdowns are populated
-        $coaAsets = Coa::orderBy('kode_akun')->get();
-        $coaAkumulasi = Coa::orderBy('kode_akun')->get();
-        $coaBeban = Coa::orderBy('kode_akun')->get();
+        // COA data for dropdowns - with fallback to prevent undefined variables
+        $coaAsets = Coa::where('tipe_akun', 'LIKE', '%Aset%')
+            ->orWhere('tipe_akun', 'LIKE', '%ASET%')
+            ->get();
+            
+        // If no asset accounts found, get all COA as fallback
+        if ($coaAsets->isEmpty()) {
+            $coaAsets = Coa::all();
+        }
+            
+        $coaAkumulasi = Coa::where('nama_akun', 'LIKE', '%akumulasi%')
+            ->orWhere('nama_akun', 'LIKE', '%Akumulasi%')
+            ->get();
+            
+        $coaBeban = Coa::where('nama_akun', 'LIKE', '%penyusutan%')
+            ->orWhere('nama_akun', 'LIKE', '%Penyusutan%')
+            ->orWhere('nama_akun', 'LIKE', '%Beban%')
+            ->get();
         
         // Load relasi untuk aset yang akan diedit
         $aset->load('kategori.jenisAset', 'assetCoa', 'accumDepreciationCoa', 'expenseCoa');

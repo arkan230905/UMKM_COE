@@ -508,7 +508,8 @@ class DashboardController extends Controller
 
     private function getRevenueCoaIds(): array
     {
-        return Coa::where('tipe_akun', 'Revenue')
+        return Coa::where('tipe_akun', 'PENDAPATAN')
+            ->orWhere('tipe_akun', 'Pendapatan')
             ->orWhere('kode_akun', 'like', '4%')
             ->pluck('id')->all();
     }
@@ -538,21 +539,8 @@ class DashboardController extends Controller
         try {
             if (!\Schema::hasTable('coas')) { return collect(); }
 
-            // Ambil akun Kas dan Bank langsung dari tabel COA berdasarkan kategori/tipe akun - sama dengan getTotalKasBank
-            $akunKasBank = Coa::where('tipe_akun', 'Asset')
-                ->where(function($query) {
-                    // Cari berdasarkan nama akun yang mengandung 'kas' atau 'bank'
-                    $query->where('nama_akun', 'like', '%kas%')
-                          ->orWhere('nama_akun', 'like', '%bank%');
-                })
-                ->get();
-            
-            // Fallback: jika tidak ada yang ditemukan berdasarkan nama, coba berdasarkan kode umum
-            if ($akunKasBank->isEmpty()) {
-                $akunKasBank = Coa::where('tipe_akun', 'Asset')
-                    ->whereIn('kode_akun', ['101', '102', '111', '112', '1101', '1102', '1110', '1120'])
-                    ->get();
-            }
+            // Gunakan helper yang sama dengan LaporanKasBankController untuk konsistensi
+            $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts();
             
             if ($akunKasBank->isEmpty()) { return collect(); }
 

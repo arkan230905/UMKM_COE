@@ -183,7 +183,8 @@ class PembelianController extends Controller
         $satuans = \App\Models\Satuan::all();
         
         // Ambil data COA untuk kas dan bank yang relevan saja
-        $kasbank = \App\Models\Coa::where('tipe_akun', 'Asset')
+        $kasbank = \App\Models\Coa::where('tipe_akun', 'Aset')
+            ->orWhere('tipe_akun', 'ASET')
             ->where(function($query) {
                 $query->where(function($subQuery) {
                           $subQuery->where('nama_akun', 'like', '%kas%')

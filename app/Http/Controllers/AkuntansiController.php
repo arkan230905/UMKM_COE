@@ -42,9 +42,11 @@ class AkuntansiController extends Controller
      */
     private function posisiNeracaSaldo($saldo, $tipeAkun)
     {
-        // Normalisasi tipe akun
-        $tipeAkun = ucfirst(strtolower($tipeAkun));
-        
+        // Gunakan tipe_akun Indonesian values langsung
+        // ASET, BEBAN have normal DEBIT balance
+        // KEWAJIBAN, MODAL, PENDAPATAN have normal KREDIT balance
+        $isDebitNormal = in_array($tipeAkun, ['ASET', 'BEBAN']);
+
         $debit  = 0;
         $kredit = 0;
 
@@ -54,7 +56,7 @@ class AkuntansiController extends Controller
         }
 
         if ($saldo > 0) {
-            if (in_array($tipeAkun, ['Asset', 'Aset', 'Expense', 'Beban', 'Biaya'])) {
+            if ($isDebitNormal) {
                 // saldo normalnya di DEBIT
                 $debit = $saldo;
             } else {
@@ -65,7 +67,7 @@ class AkuntansiController extends Controller
             // kalau minus, pindahkan ke sisi sebaliknya (saldo abnormal)
             $nilai = abs($saldo);
 
-            if (in_array($tipeAkun, ['Asset', 'Aset', 'Expense', 'Beban', 'Biaya'])) {
+            if ($isDebitNormal) {
                 $kredit = $nilai;
             } else {
                 $debit = $nilai;
@@ -73,6 +75,75 @@ class AkuntansiController extends Controller
         }
 
         return ['debit' => $debit, 'kredit' => $kredit];
+    }
+
+    /**
+     * Helper function untuk mendapatkan ringkasan akun (sama untuk Buku Besar & Neraca Saldo)
+     * @param string $from Tanggal awal periode (Y-m-d)
+     * @param string $to Tanggal akhir periode (Y-m-d)
+     * @param string|null $kodeAkun Filter by kode_akun (optional, untuk Buku Besar)
+     * @return array Array dengan key kode_akun berisi summary per akun
+     */
+    private function getAccountSummary($from, $to, $kodeAkun = null)
+    {
+        // Dari journal_lines - join dengan coas untuk dapat kode_akun yang benar
+        $queryJournalLines = DB::table('journal_lines as jl')
+            ->join('journal_entries as je', 'jl.journal_entry_id', '=', 'je.id')
+            ->join('coas', 'coas.id', '=', 'jl.coa_id')
+            ->whereBetween('je.tanggal', [$from, $to])
+            ->select(
+                'coas.kode_akun',
+                DB::raw('COALESCE(SUM(jl.debit),0) as total_debit'),
+                DB::raw('COALESCE(SUM(jl.credit),0) as total_kredit')
+            )
+            ->groupBy('coas.kode_akun');
+
+        // Filter by kode_akun jika diberikan
+        if ($kodeAkun) {
+            $queryJournalLines->where('coas.kode_akun', $kodeAkun);
+        }
+
+        $mutasiJournalLines = $queryJournalLines->get();
+
+        // Dari jurnal_umum - join dengan coas untuk dapat kode_akun yang benar
+        $queryJurnalUmum = DB::table('jurnal_umum as ju')
+            ->join('coas', 'coas.id', '=', 'ju.coa_id')
+            ->whereBetween('ju.tanggal', [$from, $to])
+            ->select(
+                'coas.kode_akun',
+                DB::raw('COALESCE(SUM(ju.debit),0) as total_debit'),
+                DB::raw('COALESCE(SUM(ju.kredit),0) as total_kredit')
+            )
+            ->groupBy('coas.kode_akun');
+
+        // Filter by kode_akun jika diberikan
+        if ($kodeAkun) {
+            $queryJurnalUmum->where('coas.kode_akun', $kodeAkun);
+        }
+
+        $mutasiJurnalUmum = $queryJurnalUmum->get();
+
+        // Gabungkan mutasi dari kedua sumber - gunakan kode_akun sebagai key
+        $summaryByKodeAkun = [];
+        foreach ($mutasiJournalLines as $line) {
+            $summaryByKodeAkun[$line->kode_akun] = [
+                'total_debit' => $line->total_debit,
+                'total_kredit' => $line->total_kredit
+            ];
+        }
+        foreach ($mutasiJurnalUmum as $line) {
+            if (isset($summaryByKodeAkun[$line->kode_akun])) {
+                $summaryByKodeAkun[$line->kode_akun]['total_debit'] += $line->total_debit;
+                $summaryByKodeAkun[$line->kode_akun]['total_kredit'] += $line->total_kredit;
+            } else {
+                $summaryByKodeAkun[$line->kode_akun] = [
+                    'total_debit' => $line->total_debit,
+                    'total_kredit' => $line->total_kredit
+                ];
+            }
+        }
+
+        return $summaryByKodeAkun;
     }
 
     public function jurnalUmum(Request $request)
@@ -391,18 +462,21 @@ class AkuntansiController extends Controller
         $saldoAwal = 0.0;
         $from = null;
         $to = null;
+        $totalDebit = 0;
+        $totalKredit = 0;
+        $saldoAkhir = 0;
 
         if ($accountCode) {
             // Cari COA berdasarkan kode_akun langsung
             $coa = \App\Models\Coa::where('kode_akun', $accountCode)->first();
-            
+
             if (!$coa) {
-                return view('akuntansi.buku-besar', compact('coas','accountCode','lines','from','to','saldoAwal','month','year'));
+                return view('akuntansi.buku-besar', compact('coas','accountCode','lines','from','to','saldoAwal','month','year','totalDebit','totalKredit','saldoAkhir'));
             }
-            
+
             // Get saldo awal dari COA berdasarkan kode_akun
             $saldoAwal = $coa->saldo_awal ?? 0;
-            
+
             // Build query untuk journal entries (from JournalEntry system)
             $query = \DB::table('journal_entries as je')
                 ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
@@ -425,16 +499,16 @@ class AkuntansiController extends Controller
                 ->orderBy('je.tanggal','asc')
                 ->orderBy('je.id','asc')
                 ->orderBy('jl.id','asc');
-            
+
             // Apply date filter only if both month and year are provided
             if ($month && $year) {
                 $from = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01';
                 $to = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-' . date('t', mktime(0, 0, 0, $month, 1, $year));
-                
+
                 $query->whereMonth('je.tanggal', $month)
                       ->whereYear('je.tanggal', $year);
             }
-            
+
             $results = $query->get();
             
             // Group results by journal entry
@@ -541,9 +615,30 @@ class AkuntansiController extends Controller
             
             // Sort all entries by date
             $lines = $entries->sortBy('tanggal');
+
+            // Hitung total debit/kredit dan saldo akhir untuk periode ini
+            // Gunakan helper function yang sama dengan Neraca Saldo untuk konsistensi
+            if ($month && $year) {
+                $fromDate = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-01';
+                $toDate = $year . '-' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-' . date('t', mktime(0, 0, 0, $month, 1, $year));
+
+                $summary = $this->getAccountSummary($fromDate, $toDate, $accountCode);
+                $totalDebit = $summary[$accountCode]['total_debit'] ?? 0;
+                $totalKredit = $summary[$accountCode]['total_kredit'] ?? 0;
+
+                // Hitung saldo akhir sesuai tipe_akun (sama dengan Neraca Saldo)
+                $isDebitNormal = in_array($coa->tipe_akun, ['ASET', 'BEBAN']);
+                if ($isDebitNormal) {
+                    // ASET, BEBAN: saldo_akhir = saldo_awal + debit - kredit
+                    $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
+                } else {
+                    // KEWAJIBAN, MODAL, PENDAPATAN: saldo_akhir = saldo_awal - debit + kredit
+                    $saldoAkhir = $saldoAwal - $totalDebit + $totalKredit;
+                }
+            }
         }
 
-        return view('akuntansi.buku-besar', compact('coas','accountCode','lines','from','to','saldoAwal','month','year'));
+        return view('akuntansi.buku-besar', compact('coas','accountCode','lines','from','to','saldoAwal','month','year','totalDebit','totalKredit','saldoAkhir'));
     }
 
     public function bukuBesarExportExcel(Request $request)
@@ -557,323 +652,132 @@ class AkuntansiController extends Controller
 
     public function neracaSaldo(Request $request)
     {
-        // Get bulan & tahun dari request
         $bulan = $request->get('bulan', date('m'));
         $tahun = $request->get('tahun', date('Y'));
 
-        // Hitung tanggal awal dan akhir bulan
         $from = Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
-        $to = Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
+        $to   = Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
 
-        // Query neraca saldo dengan logika yang diperbaiki
-        // Menghindari duplikasi dengan menggunakan DISTINCT kode_akun
-        $neracaSaldoData = DB::select("
-            SELECT 
-                coa_summary.kode_akun,
-                coa_summary.nama_akun,
-                coa_summary.tipe_akun,
-                coa_summary.kategori_akun,
-                coa_summary.saldo_normal,
-                coa_summary.saldo_awal,
-                
-                -- Total mutasi sampai akhir periode dari journal_lines
-                COALESCE(jl_data.total_debit, 0) as jl_total_debit,
-                COALESCE(jl_data.total_kredit, 0) as jl_total_kredit,
-                
-                -- Total mutasi sampai akhir periode dari jurnal_umum
-                COALESCE(ju_data.total_debit, 0) as ju_total_debit,
-                COALESCE(ju_data.total_kredit, 0) as ju_total_kredit,
-                
-                -- Mutasi periode ini saja dari journal_lines
-                COALESCE(jl_periode.mutasi_debit, 0) as jl_mutasi_debit,
-                COALESCE(jl_periode.mutasi_kredit, 0) as jl_mutasi_kredit,
-                
-                -- Mutasi periode ini saja dari jurnal_umum
-                COALESCE(ju_periode.mutasi_debit, 0) as ju_mutasi_debit,
-                COALESCE(ju_periode.mutasi_kredit, 0) as ju_mutasi_kredit
-                
-            FROM (
-                -- Subquery untuk mendapatkan summary COA tanpa duplikasi
-                SELECT 
-                    c.kode_akun,
-                    MIN(c.nama_akun) as nama_akun,
-                    MIN(c.tipe_akun) as tipe_akun,
-                    MIN(c.kategori_akun) as kategori_akun,
-                    MIN(c.saldo_normal) as saldo_normal,
-                    SUM(COALESCE(c.saldo_awal, 0)) as saldo_awal
-                FROM coas c
-                GROUP BY c.kode_akun
-            ) coa_summary
-            
-            -- LEFT JOIN untuk total mutasi sampai akhir periode dari journal_lines
-            LEFT JOIN (
-                SELECT 
-                    c2.kode_akun,
-                    SUM(jl.debit) as total_debit,
-                    SUM(jl.credit) as total_kredit
-                FROM journal_lines jl
-                JOIN journal_entries je ON jl.journal_entry_id = je.id
-                JOIN coas c2 ON jl.coa_id = c2.id
-                WHERE je.tanggal <= ?
-                GROUP BY c2.kode_akun
-            ) jl_data ON coa_summary.kode_akun = jl_data.kode_akun
-            
-            -- LEFT JOIN untuk total mutasi sampai akhir periode dari jurnal_umum
-            LEFT JOIN (
-                SELECT 
-                    c2.kode_akun,
-                    SUM(ju.debit) as total_debit,
-                    SUM(ju.kredit) as total_kredit
-                FROM jurnal_umum ju
-                JOIN coas c2 ON ju.coa_id = c2.id
-                WHERE ju.tanggal <= ?
-                GROUP BY c2.kode_akun
-            ) ju_data ON coa_summary.kode_akun = ju_data.kode_akun
-            
-            -- LEFT JOIN untuk mutasi periode ini saja dari journal_lines
-            LEFT JOIN (
-                SELECT 
-                    c2.kode_akun,
-                    SUM(jl.debit) as mutasi_debit,
-                    SUM(jl.credit) as mutasi_kredit
-                FROM journal_lines jl
-                JOIN journal_entries je ON jl.journal_entry_id = je.id
-                JOIN coas c2 ON jl.coa_id = c2.id
-                WHERE je.tanggal BETWEEN ? AND ?
-                GROUP BY c2.kode_akun
-            ) jl_periode ON coa_summary.kode_akun = jl_periode.kode_akun
-            
-            -- LEFT JOIN untuk mutasi periode ini saja dari jurnal_umum
-            LEFT JOIN (
-                SELECT 
-                    c2.kode_akun,
-                    SUM(ju.debit) as mutasi_debit,
-                    SUM(ju.kredit) as mutasi_kredit
-                FROM jurnal_umum ju
-                JOIN coas c2 ON ju.coa_id = c2.id
-                WHERE ju.tanggal BETWEEN ? AND ?
-                GROUP BY c2.kode_akun
-            ) ju_periode ON coa_summary.kode_akun = ju_periode.kode_akun
-            
-            ORDER BY coa_summary.kode_akun
-        ", [$to, $to, $from, $to, $from, $to]);
+        // Ambil semua COA distinct by kode_akun — sama seperti buku besar
+        $coas = \App\Models\Coa::select('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
+            ->groupBy('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
+            ->orderBy('kode_akun')
+            ->get();
 
-        // Convert to collection dan hitung saldo akhir
-        $coas = collect($neracaSaldoData)->map(function($item) {
-            return (object) $item;
-        });
+        // Ambil mutasi periode menggunakan helper yang sama dengan buku besar
+        // Saldo akhir neraca saldo = saldo akhir buku besar (selalu sinkron)
+        $mutasiByKodeAkun = $this->getAccountSummary($from, $to);
 
-        // Build totals array dengan perhitungan saldo akhir yang benar
         $totals = [];
         foreach ($coas as $coa) {
-            // Ambil saldo awal dari COA (jika ada)
-            $saldoAwal = $coa->saldo_awal;
-            
-            // Total mutasi sampai akhir periode
-            $totalDebitSampaiPeriode = $coa->jl_total_debit + $coa->ju_total_debit;
-            $totalKreditSampaiPeriode = $coa->jl_total_kredit + $coa->ju_total_kredit;
-            
-            // Mutasi periode ini (untuk kolom debit/kredit di neraca saldo)
-            $mutasiDebitPeriode = $coa->jl_mutasi_debit + $coa->ju_mutasi_debit;
-            $mutasiKreditPeriode = $coa->jl_mutasi_kredit + $coa->ju_mutasi_kredit;
-            
-            // Gunakan saldo_normal dari COA untuk menentukan normal debit/kredit
-            // Jika saldo_normal tidak ada, fallback ke tipe_akun
+            $saldoAwal   = (float)($coa->saldo_awal ?? 0);
+            $totalDebit  = $mutasiByKodeAkun[$coa->kode_akun]['total_debit']  ?? 0;
+            $totalKredit = $mutasiByKodeAkun[$coa->kode_akun]['total_kredit'] ?? 0;
+
+            // Tentukan saldo normal — sama persis dengan logika buku besar
             $saldoNormal = strtolower($coa->saldo_normal ?? '');
             if (empty($saldoNormal)) {
-                $isDebitNormal = in_array(strtolower($coa->tipe_akun), ['asset', 'aset', 'expense', 'beban', 'biaya']);
+                $isDebitNormal = in_array(strtolower($coa->tipe_akun), [
+                    'asset', 'aset', 'expense', 'beban',
+                    'biaya bahan baku', 'biaya tenaga kerja langsung',
+                    'biaya overhead pabrik', 'biaya tenaga kerja tidak langsung',
+                    'bop tidak langsung lainnya'
+                ]);
             } else {
                 $isDebitNormal = ($saldoNormal === 'debit');
             }
-            
-            // Hitung saldo akhir sesuai dengan buku besar - SAMA PERSIS seperti di buku besar
+
+            // Saldo akhir = saldo akhir buku besar untuk akun ini
             if ($isDebitNormal) {
-                // Akun normal DEBIT (Asset, Expense)
-                // Saldo Akhir = Saldo Awal + Total Debit - Total Kredit
-                $saldoAkhir = $saldoAwal + $totalDebitSampaiPeriode - $totalKreditSampaiPeriode;
+                $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
             } else {
-                // Akun normal KREDIT (Liability, Equity, Revenue)
-                // Saldo Akhir = Saldo Awal + Total Kredit - Total Debit
-                $saldoAkhir = $saldoAwal + $totalKreditSampaiPeriode - $totalDebitSampaiPeriode;
+                $saldoAkhir = $saldoAwal - $totalDebit + $totalKredit;
             }
 
-            // Tentukan penempatan saldo akhir di debit/kredit untuk tampilan neraca saldo
             $posisi = $this->posisiNeracaSaldo($saldoAkhir, $coa->tipe_akun);
 
             $totals[$coa->kode_akun] = [
-                'saldo_awal' => $saldoAwal,
-                'debit' => $mutasiDebitPeriode,          // mutasi debit periode ini
-                'kredit' => $mutasiKreditPeriode,        // mutasi kredit periode ini
-                'saldo_debit' => $posisi['debit'],
-                'saldo_kredit' => $posisi['kredit'],
-                'saldo_akhir' => $saldoAkhir,
-                'saldo_normal' => $saldoNormal,
-                'is_debit_normal' => $isDebitNormal
+                'saldo_awal'      => $saldoAwal,
+                'debit'           => $totalDebit,
+                'kredit'          => $totalKredit,
+                'saldo_debit'     => $posisi['debit'],
+                'saldo_kredit'    => $posisi['kredit'],
+                'saldo_akhir'     => $saldoAkhir,
+                'saldo_normal'    => $saldoNormal,
+                'is_debit_normal' => $isDebitNormal,
             ];
         }
 
-        return view('akuntansi.neraca-saldo', compact('coas','totals'));
+        // Hanya tampilkan akun yang punya aktivitas atau saldo
+        $coas = $coas->filter(function ($coa) use ($totals) {
+            $t = $totals[$coa->kode_akun] ?? null;
+            if (!$t) return false;
+            return $t['saldo_awal'] != 0 || $t['debit'] != 0 || $t['kredit'] != 0 || $t['saldo_akhir'] != 0;
+        });
+
+        return view('akuntansi.neraca-saldo', compact('coas', 'totals', 'bulan', 'tahun'));
     }
 
     public function neracaSaldoPdf(Request $request)
     {
-        // Get bulan & tahun dari request
         $bulan = $request->get('bulan', date('m'));
         $tahun = $request->get('tahun', date('Y'));
 
-        // Hitung tanggal awal dan akhir bulan
         $from = Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
-        $to = Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
+        $to   = Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
 
-        // Query neraca saldo dengan logika yang diperbaiki (sama seperti web view)
-        // Menghindari duplikasi dengan menggunakan DISTINCT kode_akun
-        $neracaSaldoData = DB::select("
-            SELECT 
-                coa_summary.kode_akun,
-                coa_summary.nama_akun,
-                coa_summary.tipe_akun,
-                coa_summary.kategori_akun,
-                coa_summary.saldo_normal,
-                coa_summary.saldo_awal,
-                
-                -- Total mutasi sampai akhir periode dari journal_lines
-                COALESCE(jl_data.total_debit, 0) as jl_total_debit,
-                COALESCE(jl_data.total_kredit, 0) as jl_total_kredit,
-                
-                -- Total mutasi sampai akhir periode dari jurnal_umum
-                COALESCE(ju_data.total_debit, 0) as ju_total_debit,
-                COALESCE(ju_data.total_kredit, 0) as ju_total_kredit,
-                
-                -- Mutasi periode ini saja dari journal_lines
-                COALESCE(jl_periode.mutasi_debit, 0) as jl_mutasi_debit,
-                COALESCE(jl_periode.mutasi_kredit, 0) as jl_mutasi_kredit,
-                
-                -- Mutasi periode ini saja dari jurnal_umum
-                COALESCE(ju_periode.mutasi_debit, 0) as ju_mutasi_debit,
-                COALESCE(ju_periode.mutasi_kredit, 0) as ju_mutasi_kredit
-                
-            FROM (
-                -- Subquery untuk mendapatkan summary COA tanpa duplikasi
-                SELECT 
-                    c.kode_akun,
-                    MIN(c.nama_akun) as nama_akun,
-                    MIN(c.tipe_akun) as tipe_akun,
-                    MIN(c.kategori_akun) as kategori_akun,
-                    MIN(c.saldo_normal) as saldo_normal,
-                    SUM(COALESCE(c.saldo_awal, 0)) as saldo_awal
-                FROM coas c
-                GROUP BY c.kode_akun
-            ) coa_summary
-            
-            -- LEFT JOIN untuk total mutasi sampai akhir periode dari journal_lines
-            LEFT JOIN (
-                SELECT 
-                    c2.kode_akun,
-                    SUM(jl.debit) as total_debit,
-                    SUM(jl.credit) as total_kredit
-                FROM journal_lines jl
-                JOIN journal_entries je ON jl.journal_entry_id = je.id
-                JOIN coas c2 ON jl.coa_id = c2.id
-                WHERE je.tanggal <= ?
-                GROUP BY c2.kode_akun
-            ) jl_data ON coa_summary.kode_akun = jl_data.kode_akun
-            
-            -- LEFT JOIN untuk total mutasi sampai akhir periode dari jurnal_umum
-            LEFT JOIN (
-                SELECT 
-                    c2.kode_akun,
-                    SUM(ju.debit) as total_debit,
-                    SUM(ju.kredit) as total_kredit
-                FROM jurnal_umum ju
-                JOIN coas c2 ON ju.coa_id = c2.id
-                WHERE ju.tanggal <= ?
-                GROUP BY c2.kode_akun
-            ) ju_data ON coa_summary.kode_akun = ju_data.kode_akun
-            
-            -- LEFT JOIN untuk mutasi periode ini saja dari journal_lines
-            LEFT JOIN (
-                SELECT 
-                    c2.kode_akun,
-                    SUM(jl.debit) as mutasi_debit,
-                    SUM(jl.credit) as mutasi_kredit
-                FROM journal_lines jl
-                JOIN journal_entries je ON jl.journal_entry_id = je.id
-                JOIN coas c2 ON jl.coa_id = c2.id
-                WHERE je.tanggal BETWEEN ? AND ?
-                GROUP BY c2.kode_akun
-            ) jl_periode ON coa_summary.kode_akun = jl_periode.kode_akun
-            
-            -- LEFT JOIN untuk mutasi periode ini saja dari jurnal_umum
-            LEFT JOIN (
-                SELECT 
-                    c2.kode_akun,
-                    SUM(ju.debit) as mutasi_debit,
-                    SUM(ju.kredit) as mutasi_kredit
-                FROM jurnal_umum ju
-                JOIN coas c2 ON ju.coa_id = c2.id
-                WHERE ju.tanggal BETWEEN ? AND ?
-                GROUP BY c2.kode_akun
-            ) ju_periode ON coa_summary.kode_akun = ju_periode.kode_akun
-            
-            ORDER BY coa_summary.kode_akun
-        ", [$to, $to, $from, $to, $from, $to]);
+        // Sama persis dengan neracaSaldo — ambil dari buku besar
+        $coas = \App\Models\Coa::select('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
+            ->groupBy('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
+            ->orderBy('kode_akun')
+            ->get();
 
-        // Convert to collection dan hitung saldo akhir
-        $coas = collect($neracaSaldoData)->map(function($item) {
-            return (object) $item;
-        });
+        $mutasiByKodeAkun = $this->getAccountSummary($from, $to);
 
-        // Build totals array dengan perhitungan saldo akhir yang benar
         $totals = [];
         foreach ($coas as $coa) {
-            // Ambil saldo awal dari COA (jika ada)
-            $saldoAwal = $coa->saldo_awal;
-            
-            // Total mutasi sampai akhir periode
-            $totalDebitSampaiPeriode = $coa->jl_total_debit + $coa->ju_total_debit;
-            $totalKreditSampaiPeriode = $coa->jl_total_kredit + $coa->ju_total_kredit;
-            
-            // Mutasi periode ini (untuk kolom debit/kredit di neraca saldo)
-            $mutasiDebitPeriode = $coa->jl_mutasi_debit + $coa->ju_mutasi_debit;
-            $mutasiKreditPeriode = $coa->jl_mutasi_kredit + $coa->ju_mutasi_kredit;
-            
-            // Gunakan saldo_normal dari COA untuk menentukan normal debit/kredit
-            // Jika saldo_normal tidak ada, fallback ke tipe_akun
+            $saldoAwal   = (float)($coa->saldo_awal ?? 0);
+            $totalDebit  = $mutasiByKodeAkun[$coa->kode_akun]['total_debit']  ?? 0;
+            $totalKredit = $mutasiByKodeAkun[$coa->kode_akun]['total_kredit'] ?? 0;
+
             $saldoNormal = strtolower($coa->saldo_normal ?? '');
             if (empty($saldoNormal)) {
-                $isDebitNormal = in_array(strtolower($coa->tipe_akun), ['asset', 'aset', 'expense', 'beban', 'biaya']);
+                $isDebitNormal = in_array(strtolower($coa->tipe_akun), [
+                    'asset', 'aset', 'expense', 'beban',
+                    'biaya bahan baku', 'biaya tenaga kerja langsung',
+                    'biaya overhead pabrik', 'biaya tenaga kerja tidak langsung',
+                    'bop tidak langsung lainnya'
+                ]);
             } else {
                 $isDebitNormal = ($saldoNormal === 'debit');
             }
-            
-            // Hitung saldo akhir sesuai dengan buku besar - SAMA PERSIS seperti di buku besar
-            if ($isDebitNormal) {
-                // Akun normal DEBIT (Asset, Expense)
-                // Saldo Akhir = Saldo Awal + Total Debit - Total Kredit
-                $saldoAkhir = $saldoAwal + $totalDebitSampaiPeriode - $totalKreditSampaiPeriode;
-            } else {
-                // Akun normal KREDIT (Liability, Equity, Revenue)
-                // Saldo Akhir = Saldo Awal + Total Kredit - Total Debit
-                $saldoAkhir = $saldoAwal + $totalKreditSampaiPeriode - $totalDebitSampaiPeriode;
-            }
 
-            // Tentukan penempatan saldo akhir di debit/kredit untuk tampilan neraca saldo
+            $saldoAkhir = $isDebitNormal
+                ? $saldoAwal + $totalDebit - $totalKredit
+                : $saldoAwal - $totalDebit + $totalKredit;
+
             $posisi = $this->posisiNeracaSaldo($saldoAkhir, $coa->tipe_akun);
 
             $totals[$coa->kode_akun] = [
-                'saldo_awal' => $saldoAwal,
-                'debit' => $mutasiDebitPeriode,          // mutasi debit periode ini
-                'kredit' => $mutasiKreditPeriode,        // mutasi kredit periode ini
-                'saldo_debit' => $posisi['debit'],
+                'saldo_awal'   => $saldoAwal,
+                'debit'        => $totalDebit,
+                'kredit'       => $totalKredit,
+                'saldo_debit'  => $posisi['debit'],
                 'saldo_kredit' => $posisi['kredit'],
-                'saldo_akhir' => $saldoAkhir
+                'saldo_akhir'  => $saldoAkhir,
             ];
         }
 
-        $pdf = Pdf::loadView('akuntansi.neraca-saldo-pdf', compact('coas','totals','bulan','tahun'))
+        $coas = $coas->filter(function ($coa) use ($totals) {
+            $t = $totals[$coa->kode_akun] ?? null;
+            if (!$t) return false;
+            return $t['saldo_awal'] != 0 || $t['debit'] != 0 || $t['kredit'] != 0 || $t['saldo_akhir'] != 0;
+        });
+
+        $pdf = Pdf::loadView('akuntansi.neraca-saldo-pdf', compact('coas', 'totals', 'bulan', 'tahun'))
             ->setPaper('a4', 'landscape');
 
-        return $pdf->download('neraca-saldo-'.$tahun.'-'.$bulan.'.pdf');
+        return $pdf->download('neraca-saldo-' . $tahun . '-' . $bulan . '.pdf');
     }
 
     /**
@@ -912,19 +816,19 @@ class AkuntansiController extends Controller
         $to   = $request->get('to');
 
         // Get accounts by category - hanya pendapatan usaha
-        $revenue = \App\Models\Coa::where('tipe_akun','Revenue')
+        $revenue = \App\Models\Coa::where('tipe_akun','PENDAPATAN')
                                   ->where('kategori_akun', 'Pendapatan')
                                   ->get();
-        
+
         // Get HPP accounts from COA (16xx accounts)
-        $hppAccounts = \App\Models\Coa::where('tipe_akun','Expense')
+        $hppAccounts = \App\Models\Coa::where('tipe_akun','BEBAN')
                                       ->where(function($query) {
                     $query->where('kode_akun', 'LIKE', '16%')
                            ->orWhere('kode_akun', '161');
                 }) // HPP accounts
                                       ->get();
-        
-        $expense = \App\Models\Coa::where('tipe_akun','Expense')
+
+        $expense = \App\Models\Coa::where('tipe_akun','BEBAN')
                                   ->where('kode_akun', 'NOT LIKE', '16%')
                           ->where('kode_akun', '!=', '52') // Non-HPP expenses
                                   ->get();
@@ -936,7 +840,7 @@ class AkuntansiController extends Controller
                 if ($from) { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','>=',$from)); }
                 if ($to)   { $q->whereHas('entry', fn($qq)=>$qq->whereDate('tanggal','<=',$to)); }
                 $row = $q->selectRaw('COALESCE(SUM(debit),0) as d, COALESCE(SUM(credit),0) as c')->first();
-                $balance = ($coa->tipe_akun==='Revenue') ? (float)($row->c - $row->d) : (float)($row->d - $row->c);
+                $balance = ($coa->tipe_akun==='PENDAPATAN') ? (float)($row->c - $row->d) : (float)($row->d - $row->c);
                 $total += $balance;
             }
             return $total;

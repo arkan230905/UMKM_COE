@@ -118,7 +118,7 @@ class CoaController extends Controller
                 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:Aset,Kewajiban,Modal,Pendapatan,Expense',
+            'tipe_akun' => 'required|in:ASET,KEWAJIBAN,MODAL,PENDAPATAN,BEBAN',
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',
@@ -180,7 +180,7 @@ class CoaController extends Controller
                 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:Aset,Kewajiban,Modal,Pendapatan,Expense',
+            'tipe_akun' => 'required|in:ASET,KEWAJIBAN,MODAL,PENDAPATAN,BEBAN',
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',

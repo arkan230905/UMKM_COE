@@ -23,7 +23,7 @@ class BopController extends Controller
     {
         // Ambil semua akun beban
         $akunBeban = Coa::where(function($q){
-                    $q->whereIn('tipe_akun', ['Expense', 'Beban', 'Biaya'])
+                    $q->whereIn('tipe_akun', ['Beban', 'Biaya'])
                       ->orWhere('kode_akun', 'like', '5%');
                 })
                 ->orderBy('kode_akun')
@@ -117,7 +117,7 @@ class BopController extends Controller
     // Edit data BOP
     public function edit(Bop $bop)
     {
-        $coa = Coa::whereIn('tipe_akun', ['Expense', 'Beban', 'Biaya'])->get();
+        $coa = Coa::whereIn('tipe_akun', ['Beban', 'Biaya'])->get();
         return view('master-data.bop.edit', compact('bop', 'coa'));
     }
 
