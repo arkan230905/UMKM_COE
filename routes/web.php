@@ -1847,6 +1847,12 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 
 // ====================================================================
+// API Routes for AJAX calls (accessible to authenticated users)
+Route::middleware('auth')->group(function() {
+    // Employee data API for penggajian
+    Route::get('/api/pegawai/{pegawaiId}/data', [App\Http\Controllers\PenggajianController::class, 'getEmployeeData'])->name('api.pegawai.data');
+});
+
 // SEMUA ROUTE YANG HANYA BISA DIAKSES SETELAH LOGIN
 // ====================================================================
 Route::middleware('auth')->group(function () {
@@ -2756,6 +2762,9 @@ Route::middleware('auth')->group(function () {
 
             // Posting ke jurnal (owner/admin only)
             Route::post('/{id}/post-journal', [PenggajianController::class, 'postToJournal'])->name('post-journal')->middleware(['role:owner,admin']);
+            
+            // Recalculate berdasarkan master data terbaru (owner/admin only)
+            Route::post('/{id}/recalculate', [PenggajianController::class, 'recalculate'])->name('recalculate')->middleware(['role:owner,admin']);
             
             // API untuk data pegawai real-time
             Route::get('/pegawai/{pegawaiId}/data', [PenggajianController::class, 'getEmployeeData'])->name('pegawai.data');

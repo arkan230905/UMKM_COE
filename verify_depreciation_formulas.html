@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Depreciation Formula Verification</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .method { border: 1px solid #ccc; margin: 20px 0; padding: 15px; }
+        .result { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Depreciation Formula Verification</h1>
+    <p>This page verifies the correct implementation of depreciation methods.</p>
+    
+    <div class="method">
+        <h2>Test Asset Data</h2>
+        <ul>
+            <li>Cost: Rp 1,000,000</li>
+            <li>Residual Value: Rp 100,000</li>
+            <li>Useful Life: 5 years</li>
+            <li>Acquisition Date: January 1, 2024</li>
+            <li>Current Date: April 20, 2026 (28 months elapsed)</li>
+        </ul>
+    </div>
+
+    <div class="method">
+        <h2>1. Straight Line Method</h2>
+        <div class="result">
+            <p><strong>Formula:</strong> (Cost - Residual) ÷ (Life × 12)</p>
+            <p><strong>Calculation:</strong> (1,000,000 - 100,000) ÷ (5 × 12) = 900,000 ÷ 60 = 15,000</p>
+            <p><strong>Monthly Depreciation:</strong> Rp 15,000 (constant)</p>
+            <p><strong>Accumulated (28 months):</strong> 15,000 × 28 = Rp 420,000</p>
+            <p><strong>Current Book Value:</strong> 1,000,000 - 420,000 = Rp 580,000</p>
+        </div>
+    </div>
+
+    <div class="method">
+        <h2>2. Double Declining Balance Method</h2>
+        <div class="result">
+            <p><strong>Formula:</strong> Book Value × (2 ÷ Life) ÷ 12</p>
+            <p><strong>Annual Rate:</strong> 2 ÷ 5 = 40%</p>
+            <p><strong>Monthly Rate:</strong> 40% ÷ 12 = 3.333%</p>
+            
+            <table>
+                <tr><th>Month</th><th>Book Value Start</th><th>Monthly Depreciation</th><th>Book Value End</th></tr>
+                <tr><td>1</td><td>1,000,000</td><td>33,333</td><td>966,667</td></tr>
+                <tr><td>2</td><td>966,667</td><td>32,222</td><td>934,445</td></tr>
+                <tr><td>3</td><td>934,445</td><td>31,148</td><td>903,297</td></tr>
+                <tr><td>...</td><td>...</td><td>...</td><td>...</td></tr>
+                <tr><td>28</td><td>~400,000</td><td>~13,333</td><td>~386,667</td></tr>
+            </table>
+            
+            <p><strong>Current Monthly Depreciation (Month 28):</strong> ~Rp 13,333</p>
+            <p><strong>Current Book Value:</strong> ~Rp 386,667</p>
+        </div>
+    </div>
+
+    <div class="method">
+        <h2>3. Sum of Years Digits Method</h2>
+        <div class="result">
+            <p><strong>Formula:</strong> (Depreciable × Remaining Life) ÷ Sum of Years ÷ 12</p>
+            <p><strong>Sum of Years:</strong> 5+4+3+2+1 = 15</p>
+            <p><strong>Depreciable Amount:</strong> 900,000</p>
+            
+            <table>
+                <tr><th>Year</th><th>Remaining Life</th><th>Annual Depreciation</th><th>Monthly Depreciation</th></tr>
+                <tr><td>1</td><td>5</td><td>300,000</td><td>25,000</td></tr>
+                <tr><td>2</td><td>4</td><td>240,000</td><td>20,000</td></tr>
+                <tr><td>3</td><td>3</td><td>180,000</td><td>15,000</td></tr>
+                <tr><td>4</td><td>2</td><td>120,000</td><td>10,000</td></tr>
+                <tr><td>5</td><td>1</td><td>60,000</td><td>5,000</td></tr>
+            </table>
+            
+            <p><strong>Current Year:</strong> Year 3 (Month 28 = 2 years 4 months)</p>
+            <p><strong>Current Monthly Depreciation:</strong> Rp 15,000</p>
+            <p><strong>Accumulated Depreciation:</strong></p>
+            <ul>
+                <li>Year 1: 300,000</li>
+                <li>Year 2: 240,000</li>
+                <li>Year 3 (4 months): 15,000 × 4 = 60,000</li>
+                <li>Total: 600,000</li>
+            </ul>
+            <p><strong>Current Book Value:</strong> 1,000,000 - 600,000 = Rp 400,000</p>
+        </div>
+    </div>
+
+    <div class="method">
+        <h2>Key Differences Summary</h2>
+        <table>
+            <tr>
+                <th>Method</th>
+                <th>Current Monthly Depreciation</th>
+                <th>Current Book Value</th>
+                <th>Pattern</th>
+            </tr>
+            <tr>
+                <td>Straight Line</td>
+                <td>Rp 15,000</td>
+                <td>Rp 580,000</td>
+                <td>Constant</td>
+            </tr>
+            <tr>
+                <td>Double Declining</td>
+                <td>~Rp 13,333</td>
+                <td>~Rp 386,667</td>
+                <td>Decreasing monthly</td>
+            </tr>
+            <tr>
+                <td>Sum of Years</td>
+                <td>Rp 15,000</td>
+                <td>Rp 400,000</td>
+                <td>Decreasing yearly</td>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        // JavaScript verification of calculations
+        console.log("=== DEPRECIATION VERIFICATION ===");
+        
+        const cost = 1000000;
+        const residual = 100000;
+        const life = 5;
+        const monthsElapsed = 28;
+        const depreciableAmount = cost - residual;
+        
+        // Straight Line
+        const slMonthly = depreciableAmount / (life * 12);
+        const slAccumulated = slMonthly * monthsElapsed;
+        const slBookValue = cost - slAccumulated;
+        
+        console.log("Straight Line:");
+        console.log("Monthly:", slMonthly.toLocaleString());
+        console.log("Accumulated:", slAccumulated.toLocaleString());
+        console.log("Book Value:", slBookValue.toLocaleString());
+        
+        // Double Declining Balance (simplified calculation for month 28)
+        let ddBookValue = cost;
+        const ddRate = (2 / life) / 12;
+        
+        for (let month = 1; month <= monthsElapsed; month++) {
+            const monthlyDep = ddBookValue * ddRate;
+            ddBookValue -= monthlyDep;
+        }
+        
+        const ddCurrentMonthly = ddBookValue * ddRate;
+        
+        console.log("Double Declining:");
+        console.log("Current Monthly:", ddCurrentMonthly.toLocaleString());
+        console.log("Book Value:", ddBookValue.toLocaleString());
+        
+        // Sum of Years Digits
+        const sumOfYears = (life * (life + 1)) / 2;
+        const currentYear = Math.ceil(monthsElapsed / 12);
+        const remainingLife = life - currentYear + 1;
+        const sydYearlyDep = (depreciableAmount * remainingLife) / sumOfYears;
+        const sydMonthly = sydYearlyDep / 12;
+        
+        // Calculate accumulated for SYD
+        let sydAccumulated = 0;
+        for (let year = 1; year < currentYear; year++) {
+            const yearRemaining = life - year + 1;
+            sydAccumulated += (depreciableAmount * yearRemaining) / sumOfYears;
+        }
+        const monthsInCurrentYear = monthsElapsed % 12;
+        if (monthsInCurrentYear > 0) {
+            sydAccumulated += sydMonthly * monthsInCurrentYear;
+        }
+        
+        const sydBookValue = cost - sydAccumulated;
+        
+        console.log("Sum of Years Digits:");
+        console.log("Current Monthly:", sydMonthly.toLocaleString());
+        console.log("Accumulated:", sydAccumulated.toLocaleString());
+        console.log("Book Value:", sydBookValue.toLocaleString());
+    </script>
+</body>
+</html>

@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Helpers\AccountHelper;
+use App\Services\KasBankConsistencyService;
 
 class LaporanKasBankController extends Controller
 {
@@ -27,6 +28,9 @@ class LaporanKasBankController extends Controller
         // Default periode: bulan ini
         $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
         $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
+        
+        // Validasi konsistensi data (log untuk monitoring)
+        KasBankConsistencyService::logConsistencyCheck($startDate, $endDate);
         
         // Ambil HANYA akun Kas dan Bank menggunakan helper untuk konsistensi
         $akunKasBank = AccountHelper::getKasBankAccounts();
@@ -241,27 +245,93 @@ class LaporanKasBankController extends Controller
                 ];
             });
 
-        // Gabungkan transaksi dari kedua sistem dan hindari duplikasi
-        $allTransactions = $transaksiBaru->map(function($item) {
-            $item['source'] = 'journal_line';
-            // Create reference key for deduplication
-            $item['ref_key'] = $item['jenis'] . '_' . $item['nomor_transaksi'] . '_' . $item['nominal'];
-            return $item;
-        })->concat($transaksiLama);
+        // Add raw data to transactions for proper deduplication
+        $transaksiBaruWithRaw = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+            ->where('journal_lines.coa_id', $coa->id)
+            ->where('journal_lines.debit', '>', 0)
+            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+            ->orderBy('journal_entries.tanggal', 'desc')
+            ->orderBy('journal_entries.id', 'desc')
+            ->select(
+                'journal_entries.tanggal',
+                'journal_entries.ref_type',
+                'journal_entries.ref_id',
+                'journal_lines.debit'
+            )
+            ->get();
 
-        // Remove duplicates based on similar transactions (same type, amount, and date)
-        $uniqueTransactions = collect();
-        $processedKeys = collect();
+        $transaksiLamaWithRaw = \App\Models\JurnalUmum::where('coa_id', $coa->id)
+            ->where('debit', '>', 0)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
+            ->select('tanggal', 'tipe_referensi', 'referensi', 'debit')
+            ->get();
 
-        foreach ($allTransactions as $transaction) {
-            $dedupeKey = $transaction['tanggal'] . '_' . $transaction['nominal'] . '_' . strtolower($transaction['jenis']) . '_' . $transaction['nomor_transaksi'];
-            
-            // Skip if we already have a transaction with same date, amount, and type
-            if (!$processedKeys->contains($dedupeKey)) {
-                $processedKeys->push($dedupeKey);
-                $uniqueTransactions->push($transaction);
+        // Create a set of duplicates to remove
+        $duplicatesToRemove = collect();
+        
+        foreach ($transaksiBaruWithRaw as $jl) {
+            foreach ($transaksiLamaWithRaw as $ju) {
+                $jlDate = date('Y-m-d', strtotime($jl->tanggal));
+                $juDate = date('Y-m-d', strtotime($ju->tanggal));
+                
+                if ($jlDate === $juDate && abs($jl->debit - $ju->debit) < 0.01) {
+                    // Check ref type match
+                    $refTypeMatch = (
+                        ($jl->ref_type === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
+                        ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'sale') ||
+                        ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'penjualan') ||
+                        ($jl->ref_type === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
+                        ($jl->ref_type === 'penggajian' && $ju->tipe_referensi === 'penggajian')
+                    );
+                    
+                    // Check penjualan match
+                    $penjualanMatch = false;
+                    if ($jl->ref_type === 'sale' && ($ju->tipe_referensi === 'sale' || $ju->tipe_referensi === 'penjualan')) {
+                        if (preg_match('/sale#(\d+)/', $ju->referensi, $matches)) {
+                            $penjualanId = (int)$matches[1];
+                            if ($jl->ref_id == $penjualanId) {
+                                $penjualanMatch = true;
+                            }
+                        } elseif (preg_match('/SJ-\d+-(\d+)/', $ju->referensi, $matches)) {
+                            $penjualanId = (int)$matches[1];
+                            if ($jl->ref_id == $penjualanId) {
+                                $penjualanMatch = true;
+                            }
+                        }
+                    }
+                    
+                    if ($refTypeMatch || $penjualanMatch) {
+                        // Mark the old system transaction for removal
+                        $duplicateKey = $ju->tanggal . '_' . $ju->referensi . '_' . $ju->debit;
+                        $duplicatesToRemove->push($duplicateKey);
+                        break;
+                    }
+                }
             }
         }
+
+        // Combine transactions and remove duplicates
+        $allTransactions = $transaksiBaru->concat($transaksiLama);
+        
+        $uniqueTransactions = $allTransactions->filter(function($transaction) use ($duplicatesToRemove) {
+            // If this is from the old system, check if it's a duplicate
+            if (isset($transaction['source']) && $transaction['source'] === 'jurnal_umum') {
+                // Use the same date format as in detection (Y-m-d with time from formatted d/m/Y)
+                $dateParts = explode('/', $transaction['tanggal']);
+                if (count($dateParts) === 3) {
+                    $ymdDate = $dateParts[2] . '-' . $dateParts[1] . '-' . $dateParts[0] . ' 00:00:00';
+                } else {
+                    $ymdDate = $transaction['tanggal'];
+                }
+                // Format nominal to match detection format (with 2 decimal places)
+                $formattedNominal = number_format($transaction['nominal'], 2, '.', '');
+                $duplicateKey = $ymdDate . '_' . $transaction['nomor_transaksi'] . '_' . $formattedNominal;
+                return !$duplicatesToRemove->contains($duplicateKey);
+            }
+            return true; // Keep all new system transactions
+        });
 
         $transaksi = $uniqueTransactions
             ->filter(function($item) {
@@ -345,27 +415,93 @@ class LaporanKasBankController extends Controller
                 ];
             });
 
-        // Gabungkan transaksi dari kedua sistem dan hindari duplikasi
-        $allTransactions = $transaksiBaru->map(function($item) {
-            $item['source'] = 'journal_line';
-            // Create reference key for deduplication
-            $item['ref_key'] = $item['jenis'] . '_' . $item['nomor_transaksi'] . '_' . $item['nominal'];
-            return $item;
-        })->concat($transaksiLama);
+        // Add raw data to transactions for proper deduplication
+        $transaksiBaruWithRaw = \App\Models\JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+            ->where('journal_lines.coa_id', $coa->id)
+            ->where('journal_lines.credit', '>', 0)
+            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+            ->orderBy('journal_entries.tanggal', 'desc')
+            ->orderBy('journal_entries.id', 'desc')
+            ->select(
+                'journal_entries.tanggal',
+                'journal_entries.ref_type',
+                'journal_entries.ref_id',
+                'journal_lines.credit'
+            )
+            ->get();
 
-        // Remove duplicates based on similar transactions (same type, amount, and date)
-        $uniqueTransactions = collect();
-        $processedKeys = collect();
+        $transaksiLamaWithRaw = \App\Models\JurnalUmum::where('coa_id', $coa->id)
+            ->where('kredit', '>', 0)
+            ->whereBetween('tanggal', [$startDate, $endDate])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
+            ->select('tanggal', 'tipe_referensi', 'referensi', 'kredit')
+            ->get();
 
-        foreach ($allTransactions as $transaction) {
-            $dedupeKey = $transaction['tanggal'] . '_' . $transaction['nominal'] . '_' . strtolower($transaction['jenis']) . '_' . $transaction['nomor_transaksi'];
-            
-            // Skip if we already have a transaction with same date, amount, and type
-            if (!$processedKeys->contains($dedupeKey)) {
-                $processedKeys->push($dedupeKey);
-                $uniqueTransactions->push($transaction);
+        // Create a set of duplicates to remove
+        $duplicatesToRemove = collect();
+        
+        foreach ($transaksiBaruWithRaw as $jl) {
+            foreach ($transaksiLamaWithRaw as $ju) {
+                $jlDate = date('Y-m-d', strtotime($jl->tanggal));
+                $juDate = date('Y-m-d', strtotime($ju->tanggal));
+                
+                if ($jlDate === $juDate && abs($jl->credit - $ju->kredit) < 0.01) {
+                    // Check ref type match
+                    $refTypeMatch = (
+                        ($jl->ref_type === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
+                        ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'sale') ||
+                        ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'penjualan') ||
+                        ($jl->ref_type === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
+                        ($jl->ref_type === 'penggajian' && $ju->tipe_referensi === 'penggajian')
+                    );
+                    
+                    // Check penjualan match
+                    $penjualanMatch = false;
+                    if ($jl->ref_type === 'sale' && ($ju->tipe_referensi === 'sale' || $ju->tipe_referensi === 'penjualan')) {
+                        if (preg_match('/sale#(\d+)/', $ju->referensi, $matches)) {
+                            $penjualanId = (int)$matches[1];
+                            if ($jl->ref_id == $penjualanId) {
+                                $penjualanMatch = true;
+                            }
+                        } elseif (preg_match('/SJ-\d+-(\d+)/', $ju->referensi, $matches)) {
+                            $penjualanId = (int)$matches[1];
+                            if ($jl->ref_id == $penjualanId) {
+                                $penjualanMatch = true;
+                            }
+                        }
+                    }
+                    
+                    if ($refTypeMatch || $penjualanMatch) {
+                        // Mark the old system transaction for removal
+                        $duplicateKey = $ju->tanggal . '_' . $ju->referensi . '_' . $ju->kredit;
+                        $duplicatesToRemove->push($duplicateKey);
+                        break;
+                    }
+                }
             }
         }
+
+        // Combine transactions and remove duplicates
+        $allTransactions = $transaksiBaru->concat($transaksiLama);
+        
+        $uniqueTransactions = $allTransactions->filter(function($transaction) use ($duplicatesToRemove) {
+            // If this is from the old system, check if it's a duplicate
+            if (isset($transaction['source']) && $transaction['source'] === 'jurnal_umum') {
+                // Use the same date format as in detection (Y-m-d with time from formatted d/m/Y)
+                $dateParts = explode('/', $transaction['tanggal']);
+                if (count($dateParts) === 3) {
+                    $ymdDate = $dateParts[2] . '-' . $dateParts[1] . '-' . $dateParts[0] . ' 00:00:00';
+                } else {
+                    $ymdDate = $transaction['tanggal'];
+                }
+                // Format nominal to match detection format (with 2 decimal places)
+                $formattedNominal = number_format($transaction['nominal'], 2, '.', '');
+                $duplicateKey = $ymdDate . '_' . $transaction['nomor_transaksi'] . '_' . $formattedNominal;
+                return !$duplicatesToRemove->contains($duplicateKey);
+            }
+            return true; // Keep all new system transactions
+        });
 
         $transaksi = $uniqueTransactions
             ->filter(function($item) {
@@ -792,6 +928,7 @@ class LaporanKasBankController extends Controller
                     // Additional check: if ref_type matches tipe_referensi
                     $refTypeMatch = (
                         ($jl->ref_type === 'purchase' && $ju->tipe_referensi === 'pembelian') ||
+                        ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'sale') ||
                         ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'penjualan') ||
                         ($jl->ref_type === 'expense_payment' && $ju->tipe_referensi === 'pembayaran_beban') ||
                         ($jl->ref_type === 'penggajian' && $ju->tipe_referensi === 'penggajian')
@@ -799,9 +936,15 @@ class LaporanKasBankController extends Controller
                     
                     // Also check for penjualan reference match by comparing ref_id with referensi
                     $penjualanMatch = false;
-                    if ($jl->ref_type === 'sale' && $ju->tipe_referensi === 'penjualan') {
+                    if ($jl->ref_type === 'sale' && ($ju->tipe_referensi === 'sale' || $ju->tipe_referensi === 'penjualan')) {
                         // Check if JournalLine ref_id matches the penjualan ID from referensi
-                        if (preg_match('/SJ-\d+-(\d+)/', $ju->referensi, $matches)) {
+                        // Handle both formats: "sale#1" and "SJ-20260421-001"
+                        if (preg_match('/sale#(\d+)/', $ju->referensi, $matches)) {
+                            $penjualanId = (int)$matches[1];
+                            if ($jl->ref_id == $penjualanId) {
+                                $penjualanMatch = true;
+                            }
+                        } elseif (preg_match('/SJ-\d+-(\d+)/', $ju->referensi, $matches)) {
                             $penjualanId = (int)$matches[1];
                             if ($jl->ref_id == $penjualanId) {
                                 $penjualanMatch = true;

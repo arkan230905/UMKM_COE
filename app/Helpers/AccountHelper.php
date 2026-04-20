@@ -15,7 +15,8 @@ class AccountHelper
     const KAS_BANK_CODES = ['111', '112', '113', '118'];
     
     /**
-     * Get semua akun Kas & Bank
+     * Get semua akun Kas & Bank dengan format metode-akun COA
+     * Format: Nama Akun = lowercase(nama) (kode_akun)
      * 
      * @return \Illuminate\Database\Eloquent\Collection
      */
@@ -39,7 +40,7 @@ class AccountHelper
                 ->orderBy('kode_akun')
                 ->get();
         }
-            
+        
         return $coaAccounts;
     }
     

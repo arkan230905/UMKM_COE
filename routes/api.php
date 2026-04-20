@@ -61,15 +61,4 @@ Route::prefix('depreciation-schedules')->middleware('auth:sanctum')->group(funct
 Route::get('/aset/kategori', [\App\Http\Controllers\Api\AsetController::class, 'getKategoriByJenis']);
 
 // Presensi API Routes
-Route::get('/presensi/jam-kerja', function (Request $request) {
-    $pegawaiId = $request->input('pegawai_id');
-    $month = $request->input('month');
-    $year = $request->input('year');
-    
-    $totalJam = \App\Models\Presensi::where('pegawai_id', $pegawaiId)
-        ->whereMonth('tgl_presensi', $month)
-        ->whereYear('tgl_presensi', $year)
-        ->sum('jumlah_jam');
-    
-    return response()->json(['total_jam' => $totalJam]);
-});
+Route::get('/presensi/jam-kerja', [PresensiController::class, 'getJamKerja'])->name('api.presensi.jam-kerja');
