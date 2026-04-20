@@ -11,7 +11,7 @@ class Perusahaan extends Model
 
     protected $table = 'perusahaan';
 
-    protected $fillable = ['nama', 'alamat', 'email', 'telepon', 'kode'];
+    protected $fillable = ['nama', 'alamat', 'email', 'telepon', 'kode', 'foto', 'catalog_description', 'maps_link', 'latitude', 'longitude'];
 
     public function kasirs()
     {
@@ -21,6 +21,14 @@ class Perusahaan extends Model
     public function users()
     {
         return $this->hasMany(User::class);
+    }
+
+    /**
+     * Get catalog photos for the company
+     */
+    public function catalogPhotos()
+    {
+        return $this->hasMany(CatalogPhoto::class)->ordered();
     }
 
     /**

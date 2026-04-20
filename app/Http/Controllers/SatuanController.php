@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Satuan;
+use App\Models\SatuanGrup;
 use Illuminate\Http\Request;
 
 class SatuanController extends Controller
 {
     public function index()
     {
-        $satuans = Satuan::orderBy('id', 'asc')->get();
+        $satuans = SatuanGrup::orderBy('id', 'asc')->get();
         return view('master-data.satuan.index', compact('satuans'));
     }
 
@@ -18,7 +18,7 @@ class SatuanController extends Controller
      */
     public function dashboard()
     {
-        $satuans = Satuan::orderBy('kode', 'asc')->get();
+        $satuans = SatuanGrup::orderBy('kode', 'asc')->get();
         return view('master-data.satuan.dashboard', compact('satuans'));
     }
 
@@ -33,8 +33,8 @@ class SatuanController extends Controller
         $isAjax = $request->ajax() || $request->wantsJson();
         
         $validated = $request->validate([
-            'kode' => 'required|string|max:10|unique:satuans,kode',
-            'nama' => 'required|string|max:50|unique:satuans,nama',
+            'kode' => 'required|string|max:10|unique:satuan_grups,kode',
+            'nama' => 'required|string|max:50|unique:satuan_grups,nama',
         ], [
             'kode.required' => 'Kode satuan harus diisi',
             'kode.max' => 'Kode maksimal 10 karakter',
@@ -46,9 +46,10 @@ class SatuanController extends Controller
 
         try {
             // Simpan data
-            $satuan = Satuan::create([
+            $satuan = SatuanGrup::create([
                 'kode' => strtoupper($validated['kode']),
                 'nama' => $validated['nama'],
+                'keterangan' => $request->keterangan ?? '',
             ]);
 
             // Check if request is AJAX
@@ -79,19 +80,19 @@ class SatuanController extends Controller
     }
 
 
-    public function edit(Satuan $satuan)
+    public function edit(SatuanGrup $satuan)
     {
         return view('master-data.satuan.edit', compact('satuan'));
     }
 
-    public function update(Request $request, Satuan $satuan)
+    public function update(Request $request, SatuanGrup $satuan)
     {
         // Check if this is an AJAX request
         $isAjax = $request->ajax() || $request->wantsJson();
         
         $validated = $request->validate([
-            'kode' => 'required|string|max:10|unique:satuans,kode,' . $satuan->id,
-            'nama' => 'required|string|max:50|unique:satuans,nama,' . $satuan->id,
+            'kode' => 'required|string|max:10|unique:satuan_grups,kode,' . $satuan->id,
+            'nama' => 'required|string|max:50|unique:satuan_grups,nama,' . $satuan->id,
         ], [
             'kode.required' => 'Kode satuan harus diisi',
             'kode.max' => 'Kode maksimal 10 karakter',
@@ -106,6 +107,7 @@ class SatuanController extends Controller
             $satuan->update([
                 'kode' => strtoupper($validated['kode']),
                 'nama' => $validated['nama'],
+                'keterangan' => $request->keterangan ?? $satuan->keterangan,
             ]);
 
             // Check if request is AJAX
@@ -134,7 +136,7 @@ class SatuanController extends Controller
         }
     }
 
-    public function destroy(Request $request, Satuan $satuan)
+    public function destroy(Request $request, SatuanGrup $satuan)
     {
         // Check if this is an AJAX request
         $isAjax = $request->ajax() || $request->wantsJson();

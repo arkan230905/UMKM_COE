@@ -88,7 +88,11 @@
                             <th>Metode Pembayaran</th>
                             <th class="text-center">Status</th>
                             <th class="text-end">Gaji Pokok</th>
-                            <th class="text-end">Insentif</th>
+                            <th class="text-end">Tunjangan</th>
+                            <th class="text-end">Asuransi</th>
+                            <th class="text-end">Bonus</th>
+                            <th class="text-end">Potongan</th>
+                            <th class="text-end fw-bold">Total Gaji</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -100,15 +104,18 @@
                                 $bulanPenggajian = $tanggal->locale('id')->translatedFormat('F Y');
                                 $coa = \App\Models\Coa::where('kode_akun', $gaji->coa_kasbank)->first();
                                 
-                                // Hitung gaji pokok berdasarkan jenis
+                                // Hitung semua komponen gaji
                                 if($jenis === 'BTKL') {
                                     $gajiPokok = ($gaji->tarif_per_jam ?? 0) * ($gaji->total_jam_kerja ?? 0);
                                 } else {
                                     $gajiPokok = $gaji->gaji_pokok ?? 0;
                                 }
                                 
-                                // Insentif = Bonus
-                                $insentif = $gaji->bonus ?? 0;
+                                $tunjangan = $gaji->total_tunjangan ?? 0;
+                                $asuransi = $gaji->asuransi ?? 0;
+                                $bonus = $gaji->bonus ?? 0;
+                                $potongan = $gaji->potongan ?? 0;
+                                $totalGaji = $gaji->total_gaji ?? 0;
                             @endphp
                             <tr>
                                 <td class="text-center">PGJ{{ str_pad($gaji->id, 6, '0', STR_PAD_LEFT) }}</td>
@@ -130,7 +137,11 @@
                                     @endif
                                 </td>
                                 <td class="text-end">Rp {{ number_format($gajiPokok, 0, ',', '.') }}</td>
-                                <td class="text-end">Rp {{ number_format($insentif, 0, ',', '.') }}</td>
+                                <td class="text-end">Rp {{ number_format($tunjangan, 0, ',', '.') }}</td>
+                                <td class="text-end">Rp {{ number_format($asuransi, 0, ',', '.') }}</td>
+                                <td class="text-end">Rp {{ number_format($bonus, 0, ',', '.') }}</td>
+                                <td class="text-end">Rp {{ number_format($potongan, 0, ',', '.') }}</td>
+                                <td class="text-end fw-bold text-primary">Rp {{ number_format($totalGaji, 0, ',', '.') }}</td>
                                 <td class="text-center">
                                     <div class="d-flex gap-1 justify-content-center">
                                         <a href="{{ route('transaksi.penggajian.show', $gaji->id) }}" class="btn btn-outline-info btn-sm" title="Detail">
@@ -144,9 +155,18 @@
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </form>
+                                                <form action="{{ route('transaksi.penggajian.markAsPaid', $gaji->id) }}" method="POST" class="m-0 d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-outline-success btn-sm" title="Tandai sebagai Sudah Dibayar">
+                                                        <i class="fas fa-check-circle"></i>
+                                                    </button>
+                                                </form>
                                             @else
                                                 <button class="btn btn-outline-secondary btn-sm" disabled title="Tidak dapat dihapus karena sudah dibayar">
                                                     <i class="fas fa-trash"></i>
+                                                </button>
+                                                <button class="btn btn-outline-secondary btn-sm" disabled title="Sudah dibayar">
+                                                    <i class="fas fa-check-circle"></i>
                                                 </button>
                                             @endif
                                     </div>
@@ -154,7 +174,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="text-center py-4">
+                                <td colspan="13" class="text-center py-4">
                                     <i class="fas fa-money-check-alt fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data penggajian</p>
                                 </td>

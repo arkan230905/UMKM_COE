@@ -47,7 +47,7 @@
             {{-- Tipe Akun --}}
             <div class="col-md-4">
                 <label class="form-label">Tipe Akun</label>
-                <select name="tipe_akun" id="tipe_akun" class="form-select" required>
+                <select name="tipe_akun" id="tipe_akun" class="form-select" required onchange="updateKategoriOptions()">
                     <option value="">Pilih tipe</option>
                     <option value="Aset">Aset</option>
                     <option value="Kewajiban">Kewajiban</option>
@@ -116,6 +116,34 @@
 </div>
 
 <script>
+// Function to update kategori options based on tipe akun
+function updateKategoriOptions() {
+    const tipeAkun = document.getElementById('tipe_akun').value;
+    const kategoriSelect = document.getElementById('kategori_akun');
+    
+    // Hide all category groups
+    const allGroups = kategoriSelect.querySelectorAll('optgroup');
+    allGroups.forEach(group => {
+        group.style.display = 'none';
+    });
+    
+    // Show relevant category group
+    if (tipeAkun === 'Asset') {
+        document.getElementById('asset_categories').style.display = 'block';
+    } else if (tipeAkun === 'Liability') {
+        document.getElementById('liability_categories').style.display = 'block';
+    } else if (tipeAkun === 'Equity') {
+        document.getElementById('equity_categories').style.display = 'block';
+    } else if (tipeAkun === 'Revenue') {
+        document.getElementById('revenue_categories').style.display = 'block';
+    } else if (tipeAkun === 'Expense') {
+        document.getElementById('expense_categories').style.display = 'block';
+    }
+    
+    // Reset kategori selection
+    kategoriSelect.value = '';
+}
+
 // Enable/disable generate button based on parent selection
 document.getElementById('parent_coa_id').addEventListener('change', function() {
     const btn = document.getElementById('btnGenerate');
@@ -180,6 +208,21 @@ function generateChildKode() {
             btn.innerHTML = '<i class="bi bi-lightning-charge"></i> Generate Kode Anak';
         });
 }
+
+// Initialize category options on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Hide all category groups initially
+    const allGroups = document.querySelectorAll('#kategori_akun optgroup');
+    allGroups.forEach(group => {
+        group.style.display = 'none';
+    });
+    
+    // Show categories if tipe_akun is pre-selected
+    const tipeAkun = document.getElementById('tipe_akun').value;
+    if (tipeAkun) {
+        updateKategoriOptions();
+    }
+});
 
 // Money formatting (IDR) for saldo_awal
 (function(){

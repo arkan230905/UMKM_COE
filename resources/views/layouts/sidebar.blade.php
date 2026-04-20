@@ -338,6 +338,21 @@
                     <span>Profil</span>
                 </a>
             </li>
+            
+            <!-- Kelola Catalog Section -->
+            <li class="nav-item">
+                <div class="nav-section-header-rounded">
+                    <i class="fas fa-store"></i>
+                    <span>CATALOG</span>
+                </div>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link-rounded {{ request()->is('kelola-catalog*') ? 'active' : '' }}" href="{{ route('kelola-catalog.index') }}">
+                    <i class="fas fa-cog"></i>
+                    <span>Kelola Catalog</span>
+                </a>
+            </li>
+            
             <li class="nav-item">
                 <form method="POST" action="{{ route('logout') }}" style="margin: 0; padding: 0; display: block;">
                     @csrf

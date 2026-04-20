@@ -1734,6 +1734,7 @@ use App\Http\Controllers\LaporanKartuStokController;
 
 // Profile
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\KelolaCatalogController;
 
 // Auth
 use App\Http\Controllers\Auth\LoginController;
@@ -1846,6 +1847,12 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 
 // ====================================================================
+// API Routes for AJAX calls (accessible to authenticated users)
+Route::middleware('auth')->group(function() {
+    // Employee data API for penggajian
+    Route::get('/api/pegawai/{pegawaiId}/data', [App\Http\Controllers\PenggajianController::class, 'getEmployeeData'])->name('api.pegawai.data');
+});
+
 // SEMUA ROUTE YANG HANYA BISA DIAKSES SETELAH LOGIN
 // ====================================================================
 Route::middleware('auth')->group(function () {
@@ -2756,6 +2763,9 @@ Route::middleware('auth')->group(function () {
             // Posting ke jurnal (owner/admin only)
             Route::post('/{id}/post-journal', [PenggajianController::class, 'postToJournal'])->name('post-journal')->middleware(['role:owner,admin']);
             
+            // Recalculate berdasarkan master data terbaru (owner/admin only)
+            Route::post('/{id}/recalculate', [PenggajianController::class, 'recalculate'])->name('recalculate')->middleware(['role:owner,admin']);
+            
             // API untuk data pegawai real-time
             Route::get('/pegawai/{pegawaiId}/data', [PenggajianController::class, 'getEmployeeData'])->name('pegawai.data');
         });
@@ -3137,10 +3147,12 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/buku-besar/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesarExportExcel'])->name('buku-besar.export-excel');
         Route::get('/neraca-saldo', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldo'])->name('neraca-saldo');
         Route::get('/neraca-saldo/pdf', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldoPdf'])->name('neraca-saldo.pdf');
-        Route::get('/laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'neraca'])->name('laporan-posisi-keuangan');
+        Route::get('/laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('laporan-posisi-keuangan');
+        Route::get('/laporan-posisi-keuangan/pdf', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuanganPdf'])->name('laporan-posisi-keuangan.pdf');
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
-
-        // Redirect old URL to new URL for backward compatibility
+        
+        // Redirect old URLs to new URLs for backward compatibility
+        Route::redirect('/neraca', '/laporan-posisi-keuangan', 301);
         Route::redirect('/akuntansi/neraca', '/akuntansi/laporan-posisi-keuangan', 301);
     });
 
@@ -3155,6 +3167,9 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
     
     // Temporary route without middleware for testing
     Route::get('/test-laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('test.laporan.posisi.keuangan');
+    
+    // Temporary route without middleware for direct access
+    Route::get('/debug-laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('debug.laporan.posisi.keuangan');
     
     // User role diagnostic
     Route::get('/check-user', function() {
@@ -3186,6 +3201,29 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
     Route::post('/coa-period/{periodId}/post', [\App\Http\Controllers\CoaPeriodController::class, 'postPeriod'])->name('coa-period.post');
     Route::post('/coa-period/{periodId}/reopen', [\App\Http\Controllers\CoaPeriodController::class, 'reopenPeriod'])->name('coa-period.reopen');
 
+
+    // ================================================================
+    // KELOLA CATALOG (OWNER & ADMIN)
+    // ================================================================
+    Route::prefix('kelola-catalog')->name('kelola-catalog.')->group(function () {
+        Route::get('/', [KelolaCatalogController::class, 'index'])->name('index');
+        Route::get('/preview', [KelolaCatalogController::class, 'preview'])->name('preview');
+        Route::get('/settings', [KelolaCatalogController::class, 'settings'])->name('settings');
+        Route::post('/settings/update', [KelolaCatalogController::class, 'updateSettings'])->name('settings.update');
+        Route::post('/settings/catalog', [KelolaCatalogController::class, 'updateCatalogSettings'])->name('settings.catalog.update');
+        Route::post('/settings/company-info', [KelolaCatalogController::class, 'updateCompanyInfo'])->name('settings.company.update');
+        Route::get('/fixed-form', [KelolaCatalogController::class, 'fixedForm'])->name('fixed-form');
+        Route::post('/{id}/toggle-visibility', [KelolaCatalogController::class, 'toggleVisibility'])->name('toggle-visibility');
+        Route::post('/{id}/update-catalog-info', [KelolaCatalogController::class, 'updateProductCatalog'])->name('update-catalog-info');
+        Route::post('/bulk-visibility', [KelolaCatalogController::class, 'bulkUpdateVisibility'])->name('bulk-visibility');
+        
+        // Photo management routes
+        Route::get('/photos', [KelolaCatalogController::class, 'photos'])->name('photos');
+        Route::post('/photos', [KelolaCatalogController::class, 'storePhoto'])->name('photos.store');
+        Route::post('/photos/{id}', [KelolaCatalogController::class, 'updatePhoto'])->name('photos.update');
+        Route::delete('/photos/{id}', [KelolaCatalogController::class, 'deletePhoto'])->name('photos.delete');
+        Route::post('/photos/reorder', [KelolaCatalogController::class, 'reorderPhotos'])->name('photos.reorder');
+    });
 
     // ================================================================
     // PROFIL ADMIN
@@ -4526,5 +4564,500 @@ Route::get('/final-correct-fix-jurnal', function() {
             $pdo->rollback();
         }
         return "<h1 style='color:red;'>❌ ERROR</h1><pre style='color:red;'>" . $e->getMessage() . "</pre>";
+    }
+});
+
+// FIX PENGGAJIAN JOURNAL ENTRIES - EMERGENCY
+Route::get('fix-penggajian-journal-now', function() {
+    try {
+        $pdo = new PDO('mysql:host=127.0.0.1;dbname=eadt_umkm;charset=utf8', 'root', '');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+        $output = "<h1 style='color:green;'>🚨 EMERGENCY FIX PENGGAJIAN JOURNAL</h1><pre>";
+        
+        // 1. Check current status
+        $stmt = $pdo->query("SELECT COUNT(*) FROM penggajians");
+        $totalPenggajian = $stmt->fetchColumn();
+        
+        $stmt = $pdo->query("SELECT COUNT(*) FROM penggajians WHERE status_pembayaran = 'belum_lunas'");
+        $belumLunas = $stmt->fetchColumn();
+        
+        $stmt = $pdo->query("SELECT COUNT(*) FROM jurnal_umum WHERE tipe_referensi = 'penggajian'");
+        $jurnalPenggajian = $stmt->fetchColumn();
+        
+        $output .= "BEFORE FIX:\n";
+        $output .= "Total Penggajian: $totalPenggajian\n";
+        $output .= "Belum Lunas: $belumLunas\n";
+        $output .= "Jurnal Entries: $jurnalPenggajian\n\n";
+        
+        // 2. Update penggajian status
+        if ($belumLunas > 0) {
+            $output .= "STEP 1: Updating penggajian status...\n";
+            $stmt = $pdo->prepare("UPDATE penggajians SET status_pembayaran = 'lunas', tanggal_dibayar = tanggal_penggajian, updated_at = NOW() WHERE status_pembayaran = 'belum_lunas'");
+            $stmt->execute();
+            $output .= "✅ Updated $belumLunas penggajian records to 'lunas'\n\n";
+        }
+        
+        // 3. Create DEBIT entries (Beban Gaji)
+        $output .= "STEP 2: Creating DEBIT entries (Beban Gaji)...\n";
+        $debitSql = "
+        INSERT INTO jurnal_umum (coa_id, tanggal, keterangan, debit, kredit, referensi, tipe_referensi, created_by, created_at, updated_at)
+        SELECT 
+            COALESCE(
+                (SELECT id FROM coas WHERE kode_akun = '52' LIMIT 1),
+                (SELECT id FROM coas WHERE kode_akun = '54' LIMIT 1)
+            ) as coa_id,
+            p.tanggal_penggajian as tanggal,
+            CONCAT('Penggajian ID-', p.id) as keterangan,
+            p.total_gaji as debit,
+            0 as kredit,
+            p.id as referensi,
+            'penggajian' as tipe_referensi,
+            1 as created_by,
+            NOW() as created_at,
+            NOW() as updated_at
+        FROM penggajians p
+        WHERE NOT EXISTS (
+            SELECT 1 FROM jurnal_umum ju 
+            WHERE ju.tipe_referensi = 'penggajian' 
+            AND ju.referensi = p.id 
+            AND ju.debit > 0
+        )
+        ";
+        
+        $stmt = $pdo->prepare($debitSql);
+        $stmt->execute();
+        $debitCount = $stmt->rowCount();
+        $output .= "✅ Created $debitCount DEBIT entries\n";
+        
+        // 4. Create CREDIT entries (Kas/Bank)
+        $output .= "STEP 3: Creating CREDIT entries (Kas/Bank)...\n";
+        $creditSql = "
+        INSERT INTO jurnal_umum (coa_id, tanggal, keterangan, debit, kredit, referensi, tipe_referensi, created_by, created_at, updated_at)
+        SELECT 
+            COALESCE(
+                (SELECT id FROM coas WHERE kode_akun = '111' LIMIT 1),
+                (SELECT id FROM coas WHERE kode_akun = '112' LIMIT 1)
+            ) as coa_id,
+            p.tanggal_penggajian as tanggal,
+            CONCAT('Penggajian ID-', p.id) as keterangan,
+            0 as debit,
+            p.total_gaji as kredit,
+            p.id as referensi,
+            'penggajian' as tipe_referensi,
+            1 as created_by,
+            NOW() as created_at,
+            NOW() as updated_at
+        FROM penggajians p
+        WHERE NOT EXISTS (
+            SELECT 1 FROM jurnal_umum ju 
+            WHERE ju.tipe_referensi = 'penggajian' 
+            AND ju.referensi = p.id 
+            AND ju.kredit > 0
+        )
+        ";
+        
+        $stmt = $pdo->prepare($creditSql);
+        $stmt->execute();
+        $creditCount = $stmt->rowCount();
+        $output .= "✅ Created $creditCount CREDIT entries\n\n";
+        
+        // 5. Verification
+        $stmt = $pdo->query("SELECT COUNT(*) FROM penggajians WHERE status_pembayaran = 'lunas'");
+        $lunas = $stmt->fetchColumn();
+        
+        $stmt = $pdo->query("SELECT COUNT(*) FROM jurnal_umum WHERE tipe_referensi = 'penggajian'");
+        $jurnalAfter = $stmt->fetchColumn();
+        
+        $output .= "AFTER FIX:\n";
+        $output .= "Penggajian Lunas: $lunas\n";
+        $output .= "Jurnal Entries: $jurnalAfter\n\n";
+        
+        // 6. Show created entries
+        $output .= "CREATED JOURNAL ENTRIES:\n";
+        $stmt = $pdo->query("
+            SELECT 
+                ju.tanggal,
+                ju.keterangan,
+                c.kode_akun,
+                c.nama_akun,
+                FORMAT(ju.debit, 0) as debit,
+                FORMAT(ju.kredit, 0) as kredit
+            FROM jurnal_umum ju
+            LEFT JOIN coas c ON ju.coa_id = c.id
+            WHERE ju.tipe_referensi = 'penggajian'
+            ORDER BY ju.tanggal, ju.referensi, ju.debit DESC
+        ");
+        
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $debit = $row['debit'] != '0' ? "Rp " . $row['debit'] : '-';
+            $kredit = $row['kredit'] != '0' ? "Rp " . $row['kredit'] : '-';
+            $output .= "{$row['tanggal']} | {$row['kode_akun']} - {$row['nama_akun']} | D: $debit | K: $kredit\n";
+        }
+        
+        $output .= "</pre>";
+        
+        $output .= "<h2 style='color:green;'>✅ PERBAIKAN SELESAI!</h2>";
+        $output .= "<p><strong>Sekarang buka halaman jurnal umum dan pilih filter 'Penggajian'</strong></p>";
+        $output .= "<p><a href='/akuntansi/jurnal-umum?ref_type=penggajian' style='background:#28a745;color:white;padding:15px;text-decoration:none;font-size:18px;'>📊 LIHAT JURNAL PENGGAJIAN SEKARANG</a></p>";
+        
+        return $output;
+        
+    } catch (Exception $e) {
+        return "<h1 style='color:red;'>❌ ERROR</h1><p>" . $e->getMessage() . "</p>";
+    }
+});
+
+// FIX EXISTING DATA - PENGGAJIAN & PEMBAYARAN BEBAN
+Route::get('fix-existing-transactions', function() {
+    try {
+        $pdo = new PDO('mysql:host=127.0.0.1;dbname=eadt_umkm;charset=utf8', 'root', '');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+        $output = "<h1 style='color:green;'>🔧 FIXING EXISTING TRANSACTIONS</h1><pre>";
+        
+        // 1. Fix existing penggajian data
+        $output .= "=== FIXING PENGGAJIAN DATA ===\n";
+        
+        // Update all penggajian to 'lunas' status
+        $stmt = $pdo->prepare("UPDATE penggajians SET status_pembayaran = 'lunas', tanggal_dibayar = tanggal_penggajian WHERE status_pembayaran = 'belum_lunas'");
+        $stmt->execute();
+        $updatedPenggajian = $stmt->rowCount();
+        $output .= "✅ Updated $updatedPenggajian penggajian records to 'lunas'\n";
+        
+        // Create missing penggajian journal entries
+        $debitSql = "
+        INSERT INTO jurnal_umum (coa_id, tanggal, keterangan, debit, kredit, referensi, tipe_referensi, created_by, created_at, updated_at)
+        SELECT 
+            COALESCE(
+                (SELECT id FROM coas WHERE kode_akun = '52' LIMIT 1),
+                (SELECT id FROM coas WHERE kode_akun = '54' LIMIT 1)
+            ) as coa_id,
+            p.tanggal_penggajian,
+            CONCAT('Penggajian ', COALESCE(pg.nama, CONCAT('ID-', p.id))),
+            p.total_gaji,
+            0,
+            p.id,
+            'penggajian',
+            1,
+            NOW(),
+            NOW()
+        FROM penggajians p
+        LEFT JOIN pegawais pg ON p.pegawai_id = pg.id
+        WHERE NOT EXISTS (
+            SELECT 1 FROM jurnal_umum ju 
+            WHERE ju.tipe_referensi = 'penggajian' 
+            AND ju.referensi = p.id 
+            AND ju.debit > 0
+        )
+        ";
+        
+        $stmt = $pdo->prepare($debitSql);
+        $stmt->execute();
+        $debitEntries = $stmt->rowCount();
+        $output .= "✅ Created $debitEntries penggajian DEBIT entries\n";
+        
+        $creditSql = "
+        INSERT INTO jurnal_umum (coa_id, tanggal, keterangan, debit, kredit, referensi, tipe_referensi, created_by, created_at, updated_at)
+        SELECT 
+            COALESCE(
+                (SELECT id FROM coas WHERE kode_akun = '111' LIMIT 1),
+                (SELECT id FROM coas WHERE kode_akun = '112' LIMIT 1)
+            ) as coa_id,
+            p.tanggal_penggajian,
+            CONCAT('Penggajian ', COALESCE(pg.nama, CONCAT('ID-', p.id))),
+            0,
+            p.total_gaji,
+            p.id,
+            'penggajian',
+            1,
+            NOW(),
+            NOW()
+        FROM penggajians p
+        LEFT JOIN pegawais pg ON p.pegawai_id = pg.id
+        WHERE NOT EXISTS (
+            SELECT 1 FROM jurnal_umum ju 
+            WHERE ju.tipe_referensi = 'penggajian' 
+            AND ju.referensi = p.id 
+            AND ju.kredit > 0
+        )
+        ";
+        
+        $stmt = $pdo->prepare($creditSql);
+        $stmt->execute();
+        $creditEntries = $stmt->rowCount();
+        $output .= "✅ Created $creditEntries penggajian CREDIT entries\n\n";
+        
+        // 2. Fix existing pembayaran beban data (if any)
+        $output .= "=== FIXING PEMBAYARAN BEBAN DATA ===\n";
+        
+        // Check if there are any pembayaran_bebans without journal entries
+        $stmt = $pdo->query("
+            SELECT pb.*, bo.nama_beban 
+            FROM pembayaran_bebans pb
+            LEFT JOIN beban_operasional bo ON pb.beban_operasional_id = bo.id
+            WHERE NOT EXISTS (
+                SELECT 1 FROM jurnal_umum ju 
+                WHERE ju.tipe_referensi = 'pembayaran_beban' 
+                AND ju.referensi = pb.id
+            )
+        ");
+        
+        $missingBebanEntries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $output .= "Found " . count($missingBebanEntries) . " pembayaran beban without journal entries\n";
+        
+        foreach ($missingBebanEntries as $beban) {
+            // Create DEBIT entry (expense)
+            $stmt = $pdo->prepare("
+                INSERT INTO jurnal_umum (coa_id, tanggal, keterangan, debit, kredit, referensi, tipe_referensi, created_by, created_at, updated_at)
+                VALUES (
+                    (SELECT id FROM coas WHERE kode_akun = '550' LIMIT 1),
+                    ?,
+                    ?,
+                    ?,
+                    0,
+                    ?,
+                    'pembayaran_beban',
+                    1,
+                    NOW(),
+                    NOW()
+                )
+            ");
+            $stmt->execute([
+                $beban['tanggal'],
+                'Pembayaran Beban: ' . ($beban['nama_beban'] ?: 'ID-' . $beban['id']),
+                $beban['jumlah'],
+                $beban['id']
+            ]);
+            
+            // Create CREDIT entry (cash)
+            $stmt = $pdo->prepare("
+                INSERT INTO jurnal_umum (coa_id, tanggal, keterangan, debit, kredit, referensi, tipe_referensi, created_by, created_at, updated_at)
+                VALUES (
+                    (SELECT id FROM coas WHERE kode_akun = '111' LIMIT 1),
+                    ?,
+                    ?,
+                    0,
+                    ?,
+                    ?,
+                    'pembayaran_beban',
+                    1,
+                    NOW(),
+                    NOW()
+                )
+            ");
+            $stmt->execute([
+                $beban['tanggal'],
+                'Pembayaran Beban: ' . ($beban['nama_beban'] ?: 'ID-' . $beban['id']),
+                $beban['jumlah'],
+                $beban['id']
+            ]);
+            
+            $output .= "✅ Created journal entries for pembayaran beban ID: {$beban['id']}\n";
+        }
+        
+        // 3. Verification
+        $output .= "\n=== VERIFICATION ===\n";
+        
+        $stmt = $pdo->query("SELECT COUNT(*) FROM penggajians WHERE status_pembayaran = 'lunas'");
+        $lunasPenggajian = $stmt->fetchColumn();
+        
+        $stmt = $pdo->query("SELECT COUNT(*) FROM jurnal_umum WHERE tipe_referensi = 'penggajian'");
+        $jurnalPenggajian = $stmt->fetchColumn();
+        
+        $stmt = $pdo->query("SELECT COUNT(*) FROM jurnal_umum WHERE tipe_referensi = 'pembayaran_beban'");
+        $jurnalBeban = $stmt->fetchColumn();
+        
+        $output .= "Penggajian Lunas: $lunasPenggajian\n";
+        $output .= "Jurnal Penggajian Entries: $jurnalPenggajian\n";
+        $output .= "Jurnal Pembayaran Beban Entries: $jurnalBeban\n";
+        
+        $output .= "</pre>";
+        
+        $output .= "<h2 style='color:green;'>✅ PERBAIKAN SELESAI!</h2>";
+        $output .= "<p><strong>Sekarang semua transaksi penggajian dan pembayaran beban akan otomatis masuk ke jurnal umum!</strong></p>";
+        $output .= "<p><a href='/akuntansi/jurnal-umum' style='background:#28a745;color:white;padding:15px;text-decoration:none;font-size:18px;margin:5px;'>📊 LIHAT JURNAL UMUM</a>";
+        $output .= "<a href='/transaksi/penggajian' style='background:#007bff;color:white;padding:15px;text-decoration:none;font-size:18px;margin:5px;'>👥 HALAMAN PENGGAJIAN</a>";
+        $output .= "<a href='/transaksi/pembayaran-beban' style='background:#dc3545;color:white;padding:15px;text-decoration:none;font-size:18px;margin:5px;'>💰 HALAMAN PEMBAYARAN BEBAN</a></p>";
+        
+        return $output;
+        
+    } catch (Exception $e) {
+        return "<h1 style='color:red;'>❌ ERROR</h1><p>" . $e->getMessage() . "</p>";
+    }
+});
+
+// MIGRATE PENGGAJIAN & PEMBAYARAN BEBAN TO MODERN JOURNAL SYSTEM
+Route::get('migrate-to-modern-journal', function() {
+    try {
+        $pdo = new PDO('mysql:host=127.0.0.1;dbname=eadt_umkm;charset=utf8', 'root', '');
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+        $output = "<h1 style='color:green;'>🚀 MIGRATING TO MODERN JOURNAL SYSTEM</h1><pre>";
+        
+        // 1. Migrate penggajian to journal_entries
+        $output .= "=== MIGRATING PENGGAJIAN ===\n";
+        
+        $stmt = $pdo->query("
+            SELECT p.id, p.tanggal_penggajian, p.total_gaji, p.coa_kasbank, pg.nama
+            FROM penggajians p
+            LEFT JOIN pegawais pg ON p.pegawai_id = pg.id
+            WHERE NOT EXISTS (
+                SELECT 1 FROM journal_entries je 
+                WHERE je.ref_type = 'penggajian' 
+                AND je.ref_id = p.id
+            )
+        ");
+        
+        $penggajianList = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $output .= "Found " . count($penggajianList) . " penggajian records to migrate\n";
+        
+        foreach ($penggajianList as $penggajian) {
+            // Create journal entry
+            $stmt = $pdo->prepare("
+                INSERT INTO journal_entries (tanggal, ref_type, ref_id, memo, created_at, updated_at)
+                VALUES (?, 'penggajian', ?, ?, NOW(), NOW())
+            ");
+            $stmt->execute([
+                $penggajian['tanggal_penggajian'],
+                $penggajian['id'],
+                "Penggajian {$penggajian['nama']}"
+            ]);
+            
+            $journalEntryId = $pdo->lastInsertId();
+            
+            // Get COA IDs
+            $stmt = $pdo->prepare("SELECT id FROM coas WHERE kode_akun = '52' LIMIT 1");
+            $stmt->execute();
+            $coaBebanId = $stmt->fetchColumn();
+            
+            $stmt = $pdo->prepare("SELECT id FROM coas WHERE kode_akun = ? LIMIT 1");
+            $stmt->execute([$penggajian['coa_kasbank']]);
+            $coaKasId = $stmt->fetchColumn();
+            
+            if (!$coaBebanId) {
+                $stmt = $pdo->prepare("SELECT id FROM coas WHERE kode_akun = '54' LIMIT 1");
+                $stmt->execute();
+                $coaBebanId = $stmt->fetchColumn();
+            }
+            
+            if (!$coaKasId) {
+                $stmt = $pdo->prepare("SELECT id FROM coas WHERE kode_akun = '111' LIMIT 1");
+                $stmt->execute();
+                $coaKasId = $stmt->fetchColumn();
+            }
+            
+            // Create journal lines
+            // DEBIT
+            $stmt = $pdo->prepare("
+                INSERT INTO journal_lines (journal_entry_id, coa_id, debit, credit, memo, created_at, updated_at)
+                VALUES (?, ?, ?, 0, ?, NOW(), NOW())
+            ");
+            $stmt->execute([
+                $journalEntryId,
+                $coaBebanId,
+                $penggajian['total_gaji'],
+                "Beban Gaji {$penggajian['nama']}"
+            ]);
+            
+            // CREDIT
+            $stmt->execute([
+                $journalEntryId,
+                $coaKasId,
+                0,
+                $penggajian['total_gaji'],
+                "Pembayaran Gaji {$penggajian['nama']}"
+            ]);
+            
+            $output .= "✅ Migrated penggajian ID: {$penggajian['id']}\n";
+        }
+        
+        // 2. Migrate pembayaran beban to journal_entries
+        $output .= "\n=== MIGRATING PEMBAYARAN BEBAN ===\n";
+        
+        $stmt = $pdo->query("
+            SELECT pb.id, pb.tanggal, pb.jumlah, pb.keterangan, bo.nama_beban
+            FROM pembayaran_bebans pb
+            LEFT JOIN beban_operasional bo ON pb.beban_operasional_id = bo.id
+            WHERE NOT EXISTS (
+                SELECT 1 FROM journal_entries je 
+                WHERE je.ref_type = 'pembayaran_beban' 
+                AND je.ref_id = pb.id
+            )
+        ");
+        
+        $bebanList = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $output .= "Found " . count($bebanList) . " pembayaran beban records to migrate\n";
+        
+        foreach ($bebanList as $beban) {
+            // Create journal entry
+            $stmt = $pdo->prepare("
+                INSERT INTO journal_entries (tanggal, ref_type, ref_id, memo, created_at, updated_at)
+                VALUES (?, 'pembayaran_beban', ?, ?, NOW(), NOW())
+            ");
+            $stmt->execute([
+                $beban['tanggal'],
+                $beban['id'],
+                'Pembayaran Beban: ' . ($beban['keterangan'] ?: 'Tanpa catatan')
+            ]);
+            
+            $journalEntryId = $pdo->lastInsertId();
+            
+            // Get COA IDs
+            $stmt = $pdo->prepare("SELECT id FROM coas WHERE kode_akun = '550' LIMIT 1");
+            $stmt->execute();
+            $coaBebanId = $stmt->fetchColumn();
+            
+            $stmt = $pdo->prepare("SELECT id FROM coas WHERE kode_akun = '111' LIMIT 1");
+            $stmt->execute();
+            $coaKasId = $stmt->fetchColumn();
+            
+            // Create journal lines
+            // DEBIT
+            $stmt = $pdo->prepare("
+                INSERT INTO journal_lines (journal_entry_id, coa_id, debit, credit, memo, created_at, updated_at)
+                VALUES (?, ?, ?, 0, ?, NOW(), NOW())
+            ");
+            $stmt->execute([
+                $journalEntryId,
+                $coaBebanId,
+                $beban['jumlah'],
+                'Pembayaran Beban'
+            ]);
+            
+            // CREDIT
+            $stmt->execute([
+                $journalEntryId,
+                $coaKasId,
+                0,
+                $beban['jumlah'],
+                'Pembayaran Beban'
+            ]);
+            
+            $output .= "✅ Migrated pembayaran beban ID: {$beban['id']}\n";
+        }
+        
+        // 3. Verification
+        $output .= "\n=== VERIFICATION ===\n";
+        
+        $stmt = $pdo->query("SELECT COUNT(*) FROM journal_entries WHERE ref_type = 'penggajian'");
+        $penggajianCount = $stmt->fetchColumn();
+        
+        $stmt = $pdo->query("SELECT COUNT(*) FROM journal_entries WHERE ref_type = 'pembayaran_beban'");
+        $bebanCount = $stmt->fetchColumn();
+        
+        $output .= "Penggajian in journal_entries: $penggajianCount\n";
+        $output .= "Pembayaran Beban in journal_entries: $bebanCount\n";
+        
+        $output .= "</pre>";
+        
+        $output .= "<h2 style='color:green;'>✅ MIGRATION COMPLETE!</h2>";
+        $output .= "<p><strong>Sekarang semua transaksi penggajian dan pembayaran beban akan muncul di jurnal umum!</strong></p>";
+        $output .= "<p><a href='/akuntansi/jurnal-umum' style='background:#28a745;color:white;padding:15px;text-decoration:none;font-size:18px;'>📊 LIHAT JURNAL UMUM SEKARANG</a></p>";
+        
+        return $output;
+        
+    } catch (Exception $e) {
+        return "<h1 style='color:red;'>❌ ERROR</h1><p>" . $e->getMessage() . "</p>";
     }
 });

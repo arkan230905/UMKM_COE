@@ -25,6 +25,9 @@ class PembayaranBebanController extends Controller
         if ($request->tanggal_selesai) {
             $query->whereDate('tanggal', '<=', $request->tanggal_selesai);
         }
+        if ($request->beban_operasional_id) {
+            $query->where('beban_operasional_id', $request->beban_operasional_id);
+        }
         if ($request->akun_beban_id) {
             $query->whereHas('coaBeban', function($q) use ($request) {
                 $q->where('kode_akun', $request->akun_beban_id);
@@ -78,44 +81,25 @@ class PembayaranBebanController extends Controller
         // Debug log - log all incoming request data
         \Log::info('PembayaranBeban store method called', [
             'request_data' => $request->all(),
-            'request_method' => $request->method(),
-            'request_headers' => $request->headers->all()
-        ]);
-        
-        // Log untuk debugging lebih detail
-        \Log::info('Request details:', [
-            'tanggal' => $request->tanggal,
-            'keterangan' => $request->keterangan,
-            'beban_operasional_id' => $request->beban_operasional_id,
-            'kode_akun_beban' => $request->kode_akun_beban,
-            'kode_akun_kas' => $request->kode_akun_kas,
-            'nominal_pembayaran' => $request->nominal_pembayaran,
-            'metode_bayar' => $request->metode_bayar,
-            'catatan' => $request->catatan,
         ]);
         
         // Validasi input
         try {
-            \Log::info('Starting validation...');
             $validated = $request->validate([
                 'tanggal' => 'required|date',
                 'beban_operasional_id' => 'required|exists:beban_operasional,id',
                 'kode_akun_beban' => 'required|exists:coas,kode_akun',
-                'kode_akun_kas' => 'required|exists:coas,kode_akun|different:kode_akun_beban',
                 'nominal_pembayaran' => 'required|numeric|min:1',
-                'metode_bayar' => 'required|in:cash,bank',
                 'catatan' => 'nullable|string|max:255',
             ], [
-                'kode_akun_kas.different' => 'Akun Kas dan Akun Beban tidak boleh sama',
                 'beban_operasional_id.exists' => 'Beban operasional tidak valid',
                 'kode_akun_beban.exists' => 'Akun beban tidak valid',
-                'kode_akun_kas.exists' => 'Akun kas tidak valid',
                 'nominal_pembayaran.min' => 'Nominal pembayaran minimal adalah 1',
             ]);
             \Log::info('Validation passed successfully');
         } catch (\Illuminate\Validation\ValidationException $e) {
             \Log::error('Validation failed: ' . json_encode($e->errors()));
-            throw $e;
+            return back()->withErrors($e->errors())->withInput();
         }
 
         DB::beginTransaction();
@@ -125,7 +109,6 @@ class PembayaranBebanController extends Controller
             $beban = Coa::where('kode_akun', $request->kode_akun_beban)->first();
             
             // Otomatis pilih Kas Bank (111) untuk pembayaran beban
-            // User tidak perlu memilih akun kas manual
             $kas = Coa::where('kode_akun', '111')->first(); // Kas Bank
             
             // Validasi COA
@@ -134,17 +117,7 @@ class PembayaranBebanController extends Controller
             }
             
             if (!$kas) {
-                throw new \Exception('Akun kas tidak ditemukan');
-            }
-            
-            // Hitung saldo real-time seperti di laporan kas dan bank
-            $saldoRealtime = $this->getSaldoRealtime($kas);
-            
-            // Validasi saldo kas
-            if ($saldoRealtime < $request->nominal_pembayaran) {
-                return back()
-                    ->with('error', 'Saldo kas tidak mencukupi. Saldo tersedia: ' . format_rupiah($saldoRealtime))
-                    ->withInput();
+                throw new \Exception('Akun kas (111) tidak ditemukan. Pastikan akun kas sudah dibuat di master COA.');
             }
             
             // Simpan pembayaran beban
@@ -155,16 +128,13 @@ class PembayaranBebanController extends Controller
                 'akun_kas_id' => $kas->id,
                 'jumlah' => $request->nominal_pembayaran,
                 'catatan' => $request->catatan,
-                'user_id' => auth()->id(),
+                'user_id' => auth()->id() ?? 1,
                 'beban_operasional_id' => $request->beban_operasional_id,
             ]);
             
             if (!$pembayaran->save()) {
                 throw new \Exception('Gagal menyimpan data pembayaran beban');
             }
-
-            // Saldo akun tidak perlu diupdate langsung di tabel COA
-            // Saldo akan dihitung real-time dari journal entries seperti di laporan kas dan bank
 
             // Data jurnal untuk beban (debit)
             $jurnalBeban = [
@@ -173,9 +143,9 @@ class PembayaranBebanController extends Controller
                 'keterangan' => 'Pembayaran Beban: ' . ($request->catatan ?: 'Tanpa catatan'),
                 'debit' => $request->nominal_pembayaran,
                 'kredit' => 0,
-                'referensi' => 'PB-' . $pembayaran->id,
+                'referensi' => $pembayaran->id,
                 'tipe_referensi' => 'pembayaran_beban',
-                'created_by' => auth()->id(),
+                'created_by' => auth()->id() ?? 1,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
@@ -187,17 +157,18 @@ class PembayaranBebanController extends Controller
                 'keterangan' => 'Pembayaran Beban: ' . ($request->catatan ?: 'Tanpa catatan'),
                 'debit' => 0,
                 'kredit' => $request->nominal_pembayaran,
-                'referensi' => 'PB-' . $pembayaran->id,
+                'referensi' => $pembayaran->id,
                 'tipe_referensi' => 'pembayaran_beban',
-                'created_by' => auth()->id(),
+                'created_by' => auth()->id() ?? 1,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
             
-            // Simpan jurnal dalam batch
-            if (!Jurnal::insert([$jurnalBeban, $jurnalKas])) {
-                throw new \Exception('Gagal menyimpan jurnal transaksi');
-            }
+            // Simpan jurnal ke jurnal_umum (bukan jurnal)
+            \App\Models\JurnalUmum::insert([$jurnalBeban, $jurnalKas]);
+            
+            // JUGA buat journal entry di sistem modern (journal_entries + journal_lines)
+            $this->createJournalEntryModern($pembayaran, $beban, $kas, $request->nominal_pembayaran);
 
             DB::commit();
             
@@ -210,10 +181,7 @@ class PembayaranBebanController extends Controller
             \Log::error('Error in PembayaranBebanController@store: ' . $e->getMessage());
             \Log::error($e->getTraceAsString());
             
-            $errorMessage = 'Gagal menyimpan pembayaran beban';
-            if (strpos($e->getMessage(), 'No query results for model') !== false) {
-                $errorMessage = 'Data COA tidak valid. Pastikan akun beban dan kas sudah diatur dengan benar.';
-            }
+            $errorMessage = 'Gagal menyimpan pembayaran beban: ' . $e->getMessage();
             
             return back()
                 ->with('error', $errorMessage)
@@ -226,7 +194,8 @@ class PembayaranBebanController extends Controller
         $pembayaran = PembayaranBeban::with(['coaBeban', 'coaKas', 'user', 'bebanOperasional'])
             ->findOrFail($id);
             
-        $jurnals = Jurnal::where('referensi', 'PB-' . $pembayaran->id)
+        $jurnals = \App\Models\JurnalUmum::where('referensi', $pembayaran->id)
+            ->where('tipe_referensi', 'pembayaran_beban')
             ->with('coa')
             ->get();
             
@@ -264,8 +233,8 @@ class PembayaranBebanController extends Controller
             
             $pembayaran = PembayaranBeban::findOrFail($id);
             
-            // Reverse journal entries
-            Jurnal::where('referensi', 'PB-' . $pembayaran->id)
+            // Reverse journal entries dari jurnal_umum
+            \App\Models\JurnalUmum::where('referensi', $pembayaran->id)
                 ->where('tipe_referensi', 'pembayaran_beban')
                 ->delete();
             
@@ -371,5 +340,52 @@ class PembayaranBebanController extends Controller
             ->sum('journal_lines.credit') ?? 0;
         
         return (float) $journalKeluar;
+    }
+
+    /**
+     * Buat journal entry di sistem modern (journal_entries + journal_lines)
+     * Ini memastikan pembayaran beban muncul di halaman jurnal umum
+     */
+    private function createJournalEntryModern($pembayaran, $beban, $kas, $nominal)
+    {
+        try {
+            // Create journal entry
+            $journalEntry = \App\Models\JournalEntry::create([
+                'tanggal' => $pembayaran->tanggal,
+                'ref_type' => 'pembayaran_beban',
+                'ref_id' => $pembayaran->id,
+                'memo' => 'Pembayaran Beban: ' . ($pembayaran->keterangan ?: 'Tanpa catatan'),
+            ]);
+            
+            // Create journal lines
+            // DEBIT: Beban
+            \App\Models\JournalLine::create([
+                'journal_entry_id' => $journalEntry->id,
+                'coa_id' => $beban->id,
+                'debit' => $nominal,
+                'credit' => 0,
+                'memo' => 'Pembayaran Beban',
+            ]);
+            
+            // CREDIT: Kas
+            \App\Models\JournalLine::create([
+                'journal_entry_id' => $journalEntry->id,
+                'coa_id' => $kas->id,
+                'debit' => 0,
+                'credit' => $nominal,
+                'memo' => 'Pembayaran Beban',
+            ]);
+            
+            \Log::info('Journal entry modern created for pembayaran beban', [
+                'pembayaran_id' => $pembayaran->id,
+                'journal_entry_id' => $journalEntry->id,
+            ]);
+            
+            return true;
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to create modern journal entry for pembayaran beban: ' . $e->getMessage());
+            throw $e;
+        }
     }
 }

@@ -250,6 +250,23 @@
                     <div class="form-control bg-light text-dark" id="total_perolehan_display">Rp {{ number_format(($aset->harga_perolehan ?? 0) + ($aset->biaya_perolehan ?? 0), 0, ',', '.') }}</div>
                 </div>
 
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="tanggal_beli" class="form-label text-dark">Tanggal Pembelian <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control bg-white text-dark @error('tanggal_beli') is-invalid @enderror" 
+                               id="tanggal_beli" name="tanggal_beli" value="{{ old('tanggal_beli', $aset->tanggal_beli instanceof \Carbon\Carbon ? $aset->tanggal_beli->format('Y-m-d') : $aset->tanggal_beli) }}" required>
+                        @error('tanggal_beli')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="tanggal_akuisisi" class="form-label text-dark">Tanggal Akuisisi</label>
+                        <input type="date" class="form-control bg-white text-dark" 
+                               id="tanggal_akuisisi" name="tanggal_akuisisi" value="{{ old('tanggal_akuisisi', $aset->tanggal_akuisisi) }}">
+                    </div>
+                </div>
+
                 <!-- Section Penyusutan -->
                 <div id="section_penyusutan" style="display: {{ $aset->kategori && $aset->kategori->disusutkan ? 'block' : 'none' }};">
                     <div class="alert alert-info mb-3">
@@ -296,39 +313,54 @@
                     <!-- COA Selection -->
                     <div class="row">
                         <div class="col-md-4 mb-3">
-                            <label for="coa_aset_id" class="form-label text-dark">COA Aset</label>
-                            <select class="form-select bg-white text-dark" id="coa_aset_id" name="coa_aset_id">
-                                <option value="">-- Pilih COA Aset --</option>
+                            <label for="asset_coa_id" class="form-label text-dark">Akun COA Aset <span class="text-danger">*</span></label>
+                            <select class="form-select bg-white text-dark @error('asset_coa_id') is-invalid @enderror" 
+                                    id="asset_coa_id" name="asset_coa_id" required>
+                                <option value="" disabled>-- Pilih Akun Aset --</option>
                                 @foreach($coaAsets as $coa)
-                                    <option value="{{ $coa->id }}" {{ old('coa_aset_id', $aset->coa_aset_id) == $coa->id ? 'selected' : '' }}>
+                                    <option value="{{ $coa->id }}" {{ old('asset_coa_id', $aset->asset_coa_id) == $coa->id ? 'selected' : '' }}>
                                         {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
                                     </option>
                                 @endforeach
                             </select>
+                            <small class="text-muted">Pilih akun aset untuk mencatat nilai perolehan aset</small>
+                            @error('asset_coa_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <div class="col-md-4 mb-3">
-                            <label for="coa_akumulasi_penyusutan_id" class="form-label text-dark">COA Akumulasi Penyusutan</label>
-                            <select class="form-select bg-white text-dark" id="coa_akumulasi_penyusutan_id" name="coa_akumulasi_penyusutan_id">
-                                <option value="">-- Pilih COA Akumulasi --</option>
+                            <label for="accum_depr_coa_id" class="form-label text-dark">Akun COA Akumulasi Penyusutan</label>
+                            <select class="form-select bg-white text-dark @error('accum_depr_coa_id') is-invalid @enderror" 
+                                    id="accum_depr_coa_id" name="accum_depr_coa_id">
+                                <option value="" disabled>-- Pilih Akun Akumulasi --</option>
                                 @foreach($coaAkumulasi as $coa)
-                                    <option value="{{ $coa->id }}" {{ old('coa_akumulasi_penyusutan_id', $aset->coa_akumulasi_penyusutan_id) == $coa->id ? 'selected' : '' }}>
+                                    <option value="{{ $coa->id }}" {{ old('accum_depr_coa_id', $aset->accum_depr_coa_id) == $coa->id ? 'selected' : '' }}>
                                         {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
                                     </option>
                                 @endforeach
                             </select>
+                            <small class="text-muted">Pilih akun akumulasi penyusutan aset</small>
+                            @error('accum_depr_coa_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <div class="col-md-4 mb-3">
-                            <label for="coa_beban_penyusutan_id" class="form-label text-dark">COA Beban Penyusutan</label>
-                            <select class="form-select bg-white text-dark" id="coa_beban_penyusutan_id" name="coa_beban_penyusutan_id">
-                                <option value="">-- Pilih COA Beban --</option>
+                            <label for="expense_coa_id" class="form-label text-dark">Akun COA Beban Penyusutan</label>
+                            <select class="form-select bg-white text-dark @error('expense_coa_id') is-invalid @enderror" 
+                                    id="expense_coa_id" name="expense_coa_id">
+                                <option value="" disabled>-- Pilih Akun Beban --</option>
                                 @foreach($coaBeban as $coa)
-                                    <option value="{{ $coa->id }}" {{ old('coa_beban_penyusutan_id', $aset->coa_beban_penyusutan_id) == $coa->id ? 'selected' : '' }}>
+                                    <option value="{{ $coa->id }}" {{ old('expense_coa_id', $aset->expense_coa_id) == $coa->id ? 'selected' : '' }}>
                                         {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
                                     </option>
                                 @endforeach
                             </select>
+                            <small class="text-muted">Pilih akun beban penyusutan aset</small>
+                            @error('expense_coa_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
 
@@ -772,6 +804,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     hitungTotal();
     loadKategoriAset();
+    checkPenyusutan(); // Ensure penyusutan section is properly shown/hidden
     
     // Add event listeners
     document.getElementById('harga_perolehan').addEventListener('input', hitungTotal);

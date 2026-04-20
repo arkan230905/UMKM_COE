@@ -107,7 +107,7 @@
                                 <option value="">Pilih Akun Pembayaran</option>
                                 @foreach($akunKas as $akun)
                                     <option value="{{ $akun->id }}" {{ old('akun_kas_id') == $akun->id ? 'selected' : '' }}>
-                                        {{ $akun->kode_akun }} - {{ $akun->nama_akun }}
+                                        [{{ $akun->kode_akun }}] {{ $akun->nama_akun }}
                                     </option>
                                 @endforeach
                             </select>
@@ -128,7 +128,7 @@
                                 <option value="">Pilih COA Pelunasan</option>
                                 @foreach($coaPelunasan as $coa)
                                     <option value="{{ $coa->id }}" {{ old('coa_pelunasan_id') == $coa->id ? 'selected' : '' }}>
-                                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                        [{{ $coa->kode_akun }}] {{ $coa->nama_akun }}
                                     </option>
                                 @endforeach
                             </select>
@@ -138,7 +138,7 @@
                                 </div>
                             @enderror
                             <small class="form-text text-muted">
-                                Pilih akun COA untuk pelunasan utang
+                                Pilih akun COA untuk pelunasan utang (Hutang Usaha)
                             </small>
                         </div>
                     </div>

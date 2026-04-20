@@ -15,7 +15,7 @@
         }
 
         $totalGajiHitung = $gajiDasar
-            + (float)($penggajian->tunjangan ?? 0)
+            + (float)($penggajian->total_tunjangan ?? 0)
             + (float)($penggajian->asuransi ?? 0)
             + (float)($penggajian->bonus ?? 0)
             - (float)($penggajian->potongan ?? 0);
@@ -109,7 +109,7 @@
                         </tr>
                         <tr>
                             <td class="ps-4">&nbsp;&nbsp;• Tunjangan Jabatan</td>
-                            <td>: Rp {{ number_format($penggajian->tunjangan_jabatan ?? $penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
+                            <td>: Rp {{ number_format($penggajian->tunjangan_jabatan ?? 0, 0, ',', '.') }}</td>
                         </tr>
                         <tr>
                             <td class="ps-4">&nbsp;&nbsp;• Tunjangan Transport</td>
@@ -121,7 +121,7 @@
                         </tr>
                         <tr class="fw-bold">
                             <td class="ps-4">&nbsp;&nbsp;Total Tunjangan</td>
-                            <td>: Rp {{ number_format($penggajian->total_tunjangan ?? $penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
+                            <td>: Rp {{ number_format($penggajian->total_tunjangan ?? 0, 0, ',', '.') }}</td>
                         </tr>
                         
                         <tr>
@@ -176,13 +176,28 @@
                 <!-- Action Buttons -->
                 <div class="d-flex gap-2">
                     @if(in_array(auth()->user()->role, ['owner', 'admin']) && $penggajian->status_posting !== 'posted')
-                        <form action="{{ route('transaksi.penggajian.post-journal', $penggajian->id) }}" method="POST">
+                        <form action="{{ route('transaksi.penggajian.post-journal', $penggajian->id) }}" method="POST" class="d-inline">
                             @csrf
                             <button type="submit" class="btn btn-primary" onclick="return confirm('Apakah Anda yakin ingin memposting penggajian ini ke jurnal umum?')">
                                 <i class="bi bi-journal-check"></i> Posting ke Jurnal
                             </button>
                         </form>
+                        
+                        <form action="{{ route('transaksi.penggajian.recalculate', $penggajian->id) }}" method="POST" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-warning" onclick="return confirm('Apakah Anda yakin ingin menghitung ulang penggajian ini berdasarkan master data terbaru?')">
+                                <i class="bi bi-calculator"></i> Hitung Ulang
+                            </button>
+                        </form>
+                        
+                        <a href="{{ route('transaksi.penggajian.edit', $penggajian->id) }}" class="btn btn-info">
+                            <i class="bi bi-pencil"></i> Edit
+                        </a>
                     @endif
+
+                    <a href="{{ route('transaksi.penggajian.slip', $penggajian->id) }}" class="btn btn-success" target="_blank">
+                        <i class="bi bi-file-earmark-text"></i> Lihat Slip Gaji
+                    </a>
 
                     <a href="{{ route('transaksi.penggajian.index') }}" class="btn btn-secondary">
                         <i class="bi bi-arrow-left"></i> Kembali

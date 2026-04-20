@@ -155,8 +155,8 @@ mark.bg-warning {
                                 @foreach($produks as $p)
                                     <option value="{{ $p->id }}" 
                                             data-price="{{ round($p->harga_jual ?? 0) }}"
-                                            data-stok="{{ $p->actual_stok ?? 0 }}">
-                                        {{ $p->nama_produk ?? $p->nama }} (Stok: {{ number_format($p->actual_stok ?? 0, 0, ',', '.') }})
+                                            data-stok="{{ $p->stok ?? 0 }}">
+                                        {{ $p->nama_produk ?? $p->nama }} (Stok: {{ number_format($p->stok ?? 0, 0, ',', '.') }})
                                     </option>
                                 @endforeach
                             </select>
@@ -220,7 +220,7 @@ const productData = {
         id: {{ $p->id }},
         nama: '{{ addslashes($p->nama_produk ?? $p->nama) }}',
         harga: {{ round($p->harga_jual ?? 0) }},
-        stok: {{ $p->actual_stok ?? 0 }},
+        stok: {{ $p->stok ?? 0 }},
         barcode: '{{ $p->barcode ?? '' }}'
     },
     @endforeach
@@ -233,7 +233,7 @@ const searchableProducts = [
         id: {{ $p->id }},
         nama: '{{ addslashes($p->nama_produk ?? $p->nama) }}',
         harga: {{ round($p->harga_jual ?? 0) }},
-        stok: {{ $p->actual_stok ?? 0 }},
+        stok: {{ $p->stok ?? 0 }},
         barcode: '{{ $p->barcode ?? '' }}',
         searchText: '{{ strtolower(addslashes($p->nama_produk ?? $p->nama)) }} {{ $p->barcode ?? '' }}'.toLowerCase()
     },

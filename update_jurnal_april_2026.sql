@@ -1,175 +1,71 @@
--- ===================================================================
--- SCRIPT LANGSUNG UNTUK UPDATE JURNAL APRIL 2026
--- Mengubah nilai yang salah menjadi nilai yang benar
--- ===================================================================
+-- Script untuk memperbaiki jurnal penggajian yang hilang
+-- Tanggal: April 2026
 
--- BACKUP JURNAL LAMA (OPSIONAL)
-CREATE TABLE IF NOT EXISTS jurnal_umum_backup_20260430 AS
-SELECT * FROM jurnal_umum 
-WHERE tanggal = '2026-04-30' 
-  AND keterangan LIKE '%Penyusutan%';
+-- 1. Update status penggajian menjadi lunas
+UPDATE penggajians 
+SET 
+    status_pembayaran = 'lunas',
+    tanggal_dibayar = tanggal_penggajian,
+    updated_at = NOW()
+WHERE status_pembayaran = 'belum_lunas';
 
--- LIHAT JURNAL YANG AKAN DIUPDATE
+-- 2. Buat jurnal entries untuk penggajian yang belum ada jurnalnya
+-- DEBIT: Beban Gaji (COA 52 atau 54)
+INSERT INTO jurnal_umum (coa_id, tanggal, keterangan, debit, kredit, referensi, tipe_referensi, created_by, created_at, updated_at)
 SELECT 
-    id,
-    tanggal,
-    keterangan,
-    debit,
-    kredit,
-    CASE 
-        WHEN keterangan LIKE '%Mesin%' THEN 'Mesin Produksi'
-        WHEN keterangan LIKE '%Peralatan%' THEN 'Peralatan Produksi'
-        WHEN keterangan LIKE '%Kendaraan%' THEN 'Kendaraan'
-        ELSE 'Lainnya'
-    END as kategori
+    COALESCE(
+        (SELECT id FROM coas WHERE kode_akun = '52' LIMIT 1),
+        (SELECT id FROM coas WHERE kode_akun = '54' LIMIT 1)
+    ) as coa_id,
+    p.tanggal_penggajian as tanggal,
+    CONCAT('Penggajian ', COALESCE(pg.nama, 'Unknown')) as keterangan,
+    p.total_gaji as debit,
+    0 as kredit,
+    p.id as referensi,
+    'penggajian' as tipe_referensi,
+    1 as created_by,
+    NOW() as created_at,
+    NOW() as updated_at
+FROM penggajians p
+LEFT JOIN pegawais pg ON p.pegawai_id = pg.id
+LEFT JOIN jurnal_umum ju ON ju.tipe_referensi = 'penggajian' AND ju.referensi = p.id AND ju.debit > 0
+WHERE ju.id IS NULL;
+
+-- 3. CREDIT: Kas/Bank
+INSERT INTO jurnal_umum (coa_id, tanggal, keterangan, debit, kredit, referensi, tipe_referensi, created_by, created_at, updated_at)
+SELECT 
+    COALESCE(
+        (SELECT id FROM coas WHERE kode_akun = p.coa_kasbank LIMIT 1),
+        (SELECT id FROM coas WHERE kode_akun = '111' LIMIT 1)
+    ) as coa_id,
+    p.tanggal_penggajian as tanggal,
+    CONCAT('Penggajian ', COALESCE(pg.nama, 'Unknown')) as keterangan,
+    0 as debit,
+    p.total_gaji as kredit,
+    p.id as referensi,
+    'penggajian' as tipe_referensi,
+    1 as created_by,
+    NOW() as created_at,
+    NOW() as updated_at
+FROM penggajians p
+LEFT JOIN pegawais pg ON p.pegawai_id = pg.id
+LEFT JOIN jurnal_umum ju ON ju.tipe_referensi = 'penggajian' AND ju.referensi = p.id AND ju.kredit > 0
+WHERE ju.id IS NULL;
+
+-- 4. Verifikasi hasil
+SELECT 
+    'Total Penggajian' as item,
+    COUNT(*) as jumlah
+FROM penggajians
+UNION ALL
+SELECT 
+    'Jurnal Penggajian (Debit)' as item,
+    COUNT(*) as jumlah
 FROM jurnal_umum 
-WHERE tanggal = '2026-04-30' 
-  AND keterangan LIKE '%Penyusutan%'
-ORDER BY debit DESC, kredit DESC;
-
--- ===================================================================
--- UPDATE JURNAL MESIN PRODUKSI
--- Dari Rp 1.416.667 menjadi Rp 1.333.333
--- ===================================================================
-
--- Update debit (beban penyusutan)
-UPDATE jurnal_umum 
-SET debit = 1333333.00
-WHERE tanggal = '2026-04-30'
-  AND keterangan LIKE '%Penyusutan%'
-  AND keterangan LIKE '%Mesin%'
-  AND debit = 1416667.00;
-
--- Update kredit (akumulasi penyusutan)
-UPDATE jurnal_umum 
-SET kredit = 1333333.00
-WHERE tanggal = '2026-04-30'
-  AND keterangan LIKE '%Penyusutan%'
-  AND keterangan LIKE '%Mesin%'
-  AND kredit = 1416667.00;
-
--- ===================================================================
--- UPDATE JURNAL PERALATAN PRODUKSI
--- Dari Rp 2.833.333 menjadi Rp 659.474
--- ===================================================================
-
--- Update debit (beban penyusutan)
-UPDATE jurnal_umum 
-SET debit = 659474.00
-WHERE tanggal = '2026-04-30'
-  AND keterangan LIKE '%Penyusutan%'
-  AND keterangan LIKE '%Peralatan%'
-  AND debit = 2833333.00;
-
--- Update kredit (akumulasi penyusutan)
-UPDATE jurnal_umum 
-SET kredit = 659474.00
-WHERE tanggal = '2026-04-30'
-  AND keterangan LIKE '%Penyusutan%'
-  AND keterangan LIKE '%Peralatan%'
-  AND kredit = 2833333.00;
-
--- ===================================================================
--- UPDATE JURNAL KENDARAAN
--- Dari Rp 2.361.111 menjadi Rp 888.889
--- ===================================================================
-
--- Update debit (beban penyusutan)
-UPDATE jurnal_umum 
-SET debit = 888889.00
-WHERE tanggal = '2026-04-30'
-  AND keterangan LIKE '%Penyusutan%'
-  AND keterangan LIKE '%Kendaraan%'
-  AND debit = 2361111.00;
-
--- Update kredit (akumulasi penyusutan)
-UPDATE jurnal_umum 
-SET kredit = 888889.00
-WHERE tanggal = '2026-04-30'
-  AND keterangan LIKE '%Penyusutan%'
-  AND keterangan LIKE '%Kendaraan%'
-  AND kredit = 2361111.00;
-
--- ===================================================================
--- UPDATE DATA ASET AGAR KONSISTEN
--- ===================================================================
-
--- Update Mesin Produksi
-UPDATE asets 
-SET penyusutan_per_bulan = 1333333.00,
-    penyusutan_per_tahun = 16000000.00
-WHERE nama_aset LIKE '%Mesin%'
-  AND nama_aset LIKE '%Produksi%';
-
--- Update Peralatan Produksi
-UPDATE asets 
-SET penyusutan_per_bulan = 659474.00,
-    penyusutan_per_tahun = 7913688.00
-WHERE nama_aset LIKE '%Peralatan%'
-  AND nama_aset LIKE '%Produksi%';
-
--- Update Kendaraan
-UPDATE asets 
-SET penyusutan_per_bulan = 888889.00,
-    penyusutan_per_tahun = 10666668.00
-WHERE nama_aset LIKE '%Kendaraan%';
-
--- ===================================================================
--- VALIDASI HASIL
--- ===================================================================
-
--- Lihat jurnal setelah update
+WHERE tipe_referensi = 'penggajian' AND debit > 0
+UNION ALL
 SELECT 
-    'JURNAL SETELAH UPDATE' as status,
-    tanggal,
-    keterangan,
-    debit,
-    kredit,
-    CASE 
-        WHEN keterangan LIKE '%Mesin%' THEN 'Mesin Produksi'
-        WHEN keterangan LIKE '%Peralatan%' THEN 'Peralatan Produksi'
-        WHEN keterangan LIKE '%Kendaraan%' THEN 'Kendaraan'
-        ELSE 'Lainnya'
-    END as kategori
+    'Jurnal Penggajian (Credit)' as item,
+    COUNT(*) as jumlah
 FROM jurnal_umum 
-WHERE tanggal = '2026-04-30' 
-  AND keterangan LIKE '%Penyusutan%'
-ORDER BY debit DESC, kredit DESC;
-
--- Lihat data aset setelah update
-SELECT 
-    'ASET SETELAH UPDATE' as status,
-    nama_aset,
-    penyusutan_per_bulan,
-    penyusutan_per_tahun,
-    akumulasi_penyusutan
-FROM asets 
-WHERE nama_aset LIKE '%Mesin%Produksi%'
-   OR nama_aset LIKE '%Peralatan%Produksi%'
-   OR nama_aset LIKE '%Kendaraan%'
-ORDER BY nama_aset;
-
--- Ringkasan perubahan
-SELECT 
-    'RINGKASAN PERUBAHAN' as status,
-    CASE 
-        WHEN keterangan LIKE '%Mesin%' THEN 'Mesin Produksi'
-        WHEN keterangan LIKE '%Peralatan%' THEN 'Peralatan Produksi'
-        WHEN keterangan LIKE '%Kendaraan%' THEN 'Kendaraan'
-        ELSE 'Lainnya'
-    END as kategori_aset,
-    SUM(CASE WHEN debit > 0 THEN debit ELSE 0 END) as total_beban_penyusutan,
-    SUM(CASE WHEN kredit > 0 THEN kredit ELSE 0 END) as total_akumulasi_penyusutan
-FROM jurnal_umum 
-WHERE tanggal = '2026-04-30' 
-  AND keterangan LIKE '%Penyusutan%'
-GROUP BY kategori_aset
-ORDER BY total_beban_penyusutan DESC;
-
--- ===================================================================
--- CATATAN:
--- 1. Script ini akan langsung mengubah data di database
--- 2. Pastikan backup sudah dibuat sebelum menjalankan
--- 3. Jalankan di environment testing terlebih dahulu
--- 4. Setelah eksekusi, cek kembali jurnal umum di aplikasi
--- ===================================================================
+WHERE tipe_referensi = 'penggajian' AND kredit > 0;

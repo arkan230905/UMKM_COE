@@ -73,6 +73,7 @@ class ProduksiController extends Controller
     {
         $request->validate([
             'produk_id' => 'required|exists:produks,id',
+            'coa_persediaan_barang_jadi_id' => 'nullable|exists:coas,id',
             'jumlah_produksi_bulanan' => 'required|numeric|min:0.0001',
             'hari_produksi_bulanan' => 'required|integer|min:1|max:31',
             'qty_produksi' => 'required|numeric|min:0.0001',
@@ -99,6 +100,7 @@ class ProduksiController extends Controller
             // Create production plan without consuming materials
             $produksi = Produksi::create([
                 'produk_id' => $produk->id,
+                'coa_persediaan_barang_jadi_id' => $request->coa_persediaan_barang_jadi_id,
                 'tanggal' => $tanggal,
                 'jumlah_produksi_bulanan' => $request->jumlah_produksi_bulanan,
                 'hari_produksi_bulanan' => $request->hari_produksi_bulanan,
@@ -592,13 +594,18 @@ class ProduksiController extends Controller
         $totalBiaya = (float)$produksi->total_biaya;
         
         if ($totalBiaya > 0) {
-            // Cari COA Persediaan Barang Jadi
-            $coaBarangJadi = \App\Models\Coa::where('kode_akun', '116')->first();
+            // Gunakan COA persediaan barang jadi dari produksi record
+            $coaBarangJadi = $produksi->coaPersediaanBarangJadi;
+            
+            // Fallback ke default jika tidak ada COA spesifik
             if (!$coaBarangJadi) {
-                $coaBarangJadi = \App\Models\Coa::where('nama_akun', 'like', '%Barang Jadi%')
-                    ->orWhere('nama_akun', 'like', '%Finished Goods%')
-                    ->orWhere('nama_akun', 'like', '%Persediaan Produk%')
-                    ->first();
+                $coaBarangJadi = \App\Models\Coa::where('kode_akun', '116')->first();
+                if (!$coaBarangJadi) {
+                    $coaBarangJadi = \App\Models\Coa::where('nama_akun', 'like', '%Barang Jadi%')
+                        ->orWhere('nama_akun', 'like', '%Finished Goods%')
+                        ->orWhere('nama_akun', 'like', '%Persediaan Produk%')
+                        ->first();
+                }
             }
             
             // Cari COA WIP
@@ -611,10 +618,13 @@ class ProduksiController extends Controller
             }
             
             if (!$coaBarangJadi || !$coaWIP) {
-                throw new \RuntimeException('COA Persediaan Barang Jadi (1106) atau COA WIP (1105) tidak ditemukan. Silakan buat COA yang diperlukan.');
+                throw new \RuntimeException('COA Persediaan Barang Jadi atau COA WIP tidak ditemukan. Silakan buat COA yang diperlukan.');
             }
             
-            $journal->post($produksi->tanggal, 'production_finish', (int)$produksi->id, 'Transfer WIP ke Barang Jadi', [
+            $coaKode = $coaBarangJadi->kode_akun;
+            $coaNama = $coaBarangJadi->nama_akun;
+            
+            $journal->post($produksi->tanggal, 'production_finish', (int)$produksi->id, "Transfer WIP ke Barang Jadi ($coaKode - $coaNama)", [
                 ['code' => $coaBarangJadi->kode_akun, 'debit' => $totalBiaya, 'credit' => 0],  // Persediaan Barang Jadi
                 ['code' => $coaWIP->kode_akun, 'debit' => 0, 'credit' => $totalBiaya],  // WIP
             ]);

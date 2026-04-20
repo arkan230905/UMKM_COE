@@ -194,7 +194,7 @@
                 </tr>
                 <tr>
                     <td>&nbsp;&nbsp;• Tunjangan Jabatan</td>
-                    <td class="amount">Rp {{ number_format($penggajian->tunjangan_jabatan ?? $penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
+                    <td class="amount">Rp {{ number_format($penggajian->tunjangan_jabatan ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 <tr>
                     <td>&nbsp;&nbsp;• Tunjangan Transport</td>
@@ -206,7 +206,7 @@
                 </tr>
                 <tr style="font-weight: bold; background: #f8f9fa;">
                     <td>&nbsp;&nbsp;Total Tunjangan</td>
-                    <td class="amount">Rp {{ number_format($penggajian->total_tunjangan ?? $penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
+                    <td class="amount">Rp {{ number_format($penggajian->total_tunjangan ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 <tr>
                     <td>Asuransi / BPJS</td>
@@ -248,7 +248,7 @@
                 @endif
                 <tr>
                     <td>+ Total Tunjangan</td>
-                    <td class="amount">Rp {{ number_format($penggajian->total_tunjangan ?? $penggajian->tunjangan ?? 0, 0, ',', '.') }}</td>
+                    <td class="amount">Rp {{ number_format($penggajian->total_tunjangan ?? 0, 0, ',', '.') }}</td>
                 </tr>
                 <tr>
                     <td>+ Asuransi / BPJS</td>

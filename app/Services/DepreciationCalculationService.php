@@ -28,7 +28,8 @@ class DepreciationCalculationService
     public function hitungSaldoMenurun(Aset $aset, float $nilaiBukuAwal): float
     {
         $tarifTahunan = 2 / $aset->umur_manfaat; // Double declining rate (decimal per tahun)
-        return $nilaiBukuAwal * $tarifTahunan; // Return annual depreciation
+        $tarifBulanan = $tarifTahunan / 12; // Monthly rate
+        return $nilaiBukuAwal * $tarifBulanan; // Return monthly depreciation based on current book value
     }
 
     /**
@@ -42,7 +43,8 @@ class DepreciationCalculationService
         $sumOfYears = ($aset->umur_manfaat * ($aset->umur_manfaat + 1)) / 2;
         $sisaUmur = $aset->umur_manfaat - $tahunKe + 1;
 
-        return ($sisaUmur / $sumOfYears) * $totalDisusutkan;
+        $yearlyDepreciation = ($sisaUmur / $sumOfYears) * $totalDisusutkan;
+        return $yearlyDepreciation / 12; // Return monthly depreciation for the year
     }
 
     /**
@@ -395,36 +397,43 @@ class DepreciationCalculationService
             return 0; // Outside depreciation period
         }
         
+        // Calculate which month/year of depreciation we're in
+        $monthsElapsed = $startDate->diffInMonths($currentDate) + 1;
+        $yearOfDepreciation = ceil($monthsElapsed / 12);
+        
         // Calculate based on method
         switch ($aset->metode_penyusutan) {
             case 'garis_lurus':
                 return ($totalPerolehan - $nilaiResidu) / ($umurManfaat * 12);
                 
             case 'saldo_menurun':
-                // For declining balance, we need to calculate based on current book value
-                // For simplicity, use straight-line equivalent for now
-                // TODO: Implement proper declining balance calculation with current book value
+                // Double Declining Balance - based on current book value
                 $rateTahunan = 2 / $umurManfaat;
-                $monthlyRate = $rateTahunan / 12;
+                $rateBulanan = $rateTahunan / 12;
                 
-                // Estimate current book value (simplified)
-                $monthsElapsed = $startDate->diffInMonths($currentDate);
-                $estimatedBookValue = $totalPerolehan * pow(1 - $monthlyRate, $monthsElapsed);
+                // Get current book value
+                $akumulasiSebelumnya = $aset->hitungAkumulasiPenyusutanSaatIni();
+                $nilaiBukuSaatIni = $totalPerolehan - $akumulasiSebelumnya;
                 
-                return max(0, min($estimatedBookValue * $monthlyRate, $estimatedBookValue - $nilaiResidu));
+                $penyusutanBulanIni = $nilaiBukuSaatIni * $rateBulanan;
+                
+                // Don't exceed residual value
+                if ($nilaiBukuSaatIni - $penyusutanBulanIni < $nilaiResidu) {
+                    $penyusutanBulanIni = $nilaiBukuSaatIni - $nilaiResidu;
+                }
+                
+                return max(0, $penyusutanBulanIni);
                 
             case 'sum_of_years_digits':
-                // Calculate which year of depreciation we're in
-                $monthsElapsed = $startDate->diffInMonths($currentDate);
-                $yearOfDepreciation = floor($monthsElapsed / 12) + 1;
-                
                 if ($yearOfDepreciation > $umurManfaat) {
                     return 0; // Fully depreciated
                 }
                 
                 $sumOfYears = ($umurManfaat * ($umurManfaat + 1)) / 2;
-                $yearRate = ($umurManfaat - $yearOfDepreciation + 1) / $sumOfYears;
-                return (($totalPerolehan - $nilaiResidu) * $yearRate) / 12;
+                $sisaUmur = $umurManfaat - $yearOfDepreciation + 1;
+                $penyusutanTahunIni = (($totalPerolehan - $nilaiResidu) * $sisaUmur) / $sumOfYears;
+                
+                return $penyusutanTahunIni / 12;
                 
             default:
                 return ($totalPerolehan - $nilaiResidu) / ($umurManfaat * 12);

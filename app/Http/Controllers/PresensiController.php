@@ -902,6 +902,86 @@ class PresensiController extends Controller
     }
     
     // Calculate Euclidean distance between two face encodings
+    /**
+     * Get total working hours for an employee in a specific month
+     * API endpoint for penggajian integration
+     */
+    public function getJamKerja(Request $request)
+    {
+        try {
+            $pegawaiId = $request->get('pegawai_id');
+            $month = $request->get('month');
+            $year = $request->get('year');
+            
+            // Validate required parameters
+            if (!$pegawaiId || !$month || !$year) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'Parameter pegawai_id, month, dan year wajib diisi',
+                    'total_jam' => 0
+                ], 400);
+            }
+            
+            // Validate employee exists
+            $pegawai = \App\Models\Pegawai::find($pegawaiId);
+            if (!$pegawai) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'Pegawai tidak ditemukan',
+                    'total_jam' => 0
+                ], 404);
+            }
+            
+            // Get presensi data for the month
+            $presensiData = \App\Models\Presensi::where('pegawai_id', $pegawaiId)
+                ->whereMonth('tgl_presensi', $month)
+                ->whereYear('tgl_presensi', $year)
+                ->where('status', 'hadir') // Only count present days
+                ->get();
+            
+            $totalJam = 0;
+            $jumlahHari = 0;
+            
+            foreach ($presensiData as $presensi) {
+                // Use the model's accessor to get calculated hours
+                $jamKerja = $presensi->jumlah_jam;
+                if ($jamKerja > 0) {
+                    $totalJam += $jamKerja;
+                    $jumlahHari++;
+                }
+            }
+            
+            // Log for debugging
+            \Log::info('Jam kerja calculation', [
+                'pegawai_id' => $pegawaiId,
+                'pegawai_nama' => $pegawai->nama,
+                'month' => $month,
+                'year' => $year,
+                'jumlah_hari_hadir' => $jumlahHari,
+                'total_jam' => $totalJam
+            ]);
+            
+            return response()->json([
+                'error' => false,
+                'message' => 'Data jam kerja berhasil diambil',
+                'total_jam' => (float)$totalJam,
+                'jumlah_hari_hadir' => $jumlahHari,
+                'pegawai_nama' => $pegawai->nama,
+                'periode' => sprintf('%04d-%02d', $year, $month)
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error getting jam kerja: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            
+            return response()->json([
+                'error' => true,
+                'message' => 'Terjadi kesalahan saat mengambil data jam kerja: ' . $e->getMessage(),
+                'total_jam' => 0
+            ], 500);
+        }
+    }
+
     private function euclideanDistance($encoding1, $encoding2)
     {
         if (count($encoding1) !== count($encoding2)) {

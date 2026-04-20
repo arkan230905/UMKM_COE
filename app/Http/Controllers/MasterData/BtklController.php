@@ -34,32 +34,15 @@ class BtklController extends Controller
      */
     public function create()
     {
-        // Get Jabatan with category 'btkl' and their employees
+        // Get ALL Jabatan with category 'btkl' and their employees
+        // This ensures we get all BTKL positions regardless of whether they have employees
         $jabatanBtkl = Jabatan::where('kategori', 'btkl')
-            ->with('pegawais')
+            ->with(['pegawais' => function($query) {
+                // Only get active employees (you can add more conditions here if needed)
+                $query->whereNotNull('jabatan_id');
+            }])
             ->orderBy('nama')
             ->get();
-        
-        // Also get employees with Perbumbuan category who may not be assigned to positions
-        $perbumbuanEmployees = \App\Models\Pegawai::where(function($query) {
-            $query->where('jabatan_id', 8) // Perbumbuan position ID
-                  ->orWhereHas('jabatanRelasi', function($q) {
-                      $q->where('nama', 'like', '%Perbumbuan%');
-                  });
-        })->with(['jabatanRelasi', 'kategori'])->get();
-        
-        // Create a virtual position for Perbumbuan employees if they don't have proper positions
-        if ($perbumbuanEmployees->count() > 0) {
-            $virtualPosition = (object) [
-                'id' => 'perbumbuan_virtual',
-                'nama' => 'Perbumbuan',
-                'kategori' => 'btkl',
-                'tarif' => 18000,
-                'pegawai_count' => $perbumbuanEmployees->count(),
-                'pegawais' => $perbumbuanEmployees
-            ];
-            $jabatanBtkl->push($virtualPosition);
-        }
 
         // Generate next process code
         $lastBtkl = Btkl::orderBy('kode_proses', 'desc')->first();
@@ -74,24 +57,16 @@ class BtklController extends Controller
 
         $satuanOptions = ['Jam', 'Unit', 'Batch'];
 
-        // Map employee data dengan pegawai_count yang benar
+        // Map employee data dengan pegawai_count yang akurat
         $employeeData = $jabatanBtkl->map(function($jabatan) {
-            $pegawaiCount = 0;
-            
-            // Handle both real and virtual positions
-            if (isset($jabatan->pegawai_count)) {
-                // Virtual position already has count
-                $pegawaiCount = $jabatan->pegawai_count;
-            } elseif (isset($jabatan->pegawais)) {
-                // Real position - count from relation
-                $pegawaiCount = $jabatan->pegawais->count();
-            }
+            $pegawaiCount = $jabatan->pegawais->count();
             
             \Log::info('BTKL Create - Jabatan Data:', [
                 'id' => $jabatan->id,
                 'nama' => $jabatan->nama,
                 'pegawai_count' => $pegawaiCount,
-                'tarif' => $jabatan->tarif ?? 0
+                'tarif' => $jabatan->tarif ?? 0,
+                'kategori' => $jabatan->kategori
             ]);
             
             return [
@@ -182,18 +157,26 @@ class BtklController extends Controller
     {
         try {
             $btkl = Btkl::with('jabatan')->findOrFail($id);
+            
+            // Get ALL Jabatan with category 'btkl' and their employees
             $jabatanBtkl = Jabatan::where('kategori', 'btkl')
-                ->with('pegawais')
+                ->with(['pegawais' => function($query) {
+                    // Only get active employees
+                    $query->whereNotNull('jabatan_id');
+                }])
                 ->orderBy('nama')
                 ->get();
+                
             $satuanOptions = ['Jam', 'Unit', 'Batch'];
             
-            // Map employee data dengan pegawai_count yang benar
+            // Map employee data dengan pegawai_count yang akurat
             $employeeData = $jabatanBtkl->map(function($jabatan) {
+                $pegawaiCount = $jabatan->pegawais->count();
+                
                 return [
                     'id' => $jabatan->id,
                     'nama' => $jabatan->nama,
-                    'pegawai_count' => $jabatan->pegawais->count(),
+                    'pegawai_count' => $pegawaiCount,
                     'tarif' => $jabatan->tarif ?? 0
                 ];
             });

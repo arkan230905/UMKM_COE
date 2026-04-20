@@ -237,6 +237,212 @@ class Aset extends Model
     }
 
     /**
+     * Hitung dan update nilai buku berdasarkan bulan saat ini
+     */
+    public function updateNilaiBukuRealTime(): void
+    {
+        $totalPerolehan = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
+        $nilaiResidu = (float)($this->nilai_residu ?? 0);
+        $umurManfaat = (int)($this->umur_manfaat ?? 0);
+        
+        if ($totalPerolehan <= 0 || $umurManfaat <= 0) {
+            return;
+        }
+        
+        // Hitung akumulasi penyusutan sampai bulan saat ini
+        $akumulasiPenyusutan = $this->hitungAkumulasiPenyusutanSaatIni();
+        
+        // Update nilai buku
+        $nilaiBukuSaatIni = $totalPerolehan - $akumulasiPenyusutan;
+        
+        $this->update([
+            'akumulasi_penyusutan' => round($akumulasiPenyusutan, 2),
+            'nilai_buku' => round($nilaiBukuSaatIni, 2),
+        ]);
+    }
+
+    /**
+     * Hitung akumulasi penyusutan sampai bulan saat ini
+     */
+    public function hitungAkumulasiPenyusutanSaatIni(): float
+    {
+        $totalPerolehan = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
+        $nilaiResidu = (float)($this->nilai_residu ?? 0);
+        $umurManfaat = (int)($this->umur_manfaat ?? 0);
+        
+        if ($totalPerolehan <= 0 || $umurManfaat <= 0) {
+            return 0;
+        }
+        
+        // Tentukan tanggal mulai penyusutan
+        $tanggalPerolehan = Carbon::parse($this->tanggal_akuisisi ?? $this->tanggal_beli ?? $this->created_at);
+        $tanggalSekarang = Carbon::now();
+        
+        // Aturan: jika tanggal > 15, mulai bulan berikutnya
+        if ($tanggalPerolehan->day > 15) {
+            $tanggalPerolehan->addMonth()->day(1);
+        } else {
+            $tanggalPerolehan->day(1);
+        }
+        
+        // Hitung bulan yang sudah berlalu (tidak termasuk bulan ini karena belum selesai)
+        $bulanBerlalu = $tanggalPerolehan->diffInMonths($tanggalSekarang->startOfMonth());
+        
+        // Batasi maksimal sesuai umur manfaat
+        $maxBulan = $umurManfaat * 12;
+        $bulanBerlalu = min($bulanBerlalu, $maxBulan);
+        
+        $nilaiDisusutkan = $totalPerolehan - $nilaiResidu;
+        $akumulasiPenyusutan = 0;
+        
+        switch ($this->metode_penyusutan) {
+            case 'garis_lurus':
+                $penyusutanPerBulan = $nilaiDisusutkan / ($umurManfaat * 12);
+                $akumulasiPenyusutan = $penyusutanPerBulan * $bulanBerlalu;
+                break;
+                
+            case 'saldo_menurun':
+                // Double Declining Balance - hitung per bulan dengan nilai buku yang menurun
+                $nilaiBuku = $totalPerolehan;
+                $rateTahunan = 2 / $umurManfaat; // Contoh: 2/5 = 0.4 = 40%
+                $rateBulanan = $rateTahunan / 12;
+                
+                for ($i = 0; $i < $bulanBerlalu; $i++) {
+                    $penyusutanBulanIni = $nilaiBuku * $rateBulanan;
+                    
+                    // Pastikan tidak melewati nilai residu
+                    if ($nilaiBuku - $penyusutanBulanIni < $nilaiResidu) {
+                        $penyusutanBulanIni = $nilaiBuku - $nilaiResidu;
+                    }
+                    
+                    $akumulasiPenyusutan += $penyusutanBulanIni;
+                    $nilaiBuku -= $penyusutanBulanIni;
+                    
+                    // Stop jika sudah mencapai nilai residu
+                    if ($nilaiBuku <= $nilaiResidu) {
+                        break;
+                    }
+                }
+                break;
+                
+            case 'sum_of_years_digits':
+                // Sum of Years Digits - hitung per tahun lalu distribusi per bulan
+                $sumOfYears = ($umurManfaat * ($umurManfaat + 1)) / 2;
+                $tahunSelesai = floor($bulanBerlalu / 12);
+                $bulanSisa = $bulanBerlalu % 12;
+                
+                // Hitung penyusutan untuk tahun-tahun yang sudah selesai
+                for ($tahun = 1; $tahun <= $tahunSelesai; $tahun++) {
+                    $sisaUmur = $umurManfaat - $tahun + 1;
+                    $penyusutanTahunIni = ($nilaiDisusutkan * $sisaUmur) / $sumOfYears;
+                    $akumulasiPenyusutan += $penyusutanTahunIni;
+                }
+                
+                // Hitung penyusutan untuk bulan-bulan di tahun berjalan
+                if ($bulanSisa > 0 && $tahunSelesai < $umurManfaat) {
+                    $tahunBerjalan = $tahunSelesai + 1;
+                    $sisaUmur = $umurManfaat - $tahunBerjalan + 1;
+                    $penyusutanTahunBerjalan = ($nilaiDisusutkan * $sisaUmur) / $sumOfYears;
+                    $penyusutanPerBulanTahunIni = $penyusutanTahunBerjalan / 12;
+                    $akumulasiPenyusutan += $penyusutanPerBulanTahunIni * $bulanSisa;
+                }
+                break;
+                
+            default:
+                $penyusutanPerBulan = $nilaiDisusutkan / ($umurManfaat * 12);
+                $akumulasiPenyusutan = $penyusutanPerBulan * $bulanBerlalu;
+                break;
+        }
+        
+        // Pastikan tidak melebihi nilai yang bisa disusutkan
+        return min($akumulasiPenyusutan, $nilaiDisusutkan);
+    }
+
+    /**
+     * Hitung penyusutan per bulan untuk bulan saat ini berdasarkan metode
+     */
+    public function hitungPenyusutanPerBulanSaatIni(): float
+    {
+        $totalPerolehan = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
+        $nilaiResidu = (float)($this->nilai_residu ?? 0);
+        $umurManfaat = (int)($this->umur_manfaat ?? 0);
+        
+        if ($totalPerolehan <= 0 || $umurManfaat <= 0) {
+            return 0;
+        }
+        
+        $nilaiDisusutkan = $totalPerolehan - $nilaiResidu;
+        
+        // Tentukan bulan ke berapa dalam siklus penyusutan
+        $tanggalPerolehan = Carbon::parse($this->tanggal_akuisisi ?? $this->tanggal_beli ?? $this->created_at);
+        $tanggalSekarang = Carbon::now();
+        
+        if ($tanggalPerolehan->day > 15) {
+            $tanggalPerolehan->addMonth()->day(1);
+        } else {
+            $tanggalPerolehan->day(1);
+        }
+        
+        $bulanKe = $tanggalPerolehan->diffInMonths($tanggalSekarang->startOfMonth()) + 1;
+        $tahunKe = ceil($bulanKe / 12);
+        
+        // Check if depreciation period has ended
+        if ($bulanKe > ($umurManfaat * 12)) {
+            return 0; // Fully depreciated
+        }
+        
+        switch ($this->metode_penyusutan) {
+            case 'garis_lurus':
+                // Straight Line: Constant monthly depreciation
+                return $nilaiDisusutkan / ($umurManfaat * 12);
+                
+            case 'saldo_menurun':
+                // Double Declining Balance - berdasarkan nilai buku saat ini
+                $rateTahunan = 2 / $umurManfaat;
+                $rateBulanan = $rateTahunan / 12;
+                
+                // Get current book value (without calling this method to avoid recursion)
+                $akumulasiSebelumnya = $this->hitungAkumulasiPenyusutanSaatIni();
+                $nilaiBukuSaatIni = $totalPerolehan - $akumulasiSebelumnya;
+                
+                $penyusutanBulanIni = $nilaiBukuSaatIni * $rateBulanan;
+                
+                // Pastikan tidak melewati nilai residu
+                if ($nilaiBukuSaatIni - $penyusutanBulanIni < $nilaiResidu) {
+                    $penyusutanBulanIni = max(0, $nilaiBukuSaatIni - $nilaiResidu);
+                }
+                
+                return max(0, $penyusutanBulanIni);
+                
+            case 'sum_of_years_digits':
+                // Sum of Years Digits - berdasarkan tahun ke berapa
+                if ($tahunKe > $umurManfaat) {
+                    return 0; // Sudah habis disusutkan
+                }
+                
+                $sumOfYears = ($umurManfaat * ($umurManfaat + 1)) / 2;
+                $sisaUmur = $umurManfaat - $tahunKe + 1;
+                $penyusutanTahunIni = ($nilaiDisusutkan * $sisaUmur) / $sumOfYears;
+                
+                return $penyusutanTahunIni / 12;
+                
+            default:
+                return $nilaiDisusutkan / ($umurManfaat * 12);
+        }
+    }
+
+    /**
+     * Get nilai buku real-time (accessor)
+     */
+    public function getNilaiBukuRealTimeAttribute(): float
+    {
+        $totalPerolehan = (float)($this->harga_perolehan ?? 0) + (float)($this->biaya_perolehan ?? 0);
+        $akumulasiPenyusutan = $this->hitungAkumulasiPenyusutanSaatIni();
+        
+        return $totalPerolehan - $akumulasiPenyusutan;
+    }
+
+    /**
      * Update penyusutan values based on current tarif
      */
     public function updatePenyusutanValues(): void

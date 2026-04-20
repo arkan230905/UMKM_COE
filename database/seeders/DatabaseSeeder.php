@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
         // Setup awal: COA Template dan Satuan (untuk user baru yang daftar)
         $this->call([
             CoaTemplateSeeder::class,  // COA template yang akan di-copy saat registrasi
+            UpdatedCoaSeeder::class,   // COA terbaru dari database saat ini
             SatuanSeeder::class,       // Satuan (global, tidak per company)
             JabatanSeeder::class,      // Jabatan/Kualifikasi Tenaga Kerja (global, tidak per company)
             PegawaiSeeder::class,      // Pegawai default (global, tidak per company)
