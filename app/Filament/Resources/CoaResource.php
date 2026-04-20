@@ -198,12 +198,10 @@ class CoaResource extends Resource
         ])
         ->recordTitleAttribute('nama_akun')
         ->defaultSort('kode_akun', 'asc') // Sort by kode_akun ascending
+        ->paginated(false) // Disable pagination to show all records
         ->modifyQueryUsing(function ($query) {
-            // Filter hanya COA milik company user yang login
-            $user = auth()->user();
-            if ($user && $user->perusahaan_id) {
-                $query->where('company_id', $user->perusahaan_id);
-            }
+            // Tampilkan semua COA tanpa filter company_id
+            // Karena COA adalah master data yang bisa digunakan oleh semua perusahaan
             
             // Custom ordering untuk menangani kode akun dengan titik dan tanpa titik
             return $query->orderByRaw("
