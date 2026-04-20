@@ -3199,11 +3199,22 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
     // ================================================================
     Route::prefix('kelola-catalog')->name('kelola-catalog.')->group(function () {
         Route::get('/', [KelolaCatalogController::class, 'index'])->name('index');
+        Route::get('/preview', [KelolaCatalogController::class, 'preview'])->name('preview');
         Route::get('/settings', [KelolaCatalogController::class, 'settings'])->name('settings');
         Route::post('/settings/update', [KelolaCatalogController::class, 'updateSettings'])->name('settings.update');
+        Route::post('/settings/catalog', [KelolaCatalogController::class, 'updateCatalogSettings'])->name('settings.catalog.update');
+        Route::post('/settings/company-info', [KelolaCatalogController::class, 'updateCompanyInfo'])->name('settings.company.update');
+        Route::get('/fixed-form', [KelolaCatalogController::class, 'fixedForm'])->name('fixed-form');
         Route::post('/{id}/toggle-visibility', [KelolaCatalogController::class, 'toggleVisibility'])->name('toggle-visibility');
         Route::post('/{id}/update-catalog-info', [KelolaCatalogController::class, 'updateProductCatalog'])->name('update-catalog-info');
         Route::post('/bulk-visibility', [KelolaCatalogController::class, 'bulkUpdateVisibility'])->name('bulk-visibility');
+        
+        // Photo management routes
+        Route::get('/photos', [KelolaCatalogController::class, 'photos'])->name('photos');
+        Route::post('/photos', [KelolaCatalogController::class, 'storePhoto'])->name('photos.store');
+        Route::post('/photos/{id}', [KelolaCatalogController::class, 'updatePhoto'])->name('photos.update');
+        Route::delete('/photos/{id}', [KelolaCatalogController::class, 'deletePhoto'])->name('photos.delete');
+        Route::post('/photos/reorder', [KelolaCatalogController::class, 'reorderPhotos'])->name('photos.reorder');
     });
 
     // ================================================================

@@ -5,9 +5,12 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Detail Harga Pokok Produksi: {{ $produk->nama_produk }}</h3>
         <div class="d-flex gap-2">
+            <!-- Tombol Update dari Laporan Stok disembunyikan untuk presentasi -->
+            {{-- 
             <button type="button" class="btn btn-warning" onclick="updateBomFromStockReport()" id="updateBomBtn">
                 <i class="fas fa-sync-alt me-2"></i>Update dari Laporan Stok
             </button>
+            --}}
             <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Kembali
             </a>
@@ -389,8 +392,10 @@
     </div>
 </div>
 
-<!-- Realtime Update Script -->
+<!-- Realtime Update Script - DINONAKTIFKAN UNTUK PRESENTASI -->
 <script>
+// Auto-refresh dinonaktifkan untuk presentasi
+/*
 // Auto-refresh data every 30 seconds
 setInterval(function() {
     refreshData();
@@ -402,6 +407,7 @@ window.addEventListener('storage', function(e) {
         refreshData();
     }
 });
+*/
 
 // Function to update total data
 function updateTotalData() {
@@ -591,8 +597,10 @@ function hideLoadingIndicators() {
     });
 }
 
-// Manual refresh button
+// Manual refresh button - DISEMBUNYIKAN UNTUK PRESENTASI
 document.addEventListener('DOMContentLoaded', function() {
+    // Tombol refresh data disembunyikan untuk presentasi
+    /*
     // Add refresh button to header
     const header = document.querySelector('.d-flex.justify-content-between.align-items-center.mb-4');
     if (header) {
@@ -602,6 +610,7 @@ document.addEventListener('DOMContentLoaded', function() {
         refreshBtn.onclick = refreshData;
         header.appendChild(refreshBtn);
     }
+    */
     
     // Add data-value class to all monetary values for easier updating
     const monetaryElements = document.querySelectorAll('td:contains("Rp"), th:contains("Rp")');
@@ -745,7 +754,8 @@ function showErrorMessage(message) {
     }, 8000);
 }
 
-// Listen for custom events from other pages
+// Listen for custom events from other pages - DINONAKTIFKAN UNTUK PRESENTASI
+/*
 window.addEventListener('message', function(event) {
     if (event.data.type === 'data_updated') {
         if (event.data.source === 'bahan' || event.data.source === 'btkl' || event.data.source === 'bop') {
@@ -753,5 +763,6 @@ window.addEventListener('message', function(event) {
         }
     }
 });
+*/
 </script>
 @endsection

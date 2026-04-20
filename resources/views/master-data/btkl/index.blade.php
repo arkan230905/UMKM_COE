@@ -298,7 +298,8 @@ function formatNumber(num) {
     return new Intl.NumberFormat('id-ID').format(num);
 }
 
-// Listen for storage events (from other tabs)
+// Listen for storage events - DINONAKTIFKAN UNTUK PRESENTASI
+/*
 window.addEventListener('storage', function(e) {
     if (e.key === 'btkl_updated') {
         refreshBTKLData();
@@ -318,6 +319,7 @@ window.addEventListener('message', function(event) {
 setInterval(function() {
     refreshBTKLData();
 }, 30000);
+*/
 </script>
 @endpush
 @endsection

@@ -196,7 +196,8 @@
 
 @section('scripts')
 <script>
-// Auto-refresh BOP data from localStorage
+// Auto-refresh BOP data - DINONAKTIFKAN UNTUK PRESENTASI
+/*
 function refreshBOPData() {
     @foreach($produks as $produk)
         const productId{{ $produk->id }} = {{ $produk->id }};
@@ -242,5 +243,6 @@ function forceRefreshBOP() {
     localStorage.clear();
     location.reload();
 }
+*/
 </script>
 @endsection

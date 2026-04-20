@@ -168,6 +168,57 @@ class ProdukController extends Controller
 
     public function update(Request $request, Produk $produk)
     {
+        // Handle photo removal request
+        if ($request->has('remove_photo')) {
+            if ($produk->foto) {
+                // Delete old photo file
+                $oldPhotoPath = 'public/' . $produk->foto;
+                if (\Storage::exists($oldPhotoPath)) {
+                    \Storage::delete($oldPhotoPath);
+                }
+                
+                $produk->update(['foto' => null]);
+                
+                if ($request->ajax()) {
+                    return response()->json(['success' => true, 'message' => 'Foto produk berhasil dihapus.']);
+                }
+                
+                return redirect()->back()->with('success', 'Foto produk berhasil dihapus.');
+            }
+            
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Tidak ada foto untuk dihapus.']);
+            }
+            
+            return redirect()->back()->with('error', 'Tidak ada foto untuk dihapus.');
+        }
+
+        // Handle photo-only update (for AJAX requests from kelola-catalog)
+        if ($request->ajax() && $request->hasFile('foto') && !$request->has('nama_produk')) {
+            $request->validate([
+                'foto' => 'required|image|mimes:jpg,jpeg,png|max:10240',
+            ]);
+
+            try {
+                // Delete old photo if exists
+                if ($produk->foto) {
+                    $oldPhotoPath = 'public/' . $produk->foto;
+                    if (\Storage::exists($oldPhotoPath)) {
+                        \Storage::delete($oldPhotoPath);
+                    }
+                }
+
+                // Store new photo
+                $fotoPath = $request->file('foto')->store('produk', 'public');
+                $produk->update(['foto' => $fotoPath]);
+
+                return response()->json(['success' => true, 'message' => 'Foto produk berhasil diperbarui.']);
+            } catch (\Exception $e) {
+                return response()->json(['success' => false, 'message' => 'Gagal mengupload foto: ' . $e->getMessage()]);
+            }
+        }
+
+        // Regular update validation
         $request->validate([
             'nama_produk' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
@@ -210,6 +261,14 @@ class ProdukController extends Controller
         ];
 
         if ($request->hasFile('foto')) {
+            // Delete old photo if exists
+            if ($produk->foto) {
+                $oldPhotoPath = 'public/' . $produk->foto;
+                if (\Storage::exists($oldPhotoPath)) {
+                    \Storage::delete($oldPhotoPath);
+                }
+            }
+            
             $data['foto'] = $request->file('foto')->store('produk', 'public');
         }
 
@@ -220,6 +279,10 @@ class ProdukController extends Controller
         \Log::info('Stored harga_jual in database: ' . $produk->harga_jual);
         \Log::info('Stored hpp in database: ' . $produk->hpp);
         \Log::info('Final data array: ' . json_encode($data));
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'Produk berhasil diperbarui.']);
+        }
 
         return redirect()->route('master-data.produk.index')
                          ->with('success', 'Produk berhasil diupdate.');
@@ -259,7 +322,7 @@ class ProdukController extends Controller
         $company = null;
         if (auth()->check()) {
             $user = auth()->user();
-            $company = \App\Models\Company::find($user->company_id);
+            $company = \App\Models\Perusahaan::find($user->perusahaan_id);
         }
 
         // Get products with stock and pricing info for current company
@@ -390,6 +453,12 @@ class ProdukController extends Controller
             }
         }
 
-        return view('catalog.index', compact('produks', 'company'));
+        // Get catalog photos for hero slider
+        $catalogPhotos = [];
+        if ($company) {
+            $catalogPhotos = $company->catalogPhotos()->active()->get();
+        }
+
+        return view('catalog.index', compact('produks', 'company', 'catalogPhotos'));
     }
 }

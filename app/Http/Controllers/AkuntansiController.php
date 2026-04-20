@@ -171,7 +171,12 @@ class AkuntansiController extends Controller
                 $q->where('ju.debit', '>', 0)
                   ->orWhere('ju.kredit', '>', 0);
             })
-            ->whereNotIn('ju.tipe_referensi', ['purchase', 'sale', 'retur_pembelian', 'retur_penjualan']) // Exclude yang sudah di journal_entries
+            // PERBAIKAN: Exclude semua tipe yang sudah ada di journal_entries
+            ->whereNotIn('ju.tipe_referensi', [
+                'purchase', 'sale', 'retur_pembelian', 'retur_penjualan',
+                'production_material', 'production_labor_overhead', 'production_finished',
+                'produksi' // Exclude tipe lama dari ProduksiObserver
+            ])
             ->orderBy('ju.tanggal','asc')
             ->orderBy('ju.id','asc');
             

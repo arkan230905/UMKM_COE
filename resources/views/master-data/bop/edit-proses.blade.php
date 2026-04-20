@@ -440,12 +440,14 @@ function refreshBtklData() {
         });
 }
 
-// Set up auto-refresh
+// Set up auto-refresh - DINONAKTIFKAN UNTUK PRESENTASI
+/*
 setInterval(refreshBtklData, 30000); // Refresh every 30 seconds
 
 // Also refresh on page focus
 window.addEventListener('focus', function() {
     refreshBtklData();
 });
+*/
 </script>
 @endsection
