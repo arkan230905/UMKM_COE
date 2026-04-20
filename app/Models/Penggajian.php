@@ -83,7 +83,7 @@ class Penggajian extends Model
      */
     public function isPosted()
     {
-        return $this->status_posting === 'posted';
+        return $this->jurnalEntries()->exists();
     }
 
     /**

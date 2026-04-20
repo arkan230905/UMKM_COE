@@ -18,6 +18,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\FixDepreciationDiscrepancy::class,
         \App\Console\Commands\FixApril2026Depreciation::class,
         \App\Console\Commands\UpdateApril2026JournalValues::class,
+        \App\Console\Commands\ValidateKasBankConsistency::class,
     ];
 
     /**
@@ -25,7 +26,21 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Daily consistency check for Kas Bank data
+        $schedule->command('kasbank:validate-consistency --days=1 --log')
+                ->dailyAt('02:00')
+                ->runInBackground()
+                ->onSuccess(function () {
+                    \Log::info('Daily Kas Bank consistency check completed successfully');
+                })
+                ->onFailure(function () {
+                    \Log::error('Daily Kas Bank consistency check failed');
+                });
+        
+        // Weekly comprehensive check
+        $schedule->command('kasbank:validate-consistency --days=7 --log')
+                ->weeklyOn(1, '03:00') // Monday at 3 AM
+                ->runInBackground();
     }
 
     /**

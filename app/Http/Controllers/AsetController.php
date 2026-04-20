@@ -64,52 +64,20 @@ class AsetController extends Controller
         // Get paginated results - oldest first by creation date (newest at bottom)
         $asets = $query->orderBy('created_at', 'asc')->paginate(10)->withQueryString();
         
-        // Calculate depreciation data for each asset
+        // Update nilai buku real-time untuk setiap aset dan hitung data penyusutan
         $currentMonth = now()->format('Y-m');
         foreach ($asets as $aset) {
+            // Update nilai buku berdasarkan bulan saat ini
+            $aset->updateNilaiBukuRealTime();
+            
             // Calculate monthly depreciation using CORRECT method for each asset
             $totalPerolehan = (float)($aset->harga_perolehan ?? 0) + (float)($aset->biaya_perolehan ?? 0);
-            $penyusutanPerBulan = 0;
             
             if ($aset->umur_manfaat > 0 && $totalPerolehan > 0) {
-                $nilaiResidu = (float)($aset->nilai_residu ?? 0);
-                $nilaiDisusutkan = $totalPerolehan - $nilaiResidu;
-                
-                switch ($aset->metode_penyusutan) {
-                    case 'garis_lurus':
-                        // Straight line: (Cost - Residual) / Life / 12
-                        $penyusutanPerTahun = $nilaiDisusutkan / $aset->umur_manfaat;
-                        $penyusutanPerBulan = $penyusutanPerTahun / 12;
-                        break;
-                        
-                    case 'saldo_menurun':
-                        // For Peralatan Produksi: Use the detail page calculation (659.474)
-                        if (stripos($aset->nama_aset, 'Peralatan Produksi') !== false) {
-                            $penyusutanPerBulan = 659474; // Fixed value as requested
-                        } else {
-                            // For other assets, use average method
-                            $averagePerTahun = $nilaiDisusutkan / $aset->umur_manfaat;
-                            $penyusutanPerBulan = $averagePerTahun / 12;
-                        }
-                        break;
-                        
-                    case 'sum_of_years_digits':
-                        // For Kendaraan: Use the correct SYD calculation (888.889)
-                        if (stripos($aset->nama_aset, 'Kendaraan') !== false) {
-                            $penyusutanPerBulan = 888889; // Fixed value as requested
-                        } else {
-                            // For other assets, use average method
-                            $averagePerTahun = $nilaiDisusutkan / $aset->umur_manfaat;
-                            $penyusutanPerBulan = $averagePerTahun / 12;
-                        }
-                        break;
-                        
-                    default:
-                        // Default to straight line
-                        $penyusutanPerTahun = $nilaiDisusutkan / $aset->umur_manfaat;
-                        $penyusutanPerBulan = $penyusutanPerTahun / 12;
-                        break;
-                }
+                // Gunakan method baru untuk menghitung penyusutan per bulan yang benar
+                $penyusutanPerBulan = $aset->hitungPenyusutanPerBulanSaatIni();
+            } else {
+                $penyusutanPerBulan = 0;
             }
             
             $aset->monthly_depreciation = $penyusutanPerBulan;
@@ -318,106 +286,67 @@ class AsetController extends Controller
         // Load relasi kategori dan jenis aset
         $aset->load('kategori.jenisAset', 'assetCoa', 'accumDepreciationCoa', 'expenseCoa');
         
+        // Update nilai buku berdasarkan bulan saat ini
+        $aset->updateNilaiBukuRealTime();
+        
         // Hitung total perolehan
         $totalPerolehan = (float)$aset->harga_perolehan + (float)($aset->biaya_perolehan ?? 0);
         
         // Generate jadwal penyusutan per bulan
         $depreciationData = $this->depreciationService->generateMonthlySchedule($aset);
         
-        // GUNAKAN NILAI PENYUSUTAN YANG SAMA PERSIS DENGAN YANG DIPOSTING KE JURNAL
-        // PRIORITAS: Hitung ulang berdasarkan data aset untuk memastikan akurasi
-        $penyusutanPerBulan = 0;
-        $penyusutanPerTahun = 0;
+        // Hitung penyusutan per bulan dan per tahun yang benar berdasarkan metode
+        $nilaiDisusutkan = $totalPerolehan - (float)($aset->nilai_residu ?? 0);
         
-        if ($aset->umur_manfaat > 0 && $totalPerolehan > 0) {
-            switch ($aset->metode_penyusutan) {
-                case 'garis_lurus':
-                    $nilaiDisusutkan = $totalPerolehan - (float)($aset->nilai_residu ?? 0);
-                    $penyusutanPerTahun = $nilaiDisusutkan / $aset->umur_manfaat;
-                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
-                    break;
-                    
-                case 'saldo_menurun':
-                    // Double Declining Balance - HANYA TAHUN PERTAMA untuk konsistensi
-                    $rate = 2 / $aset->umur_manfaat; // Rate = 2/5 = 0.4 = 40%
-                    $penyusutanPerTahun = $totalPerolehan * $rate; // 85,000,000 * 0.4 = 34,000,000
-                    $penyusutanPerBulan = $penyusutanPerTahun / 12; // 34,000,000 / 12 = 2,833,333
-                    
-                    // TAPI untuk posting bulanan yang konsisten, gunakan nilai tetap berdasarkan sisa nilai
-                    // Agar tidak terlalu besar di awal, gunakan rata-rata selama umur manfaat
-                    $nilaiDisusutkan = $totalPerolehan - (float)($aset->nilai_residu ?? 0);
-                    $averagePerTahun = $nilaiDisusutkan / $aset->umur_manfaat;
-                    $penyusutanPerBulan = $averagePerTahun / 12; // Gunakan rata-rata untuk konsistensi
-                    $penyusutanPerTahun = $averagePerTahun;
-                    break;
-                    
-                case 'sum_of_years_digits':
-                    // Sum of Years Digits - HANYA TAHUN PERTAMA untuk konsistensi
-                    $sumOfYears = ($aset->umur_manfaat * ($aset->umur_manfaat + 1)) / 2; // (5*6)/2 = 15
-                    $nilaiDisusutkan = $totalPerolehan - (float)($aset->nilai_residu ?? 0);
-                    $penyusutanTahunPertama = ($nilaiDisusutkan * $aset->umur_manfaat) / $sumOfYears; // (80M * 5) / 15 = 26.67M
-                    
-                    // TAPI untuk posting bulanan yang konsisten, gunakan rata-rata
-                    $averagePerTahun = $nilaiDisusutkan / $aset->umur_manfaat;
-                    $penyusutanPerBulan = $averagePerTahun / 12; // Gunakan rata-rata untuk konsistensi
-                    $penyusutanPerTahun = $averagePerTahun;
-                    break;
-                    
-                default:
-                    // Default ke garis lurus
-                    $nilaiDisusutkan = $totalPerolehan - (float)($aset->nilai_residu ?? 0);
-                    $penyusutanPerTahun = $nilaiDisusutkan / $aset->umur_manfaat;
-                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
-                    break;
-            }
+        switch ($aset->metode_penyusutan) {
+            case 'garis_lurus':
+                $penyusutanPerTahun = $nilaiDisusutkan / $aset->umur_manfaat;
+                $penyusutanPerBulan = $penyusutanPerTahun / 12;
+                break;
+                
+            case 'saldo_menurun':
+                // Double Declining Balance - penyusutan berubah setiap bulan
+                $penyusutanPerBulan = $aset->hitungPenyusutanPerBulanSaatIni();
+                $rateTahunan = 2 / $aset->umur_manfaat;
+                $penyusutanPerTahun = $totalPerolehan * $rateTahunan; // Tahun pertama
+                break;
+                
+            case 'sum_of_years_digits':
+                // Sum of Years Digits - penyusutan berubah setiap tahun
+                $penyusutanPerBulan = $aset->hitungPenyusutanPerBulanSaatIni();
+                $sumOfYears = ($aset->umur_manfaat * ($aset->umur_manfaat + 1)) / 2;
+                $penyusutanPerTahun = ($nilaiDisusutkan * $aset->umur_manfaat) / $sumOfYears; // Tahun pertama
+                break;
+                
+            default:
+                $penyusutanPerTahun = $nilaiDisusutkan / $aset->umur_manfaat;
+                $penyusutanPerBulan = $penyusutanPerTahun / 12;
+                break;
         }
         
-        // Log untuk debugging - pastikan nilai sama dengan yang diposting
+        // Log untuk debugging
         \Log::info("SHOW PAGE - Aset: {$aset->nama_aset} (ID: {$aset->id})");
         \Log::info("  Total Perolehan: Rp " . number_format($totalPerolehan, 0, ',', '.'));
         \Log::info("  Nilai Residu: Rp " . number_format($aset->nilai_residu ?? 0, 0, ',', '.'));
-        \Log::info("  Nilai Disusutkan: Rp " . number_format($totalPerolehan - ($aset->nilai_residu ?? 0), 0, ',', '.'));
+        \Log::info("  Nilai Disusutkan: Rp " . number_format($nilaiDisusutkan, 0, ',', '.'));
         \Log::info("  Umur Manfaat: {$aset->umur_manfaat} tahun");
         \Log::info("  Metode: {$aset->metode_penyusutan}");
         \Log::info("  Penyusutan/bulan (SHOW): Rp " . number_format($penyusutanPerBulan, 2, ',', '.'));
+        \Log::info("  Akumulasi saat ini: Rp " . number_format($aset->akumulasi_penyusutan, 2, ',', '.'));
+        \Log::info("  Nilai buku saat ini: Rp " . number_format($aset->nilai_buku, 2, ',', '.'));
         
         // Cek apakah aset sudah pernah diposting penyusutannya
         $sudahDiposting = JournalEntry::where('ref_type', 'depr')
             ->where('ref_id', $aset->id)
             ->exists();
         
-        // Hitung akumulasi penyusutan dari jurnal yang sudah diposting
-        $akumulasiPenyusutanJurnal = \App\Models\JournalLine::whereHas('entry', function($query) use ($aset) {
-                $query->where('ref_type', 'depr')->where('ref_id', $aset->id);
-            })
-            ->where('credit', '>', 0) // Akumulasi penyusutan di credit
-            ->sum('credit');
-        
-        // Hitung akumulasi penyusutan teoretis dari tanggal perolehan hingga bulan sebelumnya
-        $tanggalPerolehan = Carbon::parse($aset->tanggal_perolehan ?? $aset->tanggal_beli ?? $aset->created_at);
-        // Gunakan akhir bulan sebelumnya karena bulan ini belum diposting
-        $tanggalSekarang = Carbon::now()->subMonth()->endOfMonth();
-        $akumulasiPenyusutanTeoretis = $this->hitungAkumulasiPenyusutan($aset, $tanggalPerolehan, $tanggalSekarang);
-        
-        // Gunakan akumulasi penyusutan yang lebih besar antara jurnal dan teoretis
-        $akumulasiPenyusutanAkhir = max($akumulasiPenyusutanJurnal, $akumulasiPenyusutanTeoretis);
-        
-        // Update akumulasi penyusutan di database jika berbeda
-        if (abs($akumulasiPenyusutanAkhir - ($aset->akumulasi_penyusutan ?? 0)) > 0.01) {
-            $aset->update(['akumulasi_penyusutan' => $akumulasiPenyusutanAkhir]);
-            $aset->refresh();
-        }
-        
-        // Hitung nilai buku saat ini
-        $nilaiBukuSaatIni = $totalPerolehan - $akumulasiPenyusutanAkhir;
-        
         // Data summary untuk view
         $asetSummary = [
             'total_perolehan' => $totalPerolehan,
             'penyusutan_per_tahun' => $penyusutanPerTahun,
             'penyusutan_per_bulan' => $penyusutanPerBulan,
-            'akumulasi_penyusutan' => $akumulasiPenyusutanJurnal,
-            'nilai_buku_saat_ini' => $nilaiBukuSaatIni,
+            'akumulasi_penyusutan' => $aset->akumulasi_penyusutan,
+            'nilai_buku_saat_ini' => $aset->nilai_buku,
             'sudah_diposting' => $sudahDiposting
         ];
         
