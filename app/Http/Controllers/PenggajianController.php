@@ -262,8 +262,9 @@ class PenggajianController extends Controller
                 'total_gaji' => $totalGaji,
             ]);
 
-            // STEP 5: Buat journal entry untuk mencatat pengeluaran kas/bank
+            // STEP 5: Buat journal entry ke KEDUA sistem (journal_entries dan jurnal_umum)
             $this->createJournalEntry($penggajian, $pegawai);
+            $this->createJournalEntryModern($penggajian, $pegawai);
 
             // Commit transaksi
             DB::commit();
@@ -430,10 +431,7 @@ class PenggajianController extends Controller
                 try {
                     $penggajian->status_pembayaran = 'lunas';
                     $penggajian->tanggal_dibayar = now()->format('Y-m-d');
-                    $penggajian->save();
-
-                    // Buat journal entries untuk mencatat ke jurnal umum menggunakan postToJournal
-                    $this->postToJournal($penggajian->id);
+                    $penggajian->save(); // This will trigger the boot method to create journal entries
 
                     // Commit transaksi
                     DB::commit();
@@ -641,6 +639,68 @@ class PenggajianController extends Controller
         // Saldo aktual selalu dihitung on-the-fly dari jurnal.
         \Log::info('Saldo COA ' . $kodeAkun . ' akan dihitung dari jurnal saat dibutuhkan.');
         return true;
+    }
+
+    /**
+     * Buat journal entry di sistem modern (journal_entries + journal_lines)
+     * Ini memastikan penggajian muncul di halaman jurnal umum
+     */
+    private function createJournalEntryModern($penggajian, $pegawai)
+    {
+        try {
+            $jenisPegawai = strtolower($pegawai->kategori ?? $pegawai->jenis_pegawai ?? 'btktl');
+            
+            // Get COA accounts
+            if ($jenisPegawai === 'btkl') {
+                $coaBebanGaji = Coa::where('kode_akun', '52')->first();
+            } else {
+                $coaBebanGaji = Coa::where('kode_akun', '54')->first();
+            }
+            
+            $coaKasBank = Coa::where('kode_akun', $penggajian->coa_kasbank)->first();
+            
+            if (!$coaBebanGaji || !$coaKasBank) {
+                throw new \Exception('COA tidak ditemukan untuk penggajian');
+            }
+            
+            // Create journal entry
+            $journalEntry = \App\Models\JournalEntry::create([
+                'tanggal' => $penggajian->tanggal_penggajian,
+                'ref_type' => 'penggajian',
+                'ref_id' => $penggajian->id,
+                'memo' => "Penggajian {$pegawai->nama}",
+            ]);
+            
+            // Create journal lines
+            // DEBIT: Beban Gaji
+            \App\Models\JournalLine::create([
+                'journal_entry_id' => $journalEntry->id,
+                'coa_id' => $coaBebanGaji->id,
+                'debit' => $penggajian->total_gaji,
+                'credit' => 0,
+                'memo' => "Beban Gaji {$pegawai->nama}",
+            ]);
+            
+            // CREDIT: Kas/Bank
+            \App\Models\JournalLine::create([
+                'journal_entry_id' => $journalEntry->id,
+                'coa_id' => $coaKasBank->id,
+                'debit' => 0,
+                'credit' => $penggajian->total_gaji,
+                'memo' => "Pembayaran Gaji {$pegawai->nama}",
+            ]);
+            
+            \Log::info('Journal entry modern created for penggajian', [
+                'penggajian_id' => $penggajian->id,
+                'journal_entry_id' => $journalEntry->id,
+            ]);
+            
+            return true;
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to create modern journal entry for penggajian: ' . $e->getMessage());
+            throw $e;
+        }
     }
     
     /**

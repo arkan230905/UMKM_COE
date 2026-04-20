@@ -173,14 +173,41 @@ class Pembelian extends Model
     }
     
     /**
+     * Sync pembelian payment status based on payment method and pelunasan records
+     */
+    public function syncPaymentStatus()
+    {
+        // For cash/transfer payments, mark as lunas immediately
+        if ($this->payment_method === 'cash' || $this->payment_method === 'transfer') {
+            $this->terbayar = $this->total_harga;
+            $this->sisa_pembayaran = 0;
+            $this->status = 'lunas';
+            return;
+        }
+        
+        // For credit payments, calculate from pelunasan records
+        $totalPelunasan = $this->pelunasan()->sum('jumlah');
+        $this->terbayar = $totalPelunasan;
+        $this->sisa_pembayaran = ($this->total_harga ?? 0) - $totalPelunasan;
+        
+        if ($totalPelunasan >= $this->total_harga) {
+            $this->status = 'lunas';
+        } else {
+            $this->status = 'belum_lunas';
+        }
+    }
+    
+    /**
      * Get the status pembayaran attribute.
      */
     public function getStatusPembayaranAttribute()
     {
+        // For cash/transfer, always lunas
         if ($this->payment_method === 'cash' || $this->payment_method === 'transfer') {
             return 'Lunas';
         }
         
+        // For credit, check from pelunasan
         $totalDibayar = $this->total_dibayar;
         $totalHarga = $this->total_harga ?? 0;
         

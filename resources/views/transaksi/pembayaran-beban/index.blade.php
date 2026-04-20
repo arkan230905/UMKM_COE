@@ -108,7 +108,13 @@
                                 <td class="text-center">{{ $key + 1 }}</td>
                                 <td>{{ \Carbon\Carbon::parse($item->tanggal)->format('d-m-Y') }}</td>
                                 <td>
-                                    <div class="fw-semibold">{{ $item->nama_beban_operasional }}</div>
+                                    <div class="fw-semibold">
+                                        @if($item->bebanOperasional)
+                                            {{ $item->bebanOperasional->nama_beban }}
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center">

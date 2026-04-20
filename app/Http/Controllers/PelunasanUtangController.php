@@ -82,10 +82,16 @@ class PelunasanUtangController extends Controller
         $akunKas = \App\Helpers\AccountHelper::getKasBankAccounts();
         
         // Get COA hutang/kewajiban yang relevan untuk pelunasan
+        // Only get accounts that actually exist in the database
         $coaPelunasan = \App\Models\Coa::where('tipe_akun', 'Liability')
-            ->whereIn('kode_akun', ['21', '210', '211', '212']) // Hutang, Hutang Usaha, Hutang Gaji, PPN Keluaran
+            ->whereIn('kode_akun', ['2101', '211', '212']) // Hutang Usaha, Hutang Gaji, PPN Keluaran
             ->orderBy('kode_akun')
             ->get();
+        
+        // If no liability accounts found, show warning
+        if ($coaPelunasan->isEmpty()) {
+            \Log::warning('No liability COA accounts found for debt payment');
+        }
         
         return view('transaksi.pelunasan-utang.create', compact('pembayarans', 'akunKas', 'coaPelunasan'));
     }
