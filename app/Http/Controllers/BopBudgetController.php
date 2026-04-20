@@ -17,7 +17,7 @@ class BopBudgetController extends Controller
         
         // Ambil semua akun beban dari COA
         $expenseAccounts = Coa::where('tipe_akun', 'like', '%beban%')
-            ->orWhere('tipe_akun', 'like', '%expense%')
+            ->orWhere('tipe_akun', 'like', '%Beban%')
             ->orWhere('nama_akun', 'like', '%beban%')
             ->orWhere('kode_akun', 'like', '5%') // Asumsi akun beban dimulai dengan 5
             ->orderBy('kode_akun')

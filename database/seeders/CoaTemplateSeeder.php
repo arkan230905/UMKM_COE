@@ -27,6 +27,9 @@ class CoaTemplateSeeder extends Seeder
      */
     public function seedCoaTemplate(): void
     {
+        // Copy templates to existing company if any
+        $existingCompany = DB::table('users')->whereNotNull('perusahaan_id')->value('perusahaan_id');
+
         $coaTemplate = [
             // ===================== ASSET (11) =====================
             ['kode_akun' => '11',   'nama_akun' => 'ASSET', 'tipe_akun' => 'Asset', 'saldo_awal' => null],
@@ -153,6 +156,12 @@ class CoaTemplateSeeder extends Seeder
         }
 
         $this->command->info('✓ COA Template berhasil di-seed! Total: ' . count($coaTemplate) . ' akun.');
+
+        // Copy templates to existing company if any
+        if ($existingCompany) {
+            $this->copyCoaTemplateForCompany($existingCompany);
+            $this->command->info('✓ COA Template berhasil di-copy ke company_id: ' . $existingCompany);
+        }
     }
 
     /**
@@ -162,8 +171,30 @@ class CoaTemplateSeeder extends Seeder
      */
     public static function copyCoaTemplateForCompany(int $companyId): void
     {
+<<<<<<< HEAD
         // COA bersifat global, tidak perlu copy per perusahaan
         // Semua perusahaan menggunakan struktur COA yang sama
         return;
+=======
+        // Ambil semua COA template (company_id = null)
+        $templates = Coa::withoutGlobalScopes()
+            ->whereNull('company_id')
+            ->get();
+
+        foreach ($templates as $template) {
+            Coa::withoutGlobalScopes()->updateOrCreate(
+                ['kode_akun' => $template->kode_akun, 'company_id' => $companyId],
+                [
+                    'nama_akun' => $template->nama_akun,
+                    'tipe_akun' => $template->tipe_akun,
+                    'kategori_akun' => $template->kategori_akun,
+                    'saldo_awal' => $template->saldo_awal,
+                    'tanggal_saldo_awal' => now(),
+                    'posted_saldo_awal' => false,
+                    'company_id' => $companyId,
+                ]
+            );
+        }
+>>>>>>> 399cc5b (perbaikan aset)
     }
 }

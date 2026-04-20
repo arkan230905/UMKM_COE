@@ -48,11 +48,11 @@
                 <label class="form-label">Tipe Akun</label>
                 <select name="tipe_akun" id="tipe_akun" class="form-select" required>
                     <option value="">Pilih tipe</option>
-                    <option value="Aset" {{ old('tipe_akun', $coa->tipe_akun)==='Aset'?'selected':'' }}>Aset</option>
-                    <option value="Kewajiban" {{ old('tipe_akun', $coa->tipe_akun)==='Kewajiban'?'selected':'' }}>Kewajiban</option>
-                    <option value="Modal" {{ old('tipe_akun', $coa->tipe_akun)==='Modal'?'selected':'' }}>Modal</option>
-                    <option value="Pendapatan" {{ old('tipe_akun', $coa->tipe_akun)==='Pendapatan'?'selected':'' }}>Pendapatan</option>
-                    <option value="Expense" {{ old('tipe_akun', $coa->tipe_akun)==='Expense'?'selected':'' }}>Beban</option>
+                    <option value="ASET" {{ old('tipe_akun', $coa->tipe_akun)==='ASET'?'selected':'' }}>Aset</option>
+                    <option value="KEWAJIBAN" {{ old('tipe_akun', $coa->tipe_akun)==='KEWAJIBAN'?'selected':'' }}>Kewajiban</option>
+                    <option value="MODAL" {{ old('tipe_akun', $coa->tipe_akun)==='MODAL'?'selected':'' }}>Modal</option>
+                    <option value="PENDAPATAN" {{ old('tipe_akun', $coa->tipe_akun)==='PENDAPATAN'?'selected':'' }}>Pendapatan</option>
+                    <option value="BEBAN" {{ old('tipe_akun', $coa->tipe_akun)==='BEBAN'?'selected':'' }}>Beban</option>
                 </select>
             </div>
 

@@ -102,6 +102,40 @@
       </div>
     </div>
   </div>
+
+  <!-- Period Summary Card -->
+  @if($month && $year)
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card border-left border-success border-4">
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-md-3">
+              <h6 class="mb-1 text-muted">Total Debit (Periode Ini)</h6>
+              <h5 class="text-primary">Rp {{ number_format($totalDebit, 0, ',', '.') }}</h5>
+            </div>
+            <div class="col-md-3">
+              <h6 class="mb-1 text-muted">Total Kredit (Periode Ini)</h6>
+              <h5 class="text-danger">Rp {{ number_format($totalKredit, 0, ',', '.') }}</h5>
+            </div>
+            <div class="col-md-3">
+              <h6 class="mb-1 text-muted">Saldo Akhir</h6>
+              <h5 class="text-success">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</h5>
+            </div>
+            <div class="col-md-3">
+              <h6 class="mb-1 text-muted">Perhitungan</h6>
+              <small class="text-muted">
+                Saldo Awal + Debit - Kredit<br>
+                = {{ number_format($saldoAwal, 0, ',', '.') }} + {{ number_format($totalDebit, 0, ',', '.') }} - {{ number_format($totalKredit, 0, ',', '.') }}<br>
+                = {{ number_format($saldoAkhir, 0, ',', '.') }}
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  @endif
   @endif
 
   <!-- Buku Besar Table -->

@@ -72,10 +72,6 @@
                             <td class="text-dark">: {{ $aset->umur_manfaat }} tahun</td>
                         </tr>
                         <tr>
-                            <td class="text-dark"><strong>Umur Manfaat</strong></td>
-                            <td class="text-dark">: {{ $aset->umur_manfaat }} tahun</td>
-                        </tr>
-                        <tr>
                             <td class="text-dark"><strong>Metode Penyusutan</strong></td>
                             <td class="text-dark">: {{ ucwords(str_replace('_', ' ', $aset->metode_penyusutan)) }}</td>
                         </tr>

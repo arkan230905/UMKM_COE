@@ -49,11 +49,11 @@
                 <label class="form-label">Tipe Akun</label>
                 <select name="tipe_akun" id="tipe_akun" class="form-select" required onchange="updateKategoriOptions()">
                     <option value="">Pilih tipe</option>
-                    <option value="Aset">Aset</option>
-                    <option value="Kewajiban">Kewajiban</option>
-                    <option value="Modal">Modal</option>
-                    <option value="Pendapatan">Pendapatan</option>
-                    <option value="Expense">Beban</option>
+                    <option value="ASET">Aset</option>
+                    <option value="KEWAJIBAN">Kewajiban</option>
+                    <option value="MODAL">Modal</option>
+                    <option value="PENDAPATAN">Pendapatan</option>
+                    <option value="BEBAN">Beban</option>
                 </select>
             </div>
 

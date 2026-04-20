@@ -177,14 +177,20 @@ class Coa extends Model
         $typeToGroup = [
             'Asset' => '1',
             'Aset' => '1',
+            'ASET' => '1',
             'Liability' => '2',
             'Kewajiban' => '2',
+            'KEWAJIBAN' => '2',
             'Equity' => '3',
             'Ekuitas' => '3',
+            'Modal' => '3',
+            'MODAL' => '3',
             'Revenue' => '4',
             'Pendapatan' => '4',
+            'PENDAPATAN' => '4',
             'Expense' => '5',
             'Beban' => '5',
+            'BEBAN' => '5',
         ];
 
         $group = $typeToGroup[$this->tipe_akun] ?? null;

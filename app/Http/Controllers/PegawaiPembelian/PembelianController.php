@@ -47,7 +47,8 @@ class PembelianController extends Controller
         
         // Ambil data COA untuk kas dan bank yang relevan saja (sesuai laporan kas/bank)
         $kasbank = Coa::whereIn('kode_akun', ['1101', '1102', '1103'])
-            ->where('tipe_akun', 'Asset')
+            ->where('tipe_akun', 'Aset')
+            ->orWhere('tipe_akun', 'ASET')
             ->orderBy('kode_akun')
             ->get();
         
@@ -274,7 +275,8 @@ class PembelianController extends Controller
         
         // Ambil data COA untuk kas dan bank yang relevan saja (sesuai laporan kas/bank)
         $kasbank = Coa::whereIn('kode_akun', ['1101', '1102', '1103'])
-            ->where('tipe_akun', 'Asset')
+            ->where('tipe_akun', 'Aset')
+            ->orWhere('tipe_akun', 'ASET')
             ->orderBy('kode_akun')
             ->get();
         
