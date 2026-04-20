@@ -19,6 +19,92 @@ class Penggajian extends Model
                 $penggajian->status_pembayaran = 'belum_lunas';
             }
         });
+
+        // Auto-create journal entries when penggajian is marked as paid
+        static::updated(function ($penggajian) {
+            // Check if status changed to 'lunas' and no journal entries exist yet
+            if ($penggajian->status_pembayaran === 'lunas' && 
+                $penggajian->getOriginal('status_pembayaran') !== 'lunas') {
+                
+                // Check if journal entries already exist
+                $existingJournal = \App\Models\JurnalUmum::where('tipe_referensi', 'penggajian')
+                    ->where('referensi', $penggajian->id)
+                    ->exists();
+                    
+                if (!$existingJournal) {
+                    static::createJournalEntries($penggajian);
+                }
+            }
+        });
+    }
+
+    /**
+     * Create journal entries for penggajian
+     */
+    public static function createJournalEntries($penggajian)
+    {
+        try {
+            $pegawai = $penggajian->pegawai;
+            if (!$pegawai) {
+                throw new \Exception('Pegawai not found for penggajian ID ' . $penggajian->id);
+            }
+
+            // Get required COA accounts
+            $coaBebanGaji = \App\Models\Coa::where('kode_akun', '52')->first(); // BTKL
+            if (!$coaBebanGaji) {
+                $coaBebanGaji = \App\Models\Coa::where('kode_akun', '54')->first(); // BOP TENAGA KERJA TIDAK LANGSUNG
+            }
+            
+            $coaKasBank = \App\Models\Coa::where('kode_akun', $penggajian->coa_kasbank)->first();
+            
+            if (!$coaBebanGaji) {
+                throw new \Exception('COA Beban Gaji not found');
+            }
+            
+            if (!$coaKasBank) {
+                throw new \Exception('COA Kas/Bank not found for code: ' . $penggajian->coa_kasbank);
+            }
+            
+            // Create journal entries
+            $keterangan = "Penggajian {$pegawai->nama}";
+            
+            // DEBIT: Beban Gaji
+            \App\Models\JurnalUmum::create([
+                'coa_id' => $coaBebanGaji->id,
+                'tanggal' => $penggajian->tanggal_penggajian,
+                'keterangan' => $keterangan,
+                'debit' => $penggajian->total_gaji,
+                'kredit' => 0,
+                'referensi' => $penggajian->id,
+                'tipe_referensi' => 'penggajian',
+                'created_by' => auth()->id() ?? 1,
+            ]);
+            
+            // CREDIT: Kas/Bank
+            \App\Models\JurnalUmum::create([
+                'coa_id' => $coaKasBank->id,
+                'tanggal' => $penggajian->tanggal_penggajian,
+                'keterangan' => $keterangan,
+                'debit' => 0,
+                'kredit' => $penggajian->total_gaji,
+                'referensi' => $penggajian->id,
+                'tipe_referensi' => 'penggajian',
+                'created_by' => auth()->id() ?? 1,
+            ]);
+            
+            \Log::info('Journal entries created for penggajian', [
+                'penggajian_id' => $penggajian->id,
+                'pegawai' => $pegawai->nama,
+                'total_gaji' => $penggajian->total_gaji
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to create journal entries for penggajian', [
+                'penggajian_id' => $penggajian->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     protected $fillable = [

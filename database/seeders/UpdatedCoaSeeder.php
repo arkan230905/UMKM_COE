@@ -10,7 +10,7 @@ class UpdatedCoaSeeder extends Seeder
     /**
      * Run the database seeds.
      * Generated from current database on 2026-04-20 14:02:56
-     * Total accounts: 89
+     * Total accounts: 91
      */
     public function run(): void
     {
@@ -437,6 +437,19 @@ class UpdatedCoaSeeder extends Seeder
                 'keterangan' => null,
             ],
             [
+                'kode_akun' => '1130',
+                'nama_akun' => 'PPN Masukan',
+                'tipe_akun' => 'Asset',
+                'kategori_akun' => 'Asset',
+                'is_akun_header' => false,
+                'kode_induk' => null,
+                'saldo_normal' => 'debit',
+                'saldo_awal' => 0.00,
+                'tanggal_saldo_awal' => '2026-04-20 00:00:00',
+                'posted_saldo_awal' => false,
+                'keterangan' => 'PPN Masukan dari pembelian',
+            ],
+            [
                 'kode_akun' => '1600',
                 'nama_akun' => 'Harga Pokok Penjualan',
                 'tipe_akun' => 'Expense',
@@ -513,6 +526,19 @@ class UpdatedCoaSeeder extends Seeder
                 'tanggal_saldo_awal' => '2026-04-20 00:00:00',
                 'posted_saldo_awal' => false,
                 'keterangan' => null,
+            ],
+            [
+                'kode_akun' => '2101',
+                'nama_akun' => 'Hutang Usaha',
+                'tipe_akun' => 'Liability',
+                'kategori_akun' => 'Liability',
+                'is_akun_header' => false,
+                'kode_induk' => null,
+                'saldo_normal' => 'debit',
+                'saldo_awal' => 0.00,
+                'tanggal_saldo_awal' => '2026-04-20 00:00:00',
+                'posted_saldo_awal' => false,
+                'keterangan' => 'Hutang Usaha - Digunakan untuk jurnal pembelian kredit',
             ],
             [
                 'kode_akun' => '211',
