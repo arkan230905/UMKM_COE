@@ -48,10 +48,11 @@
                 <label class="form-label">Tipe Akun</label>
                 <select name="tipe_akun" id="tipe_akun" class="form-select" required>
                     <option value="">Pilih tipe</option>
-                    @php($tipeList=['Aset','Asset','Kewajiban','Liability','Modal','Equity','Pendapatan','Revenue','Biaya Bahan Baku','Biaya Tenaga Kerja Langsung','Biaya Overhead Pabrik','Biaya Tenaga Kerja Tidak Langsung','BOP Tidak Langsung Lainnya'])
-                    @foreach($tipeList as $t)
-                        <option value="{{ $t }}" {{ old('tipe_akun', $coa->tipe_akun)===$t?'selected':'' }}>{{ $t }}</option>
-                    @endforeach
+                    <option value="Aset" {{ old('tipe_akun', $coa->tipe_akun)==='Aset'?'selected':'' }}>Aset</option>
+                    <option value="Kewajiban" {{ old('tipe_akun', $coa->tipe_akun)==='Kewajiban'?'selected':'' }}>Kewajiban</option>
+                    <option value="Modal" {{ old('tipe_akun', $coa->tipe_akun)==='Modal'?'selected':'' }}>Modal</option>
+                    <option value="Pendapatan" {{ old('tipe_akun', $coa->tipe_akun)==='Pendapatan'?'selected':'' }}>Pendapatan</option>
+                    <option value="Expense" {{ old('tipe_akun', $coa->tipe_akun)==='Expense'?'selected':'' }}>Beban</option>
                 </select>
             </div>
 
@@ -72,15 +73,9 @@
             </div>
 
             {{-- Nama Akun --}}
-            <div class="col-md-6">
+            <div class="col-md-12">
                 <label class="form-label">Nama Akun</label>
                 <input type="text" name="nama_akun" class="form-control" value="{{ old('nama_akun', $coa->nama_akun) }}" required>
-            </div>
-
-            {{-- Kategori Akun --}}
-            <div class="col-md-6">
-                <label class="form-label">Kategori Akun</label>
-                <input type="text" name="kategori_akun" id="kategori_akun" class="form-control" value="{{ old('kategori_akun', $coa->kategori_akun) }}" placeholder="Misal: Kas & Bank, Persediaan">
             </div>
 
             {{-- Saldo Awal --}}

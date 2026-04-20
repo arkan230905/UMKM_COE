@@ -11,13 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // First, drop foreign keys that depend on kode_akun
+        Schema::disableForeignKeyConstraints();
+
         Schema::table('coas', function (Blueprint $table) {
             // Drop the unique constraint on kode_akun
             $table->dropUnique('coas_kode_akun_unique');
-            
+
             // Add a composite unique constraint on kode_akun and company_id
             $table->unique(['kode_akun', 'company_id'], 'coas_kode_akun_company_unique');
         });
+
+        Schema::enableForeignKeyConstraints();
     }
 
     /**

@@ -49,11 +49,11 @@
                 <label class="form-label">Tipe Akun</label>
                 <select name="tipe_akun" id="tipe_akun" class="form-select" required onchange="updateKategoriOptions()">
                     <option value="">Pilih tipe</option>
-                    <option value="Asset" {{ old('tipe_akun') == 'Asset' ? 'selected' : '' }}>Asset (Harta/Kekayaan)</option>
-                    <option value="Liability" {{ old('tipe_akun') == 'Liability' ? 'selected' : '' }}>Liability (Utang/Kewajiban)</option>
-                    <option value="Equity" {{ old('tipe_akun') == 'Equity' ? 'selected' : '' }}>Equity (Modal)</option>
-                    <option value="Revenue" {{ old('tipe_akun') == 'Revenue' ? 'selected' : '' }}>Revenue (Pendapatan)</option>
-                    <option value="Expense" {{ old('tipe_akun') == 'Expense' ? 'selected' : '' }}>Expense (Beban/Biaya)</option>
+                    <option value="Aset">Aset</option>
+                    <option value="Kewajiban">Kewajiban</option>
+                    <option value="Modal">Modal</option>
+                    <option value="Pendapatan">Pendapatan</option>
+                    <option value="Expense">Beban</option>
                 </select>
             </div>
 
@@ -74,55 +74,9 @@
             </div>
 
             {{-- Nama Akun --}}
-            <div class="col-md-6">
+            <div class="col-md-12">
                 <label class="form-label">Nama Akun</label>
                 <input type="text" name="nama_akun" class="form-control" value="{{ old('nama_akun') }}" required>
-            </div>
-
-            {{-- Kategori Akun --}}
-            <div class="col-md-6">
-                <label class="form-label">Kategori Akun</label>
-                <select name="kategori_akun" id="kategori_akun" class="form-select" required>
-                    <option value="">Pilih kategori</option>
-                    <!-- Asset Categories -->
-                    <optgroup label="Asset Categories" id="asset_categories">
-                        <option value="Current Asset">Current Asset (Aset Lancar)</option>
-                        <option value="Fixed Asset">Fixed Asset (Aset Tetap)</option>
-                        <option value="Inventory">Inventory (Persediaan)</option>
-                        <option value="Cash & Bank">Cash & Bank (Kas & Bank)</option>
-                    </optgroup>
-                    <!-- Liability Categories -->
-                    <optgroup label="Liability Categories" id="liability_categories" style="display:none;">
-                        <option value="Current Liability">Current Liability (Utang Jangka Pendek)</option>
-                        <option value="Long-term Liability">Long-term Liability (Utang Jangka Panjang)</option>
-                        <option value="Utang Gaji">Utang Gaji</option>
-                        <option value="Hutang Usaha">Hutang Usaha</option>
-                    </optgroup>
-                    <!-- Equity Categories -->
-                    <optgroup label="Equity Categories" id="equity_categories" style="display:none;">
-                        <option value="Modal">Modal</option>
-                        <option value="Laba Ditahan">Laba Ditahan</option>
-                        <option value="Prive">Prive</option>
-                    </optgroup>
-                    <!-- Revenue Categories -->
-                    <optgroup label="Revenue Categories" id="revenue_categories" style="display:none;">
-                        <option value="Penjualan">Penjualan</option>
-                        <option value="Pendapatan Lain">Pendapatan Lain</option>
-                        <option value="Pendapatan Jasa">Pendapatan Jasa</option>
-                    </optgroup>
-                    <!-- Expense Categories -->
-                    <optgroup label="Expense Categories" id="expense_categories" style="display:none;">
-                        <option value="Operating Expense">Operating Expense (Beban Operasional)</option>
-                        <option value="Beban Gaji">Beban Gaji</option>
-                        <option value="Beban Administrasi">Beban Administrasi</option>
-                        <option value="Beban Penjualan">Beban Penjualan</option>
-                        <option value="Beban Umum">Beban Umum</option>
-                        <option value="Biaya Bahan Baku">Biaya Bahan Baku</option>
-                        <option value="Biaya Tenaga Kerja Langsung">Biaya Tenaga Kerja Langsung</option>
-                        <option value="Biaya Overhead Pabrik">Biaya Overhead Pabrik</option>
-                        <option value="Biaya Tenaga Kerja Tidak Langsung">Biaya Tenaga Kerja Tidak Langsung</option>
-                    </optgroup>
-                </select>
             </div>
 
             {{-- Saldo Awal --}}
