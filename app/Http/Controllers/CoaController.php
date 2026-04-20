@@ -118,8 +118,7 @@ class CoaController extends Controller
                 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Beban,Aset,Kewajiban,Ekuitas,Pendapatan',
-            'kategori_akun' => 'nullable|string|max:255',
+            'tipe_akun' => 'required|in:Aset,Kewajiban,Modal,Pendapatan,Expense',
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',
@@ -130,13 +129,13 @@ class CoaController extends Controller
             'kode_akun.required' => 'Kode akun wajib diisi.',
             'nama_akun.required' => 'Nama akun wajib diisi.',
             'tipe_akun.required' => 'Tipe akun wajib dipilih.',
+            'tipe_akun.in' => 'Tipe akun harus salah satu dari: Aset, Kewajiban, Modal, Pendapatan, Beban',
         ]);
 
         $coaData = [
             'kode_akun' => $validated['kode_akun'],
             'nama_akun' => $validated['nama_akun'],
             'tipe_akun' => $validated['tipe_akun'],
-            'kategori_akun' => $request->kategori_akun ?? $validated['tipe_akun'],
             'saldo_normal' => $request->saldo_normal ?? 'debit',
             'saldo_awal' => $request->saldo_awal ?? 0,
             'keterangan' => $request->keterangan,
@@ -181,8 +180,7 @@ class CoaController extends Controller
                 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Beban,Aset,Kewajiban,Ekuitas,Pendapatan',
-            'kategori_akun' => 'nullable|string|max:255',
+            'tipe_akun' => 'required|in:Aset,Kewajiban,Modal,Pendapatan,Expense',
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',
@@ -193,13 +191,13 @@ class CoaController extends Controller
             'kode_akun.required' => 'Kode akun wajib diisi.',
             'nama_akun.required' => 'Nama akun wajib diisi.',
             'tipe_akun.required' => 'Tipe akun wajib dipilih.',
+            'tipe_akun.in' => 'Tipe akun harus salah satu dari: Aset, Kewajiban, Modal, Pendapatan, Beban',
         ]);
 
         $coa->update([
             'kode_akun' => $validated['kode_akun'],
             'nama_akun' => $validated['nama_akun'],
             'tipe_akun' => $validated['tipe_akun'],
-            'kategori_akun' => $request->kategori_akun,
             'saldo_normal' => $request->saldo_normal,
             'saldo_awal' => $request->saldo_awal,
             'tanggal_saldo_awal' => $request->tanggal_saldo_awal,

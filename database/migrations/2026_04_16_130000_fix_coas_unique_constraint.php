@@ -12,15 +12,27 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // First, drop the unique constraint on kode_akun
-        Schema::table('coas', function (Blueprint $table) {
-            $table->dropUnique('coas_kode_akun_unique');
-        });
-        
-        // Add a composite unique constraint on kode_akun and company_id
-        Schema::table('coas', function (Blueprint $table) {
-            $table->unique(['kode_akun', 'company_id'], 'coas_kode_akun_company_unique');
-        });
+        // Disable foreign key constraints
+        Schema::disableForeignKeyConstraints();
+
+        // Drop the unique constraint on kode_akun if it exists
+        $indexes = DB::select("SHOW INDEX FROM coas WHERE Key_name = 'coas_kode_akun_unique'");
+        if (!empty($indexes)) {
+            Schema::table('coas', function (Blueprint $table) {
+                $table->dropUnique('coas_kode_akun_unique');
+            });
+        }
+
+        // Add a composite unique constraint on kode_akun and company_id if it doesn't exist
+        $compositeIndexes = DB::select("SHOW INDEX FROM coas WHERE Key_name = 'coas_kode_akun_company_unique'");
+        if (empty($compositeIndexes)) {
+            Schema::table('coas', function (Blueprint $table) {
+                $table->unique(['kode_akun', 'company_id'], 'coas_kode_akun_company_unique');
+            });
+        }
+
+        // Re-enable foreign key constraints
+        Schema::enableForeignKeyConstraints();
     }
 
     /**
