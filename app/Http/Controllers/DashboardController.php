@@ -126,48 +126,46 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get total kas dan bank menggunakan logic yang sama dengan LaporanKasBankController
-     * untuk konsistensi data realtime
+     * Hitung saldo akhir akun kas/bank langsung dari journal_lines + jurnal_umum
+     * Sama persis dengan logika buku besar & neraca saldo
      */
+    private function getSaldoAkhirAkun($akun)
+    {
+        $saldoAwal = (float)($akun->saldo_awal ?? 0);
+
+        // Dari journal_lines
+        $jl = \DB::table('journal_lines as jl')
+            ->join('journal_entries as je', 'jl.journal_entry_id', '=', 'je.id')
+            ->where('jl.coa_id', $akun->id)
+            ->selectRaw('COALESCE(SUM(jl.debit),0) as total_debit, COALESCE(SUM(jl.credit),0) as total_kredit')
+            ->first();
+
+        // Dari jurnal_umum
+        $ju = \DB::table('jurnal_umum')
+            ->where('coa_id', $akun->id)
+            ->selectRaw('COALESCE(SUM(debit),0) as total_debit, COALESCE(SUM(kredit),0) as total_kredit')
+            ->first();
+
+        $totalDebit  = (float)$jl->total_debit  + (float)$ju->total_debit;
+        $totalKredit = (float)$jl->total_kredit + (float)$ju->total_kredit;
+
+        // Akun Aset: saldo normal Debit
+        return $saldoAwal + $totalDebit - $totalKredit;
+    }
+
     private function getTotalKasBank()
     {
         try {
-            if (!\Schema::hasTable('coas')) { 
-                \Log::info('Dashboard: Table coas tidak ada, return 0');
-                return 0; 
-            }
+            if (!\Schema::hasTable('coas')) { return 0; }
 
-            // Gunakan helper yang sama dengan LaporanKasBankController
             $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts();
-            
-            if ($akunKasBank->isEmpty()) { 
-                \Log::info('Dashboard: Tidak ada akun Kas & Bank, return 0');
-                return 0; 
-            }
+            if ($akunKasBank->isEmpty()) { return 0; }
 
-            // Gunakan periode bulan ini (sama dengan default laporan kas-bank)
-            $startDate = now()->startOfMonth()->format('Y-m-d');
-            $endDate = now()->endOfMonth()->format('Y-m-d');
-            
-            $totalKasBank = 0;
-            
+            $total = 0;
             foreach ($akunKasBank as $akun) {
-                $saldoAwal = $this->getSaldoAwal($akun, $startDate);
-                $transaksiMasuk = $this->getTransaksiMasuk($akun, $startDate, $endDate);
-                $transaksiKeluar = $this->getTransaksiKeluar($akun, $startDate, $endDate);
-                
-                // Untuk akun Kas & Bank (Aset), saldo normal adalah Debit
-                // Saldo Akhir = Saldo Awal + Debit (Masuk) - Kredit (Keluar)
-                $saldoAkhir = $saldoAwal + $transaksiMasuk - $transaksiKeluar;
-                
-                $totalKasBank += $saldoAkhir;
-                
-                \Log::info("Dashboard: {$akun->kode_akun} - Saldo Awal: {$saldoAwal}, Masuk: {$transaksiMasuk}, Keluar: {$transaksiKeluar}, Akhir: {$saldoAkhir}");
+                $total += $this->getSaldoAkhirAkun($akun);
             }
-            
-            \Log::info("Dashboard: Total Kas & Bank (realtime): {$totalKasBank}");
-            
-            return $totalKasBank;
+            return $total;
         } catch (\Exception $e) {
             \Log::error('Error getTotalKasBank: ' . $e->getMessage());
             return 0;
@@ -531,43 +529,25 @@ class DashboardController extends Controller
         return $q->pluck('id')->all();
     }
 
-    /**
-     * ✅ TAMBAHAN: Get Kas & Bank details per account - menggunakan logic yang sama dengan getTotalKasBank
-     */
     private function getKasBankDetails()
     {
         try {
             if (!\Schema::hasTable('coas')) { return collect(); }
 
-            // Gunakan helper yang sama dengan LaporanKasBankController untuk konsistensi
             $akunKasBank = \App\Helpers\AccountHelper::getKasBankAccounts();
-            
             if ($akunKasBank->isEmpty()) { return collect(); }
 
             $details = [];
-            $startDate = now()->startOfMonth()->format('Y-m-d');
-            $endDate = now()->endOfMonth()->format('Y-m-d');
-            
             foreach ($akunKasBank as $akun) {
-                // Gunakan saldo awal langsung dari COA
-                $saldoAwal = (float)$akun->saldo_awal;
-                $transaksiMasuk = $this->getTransaksiMasuk($akun, $startDate, $endDate);
-                $transaksiKeluar = $this->getTransaksiKeluar($akun, $startDate, $endDate);
-                
-                // Untuk akun Kas & Bank (Aset), saldo normal adalah Debit
-                // Saldo Akhir = Saldo Awal + Debit (Masuk) - Kredit (Keluar)
-                $saldoAkhir = $saldoAwal + $transaksiMasuk - $transaksiKeluar;
-                
+                $saldoAkhir = $this->getSaldoAkhirAkun($akun);
+
                 $details[] = [
-                    'kode_akun' => $akun->kode_akun,
-                    'nama_akun' => $akun->nama_akun,
-                    'saldo_awal' => $saldoAwal,
-                    'transaksi_masuk' => $transaksiMasuk,
-                    'transaksi_keluar' => $transaksiKeluar,
-                    'saldo_akhir' => $saldoAkhir
+                    'kode_akun'  => $akun->kode_akun,
+                    'nama_akun'  => $akun->nama_akun,
+                    'saldo_akhir'=> $saldoAkhir,
                 ];
             }
-            
+
             return collect($details);
         } catch (\Exception $e) {
             \Log::error('Error getKasBankDetails: ' . $e->getMessage());
