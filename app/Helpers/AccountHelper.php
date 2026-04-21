@@ -26,7 +26,7 @@ class AccountHelper
         $kasBankCodes = ['111', '112', '113']; // Sesuai dengan laporan kas bank
         
         $coaAccounts = Coa::whereIn('kode_akun', $kasBankCodes)
-            ->where('tipe_akun', 'Asset')
+            ->whereIn('tipe_akun', ['Asset', 'Aset', 'ASET'])
             ->orderBy('kode_akun')
             ->get();
         
