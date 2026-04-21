@@ -282,7 +282,7 @@
                                         <td><strong>{{ $retur->nomor_retur ?? '-' }}</strong></td>
                                         <td>{{ $retur->tanggal ? $retur->tanggal->format('d/m/Y') : '-' }}</td>
                                         <td>{{ $retur->penjualan->nomor_penjualan ?? '-' }}</td>
-                                        <td>{{ $retur->pelanggan->name ?? 'Umum' }}</td>
+                                        <td>{{ filled(optional($retur->pelanggan)->name) ? $retur->pelanggan->name : 'Umum' }}</td>
                                         <td>
                                             @switch($retur->jenis_retur ?? '')
                                                 @case('tukar_barang')
@@ -311,7 +311,7 @@
                                                 <span class="text-muted">-</span>
                                             @endif
                                         </td>
-                                        <td>{{ $retur->keterangan ?? '-' }}</td>
+                                        <td>{{ filled($retur->keterangan) ? $retur->keterangan : '-' }}</td>
                                         <td class="text-end">
                                             <strong>
                                                 @if(($retur->jenis_retur ?? '') === 'tukar_barang')

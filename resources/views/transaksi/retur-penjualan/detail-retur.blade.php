@@ -27,6 +27,7 @@
                 </div>
                 <div class="col-md-6">
                     <p><strong>Total Penjualan:</strong> Rp {{ number_format($penjualan->total ?? 0, 0, ',', '.') }}</p>
+                    <p><strong>Metode Pembayaran:</strong> {{ strtoupper($penjualan->payment_method ?? '-') }}</p>
                 </div>
             </div>
         </div>
@@ -65,6 +66,9 @@
                             @error('jenis_retur')
                                 <div class="text-danger">{{ $message }}</div>
                             @enderror
+                            @if(($penjualan->payment_method ?? null) !== 'credit')
+                                <small class="text-muted">Jenis retur Kredit hanya tersedia jika metode pembayaran penjualan adalah Kredit.</small>
+                            @endif
                         </div>
                     </div>
                 </div>

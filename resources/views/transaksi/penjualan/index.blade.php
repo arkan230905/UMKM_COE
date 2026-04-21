@@ -417,7 +417,7 @@
                             <tr class="{{ $key % 2 === 0 ? 'table-light' : '' }}">
                                 <td class="text-center">{{ $key + 1 }}</td>
                                 <td><strong>{{ $penjualan->nomor_penjualan ?? '-' }}</strong></td>
-                                <td>{{ optional($penjualan->tanggal)->format('d-m-Y H:i') ?? $penjualan->tanggal }}</td>
+                                <td>{{ optional($penjualan->tanggal_transaksi)->format('d-m-Y H:i') ?? '-' }}</td>
                                 <td>
                                     <span class="badge {{ ($penjualan->payment_method ?? '') === 'credit' ? 'bg-warning' : 'bg-success' }}">
                                         @switch($penjualan->payment_method ?? '')
@@ -1216,6 +1216,18 @@ function showTab(tabId, buttonElement) {
     // Add active class to clicked button
     buttonElement.classList.add('active');
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    var urlParams = new URLSearchParams(window.location.search);
+    var requestedTab = urlParams.get('tab');
+
+    if (requestedTab === 'retur') {
+        var returButton = document.querySelector('.tab-btn[onclick*="retur-list"]');
+        if (returButton) {
+            showTab('retur-list', returButton);
+        }
+    }
+});
 </script>
 
 <style>

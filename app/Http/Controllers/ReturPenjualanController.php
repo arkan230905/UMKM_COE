@@ -7,34 +7,14 @@ use App\Models\DetailReturPenjualan;
 use App\Models\Penjualan;
 use App\Models\PenjualanDetail;
 use App\Models\User;
-use App\Models\Produk;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class ReturPenjualanController extends Controller
 {
     public function index()
     {
-        $returPenjualans = ReturPenjualan::with(['penjualan', 'pelanggan', 'detailReturPenjualans.produk'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
-
-        return view('transaksi.retur-penjualan.index', compact('returPenjualans'));
-    }
-
-    public function create()
-    {
-        $penjualans = Penjualan::with(['penjualanDetails.produk'])->get();
-        $pelanggans = User::where('role', 'pelanggan')->get();
-        $jenisReturOptions = [
-            'tukar_barang' => 'Tukar Barang',
-            'refund' => 'Refund (Pengembalian Uang)',
-        ];
-
-        $selectedPenjualanId = request('penjualan_id');
-
-        return view('transaksi.retur-penjualan.create', compact('penjualans', 'pelanggans', 'jenisReturOptions', 'selectedPenjualanId'));
+        return redirect()->route('transaksi.penjualan.index');
     }
 
     public function detailRetur($penjualanId)
@@ -45,6 +25,9 @@ class ReturPenjualanController extends Controller
             'tukar_barang' => 'Tukar Barang',
             'refund' => 'Refund (Pengembalian Uang)',
         ];
+        if ($penjualan->payment_method === 'credit') {
+            $jenisReturOptions['kredit'] = 'Kredit';
+        }
 
         return view('transaksi.retur-penjualan.detail-retur', compact('penjualan', 'pelanggans', 'jenisReturOptions'));
     }
@@ -53,7 +36,7 @@ class ReturPenjualanController extends Controller
     {
         $request->validate([
             'penjualan_id' => 'required|exists:penjualans,id',
-            'jenis_retur' => 'required|in:tukar_barang,refund',
+            'jenis_retur' => 'required|in:tukar_barang,refund,kredit',
             'tanggal' => 'required|date',
             'pelanggan_id' => 'nullable|exists:users,id',
             'keterangan' => 'nullable|string',
@@ -62,6 +45,12 @@ class ReturPenjualanController extends Controller
             'details.*.qty_retur' => 'required|numeric|min:0.0001',
             'details.*.harga_barang' => 'required|numeric|min:0'
         ]);
+        $penjualan = Penjualan::findOrFail($request->penjualan_id);
+        if ($request->jenis_retur === 'kredit' && $penjualan->payment_method !== 'credit') {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Jenis retur kredit hanya bisa digunakan untuk transaksi penjualan dengan metode pembayaran kredit.');
+        }
 
         try {
             DB::beginTransaction();
@@ -108,13 +97,6 @@ class ReturPenjualanController extends Controller
         }
     }
 
-    public function show(ReturPenjualan $returPenjualan)
-    {
-        $returPenjualan->load(['penjualan.penjualanDetails.produk', 'pelanggan', 'detailReturPenjualans.penjualanDetail.produk']);
-
-        return view('transaksi.retur-penjualan.show', compact('returPenjualan'));
-    }
-
     public function edit(ReturPenjualan $returPenjualan)
     {
         if ($returPenjualan->status !== 'belum_dibayar') {
@@ -129,6 +111,9 @@ class ReturPenjualanController extends Controller
             'tukar_barang' => 'Tukar Barang',
             'refund' => 'Refund (Pengembalian Uang)',
         ];
+        if ($returPenjualan->penjualan && $returPenjualan->penjualan->payment_method === 'credit') {
+            $jenisReturOptions['kredit'] = 'Kredit';
+        }
 
         return view('transaksi.retur-penjualan.edit', compact('returPenjualan', 'penjualans', 'pelanggans', 'jenisReturOptions'));
     }
@@ -141,7 +126,8 @@ class ReturPenjualanController extends Controller
         }
 
         $request->validate([
-            'jenis_retur' => 'required|in:tukar_barang,refund',
+            'penjualan_id' => 'required|exists:penjualans,id',
+            'jenis_retur' => 'required|in:tukar_barang,refund,kredit',
             'tanggal' => 'required|date',
             'pelanggan_id' => 'nullable|exists:users,id',
             'keterangan' => 'nullable|string',
@@ -150,10 +136,17 @@ class ReturPenjualanController extends Controller
             'details.*.qty_retur' => 'required|numeric|min:0.0001',
             'details.*.harga_barang' => 'required|numeric|min:0'
         ]);
+        $penjualan = Penjualan::findOrFail($request->penjualan_id);
+        if ($request->jenis_retur === 'kredit' && $penjualan->payment_method !== 'credit') {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Jenis retur kredit hanya bisa digunakan untuk transaksi penjualan dengan metode pembayaran kredit.');
+        }
 
         try {
             DB::beginTransaction();
 
+            $returPenjualan->penjualan_id = $request->penjualan_id;
             $returPenjualan->tanggal = $request->tanggal;
             $returPenjualan->pelanggan_id = $request->pelanggan_id ?? null;
             $returPenjualan->jenis_retur = $request->jenis_retur;
@@ -197,11 +190,6 @@ class ReturPenjualanController extends Controller
 
     public function destroy(ReturPenjualan $returPenjualan)
     {
-        if ($returPenjualan->status !== 'belum_dibayar') {
-            return redirect()->route('transaksi.retur-penjualan.index')
-                ->with('error', 'Retur tidak dapat dihapus karena status sudah ' . $returPenjualan->status);
-        }
-
         try {
             DB::beginTransaction();
 
@@ -241,12 +229,4 @@ class ReturPenjualanController extends Controller
         return response()->json($details);
     }
 
-    public function laporan()
-    {
-        $returPenjualans = ReturPenjualan::with(['penjualan', 'pelanggan', 'detailReturPenjualans.produk'])
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return view('transaksi.retur-penjualan.laporan', compact('returPenjualans'));
-    }
 }

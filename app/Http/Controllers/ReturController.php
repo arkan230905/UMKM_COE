@@ -46,26 +46,12 @@ class ReturController extends Controller
 
     public function indexPenjualan()
     {
-        $returs = Retur::where('type', 'sale')
-            ->with(['details.produk', 'penjualan'])
-            ->orderBy('id', 'desc')
-            ->get();
-        
-        return view('transaksi.retur-penjualan.index', compact('returs'));
+        return redirect()->route('transaksi.penjualan.index');
     }
 
     public function createPenjualan(Request $request)
     {
-        $penjualanId = $request->query('penjualan_id');
-        
-        if (!$penjualanId) {
-            return redirect()->route('transaksi.penjualan.index')
-                ->with('error', 'Silakan pilih penjualan yang ingin diretur dari daftar penjualan.');
-        }
-        
-        $penjualan = Penjualan::with(['details.produk'])->findOrFail($penjualanId);
-        
-        return view('transaksi.retur-penjualan.create', compact('penjualan'));
+        return redirect()->route('transaksi.penjualan.index');
     }
 
     public function createPembelian(Request $request)
@@ -783,8 +769,7 @@ class ReturController extends Controller
 
     public function showPenjualan($id)
     {
-        $retur = Retur::with(['details.produk', 'penjualan'])->findOrFail($id);
-        return view('transaksi.retur-penjualan.show', compact('retur'));
+        return redirect()->route('transaksi.penjualan.index');
     }
 
     public function destroyPembelian($id)
