@@ -10,6 +10,8 @@ class EditCoa extends EditRecord
 {
     protected static string $resource = CoaResource::class;
     
+    protected static ?string $title = 'Edit COA';
+    
     protected function mutateFormDataBeforeSave(array $data): array
     {
         // Validasi kode akun tidak duplikat (kecuali record ini sendiri)

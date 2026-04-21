@@ -197,7 +197,7 @@ class BukuBesarExport
                   ->orWhere('ju.kredit', '>', 0);
             })
             ->where('coas.kode_akun', $accountCode)
-            ->whereNotIn('ju.tipe_referensi', ['purchase', 'sale', 'sales_return', 'debt_payment', 'penggajian']) // Exclude types that exist in journal_entries
+            ->whereNotIn('ju.tipe_referensi', ['purchase', 'sale', 'sales_return', 'debt_payment']) // Exclude types that exist in journal_entries (penggajian should be included)
             ->orderBy('ju.tanggal','asc')
             ->orderBy('ju.id','asc');
         

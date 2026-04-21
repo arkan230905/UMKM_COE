@@ -2,7 +2,23 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>@yield('title', 'Dashboard') - {{ config('app.name') }}</title>
+    <title>SIMCOST - @yield('title', 'Dashboard')</title>
+    <!-- Favicon menggunakan logo asli - PRIORITAS UKURAN BESAR -->
+    <link rel="icon" type="image/png" sizes="128x128" href="{{ asset('images/logo.png') }}?v={{ time() }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ asset('images/logo.png') }}?v={{ time() }}">
+    <link rel="icon" type="image/png" sizes="64x64" href="{{ asset('images/logo.png') }}?v={{ time() }}">
+    <link rel="icon" type="image/png" sizes="48x48" href="{{ asset('images/logo.png') }}?v={{ time() }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('images/logo.png') }}?v={{ time() }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('images/logo.png') }}?v={{ time() }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('images/logo.png') }}?v={{ time() }}">
+    
+    <!-- CSS untuk optimasi favicon logo asli -->
+    <link href="{{ asset('css/favicon-fix.css') }}" rel="stylesheet">
+    
+    <!-- Meta untuk Windows dan mobile -->
+    <meta name="msapplication-TileImage" content="{{ asset('images/logo.png') }}">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="theme-color" content="#ffffff">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
@@ -107,6 +123,10 @@
 
 {{-- Auto Reset System untuk Multi-Perusahaan --}}
 <script src="{{ asset('js/auto-reset.js') }}"></script>
+
+{{-- Favicon Optimizer --}}
+<script src="{{ asset('js/favicon-optimizer.js') }}"></script>
+
 @stack('scripts')
 </body>
 </html>

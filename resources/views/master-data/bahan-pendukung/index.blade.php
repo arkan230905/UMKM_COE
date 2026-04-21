@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Daftar Bahan Pendukung')
+
 @push('styles')
 <style>
 /* Bahan Pendukung page specific - BLACK text for kode and nama bahan */

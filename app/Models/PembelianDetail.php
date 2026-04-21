@@ -22,6 +22,11 @@ class PembelianDetail extends Model
         'subtotal',
         'faktor_konversi',
         'jumlah_satuan_utama',
+        'sub_satuan_id',
+        'sub_satuan_nama',
+        'manual_conversion_factor',
+        'jumlah_sub_satuan',
+        'manual_conversion_data',
     ];
 
     protected $casts = [
@@ -30,6 +35,9 @@ class PembelianDetail extends Model
         'subtotal' => 'float',
         'faktor_konversi' => 'decimal:4',
         'jumlah_satuan_utama' => 'decimal:4',
+        'manual_conversion_factor' => 'decimal:4',
+        'jumlah_sub_satuan' => 'decimal:4',
+        'manual_conversion_data' => 'json',
     ];
 
     protected $appends = ['nama_bahan', 'tipe_bahan', 'satuan_utama', 'satuan_nama'];

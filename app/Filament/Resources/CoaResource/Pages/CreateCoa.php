@@ -10,6 +10,8 @@ class CreateCoa extends CreateRecord
 {
     protected static string $resource = CoaResource::class;
     
+    protected static ?string $title = 'Tambah COA';
+    
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         // Validasi kode akun tidak duplikat

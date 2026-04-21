@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Buku Besar')
+
 @section('content')
 <div class="container-fluid py-4">
   <!-- Header Section -->

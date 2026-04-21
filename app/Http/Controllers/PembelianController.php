@@ -720,6 +720,31 @@ class PembelianController extends Controller
                                 
                                 // SIMPAN DETAIL PEMBELIAN KE DATABASE
                                 try {
+                                    $manualConversionData = null;
+                                    
+                                    // Check if there's manual conversion data
+                                    if (isset($request->sub_satuan_pilihan[$i]) && 
+                                        !empty($request->sub_satuan_pilihan[$i]) &&
+                                        isset($request->manual_conversion_factor[$i]) &&
+                                        !empty($request->manual_conversion_factor[$i])) {
+                                        
+                                        $subSatuanPilihan = $request->sub_satuan_pilihan[$i];
+                                        $manualFactor = (float) $request->manual_conversion_factor[$i];
+                                        $jumlahSubSatuan = isset($request->jumlah_sub_satuan[$i]) ? (float) $request->jumlah_sub_satuan[$i] : 0;
+                                        
+                                        // Parse sub satuan info (format: "id|nama")
+                                        $subSatuanParts = explode('|', $subSatuanPilihan);
+                                        $subSatuanId = $subSatuanParts[0] ?? null;
+                                        $subSatuanNama = $subSatuanParts[1] ?? '';
+                                        
+                                        $manualConversionData = [
+                                            'sub_satuan_id' => $subSatuanId,
+                                            'sub_satuan_nama' => $subSatuanNama,
+                                            'manual_conversion_factor' => $manualFactor,
+                                            'jumlah_sub_satuan' => $jumlahSubSatuan
+                                        ];
+                                    }
+                                    
                                     $detail = PembelianDetail::create([
                                         'pembelian_id' => $pembelian->id,
                                         'bahan_baku_id' => $itemId,
@@ -729,10 +754,15 @@ class PembelianController extends Controller
                                         'subtotal' => $hargaTotal,
                                         'faktor_konversi' => $faktorKonversi,
                                         'jumlah_satuan_utama' => $qtyInBaseUnit, // Save converted quantity
+                                        'sub_satuan_id' => $manualConversionData['sub_satuan_id'] ?? null,
+                                        'sub_satuan_nama' => $manualConversionData['sub_satuan_nama'] ?? null,
+                                        'manual_conversion_factor' => $manualConversionData['manual_conversion_factor'] ?? null,
+                                        'jumlah_sub_satuan' => $manualConversionData['jumlah_sub_satuan'] ?? null,
+                                        'manual_conversion_data' => $manualConversionData ? json_encode($manualConversionData) : null,
                                     ]);
                                 } catch (\Exception $e) {
                                     // If jumlah_satuan_utama field doesn't exist, create without it
-                                    \Log::warning("jumlah_satuan_utama field not found, creating without it: " . $e->getMessage());
+                                    \Log::warning("Error creating pembelian detail: " . $e->getMessage());
                                     $detail = PembelianDetail::create([
                                         'pembelian_id' => $pembelian->id,
                                         'bahan_baku_id' => $itemId,
@@ -746,6 +776,22 @@ class PembelianController extends Controller
                                 
                                 // Simpan konversi manual sub satuan jika ada
                                 $this->simpanKonversiManualBaru($detail->id, $request, $i);
+                                
+                                // After saving konversi manual, read it back and update pembelian_details
+                                $konversiManual = \App\Models\PembelianDetailKonversi::where('pembelian_detail_id', $detail->id)->first();
+                                if ($konversiManual) {
+                                    $manualConversionDataFromDB = [
+                                        'sub_satuan_id' => $konversiManual->satuan_id,
+                                        'sub_satuan_nama' => $konversiManual->satuan_nama,
+                                        'manual_conversion_factor' => $konversiManual->faktor_konversi_manual,
+                                        'jumlah_sub_satuan' => $konversiManual->jumlah_konversi,
+                                        'keterangan' => $konversiManual->keterangan
+                                    ];
+                                    
+                                    $detail->update([
+                                        'manual_conversion_data' => json_encode($manualConversionDataFromDB)
+                                    ]);
+                                }
                                 
                                 // Debug: Log data setelah disimpan
                                 \Log::info("PembelianDetail saved with ID: " . $detail->id, [
@@ -816,6 +862,31 @@ class PembelianController extends Controller
                                 
                                 // SIMPAN DETAIL PEMBELIAN KE DATABASE
                                 try {
+                                    $manualConversionData = null;
+                                    
+                                    // Check if there's manual conversion data
+                                    if (isset($request->sub_satuan_pilihan[$i]) && 
+                                        !empty($request->sub_satuan_pilihan[$i]) &&
+                                        isset($request->manual_conversion_factor[$i]) &&
+                                        !empty($request->manual_conversion_factor[$i])) {
+                                        
+                                        $subSatuanPilihan = $request->sub_satuan_pilihan[$i];
+                                        $manualFactor = (float) $request->manual_conversion_factor[$i];
+                                        $jumlahSubSatuan = isset($request->jumlah_sub_satuan[$i]) ? (float) $request->jumlah_sub_satuan[$i] : 0;
+                                        
+                                        // Parse sub satuan info (format: "id|nama")
+                                        $subSatuanParts = explode('|', $subSatuanPilihan);
+                                        $subSatuanId = $subSatuanParts[0] ?? null;
+                                        $subSatuanNama = $subSatuanParts[1] ?? '';
+                                        
+                                        $manualConversionData = [
+                                            'sub_satuan_id' => $subSatuanId,
+                                            'sub_satuan_nama' => $subSatuanNama,
+                                            'manual_conversion_factor' => $manualFactor,
+                                            'jumlah_sub_satuan' => $jumlahSubSatuan
+                                        ];
+                                    }
+                                    
                                     $detail = PembelianDetail::create([
                                         'pembelian_id' => $pembelian->id,
                                         'bahan_baku_id' => null,
@@ -826,10 +897,15 @@ class PembelianController extends Controller
                                         'subtotal' => $hargaTotal,
                                         'faktor_konversi' => $faktorKonversi,
                                         'jumlah_satuan_utama' => $qtyInBaseUnit, // Save converted quantity
+                                        'sub_satuan_id' => $manualConversionData['sub_satuan_id'] ?? null,
+                                        'sub_satuan_nama' => $manualConversionData['sub_satuan_nama'] ?? null,
+                                        'manual_conversion_factor' => $manualConversionData['manual_conversion_factor'] ?? null,
+                                        'jumlah_sub_satuan' => $manualConversionData['jumlah_sub_satuan'] ?? null,
+                                        'manual_conversion_data' => $manualConversionData ? json_encode($manualConversionData) : null,
                                     ]);
                                 } catch (\Exception $e) {
                                     // If jumlah_satuan_utama field doesn't exist, create without it
-                                    \Log::warning("jumlah_satuan_utama field not found, creating without it: " . $e->getMessage());
+                                    \Log::warning("Error creating pembelian detail: " . $e->getMessage());
                                     $detail = PembelianDetail::create([
                                         'pembelian_id' => $pembelian->id,
                                         'bahan_baku_id' => null,
@@ -844,6 +920,22 @@ class PembelianController extends Controller
                                 
                                 // Simpan konversi manual sub satuan jika ada
                                 $this->simpanKonversiManualBaru($detail->id, $request, $i);
+                                
+                                // After saving konversi manual, read it back and update pembelian_details
+                                $konversiManual = \App\Models\PembelianDetailKonversi::where('pembelian_detail_id', $detail->id)->first();
+                                if ($konversiManual) {
+                                    $manualConversionDataFromDB = [
+                                        'sub_satuan_id' => $konversiManual->satuan_id,
+                                        'sub_satuan_nama' => $konversiManual->satuan_nama,
+                                        'manual_conversion_factor' => $konversiManual->faktor_konversi_manual,
+                                        'jumlah_sub_satuan' => $konversiManual->jumlah_konversi,
+                                        'keterangan' => $konversiManual->keterangan
+                                    ];
+                                    
+                                    $detail->update([
+                                        'manual_conversion_data' => json_encode($manualConversionDataFromDB)
+                                    ]);
+                                }
                                 
                                 // CRITICAL: Update stock in base unit (satuan utama) using helper function
                                 // This is the ONLY place where stock should be updated for purchases
@@ -874,8 +966,21 @@ class PembelianController extends Controller
                                 // This is ONLY for tracking movements, not for updating actual stock
                                 $unitStr = (string)($bahanPendukung->satuanRelation->nama ?? $bahanPendukung->satuan ?? 'pcs');
                                 
+                                // Get manual conversion data if exists
+                                $manualConversionData = null;
+                                $konversiManual = \App\Models\PembelianDetailKonversi::where('pembelian_detail_id', $detail->id)->first();
+                                if ($konversiManual) {
+                                    $manualConversionData = [
+                                        'sub_satuan_id' => $konversiManual->satuan_id,
+                                        'sub_satuan_nama' => $konversiManual->satuan_nama,
+                                        'faktor_konversi_manual' => $konversiManual->faktor_konversi_manual,
+                                        'jumlah_konversi' => $konversiManual->jumlah_konversi,
+                                        'keterangan' => $konversiManual->keterangan
+                                    ];
+                                }
+                                
                                 // Record stock movement for reporting (this should NOT update actual stock)
-                                $stock->addLayerWithManualConversion('support', $bahanPendukung->id, $qtyInBaseUnit, $unitStr, $pricePerBaseUnit, 'purchase', $pembelian->id, $request->tanggal);
+                                $stock->addLayerWithManualConversion('support', $bahanPendukung->id, $qtyInBaseUnit, $unitStr, $pricePerBaseUnit, 'purchase', $pembelian->id, $request->tanggal, $manualConversionData);
                             }
                     }
 

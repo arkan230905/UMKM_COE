@@ -323,6 +323,126 @@ class StockService
      */
     public function getStockReport($itemId, $itemType, $startDate = null, $endDate = null)
     {
+        // Convert item_type to stock_movements format
+        $stockMovementItemType = '';
+        if ($itemType === KartuStok::ITEM_TYPE_BAHAN_BAKU) {
+            $stockMovementItemType = 'material';
+        } elseif ($itemType === KartuStok::ITEM_TYPE_BAHAN_PENDUKUNG) {
+            $stockMovementItemType = 'support';
+        } else {
+            // Fallback to kartu_stok if unknown type
+            return $this->getStockReportFromKartuStok($itemId, $itemType, $startDate, $endDate);
+        }
+
+        // Use stock_movements for more accurate data including qty_as_input and satuan_as_input
+        $query = \App\Models\StockMovement::where('item_type', $stockMovementItemType)
+            ->where('item_id', $itemId)
+            ->orderBy('tanggal', 'asc')
+            ->orderBy('id', 'asc');
+
+        if ($startDate) {
+            $query->where('tanggal', '>=', $startDate);
+        }
+
+        if ($endDate) {
+            $query->where('tanggal', '<=', $endDate);
+        }
+
+        $entries = $query->get();
+
+        // Calculate running balance
+        $runningBalance = 0;
+        if ($startDate) {
+            // Get balance before start date from stock_movements
+            $beforeEntries = \App\Models\StockMovement::where('item_type', $stockMovementItemType)
+                ->where('item_id', $itemId)
+                ->where('tanggal', '<', $startDate)
+                ->get();
+            
+            foreach ($beforeEntries as $entry) {
+                if ($entry->direction === 'in') {
+                    $runningBalance += (float)$entry->qty;
+                } else {
+                    $runningBalance -= (float)$entry->qty;
+                }
+            }
+        }
+
+        $report = [];
+        foreach ($entries as $entry) {
+            // Update running balance
+            if ($entry->direction === 'in') {
+                $runningBalance += (float)$entry->qty;
+                $qtyMasuk = (float)$entry->qty;
+                $qtyKeluar = 0;
+            } else {
+                $runningBalance -= (float)$entry->qty;
+                $qtyMasuk = 0;
+                $qtyKeluar = (float)$entry->qty;
+            }
+
+            // Generate keterangan based on ref_type
+            $keterangan = '';
+            switch ($entry->ref_type) {
+                case 'initial_stock':
+                    $keterangan = 'Saldo Awal';
+                    break;
+                case 'purchase':
+                    $keterangan = 'Pembelian';
+                    break;
+                case 'production':
+                    // For production, show the original qty and satuan from transaction
+                    if ($entry->qty_as_input && $entry->satuan_as_input) {
+                        $keterangan = 'Pemakaian Produksi - ' . number_format($entry->qty_as_input, 2) . ' ' . $entry->satuan_as_input;
+                    } else {
+                        $keterangan = 'Pemakaian Produksi';
+                    }
+                    break;
+                case 'retur':
+                    $keterangan = 'Retur Pembelian';
+                    break;
+                case 'adjustment':
+                    $keterangan = 'Penyesuaian Stok';
+                    break;
+                default:
+                    $keterangan = ucfirst(str_replace('_', ' ', $entry->ref_type));
+            }
+            
+            $report[] = [
+                'tanggal' => \Carbon\Carbon::parse($entry->tanggal)->format('d/m/Y'),
+                'keterangan' => $keterangan,
+                'qty_masuk' => $qtyMasuk,
+                'qty_keluar' => $qtyKeluar,
+                'saldo' => $runningBalance,
+                'ref_type' => $entry->ref_type,
+                'ref_id' => $entry->ref_id,
+                'qty_as_input' => $entry->qty_as_input,
+                'satuan_as_input' => $entry->satuan_as_input
+            ];
+        }
+
+        // Calculate saldo awal
+        $totalMovements = 0;
+        foreach ($entries as $entry) {
+            if ($entry->direction === 'in') {
+                $totalMovements += (float)$entry->qty;
+            } else {
+                $totalMovements -= (float)$entry->qty;
+            }
+        }
+
+        return [
+            'saldo_awal' => $runningBalance - $totalMovements,
+            'entries' => $report,
+            'saldo_akhir' => $runningBalance
+        ];
+    }
+
+    /**
+     * Fallback method using kartu_stok table
+     */
+    private function getStockReportFromKartuStok($itemId, $itemType, $startDate = null, $endDate = null)
+    {
         $query = KartuStok::forItem($itemId, $itemType)
             ->orderBy('tanggal', 'asc')
             ->orderBy('id', 'asc');
@@ -390,7 +510,35 @@ class StockService
                 'manual_conversion_data' => $manualConversionData
             ]));
 
-            return StockLayer::create($data);
+            $stockLayer = StockLayer::create($data);
+            
+            // Also create stock movement with manual conversion data
+            $stockMovementItemType = $itemType === 'support' ? 'support' : ($itemType === 'material' ? 'material' : $itemType);
+            $stockMovementRefType = $refType === 'pembelian' ? 'purchase' : $refType;
+            
+            $totalCost = $qty * $unitCost;
+            
+            \App\Models\StockMovement::create([
+                'item_type' => $stockMovementItemType,
+                'item_id' => $itemId,
+                'tanggal' => $tanggal ?? now()->format('Y-m-d'),
+                'ref_type' => $stockMovementRefType,
+                'ref_id' => $refId,
+                'direction' => 'in',
+                'qty' => $qty,
+                'unit_cost' => $unitCost,
+                'total_cost' => $totalCost,
+                'keterangan' => 'Pembelian',
+                'manual_conversion_data' => $manualConversionData ? json_encode($manualConversionData) : null
+            ]);
+            
+            Log::info('Stock movement created with manual conversion data', [
+                'item_type' => $stockMovementItemType,
+                'item_id' => $itemId,
+                'manual_conversion_data' => $manualConversionData
+            ]);
+            
+            return $stockLayer;
         } catch (\Exception $e) {
             Log::error('Failed to create stock layer with manual conversion', [
                 'error' => $e->getMessage(),

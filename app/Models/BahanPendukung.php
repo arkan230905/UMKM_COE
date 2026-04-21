@@ -17,7 +17,8 @@ class BahanPendukung extends Model
         'deskripsi',
         'satuan_id',
         'harga_satuan',
-        'stok',
+        'saldo_awal',
+        'tanggal_saldo_awal',
         'stok_minimum',
         'kategori_id',
         'is_active',
@@ -37,7 +38,8 @@ class BahanPendukung extends Model
 
     protected $casts = [
         'harga_satuan' => 'decimal:2',
-        'stok' => 'decimal:4',
+        'saldo_awal' => 'decimal:4',
+        'tanggal_saldo_awal' => 'date',
         'stok_minimum' => 'decimal:4',
         'is_active' => 'boolean',
         'sub_satuan_1_konversi' => 'decimal:4',

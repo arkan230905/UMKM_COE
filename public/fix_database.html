@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Ayam Potong Database</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .info { color: blue; }
+        .code { background: #f8f8f8; padding: 10px; border-radius: 3px; font-family: monospace; margin: 10px 0; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Fix Ayam Potong Database</h1>
+        <p>This will update Ayam Potong (ID=1) from 120 Potong to 160 Potong</p>
+        
+        <button onclick="fixDatabase()">Fix Database Now</button>
+        
+        <div id="result"></div>
+        
+        <script>
+        function fixDatabase() {
+            document.getElementById('result').innerHTML = '<p class="info">Processing...</p>';
+            
+            // Create the SQL commands
+            const sqlCommands = [
+                "UPDATE produksi_details SET qty_resep = 160, satuan_resep = 'Potong' WHERE bahan_baku_id = 1;",
+                "UPDATE stock_movements SET qty_as_input = 160, satuan_as_input = 'Potong' WHERE item_type = 'material' AND item_id = 1 AND ref_type = 'production';"
+            ];
+            
+            // Show the SQL commands that need to be executed
+            let html = '<h3>SQL Commands to Execute:</h3>';
+            html += '<div class="code">';
+            sqlCommands.forEach(cmd => {
+                html += cmd + '<br>';
+            });
+            html += '</div>';
+            
+            html += '<p class="info"><strong>Please execute these SQL commands manually in your database:</strong></p>';
+            html += '<ol>';
+            html += '<li>Open phpMyAdmin or your MySQL client</li>';
+            html += '<li>Select the "umkm_coe" database</li>';
+            html += '<li>Go to SQL tab</li>';
+            html += '<li>Copy and paste the SQL commands above</li>';
+            html += '<li>Execute them</li>';
+            html += '<li>Refresh the stock report page: <a href="/laporan/stok?tipe=material&item_id=1&satuan_id=22" target="_blank">laporan/stok?tipe=material&item_id=1&satuan_id=22</a></li>';
+            html += '</ol>';
+            
+            html += '<p class="success">After executing the SQL, the stock report should show 160 Potong instead of 120 Potong!</p>';
+            
+            document.getElementById('result').innerHTML = html;
+        }
+        </script>
+    </div>
+</body>
+</html>

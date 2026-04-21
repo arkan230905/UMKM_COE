@@ -234,17 +234,8 @@ class ExpensePaymentController extends Controller
                 throw new \Exception('Gagal menyimpan data pembayaran beban');
             }
 
-            // Jurnal: Dr Expense ; Cr Cash/Bank
-            $journal->post(
-                $request->tanggal, 
-                'expense_payment', 
-                (int)$pembayaran->id, 
-                'Pembayaran Beban: ' . $bebanOperasional->nama_beban, 
-                [
-                    ['code' => $akunBeban->kode_akun, 'debit' => $request->jumlah, 'credit' => 0],
-                    ['code' => $akunKas->kode_akun, 'debit' => 0, 'credit' => $request->jumlah],
-                ]
-            );
+            // NOTE: Journal entry akan dibuat otomatis oleh ExpensePayment model boot() method
+            // Jangan membuat journal entry di sini untuk menghindari double entry
 
             DB::commit();
             
@@ -357,19 +348,8 @@ class ExpensePaymentController extends Controller
             'keterangan' => $request->keterangan,
         ]);
 
-        // Hapus jurnal lama dan buat baru
-        $acc = \App\Models\Account::where('code', $oldCashCode)->first();
-        if ($acc) {
-            \App\Models\JournalEntry::where('ref_type', 'expense_payment')
-                ->where('ref_id', $row->id)
-                ->delete();
-        }
-
-        // Jurnal baru: Dr Expense ; Cr Cash/Bank
-        $journal->post($request->tanggal, 'expense_payment', (int)$row->id, 'Pembayaran Beban - '.$bebanOperasional->coa->nama_akun, [
-            ['code'=>$bebanOperasional->coa->kode_akun, 'debit'=>(float)$request->nominal_pembayaran, 'credit'=>0],
-            ['code'=>$request->coa_kasbank, 'debit'=>0, 'credit'=>(float)$request->nominal_pembayaran],
-        ]);
+        // NOTE: Journal entry akan diupdate otomatis oleh ExpensePayment model boot() method
+        // Jangan membuat journal entry di sini untuk menghindari double entry
 
         // Update aktual di BOP
         $this->updateBopAktual($bebanOperasional->coa->kode_akun);

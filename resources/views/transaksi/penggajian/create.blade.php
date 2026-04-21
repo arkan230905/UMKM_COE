@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Tambah Penggajian')
+
 @section('content')
 <div class="container py-4">
     <h3 class="mb-4"><i class="bi bi-plus-circle"></i> Tambah Penggajian</h3>

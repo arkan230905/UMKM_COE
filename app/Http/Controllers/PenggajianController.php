@@ -467,8 +467,12 @@ class PenggajianController extends Controller
             // Tentukan akun beban berdasarkan jenis pegawai
             $jenisPegawai = strtolower($pegawai->kategori ?? $pegawai->jenis_pegawai ?? 'btktl');
             
-            // Hitung komponen gaji
-            if ($jenisPegawai === 'btkl') {
+            // Special handling untuk Bagian Gudang
+            if (strpos(strtolower($pegawai->jabatanRelasi->nama ?? ''), 'gudang') !== false) {
+                // Bagian Gudang = BTKTL (Tenaga Kerja Tidak Langsung)
+                $coaBebanGaji = Coa::where('kode_akun', '54')->first(); // BIAYA TENAGA KERJA TIDAK LANGSUNG
+                $gajiDasar = $penggajian->gaji_pokok ?? 0;
+            } else if ($jenisPegawai === 'btkl') {
                 $gajiDasar = ($penggajian->tarif_per_jam ?? 0) * ($penggajian->total_jam_kerja ?? 0);
                 $coaBebanGaji = Coa::where('kode_akun', '52')->first(); // BIAYA TENAGA KERJA LANGSUNG (BTKL)
             } else {
@@ -651,10 +655,14 @@ class PenggajianController extends Controller
             $jenisPegawai = strtolower($pegawai->kategori ?? $pegawai->jenis_pegawai ?? 'btktl');
             
             // Get COA accounts
-            if ($jenisPegawai === 'btkl') {
-                $coaBebanGaji = Coa::where('kode_akun', '52')->first();
+            // Special handling untuk Bagian Gudang
+            if (strpos(strtolower($pegawai->jabatanRelasi->nama ?? ''), 'gudang') !== false) {
+                // Bagian Gudang = BTKTL (Tenaga Kerja Tidak Langsung)
+                $coaBebanGaji = Coa::where('kode_akun', '54')->first(); // BIAYA TENAGA KERJA TIDAK LANGSUNG
+            } else if ($jenisPegawai === 'btkl') {
+                $coaBebanGaji = Coa::where('kode_akun', '52')->first(); // BIAYA TENAGA KERJA LANGSUNG
             } else {
-                $coaBebanGaji = Coa::where('kode_akun', '54')->first();
+                $coaBebanGaji = Coa::where('kode_akun', '54')->first(); // BIAYA TENAGA KERJA TIDAK LANGSUNG
             }
             
             $coaKasBank = Coa::where('kode_akun', $penggajian->coa_kasbank)->first();

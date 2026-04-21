@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Edit Aset')
+
 @section('content')
 <div class="container text-dark">
     <div class="d-flex justify-content-between align-items-center mb-4">

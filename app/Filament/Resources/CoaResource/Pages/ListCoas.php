@@ -9,6 +9,8 @@ class ListCoas extends ListRecords
 {
     protected static string $resource = CoaResource::class;
     
+    protected static ?string $title = 'Daftar COA';
+    
     protected function getTableQuery(): Builder
     {
         // Custom ordering untuk menangani kode akun dengan titik dan tanpa titik

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Kartu Stok Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-link { display: block; margin: 10px 0; padding: 10px; background: #f0f0f0; text-decoration: none; color: #333; }
+        .test-link:hover { background: #e0e0e0; }
+    </style>
+</head>
+<body>
+    <h1>Test Kartu Stok Fix</h1>
+    <p>Klik link di bawah untuk test apakah data produksi sudah ditampilkan dengan benar di kartu stok:</p>
+    
+    <a href="/laporan/kartu-stok?item_type=bahan_baku&item_id=2" class="test-link" target="_blank">
+        🔍 Test Kartu Stok - Ayam Potong (Bahan Baku ID: 2)
+    </a>
+    
+    <a href="/laporan/kartu-stok?item_type=bahan_baku&item_id=5" class="test-link" target="_blank">
+        🔍 Test Kartu Stok - Ayam Kampung (Bahan Baku ID: 5) 
+    </a>
+    
+    <h2>Yang Harus Diperiksa:</h2>
+    <ul>
+        <li>Data "Pemakaian Produksi" harus menampilkan qty dan satuan sesuai dengan halaman transaksi produksi</li>
+        <li>Contoh: "Pemakaian Produksi - 40.00 Kilogram" bukan hanya "Pemakaian Produksi"</li>
+        <li>Qty yang ditampilkan harus sesuai dengan qty_resep dan satuan_resep dari transaksi produksi</li>
+    </ul>
+    
+    <h2>Bandingkan dengan:</h2>
+    <a href="/transaksi/produksi" class="test-link" target="_blank">
+        📋 Halaman Transaksi Produksi (untuk membandingkan data)
+    </a>
+</body>
+</html>

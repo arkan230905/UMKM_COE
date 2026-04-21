@@ -1,0 +1,29 @@
+// Cari duplikasi
+$duplicates = DB::table('journal_entries as je1')
+    ->join('journal_entries as je2', function($join) {
+        $join->whereRaw('DATE(je1.entry_date) = DATE(je2.entry_date)')
+             ->whereRaw('je1.description = je2.description')
+             ->whereRaw('je1.id < je2.id');
+    })
+    ->whereBetween(DB::raw('DATE(je1.entry_date)'), ['2026-04-28', '2026-04-29'])
+    ->select('je1.id as entry1_id', 'je2.id as entry2_id', 'je1.entry_date', 'je1.description', 'je1.created_at as created1', 'je2.created_at as created2')
+    ->get();
+
+// Tampilkan duplikasi
+foreach ($duplicates as $dup) {
+    echo "Entry " . $dup->entry1_id . " dan Entry " . $dup->entry2_id . " - " . $dup->description . "\n";
+}
+
+// Hapus duplikasi (entry yang lebih baru)
+foreach ($duplicates as $dup) {
+    DB::table('journal_lines')->where('journal_entry_id', $dup->entry2_id)->delete();
+    DB::table('journal_entries')->where('id', $dup->entry2_id)->delete();
+    echo "Deleted entry " . $dup->entry2_id . "\n";
+}
+
+// Verifikasi
+$entries = DB::table('journal_entries')
+    ->whereBetween(DB::raw('DATE(entry_date)'), ['2026-04-28', '2026-04-29'])
+    ->get();
+
+echo "Total entries setelah cleanup: " . count($entries) . "\n";

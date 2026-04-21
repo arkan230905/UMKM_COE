@@ -169,8 +169,8 @@
                         'id' => $satuan['id'],
                         'name' => $satuan['nama'],
                         'is_primary' => $satuan['is_primary'],
-                        'conversion' => $satuan['conversion_to_primary'],
-                        'price_conversion' => $satuan['price_conversion'] ?? $satuan['conversion_to_primary'], // Use price_conversion if available
+                        'conversion' => $satuan['conversion_to_primary'] ?? 1,
+                        'price_conversion' => $satuan['price_conversion'] ?? $satuan['conversion_to_primary'] ?? 1, // Use price_conversion if available
                         'price' => $selectedItem->harga_satuan ?? 0 // Use actual price from database, no fallback
                     ];
                 }
@@ -218,47 +218,49 @@
                     if (isset($dailyStock) && count($dailyStock) > 0) {
                         // Convert controller data to view format with unit conversions
                         foreach ($dailyStock as $transaction) {
-                            // SPECIAL HANDLING: Use historical conversion rate for initial stock
-                            $conversionRate = $unit['conversion']; // Default to current rate
+                            // ALWAYS use master data conversion rate for saldo awal and produksi
+                            $conversionRate = $unit['conversion']; // Always use current/master rate
                             
-                            // Check if this is initial stock with historical conversion
-                            if (isset($transaction['ref_type']) && $transaction['ref_type'] === 'initial_stock') {
-                                // For Ayam Potong (item_id = 1) initial stock, use historical rate of 4 potong/kg
-                                if (request('item_id') == 1 && $unit['name'] === 'Potong') {
-                                    $conversionRate = 4.0; // Historical conversion rate
+                            // Convert quantities to selected unit using master conversion rate
+                            $convertedSaldoAwalQty = $transaction['saldo_awal_qty'] * $conversionRate;
+                            
+                            // Initialize production variables
+                            $convertedProduksiQty = 0;
+                            $convertedProduksiHarga = 0;
+                            
+                            // SPECIAL HANDLING FOR PRODUCTION DATA
+                            // For production movements, use appropriate data based on target unit
+                            if ($transaction['ref_type'] === 'production' && isset($transaction['qty_as_input']) && isset($transaction['satuan_as_input'])) {
+                                $originalQty = (float)$transaction['qty_as_input'];
+                                $originalSatuan = $transaction['satuan_as_input'];
+                                
+                                // CORRECT LOGIC: 
+                                // - If displaying in original unit (Potong), use original qty (160)
+                                // - If displaying in base unit (Kilogram), use stored qty (40) to avoid double conversion
+                                if (strtolower($originalSatuan) === strtolower($unit['name'])) {
+                                    // Displaying in original unit - use original quantity
+                                    $convertedProduksiQty = $originalQty;
+                                } elseif ($unit['is_primary']) {
+                                    // Displaying in primary/base unit - use stored converted quantity
+                                    $convertedProduksiQty = $transaction['produksi_qty'];
+                                } else {
+                                    // Displaying in other sub unit - convert from stored base qty
+                                    // For kg to gram: 40 kg × 1000 = 40,000 gram
+                                    // For kg to ons: 40 kg × 10 = 400 ons
+                                    $conversionMultiplier = $unit['conversion']; // Use conversion_to_primary directly
+                                    $convertedProduksiQty = $transaction['produksi_qty'] * $conversionMultiplier;
                                 }
+                            } else {
+                                // Not a production movement or no original data, use standard conversion
+                                $convertedProduksiQty = $transaction['produksi_qty'] * $conversionRate;
                             }
                             
-                            // Convert quantities to selected unit using appropriate conversion rate
-                            $convertedSaldoAwalQty = $transaction['saldo_awal_qty'] * $conversionRate;
-                            $convertedProduksiQty = $transaction['produksi_qty'] * $unit['conversion']; // Always use current rate for production
-                            
-                            // SPECIAL CALCULATION for final stock with mixed conversions
+                            // SPECIAL CALCULATION for final stock
                             // For initial stock row, saldo akhir should equal saldo awal (no other transactions on that row)
                             if ($transaction['ref_type'] === 'initial_stock') {
                                 $convertedSaldoAkhirQty = $convertedSaldoAwalQty; // Same as saldo awal for initial stock row
-                            } elseif (request('item_id') == 1 && $unit['name'] === 'Potong') {
-                                // For other transactions with Ayam Potong, calculate running balance properly
-                                static $runningPotongBalance = null;
-                                
-                                if ($runningPotongBalance === null) {
-                                    // Initialize with initial stock using historical conversion
-                                    $runningPotongBalance = 50 * 4; // 50 kg × 4 potong/kg = 200 potong
-                                }
-                                
-                                // Update balance based on transaction type
-                                if ($transaction['ref_type'] === 'purchase') {
-                                    $runningPotongBalance += $transaction['pembelian_qty'] * 3; // Add purchase with current conversion
-                                } elseif ($transaction['ref_type'] === 'production') {
-                                    $runningPotongBalance -= $convertedProduksiQty; // Subtract production usage
-                                } elseif ($transaction['ref_type'] === 'retur') {
-                                    // Retur data is in pembelian_qty as negative values
-                                    $runningPotongBalance += $transaction['pembelian_qty'] * 3; // Add negative retur (which reduces balance)
-                                }
-                                
-                                $convertedSaldoAkhirQty = $runningPotongBalance;
                             } else {
-                                // For other items, use standard conversion
+                                // For other transactions, calculate saldo akhir using the master conversion rate
                                 $convertedSaldoAkhirQty = $transaction['saldo_akhir_qty'] * $unit['conversion'];
                             }
                             
@@ -284,9 +286,18 @@
                                 $convertedPenjualanTotal = $convertedPembelianTotal;
                             } else {
                                 // For materials and bahan pendukung, use appropriate conversion rate
-                                $purchaseConversionRate = $unit['conversion']; // Default to current rate
+                                $purchaseConversionRate = $unit['conversion']; // Default to master rate
                                 
-                                // For purchase transactions, always use current conversion rate
+                                // ONLY check manual conversion data for PURCHASE transactions
+                                if ($transaction['ref_type'] === 'purchase' &&
+                                    isset($transaction['manual_conversion_data']) && $transaction['manual_conversion_data'] && 
+                                    isset($transaction['manual_conversion_data']['sub_satuan_id']) &&
+                                    $transaction['manual_conversion_data']['sub_satuan_id'] == $unit['id']) {
+                                    // Use manual conversion factor ONLY for this specific purchase transaction
+                                    $purchaseConversionRate = (float)($transaction['manual_conversion_data']['manual_conversion_factor'] ?? $unit['conversion']);
+                                }
+                                
+                                // For purchase transactions, use the appropriate conversion rate
                                 $convertedPembelianQty = $transaction['pembelian_qty'] * $purchaseConversionRate;
                                 $convertedPembelianTotal = $transaction['pembelian_nilai'];
                                 
@@ -325,8 +336,38 @@
                             
                             // Produksi - only show price if there's production usage
                             if ($transaction['produksi_qty'] > 0 && $transaction['produksi_nilai'] > 0) {
-                                $baseUnitCost = $transaction['produksi_nilai'] / $transaction['produksi_qty'];
-                                $convertedProduksiHarga = $priceConversion > 0 ? $baseUnitCost / $priceConversion : $baseUnitCost;
+                                // For production, use correct price calculation based on unit type
+                                if (isset($transaction['qty_as_input']) && isset($transaction['satuan_as_input'])) {
+                                    $originalQty = (float)$transaction['qty_as_input'];
+                                    $originalSatuan = $transaction['satuan_as_input'];
+                                    
+                                    // Use original price per unit from stock movement total
+                                    $originalPricePerUnit = $transaction['produksi_nilai'] / $originalQty;
+                                    
+                                    // Find the conversion factor for original unit
+                                    $originalConversionFactor = 1;
+                                    foreach ($availableSatuans as $availableUnit) {
+                                        if (strtolower($availableUnit['nama']) === strtolower($originalSatuan)) {
+                                            $originalConversionFactor = $availableUnit['conversion_to_primary'] ?? 1;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    if (strtolower($originalSatuan) === strtolower($unit['name'])) {
+                                        // Displaying in original unit - use original price
+                                        $convertedProduksiHarga = $originalPricePerUnit;
+                                    } elseif ($unit['is_primary']) {
+                                        // Displaying in primary unit - convert price from original unit
+                                        $convertedProduksiHarga = $originalPricePerUnit / $originalConversionFactor;
+                                    } else {
+                                        // Displaying in other sub unit - convert price appropriately
+                                        $convertedProduksiHarga = $originalPricePerUnit * $unit['conversion'] / $originalConversionFactor;
+                                    }
+                                } else {
+                                    // Fallback to standard calculation
+                                    $baseUnitCost = $transaction['produksi_nilai'] / $transaction['produksi_qty'];
+                                    $convertedProduksiHarga = $priceConversion > 0 ? $baseUnitCost / $priceConversion : $baseUnitCost;
+                                }
                             }
                             
                             // Saldo Akhir - calculate from final values
@@ -391,36 +432,36 @@
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
-                            <table class="table table-bordered table-hover mb-0" style="font-size: 12px;">
-                                <thead style="background-color: #6c9f6c; color: white;">
-                                    <tr>
-                                        <th rowspan="2" class="text-center align-middle" style="width: 80px;">Tanggal</th>
-                                        <th rowspan="2" class="text-center align-middle" style="width: 120px;">Keterangan</th>
-                                        <th colspan="3" class="text-center">Stok Awal</th>
+                            <table class="table table-bordered table-hover mb-0" style="font-size: 12px; border: 2px solid #000; background-color: #f5f0e8;">
+                                <thead style="background-color: #f5f0e8; border: 2px solid #000;">
+                                    <tr style="border: 1px solid #000;">
+                                        <th rowspan="2" class="text-center align-middle" style="width: 80px; border: 1px solid #000; background-color: #f5f0e8;">Tanggal</th>
+                                        <th rowspan="2" class="text-center align-middle" style="width: 120px; border: 1px solid #000; background-color: #f5f0e8;">Keterangan</th>
+                                        <th colspan="3" class="text-center" style="border: 1px solid #000; background-color: #f5f0e8;">Stok Awal</th>
                                         @if($tipe == 'product')
-                                            <th colspan="3" class="text-center">Penjualan</th>
+                                            <th colspan="3" class="text-center" style="border: 1px solid #000; background-color: #f5f0e8;">Penjualan</th>
                                         @else
-                                            <th colspan="3" class="text-center">Pembelian</th>
+                                            <th colspan="3" class="text-center" style="border: 1px solid #000; background-color: #f5f0e8;">Pembelian</th>
                                         @endif
-                                        <th colspan="3" class="text-center">Produksi</th>
-                                        <th colspan="3" class="text-center">Total Stok Dalam Satuan {{ $unit['name'] }}</th>
+                                        <th colspan="3" class="text-center" style="border: 1px solid #000; background-color: #f5f0e8;">Produksi</th>
+                                        <th colspan="3" class="text-center" style="border: 1px solid #000; background-color: #f5f0e8;">Total Stok Dalam Satuan {{ $unit['name'] }}</th>
                                     </tr>
-                                    <tr>
-                                        <th class="text-center" style="width: 60px;">Qty</th>
-                                        <th class="text-center" style="width: 80px;">Harga</th>
-                                        <th class="text-center" style="width: 100px;">Total</th>
-                                        <th class="text-center" style="width: 60px;">Qty</th>
-                                        <th class="text-center" style="width: 80px;">Harga</th>
-                                        <th class="text-center" style="width: 100px;">Total</th>
-                                        <th class="text-center" style="width: 60px;">Qty</th>
-                                        <th class="text-center" style="width: 80px;">Harga</th>
-                                        <th class="text-center" style="width: 100px;">Total</th>
-                                        <th class="text-center" style="width: 60px;">Qty</th>
-                                        <th class="text-center" style="width: 80px;">Harga</th>
-                                        <th class="text-center" style="width: 100px;">Total</th>
+                                    <tr style="border: 1px solid #000;">
+                                        <th class="text-center" style="width: 60px; border: 1px solid #000; background-color: #f5f0e8;">Qty</th>
+                                        <th class="text-center" style="width: 80px; border: 1px solid #000; background-color: #f5f0e8;">Harga</th>
+                                        <th class="text-center" style="width: 100px; border: 1px solid #000; background-color: #f5f0e8;">Total</th>
+                                        <th class="text-center" style="width: 60px; border: 1px solid #000; background-color: #f5f0e8;">Qty</th>
+                                        <th class="text-center" style="width: 80px; border: 1px solid #000; background-color: #f5f0e8;">Harga</th>
+                                        <th class="text-center" style="width: 100px; border: 1px solid #000; background-color: #f5f0e8;">Total</th>
+                                        <th class="text-center" style="width: 60px; border: 1px solid #000; background-color: #f5f0e8;">Qty</th>
+                                        <th class="text-center" style="width: 80px; border: 1px solid #000; background-color: #f5f0e8;">Harga</th>
+                                        <th class="text-center" style="width: 100px; border: 1px solid #000; background-color: #f5f0e8;">Total</th>
+                                        <th class="text-center" style="width: 60px; border: 1px solid #000; background-color: #f5f0e8;">Qty</th>
+                                        <th class="text-center" style="width: 80px; border: 1px solid #000; background-color: #f5f0e8;">Harga</th>
+                                        <th class="text-center" style="width: 100px; border: 1px solid #000; background-color: #f5f0e8;">Total</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody style="background-color: #f5f0e8;">
                                     @foreach($stockData as $row)
                                         @php
                                             // Generate transaction description based on ref_type
@@ -461,29 +502,29 @@
                                                 $keterangan = 'Transaksi';
                                             }
                                         @endphp
-                                        <tr class="{{ (isset($row['is_opening_balance']) && $row['is_opening_balance']) ? 'table-info' : '' }}">
-                                            <td class="text-center">{{ $row['tanggal'] }}</td>
-                                            <td class="text-center">{{ $keterangan }}</td>
-                                            <td class="text-end">{{ (isset($row['saldo_awal_qty']) && $row['saldo_awal_qty'] != 0) ? formatQuantity($row['saldo_awal_qty'], $unit['name']) : '' }}</td>
-                                            <td class="text-end">{{ $row['saldo_awal_harga'] > 0 ? formatCurrency($row['saldo_awal_harga']) : '' }}</td>
-                                            <td class="text-end">{{ $row['saldo_awal_total'] > 0 ? formatCurrency($row['saldo_awal_total'], 0) : '' }}</td>
+                                        <tr class="{{ (isset($row['is_opening_balance']) && $row['is_opening_balance']) ? 'table-info' : '' }}" style="border: 1px solid #000; background-color: #f5f0e8;">
+                                            <td class="text-center" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['tanggal'] }}</td>
+                                            <td class="text-center" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $keterangan }}</td>
+                                            <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ (isset($row['saldo_awal_qty']) && $row['saldo_awal_qty'] != 0) ? formatQuantity($row['saldo_awal_qty'], $unit['name']) : '' }}</td>
+                                            <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['saldo_awal_harga'] > 0 ? formatCurrency($row['saldo_awal_harga']) : '' }}</td>
+                                            <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['saldo_awal_total'] > 0 ? formatCurrency($row['saldo_awal_total'], 0) : '' }}</td>
                                             @if($tipe == 'product')
                                                 <!-- For products, show sales data instead of purchase data -->
-                                            <td class="text-end">{{ isset($row['penjualan_qty']) && $row['penjualan_qty'] != 0 ? formatQuantity($row['penjualan_qty'], $unit['name']) : '' }}</td>
-                                                <td class="text-end">{{ isset($row['penjualan_harga']) && $row['penjualan_harga'] > 0 ? formatCurrency($row['penjualan_harga']) : '' }}</td>
-                                                <td class="text-end">{{ isset($row['penjualan_total']) && $row['penjualan_total'] > 0 ? formatCurrency($row['penjualan_total'], 0) : '' }}</td>
+                                                <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ isset($row['penjualan_qty']) && $row['penjualan_qty'] != 0 ? formatQuantity($row['penjualan_qty'], $unit['name']) : '' }}</td>
+                                                <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ isset($row['penjualan_harga']) && $row['penjualan_harga'] > 0 ? formatCurrency($row['penjualan_harga']) : '' }}</td>
+                                                <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ isset($row['penjualan_total']) && $row['penjualan_total'] > 0 ? formatCurrency($row['penjualan_total'], 0) : '' }}</td>
                                             @else
                                                 <!-- For materials and bahan pendukung, show purchase data -->
-                                                <td class="text-end">{{ isset($row['pembelian_qty']) && $row['pembelian_qty'] != 0 ? formatQuantity($row['pembelian_qty'], $unit['name']) : '' }}</td>
-                                                <td class="text-end">{{ $row['pembelian_harga'] > 0 ? formatCurrency($row['pembelian_harga']) : '' }}</td>
-                                                <td class="text-end">{{ $row['pembelian_total'] != 0 ? formatCurrency($row['pembelian_total'], 0) : '' }}</td>
+                                                <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ isset($row['pembelian_qty']) && $row['pembelian_qty'] != 0 ? formatQuantity($row['pembelian_qty'], $unit['name']) : '' }}</td>
+                                                <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['pembelian_harga'] > 0 ? formatCurrency($row['pembelian_harga']) : '' }}</td>
+                                                <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['pembelian_total'] != 0 ? formatCurrency($row['pembelian_total'], 0) : '' }}</td>
                                             @endif
-                                            <td class="text-end">{{ isset($row['produksi_qty']) && $row['produksi_qty'] != 0 ? formatQuantity($row['produksi_qty'], $unit['name']) : '' }}</td>
-                                            <td class="text-end">{{ $row['produksi_harga'] > 0 ? formatCurrency($row['produksi_harga']) : '' }}</td>
-                                            <td class="text-end">{{ $row['produksi_total'] > 0 ? formatCurrency($row['produksi_total'], 0) : '' }}</td>
-                                            <td class="text-end fw-bold">{{ formatQuantity($row['saldo_akhir_qty'], $unit['name']) }}</td>
-                                            <td class="text-end">{{ formatCurrency($row['saldo_akhir_harga']) }}</td>
-                                            <td class="text-end">{{ formatCurrency($row['saldo_akhir_total'], 0) }}</td>
+                                            <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ isset($row['produksi_qty']) && $row['produksi_qty'] != 0 ? formatQuantity($row['produksi_qty'], $unit['name']) : '' }}</td>
+                                            <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['produksi_harga'] > 0 ? formatCurrency($row['produksi_harga']) : '' }}</td>
+                                            <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['produksi_total'] > 0 ? formatCurrency($row['produksi_total'], 0) : '' }}</td>
+                                            <td class="text-end fw-bold" style="border: 1px solid #000; background-color: #f5f0e8;">{{ formatQuantity($row['saldo_akhir_qty'], $unit['name']) }}</td>
+                                            <td class="text-end fw-bold" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['saldo_akhir_harga'] > 0 ? formatCurrency($row['saldo_akhir_harga']) : '' }}</td>
+                                            <td class="text-end fw-bold" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['saldo_akhir_total'] > 0 ? formatCurrency($row['saldo_akhir_total'], 0) : '' }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

@@ -169,7 +169,7 @@ class ProduksiController extends Controller
         return DB::transaction(function () use ($produksi, $stock, $journal) {
             $produk = $produksi->produk;
             $qtyProd = $produksi->qty_produksi;
-            $tanggal = now()->toDateString();
+            $tanggal = $produksi->tanggal->format('Y-m-d');
 
             $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
             
@@ -504,7 +504,7 @@ class ProduksiController extends Controller
     {
         $produk = $produksi->produk;
         $qtyProd = $produksi->qty_produksi;
-        $tanggal = now()->toDateString();
+        $tanggal = $produksi->tanggal->format('Y-m-d');
 
         // Tambahkan stok produk jadi SEKARANG
         $produk->stok = ($produk->stok ?? 0) + $qtyProd;

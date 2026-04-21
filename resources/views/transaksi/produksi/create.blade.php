@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Tambah Produksi')
+
 @section('content')
 <div class="container-fluid">
     <div class="card">

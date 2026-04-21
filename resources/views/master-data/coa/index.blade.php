@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Daftar COA')
+
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -48,6 +50,7 @@
                             <th>Nama Akun</th>
                             <th>Kode Akun</th>
                             <th>Tipe</th>
+                            <th class="text-center">Posisi</th>
                             <th class="text-end">Saldo Awal</th>
                             <th class="text-center">Aksi</th>
                         </tr>
@@ -70,6 +73,14 @@
                                 <td>
                                     <span class="badge {{ $coa->tipe_akun == 'Asset' || $coa->tipe_akun == 'Aset' ? 'bg-success' : ($coa->tipe_akun == 'Liability' || $coa->tipe_akun == 'Kewajiban' ? 'bg-warning' : ($coa->tipe_akun == 'Equity' || $coa->tipe_akun == 'Modal' ? 'bg-info' : ($coa->tipe_akun == 'Revenue' || $coa->tipe_akun == 'Pendapatan' ? 'bg-primary' : 'bg-danger'))) }}">
                                         {{ $coa->tipe_akun }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    @php
+                                        $posisi = $posisiAkun[$coa->id] ?? 'Unknown';
+                                    @endphp
+                                    <span class="badge {{ $posisi == 'Debit' ? 'bg-primary' : 'bg-success' }}">
+                                        {{ $posisi }}
                                     </span>
                                 </td>
                                 <td class="text-end">

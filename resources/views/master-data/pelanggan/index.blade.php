@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Daftar Pelanggan')
+
 @section('content')
 <style>
 .password-text {

@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Kelola Proses Produksi')
+
 @section('head')
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">

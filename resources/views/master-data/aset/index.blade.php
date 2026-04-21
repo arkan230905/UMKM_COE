@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Daftar Aset')
+
 @section('content')
 <div class="container mt-4">
     <div class="row mb-3">

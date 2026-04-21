@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Pelunasan Utang')
+
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">

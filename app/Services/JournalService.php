@@ -341,11 +341,11 @@ class JournalService
                         $query->where('nama_akun', 'like', '%kas%')
                               ->where('nama_akun', 'not like', '%bank%');
                     })
-                    ->orWhere('kode_akun', '1101')
+                    ->orWhere('kode_akun', '112') // Kas
                     ->orWhere('kode_akun', '101')
                     ->first();
                 
-                $debitAccount = $kasCoa ? $kasCoa->kode_akun : '1101';
+                $debitAccount = $kasCoa ? $kasCoa->kode_akun : '112';
                 $debitMemo = 'Penerimaan tunai penjualan';
                 break;
                 
@@ -360,7 +360,7 @@ class JournalService
                     ->orWhere('kode_akun', '102')
                     ->first();
                 
-                $debitAccount = $bankCoa ? $bankCoa->kode_akun : '1102';
+                $debitAccount = $bankCoa ? $bankCoa->kode_akun : '111'; // Kas Bank
                 $debitMemo = 'Penerimaan transfer penjualan';
                 break;
                 
@@ -375,7 +375,7 @@ class JournalService
                     ->orWhere('kode_akun', '103')
                     ->first();
                 
-                $debitAccount = $piutangCoa ? $piutangCoa->kode_akun : '1103';
+                $debitAccount = $piutangCoa ? $piutangCoa->kode_akun : '113'; // Kas Kecil (default untuk piutang)
                 $debitMemo = 'Penjualan kredit';
                 break;
                 
@@ -389,7 +389,7 @@ class JournalService
                     })
                     ->first();
                 
-                $debitAccount = $defaultCoa ? $defaultCoa->kode_akun : '1101';
+                $debitAccount = $defaultCoa ? $defaultCoa->kode_akun : '112'; // Default Kas
                 $debitMemo = 'Penerimaan penjualan';
         }
         
@@ -400,18 +400,10 @@ class JournalService
             'memo' => $debitMemo
         ];
         
-        // Create credit entry for sales revenue - cari COA Penjualan yang ada
-        $penjualanCoa = Coa::where('tipe_akun', 'Revenue')
-            ->where(function($query) {
-                $query->where('nama_akun', 'like', '%penjualan%')
-                      ->orWhere('nama_akun', 'like', '%sales%')
-                      ->orWhere('nama_akun', 'like', '%pendapatan%');
-            })
-            ->orWhere('kode_akun', '4101')
-            ->orWhere('kode_akun', '401')
-            ->first();
+        // Create credit entry for sales revenue - gunakan COA 41 (PENDAPATAN)
+        $penjualanCoa = Coa::where('kode_akun', '41')->first();
         
-        $creditAccount = $penjualanCoa ? $penjualanCoa->kode_akun : '4101';
+        $creditAccount = $penjualanCoa ? $penjualanCoa->kode_akun : '41';
         
         $lines[] = [
             'code' => $creditAccount,
@@ -420,6 +412,10 @@ class JournalService
             'memo' => 'Pendapatan penjualan produk'
         ];
         
+        // Add HPP journal entries with detailed breakdown
+        $hppLines = $service->createHPPLinesFromPenjualan($penjualan);
+        $lines = array_merge($lines, $hppLines);
+        
         // Create journal entry
         $memo = 'Penjualan #' . ($penjualan->nomor_penjualan ?? $penjualan->id);
         $tanggal = $penjualan->tanggal instanceof \Carbon\Carbon ? 
@@ -427,6 +423,209 @@ class JournalService
                    $penjualan->tanggal;
         
         $service->post($tanggal, 'sale', $penjualan->id, $memo, $lines);
+    }
+
+    /**
+     * Create HPP journal lines from Penjualan with detailed breakdown
+     * Dr. HPP (Material, BTKL, BOP) | Cr. Persediaan Barang Jadi
+     */
+    private function createHPPLinesFromPenjualan($penjualan): array
+    {
+        $lines = [];
+        
+        // Get penjualan details
+        if ($penjualan->details && $penjualan->details->count() > 0) {
+            // Multi-item penjualan
+            foreach ($penjualan->details as $detail) {
+                $lines = array_merge($lines, $this->createHPPLinesForDetail($detail, $penjualan));
+            }
+        } else {
+            // Single-item penjualan
+            $lines = $this->createHPPLinesForSingleItem($penjualan);
+        }
+        
+        return $lines;
+    }
+    
+    /**
+     * Create HPP lines for penjualan detail
+     */
+    private function createHPPLinesForDetail($detail, $penjualan): array
+    {
+        $lines = [];
+        $qty = $detail->jumlah ?? 0;
+        $product = $detail->produk;
+        
+        if (!$product || $qty <= 0) {
+            return $lines;
+        }
+        
+        // Get BOM components for this product
+        $bomComponents = \App\Models\Bom::with(['details.bahanBaku', 'details.bahanPendukung'])
+            ->where('produk_id', $product->id)
+            ->get();
+        
+        $totalMaterialCost = 0;
+        $totalBTKLCost = 0;
+        $totalBOPCost = 0;
+        
+        // Material costs
+        foreach ($bomComponents as $bom) {
+            foreach ($bom->details as $detail) {
+                if ($detail->bahanBaku) {
+                    $materialCost = $detail->total_biaya * $qty;
+                    $totalMaterialCost += $materialCost;
+                    
+                    $lines[] = [
+                        'code' => $detail->bahanBaku->coa_persediaan_id ?? '1141',
+                        'debit' => $materialCost,
+                        'credit' => 0,
+                        'memo' => "HPP Material - {$detail->bahanBaku->nama_bahan} untuk {$product->nama_produk} ({$qty} pcs)"
+                    ];
+                }
+                
+                if ($detail->bahanPendukung) {
+                    $materialCost = $detail->total_biaya * $qty;
+                    $totalMaterialCost += $materialCost;
+                    
+                    $lines[] = [
+                        'code' => $detail->bahanPendukung->coa_persediaan_id ?? '1152',
+                        'debit' => $materialCost,
+                        'credit' => 0,
+                        'memo' => "HPP Material - {$detail->bahanPendukung->nama_bahan} untuk {$product->nama_produk} ({$qty} pcs)"
+                    ];
+                }
+            }
+        }
+        
+        // BTKL costs
+        $btklCost = ($product->btkl_default ?? 0) * $qty;
+        $totalBTKLCost += $btklCost;
+        
+        if ($btklCost > 0) {
+            $lines[] = [
+                'code' => '52', // BIAYA TENAGA KERJA LANGSUNG (BTKL)
+                'debit' => $btklCost,
+                'credit' => 0,
+                'memo' => "HPP BTKL untuk {$product->nama_produk} ({$qty} pcs)"
+            ];
+        }
+        
+        // BOP costs
+        $bopCost = ($product->bop_default ?? 0) * $qty;
+        $totalBOPCost += $bopCost;
+        
+        if ($bopCost > 0) {
+            $lines[] = [
+                'code' => '53', // BIAYA OVERHEAD PABRIK (BOP)
+                'debit' => $bopCost,
+                'credit' => 0,
+                'memo' => "HPP BOP untuk {$product->nama_produk} ({$qty} pcs)"
+            ];
+        }
+        
+        // Credit persediaan barang jadi
+        $totalHPP = $totalMaterialCost + $totalBTKLCost + $totalBOPCost;
+        if ($totalHPP > 0) {
+            // Find the appropriate persediaan barang jadi COA
+            $persediaanCOA = $this->getPersediaanBarangJadiCOA($product);
+            
+            $lines[] = [
+                'code' => $persediaanCOA,
+                'debit' => 0,
+                'credit' => $totalHPP,
+                'memo' => "HPP Total - {$product->nama_produk} ({$qty} pcs)"
+            ];
+        }
+        
+        return $lines;
+    }
+    
+    /**
+     * Create HPP lines for single item penjualan
+     */
+    private function createHPPLinesForSingleItem($penjualan): array
+    {
+        $lines = [];
+        $qty = $penjualan->jumlah ?? 0;
+        $product = $penjualan->produk;
+        
+        if (!$product || $qty <= 0) {
+            return $lines;
+        }
+        
+        // Similar logic as above but for single item
+        $totalMaterialCost = 0;
+        $totalBTKLCost = ($product->btkl_default ?? 0) * $qty;
+        $totalBOPCost = ($product->bop_default ?? 0) * $qty;
+        
+        // Get BOM cost
+        $bomCost = \App\Models\Bom::where('produk_id', $product->id)->sum('total_biaya');
+        $totalMaterialCost = $bomCost * $qty;
+        
+        // Create material lines (simplified for single item)
+        if ($totalMaterialCost > 0) {
+            $lines[] = [
+                'code' => '117', // Barang Dalam Proses (WIP) - temporary
+                'debit' => $totalMaterialCost,
+                'credit' => 0,
+                'memo' => "HPP Material untuk {$product->nama_produk} ({$qty} pcs)"
+            ];
+        }
+        
+        if ($totalBTKLCost > 0) {
+            $lines[] = [
+                'code' => '52', // BIAYA TENAGA KERJA LANGSUNG (BTKL)
+                'debit' => $totalBTKLCost,
+                'credit' => 0,
+                'memo' => "HPP BTKL untuk {$product->nama_produk} ({$qty} pcs)"
+            ];
+        }
+        
+        if ($totalBOPCost > 0) {
+            $lines[] = [
+                'code' => '53', // BIAYA OVERHEAD PABRIK (BOP)
+                'debit' => $totalBOPCost,
+                'credit' => 0,
+                'memo' => "HPP BOP untuk {$product->nama_produk} ({$qty} pcs)"
+            ];
+        }
+        
+        // Credit persediaan barang jadi
+        $totalHPP = $totalMaterialCost + $totalBTKLCost + $totalBOPCost;
+        if ($totalHPP > 0) {
+            $persediaanCOA = $this->getPersediaanBarangJadiCOA($product);
+            
+            $lines[] = [
+                'code' => $persediaanCOA,
+                'debit' => 0,
+                'credit' => $totalHPP,
+                'memo' => "HPP Total - {$product->nama_produk} ({$qty} pcs)"
+            ];
+        }
+        
+        return $lines;
+    }
+    
+    /**
+     * Get appropriate persediaan barang jadi COA for product
+     */
+    private function getPersediaanBarangJadiCOA($product): string
+    {
+        // Try to find specific COA for product
+        if ($product->coa_persediaan_id) {
+            return $product->coa_persediaan_id;
+        }
+        
+        // Default persediaan barang jadi COAs based on product type
+        if (strpos(strtolower($product->nama_produk), 'macdi') !== false) {
+            return '1161'; // Persediaan Ayam Crispy Macdi
+        } elseif (strpos(strtolower($product->nama_produk), 'bundo') !== false) {
+            return '1162'; // Persediaan Ayam Goreng Bundo
+        }
+        
+        // Default to general persediaan barang jadi
+        return '116'; // Persediaan Barang Jadi
     }
 
     /**
@@ -441,7 +640,7 @@ class JournalService
         $service->deleteByRef('expense_payment', $expensePayment->id);
         
         $lines = [];
-        $amount = $expensePayment->jumlah ?? 0;
+        $amount = $expensePayment->nominal_pembayaran ?? 0;
         
         // Create debit entry for expense
         $expenseAccount = $expensePayment->coa_beban_id; // Ambil dari database

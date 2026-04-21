@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Daftar Produk')
+
 @section('content')
 <style>
     /* Horizontal Scroll Table - Force scroll */
@@ -77,7 +79,7 @@
                 <table class="table table-bordered table-hover" id="dataTable" cellspacing="0">
                     <thead class="thead-light">
                         <tr>
-                            <th width="5%">#</th>
+                            <th width="5%">No</th>
                             <th>Foto</th>
                             <th>Barcode</th>
                             <th>Nama Produk</th>

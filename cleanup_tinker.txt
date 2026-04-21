@@ -1,0 +1,36 @@
+// Cek kolom yang ada
+$columns = DB::select("DESCRIBE journal_entries");
+foreach ($columns as $col) {
+    echo $col->Field . "\n";
+}
+
+// Lihat sample data
+$entries = DB::table('journal_entries')->where('id', '>', 0)->limit(3)->get();
+dd($entries);
+
+// Jika kolom bernama 'tanggal' bukan 'entry_date'
+// Hapus entry 28/04 dengan akun 550 (salah)
+DB::table('journal_lines')
+    ->whereIn('journal_entry_id', 
+        DB::table('journal_entries')
+            ->where('tanggal', '>=', '2026-04-28')
+            ->where('tanggal', '<', '2026-04-29')
+            ->where('description', 'like', '%Sewa%')
+            ->pluck('id')
+    )
+    ->where('account_id', 550)
+    ->delete();
+
+// Hapus entry 29/04 dengan memo 'operasional' (duplikasi)
+DB::table('journal_lines')
+    ->whereIn('journal_entry_id',
+        DB::table('journal_entries')
+            ->where('tanggal', '>=', '2026-04-29')
+            ->where('tanggal', '<', '2026-04-30')
+            ->where('description', 'like', '%Listrik%')
+            ->pluck('id')
+    )
+    ->where('memo', 'like', '%operasional%')
+    ->delete();
+
+echo "✓ Cleanup selesai!\n";

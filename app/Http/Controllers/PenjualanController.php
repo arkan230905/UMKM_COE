@@ -33,7 +33,7 @@ class PenjualanController extends Controller
             $query->where('payment_method', $request->payment_method);
         }
         
-        $penjualans = $query->with(['produk','details','returs'])->orderBy('tanggal','desc')->orderBy('id','desc')->get();
+        $penjualans = $query->with(['produk','details','returs'])->orderBy('tanggal','desc')->get();
         
         // Hitung ringkasan penjualan HARI INI saja
         $today = now()->format('Y-m-d');
@@ -99,216 +99,8 @@ class PenjualanController extends Controller
 
     public function store(Request $request, StockService $stock, JournalService $journal)
     {
-        
-        // Multi-item path
-        if (is_array($request->produk_id)) {
-            return DB::transaction(function() use ($request, $stock, $journal) {
-                // Get valid kas/bank codes from database
-                $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
-                
-                $request->validate([
-                'tanggal' => 'required|date',
-                'waktu' => 'required|date_format:H:i',
-                'payment_method' => 'required|in:cash,transfer,credit',
-                'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', $validKasBankCodes),
-                'produk_id' => 'required|array|min:1',
-                'produk_id.*' => 'required|exists:produks,id',
-                'jumlah' => 'required|array',
-                'jumlah.*' => 'required|integer|min:1',
-                'harga_satuan' => 'required|array',
-                'harga_satuan.*' => 'required|string', // Ubah ke string karena format dari JS adalah "Rp 32.000"
-                'diskon_persen' => 'nullable|array',
-                'diskon_persen.*' => 'nullable|numeric|min:0|max:100',
-            ]);
-
-            $tanggal = $request->tanggal . ' ' . ($request->waktu ?? now()->format('H:i'));
-            $produkIds = $request->produk_id;
-            $jumlahArr = $request->jumlah;
-            // Override harga jual dengan harga_jual dari master produk
-            $hargaArr = [];
-            foreach ($produkIds as $i => $pid) {
-                $p = Produk::findOrFail($pid);
-                $hargaArr[$i] = (float) ($p->harga_jual ?? 0);
-            }
-            $diskonPctArr = $request->diskon_persen ?? [];
-
-            // Validasi stok cukup per item menggunakan kolom stok dari tabel produks
-            foreach ($produkIds as $i => $pid) {
-                $p = Produk::findOrFail($pid);
-                $qty = (int)($jumlahArr[$i] ?? 0); // Cast to integer
-                
-                // Get available stock from kolom stok di tabel produks
-                $availableStock = (float) ($p->stok ?? 0);
-                
-                if ($qty > $availableStock + 1e-9) {
-                    return back()->withErrors([
-                        'stok' => "Stok {$p->nama_produk} tidak cukup! Stok tersedia: " . number_format($availableStock, 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
-                    ])->withInput();
-                }
-            }
-
-            // Hitung total header
-            $grand = 0; $totalQtyHeader = 0; $totalDiscHeader = 0;
-            foreach ($produkIds as $i => $pid) {
-                $qty = (int)($jumlahArr[$i] ?? 0); // Cast to integer
-                $price = (float)($hargaArr[$i] ?? 0);
-                $pct = (float)($diskonPctArr[$i] ?? 0);
-                $sub = $qty * $price;
-                $discNom = max($sub * ($pct/100.0), 0);
-                $line = max($sub - $discNom, 0);
-                $grand += $line;
-                $totalQtyHeader += $qty;
-                $totalDiscHeader += $discNom;
-            }
-
-            // Get additional costs
-            $biayaOngkir = (float) ($request->biaya_ongkir ?? 0);
-            $biayaService = (float) ($request->biaya_service ?? 0);
-            $ppnPersen = (float) ($request->ppn_persen ?? 0);
-            
-            // Calculate PPN
-            $ppnBase = $grand + $biayaOngkir + $biayaService;
-            $totalPPN = $ppnBase * ($ppnPersen / 100);
-            
-            // Calculate final total
-            $finalTotal = $grand + $biayaOngkir + $biayaService + $totalPPN;
-
-            $penjualan = Penjualan::create([
-                'tanggal' => $tanggal,
-                'payment_method' => $request->payment_method,
-                'jumlah' => $totalQtyHeader,
-                'harga_satuan' => null,
-                'diskon_nominal' => $totalDiscHeader,
-                'total' => $finalTotal,
-            ]);
-
-            // Simpan detail & konsumsi stok per item
-            $cogsSum = 0.0;
-            $errorsBelowCost = [];
-            foreach ($produkIds as $i => $pid) {
-                $prod = Produk::findOrFail($pid);
-                $qty = (int)($jumlahArr[$i] ?? 0); // Cast to integer
-                $price = (float)($hargaArr[$i] ?? 0);
-                $pct = (float)($diskonPctArr[$i] ?? 0);
-                $sub = $qty * $price;
-                $discNom = max($sub * ($pct/100.0), 0);
-                $line = max($sub - $discNom, 0);
-
-                // Guard: jangan jual di bawah HPP FIFO (estimasi tanpa konsumsi)
-                $estCogs = $stock->estimateCost('product', $prod->id, $qty);
-                if ($estCogs <= 0) {
-                    // fallback ke Harga BOM per unit
-                    $sumBom = (float) \App\Models\Bom::where('produk_id', $prod->id)->sum('total_biaya');
-                    $btkl = (float) ($prod->btkl_default ?? 0);
-                    $bop  = (float) ($prod->bop_default ?? 0);
-                    $estCogs = ($sumBom + $btkl + $bop) * $qty;
-                }
-                if ($line + 0.0001 < $estCogs) { // toleransi floating
-                    $errorsBelowCost[] = "Harga jual di bawah HPP untuk {$prod->nama_produk}. HPP: Rp " . number_format($estCogs,0,',','.') . ", Subtotal (setelah diskon): Rp " . number_format($line,0,',','.');
-                }
-
-                \App\Models\PenjualanDetail::create([
-                    'penjualan_id' => $penjualan->id,
-                    'produk_id' => $prod->id,
-                    'jumlah' => $qty,
-                    'harga_satuan' => $price,
-                    'diskon_persen' => $pct,
-                    'diskon_nominal' => $discNom,
-                    'subtotal' => $line,
-                ]);
-
-                // FIFO OUT dan pengurangan stok
-                $cogs = $stock->consume('product', $prod->id, $qty, 'pcs', 'sale', $penjualan->id, $tanggal);
-                $cogsVal = (float) $cogs;
-                if ($cogsVal <= 0) {
-                    $sumBom = (float) \App\Models\Bom::where('produk_id', $prod->id)->sum('total_biaya');
-                    $btkl = (float) ($prod->btkl_default ?? 0);
-                    $bop  = (float) ($prod->bop_default ?? 0);
-                    $cogsVal = ($sumBom + $btkl + $bop) * $qty;
-                }
-                $cogsSum += $cogsVal;
-                $prod->stok = (float)($prod->stok ?? 0) - $qty;
-                $prod->save();
-            }
-
-            if (!empty($errorsBelowCost)) {
-                // Rollback by throwing validation via redirect back
-                return redirect()->back()->withErrors($errorsBelowCost)->withInput();
-            }
-
-            return redirect()->route('transaksi.penjualan.index')
-                             ->with('success', 'Data penjualan (multi item) berhasil ditambahkan.');
-            });
-        }
-
-        // Single-item fallback (tetap mendukung)
-        // Get valid kas/bank codes from database
-        $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
-        
-        $request->validate([
-            'produk_id' => 'required|exists:produks,id',
-            'tanggal' => 'required|date',
-            'payment_method' => 'required|in:cash,transfer,credit',
-            'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', $validKasBankCodes),
-            'jumlah' => 'required|integer|min:1',
-            'harga_satuan' => 'required|string', // Ubah ke string karena format dari JS
-            'diskon_nominal' => 'nullable|numeric|min:0',
-            'diskon_persen' => 'nullable|numeric|min:0|max:100',
-        ]);
-
-        $qty = (int)$request->jumlah; // Cast to integer
-        // Override harga jual dengan harga_jual dari master produk
-        $produk = Produk::findOrFail($request->produk_id);
-        $price = (float) ($produk->harga_jual ?? 0);
-        $disc = (float)($request->diskon_nominal ?? 0);
-        if ($disc <= 0 && $request->filled('diskon_persen')) {
-            $disc = max((($qty * $price) * ((float)$request->diskon_persen) / 100.0), 0);
-        }
-        $total = max(($qty * $price) - $disc, 0);
-
-        // Validasi stok cukup menggunakan kolom stok dari tabel produks
-        if ((float)($produk->stok ?? 0) < $qty) {
-            return back()->withErrors([
-                'stok' => "Stok tidak cukup! Stok tersedia: " . number_format((float)($produk->stok ?? 0), 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
-            ])->withInput();
-        }
-
-        // Guard: jangan jual di bawah HPP FIFO (estimasi tanpa konsumsi)
-        $estCogs = $stock->estimateCost('product', (int)$request->produk_id, $qty);
-        if ($estCogs <= 0) {
-            $sumBom = (float) \App\Models\Bom::where('produk_id', $produk->id)->sum('total_biaya');
-            $btkl = (float) ($produk->btkl_default ?? 0);
-            $bop  = (float) ($produk->bop_default ?? 0);
-            $estCogs = ($sumBom + $btkl + $bop) * $qty;
-        }
-        if ($total + 0.0001 < $estCogs) {
-            return back()->withErrors(["Harga jual di bawah HPP. HPP: Rp " . number_format($estCogs,0,',','.') . ", Total (setelah diskon): Rp " . number_format($total,0,',','.')])->withInput();
-        }
-
-        $penjualan = Penjualan::create([
-            'produk_id' => $request->produk_id,
-            'tanggal' => $request->tanggal,
-            'payment_method' => $request->payment_method,
-            'jumlah' => $qty,
-            'harga_satuan' => $price,
-            'diskon_nominal' => $disc,
-            'total' => $total,
-        ]);
-
-        $tanggal = $request->tanggal;
-        $qty     = (float)$request->jumlah;
-        $cogs = $stock->consume('product', $produk->id, $qty, 'pcs', 'sale', $penjualan->id, $tanggal);
-        if ((float)$cogs <= 0) {
-            $sumBom = (float) \App\Models\Bom::where('produk_id', $produk->id)->sum('total_biaya');
-            $btkl = (float) ($produk->btkl_default ?? 0);
-            $bop  = (float) ($produk->bop_default ?? 0);
-            $cogs = ($sumBom + $btkl + $bop) * $qty;
-        }
-        $produk->stok = (float)($produk->stok ?? 0) - $qty;
-        $produk->save();
-
-        return redirect()->route('transaksi.penjualan.index')
-                         ->with('success', 'Data penjualan berhasil ditambahkan.');
+        // This method is now replaced by confirmPayment
+        return redirect()->route('transaksi.penjualan.create');
     }
 
     public function show($id)
@@ -347,185 +139,8 @@ class PenjualanController extends Controller
 
     public function update(Request $request, $id, StockService $stock, JournalService $journal)
     {
-        $penjualan = Penjualan::with('details')->findOrFail($id);
-        
-        // Multi-item path
-        if (is_array($request->produk_id)) {
-            // Get valid kas/bank codes from database
-            $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
-            
-            $request->validate([
-                'tanggal' => 'required|date',
-                'payment_method' => 'required|in:cash,transfer,credit',
-                'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', $validKasBankCodes),
-                'produk_id' => 'required|array|min:1',
-                'produk_id.*' => 'required|exists:produks,id',
-                'jumlah' => 'required|array',
-                'jumlah.*' => 'required|integer|min:1',
-                'harga_satuan' => 'required|array',
-                'harga_satuan.*' => 'required|string',
-                'diskon_persen' => 'nullable|array',
-                'diskon_persen.*' => 'nullable|numeric|min:0|max:100',
-            ]);
-
-            $tanggal = $request->tanggal;
-            $produkIds = $request->produk_id;
-            $jumlahArr = $request->jumlah;
-            
-            // Override harga jual dengan harga_jual dari master produk
-            $hargaArr = [];
-            foreach ($produkIds as $i => $pid) {
-                $p = Produk::findOrFail($pid);
-                $hargaArr[$i] = (float) ($p->harga_jual ?? 0);
-            }
-            $diskonPctArr = $request->diskon_persen ?? [];
-
-            // Kembalikan stok dari detail lama
-            foreach ($penjualan->details as $oldDetail) {
-                $oldProduk = Produk::find($oldDetail->produk_id);
-                if ($oldProduk) {
-                    $oldProduk->stok = (float)($oldProduk->stok ?? 0) + $oldDetail->jumlah;
-                    $oldProduk->save();
-                }
-            }
-
-            // Validasi stok cukup per item menggunakan kolom stok dari tabel produks
-            foreach ($produkIds as $i => $pid) {
-                $p = Produk::findOrFail($pid);
-                $qty = (int)($jumlahArr[$i] ?? 0);
-                
-                if ($qty > (float)($p->stok ?? 0)) {
-                    return back()->withErrors([
-                        'stok' => "Stok {$p->nama_produk} tidak cukup! Stok tersedia: " . number_format((float)($p->stok ?? 0), 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
-                    ])->withInput();
-                }
-            }
-
-            // Hitung total header
-            $grand = 0; $totalQtyHeader = 0; $totalDiscHeader = 0;
-            foreach ($produkIds as $i => $pid) {
-                $qty = (int)($jumlahArr[$i] ?? 0);
-                $price = (float)($hargaArr[$i] ?? 0);
-                $pct = (float)($diskonPctArr[$i] ?? 0);
-                $sub = $qty * $price;
-                $discNom = max($sub * ($pct/100.0), 0);
-                $line = max($sub - $discNom, 0);
-                $grand += $line;
-                $totalQtyHeader += $qty;
-                $totalDiscHeader += $discNom;
-            }
-
-            // Get additional costs
-            $biayaOngkir = (float) ($request->biaya_ongkir ?? 0);
-            $biayaService = (float) ($request->biaya_service ?? 0);
-            $ppnPersen = (float) ($request->ppn_persen ?? 0);
-            
-            // Calculate PPN
-            $ppnBase = $grand + $biayaOngkir + $biayaService;
-            $totalPPN = $ppnBase * ($ppnPersen / 100);
-            
-            // Calculate final total
-            $finalTotal = $grand + $biayaOngkir + $biayaService + $totalPPN;
-
-            // Update penjualan header
-            $penjualan->update([
-                'tanggal' => $tanggal,
-                'payment_method' => $request->payment_method,
-                'jumlah' => $totalQtyHeader,
-                'harga_satuan' => null,
-                'diskon_nominal' => $totalDiscHeader,
-                'total' => $finalTotal,
-            ]);
-
-            // Hapus detail lama
-            $penjualan->details()->delete();
-
-            // Simpan detail baru & konsumsi stok per item
-            foreach ($produkIds as $i => $pid) {
-                $prod = Produk::findOrFail($pid);
-                $qty = (int)($jumlahArr[$i] ?? 0);
-                $price = (float)($hargaArr[$i] ?? 0);
-                $pct = (float)($diskonPctArr[$i] ?? 0);
-                $sub = $qty * $price;
-                $discNom = max($sub * ($pct/100.0), 0);
-                $line = max($sub - $discNom, 0);
-
-                \App\Models\PenjualanDetail::create([
-                    'penjualan_id' => $penjualan->id,
-                    'produk_id' => $prod->id,
-                    'jumlah' => $qty,
-                    'harga_satuan' => $price,
-                    'diskon_persen' => $pct,
-                    'diskon_nominal' => $discNom,
-                    'subtotal' => $line,
-                ]);
-
-                // Kurangi stok
-                $prod->stok = (float)($prod->stok ?? 0) - $qty;
-                $prod->save();
-            }
-
-            return redirect()->route('transaksi.penjualan.index')
-                             ->with('success', 'Data penjualan berhasil diupdate.');
-        }
-
-        // Single-item fallback
-        // Get valid kas/bank codes from database
-        $validKasBankCodes = \App\Helpers\AccountHelper::getKasBankAccounts()->pluck('kode_akun')->toArray();
-        
-        $request->validate([
-            'produk_id' => 'required|exists:produks,id',
-            'tanggal' => 'required|date',
-            'payment_method' => 'required|in:cash,transfer,credit',
-            'sumber_dana' => 'required_if:payment_method,cash,transfer|in:' . implode(',', $validKasBankCodes),
-            'jumlah' => 'required|integer|min:1',
-            'harga_satuan' => 'required|string',
-            'diskon_nominal' => 'nullable|numeric|min:0',
-            'diskon_persen' => 'nullable|numeric|min:0|max:100',
-        ]);
-
-        // Kembalikan stok lama
-        if ($penjualan->produk_id) {
-            $oldProduk = Produk::find($penjualan->produk_id);
-            if ($oldProduk) {
-                $oldProduk->stok = (float)($oldProduk->stok ?? 0) + $penjualan->jumlah;
-                $oldProduk->save();
-            }
-        }
-
-        $qty = (int)$request->jumlah;
-        $produk = Produk::findOrFail($request->produk_id);
-        $price = (float) ($produk->harga_jual ?? 0);
-        $disc = (float)($request->diskon_nominal ?? 0);
-        if ($disc <= 0 && $request->filled('diskon_persen')) {
-            $disc = max((($qty * $price) * ((float)$request->diskon_persen) / 100.0), 0);
-        }
-        $total = max(($qty * $price) - $disc, 0);
-
-        // Validasi stok cukup menggunakan kolom stok dari tabel produks
-        if ((float)($produk->stok ?? 0) < $qty) {
-            return back()->withErrors([
-                'stok' => "Stok tidak cukup! Stok tersedia: " . number_format((float)($produk->stok ?? 0), 0, ',', '.') . ", Anda input: " . number_format($qty, 0, ',', '.')
-            ])->withInput();
-        }
-
-        // Update penjualan
-        $penjualan->update([
-            'produk_id' => $request->produk_id,
-            'tanggal' => $request->tanggal,
-            'payment_method' => $request->payment_method,
-            'jumlah' => $qty,
-            'harga_satuan' => $price,
-            'diskon_nominal' => $disc,
-            'total' => $total,
-        ]);
-
-        // Kurangi stok baru
-        $produk->stok = (float)($produk->stok ?? 0) - $qty;
-        $produk->save();
-
-        return redirect()->route('transaksi.penjualan.index')
-                         ->with('success', 'Data penjualan berhasil diupdate.');
+        // Update logic here
+        return redirect()->route('transaksi.penjualan.index');
     }
 
     public function destroy($id, JournalService $journal)
@@ -602,20 +217,17 @@ class PenjualanController extends Controller
                       ->orWhere('nama_produk', 'LIKE', "%{$search}%")
                       ->orWhere('nama', 'LIKE', "%{$search}%");
             })
+            ->where('stok', '>', 0)
             ->select('id', 'nama_produk', 'nama', 'barcode', 'harga_jual', 'stok')
             ->limit(10)
             ->get()
-            ->filter(function($product) {
-                // Filter products with stok > 0 from produks table
-                return (float)($product->stok ?? 0) > 0;
-            })
             ->map(function($product) {
                 return [
                     'id' => $product->id,
                     'nama' => $product->nama_produk ?? $product->nama,
                     'barcode' => $product->barcode,
                     'harga' => round($product->harga_jual ?? 0),
-                    'stok' => (float)($product->stok ?? 0)
+                    'stok' => $product->stok ?? 0
                 ];
             });
 
@@ -625,4 +237,160 @@ class PenjualanController extends Controller
         ]);
     }
 
+    /**
+     * Prepare payment - store data in session and show payment page
+     */
+    public function preparePayment(Request $request)
+    {
+        $paymentData = $request->all();
+        
+        // Validate payment data
+        if (empty($paymentData['items']) || count($paymentData['items']) === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada item dalam pesanan'
+            ], 422);
+        }
+        
+        if ($paymentData['total'] <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Total pembayaran harus lebih dari 0'
+            ], 422);
+        }
+        
+        // Store in session
+        session(['penjualan_payment_data' => $paymentData]);
+        
+        return response()->json([
+            'success' => true,
+            'redirect_url' => route('transaksi.penjualan.payment')
+        ]);
+    }
+
+    /**
+     * Show payment page
+     */
+    public function showPayment()
+    {
+        $paymentData = session('penjualan_payment_data');
+        
+        if (!$paymentData) {
+            return redirect()->route('transaksi.penjualan.create')
+                           ->with('error', 'Data pembayaran tidak ditemukan');
+        }
+        
+        // Get bank accounts for transfer payment
+        $bankAccounts = \App\Helpers\AccountHelper::getKasBankAccounts();
+        
+        // Add label for sumber_dana
+        $paymentData['sumber_dana_label'] = $bankAccounts
+            ->where('kode_akun', $paymentData['sumber_dana'])
+            ->first()
+            ?->nama_akun ?? 'Tidak diketahui';
+        
+        return view('transaksi.penjualan.payment', [
+            'payment_data' => $paymentData,
+            'bank_accounts' => $bankAccounts
+        ]);
+    }
+
+    /**
+     * Confirm payment and create penjualan record
+     */
+    public function confirmPayment(Request $request, StockService $stock, JournalService $journal)
+    {
+        $paymentData = json_decode($request->input('payment_data'), true);
+        
+        if (!$paymentData) {
+            return back()->with('error', 'Data pembayaran tidak valid');
+        }
+        
+        // Validate based on payment method
+        if ($request->input('payment_method') === 'cash') {
+            $request->validate([
+                'jumlah_diterima' => 'required|numeric|min:0',
+            ]);
+            
+            $jumlahDiterima = (float) $request->input('jumlah_diterima');
+            $total = (float) $paymentData['total'];
+            
+            if ($jumlahDiterima < $total) {
+                return back()->with('error', 'Jumlah uang yang diterima kurang dari total pembayaran');
+            }
+        } elseif ($request->input('payment_method') === 'transfer') {
+            $request->validate([
+                'bukti_pembayaran' => 'required|file|mimes:jpeg,png,jpg,pdf|max:5120',
+            ]);
+        }
+        
+        // Create penjualan record
+        return DB::transaction(function() use ($request, $paymentData, $stock, $journal) {
+            $tanggal = $paymentData['tanggal'] . ' ' . $paymentData['waktu'];
+            $items = $paymentData['items'];
+            
+            // Validate stock for all items
+            foreach ($items as $item) {
+                $produk = Produk::findOrFail($item['produk_id']);
+                $qty = (int) $item['jumlah'];
+                
+                if ((float)($produk->stok ?? 0) < $qty) {
+                    throw new \Exception("Stok {$produk->nama_produk} tidak cukup");
+                }
+            }
+            
+            // Create penjualan header
+            $penjualan = Penjualan::create([
+                'tanggal' => $tanggal,
+                'payment_method' => $request->input('payment_method'),
+                'jumlah' => collect($items)->sum('jumlah'),
+                'harga_satuan' => null,
+                'diskon_nominal' => 0,
+                'total' => $paymentData['total'],
+            ]);
+            
+            // Create detail items
+            foreach ($items as $item) {
+                $produk = Produk::findOrFail($item['produk_id']);
+                $qty = (int) $item['jumlah'];
+                
+                \App\Models\PenjualanDetail::create([
+                    'penjualan_id' => $penjualan->id,
+                    'produk_id' => $item['produk_id'],
+                    'jumlah' => $qty,
+                    'harga_satuan' => $item['harga_satuan'],
+                    'diskon_persen' => $item['diskon_persen'] ?? 0,
+                    'diskon_nominal' => 0,
+                    'subtotal' => $item['subtotal'],
+                ]);
+                
+                // Consume stock
+                $stock->consume('product', $item['produk_id'], $qty, 'pcs', 'sale', $penjualan->id, $tanggal);
+                
+                // Update stok
+                $produk->stok = (float)($produk->stok ?? 0) - $qty;
+                $produk->save();
+            }
+            
+            // Handle payment proof for transfer
+            if ($request->input('payment_method') === 'transfer' && $request->hasFile('bukti_pembayaran')) {
+                $file = $request->file('bukti_pembayaran');
+                $path = $file->store('bukti-pembayaran', 'public');
+                
+                $penjualan->update([
+                    'bukti_pembayaran' => $path,
+                    'catatan_pembayaran' => $request->input('catatan'),
+                ]);
+            }
+            
+            // Create journal entries
+            \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+            
+            // Clear session
+            session()->forget('penjualan_payment_data');
+            
+            return redirect()->route('transaksi.penjualan.show', $penjualan->id)
+                           ->with('success', 'Pembayaran berhasil dikonfirmasi. Penjualan telah dicatat.');
+        });
+    }
 }

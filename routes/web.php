@@ -2791,6 +2791,9 @@ Route::middleware('auth')->group(function () {
         Route::resource('penjualan', PenjualanController::class);
         Route::get('penjualan/barcode/{barcode}', [PenjualanController::class, 'findByBarcode'])->name('penjualan.barcode');
         Route::get('penjualan/{id}/struk', [PenjualanController::class, 'struk'])->name('penjualan.struk');
+        Route::post('penjualan/prepare-payment', [PenjualanController::class, 'preparePayment'])->name('penjualan.prepare-payment');
+        Route::get('penjualan-payment', [PenjualanController::class, 'showPayment'])->name('penjualan.payment');
+        Route::post('penjualan-confirm-payment', [PenjualanController::class, 'confirmPayment'])->name('penjualan.confirm-payment');
         
         // API routes for real-time product search
         Route::get('api/products/search', [PenjualanController::class, 'searchProducts'])->name('api.products.search');
@@ -5057,4 +5060,143 @@ Route::get('migrate-to-modern-journal', function() {
     } catch (Exception $e) {
         return "<h1 style='color:red;'>❌ ERROR</h1><p>" . $e->getMessage() . "</p>";
     }
+});
+
+// EMERGENCY: Route untuk fix COA enum "BEBAN" error
+Route::post('/fix-coa-enum-check', function() {
+    try {
+        $result = DB::select("SHOW COLUMNS FROM coas LIKE 'tipe_akun'");
+        if (!empty($result)) {
+            return response("Current enum: " . $result[0]->Type);
+        }
+        return response("Tidak dapat memeriksa enum", 500);
+    } catch (Exception $e) {
+        return response("Error: " . $e->getMessage(), 500);
+    }
+});
+
+Route::post('/fix-coa-enum-update', function() {
+    try {
+        // Update existing BEBAN values to Expense first
+        DB::table('coas')->where('tipe_akun', 'BEBAN')->update(['tipe_akun' => 'Expense']);
+        
+        // Alter enum to include all values
+        $sql = "ALTER TABLE coas MODIFY COLUMN tipe_akun ENUM(
+            'Asset', 'Aset', 'ASET',
+            'Liability', 'Kewajiban', 'KEWAJIBAN', 
+            'Equity', 'Ekuitas', 'Modal', 'MODAL',
+            'Revenue', 'Pendapatan', 'PENDAPATAN',
+            'Expense', 'Beban', 'BEBAN', 'Biaya',
+            'Biaya Bahan Baku', 'Biaya Tenaga Kerja Langsung', 
+            'Biaya Overhead Pabrik', 'Biaya Tenaga Kerja Tidak Langsung', 
+            'BOP Tidak Langsung Lainnya'
+        ) NOT NULL";
+        
+        DB::statement($sql);
+        
+        return response("Enum berhasil diupdate untuk mendukung semua nilai termasuk 'BEBAN'");
+    } catch (Exception $e) {
+        return response("Error: " . $e->getMessage(), 500);
+    }
+});
+
+Route::post('/fix-coa-enum-test', function() {
+    try {
+        $updated = DB::table('coas')
+            ->where('id', 166)
+            ->update([
+                'nama_akun' => 'Biaya TENAGA KERJA TIDAK LANGSUNG',
+                'tipe_akun' => 'BEBAN',
+                'tanggal_saldo_awal' => '2026-04-01 00:00:00',
+                'updated_at' => now()
+            ]);
+        
+        if ($updated) {
+            return response("Test update berhasil! COA ID 166 berhasil diupdate dengan tipe 'BEBAN'");
+        } else {
+            return response("Test update gagal - tidak ada record yang diupdate", 500);
+        }
+    } catch (Exception $e) {
+        return response("Test update gagal: " . $e->getMessage(), 500);
+    }
+});
+
+
+// TEMPORARY FIX ROUTE - Fix COA for expense payments
+Route::get('fix-coa-expense-payments', function() {
+    try {
+        \Illuminate\Support\Facades\DB::table('expense_payments')->where('id', 2)->update(['coa_beban_id' => '551']);
+        \Illuminate\Support\Facades\DB::table('expense_payments')->where('id', 3)->update(['coa_beban_id' => '550']);
+        
+        // Delete old journal entries
+        \Illuminate\Support\Facades\DB::table('journal_lines')
+            ->whereIn('journal_entry_id', function($q) {
+                $q->select('id')
+                  ->from('journal_entries')
+                  ->where('ref_type', 'expense_payment')
+                  ->whereIn('ref_id', [2, 3]);
+            })
+            ->delete();
+
+        \Illuminate\Support\Facades\DB::table('journal_entries')
+            ->where('ref_type', 'expense_payment')
+            ->whereIn('ref_id', [2, 3])
+            ->delete();
+        
+        // Get COA IDs
+        $coa_551 = \Illuminate\Support\Facades\DB::table('coas')->where('kode_akun', '551')->value('id');
+        $coa_550 = \Illuminate\Support\Facades\DB::table('coas')->where('kode_akun', '550')->value('id');
+        $coa_111 = \Illuminate\Support\Facades\DB::table('coas')->where('kode_akun', '111')->value('id');
+
+        // Create journal for ID 2 (Sewa - 551)
+        $je2_id = \Illuminate\Support\Facades\DB::table('journal_entries')->insertGetId([
+            'tanggal' => '2026-04-28',
+            'ref_type' => 'expense_payment',
+            'ref_id' => 2,
+            'memo' => 'Pembayaran Beban: Pembayaran Beban Sewa',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        \Illuminate\Support\Facades\DB::table('journal_lines')->insert([
+            ['journal_entry_id' => $je2_id, 'coa_id' => $coa_551, 'debit' => 1500000, 'credit' => 0, 'memo' => 'Pembayaran beban', 'created_at' => now(), 'updated_at' => now()],
+            ['journal_entry_id' => $je2_id, 'coa_id' => $coa_111, 'debit' => 0, 'credit' => 1500000, 'memo' => 'Pembayaran beban operasional', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        // Create journal for ID 3 (Listrik - 550)
+        $je3_id = \Illuminate\Support\Facades\DB::table('journal_entries')->insertGetId([
+            'tanggal' => '2026-04-29',
+            'ref_type' => 'expense_payment',
+            'ref_id' => 3,
+            'memo' => 'Pembayaran Beban: Pembayaran Beban Listrik',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        \Illuminate\Support\Facades\DB::table('journal_lines')->insert([
+            ['journal_entry_id' => $je3_id, 'coa_id' => $coa_550, 'debit' => 2030000, 'credit' => 0, 'memo' => 'Pembayaran beban', 'created_at' => now(), 'updated_at' => now()],
+            ['journal_entry_id' => $je3_id, 'coa_id' => $coa_111, 'debit' => 0, 'credit' => 2030000, 'memo' => 'Pembayaran beban operasional', 'created_at' => now(), 'updated_at' => now()],
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'COA data fixed successfully',
+            'details' => [
+                'ID 2: Updated to COA 551 (BOP Sewa Tempat)',
+                'ID 3: Updated to COA 550 (BOP Listrik)',
+                'Journal entries recreated'
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+
+// Debug route untuk analisis duplikasi pembayaran beban
+Route::get('/debug/pembayaran-beban-analysis', function() {
+    return view('debug.pembayaran_beban_analysis');
 });

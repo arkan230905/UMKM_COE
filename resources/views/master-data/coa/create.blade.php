@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Tambah COA')
+
 @section('content')
 <div class="container mt-4">
     <h2>Tambah COA</h2>

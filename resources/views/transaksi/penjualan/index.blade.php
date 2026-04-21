@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Transaksi Penjualan')
+
 @push('styles')
 <style>
 /* Horizontal Tabs Style - Mengikuti gaya Satuan | Konversi */

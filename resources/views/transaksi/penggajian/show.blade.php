@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Detail Penggajian')
+
 @section('content')
 <div class="container py-4">
     <h3 class="mb-4"><i class="bi bi-file-text"></i> Detail Penggajian</h3>

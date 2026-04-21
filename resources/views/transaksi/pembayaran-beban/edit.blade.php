@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Edit Pembayaran Beban')
+
 @section('content')
 <div class="container">
   <h3>Edit Pembayaran Beban</h3>

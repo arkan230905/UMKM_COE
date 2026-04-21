@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Edit COA')
+
 @section('content')
 <div class="container mt-4">
     <h2>Edit COA</h2>

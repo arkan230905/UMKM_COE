@@ -35,13 +35,72 @@ class CoaController extends Controller
         
         // Get saldo untuk setiap COA berdasarkan periode
         $saldoPeriode = [];
+        $posisiAkun = [];
         foreach ($coas as $coa) {
-            // Get saldo awal dari COA table
-            $saldoAwal = $coa->saldo_awal ?? 0;
+            // Untuk akun persediaan bahan baku dan bahan pendukung, ambil dari tabel bahan
+            $saldoAwal = $this->getInventorySaldoAwalForCoa($coa->kode_akun);
+            
+            // Jika tidak ada di inventory, gunakan saldo_awal dari COA table
+            if ($saldoAwal === null) {
+                $saldoAwal = $coa->saldo_awal ?? 0;
+            }
+            
             $saldoPeriode[$coa->id] = $saldoAwal;
+            
+            // Hitung posisi akun berdasarkan digit pertama kode akun
+            // Akun 1xx, 5xx, 6xx = debit normal
+            // Akun 2xx, 3xx, 4xx = kredit normal
+            $firstDigit = substr($coa->kode_akun, 0, 1);
+            $isDebitNormal = !in_array($firstDigit, ['2', '3', '4']);
+            
+            $posisiAkun[$coa->id] = $isDebitNormal ? 'Debit' : 'Kredit';
         }
         
-        return view('master-data.coa.index', compact('coas', 'periode', 'periods', 'saldoPeriode'));
+        return view('master-data.coa.index', compact('coas', 'periode', 'periods', 'saldoPeriode', 'posisiAkun'));
+    }
+    
+    /**
+     * Get saldo awal inventory untuk COA tertentu
+     * Mengambil dari bahan_bakus atau bahan_pendukungs berdasarkan kode_akun
+     */
+    private function getInventorySaldoAwalForCoa($kodeAkun)
+    {
+        // Mapping kode akun ke bahan baku
+        $bahanBakuMapping = [
+            '1141' => 'Ayam Potong',
+            '1142' => 'Ayam Kampung',
+            '1143' => 'Bebek',
+        ];
+        
+        // Mapping kode akun ke bahan pendukung
+        $bahanPendukungMapping = [
+            '1152' => 'Tepung Terigu',
+            '1153' => 'Tepung Maizena',
+            '1154' => 'Lada',
+            '1155' => 'Bubuk Kaldu Ayam',
+            '1156' => 'Bubuk Bawang Putih',
+        ];
+        
+        // Cek apakah kode akun ada di mapping bahan baku
+        if (isset($bahanBakuMapping[$kodeAkun])) {
+            $namaBahan = $bahanBakuMapping[$kodeAkun];
+            $bahan = \App\Models\BahanBaku::where('nama_bahan', $namaBahan)->first();
+            if ($bahan) {
+                return $bahan->saldo_awal * $bahan->harga_satuan;
+            }
+        }
+        
+        // Cek apakah kode akun ada di mapping bahan pendukung
+        if (isset($bahanPendukungMapping[$kodeAkun])) {
+            $namaBahan = $bahanPendukungMapping[$kodeAkun];
+            $bahan = \App\Models\BahanPendukung::where('nama_bahan', $namaBahan)->first();
+            if ($bahan) {
+                return $bahan->saldo_awal * $bahan->harga_satuan;
+            }
+        }
+        
+        // Jika tidak ada di mapping, return null (akan menggunakan saldo_awal dari COA)
+        return null;
     }
     
     /**
@@ -111,6 +170,18 @@ class CoaController extends Controller
             }
         }
 
+        // Define allowed tipe_akun values
+        $allowedTipeAkun = [
+            'Asset', 'Aset', 'ASET',
+            'Liability', 'Kewajiban', 'KEWAJIBAN', 
+            'Equity', 'Ekuitas', 'Modal', 'MODAL',
+            'Revenue', 'Pendapatan', 'PENDAPATAN',
+            'Expense', 'Beban', 'BEBAN', 'Biaya',
+            'Biaya Bahan Baku', 'Biaya Tenaga Kerja Langsung', 
+            'Biaya Overhead Pabrik', 'Biaya Tenaga Kerja Tidak Langsung', 
+            'BOP Tidak Langsung Lainnya'
+        ];
+
         $validated = $request->validate([
             'kode_akun' => [
                 'required',
@@ -118,7 +189,7 @@ class CoaController extends Controller
                 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:ASET,KEWAJIBAN,MODAL,PENDAPATAN,BEBAN',
+            'tipe_akun' => 'required|in:' . implode(',', $allowedTipeAkun),
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',
@@ -173,6 +244,18 @@ class CoaController extends Controller
 
     public function update(Request $request, Coa $coa)
     {
+        // Define allowed tipe_akun values
+        $allowedTipeAkun = [
+            'Asset', 'Aset', 'ASET',
+            'Liability', 'Kewajiban', 'KEWAJIBAN', 
+            'Equity', 'Ekuitas', 'Modal', 'MODAL',
+            'Revenue', 'Pendapatan', 'PENDAPATAN',
+            'Expense', 'Beban', 'BEBAN', 'Biaya',
+            'Biaya Bahan Baku', 'Biaya Tenaga Kerja Langsung', 
+            'Biaya Overhead Pabrik', 'Biaya Tenaga Kerja Tidak Langsung', 
+            'BOP Tidak Langsung Lainnya'
+        ];
+
         $validated = $request->validate([
             'kode_akun' => [
                 'required',
@@ -180,7 +263,7 @@ class CoaController extends Controller
                 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:ASET,KEWAJIBAN,MODAL,PENDAPATAN,BEBAN',
+            'tipe_akun' => 'required|in:' . implode(',', $allowedTipeAkun),
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',

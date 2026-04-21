@@ -1,4 +1,7 @@
 @extends('layouts.app')
+
+@section('title', 'Tambah Penjualan')
+
 @section('content')
 
 <style>
@@ -207,9 +210,105 @@ mark.bg-warning {
 
         <div class="text-end mt-4">
             <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-secondary">Batal</a>
-            <button class="btn btn-success">Simpan</button>
+            <button type="button" class="btn btn-primary" id="btn-bayar" onclick="submitForPayment()">Bayar</button>
         </div>
     </form>
+
+    <script>
+    function submitForPayment() {
+        // Validate form
+        const form = document.getElementById('form-penjualan');
+        
+        // Check if there are items in the table
+        const tableRows = document.querySelectorAll('#detailTableJual tbody tr');
+        if (tableRows.length === 0) {
+            alert('Tambahkan minimal satu produk');
+            return;
+        }
+        
+        // Check if all rows have valid data
+        let hasValidItem = false;
+        tableRows.forEach(row => {
+            const produkSelect = row.querySelector('.produk-select');
+            if (produkSelect && produkSelect.value) {
+                hasValidItem = true;
+            }
+        });
+        
+        if (!hasValidItem) {
+            alert('Tambahkan minimal satu produk');
+            return;
+        }
+        
+        // Get payment method
+        const paymentMethod = document.getElementById('payment_method_jual').value;
+        
+        // Get total
+        const totalInput = document.getElementById('total_final');
+        const total = parseCurrency(totalInput.value);
+        
+        if (total <= 0) {
+            alert('Total pembayaran harus lebih dari 0');
+            return;
+        }
+        
+        // Store form data in session via AJAX
+        const formData = new FormData(form);
+        
+        // Add table data
+        const tableData = [];
+        tableRows.forEach(row => {
+            const produkSelect = row.querySelector('.produk-select');
+            if (produkSelect && produkSelect.value) {
+                tableData.push({
+                    produk_id: produkSelect.value,
+                    jumlah: row.querySelector('.jumlah').value,
+                    harga_satuan: parseCurrency(row.querySelector('.harga').value),
+                    diskon_persen: row.querySelector('.diskon').value,
+                    subtotal: parseCurrency(row.querySelector('.subtotal').value)
+                });
+            }
+        });
+        
+        // Prepare data for payment
+        const paymentData = {
+            tanggal: document.querySelector('input[name="tanggal"]').value,
+            waktu: document.querySelector('input[name="waktu"]').value,
+            payment_method: paymentMethod,
+            sumber_dana: document.getElementById('sumber_dana_jual').value,
+            subtotal_produk: parseCurrency(document.querySelector('input[name="subtotal_produk"]').value),
+            biaya_ongkir: parseFloat(document.getElementById('biaya_ongkir').value) || 0,
+            biaya_service: parseFloat(document.getElementById('biaya_service').value) || 0,
+            ppn_persen: parseFloat(document.getElementById('ppn_persen').value) || 0,
+            total_ppn: parseCurrency(document.getElementById('total_ppn').value),
+            total: total,
+            items: tableData
+        };
+        
+        // Store in session and redirect to payment page
+        fetch('{{ route("transaksi.penjualan.prepare-payment") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            },
+            body: JSON.stringify(paymentData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Redirect to payment page
+                window.location.href = data.redirect_url;
+            } else {
+                alert('Error: ' + (data.message || 'Terjadi kesalahan'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan: ' + error.message);
+        });
+    }
+    </script>
 </div>
 
 <script>

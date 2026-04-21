@@ -1,4 +1,7 @@
 @extends('layouts.app')
+
+@section('title', 'Edit Penjualan')
+
 @section('content')
 <div class="container">
     <h3 class="mb-3">Edit Penjualan</h3>

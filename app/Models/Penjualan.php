@@ -21,6 +21,8 @@ class Penjualan extends Model
         'jumlah',
         'diskon_nominal',
         'total',
+        'bukti_pembayaran',
+        'catatan_pembayaran',
     ];
 
     protected $casts = [

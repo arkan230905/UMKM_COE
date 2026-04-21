@@ -82,15 +82,12 @@ class PelunasanUtangController extends Controller
         $akunKas = \App\Helpers\AccountHelper::getKasBankAccounts();
         
         // Get COA hutang/kewajiban yang relevan untuk pelunasan
-<<<<<<< HEAD
-        // Only get accounts that actually exist in the database
-        $coaPelunasan = \App\Models\Coa::where('tipe_akun', 'Liability')
-            ->whereIn('kode_akun', ['2101', '211', '212']) // Hutang Usaha, Hutang Gaji, PPN Keluaran
-=======
-        $coaPelunasan = \App\Models\Coa::where('tipe_akun', 'Kewajiban')
-            ->orWhere('tipe_akun', 'KEWAJIBAN')
-            ->whereIn('kode_akun', ['21', '210', '211', '212']) // Hutang, Hutang Usaha, Hutang Gaji, PPN Keluaran
->>>>>>> 399cc5b (perbaikan aset)
+        $coaPelunasan = \App\Models\Coa::where(function($q) {
+                $q->where('tipe_akun', 'Liability')
+                  ->orWhere('tipe_akun', 'Kewajiban')
+                  ->orWhere('tipe_akun', 'KEWAJIBAN');
+            })
+            ->whereIn('kode_akun', ['21', '210', '211', '212', '2101']) // Hutang, Hutang Usaha, Hutang Gaji, PPN Keluaran
             ->orderBy('kode_akun')
             ->get();
         

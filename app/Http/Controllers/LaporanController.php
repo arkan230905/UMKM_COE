@@ -171,7 +171,7 @@ class LaporanController extends Controller
             $correctQty = 50.0; // Correct initial stock
             $correctUnitCost = 32000.0; // Rp 32,000 per kg
         } else {
-            $correctQty = (float)($item->stok ?? 0);
+            $correctQty = (float)($item->saldo_awal ?? 0);
             $correctUnitCost = (float)($item->harga_satuan ?? 0);
         }
         
@@ -431,18 +431,13 @@ class LaporanController extends Controller
                             $priceRatio = (float)($item->sub_satuan_2_nilai ?? 1);
                             $isManual = false;
                             
-                            // TEMPORARY FIX: For Ayam Potong (ID 5) and Potong satuan (ID 22), use manual conversion
-                            if ($itemId == 5 && $subSatuan2->id == 22) {
-                                $quantityRatio = 3.0000; // Manual: 1 kg = 3 potong
-                                $priceRatio = 3.0000;
-                                $isManual = true;
-                                \Log::info("Applied manual conversion for Ayam Potong - Potong: 1 kg = 3 potong (should show 120 potong for 40kg purchase)");
-                            } elseif ($manualConversion && $manualConversion->manual_conversion_data) {
+                            // Use manual conversion data if available
+                            if ($manualConversion && $manualConversion->manual_conversion_data) {
                                 $manualData = json_decode($manualConversion->manual_conversion_data, true);
-                                if ($manualData && $manualData['sub_satuan_id'] == $subSatuan2->id) {
+                                if ($manualData && isset($manualData['sub_satuan_id']) && $manualData['sub_satuan_id'] == $subSatuan2->id) {
                                     // Use manual conversion data
-                                    $quantityRatio = (float)($manualData['faktor_konversi_manual'] ?? 1);
-                                    $priceRatio = (float)($manualData['faktor_konversi_manual'] ?? 1);
+                                    $quantityRatio = (float)($manualData['manual_conversion_factor'] ?? 1);
+                                    $priceRatio = (float)($manualData['manual_conversion_factor'] ?? 1);
                                     $isManual = true;
                                     \Log::info("Using manual conversion for sub satuan 2", [
                                         'sub_satuan_id' => $subSatuan2->id,
@@ -523,8 +518,8 @@ class LaporanController extends Controller
                     }
                     
                     // If no movements before date range, use master data as initial stock
-                    if ($before->isEmpty() && $item->stok > 0) {
-                        $saldoAwalQty = (float)($item->stok ?? 0);
+                    if ($before->isEmpty() && $item->saldo_awal > 0) {
+                        $saldoAwalQty = (float)($item->saldo_awal ?? 0);
                         $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
                     }
                 }
@@ -532,18 +527,19 @@ class LaporanController extends Controller
             
             // If no date range specified, get all movements
             if (!$from && !$to) {
+                // ALWAYS use saldo_awal from database as starting point
+                if ($item && $item->saldo_awal > 0) {
+                    $saldoAwalQty = (float)($item->saldo_awal ?? 0);
+                    $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
+                }
+                
                 $movements = $movQ->orderBy('tanggal', 'asc')
                                  ->orderBy('id', 'asc')
                                  ->get();
                                  
                 // Filter out invalid purchase movements (orphaned ones) and refund returns
                 $movements = $movements->filter(function($movement) {
-                    if ($movement->ref_type === 'purchase' && $movement->ref_id) {
-                        // Check if the referenced purchase still exists
-                        return \DB::table('pembelians')->where('id', $movement->ref_id)->exists();
-                    }
-                    
-                    // Filter out retur_penjualan movements for refund (barang cacat tidak masuk stok)
+                    // Only filter out retur_penjualan movements for refund (barang cacat tidak masuk stok)
                     if ($movement->ref_type === 'retur_penjualan') {
                         $returPenjualan = \DB::table('retur_penjualans')->where('id', $movement->ref_id)->first();
                         if ($returPenjualan && $returPenjualan->jenis_retur === 'refund') {
@@ -551,21 +547,9 @@ class LaporanController extends Controller
                         }
                     }
                     
-                    return true; // Keep other movements
+                    // Keep all other movements including purchases without valid ref_id
+                    return true;
                 });
-                                 
-                // Ensure accurate initial stock entry exists
-                $this->ensureAccurateInitialStock($tipe, $itemId, $item);
-                
-                $movements = $movQ->orderBy('tanggal', 'asc')
-                                 ->orderBy('id', 'asc')
-                                 ->get();
-                
-                // Use master data as initial stock if NO movements exist at all
-                if ($movements->isEmpty() && $item && $item->stok > 0) {
-                    $saldoAwalQty = (float)($item->stok ?? 0);
-                    $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
-                }
             } else {
                 // Get movements within date range
                 if ($from) { 
@@ -584,12 +568,7 @@ class LaporanController extends Controller
                                  
                 // Filter out invalid purchase movements (orphaned ones) and refund returns
                 $movements = $movements->filter(function($movement) {
-                    if ($movement->ref_type === 'purchase' && $movement->ref_id) {
-                        // Check if the referenced purchase still exists
-                        return \DB::table('pembelians')->where('id', $movement->ref_id)->exists();
-                    }
-                    
-                    // Filter out retur_penjualan movements for refund (barang cacat tidak masuk stok)
+                    // Only filter out retur_penjualan movements for refund (barang cacat tidak masuk stok)
                     if ($movement->ref_type === 'retur_penjualan') {
                         $returPenjualan = \DB::table('retur_penjualans')->where('id', $movement->ref_id)->first();
                         if ($returPenjualan && $returPenjualan->jenis_retur === 'refund') {
@@ -597,7 +576,8 @@ class LaporanController extends Controller
                         }
                     }
                     
-                    return true; // Keep other movements
+                    // Keep all other movements including purchases without valid ref_id
+                    return true;
                 });
             }
 
@@ -698,15 +678,9 @@ class LaporanController extends Controller
                                     $dailySaleQty = 0;
                                     $dailySaleNilai = 0;
                                 } elseif ($m->ref_type === 'initial_stock') {
-                                    // Initial stock goes to Stok Awal column
-                                    $dailyInQty = 0;
-                                    $dailyInNilai = 0;
-                                    $dailyOutQty = 0;
-                                    $dailyOutNilai = 0;
-                                    $dailySaleQty = 0;
-                                    $dailySaleNilai = 0;
-                                    // Set saldo awal for this row
-                                    $saldoAwalQty = (float)$m->qty;
+                                    // Skip initial_stock movements - they are handled by opening_balance
+                                    // Don't add to daily stock, just continue to next movement
+                                    continue;
                                     // Use item's harga_satuan as fallback when movement total_cost is 0
                                     $totalCost = ($m->total_cost ?? 0) > 0 ? ($m->total_cost ?? 0) : (($m->qty * ($item->harga_satuan ?? 0)));
                                     $saldoAwalNilai = (float)$totalCost;
@@ -775,7 +749,19 @@ class LaporanController extends Controller
                                     // Other OUT movements (production consumption, etc.)
                                     $dailyInQty = 0;
                                     $dailyInNilai = 0;
-                                    $dailyOutQty = (float)$m->qty;
+                                    
+                                    // For production movements, send both original and converted data for view to handle
+                                    if ($m->ref_type === 'production' && $m->qty_as_input && $m->satuan_as_input) {
+                                        // Send the converted qty (stored in base unit) for view to use for non-original units
+                                        $dailyOutQty = (float)$m->qty; // Use converted qty (40 kg)
+                                        
+                                        // Store original satuan for display purposes
+                                        $m->original_satuan = $m->satuan_as_input;
+                                    } else {
+                                        // Fallback to regular qty for non-production or movements without qty_as_input
+                                        $dailyOutQty = (float)$m->qty;
+                                    }
+                                    
                                     $dailyOutNilai = (float)($m->total_cost ?? 0);
                                     $dailySaleQty = 0;
                                     $dailySaleNilai = 0;
@@ -821,14 +807,9 @@ class LaporanController extends Controller
                                 $runningQty -= (float)$m->qty; // Retur always reduces stock
                                 $runningNilai -= (float)($m->total_cost ?? 0);
                             } elseif ($m->ref_type === 'initial_stock') {
-                                // Initial stock should add to running totals
-                                if ($m->direction === 'in') {
-                                    $runningQty += (float)$m->qty;
-                                    $runningNilai += (float)($m->total_cost ?? 0);
-                                } else {
-                                    $runningQty -= (float)$m->qty;
-                                    $runningNilai -= (float)($m->total_cost ?? 0);
-                                }
+                                // Skip initial_stock movements - they are handled by opening_balance
+                                // Don't add to daily stock, just continue to next movement
+                                continue;
                             } else {
                                 $runningQty += $dailyInQty - $dailyOutQty;
                                 $runningNilai += $dailyInNilai - $dailyOutNilai;
@@ -849,7 +830,11 @@ class LaporanController extends Controller
                                 'saldo_akhir_nilai' => $runningNilai,
                                 'ref_type' => $m->ref_type,
                                 'ref_id' => $m->ref_id,
-                                'is_opening_balance' => false
+                                'is_opening_balance' => false,
+                                'manual_conversion_data' => $m->manual_conversion_data ? json_decode($m->manual_conversion_data, true) : null,
+                                // Add original production data for proper display
+                                'qty_as_input' => $m->qty_as_input,
+                                'satuan_as_input' => $m->satuan_as_input
                             ];
                             
                             // SPECIAL CASE: If this is initial_stock with purchase on same date, separate them
@@ -893,9 +878,9 @@ class LaporanController extends Controller
                         'produksi_nilai' => 0,
                         'saldo_akhir_qty' => $saldoAwalQty,
                         'saldo_akhir_nilai' => $saldoAwalNilai,
-                        'ref_type' => 'initial_stock',
+                        'ref_type' => 'opening_balance',
                         'ref_id' => '',
-                        'is_opening_balance' => false
+                        'is_opening_balance' => true
                     ];
                 }
             }
@@ -1165,7 +1150,7 @@ class LaporanController extends Controller
                 
                 // If no movements, show current stock as initial
                 if(empty($dailyStock)) {
-                    $currentQty = $selectedItem->stok ?? 0;
+                    $currentQty = $selectedItem->saldo_awal ?? 0;
                     $currentPrice = $selectedItem->harga_satuan ?? 0;
                     $convertedQty = $currentQty * $unit['conversion'];
                     $convertedPrice = $unit['conversion'] > 0 ? $currentPrice / $unit['conversion'] : $currentPrice;

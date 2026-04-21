@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Daftar BOP')
+
 @php
     /**
      * Format number with proper decimal handling

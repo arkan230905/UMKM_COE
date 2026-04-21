@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Neraca Saldo')
+
 @section('content')
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mb-3">
@@ -290,8 +292,8 @@
             </tr>
             <tr>
               <th colspan="5" class="text-end">BALANCE CHECK:</th>
-              <th class="text-end {{ $totalDebit == $totalKredit ? 'text-success' : 'text-danger' }}">
-                {{ $totalDebit - $totalKredit }}
+              <th class="text-end {{ abs(round($totalDebit - $totalKredit, 2)) < 0.01 ? 'text-success' : 'text-danger' }}">
+                {{ abs(round($totalDebit - $totalKredit, 2)) < 0.01 ? 'BALANCED ✓' : 'Rp ' . number_format(round($totalDebit - $totalKredit, 2), 2, ',', '.') }}
               </th>
             </tr>
           </tfoot>

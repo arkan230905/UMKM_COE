@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Detail Harga Pokok Produksi')
+
 @section('content')
 <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">

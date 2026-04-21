@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Tambah BOP Proses')
+
 @section('content')
 <div class="container-fluid px-4 py-4">
     <h2 class="mb-4 text-white"><i class="fas fa-chart-pie me-2"></i>Tambah BOP Proses</h2>
