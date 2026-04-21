@@ -214,7 +214,7 @@ class ReturPenjualan extends Model
         
         static::deleting(function ($returPenjualan) {
             // Delete journal entries when return is deleted
-            \App\Services\JournalService::deleteByRef('sales_return', $returPenjualan->id);
+            app(\App\Services\JournalService::class)->deleteByRef('sales_return', $returPenjualan->id);
         });
     }
 }

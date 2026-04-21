@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Carbon\Carbon;
 
 class Penjualan extends Model
 {
@@ -25,6 +26,18 @@ class Penjualan extends Model
     protected $casts = [
         'tanggal' => 'date',
     ];
+
+    public function getTanggalTransaksiAttribute()
+    {
+        if (!$this->tanggal) {
+            return null;
+        }
+
+        $tanggal = $this->tanggal instanceof Carbon ? $this->tanggal->copy() : Carbon::parse($this->tanggal);
+        $jam = $this->created_at ? $this->created_at->format('H:i:s') : '00:00:00';
+
+        return Carbon::parse($tanggal->format('Y-m-d') . ' ' . $jam);
+    }
 
     public function produk()
     {

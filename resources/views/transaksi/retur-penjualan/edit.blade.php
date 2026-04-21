@@ -33,7 +33,7 @@
                             <select name="penjualan_id" id="penjualan_id" class="form-select" required>
                                 <option value="">-- Pilih Penjualan --</option>
                                 @foreach($penjualans as $penjualan)
-                                    <option value="{{ $penjualan->id }}" {{ old('penjualan_id', $returPenjualan->penjualan_id) == $penjualan->id ? 'selected' : '' }}>
+                                    <option value="{{ $penjualan->id }}" data-payment-method="{{ $penjualan->payment_method }}" {{ old('penjualan_id', $returPenjualan->penjualan_id) == $penjualan->id ? 'selected' : '' }}>
                                         {{ $penjualan->nomor_penjualan ?? 'PJ-' . $penjualan->id }} - {{ $penjualan->tanggal->format('d/m/Y') }}
                                     </option>
                                 @endforeach
@@ -69,6 +69,7 @@
                             @error('jenis_retur')
                                 <div class="text-danger">{{ $message }}</div>
                             @enderror
+                            <small class="text-muted">Jenis retur Kredit hanya tersedia jika metode pembayaran penjualan adalah Kredit.</small>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -199,9 +200,27 @@ $(document).ready(function() {
     let detailIndex = {{ $returPenjualan->detailReturPenjualans->count() }};
     let penjualanDetails = [];
 
+    function toggleJenisReturKreditOption() {
+        const paymentMethod = $('#penjualan_id option:selected').data('payment-method');
+        const jenisReturSelect = $('#jenis_retur');
+        const kreditOption = jenisReturSelect.find('option[value="kredit"]');
+
+        if (paymentMethod === 'credit') {
+            if (kreditOption.length === 0) {
+                jenisReturSelect.append('<option value="kredit">Kredit</option>');
+            }
+        } else {
+            if (jenisReturSelect.val() === 'kredit') {
+                jenisReturSelect.val('');
+            }
+            kreditOption.remove();
+        }
+    }
+
     // Load penjualan details when penjualan is selected
     $('#penjualan_id').change(function() {
         const penjualanId = $(this).val();
+        toggleJenisReturKreditOption();
         if (penjualanId) {
             $.get(`{{ route('transaksi.retur-penjualan.get-penjualan-details', ':id') }}`.replace(':id', penjualanId), function(data) {
                 penjualanDetails = data;
@@ -355,6 +374,7 @@ $(document).ready(function() {
     });
 
     // Initialize calculations on page load
+    toggleJenisReturKreditOption();
     updateTotals();
 });
 </script>

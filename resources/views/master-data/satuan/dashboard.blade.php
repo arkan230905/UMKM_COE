@@ -833,7 +833,7 @@ function updateSatuan() {
             const modal = bootstrap.Modal.getInstance(document.getElementById('editSatuanModal'));
             modal.hide();
             
-            showSuccessMessage('Data satuan berhasil diperbarui!');
+            showSuccessMessage('Berhasil di update!');
         } else {
             alert('Gagal memperbarui data: ' + (data.message || 'Terjadi kesalahan'));
         }

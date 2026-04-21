@@ -158,7 +158,7 @@
                 <span>No. Transaksi : {{ $penjualan->nomor_penjualan ?? 'SJ-...' }}</span>
             </div>
             <div class="info-row">
-                <span>Tanggal : {{ optional($penjualan->tanggal)->format('d/m/Y H:i') }}</span>
+                <span>Tanggal : {{ optional($penjualan->tanggal_transaksi)->format('d/m/Y H:i') }}</span>
             </div>
             <div class="info-row">
                 <span>Kasir : TIM COE PROCESS COSTING</span>

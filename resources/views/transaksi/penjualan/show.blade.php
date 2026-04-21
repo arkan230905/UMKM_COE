@@ -363,7 +363,7 @@
                                             </div>
                                             <div class="info-row">
                                                 <span>Tanggal</span>
-                                                <span>: {{ optional($penjualan->tanggal)->format('d/m/Y H:i') ?? date('d/m/Y H:i') }}</span>
+                                                <span>: {{ optional($penjualan->tanggal_transaksi)->format('d/m/Y H:i') ?? date('d/m/Y H:i') }}</span>
                                             </div>
                                             <div class="info-row">
                                                 <span>Kasir</span>
