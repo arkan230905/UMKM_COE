@@ -13,9 +13,10 @@ return new class extends Migration
         DB::statement("
             UPDATE journal_lines jl
             INNER JOIN journal_entries je ON jl.journal_entry_id = je.id
+            INNER JOIN coas c ON jl.coa_id = c.id
             SET jl.credit = jl.debit, jl.debit = 0
             WHERE je.ref_type = 'production_labor_overhead'
-            AND jl.coa_code IN ('52', '53')
+            AND c.kode_akun IN ('52', '53')
             AND jl.debit > 0
         ");
     }
@@ -26,9 +27,10 @@ return new class extends Migration
         DB::statement("
             UPDATE journal_lines jl
             INNER JOIN journal_entries je ON jl.journal_entry_id = je.id
+            INNER JOIN coas c ON jl.coa_id = c.id
             SET jl.debit = jl.credit, jl.credit = 0
             WHERE je.ref_type = 'production_labor_overhead'
-            AND jl.coa_code IN ('52', '53')
+            AND c.kode_akun IN ('52', '53')
             AND jl.credit > 0
         ");
     }

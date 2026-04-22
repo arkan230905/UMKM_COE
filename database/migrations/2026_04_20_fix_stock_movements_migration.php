@@ -20,8 +20,13 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Revert enum back to original
+        // Revert enum back to original, but first handle existing 'support' data
         if (Schema::hasTable('stock_movements')) {
+            // Update any 'support' records to 'material' to avoid data truncation
+            DB::table('stock_movements')
+                ->where('item_type', 'support')
+                ->update(['item_type' => 'material']);
+            
             DB::statement("ALTER TABLE stock_movements MODIFY COLUMN item_type ENUM('material', 'product')");
         }
     }

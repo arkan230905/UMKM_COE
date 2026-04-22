@@ -22,7 +22,7 @@ return new class extends Migration
                 'Liability', 'Kewajiban', 
                 'Equity', 'Ekuitas', 'Modal',
                 'Revenue', 'Pendapatan',
-                'Expense', 'Beban', 'BEBAN', 'Biaya',
+                'Expense', 'Beban', 'Biaya',
                 'Biaya Bahan Baku', 'Biaya Tenaga Kerja Langsung', 
                 'Biaya Overhead Pabrik', 'Biaya Tenaga Kerja Tidak Langsung', 
                 'BOP Tidak Langsung Lainnya'

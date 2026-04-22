@@ -24,7 +24,7 @@ return new class extends Migration
         Schema::table('asets', function (Blueprint $table) {
             // Basic information - only add if not exists
             if (!Schema::hasColumn('asets', 'kode_aset')) {
-                $table->string('kode_aset')->unique()->after('id');
+                $table->string('kode_aset')->after('id');
             }
             if (!Schema::hasColumn('asets', 'nama_aset')) {
                 $table->string('nama_aset')->after('kode_aset');
@@ -109,12 +109,33 @@ return new class extends Migration
                 $table->unsignedBigInteger('updated_by')->nullable()->after('created_by');
             }
         });
+
+        // Handle empty kode_aset values and add unique constraint
+        if (Schema::hasColumn('asets', 'kode_aset')) {
+            // Fill empty kode_aset with unique values
+            DB::statement("
+                UPDATE asets SET kode_aset = CONCAT('ASET', LPAD(id, 6, '0')) 
+                WHERE kode_aset IS NULL OR kode_aset = ''
+            ");
+            
+            // Add unique constraint if it doesn't exist
+            $indexes = DB::select("SHOW INDEX FROM asets WHERE Key_name = 'asets_kode_aset_unique'");
+            if (empty($indexes)) {
+                DB::statement("ALTER TABLE asets ADD UNIQUE KEY asets_kode_aset_unique (kode_aset)");
+            }
+        }
     }
 
     public function down(): void
     {
+        // Drop unique constraint first if it exists
+        $indexes = DB::select("SHOW INDEX FROM asets WHERE Key_name = 'asets_kode_aset_unique'");
+        if (!empty($indexes)) {
+            DB::statement("ALTER TABLE asets DROP INDEX asets_kode_aset_unique");
+        }
+
         Schema::table('asets', function (Blueprint $table) {
-            // Drop foreign keys first
+            // Drop foreign keys first if they exist
             $table->dropForeign(['kategori_aset_id']);
             $table->dropForeign(['asset_coa_id']);
             $table->dropForeign(['accum_depr_coa_id']);
@@ -122,7 +143,7 @@ return new class extends Migration
             $table->dropForeign(['created_by']);
             $table->dropForeign(['updated_by']);
             
-            // Drop all new columns
+            // Then drop all new columns
             $table->dropColumn([
                 'kode_aset',
                 'nama_aset',
