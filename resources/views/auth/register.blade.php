@@ -20,7 +20,7 @@
             margin: 0;
             padding: 0;
             overflow-x: hidden;
-            padding-bottom: 120px; /* Space for fixed footer */
+            padding-bottom: 50px; /* Space for fixed footer */
         }
         
         /* Hide scrollbar but keep functionality */
@@ -56,10 +56,10 @@
         }
 
         .register-container {
-            max-width: 850px;
+            max-width: 380px;
             width: 100%;
-            margin: 2% auto;
-            padding: 2rem;
+            margin: 1% auto;
+            padding: 0.8rem;
             background: rgba(245, 243, 239, 0.95);
             border-radius: 16px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -70,12 +70,13 @@
 
         .form-input {
             width: 100%;
-            padding: 0.75rem 1rem;
+            padding: 0.35rem 0.5rem;
             background: rgba(255, 255, 255, 0.7);
             border: 1px solid rgba(139, 69, 19, 0.2);
             border-radius: 8px;
             color: #3e2723;
             transition: all 0.3s;
+            font-size: 0.65rem;
         }
 
         select.form-input {
@@ -102,7 +103,7 @@
         .btn-register {
             background: linear-gradient(135deg, #8b6f47 0%, #6d5637 100%);
             color: white;
-            padding: 0.75rem;
+            padding: 0.35rem;
             border-radius: 8px;
             font-weight: 500;
             transition: all 0.3s;
@@ -110,6 +111,7 @@
             border: none;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(139, 111, 71, 0.3);
+            font-size: 0.7rem;
         }
 
         .btn-register:hover {
@@ -121,8 +123,8 @@
 
         .error-message {
             color: #f87171;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
+            font-size: 0.55rem;
+            margin-top: 0.1rem;
         }
 
         .password-toggle {
@@ -137,13 +139,13 @@
 
         .form-group {
             position: relative;
-            margin-bottom: 1.25rem;
+            margin-bottom: 0.5rem;
         }
 
         .form-label {
             display: block;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
+            margin-bottom: 0.2rem;
+            font-size: 0.6rem;
             font-weight: 500;
             color: #e2e8f0;
         }
@@ -152,9 +154,9 @@
             display: flex;
             align-items: flex-start;
             gap: 0.5rem;
-            font-size: 0.875rem;
+            font-size: 0.6rem;
             color: #94a3b8;
-            margin-top: 1.5rem;
+            margin-top: 0.6rem;
         }
 
         .terms-label a {
@@ -168,9 +170,9 @@
 
         .login-link {
             text-align: center;
-            margin-top: 1.5rem;
+            margin-top: 0.6rem;
             color: #94a3b8;
-            font-size: 0.875rem;
+            font-size: 0.6rem;
         }
 
         .login-link a {
@@ -205,8 +207,8 @@
         }
 
         .logo-main-reg {
-            width: 100px;
-            height: 100px;
+            width: 45px;
+            height: 45px;
             object-fit: contain;
             border-radius: 16px;
             box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
@@ -225,15 +227,15 @@
 
         .logo-partners-reg {
             display: flex;
-            gap: 0.8rem;
+            gap: 0.3rem;
             justify-content: center;
             align-items: center;
             flex-wrap: wrap;
         }
 
         .logo-partner-reg {
-            width: 50px;
-            height: 50px;
+            width: 28px;
+            height: 28px;
             object-fit: contain;
             border-radius: 10px;
             background: rgba(255, 255, 255, 0.15);
@@ -264,13 +266,13 @@
         }
 
         .logo-external-main {
-            width: 190px;
-            height: 150px;
+            width: 50px;
+            height: 40px;
         }
 
         .logo-external-partner {
-            width: 220px;
-            height: 220px;
+            width: 60px;
+            height: 60px;
             object-fit: contain;
             border-radius: 12px;
             transition: all 0.3s ease;
@@ -382,26 +384,26 @@
         @media (max-width: 640px) {
             .register-container {
                 margin: 5%;
-                padding: 1.5rem;
+                padding: 1rem;
             }
             
             .logo-main-reg {
-                width: 80px;
-                height: 80px;
+                width: 50px;
+                height: 50px;
             }
             
             .logo-partner-reg {
-                width: 40px;
-                height: 40px;
+                width: 30px;
+                height: 30px;
             }
             
             .logo-partners-reg {
-                gap: 0.6rem;
+                gap: 0.4rem;
             }
 
             /* Adjust body padding for mobile */
             body, html {
-                padding-bottom: 140px; /* More space for mobile footer */
+                padding-bottom: 70px; /* More space for mobile footer */
             }
         }
     </style>
@@ -425,11 +427,11 @@
 
     <div class="min-h-screen flex items-center justify-center p-4">
         <div class="register-container w-full">
-            <div class="text-center mb-8">
-                <h1 class="text-2xl font-extrabold text-amber-950 mt-3">Daftar Sebagai Owner</h1>
-                <p class="text-amber-800 mt-2 text-sm">Buat akun owner untuk memulai mengelola bisnis Anda</p>
-                <div class="mt-4 p-3 bg-amber-100 rounded-lg border border-amber-300">
-                    <p class="text-xs text-amber-800">
+            <div class="text-center mb-3">
+                <h1 class="text-xs font-extrabold text-amber-950 mt-0">Daftar Sebagai Owner</h1>
+                <p class="text-amber-800 mt-0 text-xs" style="font-size: 0.55rem;">Buat akun owner untuk mengelola bisnis Anda</p>
+                <div class="mt-0.5 p-0.5 bg-amber-100 rounded-lg border border-amber-300">
+                    <p class="text-xs text-amber-800" style="font-size: 0.5rem; line-height: 1.2;">
                         <strong>Catatan:</strong> Hanya owner yang dapat mendaftar di halaman ini. 
                         Admin, pegawai, dan kasir dapat login langsung di halaman login dengan email dan kode perusahaan.
                     </p>
@@ -437,11 +439,11 @@
             </div>
 
             @if ($errors->any())
-                <div class="bg-red-900/50 border border-red-500 text-red-100 px-4 py-3 rounded mb-6">
-                    <div class="font-bold">Perhatian!</div>
-                    <ul class="list-disc list-inside mt-1">
+                <div class="bg-red-900/50 border border-red-500 text-red-100 px-2 py-1.5 rounded mb-3 text-xs">
+                    <div class="font-bold text-xs">Perhatian!</div>
+                    <ul class="list-disc list-inside mt-0.5">
                         @foreach ($errors->all() as $error)
-                            <li class="text-sm">{{ $error }}</li>
+                            <li class="text-xs">{{ $error }}</li>
                         @endforeach
                     </ul>
                 </div>
@@ -457,9 +459,9 @@
 
                 <div id="common-fields-section">
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <div class="form-group">
-                        <label class="form-label" for="name" style="color: #8b4513; font-size: 0.9rem;">Nama Lengkap <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="name" style="color: #8b4513; font-size: 0.6rem;">Nama Lengkap <span class="text-red-500">*</span></label>
                         <input
                             id="name"
                             type="text"
@@ -476,7 +478,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="username" style="color: #8b4513; font-size: 0.9rem;">Username <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="username" style="color: #8b4513; font-size: 0.6rem;">Username <span class="text-red-500">*</span></label>
                         <input
                             id="username"
                             type="text"
@@ -493,7 +495,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="email" style="color: #8b4513; font-size: 0.9rem;">Email <span class="text-red-500">*</span></label>
+                    <label class="form-label" for="email" style="color: #8b4513; font-size: 0.6rem;">Email <span class="text-red-500">*</span></label>
                     <input
                         id="email"
                         type="email"
@@ -511,7 +513,7 @@
                 </div> <!-- end common-fields-section -->
 
                 <div class="form-group">
-                    <label class="form-label" for="phone" style="color: #8b4513; font-size: 0.9rem;">Nomor Telepon <span class="text-red-500">*</span></label>
+                    <label class="form-label" for="phone" style="color: #8b4513; font-size: 0.6rem;">Nomor Telepon <span class="text-red-500">*</span></label>
                     <div class="relative">
                         <input
                             id="phone"
@@ -529,30 +531,30 @@
                     @enderror
                 </div>
 
-                <div id="company-owner-section" class="space-y-3" style="display: none;">
+                <div id="company-owner-section" class="space-y-1.5" style="display: none;">
                     <div class="form-group">
-                        <label class="form-label" for="company_nama" style="color: #8b4513; font-size: 0.9rem;">Nama Perusahaan <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="company_nama" style="color: #8b4513; font-size: 0.6rem;">Nama Perusahaan <span class="text-red-500">*</span></label>
                         <input id="company_nama" type="text" name="company_nama" value="{{ old('company_nama') }}" class="form-input @error('company_nama') border-red-500 @enderror" placeholder="Nama perusahaan">
                         @error('company_nama')
                             <p class="error-message">{{ $message }}</p>
                         @enderror
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="company_alamat" style="color: #8b4513; font-size: 0.9rem;">Alamat Perusahaan <span class="text-red-500">*</span></label>
-                        <textarea id="company_alamat" name="company_alamat" rows="2" class="form-input @error('company_alamat') border-red-500 @enderror" placeholder="Alamat perusahaan">{{ old('company_alamat') }}</textarea>
+                        <label class="form-label" for="company_alamat" style="color: #8b4513; font-size: 0.6rem;">Alamat Perusahaan <span class="text-red-500">*</span></label>
+                        <textarea id="company_alamat" name="company_alamat" rows="1" class="form-input @error('company_alamat') border-red-500 @enderror" placeholder="Alamat perusahaan">{{ old('company_alamat') }}</textarea>
                         @error('company_alamat')
                             <p class="error-message">{{ $message }}</p>
                         @enderror
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="company_email" style="color: #8b4513; font-size: 0.9rem;">Email Perusahaan <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="company_email" style="color: #8b4513; font-size: 0.6rem;">Email Perusahaan <span class="text-red-500">*</span></label>
                         <input id="company_email" type="email" name="company_email" value="{{ old('company_email') }}" class="form-input @error('company_email') border-red-500 @enderror" placeholder="email@perusahaan.com">
                         @error('company_email')
                             <p class="error-message">{{ $message }}</p>
                         @enderror
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="company_telepon" style="color: #8b4513; font-size: 0.9rem;">Telepon Perusahaan <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="company_telepon" style="color: #8b4513; font-size: 0.6rem;">Telepon Perusahaan <span class="text-red-500">*</span></label>
                         <input id="company_telepon" type="text" name="company_telepon" value="{{ old('company_telepon') }}" class="form-input @error('company_telepon') border-red-500 @enderror" placeholder="Nomor telepon perusahaan">
                         @error('company_telepon')
                             <p class="error-message">{{ $message }}</p>
@@ -561,7 +563,7 @@
                 </div>
 
                 <div id="kode-perusahaan-section" class="form-group" style="display: none;">
-                    <label class="form-label" for="kode_perusahaan" style="font-size: 0.9rem;">Kode Perusahaan <span class="text-amber-900">*</span></label>
+                    <label class="form-label" for="kode_perusahaan" style="font-size: 0.6rem;">Kode Perusahaan <span class="text-amber-900">*</span></label>
                     <input
                         id="kode_perusahaan"
                         type="text"
@@ -575,9 +577,9 @@
                     @enderror
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                     <div class="form-group">
-                        <label class="form-label" for="password" style="color: #8b4513; font-size: 0.9rem;">Password <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="password" style="color: #8b4513; font-size: 0.6rem;">Password <span class="text-red-500">*</span></label>
                         <div class="relative">
                             <input
                                 id="password"
@@ -596,7 +598,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label" for="password_confirmation" style="color: #8b4513; font-size: 0.9rem;">Konfirmasi Password <span class="text-red-500">*</span></label>
+                        <label class="form-label" for="password_confirmation" style="color: #8b4513; font-size: 0.6rem;">Konfirmasi Password <span class="text-red-500">*</span></label>
                         <div class="relative">
                             <input
                                 id="password_confirmation"
@@ -619,7 +621,7 @@
                             class="rounded border-gray-400 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50 mt-1"
                             required
                         >
-                        <span style="color: #8b4513; font-size: 0.9rem;">
+                        <span style="color: #8b4513; font-size: 0.6rem;">
                             Saya setuju dengan <a href="#" class="hover:underline">Syarat & Ketentuan</a> dan <a href="#" class="hover:underline">Kebijakan Privasi</a> <span class="text-red-500">*</span>
                         </span>
                     </label>
@@ -628,11 +630,11 @@
                     @enderror
                 </div>
 
-                <button type="submit" class="btn-register mt-6" style="font-size: 1rem; padding: 0.8rem;">
+                <button type="submit" class="btn-register mt-3" style="font-size: 0.7rem; padding: 0.35rem;">
                     Daftar Sekarang
                 </button>
 
-                <div class="login-link" style="font-size: 0.9rem;">
+                <div class="login-link" style="font-size: 0.6rem;">
                     Sudah punya akun? <a href="{{ route('login') }}" class="hover:underline">Masuk disini</a>
                 </div>
             </form>
@@ -706,7 +708,7 @@
         right: 0;
         background: linear-gradient(135deg, rgba(62, 39, 35, 0.95) 0%, rgba(93, 64, 55, 0.95) 100%);
         backdrop-filter: blur(10px);
-        padding: 1.5rem 0;
+        padding: 0.35rem 0;
         border-top: 1px solid rgba(212, 165, 116, 0.3);
         z-index: 10;
         animation: slideUp 0.8s ease-out;
@@ -714,16 +716,16 @@
         <div class="credits-container" style="
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 2rem;
+            padding: 0 0.5rem;
             text-align: center;
         ">
             <div class="credits-title" style="
                 color: #d4a574;
-                font-size: 0.9rem;
+                font-size: 0.5rem;
                 font-weight: 600;
-                margin-bottom: 0.8rem;
+                margin-bottom: 0.25rem;
                 text-transform: uppercase;
-                letter-spacing: 2px;
+                letter-spacing: 0.5px;
                 opacity: 0.9;
             ">
                 Developed By
@@ -732,12 +734,12 @@
                 display: flex;
                 flex-wrap: wrap;
                 justify-content: center;
-                gap: 2rem;
+                gap: 0.5rem;
                 align-items: center;
             ">
                 <div class="developer-item" style="
                     color: rgba(255, 255, 255, 0.9);
-                    font-size: 0.95rem;
+                    font-size: 0.5rem;
                     font-weight: 500;
                     transition: all 0.3s ease;
                     cursor: default;
@@ -746,7 +748,7 @@
                 </div>
                 <div class="developer-item" style="
                     color: rgba(255, 255, 255, 0.9);
-                    font-size: 0.95rem;
+                    font-size: 0.5rem;
                     font-weight: 500;
                     transition: all 0.3s ease;
                     cursor: default;
@@ -755,7 +757,7 @@
                 </div>
                 <div class="developer-item" style="
                     color: rgba(255, 255, 255, 0.9);
-                    font-size: 0.95rem;
+                    font-size: 0.5rem;
                     font-weight: 500;
                     transition: all 0.3s ease;
                     cursor: default;
@@ -764,7 +766,7 @@
                 </div>
                 <div class="developer-item" style="
                     color: rgba(255, 255, 255, 0.9);
-                    font-size: 0.95rem;
+                    font-size: 0.5rem;
                     font-weight: 500;
                     transition: all 0.3s ease;
                     cursor: default;
@@ -773,7 +775,7 @@
                 </div>
                 <div class="developer-item" style="
                     color: rgba(255, 255, 255, 0.9);
-                    font-size: 0.95rem;
+                    font-size: 0.5rem;
                     font-weight: 500;
                     transition: all 0.3s ease;
                     cursor: default;
@@ -782,14 +784,14 @@
                 </div>
             </div>
             <div class="credits-divider" style="
-                width: 60px;
+                width: 20px;
                 height: 1px;
                 background: linear-gradient(90deg, transparent, rgba(212, 165, 116, 0.5), transparent);
-                margin: 1rem auto;
+                margin: 0.25rem auto;
             "></div>
             <div class="credits-version" style="
                 color: rgba(255, 255, 255, 0.6);
-                font-size: 0.8rem;
+                font-size: 0.45rem;
                 font-style: italic;
             ">
                 © 2026 SIMACOST - Sistem Manufaktur Process Costing
