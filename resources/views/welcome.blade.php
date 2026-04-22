@@ -25,7 +25,7 @@
             padding: 0;
             font-family: 'Poppins', sans-serif;
             overflow-x: hidden;
-            padding-bottom: 120px; /* Space for fixed footer */
+            padding-bottom: 60px; /* Reduced space for smaller footer */
         }
         
         /* Hide scrollbar but keep functionality */
@@ -73,42 +73,42 @@
 
         .welcome-container {
             display: flex;
-            max-width: 850px;
+            max-width: 380px;
             width: 100%;
-            background: rgba(245, 243, 239, 0.95); /* Cream semi-transparent background */
-            border-radius: 20px;
+            background: rgba(245, 243, 239, 0.95);
+            border-radius: 14px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
             position: relative;
             z-index: 1;
             backdrop-filter: blur(8px);
             border: 1px solid rgba(222, 184, 135, 0.3);
             color: #3e2723;
-            margin-top: 100px; /* Optimized for zoom 50% visibility */
+            margin-top: 40px;
         }
 
         /* External Logo Section */
         .logo-external {
             position: fixed;
-            top: 30px;
-            right: 30px;
+            top: 18px;
+            right: 18px;
             z-index: 10;
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 0.55rem;
             animation: slideInRight 0.8s ease-out;
         }
 
         .logo-external-main {
-            width: 190px;
-            height: 150px;
+            width: 65px;
+            height: 53px;
         }
 
         .logo-external-partner {
-            width: 220px;
-            height: 220px;
+            width: 82px;
+            height: 82px;
             object-fit: contain;
-            border-radius: 12px;
+            border-radius: 10px;
             transition: all 0.3s ease;
             display: block;
             background: transparent;
@@ -140,7 +140,7 @@
 
         .welcome-center {
             flex: 1;
-            padding: 2.5rem;
+            padding: 1.4rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -154,21 +154,21 @@
 
         .logo-container {
             text-align: center;
-            margin-bottom: 2.5rem;
+            margin-bottom: 1.2rem;
             position: relative;
         }
 
         .logo-main-welcome {
-            max-width: 160px;
-            height: 160px;
-            margin: 0 auto 1.5rem;
+            max-width: 55px;
+            height: 55px;
+            margin: 0 auto 0.6rem;
             display: block;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(59, 130, 246, 0.25);
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);
             transition: all 0.4s ease;
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
-            padding: 20px;
-            border: 3px solid rgba(59, 130, 246, 0.3);
+            padding: 8px;
+            border: 2px solid rgba(59, 130, 246, 0.3);
             object-fit: contain;
             animation: logoFloat 3s ease-in-out infinite;
         }
@@ -237,20 +237,20 @@
         }
 
         h1 {
-            font-size: 1.8rem;
+            font-size: 0.85rem;
             font-weight: 700;
-            margin-bottom: 2rem;
+            margin-bottom: 0.7rem;
             color: #3e2723;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             line-height: 1.3;
         }
 
         .welcome-text {
-            font-size: 0.95rem;
+            font-size: 0.65rem;
             color: #5d4037;
-            margin-top: 1.5rem;
-            margin-bottom: 2rem;
-            line-height: 1.7;
+            margin-top: 0.5rem;
+            margin-bottom: 0.8rem;
+            line-height: 1.4;
             opacity: 0.9;
         }
 
@@ -258,12 +258,12 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-top: 2rem;
+            margin-top: 1.1rem;
         }
 
         .button-row {
             display: flex;
-            gap: 1rem;
+            gap: 0.6rem;
             align-items: center;
         }
 
@@ -271,13 +271,13 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 1rem 2.5rem;
+            padding: 0.5rem 1rem;
             border-radius: 50px;
             font-weight: 600;
             text-decoration: none;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 1rem;
-            min-width: 140px;
+            font-size: 0.75rem;
+            min-width: 85px;
             position: relative;
             overflow: hidden;
         }
@@ -333,17 +333,17 @@
         }
 
         .feature-list {
-            margin: 2rem 0;
+            margin: 1rem 0;
             text-align: left;
         }
 
         .feature-item {
             display: flex;
             align-items: center;
-            margin-bottom: 1.2rem;
+            margin-bottom: 0.6rem;
             color: #e2e8f0;
             opacity: 0.9;
-            padding: 0.5rem 0;
+            padding: 0.2rem 0;
             transition: all 0.3s ease;
         }
 
@@ -353,17 +353,17 @@
         }
 
         .feature-icon {
-            width: 28px;
-            height: 28px;
-            margin-right: 1.2rem;
+            width: 18px;
+            height: 18px;
+            margin-right: 0.5rem;
             color: #60a5fa;
             background: rgba(59, 130, 246, 0.1);
             border-radius: 50%;
-            padding: 6px;
+            padding: 3px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 8px;
         }
 
         .divider {
@@ -562,35 +562,35 @@
         <div class="welcome-container animate-fade-in">
             <!-- Center Content -->
             <div class="welcome-center">
-                <h1><span style="font-size: 2.2rem; font-weight: 800;">Selamat Datang di SIMCOST</span><br><span style="font-size: 1.8rem; font-weight: 700;">(Sistem Manufaktur Process Costing)</span></h1>
-                <p class="welcome-text" style="font-size: 1.1rem;">SIMCOST adalah aplikasi berbasis web yang dirancang untuk membantu perusahaan manufaktur dalam mengelola dan menghitung biaya produksi secara otomatis, akurat, dan terintegrasi menggunakan metode process costing.</p>
+                <h1><span style="font-size: 0.85rem; font-weight: 800;">Selamat Datang di SIMCOST</span><br><span style="font-size: 0.7rem; font-weight: 700;">(Sistem Manufaktur Process Costing)</span></h1>
+                <p class="welcome-text" style="font-size: 0.65rem;">SIMCOST adalah aplikasi berbasis web yang dirancang untuk membantu perusahaan manufaktur dalam mengelola dan menghitung biaya produksi secara otomatis, akurat, dan terintegrasi menggunakan metode process costing.</p>
                 
                 <div class="feature-list">
-                    <div style="color: #3e2723; font-weight: 700; font-size: 1.5rem; margin-bottom: 1.5rem; text-align: center;">Fitur Utama</div>
-                    <div class="feature-item" style="color: #3e2723; margin-bottom: 1.5rem;">
-                        <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 18px; font-weight: 700; width: 32px; height: 32px;">1</div>
-                        <span style="font-size: 1.2rem; font-weight: 500;">Otomatisasi perhitungan biaya produksi per departemen</span>
+                    <div style="color: #3e2723; font-weight: 700; font-size: 0.65rem; margin-bottom: 0.5rem; text-align: center;">Fitur Utama</div>
+                    <div class="feature-item" style="color: #3e2723; margin-bottom: 0.4rem;">
+                        <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 8px; font-weight: 700; width: 18px; height: 18px;">1</div>
+                        <span style="font-size: 0.65rem; font-weight: 500;">Otomatisasi perhitungan biaya produksi per departemen</span>
                     </div>
-                    <div class="feature-item" style="color: #3e2723; margin-bottom: 1.5rem;">
-                        <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 18px; font-weight: 700; width: 32px; height: 32px;">2</div>
-                        <span style="font-size: 1.2rem; font-weight: 500;">Pemantauan bahan baku, tenaga kerja, dan overhead</span>
+                    <div class="feature-item" style="color: #3e2723; margin-bottom: 0.4rem;">
+                        <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 8px; font-weight: 700; width: 18px; height: 18px;">2</div>
+                        <span style="font-size: 0.65rem; font-weight: 500;">Pemantauan bahan baku, tenaga kerja, dan overhead</span>
                     </div>
-                    <div class="feature-item" style="color: #3e2723; margin-bottom: 1.5rem;">
-                        <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 18px; font-weight: 700; width: 32px; height: 32px;">3</div>
-                        <span style="font-size: 1.2rem; font-weight: 500;">Perhitungan Harga Pokok Produksi (HPP) yang akurat</span>
+                    <div class="feature-item" style="color: #3e2723; margin-bottom: 0.4rem;">
+                        <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 8px; font-weight: 700; width: 18px; height: 18px;">3</div>
+                        <span style="font-size: 0.65rem; font-weight: 500;">Perhitungan Harga Pokok Produksi (HPP) yang akurat</span>
                     </div>
-                    <div class="feature-item" style="color: #3e2723; margin-bottom: 1.5rem;">
-                        <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 18px; font-weight: 700; width: 32px; height: 32px;">4</div>
-                        <span style="font-size: 1.2rem; font-weight: 500;">Penyajian laporan yang transparan dan terstruktur</span>
+                    <div class="feature-item" style="color: #3e2723; margin-bottom: 0.4rem;">
+                        <div class="feature-icon" style="color: #d4a574; background: rgba(212, 165, 116, 0.1); font-size: 8px; font-weight: 700; width: 18px; height: 18px;">4</div>
+                        <span style="font-size: 0.65rem; font-weight: 500;">Penyajian laporan yang transparan dan terstruktur</span>
                     </div>
                 </div>
 
                 <div class="button-center">
                     <div class="button-row">
-                        <a href="{{ route('login') }}" class="btn-login" style="padding: 1rem 2.5rem; font-size: 1.1rem; margin-right: 1rem; min-width: 140px;">
+                        <a href="{{ route('login') }}" class="btn-login">
                             <i class="fas fa-sign-in-alt mr-2"></i> Masuk
                         </a>
-                        <a href="{{ route('register') }}" class="btn-register" style="padding: 1rem 2.5rem; font-size: 1.1rem; margin-left: 1rem; min-width: 140px;">
+                        <a href="{{ route('register') }}" class="btn-register">
                             <i class="fas fa-user-plus mr-2"></i> Daftar
                         </a>
                     </div>
@@ -606,7 +606,7 @@
             right: 0;
             background: linear-gradient(135deg, rgba(62, 39, 35, 0.95) 0%, rgba(93, 64, 55, 0.95) 100%);
             backdrop-filter: blur(10px);
-            padding: 1.5rem 0;
+            padding: 0.5rem 0;
             border-top: 1px solid rgba(212, 165, 116, 0.3);
             z-index: 10;
             animation: slideUp 0.8s ease-out;
@@ -614,16 +614,16 @@
             <div class="credits-container" style="
                 max-width: 1200px;
                 margin: 0 auto;
-                padding: 0 2rem;
+                padding: 0 0.75rem;
                 text-align: center;
             ">
                 <div class="credits-title" style="
                     color: #d4a574;
-                    font-size: 0.9rem;
+                    font-size: 0.55rem;
                     font-weight: 600;
-                    margin-bottom: 0.8rem;
+                    margin-bottom: 0.35rem;
                     text-transform: uppercase;
-                    letter-spacing: 2px;
+                    letter-spacing: 1px;
                     opacity: 0.9;
                 ">
                     Developed By
@@ -632,12 +632,12 @@
                     display: flex;
                     flex-wrap: wrap;
                     justify-content: center;
-                    gap: 2rem;
+                    gap: 0.75rem;
                     align-items: center;
                 ">
                     <div class="developer-item" style="
                         color: rgba(255, 255, 255, 0.9);
-                        font-size: 0.95rem;
+                        font-size: 0.6rem;
                         font-weight: 500;
                         transition: all 0.3s ease;
                         cursor: default;
@@ -646,7 +646,7 @@
                     </div>
                     <div class="developer-item" style="
                         color: rgba(255, 255, 255, 0.9);
-                        font-size: 0.95rem;
+                        font-size: 0.6rem;
                         font-weight: 500;
                         transition: all 0.3s ease;
                         cursor: default;
@@ -655,7 +655,7 @@
                     </div>
                     <div class="developer-item" style="
                         color: rgba(255, 255, 255, 0.9);
-                        font-size: 0.95rem;
+                        font-size: 0.6rem;
                         font-weight: 500;
                         transition: all 0.3s ease;
                         cursor: default;
@@ -664,7 +664,7 @@
                     </div>
                     <div class="developer-item" style="
                         color: rgba(255, 255, 255, 0.9);
-                        font-size: 0.95rem;
+                        font-size: 0.6rem;
                         font-weight: 500;
                         transition: all 0.3s ease;
                         cursor: default;
@@ -673,7 +673,7 @@
                     </div>
                     <div class="developer-item" style="
                         color: rgba(255, 255, 255, 0.9);
-                        font-size: 0.95rem;
+                        font-size: 0.6rem;
                         font-weight: 500;
                         transition: all 0.3s ease;
                         cursor: default;
@@ -682,14 +682,14 @@
                     </div>
                 </div>
                 <div class="credits-divider" style="
-                    width: 60px;
+                    width: 30px;
                     height: 1px;
                     background: linear-gradient(90deg, transparent, rgba(212, 165, 116, 0.5), transparent);
-                    margin: 1rem auto;
+                    margin: 0.35rem auto;
                 "></div>
                 <div class="credits-version" style="
                     color: rgba(255, 255, 255, 0.6);
-                    font-size: 0.8rem;
+                    font-size: 0.5rem;
                     font-style: italic;
                 ">
                     © 2026 SIMACOST - Sistem Manufaktur Process Costing

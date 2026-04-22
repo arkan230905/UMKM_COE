@@ -36,7 +36,7 @@
             height: 100vh;
             position: fixed;
             width: 100%;
-            padding-bottom: 120px; /* Space for fixed footer */
+            padding-bottom: 60px; /* Reduced space for smaller footer */
         }
         
         /* Hide scrollbars on all elements */
@@ -104,34 +104,38 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin-top: 30px;
+            margin-top: 15px;
+            overflow: visible !important;
+            position: static !important;
         }
 
         .login-box {
             background: rgba(245, 243, 239, 0.95);
             backdrop-filter: blur(20px);
-            border-radius: 16px;
-            padding: 2rem;
+            border-radius: 12px;
+            padding: 1.2rem;
             width: 100%;
-            max-width: 900px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            max-width: 340px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
             border: 1px solid rgba(222, 184, 135, 0.3);
             color: #3e2723;
+            overflow: visible !important;
+            position: static !important;
         }
 
         h1 {
             text-align: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 0.6rem;
             font-weight: 700;
-            font-size: 1.8rem;
+            font-size: 0.85rem;
             color: #fff;
         }
 
         .welcome-title {
             text-align: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.4rem;
             font-weight: 700;
-            font-size: 2.2rem;
+            font-size: 0.95rem;
             color: #3e2723;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
             animation: fadeInUp 0.8s ease-out;
@@ -140,20 +144,20 @@
         .form-label {
             font-weight: 600;
             color: #3e2723;
-            margin-bottom: 0.5rem;
-            font-size: 1.1rem;
+            margin-bottom: 0.35rem;
+            font-size: 0.7rem;
         }
 
         .form-control, .form-select {
             background: rgba(255, 255, 255, 0.9) !important;
             border: 2px solid rgba(139, 69, 19, 0.3) !important;
             color: #3e2723 !important;
-            border-radius: 8px;
-            padding: 1.2rem 1.2rem !important;
+            border-radius: 6px;
+            padding: 0.55rem 0.55rem !important;
             transition: all 0.3s;
-            font-size: 1.1rem !important;
-            height: 60px !important;
-            line-height: 1.4 !important;
+            font-size: 0.7rem !important;
+            height: 35px !important;
+            line-height: 1.3 !important;
             box-sizing: border-box;
             display: block;
             width: 100%;
@@ -165,11 +169,11 @@
             background: rgba(255, 255, 255, 0.9) !important;
             border: 2px solid rgba(139, 69, 19, 0.3) !important;
             color: #3e2723 !important;
-            font-size: 1.1rem !important;
+            font-size: 0.7rem !important;
             font-weight: 500 !important;
-            height: 60px !important;
-            padding: 1.2rem 1.2rem !important;
-            line-height: 1.4 !important;
+            height: 35px !important;
+            padding: 0.55rem 0.55rem !important;
+            line-height: 1.3 !important;
         }
 
         #login_role:focus {
@@ -182,9 +186,9 @@
         #login_role option {
             background: #ffffff !important;
             color: #3e2723 !important;
-            font-size: 1.2rem !important;
+            font-size: 0.7rem !important;
             font-weight: 500 !important;
-            padding: 1rem !important;
+            padding: 0.75rem !important;
         }
 
         .form-control:focus, .form-select:focus {
@@ -228,7 +232,7 @@
 
         /* Better form spacing */
         .mb-3 {
-            margin-bottom: 1.25rem;
+            margin-bottom: 1rem;
         }
 
         .form-label {
@@ -241,22 +245,44 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            margin-top: 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            width: 100%;
+            position: static !important;
+            z-index: 1;
+            left: auto !important;
+            right: auto !important;
+            top: auto !important;
+            bottom: auto !important;
         }
 
         .form-check-input {
-            width: 1.2rem;
-            height: 1.2rem;
-            margin: 0;
+            width: 1rem;
+            height: 1rem;
+            margin: 0 !important;
+            padding: 0 !important;
+            flex-shrink: 0;
             background: rgba(255, 255, 255, 0.9);
-            border: 2px solid #8b6f47;
-            border-radius: 4px;
+            border: 1.5px solid #8b6f47;
+            border-radius: 3px;
             cursor: pointer;
             transition: all 0.3s;
-            position: relative;
+            position: static !important;
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
+            display: block;
+            z-index: 1;
+            left: auto !important;
+            right: auto !important;
+            top: auto !important;
+            bottom: auto !important;
         }
 
         .form-check-input:checked {
@@ -271,7 +297,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
             color: white;
-            font-size: 0.9rem;
+            font-size: 0.65rem;
             font-weight: bold;
         }
 
@@ -288,24 +314,43 @@
 
         .form-check-label {
             margin: 0;
+            padding: 0;
             cursor: pointer;
             color: #3e2723;
-            font-size: 1.1rem;
+            font-size: 0.65rem;
+            line-height: 1.4;
+            user-select: none;
+        }
+
+        /* Ensure form-check with mb-3 doesn't overflow */
+        .mb-3.form-check {
+            margin-bottom: 1rem;
+            overflow: visible !important;
+            position: static !important;
+        }
+
+        #login-fields {
+            overflow: visible !important;
+            position: static !important;
+        }
+
+        form {
+            overflow: visible !important;
         }
 
         button, .btn {
             background: linear-gradient(135deg, #d4a574 0%, #c19a6b 100%) !important;
             border: none !important;
             width: 100%;
-            padding: 1.2rem 1.2rem;
-            border-radius: 8px;
+            padding: 0.55rem 0.55rem;
+            border-radius: 6px;
             color: #fff !important;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
-            font-size: 1.2rem;
-            height: 60px;
-            line-height: 1.4;
+            font-size: 0.75rem;
+            height: 35px;
+            line-height: 1.3;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -367,7 +412,7 @@
         a {
             color: #3e2723;
             text-decoration: none;
-            font-size: 1.1rem;
+            font-size: 0.65rem;
             transition: all 0.3s;
         }
 
@@ -377,9 +422,10 @@
         }
 
         .alert {
-            border-radius: 8px;
+            border-radius: 6px;
             border: none;
-            font-size: 0.875rem;
+            font-size: 0.7rem;
+            padding: 0.6rem;
         }
 
         .alert-success {
@@ -395,38 +441,28 @@
 
         .alert-danger ul {
             margin: 0;
-            padding-left: 1.2rem;
+            padding-left: 1rem;
         }
 
         .text-danger {
             color: #fca5a5;
-            font-size: 0.75rem;
-            margin-top: 0.25rem;
+            font-size: 0.6rem;
+            margin-top: 0.2rem;
         }
 
         /* Remove floating animation */
         .login-box {
             animation: none;
+            overflow: visible;
         }
 
-        /* Input group styling */
-        .mb-3 {
-            margin-bottom: 1.25rem;
-        }
-
-        /* Remember me checkbox */
-        .form-check {
-            padding-left: 0;
-            margin-bottom: 1rem;
-        }
-
-        .form-check-input {
-            margin-top: 0.25rem;
+        #login-fields {
+            overflow: visible;
         }
 
         /* Forgot password link */
         .text-center.mt-3 {
-            margin-top: 1rem !important;
+            margin-top: 0.75rem !important;
         }
 
         /* External Logo Section */
@@ -442,13 +478,13 @@
         }
 
         .logo-external-main {
-            width: 190px;
-            height: 150px;
+            width: 65px;
+            height: 53px;
         }
 
         .logo-external-partner {
-            width: 220px;
-            height: 220px;
+            width: 82px;
+            height: 82px;
             object-fit: contain;
             border-radius: 12px;
             transition: all 0.3s ease;
@@ -535,10 +571,10 @@
 
         .subtitle {
             color: #6d4c41;
-            font-size: 1.1rem;
-            margin: 0.3rem auto;
+            font-size: 0.65rem;
+            margin: 0.25rem auto;
             font-weight: 500;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
             animation: fadeIn 1.2s ease-out;
             max-width: 85%;
         }
@@ -616,7 +652,7 @@
             <!-- Welcome Section -->
             <div class="text-center mb-4">
                 <h1 class="welcome-title">Selamat Datang</h1>
-                <p class="subtitle">Sistem Manajemen Manufaktur Proces Costing Terpadu - Kelola bisnis Anda dengan mudah dan efisien</p>
+                <p class="subtitle">Sistem Manajemen Manufaktur Proces Costing Terpadu - Kelola bisnis anda dengan mudah dan efisien</p>
             </div>
             
             @if (session('status'))
@@ -692,9 +728,9 @@
 
                     <button type="submit" class="btn btn-primary w-100" id="loginButton">LOGIN</button>
 
-                    <div class="text-center mt-3">
-                        <span style="color: #3e2723;">Belum punya akun?</span>
-                        <a href="{{ route('register') }}" style="color: #3e2723; font-weight: bold;">Daftar sekarang</a>
+                    <div class="text-center mt-3" style="margin-top: 0.75rem !important;">
+                        <span style="color: #3e2723; font-size: 0.65rem;">Belum punya akun?</span>
+                        <a href="{{ route('register') }}" style="color: #3e2723; font-weight: bold; font-size: 0.65rem;">Daftar sekarang</a>
                     </div>
                 </div>
             </form>
@@ -709,7 +745,7 @@
         right: 0;
         background: linear-gradient(135deg, rgba(62, 39, 35, 0.95) 0%, rgba(93, 64, 55, 0.95) 100%);
         backdrop-filter: blur(10px);
-        padding: 1.5rem 0;
+        padding: 0.5rem 0;
         border-top: 1px solid rgba(212, 165, 116, 0.3);
         z-index: 10;
         animation: slideUp 0.8s ease-out;
@@ -717,16 +753,16 @@
         <div class="credits-container" style="
             max-width: 1200px;
             margin: 0 auto;
-            padding: 0 2rem;
+            padding: 0 0.75rem;
             text-align: center;
         ">
             <div class="credits-title" style="
                 color: #d4a574;
-                font-size: 0.9rem;
+                font-size: 0.55rem;
                 font-weight: 600;
-                margin-bottom: 0.8rem;
+                margin-bottom: 0.35rem;
                 text-transform: uppercase;
-                letter-spacing: 2px;
+                letter-spacing: 1px;
                 opacity: 0.9;
             ">
                 Developed By
@@ -735,12 +771,12 @@
                 display: flex;
                 flex-wrap: wrap;
                 justify-content: center;
-                gap: 2rem;
+                gap: 0.75rem;
                 align-items: center;
             ">
                 <div class="developer-item" style="
                     color: rgba(255, 255, 255, 0.9);
-                    font-size: 0.95rem;
+                    font-size: 0.6rem;
                     font-weight: 500;
                     transition: all 0.3s ease;
                     cursor: default;
@@ -749,7 +785,7 @@
                 </div>
                 <div class="developer-item" style="
                     color: rgba(255, 255, 255, 0.9);
-                    font-size: 0.95rem;
+                    font-size: 0.6rem;
                     font-weight: 500;
                     transition: all 0.3s ease;
                     cursor: default;
@@ -758,7 +794,7 @@
                 </div>
                 <div class="developer-item" style="
                     color: rgba(255, 255, 255, 0.9);
-                    font-size: 0.95rem;
+                    font-size: 0.6rem;
                     font-weight: 500;
                     transition: all 0.3s ease;
                     cursor: default;
@@ -767,7 +803,7 @@
                 </div>
                 <div class="developer-item" style="
                     color: rgba(255, 255, 255, 0.9);
-                    font-size: 0.95rem;
+                    font-size: 0.6rem;
                     font-weight: 500;
                     transition: all 0.3s ease;
                     cursor: default;
@@ -776,7 +812,7 @@
                 </div>
                 <div class="developer-item" style="
                     color: rgba(255, 255, 255, 0.9);
-                    font-size: 0.95rem;
+                    font-size: 0.6rem;
                     font-weight: 500;
                     transition: all 0.3s ease;
                     cursor: default;
@@ -785,14 +821,14 @@
                 </div>
             </div>
             <div class="credits-divider" style="
-                width: 60px;
+                width: 30px;
                 height: 1px;
                 background: linear-gradient(90deg, transparent, rgba(212, 165, 116, 0.5), transparent);
-                margin: 1rem auto;
+                margin: 0.35rem auto;
             "></div>
             <div class="credits-version" style="
                 color: rgba(255, 255, 255, 0.6);
-                font-size: 0.8rem;
+                font-size: 0.5rem;
                 font-style: italic;
             ">
                 © 2026 SIMACOST - Sistem Manufaktur Process Costing
