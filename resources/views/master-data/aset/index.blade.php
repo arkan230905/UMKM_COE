@@ -101,7 +101,7 @@
                                 <td>{{ $aset->kategori->jenisAset->nama ?? '-' }}</td>
                                 <td>{{ $aset->kategori->nama ?? '-' }}</td>
                                 <td class="text-end">{{ number_format($aset->harga_perolehan, 0, ',', '.') }}</td>
-                                <td>{{ is_string($aset->tanggal_beli) ? \Carbon\Carbon::parse($aset->tanggal_beli)->format('d/m/Y') : $aset->tanggal_beli->format('d/m/Y') }}</td>
+                                <td>{{ $aset->tanggal_beli ? (is_string($aset->tanggal_beli) ? \Carbon\Carbon::parse($aset->tanggal_beli)->format('d/m/Y') : $aset->tanggal_beli->format('d/m/Y')) : '-' }}</td>
                                 <td>{{ $aset->metode_penyusutan ? ucfirst(str_replace('_', ' ', $aset->metode_penyusutan)) : '-' }}</td>
                                 <td class="text-end">
                                     @if(isset($aset->monthly_depreciation) && $aset->monthly_depreciation > 0)

@@ -26,15 +26,16 @@
         html {
             -ms-overflow-style: none;  /* IE and Edge */
             scrollbar-width: none;  /* Firefox */
-            overflow: hidden;
+            overflow: auto;
         }
         
         body {
             -ms-overflow-style: none;  /* IE and Edge */
             scrollbar-width: none;  /* Firefox */
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
             height: 100vh;
-            position: fixed;
+            position: relative;
             width: 100%;
             padding-bottom: 60px; /* Reduced space for smaller footer */
         }
@@ -103,10 +104,11 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin-top: 15px;
+            min-height: 100vh;
+            margin-top: 0;
             overflow: visible !important;
             position: static !important;
+            padding: 0;
         }
 
         .login-box {

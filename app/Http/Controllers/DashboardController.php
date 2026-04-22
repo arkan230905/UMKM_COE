@@ -69,17 +69,22 @@ class DashboardController extends Controller
 
         // Recent Transactions
         $recentExpensePayments = collect();
-        if (\Schema::hasTable('expense_payments')) {
-            $recentExpensePayments = \App\Models\ExpensePayment::with('coaBeban')
-                ->latest()
+        // Get pembayaran beban from PembayaranBeban (same as transaksi/pembayaran-beban page)
+        if (\Schema::hasTable('pembayaran_beban')) {
+            $recentExpensePayments = \App\Models\PembayaranBeban::with(['coaBeban', 'coaKas', 'bebanOperasional'])
+                ->latest('tanggal')
                 ->take(5)
                 ->get();
         }
 
         $recentApSettlements = collect();
-        if (\Schema::hasTable('ap_settlements')) {
-            $recentApSettlements = \App\Models\ApSettlement::with(['pembelian.vendor'])
-                ->latest()
+        // Get pelunasan utang from pelunasan_utangs table
+        if (\Schema::hasTable('pelunasan_utangs')) {
+            $recentApSettlements = \DB::table('pelunasan_utangs')
+                ->join('pembelians', 'pelunasan_utangs.pembelian_id', '=', 'pembelians.id')
+                ->join('vendors', 'pembelians.vendor_id', '=', 'vendors.id')
+                ->select('pelunasan_utangs.*', 'pembelians.nomor_faktur', 'vendors.nama_vendor')
+                ->latest('pelunasan_utangs.tanggal')
                 ->take(5)
                 ->get();
         }

@@ -21,7 +21,7 @@ class SatuanSeeder extends Seeder
             ['kode' => 'SDM',   'nama' => 'Sendok Makan', 'kategori' => 'volume',  'faktor_ke_dasar' => 15],
             ['kode' => 'PCS',   'nama' => 'Pieces',       'kategori' => 'jumlah',  'faktor_ke_dasar' => 1],
             ['kode' => 'BNGKS', 'nama' => 'Bungkus',      'kategori' => 'jumlah',  'faktor_ke_dasar' => 1],
-            ['kode' => 'WATT',  'nama' => 'Watt',         'kategori' => 'jumlah',  'faktor_ke_dasar' => 1],
+            ['kode' => 'CUP',   'nama' => 'Cup',          'kategori' => 'jumlah',  'faktor_ke_dasar' => 1],
             ['kode' => 'GL',    'nama' => 'Galon',        'kategori' => 'volume',  'faktor_ke_dasar' => 19000],
             ['kode' => 'TBG',   'nama' => 'Tabung',       'kategori' => 'jumlah',  'faktor_ke_dasar' => 1],
             ['kode' => 'SNG',   'nama' => 'Siung',        'kategori' => 'jumlah',  'faktor_ke_dasar' => 1],
