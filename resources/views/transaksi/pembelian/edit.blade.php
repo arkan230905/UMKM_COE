@@ -137,10 +137,11 @@ select.form-select option {
                             <option value="">-- Pilih Metode Pembayaran --</option>
                             @foreach ($kasbank as $bank)
                                 <option value="{{ $bank->id }}" {{ $pembelian->bank_id == $bank->id ? 'selected' : '' }}>
-                                    {{ $bank->nama_akun }} - {{ $bank->kode_akun }} (Saldo Akhir: Rp {{ number_format($currentBalances[$bank->kode_akun] ?? 0, 0, ',', '.') }})
+                                    💵 {{ $bank->nama_akun }}
+                                    (Saldo: Rp {{ number_format($bank->saldo_awal ?? 0, 0, ',', '.') }})
                                 </option>
                             @endforeach
-                            <option value="credit" {{ $pembelian->bank_id === null ? 'selected' : '' }}>Kredit (Utang)</option>
+                            <option value="credit" {{ $pembelian->bank_id === null ? 'selected' : '' }}>💳 Kredit (Hutang)</option>
                         </select>
                     </div>
                     

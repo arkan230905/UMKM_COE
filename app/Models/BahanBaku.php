@@ -57,7 +57,50 @@ class BahanBaku extends Model
         'sub_satuan_3_nilai' => 'decimal:4',
     ];
     
-    protected $appends = ['stok_aman', 'status_stok', 'harga_per_gram', 'stok_dalam_gram'];
+    protected $appends = ['stok_aman', 'status_stok', 'harga_per_gram', 'stok_dalam_gram', 'stok'];
+
+    /**
+     * Get the stok attribute (maps to real-time stock from stock movements)
+     */
+    public function getStokAttribute()
+    {
+        return $this->stok_real_time;
+    }
+
+    /**
+     * Set the stok attribute (updates through stock movement system)
+     * This is a legacy compatibility method - new code should use StockService directly
+     */
+    public function setStokAttribute($value)
+    {
+        // For legacy compatibility, we'll create a stock movement
+        // But this should be avoided in new code
+        $currentStock = $this->stok_real_time;
+        $difference = $value - $currentStock;
+        
+        if (abs($difference) > 0.0001) {
+            \Log::warning("Legacy stok setter used for BahanBaku ID {$this->id}. Use StockService instead.", [
+                'current_stock' => $currentStock,
+                'new_value' => $value,
+                'difference' => $difference
+            ]);
+            
+            // Create a stock movement for the difference
+            \App\Models\StockMovement::create([
+                'item_type' => 'material',
+                'item_id' => $this->id,
+                'direction' => $difference > 0 ? 'in' : 'out',
+                'qty' => abs($difference),
+                'unit' => $this->satuan->nama ?? 'unit',
+                'unit_cost' => $this->harga_satuan ?? 0,
+                'total_cost' => ($this->harga_satuan ?? 0) * abs($difference),
+                'ref_type' => 'adjustment',
+                'ref_id' => null,
+                'tanggal' => now()->format('Y-m-d'),
+                'keterangan' => 'Legacy stock adjustment via model setter'
+            ]);
+        }
+    }
 
     /**
      * Get the harga per gram attribute.
@@ -1124,7 +1167,7 @@ class BahanBaku extends Model
     {
         \Log::info("SYNC STOCK WITH MOVEMENTS - Bahan Baku ID {$this->id}:", [
             'nama_bahan' => $this->nama_bahan,
-            'current_master_stok' => $this->stok
+            'current_master_stok' => $this->saldo_awal
         ]);
 
         // Hitung stok real-time dari stock movements
@@ -1144,14 +1187,14 @@ class BahanBaku extends Model
             'stock_in' => $stockIn,
             'stock_out' => $stockOut,
             'calculated_stock' => $stokRealTime,
-            'master_stock' => $this->stok,
-            'difference' => ($this->stok - $stokRealTime)
+            'master_stock' => $this->saldo_awal,
+            'difference' => ($this->saldo_awal - $stokRealTime)
         ]);
 
         // Update jika ada perbedaan
-        if (abs($this->stok - $stokRealTime) > 0.01) {
-            $oldStock = $this->stok;
-            $this->stok = $stokRealTime;
+        if (abs($this->saldo_awal - $stokRealTime) > 0.01) {
+            $oldStock = $this->saldo_awal;
+            $this->saldo_awal = $stokRealTime;
             $result = $this->save();
 
             \Log::info("SYNC STOCK UPDATE - Bahan Baku ID {$this->id}:", [
@@ -1170,7 +1213,7 @@ class BahanBaku extends Model
 
         return [
             'updated' => false,
-            'stock' => $this->stok,
+            'stock' => $this->saldo_awal,
             'message' => 'Stok sudah konsisten'
         ];
     }
@@ -1191,6 +1234,50 @@ class BahanBaku extends Model
             ->sum('qty');
 
         return $stockIn - $stockOut;
+    }
+
+    /**
+     * Calculate sub unit price with new logic for decimal values
+     * For decimal values (< 1): (harga_utama * nilai * 100) / 100
+     * For whole numbers (>= 1): harga_utama / konversi
+     */
+    public function calculateSubUnitPrice($subUnitNumber)
+    {
+        $hargaUtama = $this->harga_satuan_display ?? $this->harga_satuan ?? 0;
+        
+        if ($hargaUtama <= 0) {
+            return 0;
+        }
+
+        $konversi = null;
+        $nilai = null;
+
+        switch ($subUnitNumber) {
+            case 1:
+                $konversi = $this->sub_satuan_1_konversi ?? 1;
+                $nilai = $this->sub_satuan_1_nilai ?? 1;
+                break;
+            case 2:
+                $konversi = $this->sub_satuan_2_konversi ?? 1;
+                $nilai = $this->sub_satuan_2_nilai ?? 1;
+                break;
+            case 3:
+                $konversi = $this->sub_satuan_3_konversi ?? 1;
+                $nilai = $this->sub_satuan_3_nilai ?? 1;
+                break;
+            default:
+                return 0;
+        }
+
+        // Jika nilai adalah desimal (< 1), gunakan rumus baru
+        if ($nilai < 1) {
+            // Rumus: (harga_utama * nilai * 100) / 100
+            // Contoh: nilai = 0.25 -> (25000 * 0.25 * 100) / 100 = (25000 * 25) / 100
+            return ($hargaUtama * $nilai * 100) / 100;
+        } else {
+            // Untuk nilai >= 1, gunakan rumus: harga_utama / nilai
+            return $hargaUtama / $nilai;
+        }
     }
 
     /**

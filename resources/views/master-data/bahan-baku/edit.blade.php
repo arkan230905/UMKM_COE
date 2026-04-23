@@ -84,7 +84,7 @@
                         <div class="mb-3">
                             <label class="form-label">Stok</label>
                             <input type="number" name="stok" class="form-control @error('stok') is-invalid @enderror" 
-                                   value="{{ old('stok', $bahanBaku->stok) }}" min="0" step="0.01">
+                                   value="{{ old('stok', $bahanBaku->saldo_awal) }}" min="0" step="0.01">
                             @error('stok')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror

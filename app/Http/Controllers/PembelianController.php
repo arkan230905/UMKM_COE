@@ -182,34 +182,9 @@ class PembelianController extends Controller
         ])->get();
         $satuans = \App\Models\Satuan::all();
         
-        // Ambil data COA untuk kas dan bank yang relevan saja
-        $kasbank = \App\Models\Coa::where('tipe_akun', 'Aset')
-            ->orWhere('tipe_akun', 'ASET')
-            ->where(function($query) {
-                $query->where(function($subQuery) {
-                          $subQuery->where('nama_akun', 'like', '%kas%')
-                                 ->orWhere('nama_akun', 'like', '%tunai%')
-                                 ->orWhere('nama_akun', 'like', '%cash%');
-                      })
-                      ->orWhere(function($subQuery) {
-                          $subQuery->where('nama_akun', 'like', '%bank%')
-                                 ->orWhere('nama_akun', 'like', '%bca%')
-                                 ->orWhere('nama_akun', 'like', '%bni%')
-                                 ->orWhere('nama_akun', 'like', '%bri%')
-                                 ->orWhere('nama_akun', 'like', '%mandiri%');
-                      });
-            })
-            ->where('nama_akun', '!=', '')
-            ->where(function($query) {
-                $query->whereNot('nama_akun', 'like', '%persediaan%')
-                      ->whereNot('nama_akun', 'like', '%inventory%')
-                      ->whereNot('nama_akun', 'like', '%stok%')
-                      ->whereNot('nama_akun', 'like', '%barang%');
-            })
-            ->where(function($query) {
-                $query->where('kode_akun', 'like', '1%')
-                      ->orWhere('kode_akun', 'like', '11%');
-            })
+        // Ambil data COA untuk metode pembayaran yang spesifik saja
+        $kasbank = \App\Models\Coa::whereIn('kode_akun', ['111', '112', '113'])
+            ->where('tipe_akun', 'Aset')
             ->orderBy('kode_akun')
             ->get();
             
@@ -1035,11 +1010,9 @@ class PembelianController extends Controller
                     'updated_stock_items' => $updatedItems
                 ]);
 
-                // DISABLED: Let PembelianObserver handle journal creation to avoid conflicts
-                /*
                 // Create journal entries for accounting integration
                 try {
-                    $pembelianJournalService = new PembelianJournalService();
+                    $pembelianJournalService = new \App\Services\PembelianJournalService();
                     $pembelianJournalService->createJournalFromPembelian($pembelian);
                     \Log::info('Journal entries created successfully for pembelian', [
                         'pembelian_id' => $pembelian->id,
@@ -1051,7 +1024,6 @@ class PembelianController extends Controller
                     ]);
                     // Don't fail the transaction, just log the error
                 }
-                */
 
                 return redirect()->route('transaksi.pembelian.index')
                     ->with('success', 'Data pembelian berhasil disimpan!');
@@ -1078,18 +1050,28 @@ class PembelianController extends Controller
                         // Get conversion quantity
                         $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * ($detail->faktor_konversi ?? 1));
                         
-                        // Update stock
-                        $stokLama = $bahanBaku->stok;
-                        $bahanBaku->stok += $qtyInBaseUnit;
-                        $bahanBaku->save();
+                        // Use stock movement system instead of direct stock update
+                        $stockMovement = \App\Models\StockMovement::create([
+                            'item_type' => 'material',
+                            'item_id' => $bahanBaku->id,
+                            'direction' => 'in',
+                            'qty' => $qtyInBaseUnit,
+                            'unit' => $bahanBaku->satuan->nama ?? 'unit',
+                            'unit_cost' => $detail->harga_satuan ?? 0,
+                            'total_cost' => ($detail->harga_satuan ?? 0) * $qtyInBaseUnit,
+                            'ref_type' => 'purchase',
+                            'ref_id' => $pembelian->id,
+                            'tanggal' => $pembelian->tanggal,
+                            'keterangan' => 'Manual stock update for purchase #' . $pembelian->id
+                        ]);
                         
                         $updatedItems[] = [
                             'type' => 'Bahan Baku',
                             'id' => $detail->bahan_baku_id,
                             'nama' => $bahanBaku->nama_bahan,
                             'qty_added' => $qtyInBaseUnit,
-                            'stok_lama' => $stokLama,
-                            'stok_baru' => $bahanBaku->stok
+                            'stok_real_time' => $bahanBaku->stok_real_time,
+                            'movement_id' => $stockMovement->id
                         ];
                     }
                 } elseif ($detail->bahan_pendukung_id) {
@@ -1098,18 +1080,28 @@ class PembelianController extends Controller
                         // Get conversion quantity
                         $qtyInBaseUnit = $detail->jumlah_satuan_utama ?? ($detail->jumlah * ($detail->faktor_konversi ?? 1));
                         
-                        // Update stock
-                        $stokLama = $bahanPendukung->stok;
-                        $bahanPendukung->stok += $qtyInBaseUnit;
-                        $bahanPendukung->save();
+                        // Use stock movement system instead of direct stock update
+                        $stockMovement = \App\Models\StockMovement::create([
+                            'item_type' => 'support',
+                            'item_id' => $bahanPendukung->id,
+                            'direction' => 'in',
+                            'qty' => $qtyInBaseUnit,
+                            'unit' => $bahanPendukung->satuanRelation->nama ?? 'unit',
+                            'unit_cost' => $detail->harga_satuan ?? 0,
+                            'total_cost' => ($detail->harga_satuan ?? 0) * $qtyInBaseUnit,
+                            'ref_type' => 'purchase',
+                            'ref_id' => $pembelian->id,
+                            'tanggal' => $pembelian->tanggal,
+                            'keterangan' => 'Manual stock update for purchase #' . $pembelian->id
+                        ]);
                         
                         $updatedItems[] = [
                             'type' => 'Bahan Pendukung',
                             'id' => $detail->bahan_pendukung_id,
                             'nama' => $bahanPendukung->nama_bahan,
                             'qty_added' => $qtyInBaseUnit,
-                            'stok_lama' => $stokLama,
-                            'stok_baru' => $bahanPendukung->stok
+                            'stok_real_time' => $bahanPendukung->stok_real_time,
+                            'movement_id' => $stockMovement->id
                         ];
                     }
                 }
@@ -1119,7 +1111,7 @@ class PembelianController extends Controller
             
             return [
                 'success' => true,
-                'message' => 'Manual stock update completed',
+                'message' => 'Manual stock update completed using stock movements',
                 'updated_items' => $updatedItems
             ];
             
@@ -1142,12 +1134,11 @@ class PembelianController extends Controller
         $bahanPendukungs = BahanPendukung::with('satuan')->orderBy('nama_bahan')->get();
         $coas = Coa::all();
         
-        // Filter COA untuk kas/bank
-        $kasbank = $coas->filter(function($coa) {
-            return in_array($coa->kategori_akun, ['Bank', 'Kas']) || 
-                   str_contains(strtolower($coa->nama_akun), 'kas') ||
-                   str_contains(strtolower($coa->nama_akun), 'bank');
-        });
+        // Filter COA untuk metode pembayaran yang spesifik saja
+        $kasbank = Coa::whereIn('kode_akun', ['111', '112', '113'])
+            ->where('tipe_akun', 'Aset')
+            ->orderBy('kode_akun')
+            ->get();
         
         // Get current balances for kasbank accounts
         $currentBalances = [];

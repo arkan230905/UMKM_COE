@@ -117,7 +117,7 @@ class GudangController extends Controller
         $bahanBakus = BahanBaku::with('satuanRelation')->orderBy('nama_bahan')->get();
         $bahanPendukungs = BahanPendukung::orderBy('nama_bahan')->get();
         $satuans = Satuan::orderBy('kode')->get();
-        $kasbank = Coa::whereIn('kode_akun', ['101', '102'])->orderBy('nama_akun')->get();
+        $kasbank = Coa::whereIn('kode_akun', ['111', '112', '113'])->orderBy('nama_akun')->get();
 
         return view('gudang.pembelian-create', [
             'title' => 'Tambah Pembelian',
