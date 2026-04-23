@@ -22,10 +22,9 @@ class AccountHelper
      */
     public static function getKasBankAccounts()
     {
-        // Gunakan akun yang sesuai dengan laporan kas dan bank
-        $kasBankCodes = ['111', '112', '113']; // Sesuai dengan laporan kas bank
-        
-        $coaAccounts = Coa::whereIn('kode_akun', $kasBankCodes)
+        // Hanya ambil akun bank yang memiliki nomor rekening (untuk transfer)
+        // dan akun kas untuk pembayaran tunai
+        $coaAccounts = Coa::whereIn('kode_akun', ['111', '112', '113'])
             ->whereIn('tipe_akun', ['Asset', 'Aset', 'ASET'])
             ->orderBy('kode_akun')
             ->get();
@@ -42,6 +41,25 @@ class AccountHelper
         }
         
         return $coaAccounts;
+    }
+    
+    /**
+     * Get akun Bank saja yang memiliki nomor rekening (untuk transfer)
+     * Updated to match the query used in Tentang Perusahaan page
+     * 
+     * @return \Illuminate\Database\Eloquent\Collection
+     */
+    public static function getBankAccountsForTransfer()
+    {
+        return Coa::where('tipe_akun', 'asset')
+            ->where(function($query) {
+                $query->where('nama_akun', 'like', '%bank%')
+                      ->orWhere('kode_akun', '111');
+            })
+            ->whereNotNull('nomor_rekening')
+            ->where('nomor_rekening', '!=', '')
+            ->orderBy('kode_akun')
+            ->get();
     }
     
     /**

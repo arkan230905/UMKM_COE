@@ -264,6 +264,37 @@
 .modal-body .row.mt-4 {
     margin-top: 10px !important;
 }
+
+/* Bukti Pembayaran Styles */
+.bukti-card {
+    transition: transform 0.2s ease-in-out;
+    border: 1px solid #dee2e6;
+}
+
+.bukti-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.bukti-image {
+    max-height: 120px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.bukti-image:hover {
+    opacity: 0.8;
+}
+
+.bukti-actions .btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
 </style>
 @endpush
 
@@ -928,6 +959,102 @@
                     </div>
                 </div>
 
+                <!-- Bukti Pembayaran -->
+                <h6 class="mb-3 mt-4"><i class="fas fa-file-image me-2"></i>Bukti Pembayaran</h6>
+                
+                @php
+                    // Ambil bukti pembayaran dari database
+                    $buktiPembayaranModal = $penjualan->buktiPembayaran ?? collect();
+                @endphp
+                
+                {{-- Upload Form --}}
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3">Upload Bukti Transfer</h6>
+                    <form id="uploadBuktiFormModal{{ $penjualan->id }}" enctype="multipart/form-data">
+                        @csrf
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <input type="file" class="form-control" id="bukti_file_modal{{ $penjualan->id }}" name="bukti_file" 
+                                           accept="image/*,.pdf,.doc,.docx" required>
+                                    <div class="form-text">Format: JPG, PNG, PDF (Max 5MB)</div>
+                                    <div class="invalid-feedback" id="file-error-modal{{ $penjualan->id }}"></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <input type="text" class="form-control" id="keterangan_modal{{ $penjualan->id }}" name="keterangan" 
+                                           placeholder="Contoh: Transfer dari rekening pribadi, referensi: ...">
+                                    <div class="form-text">Catatan (Opsional)</div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i>Upload Bukti
+                        </button>
+                    </form>
+                </div>
+                
+                <hr>
+                
+                {{-- Daftar Bukti Pembayaran --}}
+                <div class="mb-4">
+                    <h6 class="fw-bold mb-3">Daftar Bukti Pembayaran</h6>
+                    @if($buktiPembayaranModal->count() > 0)
+                        <div class="row">
+                            @foreach($buktiPembayaranModal as $bukti)
+                                <div class="col-md-4 mb-3">
+                                    <div class="card bukti-card">
+                                        <div class="card-body text-center p-3">
+                                            @if(in_array(strtolower(pathinfo($bukti->file_path, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif']))
+                                                <img src="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                     class="img-fluid rounded mb-2 bukti-image" 
+                                                     style="max-height: 120px; cursor: pointer;"
+                                                     onclick="showImageModalPreview('{{ asset('storage/' . $bukti->file_path) }}', '{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}')">
+                                            @else
+                                                <div class="text-center py-3">
+                                                    <i class="fas fa-file-alt fa-2x text-muted mb-2"></i>
+                                                    <p class="mb-0 small">{{ basename($bukti->file_path) }}</p>
+                                                </div>
+                                            @endif
+                                            
+                                            <small class="text-muted d-block mb-1">{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}</small>
+                                            <small class="text-muted d-block mb-2">{{ $bukti->created_at->format('d/m/Y H:i') }}</small>
+                                            
+                                            <div class="bukti-actions">
+                                                <a href="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                   target="_blank" 
+                                                   class="btn btn-sm btn-outline-primary me-1"
+                                                   title="Lihat">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                   download 
+                                                   class="btn btn-sm btn-outline-success me-1"
+                                                   title="Download">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        onclick="deleteBuktiModal({{ $bukti->id }}, {{ $penjualan->id }})"
+                                                        title="Hapus">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        <div class="text-center py-4">
+                            <i class="fas fa-file-image fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">Belum ada bukti pembayaran</h6>
+                            <p class="text-muted">Upload bukti pembayaran untuk melengkapi transaksi</p>
+                        </div>
+                    @endif
+                </div>
+
                 <!-- Detail Retur -->
                 @if($penjualan->returPenjualans && $penjualan->returPenjualans->count() > 0)
                 <h6 class="mb-3 mt-4"><i class="fas fa-undo me-2"></i>Detail Retur</h6>
@@ -1230,6 +1357,138 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
+
+// Handle upload bukti pembayaran form in modal
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners for all upload forms in modals
+    document.querySelectorAll('[id^="uploadBuktiFormModal"]').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formId = this.id;
+            const penjualanId = formId.replace('uploadBuktiFormModal', '');
+            const fileInput = document.getElementById('bukti_file_modal' + penjualanId);
+            const file = fileInput.files[0];
+            const fileError = document.getElementById('file-error-modal' + penjualanId);
+            
+            // Reset error state
+            fileInput.classList.remove('is-invalid');
+            fileError.textContent = '';
+            
+            // Validate file size (5MB = 5 * 1024 * 1024 bytes)
+            if (file && file.size > 5 * 1024 * 1024) {
+                fileInput.classList.add('is-invalid');
+                fileError.textContent = 'Ukuran file tidak boleh lebih dari 5MB';
+                return;
+            }
+            
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            // Show loading state
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+            submitBtn.disabled = true;
+            
+            fetch(`/transaksi/penjualan/${penjualanId}/bukti-pembayaran`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                },
+                body: formData
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.log('Error response body:', text);
+                        throw new Error(`HTTP error! status: ${response.status}, body: ${text}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Reload page to show new bukti
+                    location.reload();
+                } else {
+                    alert('Gagal upload bukti pembayaran: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat upload bukti pembayaran: ' + error.message);
+            })
+            .finally(() => {
+                // Reset button state
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+    });
+});
+
+// Function to show image modal preview
+function showImageModalPreview(imageSrc, title) {
+    // Create or update image preview modal
+    let modal = document.getElementById('imagePreviewModalIndex');
+    if (!modal) {
+        // Create modal if it doesn't exist
+        const modalHtml = `
+            <div class="modal fade" id="imagePreviewModalIndex" tabindex="-1" aria-labelledby="imagePreviewModalIndexLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="imagePreviewModalIndexLabel">Preview Bukti Pembayaran</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <img id="previewImageIndex" src="" class="img-fluid" alt="Preview">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        modal = document.getElementById('imagePreviewModalIndex');
+    }
+    
+    document.getElementById('previewImageIndex').src = imageSrc;
+    document.getElementById('imagePreviewModalIndexLabel').textContent = title;
+    const imageModal = new bootstrap.Modal(modal);
+    imageModal.show();
+}
+
+// Function to delete bukti pembayaran in modal
+function deleteBuktiModal(buktiId, penjualanId) {
+    if (confirm('Yakin ingin menghapus bukti pembayaran ini?')) {
+        fetch(`/transaksi/penjualan/${penjualanId}/bukti-pembayaran/${buktiId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Gagal menghapus bukti pembayaran: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat menghapus bukti pembayaran: ' + error.message);
+        });
+    }
+}
 </script>
 
 <style>

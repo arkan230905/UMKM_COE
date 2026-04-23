@@ -174,10 +174,6 @@
                                                         <small class="text-muted">Atas Nama</small>
                                                         <div class="fw-bold">{{ $bank->atas_nama ?? 'N/A' }}</div>
                                                     </div>
-                                                    <div class="mb-2">
-                                                        <small class="text-muted">Saldo</small>
-                                                        <div class="fw-bold text-success">Rp {{ number_format($bank->saldo_awal ?? 0, 0, ',', '.') }}</div>
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
