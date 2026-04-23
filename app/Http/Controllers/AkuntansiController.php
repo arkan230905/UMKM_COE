@@ -161,6 +161,24 @@ class AkuntansiController extends Controller
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
 
+        // Auto-set date filter for purchase transactions
+        if ($refType === 'purchase' && $refId && !$from && !$to) {
+            $pembelian = \App\Models\Pembelian::find($refId);
+            if ($pembelian) {
+                // Set filter tanggal berdasarkan tanggal pembelian
+                $tanggalPembelian = \Carbon\Carbon::parse($pembelian->tanggal);
+                $from = $tanggalPembelian->format('Y-m-d');
+                $to = $tanggalPembelian->format('Y-m-d');
+                
+                \Log::info('Auto-set date filter for purchase journal', [
+                    'purchase_id' => $refId,
+                    'purchase_date' => $tanggalPembelian->format('Y-m-d'),
+                    'from' => $from,
+                    'to' => $to
+                ]);
+            }
+        }
+
         // Auto-generate journal jika belum ada untuk purchase
         if ($refType === 'purchase' && $refId) {
             $this->ensurePurchaseJournalExists($refId);

@@ -567,21 +567,48 @@ class PembelianController extends Controller
             }
 
             return DB::transaction(function () use ($request, $stock, $journal, $computedTotal, $subtotal, $biayaKirim, $ppnPersen, $ppnNominal) {
-                // Otomatis gunakan Kas Bank (111) untuk pembelian dengan transfer
-                // User tidak perlu memilih akun kas manual
-                $bankKas = \App\Models\Coa::where('kode_akun', '111')->first(); // Kas Bank
+                // Determine payment method and account based on user selection
+                $paymentMethod = 'credit'; // default
+                $selectedBankId = null;
                 
-                // Safety check: Ensure COA exists
-                if (!$bankKas && $request->bank_id !== 'credit') {
-                    throw new \Exception('COA Kas Bank (kode 111) tidak ditemukan. Silakan hubungi administrator.');
-                }
-                
-                $paymentMethod = 'transfer'; // default
-                if ($request->bank_id === 'credit') {
-                    $paymentMethod = 'credit';
+                if ($request->bank_id !== 'credit') {
+                    // User selected a specific cash/bank account
+                    $selectedAccount = \App\Models\Coa::find($request->bank_id);
+                    
+                    if (!$selectedAccount) {
+                        throw new \Exception('Akun pembayaran yang dipilih tidak ditemukan.');
+                    }
+                    
+                    $selectedBankId = $selectedAccount->id;
+                    
+                    // Determine payment method based on account code
+                    switch ($selectedAccount->kode_akun) {
+                        case '111': // Kas Bank
+                            $paymentMethod = 'transfer';
+                            break;
+                        case '112': // Kas
+                            $paymentMethod = 'cash';
+                            break;
+                        case '113': // Kas Kecil
+                            $paymentMethod = 'cash';
+                            break;
+                        default:
+                            $paymentMethod = 'transfer'; // fallback
+                            break;
+                    }
+                    
+                    \Log::info('Payment method determined:', [
+                        'selected_account' => $selectedAccount->nama_akun,
+                        'account_code' => $selectedAccount->kode_akun,
+                        'payment_method' => $paymentMethod,
+                        'bank_id' => $selectedBankId
+                    ]);
                 } else {
-                    // Semua pembelian non-cash otomatis ke Kas Bank
-                    $paymentMethod = 'transfer';
+                    // Credit payment (hutang)
+                    $paymentMethod = 'credit';
+                    $selectedBankId = null;
+                    
+                    \Log::info('Credit payment selected');
                 }
                     
                     // Tentukan tipe pembelian berdasarkan vendor
@@ -602,7 +629,7 @@ class PembelianController extends Controller
                         'sisa_pembayaran' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? 0 : $computedTotal,
                         'status' => ($paymentMethod === 'cash' || $paymentMethod === 'transfer') ? 'lunas' : 'belum_lunas',
                         'payment_method' => $paymentMethod,
-                        'bank_id' => $request->bank_id === 'credit' ? null : $bankKas->id,
+                        'bank_id' => $selectedBankId, // Use the selected account ID
                         'keterangan' => $request->keterangan,
                     ]);
                     $pembelian->save();
@@ -775,29 +802,14 @@ class PembelianController extends Controller
                                     'saved_subtotal' => $detail->subtotal,
                                 ]);
                                 
-                                // CRITICAL: Update stock in base unit (satuan utama) using helper function
-                                // This is the ONLY place where stock should be updated for purchases
-                                \Log::info("BEFORE STOCK UPDATE - Bahan Baku ID {$itemId}:", [
+                                // Stock will be updated via stock movements created by addLayerWithManualConversion
+                                \Log::info("STOCK TRACKING - Bahan Baku ID {$itemId}:", [
                                     'nama_bahan' => $bahanBaku->nama_bahan,
-                                    'stok_sebelum' => $bahanBaku->stok,
+                                    'stok_sebelum' => $bahanBaku->stok_real_time,
                                     'qty_input' => $qtyInput,
                                     'satuan_input' => $satuanPembelian,
                                     'qty_in_base_unit' => $qtyInBaseUnit,
                                     'satuan_utama' => $bahanBaku->satuan->nama ?? 'KG'
-                                ]);
-                                
-                                $updateSuccess = $bahanBaku->updateStok($qtyInBaseUnit, 'in', "Purchase ID: {$pembelian->id}");
-                                
-                                if (!$updateSuccess) {
-                                    throw new \Exception("CRITICAL: Stock update failed for Bahan Baku ID {$itemId}");
-                                }
-                                
-                                // Refresh and log final stock
-                                $bahanBaku->refresh();
-                                \Log::info("AFTER STOCK UPDATE - Bahan Baku ID {$itemId}:", [
-                                    'nama_bahan' => $bahanBaku->nama_bahan,
-                                    'stok_sesudah' => $bahanBaku->stok,
-                                    'update_success' => $updateSuccess
                                 ]);
                                 
                                 // Update harga rata-rata menggunakan method dari model
@@ -912,29 +924,14 @@ class PembelianController extends Controller
                                     ]);
                                 }
                                 
-                                // CRITICAL: Update stock in base unit (satuan utama) using helper function
-                                // This is the ONLY place where stock should be updated for purchases
-                                \Log::info("BEFORE STOCK UPDATE - Bahan Pendukung ID {$itemId}:", [
+                                // Stock will be updated via stock movements created by addLayerWithManualConversion
+                                \Log::info("STOCK TRACKING - Bahan Pendukung ID {$itemId}:", [
                                     'nama_bahan' => $bahanPendukung->nama_bahan,
-                                    'stok_sebelum' => $bahanPendukung->stok,
+                                    'stok_sebelum' => $bahanPendukung->stok_real_time,
                                     'qty_input' => $qtyInput,
                                     'satuan_input' => $satuanPembelian,
                                     'qty_in_base_unit' => $qtyInBaseUnit,
                                     'satuan_utama' => $bahanPendukung->satuanRelation->nama ?? 'unit'
-                                ]);
-                                
-                                $updateSuccess = $bahanPendukung->updateStok($qtyInBaseUnit, 'in', "Purchase ID: {$pembelian->id}");
-                                
-                                if (!$updateSuccess) {
-                                    throw new \Exception("CRITICAL: Stock update failed for Bahan Pendukung ID {$itemId}");
-                                }
-                                
-                                // Refresh and log final stock
-                                $bahanPendukung->refresh();
-                                \Log::info("AFTER STOCK UPDATE - Bahan Pendukung ID {$itemId}:", [
-                                    'nama_bahan' => $bahanPendukung->nama_bahan,
-                                    'stok_sesudah' => $bahanPendukung->stok,
-                                    'update_success' => $updateSuccess
                                 ]);
 
                                 // STOCK MOVEMENT RECORDING (for reports) - NO STOCK UPDATE HERE
@@ -984,7 +981,7 @@ class PembelianController extends Controller
                                 'type' => 'Bahan Baku',
                                 'id' => $itemId,
                                 'nama' => $bahanBaku->nama_bahan,
-                                'stok_final' => $bahanBaku->stok,
+                                'stok_final' => $bahanBaku->stok_real_time,
                                 'satuan_utama' => $bahanBaku->satuan->nama ?? 'KG'
                             ];
                         }
@@ -995,7 +992,7 @@ class PembelianController extends Controller
                                 'type' => 'Bahan Pendukung',
                                 'id' => $itemId,
                                 'nama' => $bahanPendukung->nama_bahan,
-                                'stok_final' => $bahanPendukung->stok,
+                                'stok_final' => $bahanPendukung->stok_real_time,
                                 'satuan_utama' => $bahanPendukung->satuanRelation->nama ?? 'unit'
                             ];
                         }
@@ -1181,12 +1178,129 @@ class PembelianController extends Controller
     public function update(Request $request, $id)
     {
         $pembelian = Pembelian::findOrFail($id);
-        // Hapus jurnal terkait pembelian
-        $journal->deleteByRef('purchase', (int)$pembelian->id);
-        // Hapus data
-        $pembelian->delete();
-
-        return redirect()->route('transaksi.pembelian.index')->with('success', 'Data pembelian dan jurnal terkait berhasil dihapus!');
+        
+        // Validasi input
+        $request->validate([
+            'vendor_id' => 'required|exists:vendors,id',
+            'tanggal' => 'required|date',
+            'nomor_faktur' => 'nullable|string|max:255',
+            'keterangan' => 'nullable|string',
+            'bank_id' => 'required', // Add validation for payment method
+        ]);
+        
+        try {
+            // Store original values to check if payment method changed
+            $originalPaymentMethod = $pembelian->payment_method;
+            $originalBankId = $pembelian->bank_id;
+            
+            // Determine payment method and status based on bank_id selection
+            $paymentMethod = 'credit'; // default
+            $selectedBankId = null;
+            $status = 'belum_lunas'; // default for credit
+            $terbayar = 0; // default for credit
+            $sisaPembayaran = $pembelian->total_harga; // default for credit
+            
+            if ($request->bank_id !== 'credit') {
+                // User selected a specific cash/bank account
+                $selectedAccount = \App\Models\Coa::find($request->bank_id);
+                
+                if (!$selectedAccount) {
+                    throw new \Exception('Akun pembayaran yang dipilih tidak ditemukan.');
+                }
+                
+                $selectedBankId = $selectedAccount->id;
+                
+                // Determine payment method based on account code
+                switch ($selectedAccount->kode_akun) {
+                    case '111': // Kas Bank
+                        $paymentMethod = 'transfer';
+                        break;
+                    case '112': // Kas
+                        $paymentMethod = 'cash';
+                        break;
+                    case '113': // Kas Kecil
+                        $paymentMethod = 'cash';
+                        break;
+                    default:
+                        $paymentMethod = 'transfer'; // fallback
+                        break;
+                }
+                
+                // For cash/transfer payments, mark as paid
+                $status = 'lunas';
+                $terbayar = $pembelian->total_harga;
+                $sisaPembayaran = 0;
+                
+                \Log::info('Payment method updated:', [
+                    'pembelian_id' => $pembelian->id,
+                    'selected_account' => $selectedAccount->nama_akun,
+                    'account_code' => $selectedAccount->kode_akun,
+                    'payment_method' => $paymentMethod,
+                    'bank_id' => $selectedBankId
+                ]);
+            } else {
+                // Credit payment (hutang)
+                $paymentMethod = 'credit';
+                $selectedBankId = null;
+                
+                \Log::info('Payment method updated to credit:', [
+                    'pembelian_id' => $pembelian->id
+                ]);
+            }
+            
+            // Check if payment method actually changed
+            $paymentMethodChanged = ($originalPaymentMethod !== $paymentMethod) || ($originalBankId != $selectedBankId);
+            
+            // Update data pembelian including payment method
+            $pembelian->update([
+                'vendor_id' => $request->vendor_id,
+                'nomor_faktur' => $request->nomor_faktur,
+                'tanggal' => $request->tanggal,
+                'keterangan' => $request->keterangan,
+                'payment_method' => $paymentMethod,
+                'bank_id' => $selectedBankId,
+                'status' => $status,
+                'terbayar' => $terbayar,
+                'sisa_pembayaran' => $sisaPembayaran,
+            ]);
+            
+            // Only regenerate journal entries if payment method changed
+            if ($paymentMethodChanged) {
+                try {
+                    $pembelianJournalService = new \App\Services\PembelianJournalService();
+                    $pembelianJournalService->createJournalFromPembelian($pembelian);
+                    \Log::info('Journal entries updated for pembelian due to payment method change', [
+                        'pembelian_id' => $pembelian->id,
+                        'old_method' => $originalPaymentMethod,
+                        'new_method' => $paymentMethod
+                    ]);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to update journal entries for pembelian', [
+                        'pembelian_id' => $pembelian->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    // Don't fail the update, just log the error and show warning
+                    return redirect()->route('transaksi.pembelian.show', $pembelian->id)
+                        ->with('warning', 'Data pembelian berhasil diperbarui, tetapi gagal memperbarui jurnal: ' . $e->getMessage());
+                }
+            } else {
+                \Log::info('Payment method unchanged, skipping journal regeneration', [
+                    'pembelian_id' => $pembelian->id
+                ]);
+            }
+            
+            return redirect()->route('transaksi.pembelian.show', $pembelian->id)
+                ->with('success', 'Data pembelian berhasil diperbarui!');
+                
+        } catch (\Exception $e) {
+            \Log::error('Failed to update pembelian', [
+                'pembelian_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+            
+            return back()->withErrors(['error' => 'Gagal memperbarui data pembelian: ' . $e->getMessage()])
+                ->withInput();
+        }
     }
     
     /**
