@@ -108,7 +108,6 @@
                     <div class="card-header bg-light">
                         <h6 class="mb-0">
                             <i class="fas fa-exchange-alt me-2"></i>Konversi Sub Satuan
-                            <span class="text-danger">*</span>
                         </h6>
                     </div>
                     <div class="card-body">
@@ -136,7 +135,7 @@
                                 @enderror
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Satuan Utama</label>
+                                <label class="form-label">Satuan Utama <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control satuan-utama-text" value="Pilih Satuan Utama" readonly style="background-color: #f8f9fa;">
                             </div>
                             <div class="col-md-1 text-center">
@@ -174,9 +173,9 @@
                         <!-- Sub Satuan 2 -->
                         <div class="row align-items-end mb-3">
                             <div class="col-md-2">
-                                <label class="form-label">Konversi 2 <span class="text-danger">*</span></label>
+                                <label class="form-label">Konversi 2</label>
                                 <input type="text" name="sub_satuan_2_konversi" class="form-control number-input @error('sub_satuan_2_konversi') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_2_konversi', '1') }}" placeholder="1" required>
+                                       value="{{ old('sub_satuan_2_konversi', '1') }}" placeholder="1">
                                 @error('sub_satuan_2_konversi')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -188,16 +187,16 @@
                                 <span class="fw-bold">=</span>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Nilai 2 <span class="text-danger">*</span></label>
+                                <label class="form-label">Nilai 2</label>
                                 <input type="text" name="sub_satuan_2_nilai" class="form-control number-input @error('sub_satuan_2_nilai') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_2_nilai', '1') }}" placeholder="1" required>
+                                       value="{{ old('sub_satuan_2_nilai', '1') }}" placeholder="1">
                                 @error('sub_satuan_2_nilai')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Sub Satuan 2 <span class="text-danger">*</span></label>
-                                <select name="sub_satuan_2_id" class="form-select @error('sub_satuan_2_id') is-invalid @enderror" required>
+                                <label class="form-label">Sub Satuan 2</label>
+                                <select name="sub_satuan_2_id" class="form-select @error('sub_satuan_2_id') is-invalid @enderror">
                                     <option value="">- Pilih Satuan -</option>
                                     @foreach($satuans as $satuan)
                                         <option value="{{ $satuan->id }}" {{ old('sub_satuan_2_id') == $satuan->id ? 'selected' : '' }}>
@@ -219,9 +218,9 @@
                         <!-- Sub Satuan 3 -->
                         <div class="row align-items-end mb-3">
                             <div class="col-md-2">
-                                <label class="form-label">Konversi 3 <span class="text-danger">*</span></label>
+                                <label class="form-label">Konversi 3</label>
                                 <input type="text" name="sub_satuan_3_konversi" class="form-control number-input @error('sub_satuan_3_konversi') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_3_konversi', '1') }}" placeholder="1" required>
+                                       value="{{ old('sub_satuan_3_konversi', '1') }}" placeholder="1">
                                 @error('sub_satuan_3_konversi')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -233,16 +232,16 @@
                                 <span class="fw-bold">=</span>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Nilai 3 <span class="text-danger">*</span></label>
+                                <label class="form-label">Nilai 3</label>
                                 <input type="text" name="sub_satuan_3_nilai" class="form-control number-input @error('sub_satuan_3_nilai') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_3_nilai', '1') }}" placeholder="1" required>
+                                       value="{{ old('sub_satuan_3_nilai', '1') }}" placeholder="1">
                                 @error('sub_satuan_3_nilai')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Sub Satuan 3 <span class="text-danger">*</span></label>
-                                <select name="sub_satuan_3_id" class="form-select @error('sub_satuan_3_id') is-invalid @enderror" required>
+                                <label class="form-label">Sub Satuan 3</label>
+                                <select name="sub_satuan_3_id" class="form-select @error('sub_satuan_3_id') is-invalid @enderror">
                                     <option value="">- Pilih Satuan -</option>
                                     @foreach($satuans as $satuan)
                                         <option value="{{ $satuan->id }}" {{ old('sub_satuan_3_id') == $satuan->id ? 'selected' : '' }}>
@@ -411,11 +410,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Convert commas to dots before validation
             convertCommasToDots();
             
+            // Validate only sub satuan 1 as required
             let isValid = true;
             const requiredFields = [
-                'sub_satuan_1_konversi', 'sub_satuan_1_id', 'sub_satuan_1_nilai',
-                'sub_satuan_2_konversi', 'sub_satuan_2_id', 'sub_satuan_2_nilai',
-                'sub_satuan_3_konversi', 'sub_satuan_3_id', 'sub_satuan_3_nilai'
+                'sub_satuan_1_konversi', 'sub_satuan_1_id', 'sub_satuan_1_nilai'
             ];
             
             requiredFields.forEach(fieldName => {
@@ -439,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (!isValid) {
                 e.preventDefault();
-                alert('Mohon lengkapi semua field Sub Satuan yang wajib diisi dengan nilai yang valid.');
+                alert('Mohon lengkapi semua field Sub Satuan 1 yang wajib diisi dengan nilai yang valid.');
             }
         });
     }
