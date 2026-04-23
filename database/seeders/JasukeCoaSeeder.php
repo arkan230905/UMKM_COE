@@ -88,23 +88,28 @@ class JasukeCoaSeeder extends Seeder
         // Array sudah diurutkan dari parent ke child di atas.
         foreach ($accounts as [$kode, $nama, $tipe, $induk, $saldoNormal, $kategori, $isHeader]) {
             DB::table('coas')->updateOrInsert(
-                // Kondisi pencarian — unik per kode + company
                 ['kode_akun' => $kode, 'company_id' => $companyId],
-                // Data yang di-set / di-update
                 [
-                    'nama_akun'    => $nama,
-                    'tipe_akun'    => $tipe,
-                    'kode_induk'   => $induk,
-                    'saldo_normal' => $saldoNormal,
-                    'kategori_akun'=> $kategori,
+                    'nama_akun'      => $nama,
+                    'tipe_akun'      => $tipe,
+                    'kode_induk'     => $induk,
+                    'saldo_normal'   => $saldoNormal,
+                    'kategori_akun'  => $kategori,
                     'is_akun_header' => $isHeader,
-                    'saldo_awal'   => 0,
-                    'company_id'   => $companyId,
-                    'updated_at'   => now(),
-                    'created_at'   => now(),
+                    'saldo_awal'     => 0,
+                    'company_id'     => $companyId,
+                    'updated_at'     => now(),
+                    'created_at'     => now(),
                 ]
             );
         }
+
+        // Hapus COA yang tidak ada di daftar Jasuke (jaga kebersihan data)
+        $jasukeCodes = array_column($accounts, 0);
+        DB::table('coas')
+            ->where('company_id', $companyId)
+            ->whereNotIn('kode_akun', $jasukeCodes)
+            ->delete();
 
         $this->command->info('✅ JasukeCoaSeeder selesai — ' . count($accounts) . ' akun di-upsert.');
     }
