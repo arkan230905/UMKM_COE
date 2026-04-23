@@ -65,41 +65,32 @@ class CoaController extends Controller
      */
     private function getInventorySaldoAwalForCoa($kodeAkun)
     {
-        // Mapping kode akun ke bahan baku
+        // Mapping kode akun Jasuke ke bahan baku
         $bahanBakuMapping = [
-            '1141' => 'Ayam Potong',
-            '1142' => 'Ayam Kampung',
-            '1143' => 'Bebek',
+            '1141' => 'Jagung',
         ];
-        
-        // Mapping kode akun ke bahan pendukung
+
+        // Mapping kode akun Jasuke ke bahan pendukung
         $bahanPendukungMapping = [
-            '1152' => 'Tepung Terigu',
-            '1153' => 'Tepung Maizena',
-            '1154' => 'Lada',
-            '1155' => 'Bubuk Kaldu Ayam',
-            '1156' => 'Bubuk Bawang Putih',
+            '1151' => 'Susu',
+            '1152' => 'Keju',
+            '1153' => 'Kemasan',
         ];
-        
-        // Cek apakah kode akun ada di mapping bahan baku
+
         if (isset($bahanBakuMapping[$kodeAkun])) {
-            $namaBahan = $bahanBakuMapping[$kodeAkun];
-            $bahan = \App\Models\BahanBaku::where('nama_bahan', $namaBahan)->first();
+            $bahan = \App\Models\BahanBaku::where('nama_bahan', $bahanBakuMapping[$kodeAkun])->first();
             if ($bahan) {
                 return $bahan->saldo_awal * $bahan->harga_satuan;
             }
         }
-        
-        // Cek apakah kode akun ada di mapping bahan pendukung
+
         if (isset($bahanPendukungMapping[$kodeAkun])) {
-            $namaBahan = $bahanPendukungMapping[$kodeAkun];
-            $bahan = \App\Models\BahanPendukung::where('nama_bahan', $namaBahan)->first();
+            $bahan = \App\Models\BahanPendukung::where('nama_bahan', $bahanPendukungMapping[$kodeAkun])->first();
             if ($bahan) {
                 return $bahan->saldo_awal * $bahan->harga_satuan;
             }
         }
-        
-        // Jika tidak ada di mapping, return null (akan menggunakan saldo_awal dari COA)
+
         return null;
     }
     
