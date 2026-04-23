@@ -1124,7 +1124,7 @@ class BahanBaku extends Model
     {
         \Log::info("SYNC STOCK WITH MOVEMENTS - Bahan Baku ID {$this->id}:", [
             'nama_bahan' => $this->nama_bahan,
-            'current_master_stok' => $this->stok
+            'current_master_stok' => $this->saldo_awal
         ]);
 
         // Hitung stok real-time dari stock movements
@@ -1144,14 +1144,14 @@ class BahanBaku extends Model
             'stock_in' => $stockIn,
             'stock_out' => $stockOut,
             'calculated_stock' => $stokRealTime,
-            'master_stock' => $this->stok,
-            'difference' => ($this->stok - $stokRealTime)
+            'master_stock' => $this->saldo_awal,
+            'difference' => ($this->saldo_awal - $stokRealTime)
         ]);
 
         // Update jika ada perbedaan
-        if (abs($this->stok - $stokRealTime) > 0.01) {
-            $oldStock = $this->stok;
-            $this->stok = $stokRealTime;
+        if (abs($this->saldo_awal - $stokRealTime) > 0.01) {
+            $oldStock = $this->saldo_awal;
+            $this->saldo_awal = $stokRealTime;
             $result = $this->save();
 
             \Log::info("SYNC STOCK UPDATE - Bahan Baku ID {$this->id}:", [
@@ -1170,7 +1170,7 @@ class BahanBaku extends Model
 
         return [
             'updated' => false,
-            'stock' => $this->stok,
+            'stock' => $this->saldo_awal,
             'message' => 'Stok sudah konsisten'
         ];
     }

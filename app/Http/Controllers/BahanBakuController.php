@@ -96,11 +96,11 @@ class BahanBakuController extends Controller
             $kodeBahan = 'BB' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
         }
         
-        BahanBaku::create([
+        $bahanBaku = BahanBaku::create([
             'nama_bahan' => $request->nama_bahan,
             'kode_bahan' => $kodeBahan,
             'satuan_id' => $request->satuan_id,
-            'stok' => $request->stok ?? 0,
+            'saldo_awal' => $request->stok ?? 0,
             'harga_satuan' => $request->harga_satuan,
             'stok_minimum' => $request->stok_minimum ?? 0,
             'deskripsi' => $request->deskripsi,
@@ -117,6 +117,23 @@ class BahanBakuController extends Controller
             'coa_persediaan_id' => $request->coa_persediaan_id,
             'coa_hpp_id' => $request->coa_hpp_id,
         ]);
+
+        // Create initial stock movement if stock > 0
+        if (($request->stok ?? 0) > 0) {
+            \App\Models\StockMovement::create([
+                'item_type' => 'material',
+                'item_id' => $bahanBaku->id,
+                'tanggal' => now()->format('Y-m-d'),
+                'direction' => 'in',
+                'qty' => $request->stok,
+                'satuan' => $bahanBaku->satuan->nama ?? 'Unit',
+                'unit_cost' => $request->harga_satuan ?? 0,
+                'total_cost' => ($request->stok ?? 0) * ($request->harga_satuan ?? 0),
+                'ref_type' => 'initial_stock',
+                'ref_id' => 0,
+                'keterangan' => 'Stok awal ' . $request->nama_bahan,
+            ]);
+        }
 
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
     }
@@ -162,7 +179,7 @@ class BahanBakuController extends Controller
         // Update properties one by one and save
         $bahanBaku->nama_bahan = $request->nama_bahan;
         $bahanBaku->satuan_id = $request->satuan_id;
-        $bahanBaku->stok = $request->stok ?? 0;
+        $bahanBaku->saldo_awal = $request->stok ?? 0;
         $bahanBaku->harga_satuan = $request->harga_satuan ?: $bahanBaku->harga_rata_rata;
         $bahanBaku->stok_minimum = $request->stok_minimum ?? 0;
         $bahanBaku->deskripsi = $request->deskripsi;
