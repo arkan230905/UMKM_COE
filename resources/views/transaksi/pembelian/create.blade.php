@@ -148,11 +148,7 @@
                         @foreach($kasbank as $kb)
                             @if($kb->nama_akun)
                                 <option value="{{ $kb->id }}">
-                                    @if(str_contains(strtolower($kb->nama_akun), 'kas'))
-                                        💵 {{ $kb->nama_akun }}
-                                    @else
-                                        🏦 {{ $kb->nama_akun }}
-                                    @endif
+                                    💵 {{ $kb->nama_akun }}
                                     (Saldo: Rp {{ number_format($kb->saldo_realtime ?? $kb->saldo_awal ?? 0, 0, ',', '.') }})
                                 </option>
                             @endif

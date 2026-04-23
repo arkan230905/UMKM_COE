@@ -188,7 +188,8 @@ class BahanPendukungController extends Controller
         }
         
         // Hitung sub satuan prices dengan formula yang benar
-        $subSatuanData = $this->getDirectSubSatuanPrices($bahanPendukung);
+        $service = new \App\Services\BahanPendukungService();
+        $subSatuanData = $service->getDirectSubSatuanPricesFromObject($bahanPendukung);
         $subSatuanPrices = $subSatuanData['sub_satuan_prices'] ?? [];
         
         return view('master-data.bahan-pendukung.show', compact('bahanPendukung', 'subSatuanPrices'));

@@ -169,8 +169,10 @@
                                     @php
                                         $hargaUtama = $bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0;
                                         $konversi1 = $bahanPendukung->sub_satuan_1_konversi ?? 1;
-                                        // FORMULA YANG BENAR: harga_sub = harga_utama ÷ konversi
-                                        $hargaSubSatuan1 = $hargaUtama / $konversi1;
+                                        $nilai1 = $bahanPendukung->sub_satuan_1_nilai ?? 1;
+                                        
+                                        // Gunakan method baru untuk perhitungan
+                                        $hargaSubSatuan1 = $bahanPendukung->calculateSubUnitPrice(1);
                                     @endphp
                                     <div class="text-center mb-3">
                                         <h5 class="text-primary fw-bold">
@@ -180,13 +182,18 @@
                                     </div>
                                     <div class="alert alert-primary">
                                         <small class="mb-0">
-                                            <strong>1 {{ $bahanPendukung->satuan ? $bahanPendukung->satuan->nama : '' }} = {{ rtrim(rtrim(number_format($konversi1, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->subSatuan1->nama }}</strong>
+                                            <strong>{{ $konversi1 }} {{ $bahanPendukung->satuan ? $bahanPendukung->satuan->nama : '' }} = {{ rtrim(rtrim(number_format($nilai1, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->subSatuan1->nama }}</strong>
                                         </small>
                                     </div>
                                     <div class="bg-light p-2 rounded">
                                         <small class="text-muted">
                                             <strong>Rumus:</strong><br>
-                                            Rp {{ number_format($hargaUtama, 0, ',', '.') }} ÷ {{ rtrim(rtrim(number_format($konversi1, 5, ',', '.'), '0'), ',') }} = Rp {{ number_format($hargaSubSatuan1, 0, ',', '.') }}
+                                            @if($nilai1 < 1)
+                                                Rp {{ number_format($hargaUtama, 0, ',', '.') }} × {{ rtrim(rtrim(number_format($nilai1 * 100, 2, ',', '.'), '0'), ',') }} ÷ 100 = Rp {{ number_format($hargaSubSatuan1, 0, ',', '.') }}
+                                                <br><small>(Untuk nilai desimal: harga × nilai × 100 ÷ 100)</small>
+                                            @else
+                                                Rp {{ number_format($hargaUtama, 0, ',', '.') }} ÷ {{ rtrim(rtrim(number_format($konversi1, 5, ',', '.'), '0'), ',') }} = Rp {{ number_format($hargaSubSatuan1, 0, ',', '.') }}
+                                            @endif
                                         </small>
                                     </div>
                                 @else
@@ -212,8 +219,10 @@
                                     @php
                                         $hargaUtama = $bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0;
                                         $konversi2 = $bahanPendukung->sub_satuan_2_konversi ?? 1;
-                                        // FORMULA YANG BENAR: harga_sub = harga_utama ÷ konversi
-                                        $hargaSubSatuan2 = $hargaUtama / $konversi2;
+                                        $nilai2 = $bahanPendukung->sub_satuan_2_nilai ?? 1;
+                                        
+                                        // Gunakan method baru untuk perhitungan
+                                        $hargaSubSatuan2 = $bahanPendukung->calculateSubUnitPrice(2);
                                     @endphp
                                     <div class="text-center mb-3">
                                         <h5 class="text-success fw-bold">
@@ -223,13 +232,18 @@
                                     </div>
                                     <div class="alert alert-success">
                                         <small class="mb-0">
-                                            <strong>1 {{ $bahanPendukung->satuan ? $bahanPendukung->satuan->nama : '' }} = {{ rtrim(rtrim(number_format($konversi2, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->subSatuan2->nama }}</strong>
+                                            <strong>{{ $konversi2 }} {{ $bahanPendukung->satuan ? $bahanPendukung->satuan->nama : '' }} = {{ rtrim(rtrim(number_format($nilai2, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->subSatuan2->nama }}</strong>
                                         </small>
                                     </div>
                                     <div class="bg-light p-2 rounded">
                                         <small class="text-muted">
                                             <strong>Rumus:</strong><br>
-                                            Rp {{ number_format($hargaUtama, 0, ',', '.') }} ÷ {{ rtrim(rtrim(number_format($konversi2, 5, ',', '.'), '0'), ',') }} = Rp {{ number_format($hargaSubSatuan2, 0, ',', '.') }}
+                                            @if($nilai2 < 1)
+                                                Rp {{ number_format($hargaUtama, 0, ',', '.') }} × {{ rtrim(rtrim(number_format($nilai2 * 100, 2, ',', '.'), '0'), ',') }} ÷ 100 = Rp {{ number_format($hargaSubSatuan2, 0, ',', '.') }}
+                                                <br><small>(Untuk nilai desimal: harga × nilai × 100 ÷ 100)</small>
+                                            @else
+                                                Rp {{ number_format($hargaUtama, 0, ',', '.') }} ÷ {{ rtrim(rtrim(number_format($konversi2, 5, ',', '.'), '0'), ',') }} = Rp {{ number_format($hargaSubSatuan2, 0, ',', '.') }}
+                                            @endif
                                         </small>
                                     </div>
                                 @else
@@ -255,8 +269,10 @@
                                     @php
                                         $hargaUtama = $bahanPendukung->harga_satuan_display ?? $bahanPendukung->harga_satuan ?? 0;
                                         $konversi3 = $bahanPendukung->sub_satuan_3_konversi ?? 1;
-                                        // FORMULA YANG BENAR: harga_sub = harga_utama ÷ konversi
-                                        $hargaSubSatuan3 = $hargaUtama / $konversi3;
+                                        $nilai3 = $bahanPendukung->sub_satuan_3_nilai ?? 1;
+                                        
+                                        // Gunakan method baru untuk perhitungan
+                                        $hargaSubSatuan3 = $bahanPendukung->calculateSubUnitPrice(3);
                                     @endphp
                                     <div class="text-center mb-3">
                                         <h5 class="text-warning fw-bold">
@@ -266,13 +282,18 @@
                                     </div>
                                     <div class="alert alert-warning">
                                         <small class="mb-0">
-                                            <strong>1 {{ $bahanPendukung->satuan ? $bahanPendukung->satuan->nama : '' }} = {{ rtrim(rtrim(number_format($konversi3, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->subSatuan3->nama }}</strong>
+                                            <strong>{{ $konversi3 }} {{ $bahanPendukung->satuan ? $bahanPendukung->satuan->nama : '' }} = {{ rtrim(rtrim(number_format($nilai3, 5, ',', '.'), '0'), ',') }} {{ $bahanPendukung->subSatuan3->nama }}</strong>
                                         </small>
                                     </div>
                                     <div class="bg-light p-2 rounded">
                                         <small class="text-muted">
                                             <strong>Rumus:</strong><br>
-                                            Rp {{ number_format($hargaUtama, 0, ',', '.') }} ÷ {{ rtrim(rtrim(number_format($konversi3, 5, ',', '.'), '0'), ',') }} = Rp {{ number_format($hargaSubSatuan3, 0, ',', '.') }}
+                                            @if($nilai3 < 1)
+                                                Rp {{ number_format($hargaUtama, 0, ',', '.') }} × {{ rtrim(rtrim(number_format($nilai3 * 100, 2, ',', '.'), '0'), ',') }} ÷ 100 = Rp {{ number_format($hargaSubSatuan3, 0, ',', '.') }}
+                                                <br><small>(Untuk nilai desimal: harga × nilai × 100 ÷ 100)</small>
+                                            @else
+                                                Rp {{ number_format($hargaUtama, 0, ',', '.') }} ÷ {{ rtrim(rtrim(number_format($konversi3, 5, ',', '.'), '0'), ',') }} = Rp {{ number_format($hargaSubSatuan3, 0, ',', '.') }}
+                                            @endif
                                         </small>
                                     </div>
                                 @else

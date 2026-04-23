@@ -556,44 +556,44 @@
                         </thead>
                         <tbody>
                             @php
-                                // Get actual journal entries for this purchase
-                                $journalEntries = \App\Models\JournalEntry::where('ref_type', 'purchase')
-                                    ->where('ref_id', $pembelian->id)
-                                    ->with('lines.coa')
-                                    ->orderBy('id', 'desc')
-                                    ->first();
+                                // Get actual journal entries for this purchase from jurnal_umum table
+                                $journalEntries = \App\Models\JurnalUmum::where('tipe_referensi', 'pembelian')
+                                    ->where('referensi', $pembelian->nomor_pembelian)
+                                    ->with('coa')
+                                    ->orderBy('id', 'asc')
+                                    ->get();
                                 
                                 $totalDebit = 0;
                                 $totalCredit = 0;
                             @endphp
                             
-                            @if($journalEntries && $journalEntries->lines)
-                                @foreach($journalEntries->lines as $line)
+                            @if($journalEntries && $journalEntries->count() > 0)
+                                @foreach($journalEntries as $entry)
                                     @php
-                                        $totalDebit += $line->debit;
-                                        $totalCredit += $line->credit;
+                                        $totalDebit += $entry->debit;
+                                        $totalCredit += $entry->kredit;
                                     @endphp
                                     <tr>
-                                        <td>{{ $journalEntries->tanggal ? \Carbon\Carbon::parse($journalEntries->tanggal)->format('d-m-Y') : '-' }}</td>
+                                        <td>{{ $entry->tanggal ? \Carbon\Carbon::parse($entry->tanggal)->format('d-m-Y') : '-' }}</td>
                                         <td>
-                                            @if($line->coa)
-                                                <span class="badge bg-primary">{{ $line->coa->nama_akun }}</span><br>
-                                                <small class="text-muted">{{ $line->coa->kode_akun }}</small>
+                                            @if($entry->coa)
+                                                <span class="badge bg-primary">{{ $entry->coa->nama_akun }}</span><br>
+                                                <small class="text-muted">{{ $entry->coa->kode_akun }}</small>
                                             @else
                                                 <span class="badge bg-secondary">COA tidak ditemukan</span>
                                             @endif
                                         </td>
-                                        <td>{{ $line->memo ?? $journalEntries->memo }}</td>
+                                        <td>{{ $entry->keterangan }}</td>
                                         <td class="text-end">
-                                            @if($line->debit > 0)
-                                                Rp {{ number_format($line->debit, 0, ',', '.') }}
+                                            @if($entry->debit > 0)
+                                                Rp {{ number_format($entry->debit, 0, ',', '.') }}
                                             @else
                                                 -
                                             @endif
                                         </td>
                                         <td class="text-end">
-                                            @if($line->credit > 0)
-                                                Rp {{ number_format($line->credit, 0, ',', '.') }}
+                                            @if($entry->kredit > 0)
+                                                Rp {{ number_format($entry->kredit, 0, ',', '.') }}
                                             @else
                                                 -
                                             @endif
