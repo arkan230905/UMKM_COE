@@ -30,6 +30,8 @@ class Coa extends Model
         'tanggal_saldo_awal',
         'posted_saldo_awal',
         'company_id',
+        'nomor_rekening',
+        'atas_nama',
     ];
     
     protected $appends = ['kode', 'nama'];
