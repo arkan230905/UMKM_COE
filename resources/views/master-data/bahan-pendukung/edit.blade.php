@@ -128,7 +128,6 @@
                     <div class="card-header bg-light">
                         <h6 class="mb-0">
                             <i class="fas fa-exchange-alt me-2"></i>Konversi Sub Satuan
-                            <span class="text-danger">*</span>
                         </h6>
                     </div>
                     <div class="card-body">
@@ -148,31 +147,31 @@
                         <!-- Sub Satuan 1 -->
                         <div class="row align-items-end mb-3">
                             <div class="col-md-2">
-                                <label class="form-label">Konversi 1</label>
+                                <label class="form-label">Konversi 1 <span class="text-danger">*</span></label>
                                 <input type="text" name="sub_satuan_1_konversi" class="form-control decimal-input @error('sub_satuan_1_konversi') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_1_konversi', $bahanPendukung->sub_satuan_1_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_1_konversi, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1">
+                                       value="{{ old('sub_satuan_1_konversi', $bahanPendukung->sub_satuan_1_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_1_konversi, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1" required>
                                 @error('sub_satuan_1_konversi')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Satuan Utama</label>
+                                <label class="form-label">Satuan Utama <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control satuan-utama-text" value="{{ $bahanPendukung->satuan->nama ?? 'Pilih Satuan Utama' }}" readonly style="background-color: #f8f9fa;">
                             </div>
                             <div class="col-md-1 text-center">
                                 <span class="fw-bold">=</span>
                             </div>
                             <div class="col-md-2">
-                                <label class="form-label">Nilai 1</label>
+                                <label class="form-label">Nilai 1 <span class="text-danger">*</span></label>
                                 <input type="text" name="sub_satuan_1_nilai" class="form-control decimal-input @error('sub_satuan_1_nilai') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_1_nilai', $bahanPendukung->sub_satuan_1_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_1_nilai, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1">
+                                       value="{{ old('sub_satuan_1_nilai', $bahanPendukung->sub_satuan_1_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_1_nilai, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1" required>
                                 @error('sub_satuan_1_nilai')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Sub Satuan 1</label>
-                                <select name="sub_satuan_1_id" class="form-select @error('sub_satuan_1_id') is-invalid @enderror">
+                                <label class="form-label">Sub Satuan 1 <span class="text-danger">*</span></label>
+                                <select name="sub_satuan_1_id" class="form-select @error('sub_satuan_1_id') is-invalid @enderror" required>
                                     <option value="">- Pilih Satuan -</option>
                                     @foreach($satuans as $satuan)
                                         <option value="{{ $satuan->id }}" {{ old('sub_satuan_1_id', $bahanPendukung->sub_satuan_1_id) == $satuan->id ? 'selected' : '' }}>
