@@ -155,7 +155,25 @@ class BahanPendukung extends Model
      */
     public function getStokAmanAttribute(): bool
     {
-        return $this->stok >= $this->stok_minimum;
+        return $this->stok_real_time >= $this->stok_minimum;
+    }
+
+    /**
+     * Get real-time stock from stock movements
+     */
+    public function getStokRealTimeAttribute()
+    {
+        $stockIn = \App\Models\StockMovement::where('item_type', 'support')
+            ->where('item_id', $this->id)
+            ->where('direction', 'in')
+            ->sum('qty');
+
+        $stockOut = \App\Models\StockMovement::where('item_type', 'support')
+            ->where('item_id', $this->id)
+            ->where('direction', 'out')
+            ->sum('qty');
+
+        return $stockIn - $stockOut;
     }
 
     /**
@@ -163,9 +181,9 @@ class BahanPendukung extends Model
      */
     public function getStatusStokAttribute(): string
     {
-        if ($this->stok <= 0) {
+        if ($this->stok_real_time <= 0) {
             return 'Habis';
-        } elseif ($this->stok < $this->stok_minimum) {
+        } elseif ($this->stok_real_time < $this->stok_minimum) {
             return 'Menipis';
         }
         return 'Aman';

@@ -145,9 +145,29 @@ class BahanPendukungController extends Controller
         $validated['coa_pembelian_id'] = $request->coa_pembelian_id;
         $validated['coa_persediaan_id'] = $request->coa_persediaan_id;
         $validated['coa_hpp_id'] = $request->coa_hpp_id;
+        
+        // Map stok to saldo_awal
+        $validated['saldo_awal'] = $request->stok ?? 0;
 
         // Create bahan pendukung
-        BahanPendukung::create($validated);
+        $bahanPendukung = BahanPendukung::create($validated);
+
+        // Create initial stock movement if stock > 0
+        if (($request->stok ?? 0) > 0) {
+            \App\Models\StockMovement::create([
+                'item_type' => 'support',
+                'item_id' => $bahanPendukung->id,
+                'tanggal' => now()->format('Y-m-d'),
+                'direction' => 'in',
+                'qty' => $request->stok,
+                'satuan' => $bahanPendukung->satuan->nama ?? 'Unit',
+                'unit_cost' => $request->harga_satuan ?? 0,
+                'total_cost' => ($request->stok ?? 0) * ($request->harga_satuan ?? 0),
+                'ref_type' => 'initial_stock',
+                'ref_id' => 0,
+                'keterangan' => 'Stok awal ' . $request->nama_bahan,
+            ]);
+        }
 
         return redirect()->route('master-data.bahan-pendukung.index')
             ->with('success', 'Bahan pendukung berhasil ditambahkan');
@@ -216,6 +236,9 @@ class BahanPendukungController extends Controller
         $validated['coa_pembelian_id'] = $request->coa_pembelian_id;
         $validated['coa_persediaan_id'] = $request->coa_persediaan_id;
         $validated['coa_hpp_id'] = $request->coa_hpp_id;
+        
+        // Map stok to saldo_awal
+        $validated['saldo_awal'] = $request->stok ?? 0;
         
         $bahanPendukung->update($validated);
         

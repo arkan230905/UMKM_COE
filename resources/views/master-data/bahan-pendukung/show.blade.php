@@ -66,10 +66,10 @@
                         <tr>
                             <td width="150"><strong>Stok Saat Ini:</strong></td>
                             <td>
-                                <span class="fw-semibold">{{ $bahanPendukung->stok ? rtrim(rtrim(number_format($bahanPendukung->stok, 5, ',', '.'), '0'), ',') : '0' }}</span>
-                                @if(($bahanPendukung->stok ?? 0) <= ($bahanPendukung->stok_minimum ?? 0) && ($bahanPendukung->stok ?? 0) > 0)
+                                <span class="fw-semibold">{{ $bahanPendukung->stok_real_time ? rtrim(rtrim(number_format($bahanPendukung->stok_real_time, 5, ',', '.'), '0'), ',') : '0' }}</span>
+                                @if(($bahanPendukung->stok_real_time ?? 0) <= ($bahanPendukung->stok_minimum ?? 0) && ($bahanPendukung->stok_real_time ?? 0) > 0)
                                     <i class="fas fa-exclamation-triangle text-warning ms-1" title="Stok hampir habis"></i>
-                                @elseif(($bahanPendukung->stok ?? 0) <= 0)
+                                @elseif(($bahanPendukung->stok_real_time ?? 0) <= 0)
                                     <i class="fas fa-times-circle text-danger ms-1" title="Stok habis"></i>
                                 @endif
                             </td>
