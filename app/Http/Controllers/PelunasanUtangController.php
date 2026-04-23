@@ -87,7 +87,7 @@ class PelunasanUtangController extends Controller
                   ->orWhere('tipe_akun', 'Kewajiban')
                   ->orWhere('tipe_akun', 'KEWAJIBAN');
             })
-            ->whereIn('kode_akun', ['21', '210', '211', '212', '2101']) // Hutang, Hutang Usaha, Hutang Gaji, PPN Keluaran
+            ->whereIn('kode_akun', ['210', '211', '212']) // Hutang Usaha, Hutang Gaji, PPN Keluaran
             ->orderBy('kode_akun')
             ->get();
         
