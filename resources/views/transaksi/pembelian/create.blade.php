@@ -148,11 +148,7 @@
                         @foreach($kasbank as $kb)
                             @if($kb->nama_akun)
                                 <option value="{{ $kb->id }}">
-                                    @if(str_contains(strtolower($kb->nama_akun), 'kas'))
-                                        💵 {{ $kb->nama_akun }}
-                                    @else
-                                        🏦 {{ $kb->nama_akun }}
-                                    @endif
+                                    💵 {{ $kb->nama_akun }}
                                     (Saldo: Rp {{ number_format($kb->saldo_realtime ?? $kb->saldo_awal ?? 0, 0, ',', '.') }})
                                 </option>
                             @endif
@@ -279,7 +275,7 @@
                         
                         <div class="col-md-3">
                             <label class="form-label small">Jumlah dalam Satuan Utama</label>
-                            <input type="number" name="jumlah_satuan_utama[]" class="form-control form-control-sm" placeholder="0" step="0.0001" onchange="calculateRowTotal(this)">
+                            <input type="number" name="jumlah_satuan_utama[]" class="form-control form-control-sm" placeholder="0" step="1" onchange="calculateRowTotal(this)">
                             <small class="text-muted">Input manual jumlah dalam satuan utama</small>
                         </div>
                         
@@ -921,7 +917,7 @@ function calculateRowTotal(input) {
     if (jumlahSatuanUtama === 0 && jumlah > 0) {
         const faktorKonversi = parseFloat(row.querySelector('input[name="faktor_konversi[]"]').value) || 1;
         jumlahSatuanUtama = jumlah * faktorKonversi;
-        row.querySelector('input[name="jumlah_satuan_utama[]"]').value = jumlahSatuanUtama.toFixed(4);
+        row.querySelector('input[name="jumlah_satuan_utama[]"]').value = Math.round(jumlahSatuanUtama);
     }
     
     // Calculate subtotal: jumlah × harga per satuan

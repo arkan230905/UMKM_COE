@@ -94,7 +94,7 @@
                         <div class="mb-3">
                             <label class="form-label">Stok</label>
                             <input type="text" name="stok" class="form-control decimal-input" 
-                                   value="{{ old('stok', $bahanPendukung->stok ? rtrim(rtrim(number_format($bahanPendukung->stok, 5, ',', '.'), '0'), ',') : '') }}">
+                                   value="{{ old('stok', $bahanPendukung->saldo_awal ? rtrim(rtrim(number_format($bahanPendukung->saldo_awal, 5, ',', '.'), '0'), ',') : '') }}">
                             <small class="text-muted">Stok saat ini</small>
                         </div>
                     </div>

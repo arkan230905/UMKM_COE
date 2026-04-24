@@ -289,12 +289,12 @@ class JournalService
                 break;
                 
             case 'credit':
-                $creditAccount = '2101'; // Utang Usaha
+                $creditAccount = '210'; // Utang Usaha
                 $creditMemo = 'Pembelian kredit';
                 break;
                 
             default:
-                $creditAccount = '2101'; // Default to Utang Usaha
+                $creditAccount = '210'; // Default to Utang Usaha
                 $creditMemo = 'Pembelian';
         }
         

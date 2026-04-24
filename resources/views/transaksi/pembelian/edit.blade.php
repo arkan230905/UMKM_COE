@@ -137,10 +137,11 @@ select.form-select option {
                             <option value="">-- Pilih Metode Pembayaran --</option>
                             @foreach ($kasbank as $bank)
                                 <option value="{{ $bank->id }}" {{ $pembelian->bank_id == $bank->id ? 'selected' : '' }}>
-                                    {{ $bank->nama_akun }} - {{ $bank->kode_akun }} (Saldo Akhir: Rp {{ number_format($currentBalances[$bank->kode_akun] ?? 0, 0, ',', '.') }})
+                                    💵 {{ $bank->nama_akun }}
+                                    (Saldo: Rp {{ number_format($bank->saldo_awal ?? 0, 0, ',', '.') }})
                                 </option>
                             @endforeach
-                            <option value="credit" {{ $pembelian->bank_id === null ? 'selected' : '' }}>Kredit (Utang)</option>
+                            <option value="credit" {{ ($pembelian->bank_id === null || $pembelian->payment_method === 'credit') ? 'selected' : '' }}>💳 Kredit (Hutang)</option>
                         </select>
                     </div>
                     
@@ -177,7 +178,7 @@ select.form-select option {
                                                     data-satuan-id="{{ $bb->satuan_id ?? '' }}"
                                                     data-satuan-utama="{{ $bb->satuan ?? 'KG' }}"
                                                     {{ $detail->bahan_baku_id == $bb->id ? 'selected' : '' }}>
-                                                {{ $bb->nama_bahan }} - Rp {{ number_format($bb->harga_satuan ?? 0, 0, ',', '.') }}
+                                                {{ $bb->nama_bahan }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -225,7 +226,7 @@ select.form-select option {
                                                 data-satuan="{{ $bb->satuan->nama ?? 'Tidak Diketahui' }}"
                                                 data-satuan-id="{{ $bb->satuan_id ?? '' }}"
                                                 data-satuan-utama="{{ $bb->satuan ?? 'KG' }}">
-                                            {{ $bb->nama_bahan }} - Rp {{ number_format($bb->harga_satuan ?? 0, 0, ',', '.') }}
+                                            {{ $bb->nama_bahan }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -280,7 +281,7 @@ select.form-select option {
                     @if($pembelian->details->where('bahan_pendukung_id', '!=', null)->count() > 0)
                         @foreach($pembelian->details->where('bahan_pendukung_id', '!=', null) as $index => $detail)
                             <div class="row g-3 bahan-pendukung-row" data-row-index="{{ $index }}">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label class="form-label">Bahan Pendukung</label>
                                     <select name="bahan_pendukung_id[]" class="form-select" onchange="updateBahanPendukungInfo(this)">
                                         <option value="">-- Pilih Bahan Pendukung --</option>
@@ -289,20 +290,24 @@ select.form-select option {
                                                     data-harga="{{ $bp->harga_satuan ?? 0 }}" 
                                                     data-satuan="{{ $bp->satuanRelation->nama ?? 'Tidak Diketahui' }}"
                                                     {{ $detail->bahan_pendukung_id == $bp->id ? 'selected' : '' }}>
-                                                {{ $bp->nama_bahan }} - Rp {{ number_format($bp->harga_satuan ?? 0, 0, ',', '.') }}
+                                                {{ $bp->nama_bahan }}
                                             </option>
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <label class="form-label">Jumlah</label>
                                     <input type="number" name="jumlah_pendukung[]" class="form-control" value="{{ $detail->jumlah }}" min="0.01" step="0.01" onchange="hitungTotalPendukung(this)">
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
+                                    <label class="form-label">Satuan</label>
+                                    <input type="text" class="form-control satuan-display" readonly value="{{ $detail->satuan ?? 'unit' }}">
+                                </div>
+                                <div class="col-md-2">
                                     <label class="form-label">Harga/Satuan</label>
                                     <input type="number" name="harga_satuan_pendukung[]" class="form-control" value="{{ $detail->harga_satuan }}" min="0" onchange="hitungTotalPendukung(this)">
                                 </div>
-                                <div class="col-md-2">
+                                <div class="col-md-3">
                                     <label class="form-label">Total</label>
                                     <input type="text" class="form-control total-input" readonly value="{{ number_format($detail->jumlah * $detail->harga_satuan, 0, ',', '.') }}">
                                 </div>
@@ -310,7 +315,7 @@ select.form-select option {
                         @endforeach
                     @else
                         <div class="row g-3 bahan-pendukung-row" data-row-index="0">
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label">Bahan Pendukung</label>
                                 <select name="bahan_pendukung_id[]" class="form-select" onchange="updateBahanPendukungInfo(this)">
                                     <option value="">-- Pilih Bahan Pendukung --</option>
@@ -318,20 +323,24 @@ select.form-select option {
                                         <option value="{{ $bp->id }}" 
                                                 data-harga="{{ $bp->harga_satuan ?? 0 }}" 
                                                 data-satuan="{{ $bp->satuanRelation->nama ?? 'Tidak Diketahui' }}">
-                                            {{ $bp->nama_bahan }} - Rp {{ number_format($bp->harga_satuan ?? 0, 0, ',', '.') }}
+                                            {{ $bp->nama_bahan }}
                                         </option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <label class="form-label">Jumlah</label>
                                 <input type="number" name="jumlah_pendukung[]" class="form-control" value="1" min="0.01" step="0.01" onchange="hitungTotalPendukung(this)">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
+                                <label class="form-label">Satuan</label>
+                                <input type="text" class="form-control satuan-display" readonly value="unit">
+                            </div>
+                            <div class="col-md-2">
                                 <label class="form-label">Harga/Satuan</label>
                                 <input type="number" name="harga_satuan_pendukung[]" class="form-control" value="0" min="0" onchange="hitungTotalPendukung(this)">
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-3">
                                 <label class="form-label">Total</label>
                                 <input type="text" class="form-control total-input" readonly value="0">
                             </div>
@@ -418,7 +427,13 @@ function updateBahanPendukungInfo(select) {
     const selectedOption = select.options[select.selectedIndex];
     const row = select.closest('.bahan-pendukung-row');
     const hargaInput = row.querySelector('input[name="harga_satuan_pendukung[]"]');
-    const satuanText = selectedOption.getAttribute('data-satuan') || '';
+    const satuanDisplay = row.querySelector('.satuan-display');
+    const satuanText = selectedOption.getAttribute('data-satuan') || 'unit';
+    
+    // Update satuan display
+    if (satuanDisplay) {
+        satuanDisplay.value = satuanText;
+    }
     
     // Update harga input
     if (hargaInput && !hargaInput.value) {
@@ -524,7 +539,7 @@ function addBahanPendukungRow() {
     newRow.setAttribute('data-row-index', rowCount);
     
     newRow.innerHTML = `
-        <div class="col-md-4">
+        <div class="col-md-3">
             <label class="form-label">Bahan Pendukung</label>
             <select name="bahan_pendukung_id[]" class="form-select" onchange="updateBahanPendukungInfo(this)">
                 <option value="">-- Pilih Bahan Pendukung --</option>
@@ -532,20 +547,24 @@ function addBahanPendukungRow() {
                     <option value="{{ $bp->id }}" 
                             data-harga="{{ $bp->harga_satuan ?? 0 }}" 
                             data-satuan="{{ $bp->satuanRelation->nama ?? 'Tidak Diketahui' }}">
-                        {{ $bp->nama_bahan }} - Rp {{ number_format($bp->harga_satuan ?? 0, 0, ',', '.') }}
+                        {{ $bp->nama_bahan }}
                     </option>
                 @endforeach
             </select>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label class="form-label">Jumlah</label>
             <input type="number" name="jumlah_pendukung[]" class="form-control" value="1" min="0.01" step="0.01" onchange="hitungTotalPendukung(this)">
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
+            <label class="form-label">Satuan</label>
+            <input type="text" class="form-control satuan-display" readonly value="unit">
+        </div>
+        <div class="col-md-2">
             <label class="form-label">Harga/Satuan</label>
             <input type="number" name="harga_satuan_pendukung[]" class="form-control" value="0" min="0" onchange="hitungTotalPendukung(this)">
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
             <label class="form-label">Total</label>
             <input type="text" class="form-control total-input" readonly value="0">
         </div>

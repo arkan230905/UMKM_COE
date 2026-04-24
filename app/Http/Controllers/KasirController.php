@@ -31,7 +31,7 @@ class KasirController extends Controller
             ->orderBy('nama_produk')
             ->get();
 
-        $kasbank = Coa::whereIn('kode_akun', ['101', '102'])->orderBy('nama_akun')->get();
+        $kasbank = Coa::whereIn('kode_akun', ['111', '112', '113'])->orderBy('nama_akun')->get();
 
         return view('kasir.pos', [
             'title' => 'Point of Sale',

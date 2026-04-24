@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Penjualan;
 use App\Models\Produk;
+use App\Models\BuktiPembayaran;
 use App\Services\StockService;
 use App\Services\JournalService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class PenjualanController extends Controller
 {
@@ -280,11 +282,11 @@ class PenjualanController extends Controller
                            ->with('error', 'Data pembayaran tidak ditemukan');
         }
         
-        // Get bank accounts for transfer payment
-        $bankAccounts = \App\Helpers\AccountHelper::getKasBankAccounts();
+        // Get bank accounts for transfer payment (only banks with account numbers)
+        $bankAccounts = \App\Helpers\AccountHelper::getBankAccountsForTransfer();
         
         // Add label for sumber_dana
-        $paymentData['sumber_dana_label'] = $bankAccounts
+        $paymentData['sumber_dana_label'] = \App\Helpers\AccountHelper::getKasBankAccounts()
             ->where('kode_akun', $paymentData['sumber_dana'])
             ->first()
             ?->nama_akun ?? 'Tidak diketahui';
@@ -392,5 +394,79 @@ class PenjualanController extends Controller
             return redirect()->route('transaksi.penjualan.show', $penjualan->id)
                            ->with('success', 'Pembayaran berhasil dikonfirmasi. Penjualan telah dicatat.');
         });
+    }
+
+    public function uploadBuktiPembayaran(Request $request, $id)
+    {
+        try {
+            \Log::info('Upload bukti pembayaran called', ['id' => $id, 'files' => $request->allFiles()]);
+            
+            $request->validate([
+                'bukti_file' => 'required|file|mimes:jpg,jpeg,png,pdf,doc,docx|max:5120', // 5MB
+                'keterangan' => 'nullable|string|max:255'
+            ]);
+
+            $penjualan = Penjualan::findOrFail($id);
+            
+            if ($request->hasFile('bukti_file')) {
+                $file = $request->file('bukti_file');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('bukti_pembayaran', $filename, 'public');
+
+                // Simpan ke database
+                $bukti = new BuktiPembayaran();
+                $bukti->penjualan_id = $penjualan->id;
+                $bukti->file_path = $path;
+                $bukti->keterangan = $request->keterangan;
+                $bukti->save();
+
+                \Log::info('Bukti pembayaran saved', ['bukti_id' => $bukti->id]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Bukti pembayaran berhasil diupload'
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'File tidak ditemukan'
+            ], 400);
+
+        } catch (\Exception $e) {
+            \Log::error('Upload bukti pembayaran error', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal upload bukti pembayaran: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteBuktiPembayaran($penjualanId, $buktiId)
+    {
+        try {
+            $bukti = \App\Models\BuktiPembayaran::where('penjualan_id', $penjualanId)
+                                                ->where('id', $buktiId)
+                                                ->firstOrFail();
+
+            // Hapus file dari storage
+            if (\Storage::disk('public')->exists($bukti->file_path)) {
+                \Storage::disk('public')->delete($bukti->file_path);
+            }
+
+            // Hapus record dari database
+            $bukti->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Bukti pembayaran berhasil dihapus'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus bukti pembayaran: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

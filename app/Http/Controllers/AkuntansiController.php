@@ -161,6 +161,24 @@ class AkuntansiController extends Controller
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
 
+        // Auto-set date filter for purchase transactions
+        if ($refType === 'purchase' && $refId && !$from && !$to) {
+            $pembelian = \App\Models\Pembelian::find($refId);
+            if ($pembelian) {
+                // Set filter tanggal berdasarkan tanggal pembelian
+                $tanggalPembelian = \Carbon\Carbon::parse($pembelian->tanggal);
+                $from = $tanggalPembelian->format('Y-m-d');
+                $to = $tanggalPembelian->format('Y-m-d');
+                
+                \Log::info('Auto-set date filter for purchase journal', [
+                    'purchase_id' => $refId,
+                    'purchase_date' => $tanggalPembelian->format('Y-m-d'),
+                    'from' => $from,
+                    'to' => $to
+                ]);
+            }
+        }
+
         // Auto-generate journal jika belum ada untuk purchase
         if ($refType === 'purchase' && $refId) {
             $this->ensurePurchaseJournalExists($refId);
@@ -257,12 +275,10 @@ class AkuntansiController extends Controller
                 $q->where('ju.debit', '>', 0)
                   ->orWhere('ju.kredit', '>', 0);
             })
-            // PERBAIKAN: Exclude semua tipe yang sudah ada di journal_entries
-            ->whereNotIn('ju.tipe_referensi', [
-                'purchase', 'sale', 'retur_pembelian', 'retur_penjualan',
-                'production_material', 'production_labor_overhead', 'production_finished',
-                'produksi', // Exclude tipe lama dari ProduksiObserver
-                'expense_payment' // Exclude expense_payment karena sudah ada di journal_entries
+            // PERBAIKAN: Include pembelian transactions from jurnal_umum
+            ->whereIn('ju.tipe_referensi', [
+                'pembelian', // Include purchase transactions
+                'penyusutan', 'adjustment', 'manual' // Keep other manual entries
             ])
             ->orderBy('ju.tanggal','asc')
             ->orderBy('ju.created_at','asc')
@@ -270,7 +286,25 @@ class AkuntansiController extends Controller
             
         if ($from) { $jurnalUmumQuery->whereDate('ju.tanggal','>=',$from); }
         if ($to)   { $jurnalUmumQuery->whereDate('ju.tanggal','<=',$to); }
-        if ($refType) { $jurnalUmumQuery->where('ju.tipe_referensi', $refType); }
+        
+        // Handle ref_type filtering for purchase transactions
+        if ($refType) { 
+            if ($refType === 'purchase') {
+                $jurnalUmumQuery->where('ju.tipe_referensi', 'pembelian');
+            } else {
+                $jurnalUmumQuery->where('ju.tipe_referensi', $refType);
+            }
+        }
+        
+        // Handle ref_id filtering for purchase transactions
+        if ($refId && $refType === 'purchase') {
+            // Get the pembelian nomor_pembelian for filtering
+            $pembelian = \App\Models\Pembelian::find($refId);
+            if ($pembelian) {
+                $jurnalUmumQuery->where('ju.referensi', $pembelian->nomor_pembelian);
+            }
+        }
+        
         if ($accountCode) { 
             $jurnalUmumQuery->where('coas.kode_akun', $accountCode);
         }
@@ -328,22 +362,6 @@ class AkuntansiController extends Controller
         try {
             \Log::info('Ensuring purchase journal exists', ['purchase_id' => $purchaseId]);
             
-            // Check if journal already exists
-            $existingJournal = \App\Models\JournalEntry::where('ref_type', 'purchase')
-                ->where('ref_id', $purchaseId)
-                ->first();
-
-            if ($existingJournal) {
-                \Log::info('Journal already exists, deleting to recreate with updated logic', [
-                    'purchase_id' => $purchaseId, 
-                    'journal_id' => $existingJournal->id
-                ]);
-                
-                // Delete existing journal lines first
-                \App\Models\JournalLine::where('journal_entry_id', $existingJournal->id)->delete();
-                $existingJournal->delete();
-            }
-
             // Get purchase data
             $pembelian = \App\Models\Pembelian::with([
                 'vendor',
@@ -356,6 +374,19 @@ class AkuntansiController extends Controller
                 return;
             }
 
+            // Check if journal already exists in jurnal_umum table
+            $existingJournal = \App\Models\JurnalUmum::where('tipe_referensi', 'pembelian')
+                ->where('referensi', $pembelian->nomor_pembelian)
+                ->first();
+
+            if ($existingJournal) {
+                \Log::info('Journal already exists for purchase', [
+                    'purchase_id' => $purchaseId, 
+                    'nomor_pembelian' => $pembelian->nomor_pembelian
+                ]);
+                return; // Journal already exists, no need to recreate
+            }
+
             \Log::info('Creating journal for purchase', [
                 'purchase_id' => $purchaseId,
                 'nomor_pembelian' => $pembelian->nomor_pembelian,
@@ -363,14 +394,21 @@ class AkuntansiController extends Controller
                 'details_count' => $pembelian->details->count()
             ]);
 
-            // Create journal using observer
-            $observer = app(\App\Observers\PembelianObserver::class);
-            $observer->created($pembelian);
+            // Create journal using PembelianJournalService
+            $journalService = new \App\Services\PembelianJournalService();
+            $result = $journalService->createJournalFromPembelian($pembelian);
 
-            \Log::info('Auto-generated journal for purchase', [
-                'purchase_id' => $purchaseId,
-                'nomor_pembelian' => $pembelian->nomor_pembelian
-            ]);
+            if ($result) {
+                \Log::info('Auto-generated journal for purchase', [
+                    'purchase_id' => $purchaseId,
+                    'nomor_pembelian' => $pembelian->nomor_pembelian
+                ]);
+            } else {
+                \Log::warning('Failed to generate journal for purchase', [
+                    'purchase_id' => $purchaseId,
+                    'nomor_pembelian' => $pembelian->nomor_pembelian
+                ]);
+            }
 
         } catch (\Exception $e) {
             \Log::error('Failed to auto-generate purchase journal', [

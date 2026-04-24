@@ -68,6 +68,12 @@ class Penjualan extends Model
         return $this->hasMany(ReturPenjualan::class);
     }
 
+    // Relasi ke bukti pembayaran
+    public function buktiPembayaran()
+    {
+        return $this->hasMany(BuktiPembayaran::class);
+    }
+
     // Accessor untuk status retur
     public function getStatusReturAttribute()
     {

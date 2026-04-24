@@ -52,6 +52,12 @@ class SatuanController extends Controller
                 'keterangan' => $request->keterangan ?? '',
             ]);
 
+            // Sinkronkan ke tabel satuans untuk dropdown
+            \App\Models\Satuan::updateOrCreate(
+                ['kode' => strtoupper($validated['kode'])],
+                ['nama' => $validated['nama']]
+            );
+
             // Check if request is AJAX
             if ($isAjax) {
                 return response()->json([
@@ -110,6 +116,12 @@ class SatuanController extends Controller
                 'keterangan' => $request->keterangan ?? $satuan->keterangan,
             ]);
 
+            // Sinkronkan ke tabel satuans untuk dropdown
+            \App\Models\Satuan::updateOrCreate(
+                ['kode' => strtoupper($validated['kode'])],
+                ['nama' => $validated['nama']]
+            );
+
             // Check if request is AJAX
             if ($isAjax) {
                 return response()->json([
@@ -143,7 +155,11 @@ class SatuanController extends Controller
         
         try {
             $satuanName = $satuan->nama;
+            $satuanKode = $satuan->kode;
+            
+            // Hapus dari kedua tabel
             $satuan->delete();
+            \App\Models\Satuan::where('kode', $satuanKode)->delete();
 
             // Check if request is AJAX
             if ($isAjax) {

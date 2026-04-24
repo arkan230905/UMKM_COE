@@ -1872,6 +1872,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/detail', [PerusahaanController::class, 'index'])->name('detail');
         Route::get('/edit', [PerusahaanController::class, 'edit'])->name('edit')->middleware('role:owner');
         Route::put('/', [PerusahaanController::class, 'update'])->name('update')->middleware('role:owner');
+        Route::post('/update-bank-info', [PerusahaanController::class, 'updateBankInfo'])->name('update-bank-info')->middleware('role:owner');
+        Route::post('/update-bank-field', [PerusahaanController::class, 'updateBankField'])->name('update-bank-field')->middleware('role:owner');
     });
 
     // ================================================================
@@ -2794,6 +2796,10 @@ Route::middleware('auth')->group(function () {
         Route::post('penjualan/prepare-payment', [PenjualanController::class, 'preparePayment'])->name('penjualan.prepare-payment');
         Route::get('penjualan-payment', [PenjualanController::class, 'showPayment'])->name('penjualan.payment');
         Route::post('penjualan-confirm-payment', [PenjualanController::class, 'confirmPayment'])->name('penjualan.confirm-payment');
+        
+        // Bukti Pembayaran routes
+        Route::post('penjualan/{id}/bukti-pembayaran', [PenjualanController::class, 'uploadBuktiPembayaran'])->name('penjualan.upload-bukti');
+        Route::delete('penjualan/{penjualanId}/bukti-pembayaran/{buktiId}', [PenjualanController::class, 'deleteBuktiPembayaran'])->name('penjualan.delete-bukti');
         
         // API routes for real-time product search
         Route::get('api/products/search', [PenjualanController::class, 'searchProducts'])->name('api.products.search');
