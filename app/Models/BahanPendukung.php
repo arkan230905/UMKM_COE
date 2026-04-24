@@ -216,7 +216,13 @@ class BahanPendukung extends Model
             ->where('direction', 'out')
             ->sum('qty');
 
-        return $stockIn - $stockOut;
+        $netFromMovements = $stockIn - $stockOut;
+        
+        // Get saldo awal (initial stock)
+        $saldoAwal = (float) ($this->saldo_awal ?? 0);
+        
+        // Total stock = saldo awal + net movements
+        return $saldoAwal + $netFromMovements;
     }
 
     /**
