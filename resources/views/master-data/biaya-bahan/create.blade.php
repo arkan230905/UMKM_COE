@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Tambah Biaya Bahan')
+@section('title', 'Tambah Perhitungan Biaya Bahan Baku')
 
 @section('content')
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
