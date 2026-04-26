@@ -1858,9 +1858,9 @@ Route::middleware('auth')->group(function() {
 Route::middleware('auth')->group(function () {
 
     // ================================================================
-    // DASHBOARD (Admin & Owner Only)
+    // DASHBOARD (All Authenticated Users)
     // ================================================================
-    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('role:admin,owner')->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('role:admin,owner,pegawai')->name('dashboard');
 
     // ================================================================
     // TENTANG PERUSAHAAN ROUTES
