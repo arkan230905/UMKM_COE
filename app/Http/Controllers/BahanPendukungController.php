@@ -36,7 +36,8 @@ class BahanPendukungController extends Controller
             });
         }
         
-        $bahanPendukungs = $query->orderBy('nama_bahan')->paginate(15);
+        // Sort by created_at ascending (oldest to newest)
+        $bahanPendukungs = $query->orderBy('created_at', 'asc')->paginate(15);
         $kategoris = KategoriBahanPendukung::active()->orderBy('nama')->get();
         
         \Log::info('Bahan Pendukung loaded', [
@@ -151,24 +152,8 @@ class BahanPendukungController extends Controller
         $validated['saldo_awal'] = $request->stok ?? 0;
 
         // Create bahan pendukung
+        // Stock movement will be created automatically by the model's setStokAttribute setter
         $bahanPendukung = BahanPendukung::create($validated);
-
-        // Create initial stock movement if stock > 0
-        if (($request->stok ?? 0) > 0) {
-            \App\Models\StockMovement::create([
-                'item_type' => 'support',
-                'item_id' => $bahanPendukung->id,
-                'tanggal' => now()->format('Y-m-d'),
-                'direction' => 'in',
-                'qty' => $request->stok,
-                'satuan' => $bahanPendukung->satuan->nama ?? 'Unit',
-                'unit_cost' => $request->harga_satuan ?? 0,
-                'total_cost' => ($request->stok ?? 0) * ($request->harga_satuan ?? 0),
-                'ref_type' => 'initial_stock',
-                'ref_id' => 0,
-                'keterangan' => 'Stok awal ' . $request->nama_bahan,
-            ]);
-        }
 
         return redirect()->route('master-data.bahan-pendukung.index')
             ->with('success', 'Bahan pendukung berhasil ditambahkan');

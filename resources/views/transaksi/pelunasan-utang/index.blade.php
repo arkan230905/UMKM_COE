@@ -87,13 +87,12 @@
                     <thead class="table-light">
                         <tr>
                             <th class="text-center" style="width: 50px">No</th>
-                            <th>Kode Transaksi</th>
-                            <th>Tanggal</th>
-                            <th>Pembelian</th>
-                            <th>Vendor</th>
-                            <th>COA Pelunasan</th>
-                            <th class="text-end">Jumlah</th>
-                            <th>Status</th>
+                            <th class="text-center">Kode Transaksi</th>
+                            <th class="text-center">Tanggal</th>
+                            <th class="text-center">Pembelian</th>
+                            <th class="text-center">Vendor</th>
+                            <th class="text-center">Jumlah</th>
+                            <th class="text-center">Status</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -108,7 +107,6 @@
                                         </div>
                                         <div>
                                             <div class="fw-semibold">{{ $item->kode_transaksi }}</div>
-                                            <small class="text-muted">ID: {{ $item->id }}</small>
                                         </div>
                                     </div>
                                 </td>
@@ -141,7 +139,6 @@
                                                     {{ $item->pembelian->nomor_pembelian ?? '-' }}
                                                 @endif
                                             </div>
-                                            <small class="text-muted">Pembelian</small>
                                         </div>
                                     </div>
                                 </td>
@@ -152,24 +149,8 @@
                                         </div>
                                         <div>
                                             <div class="fw-semibold">{{ $item->pembelian->vendor->nama_vendor ?? '-' }}</div>
-                                            <small class="text-muted">Vendor</small>
                                         </div>
                                     </div>
-                                </td>
-                                <td>
-                                    @if($item->coaPelunasan)
-                                        <div class="d-flex align-items-center">
-                                            <div class="rounded-circle bg-warning bg-opacity-10 p-2 me-2">
-                                                <i class="fas fa-chart-line text-warning"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-semibold">{{ $item->coaPelunasan->kode_akun }}</div>
-                                                <small class="text-muted">{{ $item->coaPelunasan->nama_akun }}</small>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
                                 </td>
                                 <td class="text-end fw-semibold">Rp {{ number_format($item->jumlah, 0, ',', '.') }}</td>
                                 <td>{!! $item->status_badge !!}</td>
@@ -199,7 +180,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="text-center py-4">
+                                <td colspan="8" class="text-center py-4">
                                     <i class="fas fa-hand-holding-usd fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data pelunasan utang</p>
                                 </td>

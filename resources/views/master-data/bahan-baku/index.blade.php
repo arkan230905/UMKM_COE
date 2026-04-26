@@ -24,9 +24,9 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Nama Bahan</th>
-                            <th>Satuan Utama</th>
-                            <th class="text-end">Harga Satuan Utama</th>
+                            <th class="text-center">Nama Bahan</th>
+                            <th class="text-center">Satuan Utama</th>
+                            <th class="text-center">Harga Satuan Utama</th>
                             <th class="text-center">Stok Saat Ini</th>
                             <th class="text-center">Stok Minimum</th>
                             <th class="text-center">Aksi</th>
@@ -45,14 +45,14 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>
+                                <td class="text-center">
                                     @if($bahan->satuan)
                                         {{ $bahan->satuan->nama }}
                                     @else
                                         -
                                     @endif
                                 </td>
-                                <td class="text-end fw-semibold">
+                                <td class="text-center fw-semibold">
                                     Rp {{ number_format($bahan->harga_satuan_display ?? $bahan->harga_satuan ?? 0, 0, ',', '.') }}
                                 </td>
                                 <td class="text-center">
