@@ -32,8 +32,8 @@
 </div>
 
 <!-- Summary Cards -->
-<div class="row mb-4">
-    <div class="col-md-4">
+<div class="row mb-4 summary-grid">
+    <div class="col">
         <div class="card bg-primary text-dark">
             <div class="card-body">
                 <h5 class="card-title text-dark">Total Pembelian</h5>
@@ -48,7 +48,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col">
         <div class="card bg-success text-dark">
             <div class="card-body">
                 <h5 class="card-title text-dark">Total Pembelian Tunai</h5>
@@ -57,7 +57,25 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col">
+        <div class="card bg-info text-dark">
+            <div class="card-body">
+                <h5 class="card-title text-dark">Total Pembelian Kredit</h5>
+                <h3 class="mb-0 text-dark">Rp {{ number_format($totalPembelianKredit, 0, ',', '.') }}</h3>
+                <small class="text-dark opacity-75">Pembayaran Kredit</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card bg-secondary text-dark">
+            <div class="card-body">
+                <h5 class="card-title text-dark">Total Pembelian Non Tunai</h5>
+                <h3 class="mb-0 text-dark">Rp {{ number_format($totalPembelianNonTunai, 0, ',', '.') }}</h3>
+                <small class="text-dark opacity-75">Pembayaran Transfer</small>
+            </div>
+        </div>
+    </div>
+    <div class="col">
         <div class="card bg-warning text-dark">
             <div class="card-body">
                 <h5 class="card-title text-dark">Total Pembelian Belum Lunas</h5>
@@ -72,32 +90,32 @@
 <div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 table-pembelian">
                 <thead class="table-light">
                     <tr>
-                        <th style="width:5%">No</th>
-                        <th>No. Transaksi</th>
-                        <th>Tanggal</th>
-                        <th>Vendor</th>
-                        <th>Item Dibeli</th>
-                        <th class="text-end">Total</th>
-                        <th class="text-center">Metode Pembayaran</th>
-                        <th class="text-center">Status</th>
-                        <th style="width:12%" class="text-center">Aksi</th>
+                        <th class="text-center" style="width:5%">No</th>
+                        <th class="text-center nowrap">No. Transaksi</th>
+                        <th class="text-center nowrap">Tanggal</th>
+                        <th class="text-center nowrap">Vendor</th>
+                        <th class="text-center">Item Dibeli</th>
+                        <th class="text-center nowrap">Total</th>
+                        <th class="text-center nowrap">Metode Pembayaran</th>
+                        <th class="text-center nowrap">Status</th>
+                        <th class="text-center nowrap" style="width:12%">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($pembelian as $index => $p)
                         <tr>
-                            <td>{{ $pembelian->firstItem() + $index }}</td>
-                            <td><strong>{{ $p->nomor_pembelian ?? '-' }}</strong></td>
-                            <td>{{ optional($p->tanggal)->format('d/m/Y') ?? '-' }}</td>
-                            <td>{{ $p->vendor->nama_vendor ?? '-' }}</td>
-                            <td>
+                            <td class="text-center">{{ $pembelian->firstItem() + $index }}</td>
+                            <td class="text-center nowrap"><strong>{{ $p->nomor_pembelian ?? '-' }}</strong></td>
+                            <td class="text-center nowrap">{{ optional($p->tanggal)->format('d/m/Y') ?? '-' }}</td>
+                            <td class="text-center nowrap">{{ $p->vendor->nama_vendor ?? '-' }}</td>
+                            <td class="text-center">
                                 @if($p->details && $p->details->count() > 0)
-                                    <div class="small">
+                                    <div class="small text-center">
                                         @foreach($p->details as $detail)
-                                            <div class="mb-1">
+                                            <div class="mb-1 text-center">
                                                 • 
                                                 @if($detail->tipe_item === 'bahan_baku' && $detail->bahanBaku)
                                                     {{ $detail->bahanBaku->nama_bahan }}
@@ -110,22 +128,12 @@
                                                 @else
                                                     Item
                                                 @endif
-                                                <span class="text-muted">
-                                                    ({{ number_format($detail->jumlah ?? 0, 0, ',', '.') }} 
-                                                    @php
-                                                        $satuanItem = 'unit';
-                                                        if ($detail->bahan_baku_id && $detail->bahanBaku) {
-                                                            $satuanItem = $detail->satuan ?: ($detail->bahanBaku->satuan->nama ?? 'unit');
-                                                        } elseif ($detail->bahan_pendukung_id && $detail->bahanPendukung) {
-                                                            $satuanItem = $detail->satuan ?: ($detail->bahanPendukung->satuanRelation->nama ?? 'unit');
-                                                        } elseif ($detail->bahan_baku_id) {
-                                                            $satuanItem = $detail->satuan ?: 'unit';
-                                                        } elseif ($detail->bahan_pendukung_id) {
-                                                            $satuanItem = $detail->satuan ?: 'unit';
-                                                        }
-                                                    @endphp
-                                                    {{ $satuanItem }})
-                                                </span>
+                                                @php
+                                                    $qty = $detail->jumlah ?? 0;
+                                                    // Remove .00 from whole numbers
+                                                    $qtyFormatted = ($qty == floor($qty)) ? number_format($qty, 0, ',', '.') : number_format($qty, 2, ',', '.');
+                                                @endphp
+                                                <span class="text-muted">- {{ $qtyFormatted }}</span>
                                                 - Rp {{ number_format($detail->harga_satuan ?? 0, 0, ',', '.') }}
                                                 = <strong>Rp {{ number_format(($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0), 0, ',', '.') }}</strong>
                                             </div>
@@ -135,12 +143,12 @@
                                     <span class="badge bg-warning">
                                         <i class="fas fa-exclamation-triangle"></i> Detail tidak tersedia
                                     </span>
-                                    <div class="small text-muted mt-1">
+                                    <div class="small text-muted text-center mt-1">
                                         Total: Rp {{ number_format($p->total_harga ?? 0, 0, ',', '.') }}
                                     </div>
                                 @endif
                             </td>
-                            <td class="text-end">
+                            <td class="text-center">
                                 @php
                                     $totalPembelian = 0;
                                     if ($p->details && $p->details->count() > 0) {

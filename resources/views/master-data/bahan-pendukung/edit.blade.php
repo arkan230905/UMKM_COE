@@ -49,6 +49,7 @@
                             <label class="form-label">Kategori <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <select name="kategori_id" class="form-select @error('kategori_id') is-invalid @enderror" required>
+                                    <option value="">- Pilih Kategori -</option>
                                     @foreach($kategoris as $kat)
                                         <option value="{{ $kat->id }}" {{ ($bahanPendukung->kategori_id ?? '') == $kat->id ? 'selected' : '' }}>{{ $kat->nama }}</option>
                                     @endforeach
@@ -393,7 +394,63 @@ function parseFormattedNumber(value) {
     return value.replace(/\./g, '').replace(',', '.');
 }
 
-// Update satuan utama display when main satuan changes
+// Auto-fill COA fields based on account type and parent
+function autoFillCOA() {
+    // Get all COA options
+    const coaOptions = document.querySelectorAll('#coa_pembelian_id option[data-tipe]');
+    
+    // Group COA by type and parent
+    const coaByType = {};
+    coaOptions.forEach(option => {
+        const type = option.dataset.tipe;
+        const parent = option.dataset.induk;
+        
+        if (!coaByType[type]) {
+            coaByType[type] = {};
+        }
+        
+        if (!coaByType[type][parent]) {
+            coaByType[type][parent] = [];
+        }
+        
+        coaByType[type][parent].push(option.value);
+    });
+    
+    // Auto-fill logic
+    ['coa_pembelian_id', 'coa_persediaan_id', 'coa_hpp_id'].forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+        
+        // Add change event listener
+        field.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const selectedType = selectedOption.dataset.tipe;
+            const selectedParent = selectedOption.dataset.induk;
+            
+            // Auto-fill other fields with same type and parent
+            ['coa_pembelian_id', 'coa_persediaan_id', 'coa_hpp_id'].forEach(otherFieldId => {
+                if (otherFieldId !== fieldId) {
+                    const otherField = document.getElementById(otherFieldId);
+                    if (otherField) {
+                        // Clear current selection
+                        otherField.value = '';
+                        
+                        // Find matching COA
+                        const matchingOptions = Array.from(otherField.options).filter(opt => 
+                            opt.dataset.tipe === selectedType && opt.dataset.induk === selectedParent
+                        );
+                        
+                        if (matchingOptions.length > 0) {
+                            otherField.value = matchingOptions[0].value;
+                        }
+                    }
+                }
+            });
+        });
+    });
+}
+
+// Main initialization
 document.addEventListener('DOMContentLoaded', function() {
     const satuanSelect = document.querySelector('select[name="satuan_id"]');
     const satuanUtamaTexts = document.querySelectorAll('.satuan-utama-text');
@@ -415,8 +472,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Initial call and event listener
-    satuanSelect.addEventListener('change', updateSatuanUtamaDisplay);
-    updateSatuanUtamaDisplay();
+    if (satuanSelect) {
+        satuanSelect.addEventListener('change', updateSatuanUtamaDisplay);
+        updateSatuanUtamaDisplay();
+    }
     
     // Add event listeners for number formatting
     document.querySelectorAll('.number-input').forEach(input => {
@@ -434,29 +493,57 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form validation and submission
     const form = document.querySelector('form');
     if (form) {
+        console.log('Form found, adding submit listener');
         form.addEventListener('submit', function(e) {
+            console.log('Form submission started');
             let isValid = true;
-            const requiredFields = [
-                'sub_satuan_1_konversi', 'sub_satuan_1_id', 'sub_satuan_1_nilai',
-                'sub_satuan_2_konversi', 'sub_satuan_2_id', 'sub_satuan_2_nilai',
-                'sub_satuan_3_konversi', 'sub_satuan_3_id', 'sub_satuan_3_nilai'
+            let errorMessages = [];
+            
+            // Check basic required fields
+            const basicRequiredFields = [
+                { name: 'nama_bahan', label: 'Nama Bahan' },
+                { name: 'satuan_id', label: 'Satuan' },
+                { name: 'harga_satuan', label: 'Harga Satuan' },
+                { name: 'kategori_id', label: 'Kategori' }
             ];
             
-            requiredFields.forEach(fieldName => {
-                const field = document.querySelector(`[name="${fieldName}"]`);
+            basicRequiredFields.forEach(fieldInfo => {
+                const field = document.querySelector(`[name="${fieldInfo.name}"]`);
                 if (field && (!field.value || field.value.trim() === '')) {
                     field.classList.add('is-invalid');
                     isValid = false;
+                    errorMessages.push(`${fieldInfo.label} wajib diisi`);
+                } else if (field) {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            // Check sub satuan 1 (required)
+            const sub1Fields = [
+                { name: 'sub_satuan_1_konversi', label: 'Konversi 1' },
+                { name: 'sub_satuan_1_id', label: 'Sub Satuan 1' },
+                { name: 'sub_satuan_1_nilai', label: 'Nilai 1' }
+            ];
+            
+            sub1Fields.forEach(fieldInfo => {
+                const field = document.querySelector(`[name="${fieldInfo.name}"]`);
+                if (field && (!field.value || field.value.trim() === '')) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                    errorMessages.push(`${fieldInfo.label} wajib diisi`);
                 } else if (field) {
                     field.classList.remove('is-invalid');
                 }
             });
             
             if (!isValid) {
+                console.log('Form validation failed:', errorMessages);
                 e.preventDefault();
-                alert('Mohon lengkapi semua field Sub Satuan yang wajib diisi.');
+                alert('Mohon lengkapi field yang wajib diisi:\n' + errorMessages.join('\n'));
                 return;
             }
+            
+            console.log('Form validation passed, submitting...');
             
             // Convert formatted numbers back to standard format for server processing
             document.querySelectorAll('.number-input, .decimal-input').forEach(input => {
@@ -465,70 +552,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
-    }
-    });
-    
-    // Auto-fill COA fields based on account type and parent
-    function autoFillCOA() {
-        // Get all COA options
-        const coaOptions = document.querySelectorAll('#coa_pembelian_id option[data-tipe]');
-        
-        // Group COA by type and parent
-        const coaByType = {};
-        coaOptions.forEach(option => {
-            const type = option.dataset.tipe;
-            const parent = option.dataset.induk;
-            
-            if (!coaByType[type]) {
-                coaByType[type] = {};
-            }
-            
-            if (!coaByType[type][parent]) {
-                coaByType[type][parent] = [];
-            }
-            
-            coaByType[type][parent].push(option.value);
-        });
-        
-        // Auto-fill logic
-        ['coa_pembelian_id', 'coa_persediaan_id', 'coa_hpp_id'].forEach(fieldId => {
-            const field = document.getElementById(fieldId);
-            if (!field) return;
-            
-            // Clear current selection
-            field.value = '';
-            
-            // Add change event listener
-            field.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                const selectedType = selectedOption.dataset.tipe;
-                const selectedParent = selectedOption.dataset.induk;
-                
-                // Auto-fill other fields with same type and parent
-                ['coa_pembelian_id', 'coa_persediaan_id', 'coa_hpp_id'].forEach(otherFieldId => {
-                    if (otherFieldId !== fieldId) {
-                        const otherField = document.getElementById(otherFieldId);
-                        if (otherField) {
-                            // Clear current selection
-                            otherField.value = '';
-                            
-                            // Find matching COA
-                            const matchingOptions = Array.from(otherField.options).filter(opt => 
-                                opt.dataset.tipe === selectedType && opt.dataset.induk === selectedParent
-                            );
-                            
-                            if (matchingOptions.length > 0) {
-                                otherField.value = matchingOptions[0].value;
-                            }
-                        }
-                    }
-                });
-            });
-        });
+    } else {
+        console.log('Form not found!');
     }
     
-    // Initialize auto-fill when page loads
-    document.addEventListener('DOMContentLoaded', autoFillCOA);
+    // Initialize auto-fill COA
+    autoFillCOA();
 });
 </script>
 @endpush

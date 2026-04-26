@@ -7,6 +7,7 @@ use App\Models\Satuan;
 use App\Services\BomSyncService;
 use App\Services\BahanBakuService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BahanBakuController extends Controller
 {

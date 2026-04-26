@@ -1,0 +1,99 @@
+/* CSS untuk Retur Pembelian - Digunakan di kedua halaman */
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.table th {
+    font-weight: 600;
+    background-color: #f8f9fa;
+    vertical-align: middle;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.text-success {
+    color: #198754 !important;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    margin: 2px;
+    min-width: 35px;
+}
+
+.action-buttons form {
+    margin: 0;
+}
+
+.status-badge {
+    min-width: 100px;
+    text-align: center;
+}
+
+.jenis-retur-badge {
+    min-width: 90px;
+    text-align: center;
+}
+
+/* Animation untuk highlight retur baru */
+@keyframes pulse {
+    0% { background-color: #d1e7dd; }
+    50% { background-color: #a3d9a4; }
+    100% { background-color: #d1e7dd; }
+}
+
+.table-success {
+    background-color: #d1e7dd !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .action-buttons .btn {
+        min-width: 80px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Loading state */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Alert styling */
+.alert {
+    border-radius: 0.5rem;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.alert-success {
+    background-color: #d1e7dd;
+    color: #0f5132;
+}
+
+.alert-info {
+    background-color: #cff4fc;
+    color: #055160;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}

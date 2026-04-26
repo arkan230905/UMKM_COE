@@ -102,21 +102,46 @@ class Penjualan extends Model
                 $tanggal = $penjualan->tanggal ?? now();
                 $date = is_string($tanggal) ? $tanggal : $tanggal->format('Ymd');
                 
-                // Ambil nomor penjualan terakhir hari ini untuk menghindari duplikat
-                $lastNomor = static::whereDate('tanggal', $tanggal)
-                    ->where('nomor_penjualan', 'like', 'SJ-' . $date . '-%')
-                    ->orderBy('nomor_penjualan', 'desc')
-                    ->value('nomor_penjualan');
+                // Generate unique nomor penjualan dengan retry mechanism
+                $maxRetries = 10;
+                $attempt = 0;
                 
-                if ($lastNomor) {
-                    // Extract nomor urut dari nomor penjualan terakhir
-                    $lastNumber = intval(substr($lastNomor, -3));
-                    $count = $lastNumber + 1;
-                } else {
-                    $count = 1;
-                }
-                
-                $penjualan->nomor_penjualan = 'SJ-' . $date . '-' . str_pad($count, 3, '0', STR_PAD_LEFT);
+                do {
+                    // Cari nomor terakhir GLOBAL (semua tanggal) untuk urutan berurutan
+                    $lastNumber = static::where('nomor_penjualan', 'like', 'SJ-%')
+                        ->orderBy('nomor_penjualan', 'desc')
+                        ->value('nomor_penjualan');
+                    
+                    if ($lastNumber) {
+                        // Extract nomor urut dari nomor terakhir
+                        $parts = explode('-', $lastNumber);
+                        $lastSequence = intval(end($parts));
+                        $nextSequence = $lastSequence + 1;
+                    } else {
+                        $nextSequence = 1;
+                    }
+                    
+                    // Format: SJ-YYYYMMDD-001
+                    $nomorPenjualan = 'SJ-' . $date . '-' . str_pad($nextSequence, 3, '0', STR_PAD_LEFT);
+                    
+                    // Cek apakah nomor sudah ada (untuk memastikan unique)
+                    $exists = static::where('nomor_penjualan', $nomorPenjualan)->exists();
+                    
+                    if (!$exists) {
+                        $penjualan->nomor_penjualan = $nomorPenjualan;
+                        break;
+                    }
+                    
+                    $attempt++;
+                    
+                    // Jika sudah mencoba berkali-kali, tambahkan timestamp untuk memastikan unique
+                    if ($attempt >= $maxRetries) {
+                        $timestamp = now()->format('His'); // HHMMSS
+                        $penjualan->nomor_penjualan = 'SJ-' . $date . '-' . $timestamp;
+                        break;
+                    }
+                    
+                } while ($attempt < $maxRetries);
             }
         });
         

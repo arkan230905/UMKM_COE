@@ -198,7 +198,39 @@ class StockService
      */
     public function getCurrentStock($itemId, $itemType)
     {
-        return KartuStok::getStockBalance($itemId, $itemType);
+        // Convert item type to match StockMovement conventions
+        $stockMovementType = $itemType;
+        if ($itemType === 'bahan_baku') {
+            $stockMovementType = 'material';
+        } elseif ($itemType === 'bahan_pendukung') {
+            $stockMovementType = 'support';
+        }
+        
+        // Calculate stock from StockMovement table (consistent with stok_real_time)
+        $stockIn = \App\Models\StockMovement::where('item_type', $stockMovementType)
+            ->where('item_id', $itemId)
+            ->where('direction', 'in')
+            ->sum('qty');
+
+        $stockOut = \App\Models\StockMovement::where('item_type', $stockMovementType)
+            ->where('item_id', $itemId)
+            ->where('direction', 'out')
+            ->sum('qty');
+
+        $netStock = $stockIn - $stockOut;
+        
+        // If no stock movements exist, get from master data
+        if ($stockIn == 0 && $stockOut == 0) {
+            if ($itemType === 'bahan_baku' || $stockMovementType === 'material') {
+                $item = \App\Models\BahanBaku::find($itemId);
+                return $item ? (float)($item->saldo_awal ?? 0) : 0;
+            } elseif ($itemType === 'bahan_pendukung' || $stockMovementType === 'support') {
+                $item = \App\Models\BahanPendukung::find($itemId);
+                return $item ? (float)($item->saldo_awal ?? 0) : 0;
+            }
+        }
+        
+        return $netStock;
     }
 
     /**

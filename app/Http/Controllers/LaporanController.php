@@ -517,20 +517,71 @@ class LaporanController extends Controller
                         }
                     }
                     
-                    // If no movements before date range, use master data as initial stock
-                    if ($before->isEmpty() && $item->saldo_awal > 0) {
-                        $saldoAwalQty = (float)($item->saldo_awal ?? 0);
-                        $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
+                    // If no movements before date range, check for initial_stock movement or use master data
+                    if ($before->isEmpty()) {
+                        $initialStockMovement = StockMovement::where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe)
+                            ->where('item_id', $itemId)
+                            ->where('ref_type', 'initial_stock')
+                            ->first();
+                        
+                        if ($initialStockMovement) {
+                            $saldoAwalQty = (float)($initialStockMovement->qty ?? 0);
+                            $saldoAwalNilai = (float)($initialStockMovement->total_cost ?? 0);
+                        } elseif ($item && $item->saldo_awal > 0) {
+                            $saldoAwalQty = (float)($item->saldo_awal ?? 0);
+                            $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
+                            
+                            // Create initial stock movement for consistency
+                            StockMovement::create([
+                                'item_type' => $tipe == 'bahan_pendukung' ? 'support' : $tipe,
+                                'item_id' => $itemId,
+                                'tanggal' => '2026-04-23', // Use correct initial stock date
+                                'ref_type' => 'initial_stock',
+                                'ref_id' => null,
+                                'direction' => 'in',
+                                'qty' => $saldoAwalQty,
+                                'unit' => $item->satuan->nama ?? 'unit',
+                                'unit_cost' => (float)($item->harga_satuan ?? 0),
+                                'total_cost' => $saldoAwalNilai,
+                                'keterangan' => 'Stok Awal'
+                            ]);
+                        }
                     }
                 }
             }
             
             // If no date range specified, get all movements
             if (!$from && !$to) {
-                // ALWAYS use saldo_awal from database as starting point
-                if ($item && $item->saldo_awal > 0) {
-                    $saldoAwalQty = (float)($item->saldo_awal ?? 0);
-                    $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
+                // Get initial stock from stock movements (initial_stock type) first
+                $initialStockMovement = StockMovement::where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe)
+                    ->where('item_id', $itemId)
+                    ->where('ref_type', 'initial_stock')
+                    ->first();
+                
+                if ($initialStockMovement) {
+                    $saldoAwalQty = (float)($initialStockMovement->qty ?? 0);
+                    $saldoAwalNilai = (float)($initialStockMovement->total_cost ?? 0);
+                } else {
+                    // Fallback to saldo_awal from master data if no initial_stock movement
+                    if ($item && $item->saldo_awal > 0) {
+                        $saldoAwalQty = (float)($item->saldo_awal ?? 0);
+                        $saldoAwalNilai = $saldoAwalQty * (float)($item->harga_satuan ?? 0);
+                        
+                        // Create initial stock movement for consistency
+                        StockMovement::create([
+                            'item_type' => $tipe == 'bahan_pendukung' ? 'support' : $tipe,
+                            'item_id' => $itemId,
+                            'tanggal' => '2026-04-23', // Use correct initial stock date
+                            'ref_type' => 'initial_stock',
+                            'ref_id' => null,
+                            'direction' => 'in',
+                            'qty' => $saldoAwalQty,
+                            'unit' => $item->satuan->nama ?? 'unit',
+                            'unit_cost' => (float)($item->harga_satuan ?? 0),
+                            'total_cost' => $saldoAwalNilai,
+                            'keterangan' => 'Stok Awal'
+                        ]);
+                    }
                 }
                 
                 $movements = $movQ->orderBy('tanggal', 'asc')
@@ -584,284 +635,116 @@ class LaporanController extends Controller
             // Build daily stock card
             $dailyStock = [];
             
-            // Build daily stock card - show each transaction individually with monthly opening balance
+            // Build daily stock card - show each transaction individually with correct opening balance date
                 if ($movements->count() > 0) {
-                    // Debug: Log movements data
-                    \Log::info("Processing movements for item $itemId", [
-                        'movement_count' => $movements->count(),
-                        'movements' => $movements->map(function($m) {
-                            return [
-                                'id' => $m->id,
-                                'tanggal' => $m->tanggal,
-                                'ref_type' => $m->ref_type,
-                                'ref_id' => $m->ref_id,
-                                'qty' => $m->qty,
-                                'total_cost' => $m->total_cost,
-                                'direction' => $m->direction
-                            ];
-                        })->toArray()
-                    ]);
-                    
                     // Initialize running totals
                     $runningQty = $saldoAwalQty;
                     $runningNilai = $saldoAwalNilai;
                     
-                    $previousMonth = null;
-                    $currentMonth = null;
-                    $processedMonths = [];
+                    // Get the first transaction date for saldo awal
+                    $firstMovement = $movements->first();
+                    $firstTransactionDate = is_string($firstMovement->tanggal) ? $firstMovement->tanggal : $firstMovement->tanggal->format('Y-m-d');
                     
-                    // Group movements by month to identify opening balance dates
-                    $monthlyMovements = [];
-                    foreach ($movements as $m) {
-                        $dateStr = is_string($m->tanggal) ? $m->tanggal : $m->tanggal->format('Y-m-d');
-                        $monthKey = substr($dateStr, 0, 7); // Y-m format
-                        if (!isset($monthlyMovements[$monthKey])) {
-                            $monthlyMovements[$monthKey] = [];
-                        }
-                        $monthlyMovements[$monthKey][] = $m;
+                    // Use 23/04/2026 for initial stock date as per user requirement
+                    $initialStockDate = '2026-04-23';
+                    
+                    // Add opening balance row using the correct initial stock date
+                    if ($runningQty > 0 || $runningNilai > 0) {
+                        $dailyStock[] = [
+                            'tanggal' => $initialStockDate, // Use 23/04/2026 as per user requirement
+                            'saldo_awal_qty' => $runningQty,
+                            'saldo_awal_nilai' => $runningNilai,
+                            'pembelian_qty' => 0,
+                            'pembelian_nilai' => 0,
+                            'penjualan_qty' => 0,
+                            'penjualan_nilai' => 0,
+                            'produksi_qty' => 0,
+                            'produksi_nilai' => 0,
+                            'saldo_akhir_qty' => $runningQty,
+                            'saldo_akhir_nilai' => $runningNilai,
+                            'ref_type' => 'opening_balance',
+                            'ref_id' => '',
+                            'is_opening_balance' => true
+                        ];
                     }
                     
-                    // Sort months
-                    ksort($monthlyMovements);
-                    
-                    // Process each month
-                    foreach ($monthlyMovements as $monthKey => $monthMovements) {
-                        // Add opening balance row for this month (except first month if no opening balance)
-                        if ($runningQty > 0 || $runningNilai > 0) {
-                            $firstDate = $monthKey . '-01'; // First day of month
-                            $dailyStock[] = [
-                                'tanggal' => $firstDate,
-                                'saldo_awal_qty' => $runningQty,
-                                'saldo_awal_nilai' => $runningNilai,
-                                'pembelian_qty' => 0,
-                                'pembelian_nilai' => 0,
-                                'penjualan_qty' => 0,
-                                'penjualan_nilai' => 0,
-                                'produksi_qty' => 0,
-                                'produksi_nilai' => 0,
-                                'saldo_akhir_qty' => $runningQty,
-                                'saldo_akhir_nilai' => $runningNilai,
-                                'ref_type' => 'opening_balance',
-                                'ref_id' => '',
-                                'is_opening_balance' => true
-                            ];
+                    // Process individual movements
+                    foreach ($movements as $m) {
+                        $dateStr = is_string($m->tanggal) ? $m->tanggal : $m->tanggal->format('Y-m-d');
+                        
+                        // No opening balance for individual transactions
+                        $saldoAwalQty = 0;
+                        $saldoAwalNilai = 0;
+                        
+                        // Initialize transaction variables
+                        $dailyInQty = 0;
+                        $dailyInNilai = 0;
+                        $dailyOutQty = 0;
+                        $dailyOutNilai = 0;
+                        $dailySaleQty = 0;
+                        $dailySaleNilai = 0;
+                        
+                        // Process movement based on type and direction
+                        if ($m->direction === 'in') {
+                            if ($m->ref_type === 'purchase' || $m->ref_type === 'replacement') {
+                                // Purchases and replacement goods go to pembelian column
+                                $dailyInQty = (float)$m->qty;
+                                $totalCost = ($m->total_cost ?? 0) > 0 ? ($m->total_cost ?? 0) : (($m->qty * ($item->harga_satuan ?? 0)));
+                                $dailyInNilai = (float)$totalCost;
+                            } elseif ($m->ref_type === 'production' && $tipe === 'product') {
+                                // Production IN for products goes to produksi column
+                                $dailyOutQty = (float)$m->qty;
+                                $dailyOutNilai = (float)($m->total_cost ?? 0);
+                            } elseif ($m->ref_type === 'initial_stock') {
+                                // Skip initial_stock - handled by opening balance
+                                continue;
+                            }
+                        } else {
+                            // OUT movements
+                            if (($m->ref_type === 'retur' || $m->ref_type === 'return' || $m->ref_type === 'retur_tukar_kirim') && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
+                                // Retur/Return for materials - show as negative purchase
+                                $dailyInQty = -(float)$m->qty;
+                                $dailyInNilai = -(float)($m->total_cost ?? 0);
+                            } elseif ($m->ref_type === 'production' && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
+                                // Production consumption - show in produksi column
+                                $dailyOutQty = (float)$m->qty;
+                                $dailyOutNilai = (float)($m->total_cost ?? 0);
+                            } elseif ($m->ref_type === 'sale' && $tipe === 'product') {
+                                // Sales for products
+                                $dailySaleQty = (float)$m->qty;
+                                $dailySaleNilai = (float)($m->total_cost ?? 0);
+                            }
                         }
                         
-                        // Process individual movements in this month
-                        foreach ($monthMovements as $m) {
-                            $dateStr = is_string($m->tanggal) ? $m->tanggal : $m->tanggal->format('Y-m-d');
-                            
-                            // No opening balance for individual transactions
-                            $saldoAwalQty = 0;
-                            $saldoAwalNilai = 0;
-                            
-                            // Initialize sales variables
-                            $dailySaleQty = 0;
-                            $dailySaleNilai = 0;
-                            
-                            // Process individual movement
-                            if ($m->direction === 'in') {
-                                if ($m->ref_type === 'adjustment') {
-                                    // Adjustment goes to pembelian column (it's adding stock)
-                                    $dailyInQty = (float)$m->qty;
-                                    $dailyInNilai = (float)($m->total_cost ?? 0);
-                                    $dailyOutQty = 0;
-                                    $dailyOutNilai = 0;
-                                    $dailySaleQty = 0;
-                                    $dailySaleNilai = 0;
-                                } elseif ($m->ref_type === 'production' && $tipe === 'product') {
-                                    // Production IN for products goes to produksi column
-                                    $dailyInQty = 0;
-                                    $dailyInNilai = 0;
-                                    $dailyOutQty = (float)$m->qty; // Use produksi column for production IN
-                                    $dailyOutNilai = (float)($m->total_cost ?? 0);
-                                    $dailySaleQty = 0;
-                                    $dailySaleNilai = 0;
-                                } elseif ($m->ref_type === 'initial_stock') {
-                                    // Skip initial_stock movements - they are handled by opening_balance
-                                    // Don't add to daily stock, just continue to next movement
-                                    continue;
-                                    // Use item's harga_satuan as fallback when movement total_cost is 0
-                                    $totalCost = ($m->total_cost ?? 0) > 0 ? ($m->total_cost ?? 0) : (($m->qty * ($item->harga_satuan ?? 0)));
-                                    $saldoAwalNilai = (float)$totalCost;
-                                } elseif ($m->ref_type === 'purchase') {
-                                    // Only actual purchases go to pembelian column
-                                    $dailyInQty = (float)$m->qty;
-                                    // Use item's harga_satuan as fallback when movement total_cost is 0
-                                    $totalCost = ($m->total_cost ?? 0) > 0 ? ($m->total_cost ?? 0) : (($m->qty * ($item->harga_satuan ?? 0)));
-                                    $dailyInNilai = (float)$totalCost;
-                                    $dailyOutQty = 0;
-                                    $dailyOutNilai = 0;
-                                    $dailySaleQty = 0;
-                                    $dailySaleNilai = 0;
-                                } elseif (strpos($m->ref_type, 'retur') !== false && $tipe === 'product') {
-                                    // Retur IN movements for products (barang kembali) - show in penjualan column as negative
-                                    $dailyInQty = 0;
-                                    $dailyInNilai = 0;
-                                    $dailyOutQty = 0;
-                                    $dailyOutNilai = 0;
-                                    $dailySaleQty = -(float)$m->qty; // Negative to show as return
-                                    $dailySaleNilai = -(float)($m->total_cost ?? 0);
-                                } else {
-                                    // Other IN movements - skip to avoid confusion
-                                    $dailyInQty = 0;
-                                    $dailyInNilai = 0;
-                                    $dailyOutQty = 0;
-                                    $dailyOutNilai = 0;
-                                    $dailySaleQty = 0;
-                                    $dailySaleNilai = 0;
-                                }
-                            } else {
-                                // OUT movements
-                                if ($m->ref_type === 'sale' && $tipe === 'product') {
-                                    // Sales OUT for products goes to penjualan column
-                                    $dailyInQty = 0;
-                                    $dailyInNilai = 0;
-                                    $dailyOutQty = 0;
-                                    $dailyOutNilai = 0;
-                                    $dailySaleQty = (float)$m->qty;
-                                    
-                                    // Calculate sales cost using FIFO/Average method
-                                    if (!$m->total_cost || $m->total_cost == 0) {
-                                        // If no cost in stock movement, calculate from current average cost
-                                        $avgCost = $runningNilai > 0 && $runningQty > 0 ? $runningNilai / $runningQty : 0;
-                                        $dailySaleNilai = $dailySaleQty * $avgCost;
-                                    } else {
-                                        $dailySaleNilai = (float)($m->total_cost ?? 0);
-                                    }
-                                } elseif (strpos($m->ref_type, 'retur') !== false && $tipe === 'product') {
-                                    // Retur OUT movements for products (like retur_tukar_barang) go to penjualan column
-                                    $dailyInQty = 0;
-                                    $dailyInNilai = 0;
-                                    $dailyOutQty = 0;
-                                    $dailyOutNilai = 0;
-                                    $dailySaleQty = (float)$m->qty;
-                                    $dailySaleNilai = (float)($m->total_cost ?? 0);
-                                } elseif ($m->ref_type === 'retur' && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
-                                    // RETUR PEMBELIAN untuk material/bahan_pendukung - show in pembelian column as negative (OUT movement)
-                                    $dailyInQty = -(float)$m->qty; // Negative to show as return
-                                    $dailyInNilai = -(float)($m->total_cost ?? 0);
-                                    $dailyOutQty = 0;
-                                    $dailyOutNilai = 0;
-                                    $dailySaleQty = 0;
-                                    $dailySaleNilai = 0;
-                                } else {
-                                    // Other OUT movements (production consumption, etc.)
-                                    $dailyInQty = 0;
-                                    $dailyInNilai = 0;
-                                    
-                                    // For production movements, send both original and converted data for view to handle
-                                    if ($m->ref_type === 'production' && $m->qty_as_input && $m->satuan_as_input) {
-                                        // Send the converted qty (stored in base unit) for view to use for non-original units
-                                        $dailyOutQty = (float)$m->qty; // Use converted qty (40 kg)
-                                        
-                                        // Store original satuan for display purposes
-                                        $m->original_satuan = $m->satuan_as_input;
-                                    } else {
-                                        // Fallback to regular qty for non-production or movements without qty_as_input
-                                        $dailyOutQty = (float)$m->qty;
-                                    }
-                                    
-                                    $dailyOutNilai = (float)($m->total_cost ?? 0);
-                                    $dailySaleQty = 0;
-                                    $dailySaleNilai = 0;
-                                }
-                            }
-                            
-                            // SPECIAL HANDLING FOR RETUR MOVEMENTS (materials/bahan_pendukung)
-                            // This ensures retur movements are always shown in pembelian column with negative values
-                            if ($m->ref_type === 'retur' && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
-                                // Reset all other columns
-                                $dailyOutQty = 0;
-                                $dailyOutNilai = 0;
-                                $dailySaleQty = 0;
-                                $dailySaleNilai = 0;
-                                
-                                // Show in pembelian column as negative (regardless of direction)
-                                $dailyInQty = -(float)$m->qty; // Always negative for retur
-                                $dailyInNilai = -(float)($m->total_cost ?? 0);
-                            }
-                            
-                            // Update running totals
-                            if ($m->ref_type === 'production' && $tipe === 'product') {
-                                // Production IN movements should add to stock even though shown in produksi column
-                                $runningQty += $dailyOutQty; // Production IN adds to stock
-                                $runningNilai += $dailyOutNilai;
-                            } elseif ($m->ref_type === 'sale' && $tipe === 'product') {
-                                // Sales OUT movements should reduce stock
-                                $runningQty -= $dailySaleQty; // Sales OUT reduces stock
-                                $runningNilai -= $dailySaleNilai;
-                            } elseif (strpos($m->ref_type, 'retur') !== false && $tipe === 'product') {
-                                // Retur movements for products
-                                if ($m->direction === 'in') {
-                                    // Retur IN (barang kembali) - add to stock, shown as negative penjualan
-                                    $runningQty += (float)$m->qty;
-                                    $runningNilai += (float)($m->total_cost ?? 0);
-                                } else {
-                                    // Retur OUT (tukar barang) - reduce stock, shown in penjualan column
-                                    $runningQty -= $dailySaleQty;
-                                    $runningNilai -= $dailySaleNilai;
-                                }
-                            } elseif ($m->ref_type === 'retur' && ($tipe === 'material' || $tipe === 'bahan_pendukung')) {
-                                // Retur movements for materials/bahan_pendukung - always reduce stock
-                                $runningQty -= (float)$m->qty; // Retur always reduces stock
-                                $runningNilai -= (float)($m->total_cost ?? 0);
-                            } elseif ($m->ref_type === 'initial_stock') {
-                                // Skip initial_stock movements - they are handled by opening_balance
-                                // Don't add to daily stock, just continue to next movement
-                                continue;
-                            } else {
-                                $runningQty += $dailyInQty - $dailyOutQty;
-                                $runningNilai += $dailyInNilai - $dailyOutNilai;
-                            }
-                            
-                            // Add to daily stock (including initial_stock)
-                            $dailyStock[] = [
-                                'tanggal' => $dateStr,
-                                'saldo_awal_qty' => $saldoAwalQty,
-                                'saldo_awal_nilai' => $saldoAwalNilai,
-                                'pembelian_qty' => $dailyInQty,
-                                'pembelian_nilai' => $dailyInNilai,
-                                'penjualan_qty' => $dailySaleQty ?? 0,
-                                'penjualan_nilai' => $dailySaleNilai ?? 0,
-                                'produksi_qty' => $dailyOutQty,
-                                'produksi_nilai' => $dailyOutNilai,
-                                'saldo_akhir_qty' => $runningQty,
-                                'saldo_akhir_nilai' => $runningNilai,
-                                'ref_type' => $m->ref_type,
-                                'ref_id' => $m->ref_id,
-                                'is_opening_balance' => false,
-                                'manual_conversion_data' => $m->manual_conversion_data ? json_decode($m->manual_conversion_data, true) : null,
-                                // Add original production data for proper display
-                                'qty_as_input' => $m->qty_as_input,
-                                'satuan_as_input' => $m->satuan_as_input
-                            ];
-                            
-                            // SPECIAL CASE: If this is initial_stock with purchase on same date, separate them
-                            if ($m->ref_type === 'initial_stock' && $dailyInQty > 0) {
-                                // Add separate purchase entry
-                                $dailyStock[] = [
-                                    'tanggal' => $dateStr,
-                                    'saldo_awal_qty' => 0,
-                                    'saldo_awal_nilai' => 0,
-                                    'pembelian_qty' => $dailyInQty,
-                                    'pembelian_nilai' => $dailyInNilai,
-                                    'penjualan_qty' => 0,
-                                    'penjualan_nilai' => 0,
-                                    'produksi_qty' => 0,
-                                    'produksi_nilai' => 0,
-                                    'saldo_akhir_qty' => $runningQty,
-                                    'saldo_akhir_nilai' => $runningNilai,
-                                    'ref_type' => 'purchase',
-                                    'ref_id' => $m->ref_id,
-                                    'is_opening_balance' => false
-                                ];
-                                
-                                // Reset the initial stock entry to only show saldo awal
-                                $dailyStock[count($dailyStock) - 2]['pembelian_qty'] = 0;
-                                $dailyStock[count($dailyStock) - 2]['pembelian_nilai'] = 0;
-                            }
+                        // Update running totals
+                        if ($m->direction === 'in') {
+                            $runningQty += (float)$m->qty;
+                            $runningNilai += (float)($m->total_cost ?? 0);
+                        } else {
+                            $runningQty -= (float)$m->qty;
+                            $runningNilai -= (float)($m->total_cost ?? 0);
                         }
+                        
+                        // Add to daily stock
+                        $dailyStock[] = [
+                            'tanggal' => $dateStr,
+                            'saldo_awal_qty' => $saldoAwalQty,
+                            'saldo_awal_nilai' => $saldoAwalNilai,
+                            'pembelian_qty' => $dailyInQty,
+                            'pembelian_nilai' => $dailyInNilai,
+                            'penjualan_qty' => $dailySaleQty,
+                            'penjualan_nilai' => $dailySaleNilai,
+                            'produksi_qty' => $dailyOutQty,
+                            'produksi_nilai' => $dailyOutNilai,
+                            'saldo_akhir_qty' => $runningQty,
+                            'saldo_akhir_nilai' => $runningNilai,
+                            'ref_type' => $m->ref_type,
+                            'ref_id' => $m->ref_id,
+                            'is_opening_balance' => false,
+                            'manual_conversion_data' => $m->manual_conversion_data ? json_decode($m->manual_conversion_data, true) : null,
+                            'qty_as_input' => $m->qty_as_input,
+                            'satuan_as_input' => $m->satuan_as_input
+                        ];
                     }
                 } else {
                 // No movements, just show initial stock if there's any
@@ -1112,13 +995,20 @@ class LaporanController extends Controller
                         $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
                         $pembelianHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
                         $pembelianTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost);
-                    } elseif($movement->ref_type === 'retur' && $movement->direction === 'out') {
+                    } elseif((str_contains($movement->ref_type, 'retur') || $movement->ref_type === 'retur_tukar_kirim') && $movement->direction === 'out') {
                         // RETUR PEMBELIAN - tampilkan di kolom pembelian dengan tanda minus
                         $pembelianQty = -($movement->qty * $unit['conversion']); // Negatif untuk retur
                         // Use item's harga_satuan as fallback when movement unit_cost is 0
                         $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
                         $pembelianHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
                         $pembelianTotal = $movement->total_cost > 0 ? -($movement->total_cost) : -($movement->qty * $unitCost); // Negatif untuk retur
+                        
+                        \Log::info('RETUR DETECTED', [
+                            'ref_type' => $movement->ref_type,
+                            'qty' => $movement->qty,
+                            'pembelian_qty' => $pembelianQty,
+                            'unit_name' => $unit['name']
+                        ]);
                     } elseif($movement->ref_type === 'production' && $movement->direction === 'out') {
                         $produksiQty = $movement->qty * $unit['conversion'];
                         // Use item's harga_satuan as fallback when movement unit_cost is 0
