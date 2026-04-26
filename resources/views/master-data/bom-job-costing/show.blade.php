@@ -53,33 +53,14 @@
         </div>
     </div>
 
-    <!-- 2. Bahan Penolong -->
-    <div class="card shadow-sm mb-3">
-        <div class="card-header bg-info text-white"><h5 class="mb-0"><i class="bi bi-droplet me-2"></i>2. Bahan Penolong/Pendukung</h5></div>
-        <div class="card-body p-0">
-            <table class="table table-bordered mb-0">
-                <thead class="table-light"><tr><th>#</th><th>Bahan Penolong</th><th class="text-center">Jumlah</th><th class="text-center">Satuan</th><th class="text-end">Harga/Satuan</th><th class="text-end">Subtotal</th></tr></thead>
-                <tbody>
-                    @forelse($bom->detailBahanPendukung as $i => $d)
-                    <tr><td>{{ $i+1 }}</td><td>{{ $d->bahanPendukung->nama_bahan ?? '-' }}</td><td class="text-center">{{ number_format($d->jumlah, 2) }}</td><td class="text-center">{{ $d->satuan }}</td><td class="text-end">Rp {{ number_format($d->harga_satuan, 0, ',', '.') }}</td><td class="text-end fw-bold">Rp {{ number_format($d->subtotal, 0, ',', '.') }}</td></tr>
-                    @empty
-                    <tr><td colspan="6" class="text-center text-muted">-</td></tr>
-                    @endforelse
-                </tbody>
-                <tfoot><tr class="table-info"><td colspan="5" class="text-end fw-bold">Total Bahan Penolong</td><td class="text-end fw-bold">Rp {{ number_format($bom->total_bahan_pendukung, 0, ',', '.') }}</td></tr></tfoot>
-            </table>
-        </div>
-    </div>
-
     <!-- Ringkasan Biaya Bahan -->
     <div class="card shadow-sm mb-3 border-dark">
         <div class="card-header bg-dark text-white"><h5 class="mb-0"><i class="bi bi-calculator me-2"></i>Ringkasan Biaya Bahan</h5></div>
         <div class="card-body">
             <table class="table table-bordered">
                 <tr><td width="60%">Total Biaya Bahan Baku (BBB)</td><td class="text-end fw-bold">Rp {{ number_format($bom->total_bbb, 0, ',', '.') }}</td></tr>
-                <tr><td>Total Bahan Penolong</td><td class="text-end fw-bold">Rp {{ number_format($bom->total_bahan_pendukung, 0, ',', '.') }}</td></tr>
-                <tr class="table-info"><td class="fw-bold">Harga BOM</td><td class="text-end fw-bold">Rp {{ number_format($bom->total_bbb + $bom->total_bahan_pendukung, 0, ',', '.') }}</td></tr>
-                <tr class="table-primary"><td class="fw-bold fs-5">TOTAL BIAYA BAHAN PER PCS</td><td class="text-end fw-bold fs-5">Rp {{ number_format(($bom->total_bbb + $bom->total_bahan_pendukung) / max($bom->jumlah_produk, 1), 0, ',', '.') }}</td></tr>
+                <tr class="table-info"><td class="fw-bold">Harga BOM</td><td class="text-end fw-bold">Rp {{ number_format($bom->total_bbb, 0, ',', '.') }}</td></tr>
+                <tr class="table-primary"><td class="fw-bold fs-5">TOTAL BIAYA BAHAN PER PCS</td><td class="text-end fw-bold fs-5">Rp {{ number_format($bom->total_bbb / max($bom->jumlah_produk, 1), 0, ',', '.') }}</td></tr>
             </table>
         </div>
     </div>

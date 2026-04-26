@@ -71,11 +71,11 @@ class BahanBakuController extends Controller
         $this->convertCommaToDecimal($request);
         
         $request->validate([
-            'nama_bahan' => 'required|string|max:255',
+            'nama_bahan' => 'required|string|max:255|unique:bahan_bakus,nama_bahan,NULL,id,user_id,'.auth()->id(),
             'satuan_id' => 'required|exists:satuans,id',
             'stok' => 'nullable|numeric|min:0',
             'harga_satuan' => 'required|numeric|min:0',
-            'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan',
+            'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan,NULL,id,user_id,'.auth()->id(),
             'stok_minimum' => 'nullable|numeric|min:0',
             'deskripsi' => 'nullable|string|max:1000',
             'sub_satuan_1_id' => 'required|exists:satuans,id',
@@ -120,6 +120,7 @@ class BahanBakuController extends Controller
             'coa_pembelian_id' => $request->coa_pembelian_id,
             'coa_persediaan_id' => $request->coa_persediaan_id,
             'coa_hpp_id' => $request->coa_hpp_id,
+            'user_id' => auth()->id(),
         ]);
 
         // Create initial stock movement if stock > 0

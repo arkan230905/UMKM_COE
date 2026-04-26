@@ -35,7 +35,7 @@ class Coa extends Model
         'user_id',
     ];
     
-    protected $appends = ['kode', 'nama'];
+    protected $appends = ['kode', 'nama', 'kode_induk'];
 
     protected $casts = [
         'posted_saldo_awal' => 'boolean',
@@ -56,6 +56,20 @@ class Coa extends Model
     public function getNamaAttribute()
     {
         return $this->nama_akun;
+    }
+    
+    /**
+     * Accessor untuk kode_induk (backward compatibility)
+     */
+    public function getKodeIndukAttribute()
+    {
+        // Return parent account code or null if no parent
+        // For now, return the first 2 digits of kode_akun as parent
+        $kodeAkun = $this->kode_akun;
+        if (strlen($kodeAkun) >= 3) {
+            return substr($kodeAkun, 0, 2);
+        }
+        return null;
     }
 
     /**
