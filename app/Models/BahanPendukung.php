@@ -20,7 +20,7 @@ class BahanPendukung extends Model
         'saldo_awal',
         'tanggal_saldo_awal',
         'stok_minimum',
-        'stok',
+        // 'stok', // REMOVED: stok should not be directly fillable, use saldo_awal for initial stock
         'kategori_id',
         'is_active',
         'sub_satuan_1_id',
@@ -63,6 +63,9 @@ class BahanPendukung extends Model
                 $model->kode_bahan = self::generateKode();
             }
         });
+        
+        // NOTE: Initial stock movement is handled by BahanPendukungObserver::created()
+        // Do not create stock movement here to avoid duplication
     }
 
     /**
@@ -85,6 +88,12 @@ class BahanPendukung extends Model
         $difference = $value - $currentStock;
         
         if (abs($difference) > 0.0001) {
+            // Only create stock movement if the model has been saved (has ID)
+            if (!$this->id) {
+                \Log::info("Skipping stock movement for unsaved BahanPendukung. Stock will be set on initial save.");
+                return;
+            }
+            
             \Log::warning("Legacy stok setter used for BahanPendukung ID {$this->id}. Use StockService instead.", [
                 'current_stock' => $currentStock,
                 'new_value' => $value,
@@ -459,6 +468,15 @@ class BahanPendukung extends Model
     public function convertToSatuanUtama($quantity, $fromUnit)
     {
         $quantity = (float) $quantity;
+        
+        // If fromUnit is numeric, it's a satuan ID - convert to name
+        if (is_numeric($fromUnit)) {
+            $satuanModel = \App\Models\Satuan::find($fromUnit);
+            if ($satuanModel) {
+                $fromUnit = $satuanModel->nama;
+            }
+        }
+        
         $fromUnit = strtoupper(trim($fromUnit));
         
         // Get base unit (satuan utama)
@@ -512,23 +530,25 @@ class BahanPendukung extends Model
         $fromUnit = strtoupper(trim($fromUnit));
         
         // Check sub_satuan_1
+        // Formula: quantity (in sub unit) × nilai = quantity in base unit
+        // Example: 50 ekor × 0.8 kg/ekor = 40 kg
         if ($this->subSatuan1 && strtoupper($this->subSatuan1->nama) === $fromUnit) {
-            if ($this->sub_satuan_1_konversi > 0) {
-                return $quantity / $this->sub_satuan_1_konversi;
+            if ($this->sub_satuan_1_nilai > 0) {
+                return $quantity * $this->sub_satuan_1_nilai;
             }
         }
         
         // Check sub_satuan_2
         if ($this->subSatuan2 && strtoupper($this->subSatuan2->nama) === $fromUnit) {
-            if ($this->sub_satuan_2_konversi > 0) {
-                return $quantity / $this->sub_satuan_2_konversi;
+            if ($this->sub_satuan_2_nilai > 0) {
+                return $quantity * $this->sub_satuan_2_nilai;
             }
         }
         
         // Check sub_satuan_3
         if ($this->subSatuan3 && strtoupper($this->subSatuan3->nama) === $fromUnit) {
-            if ($this->sub_satuan_3_konversi > 0) {
-                return $quantity / $this->sub_satuan_3_konversi;
+            if ($this->sub_satuan_3_nilai > 0) {
+                return $quantity * $this->sub_satuan_3_nilai;
             }
         }
         
