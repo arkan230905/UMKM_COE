@@ -24,15 +24,45 @@ class PurchaseReturn extends Model
         'total_return_amount' => 'decimal:2',
     ];
 
-    // Status constants - Updated flow
+    // Status constants - Complete flow
     const STATUS_PENDING = 'pending';
-    const STATUS_DISETUJUI = 'disetujui';  // Changed from acc_vendor
+    const STATUS_DISETUJUI = 'disetujui';
+    const STATUS_DITOLAK = 'ditolak';
     const STATUS_DIKIRIM = 'dikirim';
     const STATUS_SELESAI = 'selesai';
 
     // Jenis retur constants
     const JENIS_TUKAR_BARANG = 'tukar_barang';
     const JENIS_REFUND = 'refund';
+
+    // Status flow mapping
+    public static $statusFlow = [
+        self::STATUS_PENDING => [
+            'next' => [self::STATUS_DISETUJUI, self::STATUS_DITOLAK],
+            'label' => 'Menunggu Persetujuan',
+            'color' => 'warning'
+        ],
+        self::STATUS_DISETUJUI => [
+            'next' => [self::STATUS_DIKIRIM],
+            'label' => 'Disetujui',
+            'color' => 'info'
+        ],
+        self::STATUS_DITOLAK => [
+            'next' => [],
+            'label' => 'Ditolak',
+            'color' => 'danger'
+        ],
+        self::STATUS_DIKIRIM => [
+            'next' => [self::STATUS_SELESAI],
+            'label' => 'Dikirim',
+            'color' => 'primary'
+        ],
+        self::STATUS_SELESAI => [
+            'next' => [],
+            'label' => 'Selesai',
+            'color' => 'success'
+        ],
+    ];
 
     public function pembelian(): BelongsTo
     {
@@ -48,6 +78,48 @@ class PurchaseReturn extends Model
     public function getTotalReturAttribute()
     {
         return $this->items->sum('subtotal');
+    }
+
+    // Get next possible statuses
+    public function getNextStatusesAttribute()
+    {
+        return self::$statusFlow[$this->status]['next'] ?? [];
+    }
+
+    // Get status label
+    public function getStatusLabelAttribute()
+    {
+        return self::$statusFlow[$this->status]['label'] ?? ucfirst($this->status);
+    }
+
+    // Get status color
+    public function getStatusColorAttribute()
+    {
+        return self::$statusFlow[$this->status]['color'] ?? 'secondary';
+    }
+
+    // Check if status can be changed to specific status
+    public function canChangeStatusTo($newStatus)
+    {
+        return in_array($newStatus, $this->next_statuses);
+    }
+
+    // Get jenis retur label
+    public function getJenisReturLabelAttribute()
+    {
+        return $this->jenis_retur === self::JENIS_REFUND ? 'Refund (Pengembalian Uang)' : 'Tukar Barang';
+    }
+
+    // Scope for filtering by jenis retur
+    public function scopeJenisRetur($query, $jenis)
+    {
+        return $query->where('jenis_retur', $jenis);
+    }
+
+    // Scope for filtering by status
+    public function scopeStatus($query, $status)
+    {
+        return $query->where('status', $status);
     }
 
     // Accessor for calculated total (alias for total_retur)
@@ -198,8 +270,48 @@ class PurchaseReturn extends Model
         static::creating(function ($return) {
             if (empty($return->return_number)) {
                 $date = now()->format('Ymd');
-                $count = static::whereDate('created_at', today())->count() + 1;
-                $return->return_number = 'PRTN-' . $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+                
+                // Generate unique return number dengan retry mechanism
+                $maxRetries = 10;
+                $attempt = 0;
+                
+                do {
+                    // Cari nomor terakhir untuk tanggal ini
+                    $lastNumber = static::whereDate('created_at', today())
+                        ->where('return_number', 'like', 'PRTN-' . $date . '-%')
+                        ->orderBy('return_number', 'desc')
+                        ->value('return_number');
+                    
+                    if ($lastNumber) {
+                        // Extract nomor urut dari nomor terakhir
+                        $parts = explode('-', $lastNumber);
+                        $lastSequence = intval(end($parts));
+                        $nextSequence = $lastSequence + 1;
+                    } else {
+                        $nextSequence = 1;
+                    }
+                    
+                    // Format: PRTN-YYYYMMDD-0001
+                    $returnNumber = 'PRTN-' . $date . '-' . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+                    
+                    // Cek apakah nomor sudah ada (untuk memastikan unique)
+                    $exists = static::where('return_number', $returnNumber)->exists();
+                    
+                    if (!$exists) {
+                        $return->return_number = $returnNumber;
+                        break;
+                    }
+                    
+                    $attempt++;
+                    
+                    // Jika sudah mencoba berkali-kali, tambahkan timestamp untuk memastikan unique
+                    if ($attempt >= $maxRetries) {
+                        $timestamp = now()->format('His'); // HHMMSS
+                        $return->return_number = 'PRTN-' . $date . '-' . $timestamp;
+                        break;
+                    }
+                    
+                } while ($attempt < $maxRetries);
             }
             
             // Set default status

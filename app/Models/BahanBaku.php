@@ -25,6 +25,7 @@ class BahanBaku extends Model
         'saldo_awal',
         'tanggal_saldo_awal',
         'stok_minimum',
+        'stok',
         'keterangan',
         'satuan_id',
         'deskripsi',
@@ -40,6 +41,7 @@ class BahanBaku extends Model
         'coa_pembelian_id',    // COA untuk pembelian
         'coa_persediaan_id',    // COA untuk persediaan
         'coa_hpp_id'           // COA untuk HPP
+        // NOTE: harga_satuan_display is NOT fillable - it's only for display
     ];
 
     protected $casts = [
@@ -1233,13 +1235,14 @@ class BahanBaku extends Model
             ->where('direction', 'out')
             ->sum('qty');
 
-        $netFromMovements = $stockIn - $stockOut;
+        $netStock = $stockIn - $stockOut;
         
-        // Get saldo awal (initial stock)
-        $saldoAwal = (float) ($this->saldo_awal ?? 0);
-        
-        // Total stock = saldo awal + net movements
-        return $saldoAwal + $netFromMovements;
+        // If no stock movements exist, use saldo_awal from master data
+        if ($stockIn == 0 && $stockOut == 0 && $this->saldo_awal > 0) {
+            return (float)$this->saldo_awal;
+        }
+
+        return $netStock;
     }
 
     /**

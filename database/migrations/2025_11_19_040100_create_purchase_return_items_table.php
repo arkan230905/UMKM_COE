@@ -12,7 +12,8 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('purchase_return_id');
             $table->unsignedBigInteger('pembelian_detail_id');
-            $table->unsignedBigInteger('bahan_baku_id');
+            $table->unsignedBigInteger('bahan_baku_id')->nullable();
+            $table->unsignedBigInteger('bahan_pendukung_id')->nullable();
             $table->string('unit', 50)->nullable();
             $table->decimal('quantity', 15, 4);
             $table->decimal('unit_price', 15, 2);
@@ -22,6 +23,7 @@ return new class extends Migration
             $table->foreign('purchase_return_id')->references('id')->on('purchase_returns')->onDelete('cascade');
             $table->foreign('pembelian_detail_id')->references('id')->on('pembelian_details')->onDelete('cascade');
             $table->foreign('bahan_baku_id')->references('id')->on('bahan_bakus')->onDelete('cascade');
+            $table->foreign('bahan_pendukung_id')->references('id')->on('bahan_pendukungs')->onDelete('cascade');
         });
     }
 

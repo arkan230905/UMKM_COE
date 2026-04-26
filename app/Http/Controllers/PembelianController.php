@@ -68,9 +68,9 @@ class PembelianController extends Controller
         $vendors = Vendor::orderBy('nama_vendor')->get();
         
         // Add purchase return data for the Retur tab
-        $returs = \App\Models\PurchaseReturn::with(['pembelian.vendor', 'items.bahanBaku'])
-            ->oldest()
-            ->get();
+        // Gunakan helper method dari ReturController untuk konsistensi
+        $returController = new \App\Http\Controllers\ReturController();
+        $returs = $returController->getRetursDataForPembelian();
         
         return view('transaksi.pembelian.index', compact('pembelians', 'vendors', 'returs'));
     }

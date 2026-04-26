@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('return_number')->unique();
             $table->date('return_date');
             $table->string('reason')->nullable();
+            $table->string('jenis_retur')->default('tukar_barang'); // tukar_barang, refund
             $table->text('notes')->nullable();
             $table->decimal('total_return_amount', 15, 2)->default(0);
             $table->string('status')->default('pending'); // pending, completed
