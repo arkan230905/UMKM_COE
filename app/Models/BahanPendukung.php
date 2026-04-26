@@ -10,6 +10,18 @@ class BahanPendukung extends Model
     use HasFactory;
 
     protected $table = 'bahan_pendukungs';
+    
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // Global scope for multi-tenant isolation
+        static::addGlobalScope('user_id', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+    }
 
     protected $fillable = [
         'kode_bahan',
@@ -34,7 +46,8 @@ class BahanPendukung extends Model
         'sub_satuan_3_nilai',
         'coa_pembelian_id',    // COA untuk pembelian
         'coa_persediaan_id',    // COA untuk persediaan
-        'coa_hpp_id'           // COA untuk HPP
+        'coa_hpp_id',          // COA untuk HPP
+        'user_id',             // Multi-tenant support
     ];
 
     protected $casts = [

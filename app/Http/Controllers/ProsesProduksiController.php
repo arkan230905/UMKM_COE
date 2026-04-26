@@ -20,8 +20,8 @@ class ProsesProduksiController extends Controller
      */
     public function index()
     {
-        // Load with essential relationships only to avoid errors
-        $prosesProduksis = ProsesProduksi::with(['jabatan.pegawais'])
+        // Load without pegawais relationship to avoid jabatan_id column error
+        $prosesProduksis = ProsesProduksi::with(['jabatan'])
             ->orderBy('kode_proses')
             ->paginate(10);
         
@@ -56,11 +56,11 @@ class ProsesProduksiController extends Controller
         ]);
 
         try {
-            // Get jabatan data for verification
-            $jabatan = \App\Models\Jabatan::with('pegawais')->findOrFail($validated['jabatan_id']);
+            // Get jabatan data for verification - use string-based relationship
+            $jabatan = \App\Models\Jabatan::findOrFail($validated['jabatan_id']);
             
-            // Verify calculation (for security)
-            $jumlahPegawai = $jabatan->pegawais->count();
+            // Count pegawai manually using jabatan name instead of jabatan_id
+            $jumlahPegawai = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
             $tarifPerJam = $jabatan->tarif;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
             
@@ -155,11 +155,11 @@ class ProsesProduksiController extends Controller
         ]);
 
         try {
-            // Get jabatan data for verification
-            $jabatan = \App\Models\Jabatan::with('pegawais')->findOrFail($validated['jabatan_id']);
+            // Get jabatan data for verification - use string-based relationship
+            $jabatan = \App\Models\Jabatan::findOrFail($validated['jabatan_id']);
             
-            // Verify calculation (for security)
-            $jumlahPegawai = $jabatan->pegawais->count();
+            // Count pegawai manually using jabatan name instead of jabatan_id
+            $jumlahPegawai = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
             $tarifPerJam = $jabatan->tarif;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
             
