@@ -31,6 +31,8 @@ class CoaController extends Controller
         // Get semua COA dengan urutan hierarkis (parent diikuti children)
         $coas = Coa::whereNotNull('nama_akun')
             ->where('nama_akun', '!=', '')
+            ->where('company_id', auth()->user()->company_id ?? 1)
+            ->orderBy('kode_akun')
             ->get();
         
         // Get saldo untuk setiap COA berdasarkan periode

@@ -95,92 +95,91 @@
             
             <!-- Master Data Section -->
             <li class="nav-item">
-                <div class="nav-section-header-rounded">
+                <div class="nav-section-header-rounded collapsible-header" data-target="master-data-menu">
                     <i class="fas fa-database"></i>
                     <span>MASTER DATA</span>
+                    <i class="fas fa-chevron-down collapsible-icon"></i>
                 </div>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/coa*') ? 'active' : '' }}" href="{{ route('master-data.coa.index') }}">
                     <i class="fas fa-book"></i>
                     <span>COA</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/aset*') ? 'active' : '' }}" href="{{ route('master-data.aset.index') }}">
                     <i class="fas fa-laptop"></i>
                     <span>Aset</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/satuan*') ? 'active' : '' }}" href="{{ route('master-data.satuan.dashboard') }}">
                     <i class="fas fa-balance-scale"></i>
                     <span>Satuan</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/kualifikasi-tenaga-kerja*') ? 'active' : '' }}" href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}">
                     <i class="fas fa-user-tie"></i>
                     <span>Kualifikasi Tenaga Kerja</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/pegawai*') ? 'active' : '' }}" href="{{ route('master-data.pegawai.index') }}">
                     <i class="fas fa-users"></i>
                     <span>Pegawai</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/vendor*') ? 'active' : '' }}" href="{{ route('master-data.vendor.index') }}">
                     <i class="fas fa-truck"></i>
                     <span>Vendor</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/pelanggan*') ? 'active' : '' }}" href="{{ route('master-data.pelanggan.index') }}">
                     <i class="fas fa-users"></i>
                     <span>Pelanggan</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/bahan-baku*') ? 'active' : '' }}" href="{{ route('master-data.bahan-baku.index') }}">
                     <i class="fas fa-cubes"></i>
                     <span>Bahan Baku</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/bahan-pendukung*') ? 'active' : '' }}" href="{{ route('master-data.bahan-pendukung.index') }}">
                     <i class="fas fa-flask"></i>
                     <span>Bahan Pendukung</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/produk*') ? 'active' : '' }}" href="{{ route('master-data.produk.index') }}">
                     <i class="fas fa-box"></i>
                     <span>Produk</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/biaya-bahan*') ? 'active' : '' }}" href="{{ route('master-data.biaya-bahan.index') }}">
                     <i class="fas fa-calculator"></i>
-                    <span>Biaya Bahan</span>
+                    <span>Perhitungan Biaya Bahan Baku</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/btkl*') ? 'active' : '' }}" href="{{ route('master-data.btkl.index') }}">
                     <i class="fas fa-industry"></i>
                     <span>BTKL (Proses Produksi)</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/bop*') ? 'active' : '' }}" href="{{ route('master-data.bop.index') }}">
                     <i class="fas fa-chart-pie"></i>
                     <span>BOP (Biaya Overhead Pabrik)</span>
                 </a>
             </li>
-                </a>
-            </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="master-data-menu">
                 <a class="nav-link-rounded {{ request()->is('master-data/harga-pokok-produksi*') ? 'active' : '' }}" href="{{ route('master-data.harga-pokok-produksi.index') }}">
                     <i class="fas fa-sitemap"></i>
                     <span>Harga Pokok Produksi</span>
@@ -189,48 +188,49 @@
             
             <!-- Transaksi Section -->
             <li class="nav-item">
-                <div class="nav-section-header-rounded">
+                <div class="nav-section-header-rounded collapsible-header" data-target="transaksi-menu">
                     <i class="fas fa-exchange-alt"></i>
                     <span>TRANSAKSI</span>
+                    <i class="fas fa-chevron-down collapsible-icon"></i>
                 </div>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="transaksi-menu">
                 <a class="nav-link-rounded {{ request()->is('transaksi/produksi*') ? 'active' : '' }}" href="{{ route('transaksi.produksi.index') }}">
                     <i class="fas fa-industry"></i>
                     <span>Produksi</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="transaksi-menu">
                 <a class="nav-link-rounded {{ request()->is('transaksi/pembelian*') ? 'active' : '' }}" href="{{ route('transaksi.pembelian.index') }}">
                     <i class="fas fa-shopping-cart"></i>
                     <span>Pembelian</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="transaksi-menu">
                 <a class="nav-link-rounded {{ request()->is('transaksi/penjualan*') ? 'active' : '' }}" href="{{ route('transaksi.penjualan.index') }}">
                     <i class="fas fa-store"></i>
                     <span>Penjualan</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="transaksi-menu">
                 <a class="nav-link-rounded {{ request()->is('transaksi/presensi*') ? 'active' : '' }}" href="{{ route('transaksi.presensi.index') }}">
                     <i class="fas fa-calendar-check"></i>
                     <span>Presensi</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="transaksi-menu">
                 <a class="nav-link-rounded {{ request()->is('transaksi/penggajian*') ? 'active' : '' }}" href="{{ route('transaksi.penggajian.index') }}">
                     <i class="fas fa-money-bill"></i>
                     <span>Penggajian</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="transaksi-menu">
                 <a class="nav-link-rounded {{ request()->is('transaksi/pembayaran-beban*') ? 'active' : '' }}" href="{{ route('transaksi.pembayaran-beban.index') }}">
                     <i class="fas fa-money-check-alt"></i>
                     <span>Pembayaran Beban</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="transaksi-menu">
                 <a class="nav-link-rounded {{ request()->is('transaksi/pelunasan-utang*') ? 'active' : '' }}" href="{{ route('transaksi.pelunasan-utang.index') }}">
                     <i class="fas fa-credit-card"></i>
                     <span>Pelunasan Utang</span>
@@ -239,78 +239,79 @@
             
             <!-- Laporan Section -->
             <li class="nav-item">
-                <div class="nav-section-header-rounded">
+                <div class="nav-section-header-rounded collapsible-header" data-target="laporan-menu">
                     <i class="fas fa-chart-bar"></i>
                     <span>LAPORAN</span>
+                    <i class="fas fa-chevron-down collapsible-icon"></i>
                 </div>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="laporan-menu">
                 <a class="nav-link-rounded {{ request()->is('laporan/pembelian*') ? 'active' : '' }}" href="{{ route('laporan.pembelian.index') }}">
                     <i class="fas fa-shopping-cart"></i>
                     <span>Laporan Pembelian</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="laporan-menu">
                 <a class="nav-link-rounded {{ request()->is('laporan/stok*') ? 'active' : '' }}" href="{{ route('laporan.stok') }}">
                     <i class="fas fa-boxes"></i>
                     <span>Laporan Stok</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="laporan-menu">
                 <a class="nav-link-rounded {{ request()->is('laporan/penjualan*') ? 'active' : '' }}" href="{{ route('laporan.penjualan') }}">
                     <i class="fas fa-shopping-bag"></i>
                     <span>Laporan Penjualan</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="laporan-menu">
                 <a class="nav-link-rounded {{ request()->is('laporan/penggajian*') ? 'active' : '' }}" href="{{ route('laporan.penggajian') }}">
                     <i class="fas fa-money-bill"></i>
                     <span>Laporan Penggajian</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="laporan-menu">
                 <a class="nav-link-rounded {{ request()->is('laporan/pembayaran-beban*') ? 'active' : '' }}" href="{{ route('laporan.pembayaran-beban') }}">
                     <i class="fas fa-money-check-alt"></i>
                     <span>Laporan Pembayaran Beban</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="laporan-menu">
                 <a class="nav-link-rounded {{ request()->is('laporan/pelunasan-utang*') ? 'active' : '' }}" href="{{ route('laporan.pelunasan-utang') }}">
                     <i class="fas fa-credit-card"></i>
                     <span>Laporan Pelunasan Utang</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="laporan-menu">
                 <a class="nav-link-rounded {{ request()->is('laporan/kas-bank*') ? 'active' : '' }}" href="{{ route('laporan.kas-bank') }}">
                     <i class="fas fa-university"></i>
                     <span>Laporan Kas dan Bank</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="laporan-menu">
                 <a class="nav-link-rounded {{ request()->is('akuntansi/jurnal-umum*') ? 'active' : '' }}" href="{{ route('akuntansi.jurnal-umum') }}">
                     <i class="fas fa-book-open"></i>
                     <span>Jurnal Umum</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="laporan-menu">
                 <a class="nav-link-rounded {{ request()->is('akuntansi/buku-besar*') ? 'active' : '' }}" href="{{ route('akuntansi.buku-besar') }}">
                     <i class="fas fa-book"></i>
                     <span>Buku Besar</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="laporan-menu">
                 <a class="nav-link-rounded {{ request()->is('akuntansi/neraca-saldo*') ? 'active' : '' }}" href="{{ route('akuntansi.neraca-saldo') }}">
                     <i class="fas fa-balance-scale-right"></i>
                     <span>Neraca Saldo</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="laporan-menu">
                 <a class="nav-link-rounded {{ request()->is('akuntansi/laporan-posisi-keuangan') ? 'active' : '' }}" href="{{ route('akuntansi.laporan-posisi-keuangan') }}">
                     <i class="fas fa-balance-scale"></i>
                     <span>Laporan Posisi Keuangan</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="laporan-menu">
                 <a class="nav-link-rounded {{ request()->is('akuntansi/laba-rugi*') ? 'active' : '' }}" href="{{ route('akuntansi.laba-rugi') }}">
                     <i class="fas fa-chart-line"></i>
                     <span>Laba Rugi</span>
@@ -319,20 +320,21 @@
             
             <!-- Pengaturan Section -->
             <li class="nav-item">
-                <div class="nav-section-header-rounded">
+                <div class="nav-section-header-rounded collapsible-header" data-target="pengaturan-menu">
                     <i class="fas fa-cog"></i>
                     <span>PENGATURAN</span>
+                    <i class="fas fa-chevron-down collapsible-icon"></i>
                 </div>
             </li>
             @if(auth()->check() && auth()->user()->role === 'owner')
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="pengaturan-menu">
                 <a class="nav-link-rounded {{ request()->is('tentang-perusahaan/detail') ? 'active' : '' }}" href="/tentang-perusahaan/detail">
                     <i class="fas fa-building"></i>
                     <span>Tentang Perusahaan</span>
                 </a>
             </li>
             @endif
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="pengaturan-menu">
                 <a class="nav-link-rounded {{ request()->is('profile*') ? 'active' : '' }}" href="{{ route('profil-admin') }}">
                     <i class="fas fa-user"></i>
                     <span>Profil</span>
@@ -341,12 +343,13 @@
             
             <!-- Kelola Catalog Section -->
             <li class="nav-item">
-                <div class="nav-section-header-rounded">
+                <div class="nav-section-header-rounded collapsible-header" data-target="catalog-menu">
                     <i class="fas fa-store"></i>
                     <span>CATALOG</span>
+                    <i class="fas fa-chevron-down collapsible-icon"></i>
                 </div>
             </li>
-            <li class="nav-item">
+            <li class="nav-item collapsible-menu" id="catalog-menu">
                 <a class="nav-link-rounded {{ request()->is('kelola-catalog*') ? 'active' : '' }}" href="{{ route('kelola-catalog.index') }}">
                     <i class="fas fa-cog"></i>
                     <span>Kelola Catalog</span>
@@ -366,3 +369,65 @@
         </ul>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Collapsible Menu Functionality
+    const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+    
+    // Set initial state - all menus collapsed
+    collapsibleHeaders.forEach(header => {
+        const targetId = header.getAttribute('data-target');
+        const menuItems = document.querySelectorAll(`#${targetId}`);
+        
+        // Initially hide all menu items
+        menuItems.forEach(item => {
+            item.style.display = 'none';
+        });
+        
+        // Add click event listener
+        header.addEventListener('click', function() {
+            const isExpanded = header.classList.contains('expanded');
+            
+            // Toggle expanded class
+            header.classList.toggle('expanded');
+            
+            // Toggle menu visibility
+            menuItems.forEach(item => {
+                if (isExpanded) {
+                    // Collapse
+                    item.classList.remove('show');
+                    setTimeout(() => {
+                        item.style.display = 'none';
+                    }, 300);
+                } else {
+                    // Expand
+                    item.style.display = 'block';
+                    setTimeout(() => {
+                        item.classList.add('show');
+                    }, 10);
+                }
+            });
+        });
+    });
+    
+    // Auto-expand menu if current page is in that section
+    const currentPath = window.location.pathname;
+    const allMenuItems = document.querySelectorAll('.collapsible-menu a');
+    
+    allMenuItems.forEach(link => {
+        if (link.getAttribute('href') && currentPath.includes(link.getAttribute('href').replace(/^\/+/, '').split('/')[0])) {
+            const menuItem = link.closest('.collapsible-menu');
+            if (menuItem) {
+                const menuId = menuItem.getAttribute('id');
+                const header = document.querySelector(`[data-target="${menuId}"]`);
+                
+                if (header && !header.classList.contains('expanded')) {
+                    // Auto-expand this menu
+                    header.click();
+                }
+            }
+        }
+    });
+});
+</script>
