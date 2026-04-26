@@ -4,206 +4,366 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Invoice Pembelian #{{ $pembelian->nomor_pembelian ?? 'PB-' . date('Y') . '-' . str_pad($pembelian->id, 3, '0', STR_PAD_LEFT) }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        @media print {
-            .no-print { display: none !important; }
-            .table th, .table td { padding: .5rem; font-size: 12px; }
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .invoice-box { border: 0; box-shadow: none; margin: 0; padding: 0; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
+
         body {
-            background: #f8f9fa;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            color: #333;
         }
-        
-        .invoice-box {
-            max-width: 900px; 
-            margin: 24px auto; 
-            background: #fff; 
-            padding: 32px; 
-            border: 1px solid #e9ecef; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+        .invoice-container {
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        
+
+        /* Header - 2 Columns */
         .invoice-header {
-            border-bottom: 3px solid #007bff;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #8B4513;
         }
-        
+
+        .company-info {
+            flex: 1;
+        }
+
+        .company-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #8B4513;
+            margin-bottom: 6px;
+        }
+
+        .company-details {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .invoice-title-section {
+            text-align: right;
+        }
+
         .invoice-title {
-            font-weight: 800; 
-            font-size: 28px; 
-            color: #007bff;
-            margin-bottom: 8px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #8B4513;
+            margin-bottom: 6px;
         }
-        
-        .invoice-number {
-            font-size: 16px;
-            color: #6c757d;
+
+        .invoice-meta {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .invoice-meta strong {
+            color: #333;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .status-lunas {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-belum-lunas {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* Information Section - 2 Columns */
+        .info-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-card {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 14px;
+            background: #fafafa;
+        }
+
+        .info-card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #8B4513;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .info-row {
+            display: flex;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .info-label {
+            width: 110px;
+            color: #666;
             font-weight: 500;
         }
-        
-        .company-info {
+
+        .info-value {
+            flex: 1;
+            color: #333;
+            font-weight: 600;
+        }
+
+        /* Items Table */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .items-table thead {
+            background: #8B4513;
+            color: white;
+        }
+
+        .items-table th {
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .items-table th.text-right {
+            text-align: right;
+        }
+
+        .items-table th.text-center {
+            text-align: center;
+        }
+
+        .items-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 12px;
+        }
+
+        .items-table td.text-right {
+            text-align: right;
+        }
+
+        .items-table td.text-center {
+            text-align: center;
+        }
+
+        .items-table tbody tr:hover {
             background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
+        }
+
+        .item-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        /* Summary Section */
+        .summary-section {
+            display: flex;
+            justify-content: flex-end;
             margin-bottom: 24px;
         }
-        
-        .info-box {
-            background: #f8f9fa;
-            padding: 16px;
-            border-radius: 8px;
-            border-left: 4px solid #007bff;
+
+        .summary-box {
+            width: 320px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
         }
-        
-        .table thead th {
-            background: #007bff;
-            color: white;
-            border: none;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 12px;
-            letter-spacing: 0.5px;
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 16px;
+            font-size: 13px;
+            border-bottom: 1px solid #e9ecef;
         }
-        
-        .table tbody tr:hover {
+
+        .summary-row.subtotal {
             background: #f8f9fa;
         }
-        
-        .grand-total-row {
-            background: #007bff !important;
-            color: white !important;
-            font-weight: 700;
-            font-size: 16px;
-        }
-        
-        .grand-total-row th,
-        .grand-total-row td {
-            border: none;
-        }
-        
-        .payment-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        
-        .payment-cash {
-            background: #28a745;
+
+        .summary-row.grand-total {
+            background: #8B4513;
             color: white;
+            font-size: 15px;
+            font-weight: bold;
+            border-bottom: none;
         }
-        
-        .payment-transfer {
-            background: #007bff;
-            color: white;
-        }
-        
-        .payment-credit {
-            background: #ffc107;
-            color: #212529;
-        }
-        
-        .footer-info {
-            margin-top: 32px;
-            padding-top: 20px;
-            border-top: 1px solid #e9ecef;
-            font-size: 12px;
-            color: #6c757d;
-        }
-        
-        .btn-print {
-            background: #007bff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
+
+        .summary-label {
             font-weight: 500;
         }
-        
-        .btn-print:hover {
-            background: #0056b3;
+
+        .summary-value {
+            font-weight: 600;
+        }
+
+        /* Footer */
+        .invoice-footer {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .footer-note {
+            font-size: 11px;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                background: white;
+            }
+
+            .invoice-container {
+                max-width: 100%;
+                box-shadow: none;
+                padding: 12mm;
+                margin: 0;
+            }
+
+            .items-table {
+                page-break-inside: avoid;
+            }
+
+            .summary-section {
+                page-break-inside: avoid;
+            }
+
+            @page {
+                size: A4;
+                margin: 12mm;
+            }
         }
     </style>
 </head>
 <body>
-<div class="invoice-box">
-    <!-- Header -->
-    <div class="invoice-header">
-        <div class="d-flex justify-content-between align-items-start">
-            <div>
-                <div class="invoice-title">
-                    <i class="fas fa-file-invoice me-2"></i>INVOICE PEMBELIAN
+    <div class="invoice-container">
+        <!-- Header - 2 Columns -->
+        <div class="invoice-header">
+            <div class="company-info">
+                <div class="company-name">UMKM COE</div>
+                <div class="company-details">
+                    Jl. Contoh Alamat No. 123<br>
+                    Kota, Provinsi 12345<br>
+                    Telp: (021) 1234-5678<br>
+                    Email: info@umkmcoe.com
                 </div>
-                <div class="invoice-number">
-                    No: {{ $pembelian->nomor_pembelian ?? 'PB-' . date('Y') . '-' . str_pad($pembelian->id, 3, '0', STR_PAD_LEFT) }}
-                </div>
             </div>
-            <div class="text-end no-print">
-                <button class="btn btn-primary btn-print" onclick="window.print()">
-                    <i class="fas fa-print me-2"></i>Cetak / Simpan PDF
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Company & Transaction Info -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-6">
-            <div class="info-box">
-                <h6 class="fw-bold mb-3"><i class="fas fa-store me-2"></i>Informasi Vendor</h6>
-                <div class="mb-2"><strong>Vendor:</strong> {{ $pembelian->vendor->nama_vendor ?? '-' }}</div>
-                @if($pembelian->vendor->alamat)
-                    <div class="mb-2"><strong>Alamat:</strong> {{ $pembelian->vendor->alamat }}</div>
-                @endif
-                @if($pembelian->vendor->telepon)
-                    <div><strong>Telepon:</strong> {{ $pembelian->vendor->telepon }}</div>
-                @endif
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="info-box">
-                <h6 class="fw-bold mb-3"><i class="fas fa-info-circle me-2"></i>Informasi Transaksi</h6>
-                <div class="mb-2"><strong>Tanggal:</strong> {{ optional($pembelian->tanggal)->format('d F Y') ?? $pembelian->tanggal }}</div>
-                <div class="mb-2"><strong>Metode Pembayaran:</strong> 
-                    @if($pembelian->payment_method === 'cash')
-                        <span class="payment-badge payment-cash">Tunai</span>
-                    @elseif($pembelian->payment_method === 'transfer')
-                        <span class="payment-badge payment-transfer">Transfer</span>
+            <div class="invoice-title-section">
+                <div class="invoice-title">INVOICE PEMBELIAN</div>
+                <div class="invoice-meta">
+                    <strong>No. Invoice:</strong> {{ $pembelian->nomor_pembelian ?? 'PB-' . date('Y') . '-' . str_pad($pembelian->id, 3, '0', STR_PAD_LEFT) }}<br>
+                    <strong>Tanggal:</strong> {{ optional($pembelian->tanggal)->format('d/m/Y') ?? date('d/m/Y') }}<br>
+                    @if($pembelian->status === 'lunas')
+                        <span class="status-badge status-lunas">Lunas</span>
                     @else
-                        <span class="payment-badge payment-credit">Kredit</span>
+                        <span class="status-badge status-belum-lunas">Belum Lunas</span>
                     @endif
                 </div>
-                @if($pembelian->nomor_faktur)
-                    <div><strong>No. Faktur:</strong> {{ $pembelian->nomor_faktur }}</div>
-                @endif
             </div>
         </div>
-    </div>
 
-    <!-- Items Table -->
-    <div class="table-responsive mb-4">
-        <table class="table table-hover align-middle">
+        <!-- Information Section - 2 Columns -->
+        <div class="info-section">
+            <div class="info-card">
+                <div class="info-card-title">Informasi Vendor</div>
+                <div class="info-row">
+                    <span class="info-label">Vendor</span>
+                    <span class="info-value">{{ $pembelian->vendor->nama_vendor ?? '-' }}</span>
+                </div>
+                @if($pembelian->vendor->alamat)
+                <div class="info-row">
+                    <span class="info-label">Alamat</span>
+                    <span class="info-value">{{ $pembelian->vendor->alamat }}</span>
+                </div>
+                @endif
+                @if($pembelian->vendor->telepon)
+                <div class="info-row">
+                    <span class="info-label">Telepon</span>
+                    <span class="info-value">{{ $pembelian->vendor->telepon }}</span>
+                </div>
+                @endif
+            </div>
+            <div class="info-card">
+                <div class="info-card-title">Informasi Transaksi</div>
+                @if($pembelian->nomor_faktur)
+                <div class="info-row">
+                    <span class="info-label">No. Faktur</span>
+                    <span class="info-value">{{ $pembelian->nomor_faktur }}</span>
+                </div>
+                @endif
+                <div class="info-row">
+                    <span class="info-label">Metode Bayar</span>
+                    <span class="info-value">
+                        @if($pembelian->payment_method === 'cash')
+                            Tunai
+                        @elseif($pembelian->payment_method === 'transfer')
+                            Transfer
+                        @else
+                            Kredit
+                        @endif
+                    </span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Tanggal</span>
+                    <span class="info-value">{{ optional($pembelian->tanggal)->format('d F Y') ?? date('d F Y') }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <table class="items-table">
             <thead>
                 <tr>
-                    <th style="width:5%">#</th>
-                    <th>Nama Item</th>
-                    <th class="text-end" style="width:12%">Qty</th>
-                    <th style="width:10%">Satuan</th>
-                    <th class="text-end" style="width:18%">Harga / Satuan</th>
-                    <th class="text-end" style="width:20%">Subtotal</th>
+                    <th style="width: 5%">No</th>
+                    <th style="width: 40%">Nama Item</th>
+                    <th class="text-center" style="width: 12%">Qty</th>
+                    <th class="text-center" style="width: 10%">Satuan</th>
+                    <th class="text-right" style="width: 16%">Harga Satuan</th>
+                    <th class="text-right" style="width: 17%">Subtotal</th>
                 </tr>
             </thead>
             <tbody>
                 @php
-                    $grandTotal = 0;
+                    $subtotal = 0;
                 @endphp
                 @foreach(($pembelian->details ?? []) as $i => $d)
                     @php
@@ -215,93 +375,56 @@
                             $satuanName = $d->bahanBaku->satuan->nama ?? 'unit';
                         } elseif ($d->bahanPendukung) {
                             $itemName = $d->bahanPendukung->nama_bahan;
-                            $satuanName = $d->bahanPendukung->satuan->nama ?? 'unit';
+                            $satuanName = $d->bahanPendukung->satuanRelation->nama ?? 'unit';
                         }
                         
-                        $grandTotal += $d->subtotal;
+                        $itemSubtotal = ($d->jumlah ?? 0) * ($d->harga_satuan ?? 0);
+                        $subtotal += $itemSubtotal;
                     @endphp
                     <tr>
-                        <td>{{ $i+1 }}</td>
-                        <td class="fw-medium">{{ $itemName }}</td>
-                        <td class="text-end">{{ number_format($d->jumlah, 2, ',', '.') }}</td>
-                        <td>{{ $satuanName }}</td>
-                        <td class="text-end">Rp {{ number_format($d->harga_satuan, 0, ',', '.') }}</td>
-                        <td class="text-end fw-bold">Rp {{ number_format($d->subtotal, 0, ',', '.') }}</td>
+                        <td class="text-center">{{ $i+1 }}</td>
+                        <td class="item-name">{{ $itemName }}</td>
+                        <td class="text-center">{{ number_format($d->jumlah, 0, ',', '.') }}</td>
+                        <td class="text-center">{{ $satuanName }}</td>
+                        <td class="text-right">Rp {{ number_format($d->harga_satuan, 0, ',', '.') }}</td>
+                        <td class="text-right">Rp {{ number_format($itemSubtotal, 0, ',', '.') }}</td>
                     </tr>
                 @endforeach
             </tbody>
-            <tfoot>
-                <tr class="grand-total-row">
-                    <th colspan="5" class="text-end">GRAND TOTAL</th>
-                    <th class="text-end">Rp {{ number_format($grandTotal, 0, ',', '.') }}</th>
-                </tr>
-            </tfoot>
         </table>
-    </div>
 
-    <!-- Summary -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-6">
-            <div class="info-box">
-                <h6 class="fw-bold mb-2"><i class="fas fa-calculator me-2"></i>Ringkasan Pembayaran</h6>
-                <div class="d-flex justify-content-between mb-1">
-                    <span>Total Harga:</span>
-                    <span class="fw-bold">Rp {{ number_format($grandTotal, 0, ',', '.') }}</span>
+        <!-- Summary Section -->
+        <div class="summary-section">
+            <div class="summary-box">
+                <div class="summary-row subtotal">
+                    <span class="summary-label">Subtotal</span>
+                    <span class="summary-value">Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
                 </div>
-                @if($pembelian->payment_method === 'credit')
-                    <div class="d-flex justify-content-between mb-1">
-                        <span>Terbayar:</span>
-                        <span class="fw-bold">Rp {{ number_format($pembelian->terbayar ?? 0, 0, ',', '.') }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <span>Sisa Pembayaran:</span>
-                        <span class="fw-bold text-danger">Rp {{ number_format($pembelian->sisa_pembayaran ?? $grandTotal, 0, ',', '.') }}</span>
-                    </div>
+                @if(isset($pembelian->ppn_persen) && $pembelian->ppn_persen > 0)
+                <div class="summary-row">
+                    <span class="summary-label">PPN {{ $pembelian->ppn_persen }}%</span>
+                    <span class="summary-value">Rp {{ number_format($pembelian->ppn_nominal ?? 0, 0, ',', '.') }}</span>
+                </div>
                 @endif
+                @if(isset($pembelian->biaya_kirim) && $pembelian->biaya_kirim > 0)
+                <div class="summary-row">
+                    <span class="summary-label">Biaya Kirim</span>
+                    <span class="summary-value">Rp {{ number_format($pembelian->biaya_kirim, 0, ',', '.') }}</span>
+                </div>
+                @endif
+                <div class="summary-row grand-total">
+                    <span class="summary-label">GRAND TOTAL</span>
+                    <span class="summary-value">Rp {{ number_format($pembelian->total_harga ?? $subtotal, 0, ',', '.') }}</span>
+                </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="info-box">
-                <h6 class="fw-bold mb-2"><i class="fas fa-check-circle me-2"></i>Status</h6>
-                <div>
-                    @if($pembelian->status === 'lunas')
-                        <span class="badge bg-success fs-6">LUNAS</span>
-                    @else
-                        <span class="badge bg-warning fs-6">BELUM LUNAS</span>
-                    @endif
-                </div>
-                @if($pembelian->keterangan)
-                    <div class="mt-2">
-                        <small class="text-muted">{{ $pembelian->keterangan }}</small>
-                    </div>
-                @endif
-            </div>
-        </div>
-    </div>
 
-    <!-- Footer -->
-    <div class="footer-info">
-        <div class="row">
-            <div class="col-md-6">
-                <div class="mb-2">
-                    <i class="fas fa-building me-2"></i>
-                    <strong>UMKM COE</strong>
-                </div>
-                <div class="small text-muted">
-                    Sistem Manajemen UMKM Center of Excellence
-                </div>
-            </div>
-            <div class="col-md-6 text-md-end">
-                <div class="mb-2">
-                    <i class="fas fa-print me-2"></i>
-                    Dicetak pada: {{ now()->format('d F Y H:i') }}
-                </div>
-                <div class="small text-muted">
-                    Invoice ini sah dan telah diterbitkan oleh sistem
-                </div>
+        <!-- Footer -->
+        <div class="invoice-footer">
+            <div class="footer-note">
+                Invoice ini dibuat otomatis oleh sistem SIMCOST
             </div>
         </div>
     </div>
-</div>
 </body>
 </html>

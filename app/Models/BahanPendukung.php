@@ -20,6 +20,7 @@ class BahanPendukung extends Model
         'saldo_awal',
         'tanggal_saldo_awal',
         'stok_minimum',
+        'stok',
         'kategori_id',
         'is_active',
         'sub_satuan_1_id',
@@ -216,13 +217,14 @@ class BahanPendukung extends Model
             ->where('direction', 'out')
             ->sum('qty');
 
-        $netFromMovements = $stockIn - $stockOut;
+        $netStock = $stockIn - $stockOut;
         
-        // Get saldo awal (initial stock)
-        $saldoAwal = (float) ($this->saldo_awal ?? 0);
-        
-        // Total stock = saldo awal + net movements
-        return $saldoAwal + $netFromMovements;
+        // If no stock movements exist, use saldo_awal from master data
+        if ($stockIn == 0 && $stockOut == 0 && $this->saldo_awal > 0) {
+            return (float)$this->saldo_awal;
+        }
+
+        return $netStock;
     }
 
     /**

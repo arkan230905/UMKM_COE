@@ -200,7 +200,11 @@
                     <div class="col-md-2">
                         <label class="form-label fw-bold">Jumlah</label>
                         <div class="info-display">
-                            {{ number_format($detail->jumlah, 2) }}
+                            @php
+                                $qty = $detail->jumlah;
+                                $qtyFormatted = ($qty == floor($qty)) ? number_format($qty, 0, ',', '.') : number_format($qty, 2, ',', '.');
+                            @endphp
+                            {{ $qtyFormatted }}
                         </div>
                     </div>
                     
@@ -251,7 +255,11 @@
                                 <label class="form-label small fw-bold">Jumlah dalam Satuan Utama</label>
                                 <div class="info-display bg-light">
                                     <small class="text-muted">Input manual jumlah dalam satuan utama</small><br>
-                                    <strong>{{ number_format($detail->jumlah_satuan_utama ?? 0, 2) }} {{ $detail->satuan_utama ?? '' }}</strong>
+                                    @php
+                                        $qtyUtama = $detail->jumlah_satuan_utama ?? 0;
+                                        $qtyUtamaFormatted = ($qtyUtama == floor($qtyUtama)) ? number_format($qtyUtama, 0, ',', '.') : number_format($qtyUtama, 2, ',', '.');
+                                    @endphp
+                                    <strong>{{ $qtyUtamaFormatted }} {{ $detail->satuan_utama ?? '' }}</strong>
                                 </div>
                             </div>
                             
@@ -270,13 +278,19 @@
                                         $manualInput = $detail->jumlah_satuan_utama ?? 0;
                                         $calculatedValue = $detail->jumlah * ($detail->faktor_konversi ?? 1);
                                         $isManualInput = $rawJumlahSatuanUtama !== null && abs($manualInput - $calculatedValue) > 0.01;
+                                        
+                                        // Format numbers
+                                        $qtyJumlah = $detail->jumlah;
+                                        $qtyJumlahFmt = ($qtyJumlah == floor($qtyJumlah)) ? number_format($qtyJumlah, 0, ',', '.') : number_format($qtyJumlah, 2, ',', '.');
+                                        $manualInputFmt = ($manualInput == floor($manualInput)) ? number_format($manualInput, 0, ',', '.') : number_format($manualInput, 2, ',', '.');
+                                        $calculatedValueFmt = ($calculatedValue == floor($calculatedValue)) ? number_format($calculatedValue, 0, ',', '.') : number_format($calculatedValue, 2, ',', '.');
                                     @endphp
                                     @if($isManualInput)
                                         <span class="badge bg-warning text-dark">Manual Input</span><br>
-                                        {{ number_format($detail->jumlah, 2) }} {{ $detail->satuan_nama }} = {{ number_format($manualInput, 2) }} {{ $detail->satuan_utama }}
+                                        {{ $qtyJumlahFmt }} {{ $detail->satuan_nama }} = {{ $manualInputFmt }} {{ $detail->satuan_utama }}
                                     @else
                                         <span class="badge bg-info">Otomatis</span><br>
-                                        {{ number_format($detail->jumlah, 2) }} {{ $detail->satuan_nama }} = {{ number_format($calculatedValue, 2) }} {{ $detail->satuan_utama }}
+                                        {{ $qtyJumlahFmt }} {{ $detail->satuan_nama }} = {{ $calculatedValueFmt }} {{ $detail->satuan_utama }}
                                     @endif
                                 </div>
                             </div>
@@ -370,7 +384,11 @@
                                 <div class="col-md-4">
                                     <label class="form-label small fw-bold">Jumlah dalam Sub Satuan</label>
                                     <div class="form-control fw-bold bg-light">
-                                        {{ number_format($konversi->jumlah_konversi, 2) }}
+                                        @php
+                                            $qtyKonversi = $konversi->jumlah_konversi;
+                                            $qtyKonversiFmt = ($qtyKonversi == floor($qtyKonversi)) ? number_format($qtyKonversi, 0, ',', '.') : number_format($qtyKonversi, 2, ',', '.');
+                                        @endphp
+                                        {{ $qtyKonversiFmt }}
                                     </div>
                                     <small class="text-muted">Jumlah dalam sub satuan yang dipilih</small>
                                 </div>
