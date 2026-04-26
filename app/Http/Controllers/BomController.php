@@ -380,12 +380,14 @@ class BomController extends Controller
             $totalBiayaBOP = 0;
 
             if ($bomJobCosting) {
-                $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
+                // NOTE: total_biaya_bahan HANYA menghitung bahan baku, tanpa bahan pendukung
+                $totalBiayaBahan = $bomJobCosting->total_bbb;  // HANYA BBB
                 $totalBiayaBTKL = $bomJobCosting->total_btkl;
                 $totalBiayaBOP = $bomJobCosting->total_bop;
             }
 
-            $totalBiayaBOM = $totalBiayaBahan + $totalBiayaBTKL + $totalBiayaBOP;
+            // Total BOM lengkap tetap menghitung semua komponen
+            $totalBiayaBOM = $bomJobCosting ? $bomJobCosting->total_hpp : ($totalBiayaBahan + $totalBiayaBTKL + $totalBiayaBOP);
 
             return response()->json([
                 'success' => true,
@@ -808,7 +810,7 @@ class BomController extends Controller
             }
         }
 
-        // Get Bahan Pendukung from BOM
+        // Get Bahan Pendukung from BOM (displayed separately, not added to biaya_bahan total)
         if ($bomJobCosting && $bomJobCosting->detailBahanPendukung) {
             foreach ($bomJobCosting->detailBahanPendukung as $detail) {
                 $bahanPendukung = $detail->bahanPendukung;
@@ -821,7 +823,8 @@ class BomController extends Controller
                     'satuan' => $detail->satuan ?? $bahanPendukung->satuan->nama ?? 'Unit',
                     'harga_per_unit' => $biayaPerProduk
                 ];
-                $breakdown['biaya_bahan']['total'] += $biayaPerProduk;
+                // NOTE: Bahan pendukung TIDAK ditambahkan ke total biaya_bahan
+                // Sesuai permintaan user, biaya bahan baku HANYA menghitung bahan baku
             }
         }
 

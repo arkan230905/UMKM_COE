@@ -193,66 +193,6 @@
             }
         }
 
-        /* Logo Styling for Register Page */
-        .logo-section {
-            text-align: center;
-            animation: fadeInUp 0.8s ease-out;
-        }
-
-        .logo-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .logo-main-reg {
-            width: 45px;
-            height: 45px;
-            object-fit: contain;
-            border-radius: 16px;
-            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
-            background: rgba(255, 255, 255, 0.1);
-            padding: 12px;
-            backdrop-filter: blur(8px);
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            transition: all 0.3s ease;
-        }
-
-        .logo-main-reg:hover {
-            transform: translateY(-4px) scale(1.05);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-            border-color: rgba(255, 255, 255, 0.4);
-        }
-
-        .logo-partners-reg {
-            display: flex;
-            gap: 0.3rem;
-            justify-content: center;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .logo-partner-reg {
-            width: 28px;
-            height: 28px;
-            object-fit: contain;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 6px;
-            backdrop-filter: blur(6px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.3s ease;
-            animation: fadeIn 1s ease-out;
-        }
-
-        .logo-partner-reg:hover {
-            transform: translateY(-2px) scale(1.1);
-            background: rgba(255, 255, 255, 0.25);
-            border-color: rgba(255, 255, 255, 0.5);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-        }
-
         /* External Logo Section */
         .logo-external {
             position: fixed;
@@ -266,13 +206,13 @@
         }
 
         .logo-external-main {
-            width: 50px;
-            height: 40px;
+            width: 65px;
+            height: 53px;
         }
 
         .logo-external-partner {
-            width: 60px;
-            height: 60px;
+            width: 82px;
+            height: 82px;
             object-fit: contain;
             border-radius: 12px;
             transition: all 0.3s ease;
@@ -385,20 +325,6 @@
             .register-container {
                 margin: 5%;
                 padding: 1rem;
-            }
-            
-            .logo-main-reg {
-                width: 50px;
-                height: 50px;
-            }
-            
-            .logo-partner-reg {
-                width: 30px;
-                height: 30px;
-            }
-            
-            .logo-partners-reg {
-                gap: 0.4rem;
             }
 
             /* Adjust body padding for mobile */

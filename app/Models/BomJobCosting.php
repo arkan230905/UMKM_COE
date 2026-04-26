@@ -58,17 +58,16 @@ class BomJobCosting extends Model
         
         // Update HPP dan Biaya Bahan di produk (TANPA TRIGGER OBSERVER)
         if ($this->produk) {
-            // Hitung total biaya bahan (BBB + Bahan Pendukung)
-            $totalBiayaBahan = $this->total_bbb + $this->total_bahan_pendukung;
-            $biayaBahanPerUnit = $this->jumlah_produk > 0 ? $totalBiayaBahan / $this->jumlah_produk : 0;
+            // Hitung biaya bahan baku PER UNIT (HANYA BBB, tanpa bahan pendukung)
+            $biayaBahanBakuPerUnit = $this->jumlah_produk > 0 ? $this->total_bbb / $this->jumlah_produk : 0;
             
             // Use DB::table to avoid triggering observers and prevent infinite loop
-            // Hanya update HPP dan biaya bahan, jangan ubah harga_jual yang sudah diset manual
+            // Hanya update HPP dan biaya bahan baku, jangan ubah harga_jual yang sudah diset manual
             DB::table('produks')
                 ->where('id', $this->produk->id)
                 ->update([
-                    'biaya_bahan' => $biayaBahanPerUnit,
-                    'harga_bom' => $this->total_hpp,  // Total HPP lengkap
+                    'biaya_bahan' => $biayaBahanBakuPerUnit,  // HANYA biaya bahan baku per unit
+                    'harga_bom' => $this->total_hpp,  // Total HPP lengkap (BBB + Bahan Pendukung + BTKL + BOP)
                     'harga_pokok' => $this->total_hpp,  // Update harga_pokok untuk referensi HPP
                     // 'harga_jual' DIHAPUS agar tidak mengubah harga jual manual
                     'updated_at' => now()

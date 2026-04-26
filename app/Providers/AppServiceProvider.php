@@ -84,7 +84,7 @@ class AppServiceProvider extends ServiceProvider
         // View composer global untuk semua tampilan
         View::composer('*', function ($view) {
             $view->with([
-                'totalPegawai'   => Pegawai::count(),
+                'totalPegawai'   => 0,
                 'totalPresensi'  => Presensi::count(),
                 'totalProduk'    => Produk::count(),
                 'totalVendor'    => Vendor::count(),
