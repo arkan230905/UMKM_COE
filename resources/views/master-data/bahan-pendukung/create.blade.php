@@ -48,6 +48,20 @@
                     </div>
                     <div class="col-md-3">
                         <div class="mb-3">
+                            <label class="form-label">Kode Bahan</label>
+                            <input type="text" name="kode_bahan" class="form-control @error('kode_bahan') is-invalid @enderror" 
+                                   value="{{ old('kode_bahan') }}" placeholder="Contoh: BP001">
+                            @error('kode_bahan')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="text-muted">Kosongkan untuk auto generate</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="mb-3">
                             <label class="form-label">Satuan <span class="text-danger">*</span></label>
                             <select name="satuan_id" class="form-select @error('satuan_id') is-invalid @enderror" required>
                                 <option value="">Pilih Satuan</option>
@@ -62,51 +76,62 @@
                             @enderror
                         </div>
                     </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="mb-3">
-                            <label class="form-label">Harga per Satuan <span class="text-danger">*</span></label>
+                            <label class="form-label">Harga Satuan <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-                                <input type="number" name="harga_satuan" class="form-control @error('harga_satuan') is-invalid @enderror" 
-                                       value="{{ old('harga_satuan', 0) }}" min="0" step="100" required>
+                                <input type="text" name="harga_satuan" class="form-control number-input @error('harga_satuan') is-invalid @enderror" 
+                                       value="{{ old('harga_satuan') }}" placeholder="0" required>
                             </div>
                             @error('harga_satuan')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="mb-3">
-                            <label class="form-label">Stok Awal</label>
-                            <input type="number" name="stok" class="form-control @error('stok') is-invalid @enderror" 
-                                   value="{{ old('stok', 0) }}" min="0" step="0.01">
+                            <label class="form-label">Stok</label>
+                            <div class="input-group">
+                                <input type="text" name="stok" class="form-control number-input @error('stok') is-invalid @enderror" 
+                                       value="{{ old('stok') }}" placeholder="0">
+                                <span class="input-group-text" id="satuan_utama_display"></span>
+                            </div>
                             @error('stok')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="text-muted">Kosongkan jika belum ada stok</small>
+                            <small class="text-muted">Informasi: Saldo awal ini mencatat stok per tanggal 1 bulan berjalan.</small>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="mb-3">
                             <label class="form-label">Stok Minimum</label>
-                            <input type="number" name="stok_minimum" class="form-control @error('stok_minimum') is-invalid @enderror" 
-                                   value="{{ old('stok_minimum', 0) }}" min="0" step="0.01">
+                            <div class="input-group">
+                                <input type="text" name="stok_minimum" class="form-control number-input @error('stok_minimum') is-invalid @enderror" 
+                                       value="{{ old('stok_minimum') }}" placeholder="0">
+                                <span class="input-group-text" id="satuan_utama_display_min"></span>
+                            </div>
                             @error('stok_minimum')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
-                            <small class="text-muted">Batas minimum untuk notifikasi</small>
+                            <small class="text-muted">Batas minimum</small>
                         </div>
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Deskripsi</label>
-                    <textarea name="deskripsi" class="form-control" rows="3" placeholder="Deskripsi bahan pendukung (opsional)">{{ old('deskripsi') }}</textarea>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="mb-3">
+                            <label class="form-label">Deskripsi</label>
+                            <textarea name="deskripsi" class="form-control @error('deskripsi') is-invalid @enderror" 
+                                      rows="3" placeholder="Deskripsi bahan pendukung">{{ old('deskripsi') }}</textarea>
+                            @error('deskripsi')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
                 </div>
-
+                
                 <!-- Sub Satuan Section -->
                 <div class="card mt-4">
                     <div class="card-header bg-light">
@@ -121,8 +146,8 @@
                                     <i class="fas fa-info-circle me-2"></i>
                                     <strong>Contoh:</strong> Jika satuan utama adalah Kilogram, maka:
                                     <br>• Sub Satuan 1: 1 Kilogram = 1000 Gram
-                                    <br>• Sub Satuan 2: 1 Kilogram = 3 Potong  
-                                    <br>• Sub Satuan 3: 2 Kilogram = 1 Ekor
+                                    <br>• Sub Satuan 2: 1 Kilogram = 3 Botol  
+                                    <br>• Sub Satuan 3: 2 Kilogram = 1 Tabung
                                     <br><small class="text-muted">Kolom "Satuan Utama" akan otomatis terisi sesuai pilihan satuan utama di atas.</small>
                                 </div>
                             </div>
@@ -265,10 +290,10 @@
                         </div>
                     </div>
                 </div>
-
+                
                 <hr>
                 
-                <!-- COA Fields -->
+                <!-- COA Fields - COMPLETELY MANUAL -->
                 <h5 class="mb-3">Akun COA</h5>
                 <div class="row">
                     <div class="col-md-4">
@@ -277,7 +302,7 @@
                             <select name="coa_pembelian_id" id="coa_pembelian_id" class="form-select" required>
                                 <option value="">-- Pilih COA Pembelian --</option>
                                 @foreach($coas as $coa)
-                                    <option value="{{ $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}">{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
+                                    <option value="{{ $coa->kode_akun }}">{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
                                 @endforeach
                             </select>
                             <small class="text-muted">* Wajib diisi</small>
@@ -289,7 +314,7 @@
                             <select name="coa_persediaan_id" id="coa_persediaan_id" class="form-select" required>
                                 <option value="">-- Pilih COA Persediaan --</option>
                                 @foreach($coas as $coa)
-                                    <option value="{{ $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}">{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
+                                    <option value="{{ $coa->kode_akun }}">{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
                                 @endforeach
                             </select>
                             <small class="text-muted">* Wajib diisi</small>
@@ -301,7 +326,7 @@
                             <select name="coa_hpp_id" id="coa_hpp_id" class="form-select" required>
                                 <option value="">-- Pilih COA HPP --</option>
                                 @foreach($coas as $coa)
-                                    <option value="{{ $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}">{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
+                                    <option value="{{ $coa->kode_akun }}">{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
                                 @endforeach
                             </select>
                             <small class="text-muted">* Wajib diisi</small>
@@ -309,19 +334,24 @@
                     </div>
                 </div>
 
-                <hr>
-                <div class="d-flex justify-content-end gap-2">
-                    <a href="{{ route('master-data.bahan-pendukung.index') }}" class="btn btn-secondary">Batal</a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Simpan
-                    </button>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Simpan
+                            </button>
+                            <a href="{{ route('master-data.bahan-pendukung.index') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Batal
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
-@endsection
 
+<!-- NO JAVASCRIPT AUTO-FILL - COMPLETELY MANUAL COA SELECTION -->
 @push('scripts')
 <script>
 function clearSubSatuan(index) {
@@ -369,7 +399,7 @@ function setupNumberInputs() {
     });
 }
 
-// Convert comma to dot before form submission
+// Convert commas to dots before form submission
 function convertCommasToDots() {
     const numberInputs = document.querySelectorAll('.number-input');
     numberInputs.forEach(input => {
@@ -398,14 +428,24 @@ document.addEventListener('DOMContentLoaded', function() {
             satuanText = satuanNama;
         }
         
+        // Update all satuan utama text fields
         satuanUtamaTexts.forEach(input => {
             input.value = satuanText;
         });
+        
+        console.log('Satuan Utama updated to:', satuanText); // Debug log
     }
     
-    // Initial call and event listener
-    satuanSelect.addEventListener('change', updateSatuanUtamaDisplay);
+    // Initial call to set the value on page load
     updateSatuanUtamaDisplay();
+    
+    // Event listener for when satuan changes
+    if (satuanSelect) {
+        satuanSelect.addEventListener('change', function() {
+            console.log('Satuan changed'); // Debug log
+            updateSatuanUtamaDisplay();
+        });
+    }
     
     // Form validation and submission
     const form = document.querySelector('form');
@@ -413,100 +453,9 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', function(e) {
             // Convert commas to dots before validation
             convertCommasToDots();
-            
-            // Validate only sub satuan 1 as required
-            let isValid = true;
-            const requiredFields = [
-                'sub_satuan_1_konversi', 'sub_satuan_1_id', 'sub_satuan_1_nilai'
-            ];
-            
-            requiredFields.forEach(fieldName => {
-                const field = document.querySelector(`[name="${fieldName}"]`);
-                if (field && (!field.value || field.value.trim() === '')) {
-                    field.classList.add('is-invalid');
-                    isValid = false;
-                } else if (field) {
-                    field.classList.remove('is-invalid');
-                    
-                    // Validate number fields
-                    if (fieldName.includes('konversi') || fieldName.includes('nilai')) {
-                        const numValue = parseFloat(field.value);
-                        if (isNaN(numValue) || numValue <= 0) {
-                            field.classList.add('is-invalid');
-                            isValid = false;
-                        }
-                    }
-                }
-            });
-            
-            if (!isValid) {
-                e.preventDefault();
-                alert('Mohon lengkapi semua field Sub Satuan 1 yang wajib diisi dengan nilai yang valid.');
-            }
         });
     }
-    
-    // Auto-fill COA fields based on account type and parent
-    function autoFillCOA() {
-        // Get all COA options
-        const coaOptions = document.querySelectorAll('#coa_pembelian_id option[data-tipe]');
-        
-        // Group COA by type and parent
-        const coaByType = {};
-        coaOptions.forEach(option => {
-            const type = option.dataset.tipe;
-            const parent = option.dataset.induk;
-            
-            if (!coaByType[type]) {
-                coaByType[type] = {};
-            }
-            
-            if (!coaByType[type][parent]) {
-                coaByType[type][parent] = [];
-            }
-            
-            coaByType[type][parent].push(option.value);
-        });
-        
-        // Auto-fill logic
-        ['coa_pembelian_id', 'coa_persediaan_id', 'coa_hpp_id'].forEach(fieldId => {
-            const field = document.getElementById(fieldId);
-            if (!field) return;
-            
-            // Clear current selection
-            field.value = '';
-            
-            // Add change event listener
-            field.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                const selectedType = selectedOption.dataset.tipe;
-                const selectedParent = selectedOption.dataset.induk;
-                
-                // Auto-fill other fields with same type and parent
-                ['coa_pembelian_id', 'coa_persediaan_id', 'coa_hpp_id'].forEach(otherFieldId => {
-                    if (otherFieldId !== fieldId) {
-                        const otherField = document.getElementById(otherFieldId);
-                        if (otherField) {
-                            // Clear current selection
-                            otherField.value = '';
-                            
-                            // Find matching COA
-                            const matchingOptions = Array.from(otherField.options).filter(opt => 
-                                opt.dataset.tipe === selectedType && opt.dataset.induk === selectedParent
-                            );
-                            
-                            if (matchingOptions.length > 0) {
-                                otherField.value = matchingOptions[0].value;
-                            }
-                        }
-                    }
-                });
-            });
-        });
-    }
-    
-    // Initialize auto-fill when page loads
-    document.addEventListener('DOMContentLoaded', autoFillCOA);
 });
 </script>
 @endpush
+@endsection

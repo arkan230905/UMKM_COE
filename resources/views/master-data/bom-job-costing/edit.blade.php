@@ -115,51 +115,6 @@
             </div>
         </div>
 
-        <!-- 3. Bahan Penolong -->
-        <div class="card shadow-sm mb-3">
-            <div class="card-header bg-info text-white"><h5 class="mb-0"><i class="bi bi-droplet me-2"></i>3. Bahan Penolong/Pendukung</h5></div>
-            <div class="card-body">
-                <table class="table table-bordered" style="color: black !important;"><thead class="table-light"><tr><th width="35%">Bahan</th><th width="15%">Jumlah</th><th width="10%">Satuan</th><th width="15%">Harga</th><th width="15%">Subtotal</th><th width="10%">Aksi</th></tr></thead>
-                    <tbody id="bpBody">
-                        @foreach($bom->detailBahanPendukung as $d)
-                        <tr class="bp-row">
-                            <td><select name="bp_id[]" class="form-select form-select-sm bp-select"><option value="">-- Pilih --</option>@foreach($bahanPendukungs as $bp)<option value="{{ $bp->id }}" data-harga="{{ $bp->harga_satuan ?? 0 }}" data-satuan="{{ $bp->satuanRelation->kode ?? 'PCS' }}" {{ $d->bahan_pendukung_id == $bp->id ? 'selected' : '' }}>{{ $bp->nama_bahan }}</option>@endforeach</select></td>
-                            <td><input type="number" name="bp_jumlah[]" class="form-control form-control-sm bp-jumlah" value="{{ $d->jumlah }}" min="0" step="0.01"></td>
-                            <td><select name="bp_satuan[]" class="form-select form-select-sm bp-satuan">
-                                    <option value="{{ $d->satuan }}" selected>{{ $d->satuan }}</option>
-                                    @foreach($satuans as $satuan)
-                                        @if($satuan->kode != $d->satuan)
-                                        <option value="{{ $satuan->kode }}">{{ $satuan->kode }}</option>
-                                        @endif
-                                    @endforeach
-                                </select></td>
-                            <td class="bp-harga text-end">Rp {{ number_format($d->harga_satuan, 0, ',', '.') }}</td>
-                            <td class="bp-subtotal text-end fw-bold">Rp {{ number_format($d->subtotal, 0, ',', '.') }}</td>
-                            <td class="text-center"><button type="button" class="btn btn-danger btn-sm btn-hapus-bp"><i class="bi bi-trash"></i></button></td>
-                        </tr>
-                        @endforeach
-                        @if($bom->detailBahanPendukung->isEmpty())
-                        <tr class="bp-row">
-                            <td><select name="bp_id[]" class="form-select form-select-sm bp-select"><option value="">-- Pilih --</option>@foreach($bahanPendukungs as $bp)<option value="{{ $bp->id }}" data-harga="{{ $bp->harga_satuan ?? 0 }}" data-satuan="{{ $bp->satuanRelation->kode ?? 'PCS' }}">{{ $bp->nama_bahan }}</option>@endforeach</select></td>
-                            <td><input type="number" name="bp_jumlah[]" class="form-control form-control-sm bp-jumlah" value="0" min="0" step="0.01"></td>
-                            <td><select name="bp_satuan[]" class="form-select form-select-sm bp-satuan">
-                                    <option value="">-- Satuan --</option>
-                                    @foreach($satuans as $satuan)
-                                        <option value="{{ $satuan->kode }}">{{ $satuan->kode }}</option>
-                                    @endforeach
-                                </select></td>
-                            <td class="bp-harga text-end">Rp 0</td>
-                            <td class="bp-subtotal text-end fw-bold">Rp 0</td>
-                            <td class="text-center"><button type="button" class="btn btn-danger btn-sm btn-hapus-bp"><i class="bi bi-trash"></i></button></td>
-                        </tr>
-                        @endif
-                    </tbody>
-                    <tfoot><tr class="table-info"><td colspan="4" class="text-end fw-bold text-dark">Total Bahan Penolong</td><td class="text-end fw-bold text-dark" id="totalBP">Rp {{ number_format($bom->total_bahan_pendukung, 0, ',', '.') }}</td><td></td></tr></tfoot>
-                </table>
-                <button type="button" class="btn btn-outline-info btn-sm" id="btnTambahBP"><i class="bi bi-plus"></i> Tambah</button>
-            </div>
-        </div>
-
         <!-- Ringkasan Biaya Bahan -->
         <div class="card shadow-sm mb-3 border-dark">
             <div class="card-header bg-dark text-white"><h5 class="mb-0"><i class="bi bi-calculator me-2"></i>Ringkasan Biaya Bahan</h5></div>
@@ -167,9 +122,8 @@
                 <table class="table table-bordered" style="color: black !important;">
                     <tr><td width="60%">Total Biaya Bahan Baku (BBB)</td><td class="text-end fw-bold" id="summaryBBB">Rp {{ number_format($bom->total_bbb, 0, ',', '.') }}</td></tr>
                     <tr><td>Total Biaya Tenaga Kerja Langsung (BTKL)</td><td class="text-end fw-bold" id="summaryBTKL">Rp {{ number_format($bom->total_btkl, 0, ',', '.') }}</td></tr>
-                    <tr><td>Total Bahan Penolong</td><td class="text-end fw-bold" id="summaryBP">Rp {{ number_format($bom->total_bahan_pendukung, 0, ',', '.') }}</td></tr>
-                    <tr class="table-info"><td class="fw-bold text-dark">Harga BOM</td><td class="text-end fw-bold text-dark" id="hargaBOM">Rp {{ number_format($bom->total_bbb + $bom->total_bahan_pendukung, 0, ',', '.') }}</td></tr>
-                    <tr class="table-primary"><td class="fw-bold fs-5 text-dark">TOTAL BIAYA BAHAN PER PCS</td><td class="text-end fw-bold fs-5 text-dark" id="totalBiayaBahan">Rp {{ number_format(($bom->total_bbb + $bom->total_bahan_pendukung) / max($bom->jumlah_produk, 1), 0, ',', '.') }}</td></tr>
+                    <tr class="table-info"><td class="fw-bold text-dark">Harga BOM</td><td class="text-end fw-bold text-dark" id="hargaBOM">Rp {{ number_format($bom->total_bbb, 0, ',', '.') }}</td></tr>
+                    <tr class="table-primary"><td class="fw-bold fs-5 text-dark">TOTAL BIAYA BAHAN PER PCS</td><td class="text-end fw-bold fs-5 text-dark" id="totalBiayaBahan">Rp {{ number_format($bom->total_bbb / max($bom->jumlah_produk, 1), 0, ',', '.') }}</td></tr>
                 </table>
             </div>
         </div>
@@ -289,45 +243,6 @@ function attachBTKL(row) {
     row.querySelector('.btn-hapus-btkl').addEventListener('click', () => { row.remove(); hitungTotalBTKL(); });
 }
 
-function hitungBP(row) {
-    const sel = row.querySelector('.bp-select'), jml = row.querySelector('.bp-jumlah'), sat = row.querySelector('.bp-satuan');
-    const opt = sel.options[sel.selectedIndex];
-    if (!opt.value) { 
-        row.querySelector('.bp-harga').textContent = 'Rp 0'; 
-        row.querySelector('.bp-subtotal').textContent = 'Rp 0'; 
-        hitungTotalBP(); 
-        return; 
-    }
-    
-    const baseHarga = parseFloat(opt.dataset.harga) || 0;
-    const baseUnit = opt.dataset.satuan || 'PCS';
-    const selectedUnit = sat.value;
-    
-    // Set satuan default dari data, tapi biarkan user ubah
-    if (sat.value === '') {
-        sat.value = baseUnit;
-    }
-    
-    // Convert price to selected unit (auto-detect category)
-    const convertedHarga = convertPrice(baseHarga, baseUnit, selectedUnit);
-    
-    row.querySelector('.bp-harga').textContent = formatRupiah(convertedHarga);
-    row.querySelector('.bp-subtotal').textContent = formatRupiah((parseFloat(jml.value) || 0) * convertedHarga);
-    hitungTotalBP();
-}
-function hitungTotalBP() {
-    let t = 0; document.querySelectorAll('.bp-row').forEach(r => t += parseRupiah(r.querySelector('.bp-subtotal').textContent));
-    document.getElementById('totalBP').textContent = formatRupiah(t);
-    document.getElementById('summaryBP').textContent = formatRupiah(t);
-    hitungHPP();
-}
-function attachBP(row) {
-    row.querySelector('.bp-select').addEventListener('change', () => hitungBP(row));
-    row.querySelector('.bp-jumlah').addEventListener('input', () => hitungBP(row));
-    row.querySelector('.bp-satuan').addEventListener('change', () => hitungBP(row));
-    row.querySelector('.btn-hapus-bp').addEventListener('click', () => { row.remove(); hitungTotalBP(); });
-}
-
 function hitungBOP(row) {
     const sel = row.querySelector('.bop-select'), jml = row.querySelector('.bop-jumlah'), tarif = row.querySelector('.bop-tarif');
     const opt = sel.options[sel.selectedIndex];
@@ -351,22 +266,21 @@ function attachBOP(row) {
 function hitungHPP() {
     const bbb = parseRupiah(document.getElementById('summaryBBB').textContent);
     const btkl = parseRupiah(document.getElementById('summaryBTKL').textContent);
-    const bp = parseRupiah(document.getElementById('summaryBP').textContent);
-    const total = bbb + btkl + bp;
+    const total = bbb + btkl;
     const jumlahProduk = getJumlahProduk();
     
-    // Update Harga BOM (same as total material cost)
-    document.getElementById('hargaBOM').textContent = formatRupiah(total);
+    // Update harga BOM (BBB only)
+    const hargaBOM = bbb;
+    document.getElementById('hargaBOM').textContent = formatRupiah(hargaBOM);
     
     // Update Total Biaya Bahan per unit
-    const biayaPerUnit = jumlahProduk > 0 ? total / jumlahProduk : 0;
+    const biayaPerUnit = jumlahProduk > 0 ? hargaBOM / jumlahProduk : 0;
     document.getElementById('totalBiayaBahan').textContent = formatRupiah(biayaPerUnit);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.bbb-row').forEach(r => attachBBB(r));
     document.querySelectorAll('.btkl-row').forEach(r => attachBTKL(r));
-    document.querySelectorAll('.bp-row').forEach(r => attachBP(r));
     document.getElementById('jumlahProduk').addEventListener('input', hitungHPP);
     
     document.getElementById('btnTambahBBB').addEventListener('click', () => {
@@ -386,15 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
         row.querySelector('.btkl-subtotal').textContent = 'Rp 0';
         document.getElementById('btklBody').appendChild(row);
         attachBTKL(row);
-    });
-    document.getElementById('btnTambahBP').addEventListener('click', () => {
-        const row = document.querySelector('.bp-row').cloneNode(true);
-        row.querySelector('.bp-select').value = '';
-        row.querySelector('.bp-jumlah').value = '0';
-        row.querySelector('.bp-harga').textContent = 'Rp 0';
-        row.querySelector('.bp-subtotal').textContent = 'Rp 0';
-        document.getElementById('bpBody').appendChild(row);
-        attachBP(row);
     });
 });
 </script>

@@ -10,6 +10,19 @@ class BahanBaku extends Model
     use HasFactory;
 
     protected $table = 'bahan_bakus'; // <--- PENTING: samakan dengan nama tabel di migration
+    
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // Global scope for multi-tenant isolation
+        static::addGlobalScope('user_id', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+    }
+    
     // Nonaktifkan sementara mass assignment protection untuk testing
     protected $guarded = [];
     
@@ -40,7 +53,8 @@ class BahanBaku extends Model
         'sub_satuan_3_nilai',
         'coa_pembelian_id',    // COA untuk pembelian
         'coa_persediaan_id',    // COA untuk persediaan
-        'coa_hpp_id'           // COA untuk HPP
+        'coa_hpp_id',          // COA untuk HPP
+        'user_id',             // Multi-tenant support
         // NOTE: harga_satuan_display is NOT fillable - it's only for display
     ];
 

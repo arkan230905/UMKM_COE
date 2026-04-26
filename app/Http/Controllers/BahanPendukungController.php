@@ -122,7 +122,7 @@ class BahanPendukungController extends Controller
         $this->convertCommaToDecimal($request);
         
         $validated = $request->validate([
-            'nama_bahan' => 'required|string|max:255|unique:bahan_pendukungs,nama_bahan',
+            'nama_bahan' => 'required|string|max:255|unique:bahan_pendukungs,nama_bahan,NULL,id,user_id,'.auth()->id(),
             'deskripsi' => 'nullable|string',
             'satuan_id' => 'required|exists:satuans,id',
             'harga_satuan' => 'required|numeric|min:0',
@@ -150,6 +150,9 @@ class BahanPendukungController extends Controller
         
         // Map stok to saldo_awal
         $validated['saldo_awal'] = $request->stok ?? 0;
+        
+        // Add user_id for multi-tenant isolation
+        $validated['user_id'] = auth()->id();
 
         // Create bahan pendukung
         // Stock movement will be created automatically by the model's setStokAttribute setter

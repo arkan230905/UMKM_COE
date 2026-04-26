@@ -244,189 +244,6 @@
             </div>
         </div>
 
-        <!-- Bahan Pendukung Card -->
-        <div class="card shadow-sm mb-3">
-            <div class="card-header text-white" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
-                <h6 class="mb-0">
-                    <i class="fas fa-flask me-2"></i>2. Bahan Pendukung/Penolong
-                </h6>
-            </div>
-            <div class="card-body" style="background-color: #ecfeff;">
-                <div class="table-responsive">
-                    <table class="table table-sm" id="bahanPendukungTable">
-                        <thead style="background-color: #22d3ee; color: white;">
-                            <tr>
-                                <th>BAHAN PENOLONG</th>
-                                <th class="text-center">JUMLAH</th>
-                                <th class="text-center">SATUAN</th>
-                                <th class="text-end">HARGA SATUAN</th>
-                                <th class="text-end">SUB TOTAL</th>
-                                <th class="text-center">AKSI</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {{-- Existing Bahan Pendukung Rows --}}
-                            @foreach($bomJobBahanPendukung as $index => $detail)
-                                <tr>
-                                    <td>
-                                        <select name="bahan_pendukung[{{ $index }}][id]" class="form-select form-select-sm bahan-pendukung-select">
-                                            <option value="">-- Pilih Bahan Pendukung --</option>
-                                            @foreach($bahanPendukungs as $bahanPendukung)
-                                                @php
-                                                    $satuanBP = is_object($bahanPendukung->satuan) ? $bahanPendukung->satuan->nama : $bahanPendukung->satuan;
-                                                    
-                                                    // Prepare sub satuan data
-                                                    $subSatuanData = [];
-                                                    if ($bahanPendukung->subSatuan1) {
-                                                        $subSatuanData[] = [
-                                                            'id' => $bahanPendukung->sub_satuan_1_id,
-                                                            'nama' => $bahanPendukung->subSatuan1->nama,
-                                                            'konversi' => $bahanPendukung->sub_satuan_1_konversi,
-                                                            'nilai' => $bahanPendukung->sub_satuan_1_nilai
-                                                        ];
-                                                    }
-                                                    if ($bahanPendukung->subSatuan2) {
-                                                        $subSatuanData[] = [
-                                                            'id' => $bahanPendukung->sub_satuan_2_id,
-                                                            'nama' => $bahanPendukung->subSatuan2->nama,
-                                                            'konversi' => $bahanPendukung->sub_satuan_2_konversi,
-                                                            'nilai' => $bahanPendukung->sub_satuan_2_nilai
-                                                        ];
-                                                    }
-                                                    if ($bahanPendukung->subSatuan3) {
-                                                        $subSatuanData[] = [
-                                                            'id' => $bahanPendukung->sub_satuan_3_id,
-                                                            'nama' => $bahanPendukung->subSatuan3->nama,
-                                                            'konversi' => $bahanPendukung->sub_satuan_3_konversi,
-                                                            'nilai' => $bahanPendukung->sub_satuan_3_nilai
-                                                        ];
-                                                    }
-                                                @endphp
-                                                <option value="{{ $bahanPendukung->id }}" 
-                                                        data-harga="{{ $bahanPendukung->harga_rata_rata ?? $bahanPendukung->harga_satuan }}"
-                                                        data-satuan="{{ $satuanBP }}"
-                                                        data-sub-satuan="{{ json_encode($subSatuanData) }}"
-                                                        {{ $detail->bahan_pendukung_id == $bahanPendukung->id ? 'selected' : '' }}>
-                                                    {{ $bahanPendukung->nama_bahan }} - Rp {{ number_format($bahanPendukung->harga_rata_rata ?? $bahanPendukung->harga_satuan, 0, ',', '.') }}/{{ $satuanBP }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </td>
-                                    <td style="width: 120px;">
-                                        <input type="number" name="bahan_pendukung[{{ $index }}][jumlah]" 
-                                               class="form-control form-control-sm qty-input text-center" 
-                                               value="{{ $detail->jumlah }}" 
-                                               step="0.01" min="0">
-                                    </td>
-                                    <td style="width: 120px;">
-                                        <select name="bahan_pendukung[{{ $index }}][satuan]" class="form-select form-select-sm satuan-select">
-                                            <option value="">-- Satuan --</option>
-                                            @foreach($satuans as $satuan)
-                                                <option value="{{ $satuan->nama }}" 
-                                                        {{ $detail->satuan == $satuan->nama ? 'selected' : '' }}>
-                                                    {{ $satuan->nama }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </td>
-                                    <td class="text-end harga-display" style="width: 200px;">
-                                        <div class="harga-utama">-</div>
-                                        <div class="harga-konversi mt-1" style="font-size: 0.75rem; color: #666;"></div>
-                                    </td>
-                                    <td class="text-end subtotal-display" style="width: 150px;">-</td>
-                                    <td class="text-center" style="width: 80px;">
-                                        <button type="button" class="btn btn-sm btn-danger remove-item">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            @endforeach
-                            
-                            {{-- Template Row for New Items --}}
-                            <tr id="newBahanPendukungRow" class="d-none">
-                                <td>
-                                    <select name="bahan_pendukung[new][id]" class="form-select form-select-sm bahan-pendukung-select">
-                                        <option value="">-- Pilih Bahan Pendukung --</option>
-                                        @foreach($bahanPendukungs as $bahanPendukung)
-                                            @php
-                                                $satuanBP = is_object($bahanPendukung->satuan) ? $bahanPendukung->satuan->nama : $bahanPendukung->satuan;
-                                                
-                                                // Prepare sub satuan data
-                                                $subSatuanData = [];
-                                                if ($bahanPendukung->subSatuan1) {
-                                                    $subSatuanData[] = [
-                                                        'id' => $bahanPendukung->sub_satuan_1_id,
-                                                        'nama' => $bahanPendukung->subSatuan1->nama,
-                                                        'konversi' => $bahanPendukung->sub_satuan_1_konversi,
-                                                        'nilai' => $bahanPendukung->sub_satuan_1_nilai
-                                                    ];
-                                                }
-                                                if ($bahanPendukung->subSatuan2) {
-                                                    $subSatuanData[] = [
-                                                        'id' => $bahanPendukung->sub_satuan_2_id,
-                                                        'nama' => $bahanPendukung->subSatuan2->nama,
-                                                        'konversi' => $bahanPendukung->sub_satuan_2_konversi,
-                                                        'nilai' => $bahanPendukung->sub_satuan_2_nilai
-                                                    ];
-                                                }
-                                                if ($bahanPendukung->subSatuan3) {
-                                                    $subSatuanData[] = [
-                                                        'id' => $bahanPendukung->sub_satuan_3_id,
-                                                        'nama' => $bahanPendukung->subSatuan3->nama,
-                                                        'konversi' => $bahanPendukung->sub_satuan_3_konversi,
-                                                        'nilai' => $bahanPendukung->sub_satuan_3_nilai
-                                                    ];
-                                                }
-                                            @endphp
-                                            <option value="{{ $bahanPendukung->id }}" 
-                                                    data-harga="{{ $bahanPendukung->harga_rata_rata ?? $bahanPendukung->harga_satuan }}"
-                                                    data-satuan="{{ $satuanBP }}"
-                                                    data-sub-satuan="{{ json_encode($subSatuanData) }}">
-                                                {{ $bahanPendukung->nama_bahan }} - Rp {{ number_format($bahanPendukung->harga_rata_rata ?? $bahanPendukung->harga_satuan, 0, ',', '.') }}/{{ $satuanBP }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td style="width: 120px;">
-                                    <input type="number" name="bahan_pendukung[new][jumlah]" 
-                                           class="form-control form-control-sm qty-input text-center" 
-                                           step="0.01" min="0" placeholder="0">
-                                </td>
-                                <td style="width: 120px;">
-                                    <select name="bahan_pendukung[new][satuan]" class="form-select form-select-sm satuan-select">
-                                        <option value="">-- Satuan --</option>
-                                        @foreach($satuans as $satuan)
-                                            <option value="{{ $satuan->nama }}">{{ $satuan->nama }}</option>
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td class="text-end harga-display" style="width: 200px;">
-                                    <div class="harga-utama">-</div>
-                                    <div class="harga-konversi mt-1" style="font-size: 0.75rem; color: #666;"></div>
-                                </td>
-                                <td class="text-end subtotal-display" style="width: 150px;">-</td>
-                                <td class="text-center" style="width: 80px;">
-                                    <button type="button" class="btn btn-sm btn-danger remove-item">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                        <tfoot style="background-color: #cffafe;">
-                            <tr>
-                                <th colspan="4" class="text-end">Total Bahan Pendukung</th>
-                                <th class="text-end" id="totalBahanPendukung">Rp 0</th>
-                                <th></th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-                <button type="button" class="btn btn-sm btn-info mt-2" id="addBahanPendukung">
-                    <i class="fas fa-plus"></i> Tambah Bahan Pendukung
-                </button>
-            </div>
-        </div>
-
         <!-- Summary & Action Buttons -->
         <div class="card shadow-sm">
             <div class="card-body">
@@ -447,10 +264,9 @@
                 
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="mb-0">Total Biaya Bahan: <span id="summaryTotalBiaya" class="text-success">Rp 0</span></h5>
+                        <h5 class="mb-0">Total Biaya Bahan Baku: <span id="summaryTotalBiaya" class="text-success">Rp 0</span></h5>
                         <small class="text-muted">
-                            BBB: <span id="summaryBahanBaku">Rp 0</span> | 
-                            Bahan Pendukung: <span id="summaryBahanPendukung">Rp 0</span>
+                            BBB: <span id="summaryBahanBaku">Rp 0</span>
                         </small>
                     </div>
                     <div>
@@ -646,7 +462,7 @@ function getConversionFactor(fromUnit, toUnit, subSatuanData = []) {
 function calculateRowSubtotal(row) {
     console.log("🧮 calculateRowSubtotal called");
     
-    const bahanSelect = row.querySelector(".bahan-baku-select, .bahan-pendukung-select");
+    const bahanSelect = row.querySelector(".bahan-baku-select");
     const qtyInput = row.querySelector(".qty-input");
     const satuanSelect = row.querySelector(".satuan-select");
     const subtotalDisplay = row.querySelector(".subtotal-display");
@@ -705,12 +521,11 @@ function calculateRowSubtotal(row) {
     setTimeout(calculateTotals, 50);
 }
 
-// Calculate all totals - FIXED VERSION
+// Calculate all totals - FIXED VERSION (BBB Only)
 function calculateTotals() {
     let totalBB = 0;
-    let totalBP = 0;
     
-    // Bahan Baku
+    // Bahan Baku only
     document.querySelectorAll("#bahanBakuTable tbody tr:not(#newBahanBakuRow):not(.d-none)").forEach(row => {
         const subtotalText = row.querySelector(".subtotal-display")?.textContent || "";
         const cleanText = subtotalText.replace(/[^\d]/g, "");
@@ -718,37 +533,25 @@ function calculateTotals() {
         totalBB += subtotal;
     });
     
-    // Bahan Pendukung
-    document.querySelectorAll("#bahanPendukungTable tbody tr:not(#newBahanPendukungRow):not(.d-none)").forEach(row => {
-        const subtotalText = row.querySelector(".subtotal-display")?.textContent || "";
-        const cleanText = subtotalText.replace(/[^\d]/g, "");
-        const subtotal = parseFloat(cleanText) || 0;
-        totalBP += subtotal;
-    });
-    
-    const total = totalBB + totalBP;
+    const total = totalBB; // Only BBB now
     
     console.log("📊 Totals calculated:", { bb: totalBB, bp: totalBP, total: total });
     
     // Update displays
     const elements = {
         totalBahanBaku: document.getElementById("totalBahanBaku"),
-        totalBahanPendukung: document.getElementById("totalBahanPendukung"),
         summaryBahanBaku: document.getElementById("summaryBahanBaku"),
-        summaryBahanPendukung: document.getElementById("summaryBahanPendukung"),
         summaryTotalBiaya: document.getElementById("summaryTotalBiaya")
     };
     
     if (elements.totalBahanBaku) elements.totalBahanBaku.textContent = formatRupiah(totalBB);
-    if (elements.totalBahanPendukung) elements.totalBahanPendukung.textContent = formatRupiah(totalBP);
     if (elements.summaryBahanBaku) elements.summaryBahanBaku.textContent = formatRupiah(totalBB);
-    if (elements.summaryBahanPendukung) elements.summaryBahanPendukung.textContent = formatRupiah(totalBP);
     if (elements.summaryTotalBiaya) elements.summaryTotalBiaya.textContent = formatRupiah(total);
 }
 
 // Add event listeners to row - ENHANCED VERSION
 function addRowEventListeners(row) {
-    const bahanSelect = row.querySelector(".bahan-baku-select, .bahan-pendukung-select");
+    const bahanSelect = row.querySelector(".bahan-baku-select");
     const qtyInput = row.querySelector(".qty-input");
     const satuanSelect = row.querySelector(".satuan-select");
     const removeBtn = row.querySelector(".remove-item");
@@ -808,7 +611,7 @@ function addRowEventListeners(row) {
     if (satuanSelect) {
         satuanSelect.addEventListener("change", function() {
             console.log("🔄 Satuan changed:", this.value);
-            const bahanSelect = row.querySelector(".bahan-baku-select, .bahan-pendukung-select");
+            const bahanSelect = row.querySelector(".bahan-baku-select");
             if (bahanSelect && bahanSelect.value) {
                 const option = bahanSelect.options[bahanSelect.selectedIndex];
                 updateConversionDisplay(row, option);
@@ -857,34 +660,6 @@ function addBahanBakuRow() {
     return false;
 }
 
-function addBahanPendukungRow() {
-    console.log("➕ Adding Bahan Pendukung row");
-    
-    const newRow = document.getElementById("newBahanPendukungRow");
-    if (!newRow) {
-        console.error("❌ Template row not found");
-        return false;
-    }
-    
-    const tbody = newRow.parentElement;
-    const clone = newRow.cloneNode(true);
-    clone.classList.remove("d-none");
-    clone.id = "bahanPendukung_" + Date.now();
-    
-    // Update name attributes
-    const timestamp = Date.now();
-    clone.querySelectorAll('[name^="bahan_pendukung[new]"]').forEach(input => {
-        const fieldName = input.name.match(/\[new\]\[(\w+)\]/)[1];
-        input.name = `bahan_pendukung[${timestamp}][${fieldName}]`;
-        input.value = "";
-    });
-    
-    tbody.insertBefore(clone, newRow);
-    addRowEventListeners(clone);
-    
-    console.log("✅ Bahan Pendukung row added");
-    return false;
-}
 
 // Test functions for debugging
 function testConversionFunction() {
@@ -1044,7 +819,6 @@ function emergencyDebug() {
 
 // Make functions global
 window.addBahanBakuRow = addBahanBakuRow;
-window.addBahanPendukungRow = addBahanPendukungRow;
 window.emergencyDebug = emergencyDebug;
 window.testConversionFunction = testConversionFunction;
 window.testSubtotalCalculation = testSubtotalCalculation;
@@ -1058,7 +832,6 @@ document.addEventListener("DOMContentLoaded", function() {
     
     // Attach button listeners
     const addBBBtn = document.getElementById("addBahanBaku");
-    const addBPBtn = document.getElementById("addBahanPendukung");
     
     if (addBBBtn) {
         addBBBtn.addEventListener("click", function(e) {
@@ -1066,14 +839,6 @@ document.addEventListener("DOMContentLoaded", function() {
             addBahanBakuRow();
         });
         console.log("✅ BB button attached");
-    }
-    
-    if (addBPBtn) {
-        addBPBtn.addEventListener("click", function(e) {
-            e.preventDefault();
-            addBahanPendukungRow();
-        });
-        console.log("✅ BP button attached");
     }
     
     // CRITICAL: Initialize existing rows from database
@@ -1106,32 +871,6 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
         
-        // Initialize existing Bahan Pendukung rows
-        const existingBPRows = document.querySelectorAll("#bahanPendukungTable tbody tr:not(#newBahanPendukungRow):not(.d-none)");
-        console.log(`📦 Found ${existingBPRows.length} existing Bahan Pendukung rows`);
-        
-        existingBPRows.forEach((row, index) => {
-            console.log(`🔧 Initializing BP row ${index + 1}`);
-            
-            // Add event listeners to the row
-            addRowEventListeners(row);
-            
-            // Trigger initial calculations
-            const bahanSelect = row.querySelector(".bahan-pendukung-select");
-            const satuanSelect = row.querySelector(".satuan-select");
-            
-            if (bahanSelect && bahanSelect.value) {
-                const option = bahanSelect.options[bahanSelect.selectedIndex];
-                if (option && option.dataset.harga) {
-                    // Update conversion display
-                    updateConversionDisplay(row, option);
-                    
-                    // Calculate subtotal
-                    calculateRowSubtotal(row);
-                }
-            }
-        });
-        
         // Calculate totals after all rows initialized
         setTimeout(() => {
             calculateTotals();
@@ -1142,11 +881,6 @@ document.addEventListener("DOMContentLoaded", function() {
         if (existingBBRows.length === 0) {
             console.log("🚀 Auto-adding first Bahan Baku row");
             addBahanBakuRow();
-        }
-        
-        if (existingBPRows.length === 0) {
-            console.log("🚀 Auto-adding first Bahan Pendukung row");
-            addBahanPendukungRow();
         }
     }, 500);
     
