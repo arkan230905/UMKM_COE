@@ -62,7 +62,7 @@
                                 @else
                                     Semua Periode
                                 @endif
-                                <br><i class="fas fa-info-circle me-1"></i>Sudah termasuk PPN 11%
+                                <br><i class="fas fa-info-circle me-1"></i>Sudah termasuk PPN (sesuai pembelian)
                             </small>
                         </div>
                     </div>
@@ -77,7 +77,7 @@
                             <th style="width:5%">No</th>
                             <th>No. Retur</th>
                             <th>Tanggal</th>
-                            <th>Nomor Transaksi</th>
+                            <th>No. Transaksi</th>
                             <th>Vendor</th>
                             <th>Jenis Retur</th>
                             <th>Item Diretur</th>
@@ -137,12 +137,14 @@
                                 <td class="text-end">
                                     @php
                                         $subtotal = $return->total_retur ?? 0;
-                                        $ppnAmount = $subtotal * 0.11;
+                                        // Get PPN from pembelian, default to 11% if not set
+                                        $ppnPersen = $return->pembelian->ppn_persen ?? 11;
+                                        $ppnAmount = $subtotal * ($ppnPersen / 100);
                                         $totalWithPpn = $subtotal + $ppnAmount;
                                     @endphp
                                     <div class="small text-muted">
                                         Subtotal: Rp {{ number_format($subtotal, 0, ',', '.') }}<br>
-                                        PPN 11%: Rp {{ number_format($ppnAmount, 0, ',', '.') }}
+                                        PPN {{ $ppnPersen }}%: Rp {{ number_format($ppnAmount, 0, ',', '.') }}
                                     </div>
                                     <strong class="text-primary">Rp {{ number_format($totalWithPpn, 0, ',', '.') }}</strong>
                                 </td>

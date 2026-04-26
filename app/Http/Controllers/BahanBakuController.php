@@ -7,13 +7,17 @@ use App\Models\Satuan;
 use App\Services\BomSyncService;
 use App\Services\BahanBakuService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BahanBakuController extends Controller
 {
     // Menampilkan semua data bahan baku
     public function index()
     {
-        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])->get();
+        // Sort by created_at ascending (oldest to newest)
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])
+            ->orderBy('created_at', 'asc')
+            ->get();
         
         // Hitung harga rata-rata untuk setiap bahan baku
         foreach ($bahanBaku as $bahan) {

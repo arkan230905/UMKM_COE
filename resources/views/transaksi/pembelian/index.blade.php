@@ -2,7 +2,42 @@
 
 @section('title', 'Daftar Pembelian')
 
+@push('styles')
+<style>
+    .nav-tabs .nav-link {
+        color: #6c757d;
+        border: 1px solid transparent;
+        border-top-left-radius: 0.375rem;
+        border-top-right-radius: 0.375rem;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        border-color: #e9ecef #e9ecef #dee2e6;
+        isolation: isolate;
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #495057;
+        background-color: #fff;
+        border-color: #dee2e6 #dee2e6 #fff;
+    }
+    
+    /* Table styling for better layout */
+    .nowrap {
+        white-space: nowrap;
+    }
+    
+    .table td, .table th {
+        vertical-align: middle;
+    }
+</style>
+@endpush
+
 @section('content')
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
@@ -41,6 +76,26 @@
         </li>
     </ul>
 
+    <!-- Alert Messages -->
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <!-- Tab Content -->
     <div class="tab-content" id="pembelianTabsContent">
         <!-- Pembelian Tab -->
@@ -60,28 +115,6 @@
         </div>
     </div>
 </div>
-
-@push('styles')
-<style>
-    .nav-tabs .nav-link {
-        color: #6c757d;
-        border: 1px solid transparent;
-        border-top-left-radius: 0.375rem;
-        border-top-right-radius: 0.375rem;
-    }
-    
-    .nav-tabs .nav-link:hover {
-        border-color: #e9ecef #e9ecef #dee2e6;
-        isolation: isolate;
-    }
-    
-    .nav-tabs .nav-link.active {
-        color: #495057;
-        background-color: #fff;
-        border-color: #dee2e6 #dee2e6 #fff;
-    }
-</style>
-@endpush
 
 @push('scripts')
 <script>
@@ -109,6 +142,58 @@
         const currentTab = '{{ request("tab", "pembelian") }}';
         updateTabActions(currentTab);
         
+        // Check if we just created a new retur
+        @if(session('new_retur_created') && !session('success'))
+        console.log('New retur created session detected');
+        console.log('Current tab:', currentTab);
+        console.log('Session data:', {
+            new_retur_created: {{ session('new_retur_created') ? 'true' : 'false' }},
+            new_retur_id: {{ session('new_retur_id') ?? 'null' }}
+        });
+        
+        // Ensure we're on the retur tab
+        if (currentTab !== 'retur') {
+            // Switch to retur tab automatically
+            const returTab = document.querySelector('#retur-tab');
+            if (returTab) {
+                returTab.click();
+            }
+        }
+        
+        // Show success message immediately without forcing reload
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            <i class="fas fa-check-circle me-2"></i>Retur baru berhasil dibuat dan data telah dimuat!
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Insert alert at the top of the page
+        const container = document.querySelector('.container-fluid');
+        if (container) {
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(function() {
+                alertDiv.remove();
+            }, 5000);
+        }
+        
+        // Auto-scroll to new retur row after tab switch
+        setTimeout(function() {
+            const newReturRow = document.querySelector('tr.table-success');
+            if (newReturRow) {
+                newReturRow.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+                
+                // Add pulse animation
+                newReturRow.style.animation = 'pulse 2s ease-in-out';
+            }
+        }, 1000);
+        @endif
+        
         tabButtons.forEach(button => {
             button.addEventListener('shown.bs.tab', function (event) {
                 const tabId = event.target.getAttribute('aria-controls');
@@ -126,5 +211,18 @@
         });
     });
 </script>
+
+<style>
+/* Animation for new retur highlight */
+@keyframes pulse {
+    0% { background-color: #d1e7dd; }
+    50% { background-color: #a3d9a4; }
+    100% { background-color: #d1e7dd; }
+}
+
+.table-success {
+    background-color: #d1e7dd !important;
+}
+</style>
 @endpush
 @endsection

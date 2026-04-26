@@ -462,26 +462,25 @@ class BahanPendukungObserver
      */
     private function ensureInitialStockMovement(BahanPendukung $bahanPendukung): void
     {
-        // Check if initial stock movement already exists
-        $hasInitialStock = \App\Models\StockMovement::where('item_type', 'support')
+        // Check if ANY stock movement already exists for this item
+        $hasAnyStockMovement = \App\Models\StockMovement::where('item_type', 'support')
             ->where('item_id', $bahanPendukung->id)
-            ->where('ref_type', 'initial_stock')
             ->exists();
             
-        if (!$hasInitialStock) {
-            // Create initial stock movement
-            $stokAwal = $bahanPendukung->stok ?? 0;
-            $hargaRataRata = $bahanPendukung->harga_rata_rata ?? 0;
+        if (!$hasAnyStockMovement && ($bahanPendukung->saldo_awal ?? 0) > 0) {
+            // Create initial stock movement using saldo_awal
+            $stokAwal = $bahanPendukung->saldo_awal ?? 0;
+            $hargaSatuan = $bahanPendukung->harga_satuan ?? 0;
             
             \App\Models\StockMovement::create([
                 'item_type' => 'support',
                 'item_id' => $bahanPendukung->id,
-                'tanggal' => '2026-04-01', // Set consistent initial date
+                'tanggal' => now()->format('Y-m-d'),
                 'direction' => 'in',
                 'qty' => $stokAwal,
-                'satuan' => $bahanPendukung->satuan->nama ?? 'Unit',
-                'unit_cost' => $hargaRataRata,
-                'total_cost' => $stokAwal * $hargaRataRata,
+                'unit' => $bahanPendukung->satuanRelation->nama ?? 'Unit',
+                'unit_cost' => $hargaSatuan,
+                'total_cost' => $stokAwal * $hargaSatuan,
                 'ref_type' => 'initial_stock',
                 'ref_id' => 0,
                 'keterangan' => 'Stok awal ' . $bahanPendukung->nama_bahan,
@@ -490,7 +489,15 @@ class BahanPendukungObserver
             Log::info('Created initial stock movement for new bahan pendukung', [
                 'item_id' => $bahanPendukung->id,
                 'nama_bahan' => $bahanPendukung->nama_bahan,
-                'stok_awal' => $stokAwal
+                'saldo_awal' => $stokAwal,
+                'harga_satuan' => $hargaSatuan
+            ]);
+        } else {
+            Log::info('Skipped creating initial stock movement - already exists or no saldo_awal', [
+                'item_id' => $bahanPendukung->id,
+                'nama_bahan' => $bahanPendukung->nama_bahan,
+                'has_movement' => $hasAnyStockMovement,
+                'saldo_awal' => $bahanPendukung->saldo_awal ?? 0
             ]);
         }
     }

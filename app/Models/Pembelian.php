@@ -241,11 +241,53 @@ class Pembelian extends Model
                 $tanggal = $pembelian->tanggal ?? now();
                 $date = is_string($tanggal) ? $tanggal : $tanggal->format('Ymd');
                 
-                // Hitung jumlah pembelian hari ini
-                $count = static::whereDate('tanggal', $tanggal)->count() + 1;
+                // Generate unique nomor pembelian dengan retry mechanism
+                $maxRetries = 10;
+                $attempt = 0;
                 
-                // Format: PB-YYYYMMDD-0001
-                $pembelian->nomor_pembelian = 'PB-' . $date . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+                do {
+                    // Cari nomor terakhir GLOBAL (semua tanggal) untuk urutan berurutan
+                    // Ambil semua nomor dan cari yang tertinggi, abaikan duplikasi
+                    $allNumbers = static::where('nomor_pembelian', 'like', 'PB-%')
+                        ->where('nomor_pembelian', 'REGEXP', '^PB-[0-9]{8}-[0-9]{4}$')
+                        ->pluck('nomor_pembelian')
+                        ->toArray();
+                    
+                    $highestSequence = 0;
+                    foreach ($allNumbers as $number) {
+                        $parts = explode('-', $number);
+                        if (count($parts) === 3) {
+                            $sequence = intval(end($parts));
+                            if ($sequence > $highestSequence) {
+                                $highestSequence = $sequence;
+                            }
+                        }
+                    }
+                    
+                    // Selalu gunakan urutan tertinggi + 1 untuk menghindari konflik
+                    $nextSequence = $highestSequence + 1;
+                    
+                    // Format: PB-YYYYMMDD-0001 (urutan global berurutan)
+                    $nomorPembelian = 'PB-' . $date . '-' . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+                    
+                    // Cek apakah nomor sudah ada (untuk memastikan unique)
+                    $exists = static::where('nomor_pembelian', $nomorPembelian)->exists();
+                    
+                    if (!$exists) {
+                        $pembelian->nomor_pembelian = $nomorPembelian;
+                        break;
+                    }
+                    
+                    $attempt++;
+                    
+                    // Jika sudah mencoba berkali-kali, tambahkan timestamp untuk memastikan unique
+                    if ($attempt >= $maxRetries) {
+                        $timestamp = now()->format('His'); // HHMMSS
+                        $pembelian->nomor_pembelian = 'PB-' . $date . '-' . $timestamp;
+                        break;
+                    }
+                    
+                } while ($attempt < $maxRetries);
             }
         });
         

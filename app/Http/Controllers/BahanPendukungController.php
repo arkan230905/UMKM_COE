@@ -7,6 +7,7 @@ use App\Models\KategoriBahanPendukung;
 use App\Models\Satuan;
 use App\Services\BomSyncService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BahanPendukungController extends Controller
 {
@@ -35,7 +36,8 @@ class BahanPendukungController extends Controller
             });
         }
         
-        $bahanPendukungs = $query->orderBy('nama_bahan')->paginate(15);
+        // Sort by created_at ascending (oldest to newest)
+        $bahanPendukungs = $query->orderBy('created_at', 'asc')->paginate(15);
         $kategoris = KategoriBahanPendukung::active()->orderBy('nama')->get();
         
         \Log::info('Bahan Pendukung loaded', [
@@ -150,24 +152,8 @@ class BahanPendukungController extends Controller
         $validated['saldo_awal'] = $request->stok ?? 0;
 
         // Create bahan pendukung
+        // Stock movement will be created automatically by the model's setStokAttribute setter
         $bahanPendukung = BahanPendukung::create($validated);
-
-        // Create initial stock movement if stock > 0
-        if (($request->stok ?? 0) > 0) {
-            \App\Models\StockMovement::create([
-                'item_type' => 'support',
-                'item_id' => $bahanPendukung->id,
-                'tanggal' => now()->format('Y-m-d'),
-                'direction' => 'in',
-                'qty' => $request->stok,
-                'satuan' => $bahanPendukung->satuan->nama ?? 'Unit',
-                'unit_cost' => $request->harga_satuan ?? 0,
-                'total_cost' => ($request->stok ?? 0) * ($request->harga_satuan ?? 0),
-                'ref_type' => 'initial_stock',
-                'ref_id' => 0,
-                'keterangan' => 'Stok awal ' . $request->nama_bahan,
-            ]);
-        }
 
         return redirect()->route('master-data.bahan-pendukung.index')
             ->with('success', 'Bahan pendukung berhasil ditambahkan');
@@ -205,49 +191,100 @@ class BahanPendukungController extends Controller
 
     public function update(Request $request, BahanPendukung $bahanPendukung)
     {
-        // Convert comma decimal inputs to dot format for validation and storage
-        $this->convertCommaToDecimal($request);
-        
-        $validated = $request->validate([
-            'nama_bahan' => 'required|string|max:255',
-            'deskripsi' => 'nullable|string',
-            'satuan_id' => 'required|exists:satuans,id',
-            'harga_satuan' => 'required|numeric|min:0',
-            'stok' => 'nullable|numeric|min:0',
-            'stok_minimum' => 'nullable|numeric|min:0',
-            'kategori_id' => 'required|exists:kategori_bahan_pendukung,id',
-            'sub_satuan_1_id' => 'required|exists:satuans,id',
-            'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
-            'sub_satuan_1_nilai' => 'required|numeric',
-            'sub_satuan_2_id' => 'nullable|exists:satuans,id',
-            'sub_satuan_2_konversi' => 'nullable|numeric|min:0.01',
-            'sub_satuan_2_nilai' => 'nullable|numeric',
-            'sub_satuan_3_id' => 'nullable|exists:satuans,id',
-            'sub_satuan_3_konversi' => 'nullable|numeric|min:0.01',
-            'sub_satuan_3_nilai' => 'nullable|numeric',
-            'coa_pembelian_id' => 'nullable|exists:coas,kode_akun',
-            'coa_persediaan_id' => 'nullable|exists:coas,kode_akun',
-            'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
-        ]);
+        try {
+            \Log::info('BahanPendukung update started', [
+                'id' => $bahanPendukung->id,
+                'request_data' => $request->all(),
+                'request_method' => $request->method(),
+                'request_url' => $request->url()
+            ]);
+            
+            // Convert comma decimal inputs to dot format for validation and storage
+            $this->convertCommaToDecimal($request);
+            
+            \Log::info('After decimal conversion', [
+                'converted_data' => $request->all(),
+                'has_nama_bahan' => $request->has('nama_bahan'),
+                'nama_bahan_value' => $request->input('nama_bahan'),
+                'current_nama_bahan' => $bahanPendukung->nama_bahan,
+                'kategori_id_value' => $request->input('kategori_id'),
+                'has_kategori_id' => $request->has('kategori_id')
+            ]);
+            
+            // Proper validation rules
+            $validated = $request->validate([
+                'nama_bahan' => 'required|string|max:255|unique:bahan_pendukungs,nama_bahan,' . $bahanPendukung->id,
+                'deskripsi' => 'nullable|string',
+                'satuan_id' => 'required|exists:satuans,id',
+                'harga_satuan' => 'required|numeric|min:0',
+                'stok' => 'nullable|numeric|min:0',
+                'stok_minimum' => 'nullable|numeric|min:0',
+                'kategori_id' => 'required|exists:kategori_bahan_pendukung,id',
+                'sub_satuan_1_id' => 'required|exists:satuans,id',
+                'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
+                'sub_satuan_1_nilai' => 'required|numeric|min:0.01',
+                'sub_satuan_2_id' => 'nullable|exists:satuans,id',
+                'sub_satuan_2_konversi' => 'nullable|numeric|min:0.01',
+                'sub_satuan_2_nilai' => 'nullable|numeric|min:0.01',
+                'sub_satuan_3_id' => 'nullable|exists:satuans,id',
+                'sub_satuan_3_konversi' => 'nullable|numeric|min:0.01',
+                'sub_satuan_3_nilai' => 'nullable|numeric|min:0.01',
+                'coa_pembelian_id' => 'nullable|exists:coas,kode_akun',
+                'coa_persediaan_id' => 'nullable|exists:coas,kode_akun',
+                'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
+            ]);
 
-        // Handle checkbox - tidak perlu validasi boolean
-        $validated['is_active'] = $request->has('is_active');
-        
-        // Add COA fields to validated data
-        $validated['coa_pembelian_id'] = $request->coa_pembelian_id;
-        $validated['coa_persediaan_id'] = $request->coa_persediaan_id;
-        $validated['coa_hpp_id'] = $request->coa_hpp_id;
-        
-        // Map stok to saldo_awal
-        $validated['saldo_awal'] = $request->stok ?? 0;
-        
-        $bahanPendukung->update($validated);
-        
-        // Sync BOM when bahan pendukung price changes
-        BomSyncService::syncBomFromMaterialChange('bahan_pendukung', $bahanPendukung->id);
-        
-        return redirect()->route('master-data.bahan-pendukung.index')
-            ->with('success', 'Bahan pendukung berhasil diperbarui');
+            \Log::info('Validation passed', [
+                'validated_data' => $validated
+            ]);
+
+            // Handle checkbox - tidak perlu validasi boolean
+            $validated['is_active'] = $request->has('is_active');
+            
+            // Add COA fields to validated data
+            $validated['coa_pembelian_id'] = $request->coa_pembelian_id;
+            $validated['coa_persediaan_id'] = $request->coa_persediaan_id;
+            $validated['coa_hpp_id'] = $request->coa_hpp_id;
+            
+            // Map stok to saldo_awal
+            $validated['saldo_awal'] = $request->stok ?? 0;
+            
+            \Log::info('Before update', [
+                'final_data' => $validated
+            ]);
+            
+            $bahanPendukung->update($validated);
+            
+            \Log::info('BahanPendukung updated successfully', [
+                'id' => $bahanPendukung->id,
+                'nama_bahan' => $bahanPendukung->nama_bahan,
+                'updated_fields' => array_keys($validated)
+            ]);
+            
+            // Sync BOM when bahan pendukung price changes
+            BomSyncService::syncBomFromMaterialChange('bahan_pendukung', $bahanPendukung->id);
+            
+            return redirect()->route('master-data.bahan-pendukung.index')
+                ->with('success', 'Bahan pendukung berhasil diperbarui');
+                
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation failed in BahanPendukung update', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
+            
+            return back()->withErrors($e->errors())->withInput();
+            
+        } catch (\Exception $e) {
+            \Log::error('Error updating BahanPendukung', [
+                'id' => $bahanPendukung->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->with('error', 'Terjadi kesalahan saat memperbarui bahan pendukung: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     public function destroy(BahanPendukung $bahanPendukung)

@@ -226,7 +226,7 @@ class JournalService
         $ppnNominal = (float) ($pembelian->ppn_nominal ?? 0);
         if ($ppnNominal > 0) {
             $lines[] = [
-                'code' => '1130', // PPN Masukan
+                'code' => '127', // PPN Masukan
                 'debit' => $ppnNominal,
                 'credit' => 0,
                 'memo' => 'PPN Masukan ' . ($pembelian->ppn_persen ?? 0) . '%'

@@ -10,7 +10,7 @@
             <input type="hidden" name="tab" value="pembelian">
             <div class="row g-3">
                 <div class="col-md-3">
-                    <label class="form-label">Nomor Transaksi</label>
+                    <label class="form-label">No Transaksi</label>
                     <input type="text" name="nomor_transaksi" class="form-control" 
                            value="{{ request('nomor_transaksi') }}" placeholder="Cari nomor transaksi...">
                 </div>
@@ -90,20 +90,20 @@
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0" style="min-width: 1200px;">
                 <thead class="table-light">
                     <tr>
                         <th class="text-center" style="width: 50px">No</th>
-                        <th>Nomor Transaksi</th>
-                        <th>Nomor Faktur</th>
-                        <th>Tanggal</th>
-                        <th>Vendor</th>
-                        <th>Item Dibeli</th>
-                        <th>Satuan Pembelian</th>
-                        <th>Pembayaran</th>
-                        <th>Status Pembayaran</th>
-                        <th>Total Harga</th>
-                        <th>Status Retur</th>
+                        <th class="nowrap">No. Transaksi</th>
+                        <th class="nowrap">No. Faktur</th>
+                        <th class="nowrap">Tanggal</th>
+                        <th class="nowrap">Vendor</th>
+                        <th class="nowrap">Item</th>
+                        <th class="nowrap">Satuan Pembelian</th>
+                        <th class="nowrap">Pembayaran</th>
+                        <th class="nowrap">Status Pembayaran</th>
+                        <th class="nowrap">Total Harga</th>
+                        <th class="nowrap">Status Retur</th>
                         <th class="text-center" style="width: 180px">Aksi</th>
                     </tr>
                 </thead>
@@ -111,16 +111,16 @@
                     @forelse ($pembelians as $key => $pembelian)
                         <tr>
                             <td class="text-center">{{ $key + 1 }}</td>
-                            <td style="color: #000; font-weight: bold;">{{ $pembelian->nomor_pembelian ?? 'KOSONG' }}</td>
-                            <td>
+                            <td class="nowrap" style="color: #000; font-weight: bold;">{{ $pembelian->nomor_pembelian ?? 'KOSONG' }}</td>
+                            <td class="nowrap">
                                 @if($pembelian->nomor_faktur)
                                     {{ $pembelian->nomor_faktur }}
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td>{{ $pembelian->tanggal->format('d-m-Y') }}</td>
-                            <td>
+                            <td class="nowrap">{{ $pembelian->tanggal->format('d-m-Y') }}</td>
+                            <td class="nowrap">
                                 <div class="d-flex align-items-center">
                                     <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
                                         <i class="fas fa-store text-primary"></i>
@@ -130,7 +130,7 @@
                                     </div>
                                 </div>
                             </td>
-                            <td>
+                            <td class="nowrap">
                                 @if($pembelian->details && $pembelian->details->count() > 0)
                                     @foreach($pembelian->details as $detail)
                                         <div class="mb-1">
@@ -147,7 +147,7 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td>
+                            <td class="nowrap">
                                 @if($pembelian->details && $pembelian->details->count() > 0)
                                     <small>
                                     @foreach($pembelian->details as $detail)
@@ -160,7 +160,7 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td>
+                            <td class="nowrap">
                                 @php
                                     $paymentMethod = $pembelian->payment_method ?? 'cash';
                                     if ($paymentMethod === 'credit') {
@@ -173,7 +173,7 @@
                                 @endphp
                                 {{ $paymentText }}
                             </td>
-                            <td>
+                            <td class="nowrap">
                                 @php
                                     $statusPembayaran = $pembelian->status_pembayaran;
                                 @endphp
@@ -183,10 +183,10 @@
                                     <span class="text-warning fw-semibold">Belum Lunas</span>
                                 @endif
                             </td>
-                            <td class="text-end fw-semibold">
+                            <td class="nowrap text-end fw-semibold">
                                 Rp {{ number_format($pembelian->total_harga ?? 0, 0, ',', '.') }}
                             </td>
-                            <td>
+                            <td class="nowrap">
                                 @php
                                     // Cek apakah ada retur untuk pembelian ini
                                     $hasRetur = \App\Models\PurchaseReturn::where('pembelian_id', $pembelian->id)->exists();
@@ -217,7 +217,7 @@
                                     
                                     <!-- Row 3: Cetak -->
                                     <a href="{{ route('transaksi.pembelian.preview-faktur', $pembelian->id) }}" class="btn btn-sm btn-outline-info w-100" title="Cetak Faktur" target="_blank">
-                                        🖨️ Cetak
+                                        Cetak
                                     </a>
                                     
                                     <!-- Row 4: Hapus -->

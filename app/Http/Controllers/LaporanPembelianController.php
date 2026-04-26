@@ -53,37 +53,93 @@ class LaporanPembelianController extends Controller
         });
         
         $totalPembelianTunai = Pembelian::where('payment_method', 'cash')
-            ->when($request->filled('start_date') && $request->filled('end_date'), function($q) use ($request) {
-                return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
+            ->when($request->filled('start_date'), function($q) use ($request) {
+                return $q->whereDate('tanggal', '>=', $request->start_date);
+            })
+            ->when($request->filled('end_date'), function($q) use ($request) {
+                return $q->whereDate('tanggal', '<=', $request->end_date);
             })
             ->when($request->filled('vendor_id'), function($q) use ($request) {
                 return $q->where('vendor_id', $request->vendor_id);
             })
             ->get()->sum(function($p) {
+                $totalPembelian = 0;
                 if ($p->details && $p->details->count() > 0) {
                     $totalPembelian = $p->details->sum(function($detail) {
                         return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
                     });
-                } else {
-                    $totalPembelian = $p->total_harga ?? 0;
+                }
+                if ($p->total_harga > $totalPembelian) {
+                    $totalPembelian = $p->total_harga;
+                }
+                return $totalPembelian;
+            });
+        
+        $totalPembelianKredit = Pembelian::where('payment_method', 'credit')
+            ->when($request->filled('start_date'), function($q) use ($request) {
+                return $q->whereDate('tanggal', '>=', $request->start_date);
+            })
+            ->when($request->filled('end_date'), function($q) use ($request) {
+                return $q->whereDate('tanggal', '<=', $request->end_date);
+            })
+            ->when($request->filled('vendor_id'), function($q) use ($request) {
+                return $q->where('vendor_id', $request->vendor_id);
+            })
+            ->get()->sum(function($p) {
+                $totalPembelian = 0;
+                if ($p->details && $p->details->count() > 0) {
+                    $totalPembelian = $p->details->sum(function($detail) {
+                        return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                    });
+                }
+                if ($p->total_harga > $totalPembelian) {
+                    $totalPembelian = $p->total_harga;
+                }
+                return $totalPembelian;
+            });
+        
+        $totalPembelianNonTunai = Pembelian::where('payment_method', 'transfer')
+            ->when($request->filled('start_date'), function($q) use ($request) {
+                return $q->whereDate('tanggal', '>=', $request->start_date);
+            })
+            ->when($request->filled('end_date'), function($q) use ($request) {
+                return $q->whereDate('tanggal', '<=', $request->end_date);
+            })
+            ->when($request->filled('vendor_id'), function($q) use ($request) {
+                return $q->where('vendor_id', $request->vendor_id);
+            })
+            ->get()->sum(function($p) {
+                $totalPembelian = 0;
+                if ($p->details && $p->details->count() > 0) {
+                    $totalPembelian = $p->details->sum(function($detail) {
+                        return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
+                    });
+                }
+                if ($p->total_harga > $totalPembelian) {
+                    $totalPembelian = $p->total_harga;
                 }
                 return $totalPembelian;
             });
         
         $totalPembelianBelumLunas = Pembelian::where('payment_method', 'credit')
-            ->when($request->filled('start_date') && $request->filled('end_date'), function($q) use ($request) {
-                return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
+            ->when($request->filled('start_date'), function($q) use ($request) {
+                return $q->whereDate('tanggal', '>=', $request->start_date);
+            })
+            ->when($request->filled('end_date'), function($q) use ($request) {
+                return $q->whereDate('tanggal', '<=', $request->end_date);
             })
             ->when($request->filled('vendor_id'), function($q) use ($request) {
                 return $q->where('vendor_id', $request->vendor_id);
             })
             ->get()->sum(function($p) {
+                $total = 0;
                 if ($p->details && $p->details->count() > 0) {
                     $total = $p->details->sum(function($detail) {
                         return ($detail->jumlah ?? 0) * ($detail->harga_satuan ?? 0);
                     });
-                } else {
-                    $total = $p->total_harga ?? 0;
+                }
+                if ($p->total_harga > $total) {
+                    $total = $p->total_harga;
                 }
                 $sisaUtang = max(0, $total - ($p->terbayar ?? 0));
                 return $sisaUtang;
@@ -113,6 +169,8 @@ class LaporanPembelianController extends Controller
             'vendors', 
             'totalPembelianFiltered',
             'totalPembelianTunai',
+            'totalPembelianKredit',
+            'totalPembelianNonTunai',
             'totalPembelianBelumLunas',
             'purchaseReturns',
             'totalPurchaseReturns'

@@ -68,7 +68,7 @@ class AppServiceProvider extends ServiceProvider
         
         // Real-time stock tracking observers
         PembelianDetail::observe(PembelianDetailObserver::class);
-        Pembelian::observe(PembelianObserver::class);
+        // Pembelian::observe(PembelianObserver::class); // REMOVED: Duplicate registration (already in EventServiceProvider)
         ProduksiDetail::observe(ProduksiDetailObserver::class);
         PenjualanDetail::observe(PenjualanDetailObserver::class);
 

@@ -2817,15 +2817,157 @@ Route::middleware('auth')->group(function () {
             Route::get('/', [ReturController::class, 'indexPembelian'])->name('index');
             Route::get('/create', [ReturController::class, 'createPembelian'])->name('create');
             Route::post('/', [ReturController::class, 'storePembelian'])->name('store');
-            Route::put('/update-status/{id}', [ReturController::class, 'updateStatus'])->name('update-status');
             Route::get('/{id}', [ReturController::class, 'showPembelian'])->name('show');
             Route::delete('/{id}', [ReturController::class, 'destroyPembelian'])->name('destroy');
             
-            // New simplified action routes
-            Route::get('/{id}/acc', [ReturController::class, 'acc'])->name('acc');
-            Route::get('/{id}/kirim', [ReturController::class, 'kirim'])->name('kirim');
-            Route::get('/{id}/terima-barang', [ReturController::class, 'terimaBarang'])->name('terimaBarang');
-            Route::get('/{id}/terima-refund', [ReturController::class, 'terimaRefund'])->name('terimaRefund');
+            // Status update routes
+            Route::put('/{id}/update-status', [ReturController::class, 'updateStatusRetur'])->name('update-status');
+            Route::post('/{id}/approve', [ReturController::class, 'approveRetur'])->name('approve');
+            Route::post('/{id}/reject', [ReturController::class, 'rejectRetur'])->name('reject');
+            Route::post('/{id}/send', [ReturController::class, 'sendRetur'])->name('send');
+            Route::post('/{id}/complete', [ReturController::class, 'completeRetur'])->name('complete');
+            
+            // Debug route for testing retur data loading
+            Route::get('/debug-data', function() {
+                $returs = \App\Models\PurchaseReturn::with(['items.bahanBaku', 'items.bahanPendukung', 'pembelian.vendor'])
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+                
+                $output = "<h1>DEBUG RETUR DATA</h1>";
+                $output .= "<table border='1' style='border-collapse:collapse;'>";
+                $output .= "<tr><th>ID</th><th>Return Number</th><th>Status</th><th>Jenis Retur</th><th>Vendor</th><th>Actions Available</th></tr>";
+                
+                foreach ($returs as $retur) {
+                    $nextStatuses = [
+                        'pending' => ['disetujui' => 'Setujui', 'ditolak' => 'Tolak'],
+                        'disetujui' => ['dikirim' => 'Kirim'],
+                        'dikirim' => ['selesai' => 'Selesai'],
+                        'ditolak' => [],
+                        'selesai' => [],
+                    ];
+                    
+                    $actions = $nextStatuses[$retur->status] ?? [];
+                    $actionsList = implode(', ', array_values($actions));
+                    
+                    $output .= "<tr>";
+                    $output .= "<td>{$retur->id}</td>";
+                    $output .= "<td>{$retur->return_number}</td>";
+                    $output .= "<td><strong>{$retur->status}</strong></td>";
+                    $output .= "<td>{$retur->jenis_retur}</td>";
+                    $output .= "<td>{$retur->pembelian}>vendor->nama ?? 'N/A'}</td>";
+                    $output .= "<td>{$actionsList}</td>";
+                    $output .= "</tr>";
+                }
+                
+                $output .= "</table>";
+                
+                return $output;
+            })->name('debug-data');
+            Route::get('/debug-data', function() {
+                $returs = \App\Models\PurchaseReturn::with(['pembelian.vendor', 'items.bahanBaku', 'items.bahanPendukung'])
+                    ->latest('created_at')
+                    ->get();
+                    
+                $output = "<h1>Debug Retur Data</h1>";
+                $output .= "<p>Total returs: " . $returs->count() . "</p>";
+                
+                if ($returs->count() > 0) {
+                    $output .= "<table border='1' style='border-collapse: collapse; width: 100%;'>";
+                    $output .= "<tr><th>ID</th><th>Return Number</th><th>Date</th><th>Status</th><th>Jenis</th><th>Vendor</th></tr>";
+                    
+                    foreach ($returs as $retur) {
+                        $output .= "<tr>";
+                        $output .= "<td>" . $retur->id . "</td>";
+                        $output .= "<td>" . $retur->return_number . "</td>";
+                        $output .= "<td>" . $retur->created_at . "</td>";
+                        $output .= "<td>" . $retur->status . "</td>";
+                        $output .= "<td>" . $retur->jenis_retur . "</td>";
+                        $output .= "<td>" . ($retur->pembelian->vendor->nama_vendor ?? 'N/A') . "</td>";
+                        $output .= "</tr>";
+                    }
+                    
+                    $output .= "</table>";
+                } else {
+                    $output .= "<p>No retur data found.</p>";
+                }
+                
+                $output .= "<p><a href='/transaksi/pembelian?tab=retur'>Go to Pembelian Retur Tab</a></p>";
+                
+                return $output;
+            })->name('debug-data');
+            
+            // Test route to simulate session and check data loading
+            Route::get('/test-session', function() {
+                // Simulate new retur session
+                session(['new_retur_created' => true, 'new_retur_id' => 11]);
+                
+                $output = "<h1>Test Session Set</h1>";
+                $output .= "<p>Session 'new_retur_created': " . (session('new_retur_created') ? 'true' : 'false') . "</p>";
+                $output .= "<p>Session 'new_retur_id': " . (session('new_retur_id') ?? 'null') . "</p>";
+                $output .= "<p><a href='/transaksi/pembelian?tab=retur'>Go to Pembelian Retur Tab (should show debug info and highlight)</a></p>";
+                $output .= "<p><a href='/transaksi/retur-pembelian'>Go to Retur Pembelian Index (standalone page)</a></p>";
+                
+                return $output;
+            })->name('test-session');
+            
+            // Test route to simulate successful retur creation (redirect to tab retur)
+            Route::get('/test-redirect', function() {
+                // Simulate successful retur creation
+                return redirect()->route('transaksi.pembelian.index', ['tab' => 'retur'])
+                    ->with([
+                        'success' => 'Retur berhasil disimpan dan stok telah dikurangi. Menunggu persetujuan vendor untuk tukar barang.',
+                        'new_retur_created' => true,
+                        'new_retur_id' => 11
+                    ]);
+            })->name('test-redirect');
+            
+            // Test route to debug form submission
+            Route::post('/test-store', function(\Illuminate\Http\Request $request) {
+                \Log::info('Test store called with data:', $request->all());
+                
+                try {
+                    // Simple test creation
+                    $retur = \App\Models\PurchaseReturn::create([
+                        'pembelian_id' => 24, // Use existing pembelian ID
+                        'return_date' => now()->format('Y-m-d'),
+                        'reason' => 'Test retur',
+                        'jenis_retur' => 'tukar_barang',
+                        'notes' => 'Test notes',
+                        'status' => 'pending',
+                    ]);
+                    
+                    \Log::info('Test retur created:', ['id' => $retur->id, 'return_number' => $retur->return_number]);
+                    
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Test retur created successfully',
+                        'data' => $retur->toArray()
+                    ]);
+                    
+                } catch (\Exception $e) {
+                    \Log::error('Test store error:', [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                    
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Error: ' . $e->getMessage()
+                    ], 500);
+                }
+            })->name('test-store');
+            
+            // Test form page
+            Route::get('/test-form', function() {
+                return '
+                <form action="/transaksi/retur-pembelian/test-store" method="POST">
+                    <input type="hidden" name="_token" value="' . csrf_token() . '">
+                    <button type="submit">Test Create Retur</button>
+                </form>
+                <br>
+                <a href="/transaksi/retur-pembelian/debug-data">Check Debug Data</a>
+                ';
+            })->name('test-form');
             Route::get('debug-stock-pembelian/{pembelianId}', function($pembelianId) {
     $pembelian = \App\Models\Pembelian::with(['details.bahanBaku', 'details.bahanPendukung'])->find($pembelianId);
     
@@ -3137,8 +3279,9 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
             return app()->call('App\Http\Controllers\LaporanController@laporanPembayaranBeban', ['export' => 'pdf']);
         })->name('export.pembayaran-beban');
         
-        Route::get('/export/pelunasan-utang', function() {
-            return app()->call('App\Http\Controllers\LaporanController@laporanPelunasanUtang', ['export' => 'pdf']);
+        Route::get('/export/pelunasan-utang', function(Request $request) {
+            $request->merge(['export' => 'pdf']);
+            return app()->call('App\Http\Controllers\LaporanController@laporanPelunasanUtang');
         })->name('export.pelunasan-utang');
     });
 

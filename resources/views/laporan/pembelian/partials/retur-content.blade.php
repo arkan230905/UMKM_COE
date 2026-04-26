@@ -48,7 +48,7 @@
                     @else
                         Semua Periode
                     @endif
-                    <br><i class="fas fa-info-circle me-1"></i>Sudah termasuk PPN 11%
+                    <br><i class="fas fa-info-circle me-1"></i>Sudah termasuk PPN (sesuai pembelian)
                 </small>
             </div>
         </div>
@@ -59,36 +59,36 @@
 <div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover mb-0 table-retur">
                 <thead class="table-light">
                     <tr>
-                        <th style="width:5%">No</th>
-                        <th>No. Retur</th>
-                        <th>Tanggal</th>
-                        <th>Nomor Transaksi</th>
-                        <th>Vendor</th>
-                        <th>Jenis Retur</th>
-                        <th>Item Diretur</th>
-                        <th>Alasan</th>
-                        <th class="text-end">Total Retur</th>
-                        <th>Status</th>
+                        <th class="text-center" style="width:5%">No</th>
+                        <th class="text-center nowrap">No. Retur</th>
+                        <th class="text-center nowrap">Tanggal</th>
+                        <th class="text-center nowrap">No. Transaksi</th>
+                        <th class="text-center nowrap">Vendor</th>
+                        <th class="text-center nowrap">Jenis Retur</th>
+                        <th class="text-center">Item Diretur</th>
+                        <th class="text-center">Alasan</th>
+                        <th class="text-center nowrap">Total Retur</th>
+                        <th class="text-center nowrap">Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($purchaseReturns ?? [] as $index => $return)
                         <tr>
-                            <td>{{ ($purchaseReturns->firstItem() ?? 0) + $index }}</td>
-                            <td><strong>{{ $return->return_number ?? 'RET-' . str_pad($return->id, 4, '0', STR_PAD_LEFT) }}</strong></td>
-                            <td>{{ $return->return_date ? \Carbon\Carbon::parse($return->return_date)->format('d/m/Y') : '-' }}</td>
-                            <td>
+                            <td class="text-center">{{ ($purchaseReturns->firstItem() ?? 0) + $index }}</td>
+                            <td class="text-center nowrap"><strong>{{ $return->return_number ?? 'RET-' . str_pad($return->id, 4, '0', STR_PAD_LEFT) }}</strong></td>
+                            <td class="text-center nowrap">{{ $return->return_date ? \Carbon\Carbon::parse($return->return_date)->format('d/m/Y') : '-' }}</td>
+                            <td class="text-center nowrap">
                                 @if($return->pembelian)
                                     <strong>{{ $return->pembelian->nomor_pembelian }}</strong>
                                 @else
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td>{{ $return->pembelian->vendor->nama_vendor ?? '-' }}</td>
-                            <td>
+                            <td class="text-center nowrap">{{ $return->pembelian->vendor->nama_vendor ?? '-' }}</td>
+                            <td class="text-center nowrap">
                                 @if($return->jenis_retur === 'tukar_barang')
                                     Tukar Barang
                                 @elseif($return->jenis_retur === 'refund')
@@ -121,20 +121,22 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td>{{ $return->reason ?? '-' }}</td>
-                            <td class="text-end">
+                            <td class="text-center">{{ $return->reason ?? '-' }}</td>
+                            <td class="text-center">
                                 @php
                                     $subtotal = $return->total_retur ?? 0;
-                                    $ppnAmount = $subtotal * 0.11;
+                                    // Get PPN from pembelian, default to 11% if not set
+                                    $ppnPersen = $return->pembelian->ppn_persen ?? 11;
+                                    $ppnAmount = $subtotal * ($ppnPersen / 100);
                                     $totalWithPpn = $subtotal + $ppnAmount;
                                 @endphp
                                 <div class="small text-muted">
                                     Subtotal: Rp {{ number_format($subtotal, 0, ',', '.') }}<br>
-                                    PPN 11%: Rp {{ number_format($ppnAmount, 0, ',', '.') }}
+                                    PPN {{ $ppnPersen }}%: Rp {{ number_format($ppnAmount, 0, ',', '.') }}
                                 </div>
                                 <strong class="text-primary">Rp {{ number_format($totalWithPpn, 0, ',', '.') }}</strong>
                             </td>
-                            <td>
+                            <td class="text-center">
                                 @php
                                     $statusBadge = $return->status_badge ?? ['class' => 'bg-secondary', 'text' => ucfirst($return->status ?? 'Unknown')];
                                 @endphp
