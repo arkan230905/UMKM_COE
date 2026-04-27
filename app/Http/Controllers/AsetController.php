@@ -74,8 +74,29 @@ class AsetController extends Controller
             $totalPerolehan = (float)($aset->harga_perolehan ?? 0) + (float)($aset->biaya_perolehan ?? 0);
             
             if ($aset->umur_manfaat > 0 && $totalPerolehan > 0) {
-                // Gunakan method baru untuk menghitung penyusutan per bulan yang benar
-                $penyusutanPerBulan = $aset->hitungPenyusutanPerBulanSaatIni();
+                // Ambil langsung dari DB — sudah dihitung dengan rumus yang benar
+                $penyusutanPerBulan = (float)($aset->getAttributes()['penyusutan_per_bulan'] ?? 0);
+
+                // Fallback jika DB kosong
+                if ($penyusutanPerBulan <= 0) {
+                    $nilaiResidu  = (float)($aset->nilai_residu ?? 0);
+                    $umur         = (int)$aset->umur_manfaat;
+                    $tglMulai     = $aset->tanggal_akuisisi ?? $aset->tanggal_beli;
+                    $start        = \Carbon\Carbon::parse($tglMulai);
+                    if ($start->day > 15) $start = $start->addMonthNoOverflow()->startOfMonth();
+                    $bulanTersisa = 13 - $start->month;
+
+                    if ($aset->metode_penyusutan === 'saldo_menurun') {
+                        $deprTahun    = $totalPerolehan * (2 / $umur);
+                        $penyusutanPerBulan = ($deprTahun * ($bulanTersisa / 12)) / $bulanTersisa;
+                    } elseif ($aset->metode_penyusutan === 'garis_lurus') {
+                        $penyusutanPerBulan = ($totalPerolehan - $nilaiResidu) / ($umur * 12);
+                    } else {
+                        $sumOfYears = ($umur * ($umur + 1)) / 2;
+                        $deprTahun  = (($totalPerolehan - $nilaiResidu) * $umur) / $sumOfYears;
+                        $penyusutanPerBulan = ($deprTahun * ($bulanTersisa / 12)) / $bulanTersisa;
+                    }
+                }
             } else {
                 $penyusutanPerBulan = 0;
             }
