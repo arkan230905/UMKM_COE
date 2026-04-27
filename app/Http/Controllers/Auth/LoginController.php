@@ -106,8 +106,8 @@ class LoginController extends Controller
             $messages['password.required'] = 'Password wajib diisi.';
         }
         
-        // Untuk role lainnya - kode perusahaan wajib
-        if (in_array($role, ['admin', 'pegawai', 'pegawai_pembelian', 'kasir'])) {
+        // Untuk role lainnya - kode perusahaan wajib (kecuali pegawai)
+        if (in_array($role, ['admin', 'kasir'])) {
             $rules['kode_perusahaan'] = 'required|string';
             $messages['kode_perusahaan.required'] = 'Kode perusahaan wajib diisi.';
         }
@@ -128,7 +128,7 @@ class LoginController extends Controller
         // Login dengan kode perusahaan untuk admin
         if ($role === 'admin') {
             // Validasi kode perusahaan
-            $perusahaan = \App\Models\Company::where('kode_perusahaan', $kodePerusahaan)->first();
+            $perusahaan = \App\Models\Perusahaan::where('kode', $kodePerusahaan)->first();
             if (!$perusahaan) {
                 return back()->withInput()->withErrors(['kode_perusahaan' => 'Kode perusahaan tidak valid.']);
             }
@@ -153,18 +153,12 @@ class LoginController extends Controller
 
         // Login dengan kode perusahaan untuk pegawai
         if ($role === 'pegawai') {
-            // Validasi kode perusahaan
-            $perusahaan = \App\Models\Company::where('kode_perusahaan', $kodePerusahaan)->first();
-            if (!$perusahaan) {
-                return back()->withInput()->withErrors(['kode_perusahaan' => 'Kode perusahaan tidak valid.']);
-            }
-            
-            $pegawai = Pegawai::where('email', $email)->where('perusahaan_id', $perusahaan->id)->first();
-            
+            $pegawai = Pegawai::where('email', $email)->first();
+
             if (!$pegawai) {
-                return back()->withInput()->withErrors(['email' => 'Data pegawai tidak ditemukan di perusahaan ini. Email: ' . $email]);
+                return back()->withInput()->withErrors(['email' => 'Data pegawai tidak ditemukan. Email: ' . $email]);
             }
-            
+
             // Cek apakah user sudah ada untuk pegawai ini
             $user = User::where('email', $email)->first();
             if (!$user) {
@@ -174,50 +168,42 @@ class LoginController extends Controller
                     'password' => Hash::make(Str::random(32)),
                     'role' => User::ROLE_PEGAWAI,
                     'pegawai_id' => $pegawai->id,
-                    'company_id' => $perusahaan->id,
                     'email_verified_at' => now(),
                 ]);
             }
 
-            // Pastikan user terhubung ke pegawai dan perusahaan
-            if (!$user->pegawai_id || !$user->company_id) {
+            // Pastikan user terhubung ke pegawai
+            if (!$user->pegawai_id) {
                 $user->update([
-                    'pegawai_id' => $pegawai->id,
-                    'company_id' => $perusahaan->id
+                    'pegawai_id' => $pegawai->id
                 ]);
             }
-            
+
             if ($user->role !== 'pegawai') {
                 return back()->withInput()->withErrors(['email' => 'Role user tidak sesuai dengan pegawai. Role user saat ini: ' . $user->role]);
             }
-            
-            // Login otomatis dengan kode perusahaan untuk pegawai
+
+            // Login otomatis untuk pegawai
             auth()->login($user);
             $request->session()->regenerate();
-            
+
             return redirect()->intended(route('pegawai.presensi.absen-wajah'));
         }
 
         // Login dengan kode perusahaan untuk pegawai pembelian/gudang
         if ($role === 'pegawai_pembelian') {
-            // Validasi kode perusahaan
-            $perusahaan = \App\Models\Company::where('kode_perusahaan', $kodePerusahaan)->first();
-            if (!$perusahaan) {
-                return back()->withInput()->withErrors(['kode_perusahaan' => 'Kode perusahaan tidak valid.']);
-            }
-            
-            $pegawai = Pegawai::where('email', $email)->where('perusahaan_id', $perusahaan->id)->first();
-            
+            $pegawai = Pegawai::where('email', $email)->first();
+
             if (!$pegawai) {
-                return back()->withInput()->withErrors(['email' => 'Data pegawai tidak ditemukan di perusahaan ini. Email: ' . $email]);
+                return back()->withInput()->withErrors(['email' => 'Data pegawai tidak ditemukan. Email: ' . $email]);
             }
-            
+
             // Cek apakah jabatan pegawai sesuai (gudang atau pembelian)
             $jabatanLower = strtolower($pegawai->jabatan);
             if (!str_contains($jabatanLower, 'gudang') && !str_contains($jabatanLower, 'pembelian')) {
                 return back()->withInput()->withErrors(['email' => 'Jabatan pegawai tidak sesuai. Jabatan saat ini: ' . $pegawai->jabatan . '. Jabatan yang diizinkan: Bagian Gudang atau Pembelian.']);
             }
-            
+
             // Cek apakah user sudah ada untuk pegawai ini
             $user = User::where('email', $email)->first();
             if (!$user) {
@@ -227,34 +213,32 @@ class LoginController extends Controller
                     'password' => Hash::make(Str::random(32)),
                     'role' => User::ROLE_PEGAWAI_PEMBELIAN,
                     'pegawai_id' => $pegawai->id,
-                    'company_id' => $perusahaan->id,
                     'email_verified_at' => now(),
                 ]);
             }
 
-            // Pastikan user terhubung ke pegawai dan perusahaan
-            if (!$user->pegawai_id || !$user->company_id) {
+            // Pastikan user terhubung ke pegawai
+            if (!$user->pegawai_id) {
                 $user->update([
-                    'pegawai_id' => $pegawai->id,
-                    'company_id' => $perusahaan->id
+                    'pegawai_id' => $pegawai->id
                 ]);
             }
-            
+
             if ($user->role !== 'pegawai_pembelian') {
                 return back()->withInput()->withErrors(['email' => 'Role user tidak sesuai dengan pegawai pembelian. Role user saat ini: ' . $user->role]);
             }
-            
-            // Login otomatis dengan kode perusahaan untuk pegawai pembelian
+
+            // Login otomatis untuk pegawai pembelian
             auth()->login($user);
             $request->session()->regenerate();
-            
+
             return redirect()->intended(route('pegawai-pembelian.dashboard'));
         }
 
         // Login dengan kode perusahaan untuk kasir
         if ($role === 'kasir') {
             // Validasi kode perusahaan
-            $perusahaan = \App\Models\Company::where('kode_perusahaan', $kodePerusahaan)->first();
+            $perusahaan = \App\Models\Perusahaan::where('kode', $kodePerusahaan)->first();
             if (!$perusahaan) {
                 return back()->withInput()->withErrors(['kode_perusahaan' => 'Kode perusahaan tidak valid.']);
             }

@@ -51,13 +51,6 @@
                     </a>
                 </li>
                 
-                <li class="nav-item">
-                    <a class="nav-link-rounded {{ request()->is('pegawai/rekap-harian') ? 'active' : '' }}" href="{{ route('pegawai.rekap-harian') }}">
-                        <i class="fas fa-users"></i>
-                        <span>Rekap Harian</span>
-                    </a>
-                </li>
-
                 <!-- Penggajian Section -->
                 <li class="nav-item">
                     <div class="nav-section-header-rounded">

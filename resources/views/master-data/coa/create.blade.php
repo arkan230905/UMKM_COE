@@ -193,9 +193,18 @@ function generateChildKode() {
             document.getElementById('auto_generate_kode').value = '1';
 
             // Set tipe, kategori, saldo_normal dari parent
-            if (data.parent_tipe) document.getElementById('tipe_akun').value = data.parent_tipe;
-            if (data.parent_kategori) document.getElementById('kategori_akun').value = data.parent_kategori;
-            if (data.parent_saldo_normal) document.getElementById('saldo_normal').value = data.parent_saldo_normal;
+            if (data.parent_tipe) {
+                const tipeEl = document.getElementById('tipe_akun');
+                if (tipeEl) tipeEl.value = data.parent_tipe;
+            }
+            if (data.parent_kategori) {
+                const katEl = document.getElementById('kategori_akun');
+                if (katEl) katEl.value = data.parent_kategori;
+            }
+            if (data.parent_saldo_normal) {
+                const saldoEl = document.getElementById('saldo_normal');
+                if (saldoEl) saldoEl.value = data.parent_saldo_normal;
+            }
 
             // Show info
             document.getElementById('infoKode').textContent = data.kode_akun;
