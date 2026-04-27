@@ -81,8 +81,9 @@
                             <label class="form-label">Harga Satuan <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-                                <input type="text" name="harga_satuan" class="form-control number-input @error('harga_satuan') is-invalid @enderror" 
-                                       value="{{ old('harga_satuan') }}" placeholder="0" required>
+                                <input type="text" name="harga_satuan" id="harga_satuan" class="form-control price-input @error('harga_satuan') is-invalid @enderror" 
+                                       value="{{ old('harga_satuan', '0') }}" required>
+                                <input type="hidden" name="harga_satuan_raw" id="harga_satuan_raw" value="0">
                             </div>
                             @error('harga_satuan')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -354,6 +355,50 @@
 <!-- NO JAVASCRIPT AUTO-FILL - COMPLETELY MANUAL COA SELECTION -->
 @push('scripts')
 <script>
+// Format number with thousand separator (dot)
+function formatNumber(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+// Remove thousand separator and parse to number
+function parseFormattedNumber(str) {
+    return parseFloat(str.replace(/\./g, '')) || 0;
+}
+
+// Setup price input formatting
+function setupPriceInput() {
+    const priceInput = document.getElementById('harga_satuan');
+    const priceRawInput = document.getElementById('harga_satuan_raw');
+    
+    if (!priceInput) return;
+    
+    // Format on input
+    priceInput.addEventListener('input', function(e) {
+        let value = e.target.value;
+        
+        // Remove non-numeric characters except dot
+        value = value.replace(/[^0-9]/g, '');
+        
+        // Parse to number
+        const numValue = parseInt(value) || 0;
+        
+        // Format with thousand separator
+        e.target.value = formatNumber(numValue);
+        
+        // Store raw value
+        if (priceRawInput) {
+            priceRawInput.value = numValue;
+        }
+    });
+    
+    // Initial format
+    const initialValue = parseInt(priceInput.value.replace(/\./g, '')) || 0;
+    priceInput.value = formatNumber(initialValue);
+    if (priceRawInput) {
+        priceRawInput.value = initialValue;
+    }
+}
+
 function clearSubSatuan(index) {
     // Reset the sub satuan fields to default values
     document.querySelector(`input[name="sub_satuan_${index}_konversi"]`).value = '1';
@@ -414,6 +459,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const satuanSelect = document.querySelector('select[name="satuan_id"]');
     const satuanUtamaTexts = document.querySelectorAll('.satuan-utama-text');
     
+    // Setup price input
+    setupPriceInput();
+    
     // Setup number inputs
     setupNumberInputs();
     
@@ -451,6 +499,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form');
     if (form) {
         form.addEventListener('submit', function(e) {
+            // Convert price input to raw value before submission
+            const priceInput = document.getElementById('harga_satuan');
+            const priceRawInput = document.getElementById('harga_satuan_raw');
+            if (priceInput && priceRawInput) {
+                priceInput.value = priceRawInput.value;
+            }
+            
             // Convert commas to dots before validation
             convertCommasToDots();
         });

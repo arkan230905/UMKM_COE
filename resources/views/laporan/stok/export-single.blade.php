@@ -208,8 +208,13 @@
                             @else
                                 <td class="text-right">
                                     @if($row['pembelian_qty'] != 0)
+                                        @php
+                                            $isReturMasuk = isset($row['ref_type']) && $row['ref_type'] === 'retur_tukar_terima';
+                                        @endphp
                                         @if($row['pembelian_qty'] < 0)
                                             <span style="color: red;">-{{ number_format(abs($row['pembelian_qty']), 0, ',', '.') }}</span>
+                                        @elseif($isReturMasuk)
+                                            <span style="color: green;">+{{ number_format($row['pembelian_qty'], 0, ',', '.') }}</span>
                                         @else
                                             {{ number_format($row['pembelian_qty'], 0, ',', '.') }}
                                         @endif
