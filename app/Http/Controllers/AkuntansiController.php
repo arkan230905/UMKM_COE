@@ -275,10 +275,9 @@ class AkuntansiController extends Controller
                 $q->where('ju.debit', '>', 0)
                   ->orWhere('ju.kredit', '>', 0);
             })
-            // PERBAIKAN: Include pembelian transactions from jurnal_umum
+            // PERBAIKAN: Exclude pembelian transactions to avoid duplicates with journal_entries
             ->whereIn('ju.tipe_referensi', [
-                'pembelian', // Include purchase transactions
-                'penyusutan', 'adjustment', 'manual' // Keep other manual entries
+                'penyusutan', 'adjustment', 'manual' // Only manual entries, exclude 'pembelian'
             ])
             ->orderBy('ju.tanggal','asc')
             ->orderBy('ju.created_at','asc')
@@ -287,29 +286,22 @@ class AkuntansiController extends Controller
         if ($from) { $jurnalUmumQuery->whereDate('ju.tanggal','>=',$from); }
         if ($to)   { $jurnalUmumQuery->whereDate('ju.tanggal','<=',$to); }
         
-        // Handle ref_type filtering for purchase transactions
-        if ($refType) { 
-            if ($refType === 'purchase') {
-                $jurnalUmumQuery->where('ju.tipe_referensi', 'pembelian');
-            } else {
-                $jurnalUmumQuery->where('ju.tipe_referensi', $refType);
-            }
-        }
-        
-        // Handle ref_id filtering for purchase transactions
-        if ($refId && $refType === 'purchase') {
-            // Get the pembelian nomor_pembelian for filtering
-            $pembelian = \App\Models\Pembelian::find($refId);
-            if ($pembelian) {
-                $jurnalUmumQuery->where('ju.referensi', $pembelian->nomor_pembelian);
-            }
+        // Handle ref_type filtering - skip jurnal_umum if filtering for purchase
+        if ($refType && $refType !== 'purchase') { 
+            $jurnalUmumQuery->where('ju.tipe_referensi', $refType);
+        } elseif ($refType === 'purchase') {
+            // Skip jurnal_umum query entirely for purchase transactions
+            $jurnalUmumResults = collect();
         }
         
         if ($accountCode) { 
             $jurnalUmumQuery->where('coas.kode_akun', $accountCode);
         }
         
-        $jurnalUmumResults = $jurnalUmumQuery->get();
+        // Only execute query if not filtering for purchase
+        if (!isset($jurnalUmumResults)) {
+            $jurnalUmumResults = $jurnalUmumQuery->get();
+        }
         
         // Group jurnal_umum results by date and memo untuk menggabungkan debit/kredit
         $jurnalUmumGrouped = $jurnalUmumResults->groupBy(function($item) {

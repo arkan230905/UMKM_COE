@@ -1003,7 +1003,21 @@ class LaporanController extends Controller
                         $pembelianHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
                         $pembelianTotal = $movement->total_cost > 0 ? -($movement->total_cost) : -($movement->qty * $unitCost); // Negatif untuk retur
                         
-                        \Log::info('RETUR DETECTED', [
+                        \Log::info('RETUR KELUAR DETECTED', [
+                            'ref_type' => $movement->ref_type,
+                            'qty' => $movement->qty,
+                            'pembelian_qty' => $pembelianQty,
+                            'unit_name' => $unit['name']
+                        ]);
+                    } elseif($movement->ref_type === 'retur_tukar_terima' && $movement->direction === 'in') {
+                        // RETUR BARANG MASUK - tampilkan di kolom pembelian dengan tanda plus
+                        $pembelianQty = $movement->qty * $unit['conversion']; // Positif untuk retur masuk
+                        // Use item's harga_satuan as fallback when movement unit_cost is 0
+                        $unitCost = ($movement->unit_cost ?? 0) > 0 ? ($movement->unit_cost ?? 0) : ($selectedItem->harga_satuan ?? 0);
+                        $pembelianHarga = $unit['conversion'] > 0 ? $unitCost / $unit['conversion'] : $unitCost;
+                        $pembelianTotal = $movement->total_cost > 0 ? $movement->total_cost : ($movement->qty * $unitCost); // Positif untuk retur masuk
+                        
+                        \Log::info('RETUR MASUK DETECTED', [
                             'ref_type' => $movement->ref_type,
                             'qty' => $movement->qty,
                             'pembelian_qty' => $pembelianQty,

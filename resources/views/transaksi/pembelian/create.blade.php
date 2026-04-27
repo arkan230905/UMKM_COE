@@ -246,7 +246,8 @@
                         
                         <div class="col-md-2">
                             <label class="form-label">Harga per Satuan</label>
-                            <input type="number" name="harga_satuan[]" class="form-control" placeholder="0" min="0" onchange="calculateRowTotal(this)">
+                            <input type="text" name="harga_satuan[]" class="form-control price-input" placeholder="0" oninput="formatPriceInput(this)" onchange="calculateRowTotal(this)">
+                            <input type="hidden" name="harga_satuan_raw[]" class="price-raw" value="0">
                         </div>
                         
                         <div class="col-md-2">
@@ -546,6 +547,29 @@ function formatNumber(num) {
 function formatCurrency(num) {
     if (isNaN(num) || num === null || num === undefined) return 'Rp 0';
     return 'Rp ' + formatNumber(num);
+}
+
+// Format price input with thousand separator
+function formatPriceInput(input) {
+    let value = input.value;
+    
+    // Remove all non-numeric characters
+    value = value.replace(/[^0-9]/g, '');
+    
+    // Parse to number
+    const numValue = parseInt(value) || 0;
+    
+    // Format with thousand separator (dot)
+    input.value = numValue.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    
+    // Store raw value in hidden input
+    const row = input.closest('.item-row');
+    if (row) {
+        const rawInput = row.querySelector('.price-raw');
+        if (rawInput) {
+            rawInput.value = numValue;
+        }
+    }
 }
 
 // Initialize display formatting on page load
@@ -910,7 +934,19 @@ function updateItemsBasedOnVendor(vendorSelect) {
 function calculateRowTotal(input) {
     const row = input.closest('.item-row');
     const jumlah = parseFloat(row.querySelector('input[name="jumlah[]"]').value) || 0;
-    const harga = parseFloat(row.querySelector('input[name="harga_satuan[]"]').value) || 0;
+    
+    // Get harga from raw value (hidden input) or parse from formatted input
+    let harga = 0;
+    const priceRawInput = row.querySelector('.price-raw');
+    const priceInput = row.querySelector('input[name="harga_satuan[]"]');
+    
+    if (priceRawInput && priceRawInput.value) {
+        harga = parseFloat(priceRawInput.value) || 0;
+    } else if (priceInput) {
+        // Parse from formatted input (remove dots)
+        harga = parseFloat(priceInput.value.replace(/\./g, '')) || 0;
+    }
+    
     let jumlahSatuanUtama = parseFloat(row.querySelector('input[name="jumlah_satuan_utama[]"]').value) || 0;
     
     // Jika jumlah_satuan_utama kosong, hitung otomatis berdasarkan faktor konversi
@@ -990,6 +1026,21 @@ function calculateTotal() {
 
 // Debug form data before submission
 function debugFormData(form) {
+    // Convert formatted price inputs to raw values before submission
+    const priceInputs = form.querySelectorAll('.price-input');
+    priceInputs.forEach(input => {
+        const row = input.closest('.item-row');
+        if (row) {
+            const rawInput = row.querySelector('.price-raw');
+            if (rawInput && rawInput.value) {
+                input.value = rawInput.value;
+            } else {
+                // Parse from formatted value
+                input.value = input.value.replace(/\./g, '');
+            }
+        }
+    });
+    
     const formData = new FormData(form);
     console.log('Form data being submitted:');
     
