@@ -196,27 +196,37 @@ class AsetController extends Controller
             
             // Calculate depreciation only if asset is depreciable
             if ($disusutkan) {
-                $nilaiResidu = (float) $request->nilai_residu;
-                $umurManfaat = (int) $request->umur_manfaat;
+                $nilaiResidu     = (float) $request->nilai_residu;
+                $umurManfaat     = (int) $request->umur_manfaat;
                 $metodePenyusutan = $request->metode_penyusutan;
-                
-                $nilaiTerdepresiasi = $totalPerolehan - $nilaiResidu;
-                
+
+                // Tentukan bulan tersisa di tahun pertama
+                $tglMulai = $request->tanggal_akuisisi ?: $request->tanggal_beli;
+                $startDate = $tglMulai ? \Carbon\Carbon::parse($tglMulai) : now();
+                if ($startDate->day > 15) $startDate = $startDate->addMonthNoOverflow()->startOfMonth();
+                $bulanTersisa = 13 - $startDate->month; // Sep=9 → 4 bulan
+
                 if ($metodePenyusutan === 'garis_lurus') {
-                    // Straight line method: tarif × harga perolehan
-                    $tarif = $request->tarif_penyusutan ? ($request->tarif_penyusutan / 100) : (1 / $umurManfaat);
-                    $penyusutanPerTahun = $totalPerolehan * $tarif;
-                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
+                    $penyusutanPerTahun = ($totalPerolehan - $nilaiResidu) / $umurManfaat;
+                    // Tahun pertama pro-rata, per bulan = depr_tahun_pertama / bulan_tersisa
+                    $deprTahunPertama   = $penyusutanPerTahun * ($bulanTersisa / 12);
+                    $penyusutanPerBulan = $deprTahunPertama / $bulanTersisa;
+
                 } elseif ($metodePenyusutan === 'saldo_menurun') {
-                    // Declining balance method: tarif × harga perolehan
-                    $tarif = $request->tarif_penyusutan ? ($request->tarif_penyusutan / 100) : (2 / $umurManfaat);
-                    $penyusutanPerTahun = $totalPerolehan * $tarif;
-                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
+                    // DDB: tarif = 2/umur, beban tahunan penuh = book_value × tarif
+                    $tarif              = 2 / $umurManfaat;
+                    $penyusutanPerTahun = $totalPerolehan * $tarif; // tahun penuh tahun 1
+                    // Tahun pertama pro-rata
+                    $deprTahunPertama   = $penyusutanPerTahun * ($bulanTersisa / 12);
+                    // Per bulan = depr_tahun_pertama / bulan_tersisa (konsisten)
+                    $penyusutanPerBulan = $deprTahunPertama / $bulanTersisa;
+
                 } else {
-                    // Sum of years digits: tarif × harga perolehan
-                    $tarif = $request->tarif_penyusutan ? ($request->tarif_penyusutan / 100) : ($umurManfaat / (($umurManfaat * ($umurManfaat + 1)) / 2));
-                    $penyusutanPerTahun = $totalPerolehan * $tarif;
-                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
+                    // Sum of years digits
+                    $sumOfYears         = ($umurManfaat * ($umurManfaat + 1)) / 2;
+                    $penyusutanPerTahun = (($totalPerolehan - $nilaiResidu) * $umurManfaat) / $sumOfYears;
+                    $deprTahunPertama   = $penyusutanPerTahun * ($bulanTersisa / 12);
+                    $penyusutanPerBulan = $deprTahunPertama / $bulanTersisa;
                 }
             }
             
@@ -303,21 +313,30 @@ class AsetController extends Controller
                 $penyusutanPerTahun = $nilaiDisusutkan / $aset->umur_manfaat;
                 $penyusutanPerBulan = $penyusutanPerTahun / 12;
                 break;
-                
+
             case 'saldo_menurun':
-                // Double Declining Balance - penyusutan berubah setiap bulan
-                $penyusutanPerBulan = $aset->hitungPenyusutanPerBulanSaatIni();
-                $rateTahunan = 2 / $aset->umur_manfaat;
-                $penyusutanPerTahun = $totalPerolehan * $rateTahunan; // Tahun pertama
+                // DDB: penyusutan per tahun = book_value_awal × (2/umur)
+                // Per bulan = depr_tahun_pertama / bulan_tersisa (pro-rata, konsisten)
+                $penyusutanPerTahun = $totalPerolehan * (2 / $aset->umur_manfaat);
+                $penyusutanPerBulan = (float)($aset->getAttributes()['penyusutan_per_bulan'] ?? 0);
+                if ($penyusutanPerBulan <= 0) {
+                    $tglMulai  = $aset->tanggal_akuisisi ?? $aset->tanggal_beli;
+                    $start     = \Carbon\Carbon::parse($tglMulai);
+                    if ($start->day > 15) $start = $start->addMonthNoOverflow()->startOfMonth();
+                    $bulanTersisa = 13 - $start->month;
+                    $penyusutanPerBulan = ($penyusutanPerTahun * ($bulanTersisa / 12)) / $bulanTersisa;
+                }
                 break;
-                
+
             case 'sum_of_years_digits':
-                // Sum of Years Digits - penyusutan berubah setiap tahun
-                $penyusutanPerBulan = $aset->hitungPenyusutanPerBulanSaatIni();
                 $sumOfYears = ($aset->umur_manfaat * ($aset->umur_manfaat + 1)) / 2;
-                $penyusutanPerTahun = ($nilaiDisusutkan * $aset->umur_manfaat) / $sumOfYears; // Tahun pertama
+                $penyusutanPerTahun = ($nilaiDisusutkan * $aset->umur_manfaat) / $sumOfYears;
+                $penyusutanPerBulan = (float)($aset->getAttributes()['penyusutan_per_bulan'] ?? 0);
+                if ($penyusutanPerBulan <= 0) {
+                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
+                }
                 break;
-                
+
             default:
                 $penyusutanPerTahun = $nilaiDisusutkan / $aset->umur_manfaat;
                 $penyusutanPerBulan = $penyusutanPerTahun / 12;
@@ -526,60 +545,75 @@ class AsetController extends Controller
      */
     private function generateDepreciationSchedule($aset, $totalPerolehan)
     {
-        $schedule = [];
+        $schedule    = [];
         $umurManfaat = (int)$aset->umur_manfaat;
         $nilaiResidu = (float)($aset->nilai_residu ?? 0);
-        $nilaiDisusutkan = $totalPerolehan - $nilaiResidu;
-        
-        if ($umurManfaat <= 0 || $nilaiDisusutkan <= 0) {
-            return $schedule;
-        }
-        
-        $bookValue = $totalPerolehan;
-        $totalAkumulasi = 0;
-        
+
+        if ($umurManfaat <= 0 || $totalPerolehan <= 0) return $schedule;
+
+        // Tentukan bulan tersisa di tahun pertama
+        $tanggalMulai = $aset->tanggal_akuisisi ?? $aset->tanggal_beli;
+        $startDate    = $tanggalMulai ? \Carbon\Carbon::parse($tanggalMulai) : now();
+        if ($startDate->day > 15) $startDate = $startDate->addMonthNoOverflow()->startOfMonth();
+        $bulanTersisaTahunPertama = 13 - $startDate->month; // mis. Sep → 4
+
+        $nilaiBuku   = $totalPerolehan;
+        $totalAkumul = 0;
+
         for ($tahun = 1; $tahun <= $umurManfaat; $tahun++) {
-            $penyusutan = 0;
-            
+            // Jumlah bulan dalam segmen tahun ini
+            $jmlBulan = ($tahun === 1) ? $bulanTersisaTahunPertama : 12;
+            $jmlBulan = min($jmlBulan, $umurManfaat * 12 - (($tahun - 1) * 12));
+
             switch ($aset->metode_penyusutan) {
                 case 'garis_lurus':
-                    $penyusutan = $nilaiDisusutkan / $umurManfaat;
+                    // Beban tahunan penuh, pro-rata tahun pertama
+                    $deprYearFull = ($totalPerolehan - $nilaiResidu) / $umurManfaat;
+                    $penyusutan   = ($tahun === 1)
+                        ? $deprYearFull * ($bulanTersisaTahunPertama / 12)
+                        : $deprYearFull;
                     break;
-                    
+
                 case 'saldo_menurun':
-                    $rate = 2 / $umurManfaat; // Double declining balance
-                    $penyusutan = $bookValue * $rate;
-                    if ($bookValue - $penyusutan < $nilaiResidu) {
-                        $penyusutan = $bookValue - $nilaiResidu;
-                    }
+                    // DDB: tarif = 2/umur, beban = book_value × tarif
+                    $deprYearFull = $nilaiBuku * (2 / $umurManfaat);
+                    $penyusutan   = ($tahun === 1)
+                        ? $deprYearFull * ($bulanTersisaTahunPertama / 12)
+                        : $deprYearFull;
                     break;
-                    
+
                 case 'sum_of_years_digits':
-                    $sumOfYears = ($umurManfaat * ($umurManfaat + 1)) / 2;
-                    $sisaTahun = $umurManfaat - $tahun + 1;
-                    $penyusutan = ($nilaiDisusutkan * $sisaTahun) / $sumOfYears;
+                    $sumOfYears   = ($umurManfaat * ($umurManfaat + 1)) / 2;
+                    $sisaTahun    = $umurManfaat - $tahun + 1;
+                    $deprYearFull = (($totalPerolehan - $nilaiResidu) * $sisaTahun) / $sumOfYears;
+                    $penyusutan   = ($tahun === 1)
+                        ? $deprYearFull * ($bulanTersisaTahunPertama / 12)
+                        : $deprYearFull;
                     break;
+
+                default:
+                    $penyusutan = 0;
             }
-            
-            // Pastikan tidak melebihi nilai yang bisa disusutkan
-            $maxPenyusutan = $bookValue - $nilaiResidu;
-            $penyusutan = min($penyusutan, $maxPenyusutan);
-            
+
+            // Jangan melebihi sisa yang bisa disusutkan
+            $penyusutan = min($penyusutan, $nilaiBuku - $nilaiResidu);
             if ($penyusutan <= 0) break;
-            
-            $totalAkumulasi += $penyusutan;
-            $bookValue -= $penyusutan;
-            
+
+            $totalAkumul += $penyusutan;
+            $nilaiBuku   -= $penyusutan;
+
             $schedule[] = [
-                'tahun' => $tahun,
-                'penyusutan' => $penyusutan,
-                'akumulasi' => $totalAkumulasi,
-                'nilai_buku' => $bookValue
+                'tahun'       => $tahun,
+                'penyusutan'  => round($penyusutan, 2),
+                'akumulasi'   => round($totalAkumul, 2),
+                'nilai_buku'  => round($nilaiBuku, 2),
+                'depr_month'  => round($penyusutan / $jmlBulan, 2),
+                'jumlah_bulan'=> $jmlBulan,
             ];
-            
-            if ($bookValue <= $nilaiResidu) break;
+
+            if ($nilaiBuku <= $nilaiResidu) break;
         }
-        
+
         return $schedule;
     }
 
@@ -651,26 +685,31 @@ class AsetController extends Controller
             
             // Calculate depreciation only if asset is depreciable
             if ($disusutkan) {
-                $nilaiResidu = (float) $request->nilai_residu;
-                $umurManfaat = (int) $request->umur_manfaat;
+                $nilaiResidu      = (float) $request->nilai_residu;
+                $umurManfaat      = (int) $request->umur_manfaat;
                 $metodePenyusutan = $request->metode_penyusutan;
-                
-                $nilaiTerdepresiasi = $totalPerolehan - $nilaiResidu;
-                
+
+                // Tentukan bulan tersisa di tahun pertama
+                $tglMulai  = $request->tanggal_akuisisi ?: $request->tanggal_beli ?: $aset->tanggal_akuisisi ?: $aset->tanggal_beli;
+                $startDate = $tglMulai ? \Carbon\Carbon::parse($tglMulai) : now();
+                if ($startDate->day > 15) $startDate = $startDate->addMonthNoOverflow()->startOfMonth();
+                $bulanTersisa = 13 - $startDate->month;
+
                 if ($metodePenyusutan === 'garis_lurus') {
-                    // Straight line method: (Harga Perolehan - Nilai Residu) / Umur Manfaat
-                    $penyusutanPerTahun = $nilaiTerdepresiasi / $umurManfaat;
-                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
+                    $penyusutanPerTahun = ($totalPerolehan - $nilaiResidu) / $umurManfaat;
+                    $deprTahunPertama   = $penyusutanPerTahun * ($bulanTersisa / 12);
+                    $penyusutanPerBulan = $deprTahunPertama / $bulanTersisa;
+
                 } elseif ($metodePenyusutan === 'saldo_menurun') {
-                    // Declining balance method: tarif × harga perolehan
-                    $tarif = $request->tarif_penyusutan ? ($request->tarif_penyusutan / 100) : (2 / $umurManfaat);
-                    $penyusutanPerTahun = $totalPerolehan * $tarif;
-                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
+                    $penyusutanPerTahun = $totalPerolehan * (2 / $umurManfaat);
+                    $deprTahunPertama   = $penyusutanPerTahun * ($bulanTersisa / 12);
+                    $penyusutanPerBulan = $deprTahunPertama / $bulanTersisa;
+
                 } else {
-                    // Sum of years digits: (Nilai yang Disusutkan × Tahun Sisa) / Jumlah Angka Tahun
-                    $sumOfYears = ($umurManfaat * ($umurManfaat + 1)) / 2;
-                    $penyusutanPerTahun = ($nilaiTerdepresiasi * $umurManfaat) / $sumOfYears;
-                    $penyusutanPerBulan = $penyusutanPerTahun / 12;
+                    $sumOfYears         = ($umurManfaat * ($umurManfaat + 1)) / 2;
+                    $penyusutanPerTahun = (($totalPerolehan - $nilaiResidu) * $umurManfaat) / $sumOfYears;
+                    $deprTahunPertama   = $penyusutanPerTahun * ($bulanTersisa / 12);
+                    $penyusutanPerBulan = $deprTahunPertama / $bulanTersisa;
                 }
             }
             
