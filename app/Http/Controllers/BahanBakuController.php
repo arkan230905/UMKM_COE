@@ -317,16 +317,27 @@ class BahanBakuController extends Controller
             return 0;
         }
         
-        // Hitung total harga dan total quantity
+        // Hitung total harga dan total quantity dalam satuan utama
         $totalHarga = 0;
         $totalQuantity = 0;
         
         foreach ($details as $detail) {
-            $totalHarga += ($detail->harga_satuan ?? 0) * ($detail->jumlah ?? 0);
-            $totalQuantity += ($detail->jumlah ?? 0);
+            // Gunakan jumlah_dalam_satuan_utama untuk perhitungan yang benar
+            $quantityInMainUnit = $detail->jumlah_dalam_satuan_utama ?? 0;
+            
+            // Jika jumlah_dalam_satuan_utama = 0, skip detail ini
+            if ($quantityInMainUnit <= 0) {
+                continue;
+            }
+            
+            // Hitung total harga untuk detail ini
+            $detailTotalHarga = ($detail->harga_satuan ?? 0) * ($detail->jumlah ?? 0);
+            
+            $totalHarga += $detailTotalHarga;
+            $totalQuantity += $quantityInMainUnit;
         }
         
-        // Hitung harga rata-rata
+        // Hitung harga rata-rata per satuan utama
         $averageHarga = $totalQuantity > 0 ? $totalHarga / $totalQuantity : 0;
         
         return $averageHarga;

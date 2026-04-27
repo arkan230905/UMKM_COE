@@ -530,8 +530,13 @@
                                                 <!-- For materials and bahan pendukung, show purchase data -->
                                                 <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">
                                                     @if(isset($row['pembelian_qty']) && $row['pembelian_qty'] != 0)
+                                                        @php
+                                                            $isReturMasuk = isset($row['ref_type']) && $row['ref_type'] === 'retur_tukar_terima';
+                                                        @endphp
                                                         @if($row['pembelian_qty'] < 0)
                                                             <span style="color: red;">-{{ formatQuantity(abs($row['pembelian_qty']), $unit['name']) }}</span>
+                                                        @elseif($isReturMasuk)
+                                                            <span style="color: green;">+{{ formatQuantity($row['pembelian_qty'], $unit['name']) }}</span>
                                                         @else
                                                             {{ formatQuantity($row['pembelian_qty'], $unit['name']) }}
                                                         @endif
