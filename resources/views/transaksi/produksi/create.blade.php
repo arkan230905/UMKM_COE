@@ -453,6 +453,9 @@ document.getElementById('produk_id').addEventListener('change', function() {
     
     console.log('Fetching BOM data for product ID:', produkId);
     
+    // Recalculate daily production in case fields are already filled
+    calculateDailyProduction();
+    
     // Fetch BOM data via AJAX
     fetch(`/transaksi/produksi/get-bom-details/${produkId}?t=${Date.now()}`)
         .then(response => {
@@ -479,8 +482,20 @@ document.getElementById('produk_id').addEventListener('change', function() {
 });
 
 // Add event listeners for daily production calculation
-document.getElementById('jumlah_produksi_bulanan').addEventListener('input', calculateDailyProduction);
-document.getElementById('hari_produksi_bulanan').addEventListener('input', calculateDailyProduction);
+document.addEventListener('DOMContentLoaded', function() {
+    const jumlahBulananInput = document.getElementById('jumlah_produksi_bulanan');
+    const hariBulananInput = document.getElementById('hari_produksi_bulanan');
+    
+    if (jumlahBulananInput) {
+        jumlahBulananInput.addEventListener('input', calculateDailyProduction);
+        jumlahBulananInput.addEventListener('change', calculateDailyProduction);
+    }
+    
+    if (hariBulananInput) {
+        hariBulananInput.addEventListener('input', calculateDailyProduction);
+        hariBulananInput.addEventListener('change', calculateDailyProduction);
+    }
+});
 </script>
 @endpush
 @endsection

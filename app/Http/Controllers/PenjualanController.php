@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Penjualan;
 use App\Models\Produk;
 use App\Models\BuktiPembayaran;
+use App\Models\OngkirSetting;
+use App\Models\PaketMenu;
 use App\Services\StockService;
 use App\Services\JournalService;
 use Illuminate\Support\Facades\DB;
@@ -15,73 +17,122 @@ class PenjualanController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Penjualan::with(['produk','details']);
-        
-        // Filter by nomor transaksi
+        // ── 1. Main list query (single eager-load, no duplicate) ──────────────
+        $query = Penjualan::with(['details.produk', 'returs']);
+
         if ($request->filled('nomor_transaksi')) {
             $query->where('nomor_penjualan', 'like', '%' . $request->nomor_transaksi . '%');
         }
-        
-        // Filter by tanggal
         if ($request->filled('tanggal_mulai')) {
             $query->whereDate('tanggal', '>=', $request->tanggal_mulai);
         }
         if ($request->filled('tanggal_selesai')) {
             $query->whereDate('tanggal', '<=', $request->tanggal_selesai);
         }
-        
-        // Filter by payment method
         if ($request->filled('payment_method')) {
             $query->where('payment_method', $request->payment_method);
         }
-        
-        $penjualans = $query->with(['produk','details','returs'])->orderBy('tanggal','desc')->get();
-        
-        // Hitung ringkasan penjualan HARI INI saja
-        $today = now()->format('Y-m-d');
-        $penjualansHariIni = Penjualan::whereDate('tanggal', $today)->get();
-        
-        $totalPenjualan = 0;
-        $totalProdukTerjual = 0;
-        $totalProfit = 0;
-        
-        foreach ($penjualansHariIni as $penjualan) {
-            $totalPenjualan += (float)($penjualan->total ?? 0);
-            
-            $detailCount = $penjualan->details->count();
-            if ($detailCount > 1) {
-                foreach ($penjualan->details as $d) {
-                    $totalProdukTerjual += (float)($d->jumlah ?? 0);
-                    $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal);
-                    $margin = ((float)($d->harga_satuan ?? 0) - $actualHPP) * (float)($d->jumlah ?? 0);
-                    $totalProfit += $margin;
-                }
-            } elseif ($detailCount === 1) {
-                $d = $penjualan->details[0];
-                $totalProdukTerjual += (float)($d->jumlah ?? 0);
-                $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal);
-                $margin = ((float)($d->harga_satuan ?? 0) - $actualHPP) * (float)($d->jumlah ?? 0);
-                $totalProfit += $margin;
-            } else {
-                $totalProdukTerjual += (float)($penjualan->jumlah ?? 0);
-                $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
-                $hdrHarga = $penjualan->harga_satuan;
-                if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
-                    $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
-                }
-                $margin = ($hdrHarga - $actualHPP) * ($penjualan->jumlah ?? 0);
-                $totalProfit += $margin;
-            }
-        }
-        
-        $jumlahTransaksiHariIni = $penjualansHariIni->count();
-        
-        // Get return data for the return tab
+
+        $penjualans = $query->orderBy('tanggal', 'desc')->get();
+
+        // ── 2. Summary stats – use DB aggregates, NO HPP loop ────────────────
+        $today     = now()->toDateString();
+        $yesterday = now()->subDay()->toDateString();
+
+        // Aggregate totals directly in SQL (no PHP loops, no N+1)
+        $statsToday = DB::table('penjualans')
+            ->whereDate('tanggal', $today)
+            ->selectRaw('
+                COUNT(*)                    AS jumlah_transaksi,
+                COALESCE(SUM(total), 0)     AS total_penjualan,
+                COALESCE(SUM(biaya_ongkir), 0) AS total_ongkir,
+                COALESCE(SUM(diskon_nominal), 0) AS total_diskon
+            ')
+            ->first();
+
+        $statsYesterday = DB::table('penjualans')
+            ->whereDate('tanggal', $yesterday)
+            ->selectRaw('
+                COUNT(*)                    AS jumlah_transaksi,
+                COALESCE(SUM(total), 0)     AS total_penjualan,
+                COALESCE(SUM(biaya_ongkir), 0) AS total_ongkir,
+                COALESCE(SUM(diskon_nominal), 0) AS total_diskon
+            ')
+            ->first();
+
+        // Qty terjual hari ini & kemarin via details join
+        $qtyToday = DB::table('penjualan_details')
+            ->join('penjualans', 'penjualans.id', '=', 'penjualan_details.penjualan_id')
+            ->whereDate('penjualans.tanggal', $today)
+            ->sum('penjualan_details.jumlah');
+
+        $qtyYesterday = DB::table('penjualan_details')
+            ->join('penjualans', 'penjualans.id', '=', 'penjualan_details.penjualan_id')
+            ->whereDate('penjualans.tanggal', $yesterday)
+            ->sum('penjualan_details.jumlah');
+
+        // Profit: harga_satuan - harga_pokok (stored on produk) × jumlah
+        // Use produk.harga_pokok as HPP proxy – avoids expensive getActualHPP() loop
+        $profitToday = DB::table('penjualan_details')
+            ->join('penjualans', 'penjualans.id', '=', 'penjualan_details.penjualan_id')
+            ->join('produks', 'produks.id', '=', 'penjualan_details.produk_id')
+            ->whereDate('penjualans.tanggal', $today)
+            ->selectRaw('SUM((penjualan_details.harga_satuan - COALESCE(produks.harga_pokok, 0)) * penjualan_details.jumlah) AS profit')
+            ->value('profit') ?? 0;
+
+        $profitYesterday = DB::table('penjualan_details')
+            ->join('penjualans', 'penjualans.id', '=', 'penjualan_details.penjualan_id')
+            ->join('produks', 'produks.id', '=', 'penjualan_details.produk_id')
+            ->whereDate('penjualans.tanggal', $yesterday)
+            ->selectRaw('SUM((penjualan_details.harga_satuan - COALESCE(produks.harga_pokok, 0)) * penjualan_details.jumlah) AS profit')
+            ->value('profit') ?? 0;
+
+        // Assign to named variables expected by the view
+        $totalPenjualan        = (float) $statsToday->total_penjualan;
+        $totalOngkir           = (float) $statsToday->total_ongkir;
+        $totalDiskon           = (float) $statsToday->total_diskon;
+        $jumlahTransaksiHariIni = (int)  $statsToday->jumlah_transaksi;
+        $totalProdukTerjual    = (float) $qtyToday;
+        $totalProfit           = (float) $profitToday;
+
+        $totalPenjualanKemarin        = (float) $statsYesterday->total_penjualan;
+        $totalOngkirKemarin           = (float) $statsYesterday->total_ongkir;
+        $totalDiskonKemarin           = (float) $statsYesterday->total_diskon;
+        $jumlahTransaksiKemarin       = (int)   $statsYesterday->jumlah_transaksi;
+        $totalProdukTerjualKemarin    = (float) $qtyYesterday;
+        $totalProfitKemarin           = (float) $profitYesterday;
+
+        // ── 3. Percentage changes ─────────────────────────────────────────────
+        $pct = fn($now, $prev) => $prev > 0 ? (($now - $prev) / $prev) * 100 : ($now > 0 ? 100 : 0);
+
+        $penjualanChange = $pct($totalPenjualan, $totalPenjualanKemarin);
+        $transaksiChange = $pct($jumlahTransaksiHariIni, $jumlahTransaksiKemarin);
+        $produkChange    = $pct($totalProdukTerjual, $totalProdukTerjualKemarin);
+        $ongkirChange    = $pct($totalOngkir, $totalOngkirKemarin);
+        $diskonChange    = $pct($totalDiskon, $totalDiskonKemarin);
+        $profitChange    = $pct($totalProfit, $totalProfitKemarin);
+
+        // ── 4. Returns ────────────────────────────────────────────────────────
         $salesReturns = \App\Models\ReturPenjualan::with(['penjualan', 'detailReturPenjualans.produk'])
             ->orderBy('created_at', 'desc')
             ->get();
-        
-        return view('transaksi.penjualan.index', compact('penjualans', 'totalPenjualan', 'jumlahTransaksiHariIni', 'totalProdukTerjual', 'totalProfit', 'salesReturns'));
+
+        return view('transaksi.penjualan.index', compact(
+            'penjualans',
+            'totalPenjualan',
+            'jumlahTransaksiHariIni',
+            'totalProdukTerjual',
+            'totalProfit',
+            'totalOngkir',
+            'totalDiskon',
+            'salesReturns',
+            'penjualanChange',
+            'transaksiChange',
+            'produkChange',
+            'ongkirChange',
+            'diskonChange',
+            'profitChange'
+        ));
     }
 
     public function create()
@@ -93,10 +144,24 @@ class PenjualanController extends Controller
             return $p;
         });
         
-        // Ambil akun kas/bank untuk dropdown
-        $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
+        // Ambil akun kas/bank + piutang untuk dropdown "Terima di"
+        // 111=Bank, 112/113=Kas, 118=Piutang Usaha
+        $kasbank = \App\Models\Coa::whereIn('kode_akun', ['111', '112', '113', '118'])
+            ->orderBy('kode_akun')
+            ->get();
         
-        return view('transaksi.penjualan.create', compact('produks', 'kasbank'));
+        // Ambil ongkir settings yang aktif
+        $ongkirSettings = OngkirSetting::where('status', true)
+            ->orderBy('jarak_min')
+            ->get();
+        
+        // Ambil paket menu yang aktif dengan detail produk
+        $paketMenus = PaketMenu::with('details.produk')
+            ->where('status', 'aktif')
+            ->orderBy('nama_paket')
+            ->get();
+        
+        return view('transaksi.penjualan.create', compact('produks', 'kasbank', 'ongkirSettings', 'paketMenus'));
     }
 
     public function store(Request $request, StockService $stock, JournalService $journal)
@@ -136,7 +201,18 @@ class PenjualanController extends Controller
         // Ambil akun kas/bank untuk dropdown
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
         
-        return view('transaksi.penjualan.edit', compact('penjualan', 'produks', 'kasbank'));
+        // Ambil ongkir settings yang aktif
+        $ongkirSettings = OngkirSetting::where('status', true)
+            ->orderBy('jarak_min')
+            ->get();
+        
+        // Ambil paket menu yang aktif dengan detail produk
+        $paketMenus = PaketMenu::with('details.produk')
+            ->where('status', 'aktif')
+            ->orderBy('nama_paket')
+            ->get();
+        
+        return view('transaksi.penjualan.edit', compact('penjualan', 'produks', 'kasbank', 'ongkirSettings', 'paketMenus'));
     }
 
     public function update(Request $request, $id, StockService $stock, JournalService $journal)
@@ -349,6 +425,9 @@ class PenjualanController extends Controller
                 'harga_satuan' => null,
                 'diskon_nominal' => 0,
                 'total' => $paymentData['total'],
+                'biaya_ongkir' => $paymentData['biaya_ongkir'] ?? 0,
+                'biaya_ppn' => $paymentData['total_ppn'] ?? 0,
+                'grand_total' => $paymentData['total'] ?? 0,
             ]);
             
             // Create detail items

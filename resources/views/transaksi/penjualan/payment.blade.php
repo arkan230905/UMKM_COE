@@ -60,10 +60,6 @@
                                     <small class="text-muted">Biaya Ongkir</small>
                                     <div class="fw-bold">Rp {{ number_format($payment_data['biaya_ongkir'], 0, ',', '.') }}</div>
                                 </div>
-                                <div class="mb-2">
-                                    <small class="text-muted">Biaya Service</small>
-                                    <div class="fw-bold">Rp {{ number_format($payment_data['biaya_service'], 0, ',', '.') }}</div>
-                                </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-2">

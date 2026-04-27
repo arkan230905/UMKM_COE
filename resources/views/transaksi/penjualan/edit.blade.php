@@ -113,19 +113,15 @@
         </div>
 
         <div class="row g-3">
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label class="form-label">Biaya Ongkir</label>
-                <input type="number" step="0.01" min="0" name="biaya_ongkir" class="form-control" value="0" id="biaya_ongkir">
+                <input type="text" name="biaya_ongkir" class="form-control" value="0" id="biaya_ongkir" placeholder="0">
             </div>
-            <div class="col-md-3">
-                <label class="form-label">Biaya Service</label>
-                <input type="number" step="0.01" min="0" name="biaya_service" class="form-control" value="0" id="biaya_service">
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label class="form-label">PPN (%)</label>
                 <input type="number" step="0.01" min="0" max="100" name="ppn_persen" class="form-control" value="11" id="ppn_persen">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label class="form-label">Total PPN</label>
                 <input type="text" name="total_ppn" class="form-control" value="0" readonly id="total_ppn">
             </div>
@@ -216,12 +212,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Get additional costs
-        const biayaOngkir = parseFloat(document.getElementById('biaya_ongkir').value) || 0;
-        const biayaService = parseFloat(document.getElementById('biaya_service').value) || 0;
+        const biayaOngkirValue = document.getElementById('biaya_ongkir').value.replace(/\./g, ''); // Hapus titik untuk parsing
+        const biayaOngkir = parseFloat(biayaOngkirValue) || 0;
         const ppnPersen = parseFloat(document.getElementById('ppn_persen').value) || 0;
         
-        // Calculate PPN base (subtotal + ongkir + service)
-        const ppnBase = sum + biayaOngkir + biayaService;
+        // Calculate PPN base (subtotal + ongkir)
+        const ppnBase = sum + biayaOngkir;
         const totalPPN = ppnBase * (ppnPersen / 100);
         
         // Update PPN
@@ -231,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Calculate final total
-        const finalTotal = sum + biayaOngkir + biayaService + totalPPN;
+        const finalTotal = sum + biayaOngkir + totalPPN;
         
         // Update total
         const totalInput = document.getElementById('total_final');
@@ -314,8 +310,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Listen to additional cost changes
-    document.getElementById('biaya_ongkir').addEventListener('input', recalcTotal);
-    document.getElementById('biaya_service').addEventListener('input', recalcTotal);
+    document.getElementById('biaya_ongkir').addEventListener('input', function(e) {
+        // Format dengan ribuan
+        let value = e.target.value.replace(/\./g, ''); // Hapus titik yang ada
+        if (value && !isNaN(value)) {
+            e.target.value = parseInt(value).toLocaleString('id-ID');
+        }
+        recalcTotal();
+    });
     document.getElementById('ppn_persen').addEventListener('input', recalcTotal);
     table.addEventListener('click', (e) => {
         if (e.target && e.target.classList.contains('removeRow')) {

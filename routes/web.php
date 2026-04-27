@@ -1874,6 +1874,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/', [PerusahaanController::class, 'update'])->name('update')->middleware('role:owner');
         Route::post('/update-bank-info', [PerusahaanController::class, 'updateBankInfo'])->name('update-bank-info')->middleware('role:owner');
         Route::post('/update-bank-field', [PerusahaanController::class, 'updateBankField'])->name('update-bank-field')->middleware('role:owner');
+        Route::post('/update-company-field', [PerusahaanController::class, 'updateCompanyField'])->name('update-company-field')->middleware('role:owner');
     });
 
     // ================================================================
@@ -2806,6 +2807,22 @@ Route::middleware('auth')->group(function () {
         Route::get('api/products/barcode', [PenjualanController::class, 'findByBarcode'])->name('api.products.barcode');
 
         // ============================================================
+        // PENGATURAN PENJUALAN
+        // ============================================================
+        Route::prefix('penjualan-setting')->name('penjualan-setting.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\PenjualanSettingController::class, 'index'])->name('index');
+            Route::get('/paket-menu', [\App\Http\Controllers\PenjualanSettingController::class, 'paketMenuPage'])->name('paket-menu');
+            // Paket Menu
+            Route::post('/paket', [\App\Http\Controllers\PenjualanSettingController::class, 'storePaket'])->name('paket.store');
+            Route::put('/paket/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'updatePaket'])->name('paket.update');
+            Route::delete('/paket/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'destroyPaket'])->name('paket.destroy');
+            // Ongkir
+            Route::post('/ongkir', [\App\Http\Controllers\PenjualanSettingController::class, 'storeOngkir'])->name('ongkir.store');
+            Route::put('/ongkir/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'updateOngkir'])->name('ongkir.update');
+            Route::delete('/ongkir/{id}', [\App\Http\Controllers\PenjualanSettingController::class, 'destroyOngkir'])->name('ongkir.destroy');
+        });
+
+        // ============================================================
         // ✅ RETUR
         // ============================================================
         Route::resource('retur', ReturController::class);
@@ -3099,10 +3116,8 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/export/pembelian', [LaporanController::class, 'exportPembelian'])->name('export.pembelian');
         
         // Laporan Penjualan
-        Route::get('/penjualan', [LaporanController::class, 'penjualan'])->name('penjualan');
-        Route::get('/penjualan/{id}/invoice', [LaporanController::class, 'invoice'])->name('penjualan.invoice');
-        Route::get('/penjualan/export', [LaporanController::class, 'exportPenjualan'])->name('penjualan.export');
-        Route::get('/export/penjualan', [LaporanController::class, 'exportPenjualan'])->name('export.penjualan');
+        Route::get('/penjualan', [\App\Http\Controllers\LaporanPenjualanController::class, 'index'])->name('penjualan');
+        Route::post('/penjualan/export-pdf', [\App\Http\Controllers\LaporanPenjualanController::class, 'exportPdf'])->name('penjualan.export-pdf');
         
         // Laporan Retur (now only handles purchase returns, sales returns moved to penjualan tab)
         Route::get('/retur', [LaporanController::class, 'laporanRetur'])->name('retur');

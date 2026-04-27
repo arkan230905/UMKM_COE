@@ -9,9 +9,6 @@
             <i class="fas fa-eye me-2"></i>Detail Transaksi Penjualan
         </h3>
         <div>
-            <a href="{{ route('transaksi.penjualan.edit', $penjualan->id) }}" class="btn btn-warning">
-                <i class="fas fa-edit me-2"></i>Edit
-            </a>
             <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left me-2"></i>Kembali
             </a>
@@ -44,11 +41,10 @@
         
         // Additional costs
         $biayaOngkir = $penjualan->biaya_ongkir ?? 0;
-        $biayaServis = $penjualan->biaya_servis ?? 0;
         $biayaPPN = $totalSubtotal * 0.11; // 11% PPN
         
         // Calculate grand total
-        $grandTotal = $totalSubtotal + $biayaPPN + $biayaOngkir + $biayaServis - $totalDiskon;
+        $grandTotal = $totalSubtotal + $biayaPPN + $biayaOngkir - $totalDiskon;
     @endphp
 
     {{-- Row 1: Informasi Transaksi + Ringkasan --}}
@@ -138,15 +134,6 @@
                         <div class="d-flex justify-content-between">
                             <span>Biaya Ongkir:</span>
                             <strong class="text-secondary">Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</strong>
-                        </div>
-                    </div>
-                    @endif
-                    
-                    @if($biayaServis > 0)
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Biaya Servis:</span>
-                            <strong class="text-secondary">Rp {{ number_format($biayaServis, 0, ',', '.') }}</strong>
                         </div>
                     </div>
                     @endif
@@ -308,16 +295,15 @@
                                             <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn btn-outline-info btn-sm flex-fill text-center">
                                                 <i class="fas fa-undo d-block mb-1"></i><small>Retur</small>
                                             </a>
-                                            <div class="flex-fill">
-                                                <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" onsubmit="return confirm('Yakin ingin hapus transaksi ini?')" class="h-100">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-outline-danger btn-sm w-100 h-100 text-center">
-                                                        <i class="fas fa-trash d-block mb-1"></i><small>Hapus</small>
-                                                    </button>
-                                                </form>
-                                            </div>
+                                            <button type="button" onclick="confirmDeletePenjualan({{ $penjualan->id }})" class="btn btn-outline-danger btn-sm flex-fill text-center">
+                                                <i class="fas fa-trash d-block mb-1"></i><small>Hapus</small>
+                                            </button>
                                         </div>
+                                        <!-- Hidden form for delete -->
+                                        <form id="deletePenjualanForm{{ $penjualan->id }}" action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" style="display: none;">
+                                            @csrf
+                                            @method('DELETE')
+                                        </form>
                                     </div>
                                 </div>
                             </div>
@@ -434,12 +420,11 @@
                     <div class="row justify-content-center">
                         <div class="col-12 col-md-6 col-lg-4">
                             <div class="card">
-                                <div class="card-header text-center">
+                                <div class="card-header d-flex justify-content-between align-items-center">
                                     <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Struk Penjualan</h5>
-                                    <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="printStruk()">
-                                        <i class="fas fa-print me-1"></i>Print (Ctrl+P)
+                                    <button type="button" class="btn btn-primary" onclick="printStruk()">
+                                        <i class="fas fa-print me-2"></i>Cetak Struk
                                     </button>
-                                    <small class="text-muted d-block mt-1">Tab struk berhasil dimuat</small>
                                 </div>
                                 <div class="card-body d-flex justify-content-center p-2">
                                     <div id="strukContent" class="struk-container">
@@ -1329,6 +1314,13 @@ window.addEventListener('error', function(e) {
         e.preventDefault();
     }
 });
+
+// Function to confirm delete penjualan
+function confirmDeletePenjualan(penjualanId) {
+    if (confirm('Yakin ingin hapus transaksi ini?')) {
+        document.getElementById('deletePenjualanForm' + penjualanId).submit();
+    }
+}
 </script>
 
 @endsection
