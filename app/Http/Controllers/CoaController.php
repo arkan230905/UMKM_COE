@@ -197,13 +197,15 @@ class CoaController extends Controller
         ]);
 
         $coaData = [
-            'kode_akun' => $validated['kode_akun'],
-            'nama_akun' => $validated['nama_akun'],
-            'tipe_akun' => $validated['tipe_akun'],
-            'saldo_normal' => $request->saldo_normal ?? 'debit',
-            'saldo_awal' => $request->saldo_awal ?? 0,
-            'keterangan' => $request->keterangan,
+            'kode_akun'      => $validated['kode_akun'],
+            'nama_akun'      => $validated['nama_akun'],
+            'tipe_akun'      => $validated['tipe_akun'],
+            'kategori_akun'  => $request->kategori_akun ?? '-',
+            'saldo_normal'   => $request->saldo_normal ?? 'debit',
+            'saldo_awal'     => $request->saldo_awal ?? 0,
+            'keterangan'     => $request->keterangan,
             'posted_saldo_awal' => $request->boolean('posted_saldo_awal') ? 1 : 0,
+            'company_id'     => auth()->user()->company_id ?? 1,
         ];
 
         if ($request->has('tanggal_saldo_awal') && $request->tanggal_saldo_awal) {
@@ -286,78 +288,75 @@ class CoaController extends Controller
 
     public function destroy(Coa $coa)
     {
-        // Cek apakah akun ini digunakan dalam transaksi
-        // Cek dulu kolom yang ada di journal_lines
         $coaColumn = \Illuminate\Support\Facades\Schema::hasColumn('journal_lines', 'coa_id') ? 'coa_id' : 'account_id';
-        
-        $journalCount = \App\Models\JournalLine::where($coaColumn, $coa->id)->count();
-        if ($journalCount > 0) {
+
+        // Cek apakah punya child accounts
+        $childCount = \Illuminate\Support\Facades\DB::table('coas')
+            ->where('kode_induk', $coa->kode_akun)
+            ->where('company_id', $coa->company_id)
+            ->count();
+        if ($childCount > 0) {
             return redirect()->route('master-data.coa.index')
-                ->with('error', 'Tidak dapat menghapus akun ini karena sudah digunakan dalam transaksi jurnal.');
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih memiliki {$childCount} sub-akun. Hapus sub-akun terlebih dahulu.");
         }
-        
-        // Cek apakah akun ini digunakan di bahan_bakus (hanya jika masih ada yang menggunakan)
+
+        // Cek journal_lines
+        if (\App\Models\JournalLine::where($coaColumn, $coa->id)->count() > 0) {
+            return redirect()->route('master-data.coa.index')
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena sudah digunakan dalam transaksi jurnal.");
+        }
+
+        // Cek pembayaran_beban
+        $pembayaranCount = \Illuminate\Support\Facades\DB::table('pembayaran_beban')
+            ->where('akun_kas_id', $coa->id)
+            ->orWhere('akun_beban_id', $coa->id)
+            ->count();
+        if ($pembayaranCount > 0) {
+            return redirect()->route('master-data.coa.index')
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih digunakan di {$pembayaranCount} data pembayaran beban.");
+        }
+
+        // Cek bahan_bakus
         $bahanBakuCount = \Illuminate\Support\Facades\DB::table('bahan_bakus')
             ->where('coa_persediaan_id', $coa->kode_akun)
             ->orWhere('coa_hpp_id', $coa->kode_akun)
             ->orWhere('coa_pembelian_id', $coa->kode_akun)
             ->count();
-        
         if ($bahanBakuCount > 0) {
-            $bahanNames = \Illuminate\Support\Facades\DB::table('bahan_bakus')
-                ->where('coa_persediaan_id', $coa->kode_akun)
-                ->orWhere('coa_hpp_id', $coa->kode_akun)
-                ->orWhere('coa_pembelian_id', $coa->kode_akun)
-                ->pluck('nama_bahan')
-                ->take(3)
-                ->implode(', ');
-            
             return redirect()->route('master-data.coa.index')
-                ->with('error', "Tidak dapat menghapus akun ini karena masih digunakan oleh bahan baku: {$bahanNames}" . ($bahanBakuCount > 3 ? ' dan lainnya' : '') . ". Ubah referensi COA di bahan baku terlebih dahulu.");
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih digunakan oleh {$bahanBakuCount} bahan baku.");
         }
-        
-        // Cek apakah akun ini digunakan di bahan_pendukungs (hanya jika masih ada yang menggunakan)
+
+        // Cek bahan_pendukungs
         $bahanPendukungCount = \Illuminate\Support\Facades\DB::table('bahan_pendukungs')
             ->where('coa_persediaan_id', $coa->kode_akun)
             ->orWhere('coa_hpp_id', $coa->kode_akun)
             ->orWhere('coa_pembelian_id', $coa->kode_akun)
             ->count();
-        
         if ($bahanPendukungCount > 0) {
-            $bahanNames = \Illuminate\Support\Facades\DB::table('bahan_pendukungs')
-                ->where('coa_persediaan_id', $coa->kode_akun)
-                ->orWhere('coa_hpp_id', $coa->kode_akun)
-                ->orWhere('coa_pembelian_id', $coa->kode_akun)
-                ->pluck('nama_bahan')
-                ->take(3)
-                ->implode(', ');
-            
             return redirect()->route('master-data.coa.index')
-                ->with('error', "Tidak dapat menghapus akun ini karena masih digunakan oleh bahan pendukung: {$bahanNames}" . ($bahanPendukungCount > 3 ? ' dan lainnya' : '') . ". Ubah referensi COA di bahan pendukung terlebih dahulu.");
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih digunakan oleh {$bahanPendukungCount} bahan pendukung.");
         }
-        
-        // Cek apakah akun ini digunakan di produks
+
+        // Cek produks
         $produkCount = \Illuminate\Support\Facades\DB::table('produks')
             ->where('coa_persediaan_id', $coa->id)
             ->orWhere('coa_hpp_id', $coa->id)
             ->count();
-        
         if ($produkCount > 0) {
-            $produkNames = \Illuminate\Support\Facades\DB::table('produks')
-                ->where('coa_persediaan_id', $coa->id)
-                ->orWhere('coa_hpp_id', $coa->id)
-                ->pluck('nama_produk')
-                ->take(3)
-                ->implode(', ');
-            
             return redirect()->route('master-data.coa.index')
-                ->with('error', "Tidak dapat menghapus akun ini karena masih digunakan oleh produk: {$produkNames}" . ($produkCount > 3 ? ' dan lainnya' : '') . ". Ubah referensi COA di produk terlebih dahulu.");
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih digunakan oleh {$produkCount} produk.");
         }
-        
-        // Jika semua validasi lolos, hapus akun
-        $coa->delete();
-        return redirect()->route('master-data.coa.index')
-            ->with('success', "COA {$coa->kode_akun} - {$coa->nama_akun} berhasil dihapus.");
+
+        // Hapus dengan try-catch untuk tangkap FK violation yang tidak terduga
+        try {
+            $coa->delete();
+            return redirect()->route('master-data.coa.index')
+                ->with('success', "COA {$coa->kode_akun} - {$coa->nama_akun} berhasil dihapus.");
+        } catch (\Illuminate\Database\QueryException $e) {
+            return redirect()->route('master-data.coa.index')
+                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih digunakan di data lain.");
+        }
     }
 
     /**
