@@ -3510,9 +3510,6 @@ Route::middleware(['auth', 'role:pegawai'])->prefix('pegawai')->name('pegawai.')
 
     // Riwayat presensi pegawai (pribadi)
     Route::get('/riwayat-presensi', [PegawaiDashboardController::class, 'riwayatPresensi'])->name('riwayat-presensi');
-    
-    // Rekap harian presensi (semua pegawai yang hadir hari ini)
-    Route::get('/rekap-harian', [PegawaiDashboardController::class, 'rekapHarian'])->name('rekap-harian');
 
     // Slip Gaji Pegawai
     Route::prefix('slip-gaji')->name('slip-gaji.')->group(function () {
