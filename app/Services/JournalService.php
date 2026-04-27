@@ -11,14 +11,16 @@ class JournalService
 {
     protected function coaId(string $code): int
     {
-        // Langsung gunakan COA saja, tidak perlu tabel accounts
-        $coa = Coa::where('kode_akun', $code)->first();
+        // Cari COA milik user yang login, fallback ke COA manapun
+        $coa = Coa::where('kode_akun', $code)
+            ->where('user_id', auth()->id())
+            ->first()
+            ?? Coa::where('kode_akun', $code)->first();
+
         if ($coa) {
-            // Return the actual ID column, not the primary key
             return (int)$coa->getAttribute('id');
         }
 
-        // Jika COA tidak ditemukan, buat error yang informatif
         throw new \RuntimeException("COA dengan kode {$code} tidak ditemukan. Silakan buat COA terlebih dahulu di master data.");
     }
 

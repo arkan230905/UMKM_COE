@@ -187,7 +187,7 @@ class AkuntansiController extends Controller
         // Gunakan query dengan leftJoin untuk memastikan nama akun selalu diambil
         $query = \DB::table('journal_entries as je')
             ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
-            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id') // Perbaikan: join berdasarkan coa_id
+            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
             ->select([
                 'je.*',
                 'jl.id as line_id',
@@ -202,6 +202,7 @@ class AkuntansiController extends Controller
                 $q->where('jl.debit', '!=', 0)
                   ->orWhere('jl.credit', '!=', 0);
             })
+            ->where('coas.user_id', auth()->id())
             ->orderBy('je.tanggal','asc')
             ->orderBy('je.created_at','asc')
             ->orderBy('je.id','asc')
