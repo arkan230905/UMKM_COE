@@ -12,6 +12,7 @@ class BopProses extends Model
     protected $table = 'bop_proses';
 
     protected $fillable = [
+        'nama_bop_proses',
         'proses_produksi_id',
         'listrik_per_jam',
         'gas_bbm_per_jam',
@@ -21,8 +22,10 @@ class BopProses extends Model
         'lain_lain_per_jam',
         'komponen_bop',
         'total_bop_per_jam',
-        'kapasitas_per_jam', // Read-only dari BTKL
+        'kapasitas_per_jam',
         'bop_per_unit',
+        'periode',
+        'keterangan',
         'is_active'
     ];
 

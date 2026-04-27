@@ -17,6 +17,7 @@ class Satuan extends Model
         'kode',
         'nama',
         'faktor', // Add faktor field if it exists
+        'user_id',
     ];
 
     /**
@@ -33,5 +34,37 @@ class Satuan extends Model
     public function bahanPendukungs()
     {
         return $this->hasMany(BahanPendukung::class, 'satuan_id');
+    }
+
+    /**
+     * Get the user that owns the satuan
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The "booted" method of the model.
+     *
+     * @return void
+     */
+    protected static function booted()
+    {
+        parent::booted();
+        
+        // Auto-assign user_id saat creating
+        static::creating(function ($satuan) {
+            if (empty($satuan->user_id) && auth()->check()) {
+                $satuan->user_id = auth()->id();
+            }
+        });
+        
+        // Global scope untuk data isolation
+        static::addGlobalScope('user', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
     }
 }

@@ -34,7 +34,7 @@ class BebanOperasional extends Model
      */
     public function createdBy()
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
     }
 
     /**
@@ -42,7 +42,7 @@ class BebanOperasional extends Model
      */
     public function coa()
     {
-        return $this->belongsTo(Coa::class, 'coa_id');
+        return $this->belongsTo(\App\Models\Coa::class, 'coa_id');
     }
 
     
@@ -52,17 +52,6 @@ class BebanOperasional extends Model
     public function scopeActive($query)
     {
         return $query->where('status', 'aktif');
-    }
-
-    /**
-     * Scope filter berdasarkan kategori
-     */
-    public function scopeKategori($query, $kategori)
-    {
-        if ($kategori) {
-            return $query->where('kategori', $kategori);
-        }
-        return $query;
     }
 
     /**
@@ -107,20 +96,6 @@ class BebanOperasional extends Model
         return $this->status === 'aktif' 
             ? '<span class="text-success fw-semibold">Aktif</span>'
             : '<span class="text-muted">Nonaktif</span>';
-    }
-
-    /**
-     * Get kategori options
-     */
-    public static function getKategoriOptions(): array
-    {
-        return [
-            'Administrasi' => 'Administrasi',
-            'Marketing' => 'Marketing',
-            'Utilitas' => 'Utilitas',
-            'Distribusi' => 'Distribusi',
-            'Lain-lain' => 'Lain-lain'
-        ];
     }
 
     /**

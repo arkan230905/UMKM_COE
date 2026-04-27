@@ -6,7 +6,7 @@
 <div class="container-fluid px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0 text-dark">
-            <i class="fas fa-calculator me-2"></i>Perhitungan Biaya Bahan
+            <i class="fas fa-calculator me-2"></i>Perhitungan Biaya Bahan Baku
         </h2>
     </div>
 
@@ -90,10 +90,9 @@
                     <thead class="table-warning">
                         <tr>
                             <th style="width: 3%;" class="text-center">No</th>
-                            <th style="width: 25%;">Produk</th>
-                            <th style="width: 15%;" class="text-center">Bahan Baku</th>
-                            <th style="width: 15%;" class="text-center">Bahan Pendukung</th>
-                            <th style="width: 17%;" class="text-end">Total Biaya</th>
+                            <th style="width: 30%;">Produk</th>
+                            <th style="width: 20%;" class="text-center">Bahan Baku</th>
+                            <th style="width: 22%;" class="text-end">Total Biaya</th>
                             <th style="width: 10%;" class="text-center">Status</th>
                             <th style="width: 15%;" class="text-center">Aksi</th>
                         </tr>
@@ -102,19 +101,13 @@
                         @forelse($produks as $produk)
                             @php
                                 $biaya = $produkBiaya[$produk->id] ?? [];
-                                $totalBiaya = $biaya['total_biaya'] ?? 0;
+                                $totalBiaya = $biaya['total_biaya_bahan_baku'] ?? 0; // Hanya BBB
                                 $totalBiayaBahanBaku = $biaya['total_biaya_bahan_baku'] ?? 0;
-                                $totalBiayaBahanPendukung = $biaya['total_biaya_bahan_pendukung'] ?? 0;
                                 
-                                // HANYA HITUNG ITEM YANG VALID (harga > 0)
+                                // HANYA HITUNG ITEM BAHAN BAKU YANG VALID (harga > 0)
                                 $detailBahanBaku = $biaya['detail_bahan_baku'] ?? [];
-                                $detailBahanPendukung = $biaya['detail_bahan_pendukung'] ?? [];
                                 
                                 $jumlahBahanBaku = collect($detailBahanBaku)->filter(function($item) {
-                                    return ($item['subtotal'] ?? 0) > 0;
-                                })->count();
-                                
-                                $jumlahBahanPendukung = collect($detailBahanPendukung)->filter(function($item) {
                                     return ($item['subtotal'] ?? 0) > 0;
                                 })->count();
                             @endphp
@@ -148,18 +141,6 @@
                                         </div>
                                         <small class="text-muted d-block">
                                             Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}
-                                        </small>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                                <td class="text-center">
-                                    @if($jumlahBahanPendukung > 0)
-                                        <div class="mb-1">
-                                            <span class="text-info fw-semibold">{{ $jumlahBahanPendukung }} item</span>
-                                        </div>
-                                        <small class="text-muted d-block">
-                                            Rp {{ number_format($totalBiayaBahanPendukung, 0, ',', '.') }}
                                         </small>
                                     @else
                                         <span class="text-muted">-</span>
@@ -237,7 +218,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center py-5">
+                                <td colspan="6" class="text-center py-5">
                                     <i class="fas fa-calculator fa-3x text-muted mb-3 d-block"></i>
                                     <p class="text-muted mb-0">Belum ada data perhitungan biaya bahan</p>
                                 </td>
@@ -256,17 +237,9 @@
                                     Rp {{ number_format(collect($produkBiaya)->sum('total_biaya_bahan_baku'), 0, ',', '.') }}
                                 </div>
                             </th>
-                            <th class="text-center">
-                                <div class="badge bg-warning text-dark">
-                                    {{ collect($produkBiaya)->sum(fn($item) => count($item['detail_bahan_pendukung'] ?? [])) }} item
-                                </div>
-                                <div class="small text-muted mt-1">
-                                    Rp {{ number_format(collect($produkBiaya)->sum('total_biaya_bahan_pendukung'), 0, ',', '.') }}
-                                </div>
-                            </th>
                             <th class="text-end">
                                 <div class="fw-bold text-success fs-5">
-                                    Rp {{ number_format(collect($produkBiaya)->sum('total_biaya'), 0, ',', '.') }}
+                                    Rp {{ number_format(collect($produkBiaya)->sum('total_biaya_bahan_baku'), 0, ',', '.') }}
                                 </div>
                             </th>
                             <th colspan="2"></th>

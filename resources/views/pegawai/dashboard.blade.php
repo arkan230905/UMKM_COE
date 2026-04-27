@@ -150,7 +150,7 @@
                         <a href="{{ route('pegawai.riwayat-presensi') }}" class="btn btn-info">
                             <i class="bi bi-clock-history me-1"></i> Riwayat Presensi
                         </a>
-                        <a href="{{ route('profile') }}" class="btn btn-secondary">
+                        <a href="#" class="btn btn-secondary" onclick="alert('Fitur profil pegawai dalam pengembangan')">
                             <i class="bi bi-person me-1"></i> Profil Saya
                         </a>
                     </div>

@@ -210,10 +210,9 @@ class BahanPendukungObserver
             ]);
         }
         
-        // 3. Update biaya bahan dan harga_bom di produk
-        $produk->update([
-            'biaya_bahan' => $totalBiayaBahan
-        ]);
+        // NOTE: Bahan pendukung TIDAK lagi mengupdate biaya_bahan
+        // Biaya bahan baku HANYA menghitung bahan baku, tanpa bahan pendukung
+        // Bahan pendukung sudah termasuk dalam perhitungan BOP
         
         // Update harga_bom dengan HPP lengkap (BBB + Bahan Pendukung + BTKL + BOP)
         if ($bomJobCosting) {
@@ -221,17 +220,11 @@ class BahanPendukungObserver
                 'harga_bom' => $bomJobCosting->total_hpp  // HPP lengkap
             ]);
             
-            Log::info('💰 Harga BOM Updated with HPP', [
+            Log::info('💰 Harga BOM Updated with HPP (Bahan Pendukung Changed)', [
                 'produk_id' => $produk->id,
                 'nama_produk' => $produk->nama_produk,
-                'biaya_bahan' => $totalBiayaBahan,
-                'harga_bom' => $bomJobCosting->total_hpp
-            ]);
-        } else {
-            Log::info('💰 Biaya Bahan Updated', [
-                'produk_id' => $produk->id,
-                'nama_produk' => $produk->nama_produk,
-                'biaya_bahan' => $totalBiayaBahan
+                'harga_bom' => $bomJobCosting->total_hpp,
+                'note' => 'biaya_bahan tidak diupdate karena hanya untuk bahan baku'
             ]);
         }
     }
@@ -427,30 +420,21 @@ class BahanPendukungObserver
             $bomJobCosting->recalculate();
         }
         
-        // 5. Update biaya bahan di produk
-        $produk->update([
-            'biaya_bahan' => $totalBiayaBahan
-        ]);
+        // NOTE: Bahan pendukung TIDAK lagi mengupdate biaya_bahan
+        // Biaya bahan baku HANYA menghitung bahan baku, tanpa bahan pendukung
         
-        // 6. Update harga_bom dengan HPP lengkap
+        // 5. Update harga_bom dengan HPP lengkap
         if ($bomJobCosting) {
             $produk->update([
                 'harga_bom' => $bomJobCosting->total_hpp
             ]);
             
-            Log::info('💰 Harga BOM Updated After Deletion', [
+            Log::info('💰 Harga BOM Updated After Bahan Pendukung Deletion', [
                 'produk_id' => $produk->id,
                 'nama_produk' => $produk->nama_produk,
                 'bahan_pendukung_dihapus' => $deletedBahanPendukung->nama_bahan,
-                'biaya_bahan_baru' => $totalBiayaBahan,
-                'harga_bom' => $bomJobCosting->total_hpp
-            ]);
-        } else {
-            Log::info('💰 Biaya Bahan Updated After Deletion', [
-                'produk_id' => $produk->id,
-                'nama_produk' => $produk->nama_produk,
-                'bahan_pendukung_dihapus' => $deletedBahanPendukung->nama_bahan,
-                'biaya_bahan_baru' => $totalBiayaBahan
+                'harga_bom' => $bomJobCosting->total_hpp,
+                'note' => 'biaya_bahan tidak diupdate karena hanya untuk bahan baku'
             ]);
         }
         

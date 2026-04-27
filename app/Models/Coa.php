@@ -32,9 +32,10 @@ class Coa extends Model
         'company_id',
         'nomor_rekening',
         'atas_nama',
+        'user_id',
     ];
     
-    protected $appends = ['kode', 'nama'];
+    protected $appends = ['kode', 'nama', 'kode_induk'];
 
     protected $casts = [
         'posted_saldo_awal' => 'boolean',
@@ -55,6 +56,20 @@ class Coa extends Model
     public function getNamaAttribute()
     {
         return $this->nama_akun;
+    }
+    
+    /**
+     * Accessor untuk kode_induk (backward compatibility)
+     */
+    public function getKodeIndukAttribute()
+    {
+        // Return parent account code or null if no parent
+        // For now, return the first 2 digits of kode_akun as parent
+        $kodeAkun = $this->kode_akun;
+        if (strlen($kodeAkun) >= 3) {
+            return substr($kodeAkun, 0, 2);
+        }
+        return null;
     }
 
     /**
@@ -90,31 +105,7 @@ class Coa extends Model
         return $balance ? $balance->saldo_awal : ($this->saldo_awal ?? 0);
     }
 
-    /**
-     * The "booting" method of the model.
-     *
-     * @return void
-     */
-    protected static function booted()
-    {
-        parent::booted();
         
-        // Generate kode akun otomatis jika kosong
-        static::creating(function ($coa) {
-            if (empty($coa->kode_akun)) {
-                $coa->kode_akun = $coa->generateKodeAkun();
-            }
-        });
-        
-        // COA tidak memiliki company_id, jadi tidak perlu filter berdasarkan perusahaan
-        // Global scope dihapus karena tabel coas tidak memiliki field company_id
-        
-        // Default order hierarkis: parent diikuti children (11 → 111 → 1131 → 112 → ...)
-        static::addGlobalScope('orderByKodeAkun', function ($builder) {
-            $builder->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)");
-        });
-    }
-    
     /**
      * Generate kode akun anak otomatis berdasarkan prefix induk.
      *
@@ -222,6 +213,14 @@ class Coa extends Model
     }
     
     /**
+     * Get the user that owns the COA
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
      * Validasi kode akun tidak duplikat
      */
     public static function validateUniqueKodeAkun($kodeAkun, $excludeId = null)
@@ -233,5 +232,41 @@ class Coa extends Model
         }
         
         return $query->doesntExist();
+    }
+
+    /**
+     * The "booted" method of the model.
+     *
+     * @return void
+     */
+    protected static function booted()
+    {
+        parent::booted();
+        
+        // Auto-assign user_id saat creating
+        static::creating(function ($coa) {
+            if (empty($coa->user_id) && auth()->check()) {
+                $coa->user_id = auth()->id();
+            }
+        });
+        
+        // Global scope untuk data isolation
+        static::addGlobalScope('user', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+        
+        // Generate kode akun otomatis jika kosong
+        static::creating(function ($coa) {
+            if (empty($coa->kode_akun)) {
+                $coa->kode_akun = $coa->generateKodeAkun();
+            }
+        });
+        
+        // Default order hierarkis: parent diikuti children (11 → 111 → 1131 → 112 → ...)
+        static::addGlobalScope('orderByKodeAkun', function ($builder) {
+            $builder->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)");
+        });
     }
 }

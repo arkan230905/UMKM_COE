@@ -4,6 +4,21 @@
 
 @section('content')
 <div class="container-fluid">
+
+    {{-- Notifikasi --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">
             <i class="fas fa-calculator me-2"></i>COA
@@ -116,3 +131,15 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    // Auto-hide notifikasi setelah 3 detik
+    setTimeout(function() {
+        document.querySelectorAll('.alert').forEach(function(el) {
+            var alert = bootstrap.Alert.getOrCreateInstance(el);
+            alert.close();
+        });
+    }, 3000);
+</script>
+@endpush
