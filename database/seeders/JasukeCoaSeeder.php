@@ -137,6 +137,26 @@ class JasukeCoaSeeder extends Seeder
             ['1603', 'HPP - Overhead Pabrik',                    'Biaya Overhead Pabrik',         '1600', 'debit', 'HPP', 0],
         ];
 
+        // ── GUARD: Hapus COA orphan (company_id NULL atau duplikat) ──────────────
+        // Ini mencegah duplikat setelah git pull + db:seed berulang
+        $validCodes = array_column($accounts, 0);
+
+        // Hapus COA dengan company_id NULL (data lama/orphan)
+        DB::table('coas')->whereNull('company_id')->delete();
+
+        // Hapus COA dengan company_id = companyId yang kode_akunnya tidak ada di daftar
+        DB::table('coas')
+            ->where('company_id', $companyId)
+            ->whereNotIn('kode_akun', $validCodes)
+            ->whereNotExists(function ($q) {
+                // Jangan hapus jika masih direferensikan di journal_lines
+                $q->select(DB::raw(1))
+                  ->from('journal_lines')
+                  ->whereColumn('journal_lines.coa_id', 'coas.id');
+            })
+            ->delete();
+
+        // ── UPSERT semua akun Jasuke ──────────────────────────────────────────────
         foreach ($accounts as $account) {
             [$kode, $nama, $tipe, $induk, $saldoNormal, $kategori, $isHeader] = $account;
             $saldoAwal = $account[7] ?? 0;
@@ -144,16 +164,14 @@ class JasukeCoaSeeder extends Seeder
             DB::table('coas')->updateOrInsert(
                 ['kode_akun' => $kode, 'company_id' => $companyId],
                 [
-                    'nama_akun'      => $nama,
-                    'tipe_akun'      => $tipe,
-                    'kode_induk'     => $induk,
-                    'saldo_normal'   => $saldoNormal,
-                    'kategori_akun'  => $kategori,
-                    'is_akun_header' => $isHeader,
-                    'saldo_awal'     => $saldoAwal,
-                    'company_id'     => $companyId,
-                    'updated_at'     => now(),
-                    'created_at'     => now(),
+                    'nama_akun'    => $nama,
+                    'tipe_akun'    => $tipe,
+                    'saldo_normal' => $saldoNormal,
+                    'kategori_akun'=> $kategori,
+                    'saldo_awal'   => $saldoAwal,
+                    'company_id'   => $companyId,
+                    'updated_at'   => now(),
+                    'created_at'   => now(),
                 ]
             );
         }
