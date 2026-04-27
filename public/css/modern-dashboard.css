@@ -377,185 +377,84 @@ a.nav-link-rounded.active i {
     display: none !important;
 }
 
-/* LOGOUT BUTTON STYLING - SAME ALIGNMENT AS OTHER LINKS */
-.sidebar .logout-btn,
-.sidebar button.logout-btn,
-button.logout-btn.nav-link-rounded {
-    background: #FF937E !important;
-    background-image: linear-gradient(135deg, #FF937E 0%, #FF8A73 100%) !important;
+/* LOGOUT BUTTON */
+.sidebar .logout-btn {
+    background: linear-gradient(135deg, #e53935 0%, #c62828 100%) !important;
     border: none !important;
     color: white !important;
     cursor: pointer !important;
-    /* Ensure same alignment as other nav links */
     display: flex !important;
     align-items: center !important;
-    justify-content: flex-start !important;
-    text-align: left !important;
-    padding: 10px 15px !important;
-    margin: 3px 10px !important;
+    padding: 10px 14px !important;
+    margin: 8px 10px 16px 10px !important;
     width: calc(100% - 20px) !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    max-height: 42px !important;
-    border-radius: 20px !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    box-shadow: 0 2px 8px rgba(255, 147, 126, 0.3) !important;
+    border-radius: 10px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px !important;
     transition: all 0.3s ease !important;
+    text-align: left !important;
+    min-height: 40px !important;
+    box-shadow: 0 4px 12px rgba(229, 57, 53, 0.35) !important;
+    position: relative !important;
+    overflow: hidden !important;
 }
 
-.sidebar .logout-btn i,
-.sidebar button.logout-btn i,
-button.logout-btn.nav-link-rounded i {
+/* shimmer effect */
+.sidebar .logout-btn::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 60% !important;
+    height: 100% !important;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent) !important;
+    transition: left 0.5s ease !important;
+    pointer-events: none !important;
+}
+
+.sidebar .logout-btn:hover::before {
+    left: 150% !important;
+}
+
+/* separator line above logout */
+.sidebar .logout-separator {
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent) !important;
+    margin: 8px 10px 4px 10px !important;
+}
+
+.sidebar .logout-btn i {
     color: white !important;
     margin-right: 10px !important;
     font-size: 14px !important;
     width: 18px !important;
     text-align: center !important;
     flex-shrink: 0 !important;
+    transition: transform 0.3s ease !important;
 }
 
-.sidebar .logout-btn span,
-.sidebar button.logout-btn span,
-button.logout-btn.nav-link-rounded span {
+.sidebar .logout-btn span {
+    color: white !important;
     flex: 1 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    line-height: 1.2 !important;
-    text-align: left !important;
-}
-
-.sidebar .logout-btn:hover,
-.sidebar button.logout-btn:hover,
-button.logout-btn.nav-link-rounded:hover {
-    background: #BF1A1A !important;
-    background-image: linear-gradient(135deg, #BF1A1A 0%, #A01515 100%) !important;
-    border-color: #BF1A1A !important;
-    color: white !important;
-    box-shadow: 0 4px 20px rgba(191, 26, 26, 0.4) !important;
-    transform: translateX(3px) !important;
-}
-
-.sidebar .logout-btn:hover i,
-.sidebar button.logout-btn:hover i,
-button.logout-btn.nav-link-rounded:hover i {
-    color: white !important;
-    transform: scale(1.1) !important;
-}
-
-/* FORCE RED COLOR FOR LOGOUT BUTTON - HIGHEST SPECIFICITY */
-.sidebar .nav-item form button.logout-btn,
-.sidebar .nav-item form button.logout-btn.nav-link-rounded,
-aside.sidebar .nav-item form button.logout-btn,
-aside.sidebar .nav-item form button.logout-btn.nav-link-rounded {
-    background: #dc3545 !important;
-    background-image: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 8px !important;
-    padding: 12px 16px !important;
-    font-weight: 500 !important;
-    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3) !important;
-    transition: all 0.3s ease !important;
-}
-
-.sidebar .nav-item form button.logout-btn:hover,
-.sidebar .nav-item form button.logout-btn.nav-link-rounded:hover,
-aside.sidebar .nav-item form button.logout-btn:hover,
-aside.sidebar .nav-item form button.logout-btn.nav-link-rounded:hover {
-    background: #c82333 !important;
-    background-image: linear-gradient(135deg, #c82333 0%, #bd2130 100%) !important;
-    color: white !important;
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4) !important;
-}
-
-.sidebar .nav-item form button.logout-btn i,
-.sidebar .nav-item form button.logout-btn.nav-link-rounded i,
-aside.sidebar .nav-item form button.logout-btn i,
-aside.sidebar .nav-item form button.logout-btn.nav-link-rounded i {
-    color: white !important;
-    margin-right: 10px !important;
-    font-size: 14px !important;
-}
-
-.sidebar .nav-item form button.logout-btn span,
-.sidebar .nav-item form button.logout-btn.nav-link-rounded span,
-aside.sidebar .nav-item form button.logout-btn span,
-aside.sidebar .nav-item form button.logout-btn.nav-link-rounded span {
-    color: white !important;
-    font-weight: 500 !important;
-}
-
-/* SUPER AGGRESSIVE LOGOUT BUTTON STYLING - OVERWRITE EVERYTHING */
-button.logout-btn,
-button.logout-btn.nav-link-rounded,
-.nav-item button.logout-btn,
-.nav-item button.logout-btn.nav-link-rounded,
-li.nav-item button.logout-btn,
-li.nav-item button.logout-btn.nav-link-rounded,
-form button.logout-btn,
-form button.logout-btn.nav-link-rounded {
-    background: #dc3545 !important;
-    background-color: #dc3545 !important;
-    color: #ffffff !important;
-    border: 1px solid #dc3545 !important;
-    border-radius: 6px !important;
-    padding: 10px 15px !important;
     font-weight: 600 !important;
-    text-decoration: none !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-    width: 100% !important;
-    box-shadow: 0 2px 4px rgba(220, 53, 69, 0.25) !important;
-    transition: all 0.3s ease !important;
+    font-size: 12px !important;
 }
 
-/* HOVER STATE */
-button.logout-btn:hover,
-button.logout-btn.nav-link-rounded:hover,
-.nav-item button.logout-btn:hover,
-.nav-item button.logout-btn.nav-link-rounded:hover,
-li.nav-item button.logout-btn:hover,
-li.nav-item button.logout-btn.nav-link-rounded:hover,
-form button.logout-btn:hover,
-form button.logout-btn.nav-link-rounded:hover {
-    background: #c82333 !important;
-    background-color: #c82333 !important;
-    border-color: #c82333 !important;
-    color: #ffffff !important;
+
+.sidebar .logout-btn:hover {
+    background: linear-gradient(135deg, #ef5350 0%, #e53935 100%) !important;
+    box-shadow: 0 6px 20px rgba(229, 57, 53, 0.5) !important;
     transform: translateY(-1px) !important;
-    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.35) !important;
 }
 
-/* ICON STYLING */
-button.logout-btn i,
-button.logout-btn.nav-link-rounded i,
-.nav-item button.logout-btn i,
-.nav-item button.logout-btn.nav-link-rounded i,
-li.nav-item button.logout-btn i,
-li.nav-item button.logout-btn.nav-link-rounded i,
-form button.logout-btn i,
-form button.logout-btn.nav-link-rounded i {
-    color: #ffffff !important;
-    margin-right: 8px !important;
-    font-size: 14px !important;
+.sidebar .logout-btn:hover i:first-child {
+    transform: translateX(2px) !important;
 }
 
-/* TEXT STYLING */
-button.logout-btn span,
-button.logout-btn.nav-link-rounded span,
-.nav-item button.logout-btn span,
-.nav-item button.logout-btn.nav-link-rounded span,
-li.nav-item button.logout-btn span,
-li.nav-item button.logout-btn.nav-link-rounded span,
-form button.logout-btn span,
-form button.logout-btn.nav-link-rounded span {
-    color: #ffffff !important;
-    font-weight: 600 !important;
-    font-size: 14px !important;
+.sidebar .logout-btn:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 8px rgba(229, 57, 53, 0.4) !important;
 }
 
 /* OLD NAVIGATION STYLES - REMOVED */
