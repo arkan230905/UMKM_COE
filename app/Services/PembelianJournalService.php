@@ -331,9 +331,19 @@ class PembelianJournalService
      */
     private function deleteExistingJournalPrivate(int $pembelianId): void
     {
-        // Hapus jurnal yang sudah ada untuk pembelian ini
-        // Note: Kita tidak bisa cari berdasarkan ref_id karena JurnalUmum tidak punya field itu
-        // Jadi kita akan hapus berdasarkan referensi yang akan di-set nanti
+        // Get the pembelian to find its nomor_pembelian
+        $pembelian = Pembelian::find($pembelianId);
+        if ($pembelian) {
+            // Delete existing journal entries based on referensi (nomor_pembelian)
+            JurnalUmum::where('tipe_referensi', 'pembelian')
+                ->where('referensi', $pembelian->nomor_pembelian)
+                ->delete();
+                
+            Log::info("Deleted existing journal entries for pembelian", [
+                'pembelian_id' => $pembelianId,
+                'nomor_pembelian' => $pembelian->nomor_pembelian
+            ]);
+        }
     }
     
     /**

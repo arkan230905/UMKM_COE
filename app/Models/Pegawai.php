@@ -33,6 +33,7 @@ class Pegawai extends Model
         'bank',
         'nomor_rekening',
         'nama_rekening',
+        'user_id',
     ];
     
     protected static function boot()
@@ -41,8 +42,16 @@ class Pegawai extends Model
 
         static::creating(function ($model) {
             if (empty($model->kode_pegawai)) {
-                $lastId = static::max('id') ?? 0;
+                $userId = auth()->id();
+                $lastId = static::where('user_id', $userId)->max('id') ?? 0;
                 $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+            }
+        });
+        
+        // Global scope for multi-tenant isolation
+        static::addGlobalScope('user_id', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
             }
         });
     }

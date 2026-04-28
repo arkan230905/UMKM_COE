@@ -11,14 +11,16 @@ class JournalService
 {
     protected function coaId(string $code): int
     {
-        // Langsung gunakan COA saja, tidak perlu tabel accounts
-        $coa = Coa::where('kode_akun', $code)->first();
+        // Cari COA milik user yang login, fallback ke COA manapun
+        $coa = Coa::where('kode_akun', $code)
+            ->where('user_id', auth()->id())
+            ->first()
+            ?? Coa::where('kode_akun', $code)->first();
+
         if ($coa) {
-            // Return the actual ID column, not the primary key
             return (int)$coa->getAttribute('id');
         }
 
-        // Jika COA tidak ditemukan, buat error yang informatif
         throw new \RuntimeException("COA dengan kode {$code} tidak ditemukan. Silakan buat COA terlebih dahulu di master data.");
     }
 
@@ -226,7 +228,7 @@ class JournalService
         $ppnNominal = (float) ($pembelian->ppn_nominal ?? 0);
         if ($ppnNominal > 0) {
             $lines[] = [
-                'code' => '1130', // PPN Masukan
+                'code' => '127', // PPN Masukan
                 'debit' => $ppnNominal,
                 'credit' => 0,
                 'memo' => 'PPN Masukan ' . ($pembelian->ppn_persen ?? 0) . '%'
@@ -289,12 +291,12 @@ class JournalService
                 break;
                 
             case 'credit':
-                $creditAccount = '2101'; // Utang Usaha
+                $creditAccount = '210'; // Utang Usaha
                 $creditMemo = 'Pembelian kredit';
                 break;
                 
             default:
-                $creditAccount = '2101'; // Default to Utang Usaha
+                $creditAccount = '210'; // Default to Utang Usaha
                 $creditMemo = 'Pembelian';
         }
         

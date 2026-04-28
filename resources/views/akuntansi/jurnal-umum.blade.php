@@ -50,7 +50,8 @@
             <option value="purchase" {{ $refType === 'purchase' ? 'selected' : '' }}>Pembelian</option>
             <option value="sale" {{ $refType === 'sale' ? 'selected' : '' }}>Penjualan</option>
             <option value="production_material" {{ $refType === 'production_material' ? 'selected' : '' }}>Produksi - Material</option>
-            <option value="production_labor_overhead" {{ $refType === 'production_labor_overhead' ? 'selected' : '' }}>Produksi - BTKL & BOP</option>
+            <option value="production_labor_overhead" {{ $refType === 'production_labor_overhead' ? 'selected' : '' }}>Produksi - BTKL</option>
+            <option value="production_bop" {{ $refType === 'production_bop' ? 'selected' : '' }}>Produksi - BOP</option>
             <option value="production_finish" {{ $refType === 'production_finish' ? 'selected' : '' }}>Produksi - Barang Jadi</option>
             <option value="saldo_awal" {{ $refType === 'saldo_awal' ? 'selected' : '' }}>Saldo Awal</option>
             <option value="pembayaran_beban" {{ $refType === 'pembayaran_beban' ? 'selected' : '' }}>Pembayaran Beban</option>

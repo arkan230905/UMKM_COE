@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Detail Biaya Bahan')
+@section('title', 'Detail Perhitungan Biaya Bahan Baku')
 
 @section('content')
 <div class="container-fluid px-4 py-4">
@@ -176,108 +176,25 @@
                     </div>
                 @endif
                 
-                <!-- Bahan Pendukung Section -->
-                @if($detailBahanPendukung && count($detailBahanPendukung) > 0)
-                    <div class="mb-4">
-                        <h6 class="text-warning mb-3">
-                            <i class="fas fa-flask me-2"></i>Bahan Pendukung ({{ count($detailBahanPendukung) }} item)
-                        </h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-striped">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th width="5%">#</th>
-                                        <th>Nama Bahan</th>
-                                        <th class="text-center">Qty</th>
-                                        <th class="text-center">Satuan</th>
-                                        <th class="text-end">Harga Satuan</th>
-                                        <th class="text-end">Subtotal</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($detailBahanPendukung as $index => $bahan)
-                                        <tr>
-                                            <td>{{ $index + 1 }}</td>
-                                            <td>
-                                                <div>
-                                                    <div class="fw-semibold {{ ($bahan['status'] ?? '') == 'dihapus' ? 'text-decoration-line-through text-danger' : '' }}">
-                                                        {{ $bahan['nama_bahan'] }}
-                                                    </div>
-                                                    @if(($bahan['status'] ?? '') == 'dihapus')
-                                                        <div class="text-danger small">
-                                                            <i class="fas fa-exclamation-triangle me-1"></i>
-                                                            <strong>Dihapus</strong>
-                                                        </div>
-                                                    @endif
-                                                    <small class="text-muted">{{ $bahan['satuan'] }}</small>
-                                                </div>
-                                            </td>
-                                            <td class="text-center">
-                                                {{ number_format($bahan['qty'], 2, ',', '.') }} {{ $bahan['satuan'] }}
-                                            </td>
-                                            <td class="text-center">
-                                                {{ $bahan['satuan'] }}
-                                            </td>
-                                            <td class="text-end">
-                                                @if(($bahan['status'] ?? '') == 'dihapus')
-                                                    <del>Rp {{ number_format($bahan['harga_satuan'], 0, ',', '.') }}</del>
-                                                    <br>
-                                                    <small class="text-danger">
-                                                        Terakhir: Rp {{ number_format($bahan['harga_terakhir'], 0, ',', '.') }}
-                                                    </small>
-                                                @else
-                                                    Rp {{ number_format($bahan['harga_satuan'], 0, ',', '.') }}
-                                                @endif
-                                            </td>
-                                            <td class="text-end">
-                                                @if(($bahan['status'] ?? '') == 'dihapus')
-                                                    <del>Rp {{ number_format($bahan['subtotal'], 0, ',', '.') }}</del>
-                                                @else
-                                                    <strong>Rp {{ number_format($bahan['subtotal'], 0, ',', '.') }}</strong>
-                                                @endif
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                                <tfoot class="table-light">
-                                    <tr>
-                                        <th colspan="5" class="text-end">Total Bahan Pendukung:</th>
-                                        <th class="text-end">
-                                            <strong>Rp {{ number_format($totalBiayaBahanPendukung, 0, ',', '.') }}</strong>
-                                        </th>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    </div>
-                @endif
-                
                 <!-- Summary -->
                 <div class="row">
                     <div class="col-md-12">
                         <div class="alert alert-light">
-                            <h6 class="alert-heading">Ringkasan Biaya Bahan untuk Produk</h6>
+                            <h6 class="alert-heading">Ringkasan Biaya Bahan Baku untuk Produk</h6>
                             <hr>
                             <div class="row">
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <p class="mb-2">
                                         <strong>Total Bahan Baku:</strong><br>
                                         <span class="text-info fs-5">Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}</span>
                                         <br><small class="text-muted">{{ $detailBahanBaku ? count($detailBahanBaku) : 0 }} item</small>
                                     </p>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-6">
                                     <p class="mb-2">
-                                        <strong>Total Bahan Pendukung:</strong><br>
-                                        <span class="text-warning fs-5">Rp {{ number_format($totalBiayaBahanPendukung, 0, ',', '.') }}</span>
-                                        <br><small class="text-muted">{{ $detailBahanPendukung ? count($detailBahanPendukung) : 0 }} item</small>
-                                    </p>
-                                </div>
-                                <div class="col-md-4">
-                                    <p class="mb-2">
-                                        <strong>Total Biaya Bahan:</strong><br>
-                                        <span class="text-success fs-5">Rp {{ number_format($totalBiayaBahan, 0, ',', '.') }}</span>
-                                        <br><small class="text-muted">{{ $allDetails ? count($allDetails) : 0 }} item total</small>
+                                        <strong>Total Biaya Bahan Baku:</strong><br>
+                                        <span class="text-success fs-5">Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}</span>
+                                        <br><small class="text-muted">{{ $detailBahanBaku ? count($detailBahanBaku) : 0 }} item total</small>
                                     </p>
                                 </div>
                             </div>
@@ -285,19 +202,14 @@
                             <div class="text-center">
                                 <small class="text-muted">
                                     <i class="fas fa-info-circle me-1"></i>
-                                    Perhitungan biaya bahan untuk produk ini
-                                    @if($totalBiayaBahanBaku > 0 && $totalBiayaBahanPendukung == 0)
-                                        (hanya bahan baku)
-                                    @elseif($totalBiayaBahanBaku == 0 && $totalBiayaBahanPendukung > 0)
-                                        (hanya bahan pendukung)
-                                    @endif
+                                    Perhitungan biaya bahan baku untuk produk ini
                                 </small>
                             </div>
-                            @if(collect($detailBahanBaku)->contains('status', 'dihapus') || collect($detailBahanPendukung)->contains(fn($b) => ($b['status'] ?? '') == 'dihapus'))
+                            @if(collect($detailBahanBaku)->contains('status', 'dihapus'))
                                 <div class="alert alert-warning mt-3">
                                     <h6><i class="fas fa-exclamation-triangle me-2"></i>Informasi Bahan yang Dihapus</h6>
                                     <p class="mb-0">
-                                        <strong>Bahan yang dihapus tidak mempengaruhi perhitungan biaya bahan:</strong>
+                                        <strong>Bahan yang dihapus tidak mempengaruhi perhitungan biaya bahan baku:</strong>
                                     </p>
                                     <ul class="mb-2">
                                         <li><strong>Harga satuan dan subtotal diset ke 0</strong> - agar tidak merusak perhitungan biaya bahan yang masih aktif</li>

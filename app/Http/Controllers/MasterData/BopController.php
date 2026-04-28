@@ -19,13 +19,16 @@ class BopController extends Controller
     public function index()
     {
         try {
+            // Auto-fix database if nama_bop_proses column doesn't exist
+            $this->ensureDatabaseStructure();
+
             // Get all BOP Proses with their production process data
             $bopProses = BopProses::with('prosesProduksi')
                 ->where('is_active', true)
                 ->orderBy('id')
                 ->get();
 
-            // Get all production processes (BTKL data) for dropdown - simple query first
+            // Get all production processes (BTKL data) for dropdown
             $prosesProduksis = ProsesProduksi::where('kapasitas_per_jam', '>', 0)
                 ->orderBy('kode_proses')
                 ->get();
@@ -33,13 +36,11 @@ class BopController extends Controller
             // Prepare BTKL data for auto-fill functionality
             $btklData = [];
             foreach ($prosesProduksis as $proses) {
-                // Get jabatan if exists
                 $jabatan = null;
                 if ($proses->jabatan_id) {
                     $jabatan = \App\Models\Jabatan::find($proses->jabatan_id);
                 }
                 
-                // Calculate tarif BTKL from jabatan
                 $tarifBtkl = $proses->tarif_btkl ?? 0;
                 
                 $btklData[$proses->id] = [
@@ -57,7 +58,6 @@ class BopController extends Controller
 
             // Transform expense accounts to BOP Lainnya format for display
             $bopLainnya = $akunBeban->map(function($akun) {
-                // Check if there's existing BOP data for this account in bop_lainnyas table
                 $existingBop = \App\Models\BopLainnya::where('kode_akun', $akun->kode_akun)->first();
                 
                 return (object) [
@@ -75,16 +75,19 @@ class BopController extends Controller
                 ];
             });
 
-            // Calculate BOP Lainnya totals
             $totalBopLainnya = $bopLainnya->sum('budget') ?? 0;
             $jumlahBopLainnya = $bopLainnya->count() ?? 0;
 
-            // Get Beban Operasional master data (if table exists)
+            // Get Beban Operasional master data
             $bebanOperasional = collect([]);
-            if (\Schema::hasTable('beban_operasional')) {
-                $bebanOperasional = BebanOperasional::query()
-                    ->orderBy('kode', 'asc')
-                    ->get();
+            try {
+                if (\Schema::hasTable('beban_operasional')) {
+                    $bebanOperasional = \App\Models\BebanOperasional::query()
+                        ->orderBy('kode', 'asc')
+                        ->get();
+                }
+            } catch (\Exception $bebanError) {
+                \Log::error('Error loading BebanOperasional: ' . $bebanError->getMessage());
             }
 
             return view('master-data.bop.index', compact(
@@ -102,8 +105,39 @@ class BopController extends Controller
             \Log::error('Error in BopController@index: ' . $e->getMessage());
             \Log::error($e->getTraceAsString());
             
-            // Show error to user instead of hiding it
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Ensure database structure is correct
+     */
+    private function ensureDatabaseStructure()
+    {
+        try {
+            // Check if nama_bop_proses column exists
+            $columns = DB::select("SHOW COLUMNS FROM bop_proses LIKE 'nama_bop_proses'");
+            
+            if (empty($columns)) {
+                // Add the missing column
+                DB::statement("ALTER TABLE `bop_proses` ADD COLUMN `nama_bop_proses` VARCHAR(255) NULL AFTER `id`");
+                \Log::info('BOP Database - Auto-fixed: Added nama_bop_proses column');
+            }
+            
+            // Check if periode column exists
+            $periodeColumns = DB::select("SHOW COLUMNS FROM bop_proses LIKE 'periode'");
+            
+            if (empty($periodeColumns)) {
+                // Add the missing periode column
+                DB::statement("ALTER TABLE `bop_proses` ADD COLUMN `periode` VARCHAR(10) NULL");
+                \Log::info('BOP Database - Auto-fixed: Added periode column');
+            }
+            
+            // Make proses_produksi_id nullable
+            DB::statement("ALTER TABLE `bop_proses` MODIFY COLUMN `proses_produksi_id` BIGINT UNSIGNED NULL");
+            
+        } catch (\Exception $e) {
+            \Log::error('BOP Database - Auto-fix failed: ' . $e->getMessage());
         }
     }
 
@@ -353,6 +387,27 @@ class BopController extends Controller
             $btkl = \App\Models\Btkl::where('nama_btkl', $bopProses->prosesProduksi->nama_proses)->first();
             
             return view('master-data.bop.show-proses-modal', compact('bopProses', 'btkl'));
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'BOP Proses tidak ditemukan: ' . $e->getMessage()
+            ], 404);
+        }
+    }
+
+    /**
+     * Get BOP Proses data for editing (AJAX)
+     */
+    public function getProses($id)
+    {
+        try {
+            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
+            
+            return response()->json([
+                'success' => true,
+                'bop' => $bopProses
+            ]);
             
         } catch (\Exception $e) {
             return response()->json([
@@ -616,35 +671,45 @@ class BopController extends Controller
      */
     public function storeProsesSimple(Request $request)
     {
-        $validated = $request->validate([
-            'proses_produksi_id' => 'required|exists:proses_produksis,id|unique:bop_proses,proses_produksi_id',
-            'komponen_name' => 'required|array|min:1',
-            'komponen_name.*' => 'required|string',
-            'komponen_rate' => 'required|array|min:1',
-            'komponen_rate.*' => 'required|numeric|min:0',
-            'komponen_desc' => 'nullable|array',
-            'komponen_desc.*' => 'nullable|string',
-            'keterangan' => 'nullable|string'
+        // Log incoming request
+        \Log::info('BOP Store - Request received', [
+            'nama_bop_proses' => $request->input('nama_bop_proses'),
+            'komponen_name' => $request->input('komponen_name'),
+            'komponen_rate' => $request->input('komponen_rate'),
+            'method' => $request->method()
         ]);
 
         try {
+            // Simplified validation
+            $request->validate([
+                'nama_bop_proses' => 'required|string|max:255',
+                'komponen_name' => 'required|array|min:1',
+                'komponen_name.*' => 'required|string|max:255',
+                'komponen_rate' => 'required|array|min:1',
+                'komponen_rate.*' => 'required|numeric|min:0.01',
+            ], [
+                'nama_bop_proses.required' => 'Nama BOP Proses wajib diisi',
+                'komponen_name.required' => 'Minimal harus ada 1 komponen',
+                'komponen_name.*.required' => 'Nama komponen wajib diisi',
+                'komponen_rate.required' => 'Rate komponen wajib diisi',
+                'komponen_rate.*.required' => 'Rate komponen wajib diisi',
+                'komponen_rate.*.min' => 'Rate komponen harus lebih dari 0',
+            ]);
+
             DB::beginTransaction();
 
-            // Get BTKL process to validate capacity
-            $prosesProduksi = ProsesProduksi::findOrFail($validated['proses_produksi_id']);
-            
-            if ($prosesProduksi->kapasitas_per_jam <= 0) {
-                throw new \Exception('Proses BTKL harus memiliki kapasitas per jam yang valid.');
-            }
-
-            // Build components array from form data
+            // Build components array
             $components = [];
-            foreach ($validated['komponen_name'] as $index => $name) {
-                if (!empty(trim($name)) && floatval($validated['komponen_rate'][$index]) > 0) {
+            $komponenNames = $request->input('komponen_name', []);
+            $komponenRates = $request->input('komponen_rate', []);
+            $komponenDescs = $request->input('komponen_desc', []);
+
+            foreach ($komponenNames as $index => $name) {
+                if (!empty(trim($name)) && isset($komponenRates[$index]) && floatval($komponenRates[$index]) > 0) {
                     $components[] = [
                         'component' => trim($name),
-                        'rate_per_hour' => floatval($validated['komponen_rate'][$index]),
-                        'description' => $validated['komponen_desc'][$index] ?? ''
+                        'rate_per_hour' => floatval($komponenRates[$index]),
+                        'description' => $komponenDescs[$index] ?? ''
                     ];
                 }
             }
@@ -653,32 +718,36 @@ class BopController extends Controller
                 throw new \Exception('Harap isi minimal satu komponen BOP dengan nominal lebih dari 0.');
             }
 
-            // Check for duplicate components
-            $componentNames = array_column($components, 'component');
-            if (count($componentNames) !== count(array_unique($componentNames))) {
-                throw new \Exception('Komponen BOP tidak boleh duplikat.');
+            // Calculate values
+            $totalBopPerProduk = array_sum(array_column($components, 'rate_per_hour'));
+            $bopPerUnit = $totalBopPerProduk;
+
+            // Prepare data for insert
+            $insertData = [
+                'nama_bop_proses' => $request->input('nama_bop_proses'),
+                'proses_produksi_id' => null,
+                'komponen_bop' => $components,
+                'total_bop_per_jam' => $totalBopPerProduk,
+                'kapasitas_per_jam' => 1,
+                'bop_per_unit' => $bopPerUnit,
+                'keterangan' => $request->input('keterangan', "BOP untuk {$request->input('nama_bop_proses')}"),
+                'is_active' => true,
+            ];
+            
+            // Add periode if column exists
+            $periodeColumns = DB::select("SHOW COLUMNS FROM bop_proses LIKE 'periode'");
+            if (!empty($periodeColumns)) {
+                $insertData['periode'] = date('Y-m');
             }
 
-            // Calculate values - using per-product basis
-            $totalBopPerProduk = array_sum(array_column($components, 'rate_per_hour'));
-            $kapasitasPerJam = $prosesProduksi->kapasitas_per_jam;
-            
-            // BOP per unit is same as total BOP per produk (no division by capacity)
-            $bopPerUnit = $totalBopPerProduk;
-            
-            // For backward compatibility, store total_bop_per_jam as the per-product total
-            $totalBopPerJam = $totalBopPerProduk;
-
             // Create BOP Proses
-            $bopProses = BopProses::create([
-                'proses_produksi_id' => $validated['proses_produksi_id'],
-                'komponen_bop' => $components,
-                'total_bop_per_jam' => $totalBopPerJam, // Actually stores per-product total
-                'kapasitas_per_jam' => $kapasitasPerJam,
-                'bop_per_unit' => $bopPerUnit, // Same as total BOP per produk
-                'periode' => date('Y-m'),
-                'keterangan' => $validated['keterangan'] ?? "BOP untuk proses {$prosesProduksi->nama_proses}",
-                'is_active' => true,
+            $bopProses = BopProses::create($insertData);
+
+            \Log::info('BOP Store - Success', [
+                'id' => $bopProses->id,
+                'nama_bop_proses' => $bopProses->nama_bop_proses,
+                'bop_per_unit' => $bopProses->bop_per_unit,
+                'components_count' => count($components)
             ]);
 
             DB::commit();
@@ -687,8 +756,25 @@ class BopController extends Controller
                 ->route('master-data.bop.index')
                 ->with('success', 'BOP Proses berhasil ditambahkan dengan ' . count($components) . ' komponen.');
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('BOP Store - Validation Error', [
+                'errors' => $e->errors()
+            ]);
+            
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors($e->errors())
+                ->with('error', 'Validasi gagal. Periksa kembali data yang dimasukkan.');
+                
         } catch (\Exception $e) {
             DB::rollBack();
+            
+            \Log::error('BOP Store - Error', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
             
             return redirect()
                 ->back()
@@ -702,48 +788,47 @@ class BopController extends Controller
      */
     public function updateProsesSimple(Request $request, $id)
     {
-        \Log::info('BOP Update Simple - Called!', [
-            'id' => $id,
-            'all_data' => $request->all(),
-            'has_komponen_bop' => $request->has('komponen_bop'),
-            'komponen_bop' => $request->input('komponen_bop')
+        // Validate form data (same as create)
+        $validated = $request->validate([
+            'nama_bop_proses' => 'required|string|max:255',
+            'komponen_name' => 'required|array|min:1',
+            'komponen_name.*' => 'required|string|max:255',
+            'komponen_rate' => 'required|array|min:1',
+            'komponen_rate.*' => 'required|numeric|min:0.01',
+            'komponen_desc' => 'nullable|array',
+            'komponen_desc.*' => 'nullable|string|max:255',
+            'keterangan' => 'nullable|string|max:500',
+        ], [
+            'nama_bop_proses.required' => 'Nama BOP Proses wajib diisi',
+            'komponen_name.required' => 'Minimal harus ada 1 komponen',
+            'komponen_name.*.required' => 'Nama komponen wajib diisi',
+            'komponen_rate.required' => 'Minimal harus ada 1 nilai rate',
+            'komponen_rate.*.required' => 'Nilai rate wajib diisi',
+            'komponen_rate.*.min' => 'Nilai rate harus lebih dari 0',
         ]);
 
         try {
-            $validated = $request->validate([
-                'komponen_bop' => 'sometimes|array',
-                'komponen_bop.*.component' => 'sometimes|required_with:komponen_bop|string',
-                'komponen_bop.*.rate_per_hour' => 'sometimes|required_with:komponen_bop|numeric|min:0',
-                'keterangan' => 'nullable|string'
-            ]);
-
-            \Log::info('BOP Update Simple - Validated:', $validated);
-
             DB::beginTransaction();
 
             $bopProses = BopProses::findOrFail($id);
             
-            // Check if komponen_bop exists in validated data
-            if (!isset($validated['komponen_bop']) || empty($validated['komponen_bop'])) {
-                \Log::error('BOP Update Simple - No komponen_bop in validated data');
-                throw new \Exception('Data komponen BOP tidak ditemukan. Silakan refresh halaman dan coba lagi.');
-            }
+            // Update nama_bop_proses
+            $bopProses->nama_bop_proses = $validated['nama_bop_proses'];
             
             // Build components array from form data
             $components = [];
-            foreach ($validated['komponen_bop'] as $index => $komponen) {
-                if (!empty($komponen['component']) && floatval($komponen['rate_per_hour'] ?? 0) > 0) {
+            foreach ($validated['komponen_name'] as $index => $name) {
+                $rate = floatval($validated['komponen_rate'][$index] ?? 0);
+                $desc = $validated['komponen_desc'][$index] ?? '';
+                
+                if (!empty(trim($name)) && $rate > 0) {
                     $components[] = [
-                        'component' => trim($komponen['component']),
-                        'rate_per_hour' => floatval($komponen['rate_per_hour']),
+                        'component' => trim($name),
+                        'rate_per_hour' => $rate,
+                        'description' => $desc,
                     ];
                 }
             }
-
-            \Log::info('BOP Update Simple - Components built:', [
-                'count' => count($components),
-                'components' => $components
-            ]);
 
             if (empty($components)) {
                 throw new \Exception('Harap isi minimal satu komponen BOP dengan nominal lebih dari 0.');
@@ -751,7 +836,6 @@ class BopController extends Controller
 
             // Calculate values - using per-product basis
             $totalBopPerProduk = array_sum(array_column($components, 'rate_per_hour'));
-            $kapasitasPerJam = $bopProses->kapasitas_per_jam;
             
             // BOP per unit is same as total BOP per produk (no division by capacity)
             $bopPerUnit = $totalBopPerProduk;
@@ -762,65 +846,21 @@ class BopController extends Controller
             // Update BOP Proses
             $bopProses->update([
                 'komponen_bop' => $components,
-                'total_bop_per_jam' => $totalBopPerJam, // Actually stores per-product total
-                'bop_per_unit' => $bopPerUnit, // Same as total BOP per produk
-                'keterangan' => $validated['keterangan'] ?? $bopProses->keterangan,
-            ]);
-
-            \Log::info('BOP Update Simple - Success!', [
-                'id' => $bopProses->id,
-                'components_count' => count($components)
+                'total_bop_per_jam' => $totalBopPerJam,
+                'bop_per_unit' => $bopPerUnit,
+                'keterangan' => $validated['keterangan'] ?? null,
             ]);
 
             DB::commit();
-
-            // Return JSON for AJAX requests
-            if ($request->expectsJson() || $request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'BOP Proses berhasil diperbarui dengan ' . count($components) . ' komponen.'
-                ]);
-            }
 
             return redirect()
                 ->route('master-data.bop.index')
                 ->with('success', 'BOP Proses berhasil diperbarui dengan ' . count($components) . ' komponen.');
 
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            DB::rollBack();
-            
-            \Log::error('BOP Update Simple - Validation Error:', [
-                'errors' => $e->errors(),
-                'request' => $request->all()
-            ]);
-            
-            $errors = $e->errors();
-            $errorMessages = [];
-            foreach ($errors as $field => $messages) {
-                if (is_array($messages)) {
-                    $errorMessages = array_merge($errorMessages, $messages);
-                } else {
-                    $errorMessages[] = $messages;
-                }
-            }
-            
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', 'Validasi gagal: ' . implode(', ', $errorMessages));
-            
         } catch (\Exception $e) {
             DB::rollBack();
             
-            // Log error for debugging
-            \Log::error('BOP Update Simple - Error: ' . $e->getMessage(), [
-                'id' => $id,
-                'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return redirect()
-                ->back()
+            return back()
                 ->withInput()
                 ->with('error', 'Gagal memperbarui BOP Proses: ' . $e->getMessage());
         }
@@ -866,30 +906,36 @@ class BopController extends Controller
     {
         try {
             $validated = $request->validate([
-                'kategori' => 'required|in:Administrasi,Marketing,Utilitas,Distribusi,Lain-lain',
                 'nama_beban' => 'required|string|max:255',
                 'budget_bulanan' => 'nullable|numeric|min:0',
                 'keterangan' => 'nullable|string|max:500',
                 'status' => 'required|in:aktif,nonaktif'
             ]);
 
+            // Add created_by
             $validated['created_by'] = auth()->id();
-            $validated['kode'] = BebanOperasional::generateKode();
             
-            $bebanOperasional = BebanOperasional::create($validated);
+            // Don't manually set kode - let the model's booted() method handle it
+            // $validated['kode'] = BebanOperasional::generateKode();
+            
+            // Create the record
+            $bebanOperasional = \App\Models\BebanOperasional::create($validated);
 
-            // Add formatted fields for response
-            $bebanOperasional->budget_bulanan_formatted = $bebanOperasional->budget_bulanan_formatted;
-            $bebanOperasional->status_badge = $bebanOperasional->status_badge;
+            // Refresh to get the generated kode
+            $bebanOperasional->refresh();
 
             return response()->json([
                 'success' => true,
                 'message' => 'Master Beban Operasional berhasil ditambahkan',
-                'data' => $bebanOperasional,
-                'debug' => [
-                    'saved_data' => $validated,
-                    'created_id' => $bebanOperasional->id,
-                    'kode' => $bebanOperasional->kode
+                'data' => [
+                    'id' => $bebanOperasional->id,
+                    'kode' => $bebanOperasional->kode,
+                    'nama_beban' => $bebanOperasional->nama_beban,
+                    'budget_bulanan' => $bebanOperasional->budget_bulanan,
+                    'budget_bulanan_formatted' => $bebanOperasional->budget_bulanan_formatted,
+                    'keterangan' => $bebanOperasional->keterangan,
+                    'status' => $bebanOperasional->status,
+                    'status_badge' => $bebanOperasional->status_badge,
                 ]
             ]);
 
@@ -949,7 +995,6 @@ class BopController extends Controller
             $bebanOperasional = BebanOperasional::findOrFail($id);
 
             $validated = $request->validate([
-                'kategori' => 'required|in:Administrasi,Marketing,Utilitas,Distribusi,Lain-lain',
                 'nama_beban' => 'required|string|max:255',
                 'budget_bulanan' => 'nullable|numeric|min:0',
                 'keterangan' => 'nullable|string|max:500',
@@ -1035,11 +1080,6 @@ class BopController extends Controller
     {
         try {
             $query = BebanOperasional::query();
-
-            // Filter by kategori
-            if ($request->filled('kategori')) {
-                $query->kategori($request->kategori);
-            }
 
             // Filter by status
             if ($request->filled('status')) {

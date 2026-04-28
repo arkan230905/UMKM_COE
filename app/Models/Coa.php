@@ -30,9 +30,12 @@ class Coa extends Model
         'tanggal_saldo_awal',
         'posted_saldo_awal',
         'company_id',
+        'nomor_rekening',
+        'atas_nama',
+        'user_id',
     ];
     
-    protected $appends = ['kode', 'nama'];
+    protected $appends = ['kode', 'nama', 'kode_induk'];
 
     protected $casts = [
         'posted_saldo_awal' => 'boolean',
@@ -53,6 +56,20 @@ class Coa extends Model
     public function getNamaAttribute()
     {
         return $this->nama_akun;
+    }
+    
+    /**
+     * Accessor untuk kode_induk (backward compatibility)
+     */
+    public function getKodeIndukAttribute()
+    {
+        // Return parent account code or null if no parent
+        // For now, return the first 2 digits of kode_akun as parent
+        $kodeAkun = $this->kode_akun;
+        if (strlen($kodeAkun) >= 3) {
+            return substr($kodeAkun, 0, 2);
+        }
+        return null;
     }
 
     /**
@@ -88,38 +105,10 @@ class Coa extends Model
         return $balance ? $balance->saldo_awal : ($this->saldo_awal ?? 0);
     }
 
-    /**
-     * The "booting" method of the model.
-     *
-     * @return void
-     */
-    protected static function booted()
-    {
-        parent::booted();
         
-        // Generate kode akun otomatis jika kosong
-        static::creating(function ($coa) {
-            if (empty($coa->kode_akun)) {
-                $coa->kode_akun = $coa->generateKodeAkun();
-            }
-        });
-        
-        // COA tidak memiliki company_id, jadi tidak perlu filter berdasarkan perusahaan
-        // Global scope dihapus karena tabel coas tidak memiliki field company_id
-        
-        // Default order hierarkis: parent diikuti children (11 → 111 → 1131 → 112 → ...)
-        static::addGlobalScope('orderByKodeAkun', function ($builder) {
-            $builder->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)");
-        });
-    }
-    
     /**
      * Generate kode akun anak otomatis berdasarkan prefix induk.
-     *
-     * Contoh:
-     *   prefix '114', existing: 114,1141,1142,1143,1144 → return '1145'
-     *   prefix '51',  existing: 51,510,511,512           → return '513'
-     *   prefix '11',  existing: 11 (belum ada anak)      → return '111'
+     * Scope ke user_id yang sedang login agar tidak konflik antar user.
      *
      * @param string $prefix  Kode akun induk (misal '114', '51', '21')
      * @return string         Kode akun anak berikutnya
@@ -129,8 +118,11 @@ class Coa extends Model
         $prefixLen = strlen($prefix);
         $childLen = $prefixLen + 1;
 
-        // Cari kode_akun anak langsung (panjang = prefix + 1 digit) yang diawali prefix
+        $userId = auth()->id();
+
+        // Cari kode_akun anak langsung (panjang = prefix + 1 digit) milik user ini
         $maxChild = self::withoutGlobalScopes()
+            ->where('user_id', $userId)
             ->where('kode_akun', 'LIKE', $prefix . '%')
             ->whereRaw('LENGTH(kode_akun) = ?', [$childLen])
             ->orderByRaw('CAST(kode_akun AS UNSIGNED) DESC')
@@ -145,6 +137,7 @@ class Coa extends Model
 
             if ($parentPrefix !== '') {
                 $firstSibling = self::withoutGlobalScopes()
+                    ->where('user_id', $userId)
                     ->where('kode_akun', 'LIKE', $parentPrefix . '%')
                     ->whereRaw('LENGTH(kode_akun) = ?', [$childLen])
                     ->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC')
@@ -159,9 +152,9 @@ class Coa extends Model
             $nextNum = (int) ($prefix . $startDigit);
         }
 
-        // Pastikan kode yang dihasilkan belum ada (hindari konflik)
+        // Pastikan kode yang dihasilkan belum ada untuk user ini
         $candidate = (string) $nextNum;
-        while (self::withoutGlobalScopes()->where('kode_akun', $candidate)->exists()) {
+        while (self::withoutGlobalScopes()->where('user_id', $userId)->where('kode_akun', $candidate)->exists()) {
             $nextNum++;
             $candidate = (string) $nextNum;
         }
@@ -220,6 +213,14 @@ class Coa extends Model
     }
     
     /**
+     * Get the user that owns the COA
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
      * Validasi kode akun tidak duplikat
      */
     public static function validateUniqueKodeAkun($kodeAkun, $excludeId = null)
@@ -231,5 +232,41 @@ class Coa extends Model
         }
         
         return $query->doesntExist();
+    }
+
+    /**
+     * The "booted" method of the model.
+     *
+     * @return void
+     */
+    protected static function booted()
+    {
+        parent::booted();
+        
+        // Auto-assign user_id saat creating
+        static::creating(function ($coa) {
+            if (empty($coa->user_id) && auth()->check()) {
+                $coa->user_id = auth()->id();
+            }
+        });
+        
+        // Global scope untuk data isolation
+        static::addGlobalScope('user', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+        
+        // Generate kode akun otomatis jika kosong
+        static::creating(function ($coa) {
+            if (empty($coa->kode_akun)) {
+                $coa->kode_akun = $coa->generateKodeAkun();
+            }
+        });
+        
+        // Default order hierarkis: parent diikuti children (11 → 111 → 1131 → 112 → ...)
+        static::addGlobalScope('orderByKodeAkun', function ($builder) {
+            $builder->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)");
+        });
     }
 }

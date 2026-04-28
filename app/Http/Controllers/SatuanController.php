@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Satuan;
 use App\Models\SatuanGrup;
 use Illuminate\Http\Request;
 
@@ -9,7 +10,9 @@ class SatuanController extends Controller
 {
     public function index()
     {
-        $satuans = SatuanGrup::orderBy('id', 'asc')->get();
+        $satuans = Satuan::where('user_id', auth()->id())
+            ->orderBy('kode', 'asc')
+            ->get();
         return view('master-data.satuan.index', compact('satuans'));
     }
 
@@ -18,7 +21,9 @@ class SatuanController extends Controller
      */
     public function dashboard()
     {
-        $satuans = SatuanGrup::orderBy('kode', 'asc')->get();
+        $satuans = Satuan::where('user_id', auth()->id())
+            ->orderBy('kode', 'asc')
+            ->get();
         return view('master-data.satuan.dashboard', compact('satuans'));
     }
 
@@ -33,8 +38,8 @@ class SatuanController extends Controller
         $isAjax = $request->ajax() || $request->wantsJson();
         
         $validated = $request->validate([
-            'kode' => 'required|string|max:10|unique:satuan_grups,kode',
-            'nama' => 'required|string|max:50|unique:satuan_grups,nama',
+            'kode' => 'required|string|max:10|unique:satuans,kode,NULL,id,user_id,'.auth()->id(),
+            'nama' => 'required|string|max:50|unique:satuans,nama,NULL,id,user_id,'.auth()->id(),
         ], [
             'kode.required' => 'Kode satuan harus diisi',
             'kode.max' => 'Kode maksimal 10 karakter',
@@ -45,10 +50,14 @@ class SatuanController extends Controller
         ]);
 
         try {
-            // Simpan data
-            $satuan = SatuanGrup::create([
+            // Simpan data dengan user_id
+            $satuan = Satuan::create([
+                'user_id' => auth()->id(),
                 'kode' => strtoupper($validated['kode']),
                 'nama' => $validated['nama'],
+                'tipe' => $request->tipe ?? 'unit',
+                'kategori' => $request->kategori ?? 'jumlah',
+                'is_active' => true,
                 'keterangan' => $request->keterangan ?? '',
             ]);
 
@@ -80,19 +89,22 @@ class SatuanController extends Controller
     }
 
 
-    public function edit(SatuanGrup $satuan)
+    public function edit($id)
     {
+        $satuan = Satuan::where('user_id', auth()->id())->findOrFail($id);
         return view('master-data.satuan.edit', compact('satuan'));
     }
 
-    public function update(Request $request, SatuanGrup $satuan)
+    public function update(Request $request, $id)
     {
         // Check if this is an AJAX request
         $isAjax = $request->ajax() || $request->wantsJson();
         
+        $satuan = Satuan::where('user_id', auth()->id())->findOrFail($id);
+        
         $validated = $request->validate([
-            'kode' => 'required|string|max:10|unique:satuan_grups,kode,' . $satuan->id,
-            'nama' => 'required|string|max:50|unique:satuan_grups,nama,' . $satuan->id,
+            'kode' => 'required|string|max:10|unique:satuans,kode,' . $id . ',id,user_id,'.auth()->id(),
+            'nama' => 'required|string|max:50|unique:satuans,nama,' . $id . ',id,user_id,'.auth()->id(),
         ], [
             'kode.required' => 'Kode satuan harus diisi',
             'kode.max' => 'Kode maksimal 10 karakter',
@@ -107,6 +119,8 @@ class SatuanController extends Controller
             $satuan->update([
                 'kode' => strtoupper($validated['kode']),
                 'nama' => $validated['nama'],
+                'tipe' => $request->tipe ?? $satuan->tipe,
+                'kategori' => $request->kategori ?? $satuan->kategori,
                 'keterangan' => $request->keterangan ?? $satuan->keterangan,
             ]);
 
@@ -136,13 +150,16 @@ class SatuanController extends Controller
         }
     }
 
-    public function destroy(Request $request, SatuanGrup $satuan)
+    public function destroy(Request $request, $id)
     {
         // Check if this is an AJAX request
         $isAjax = $request->ajax() || $request->wantsJson();
         
         try {
+            $satuan = Satuan::where('user_id', auth()->id())->findOrFail($id);
             $satuanName = $satuan->nama;
+            
+            // Hapus data
             $satuan->delete();
 
             // Check if request is AJAX

@@ -356,49 +356,12 @@
             </div>
         </div>
 
-        <!-- 2. Bahan Pendukung -->
-        <div class="card shadow-sm mb-3">
-            <div class="card-header bg-info text-white"><h5 class="mb-0"><i class="bi bi-droplet me-2"></i>2. Bahan Penolong/Pendukung</h5></div>
-            <div class="card-body">
-                <table class="table table-bordered" id="bpTable">
-                    <thead class="table-light">
-                        <tr><th width="35%">Bahan Penolong</th><th width="15%">Jumlah</th><th width="10%">Satuan</th><th width="15%">Harga/Satuan</th><th width="15%">Subtotal</th><th width="10%">Aksi</th></tr>
-                    </thead>
-                    <tbody id="bpBody">
-                        <tr class="bp-row">
-                            <td>
-                                <select name="bp_id[]" class="form-select form-select-sm bp-select">
-                                    <option value="">-- Pilih Bahan Penolong --</option>
-                                    @foreach($bahanPendukungs as $bp)
-                                        <option value="{{ $bp->id }}" data-harga="{{ $bp->harga_satuan ?? 0 }}" data-satuan="{{ $bp->satuanRelation->kode ?? 'PCS' }}">{{ $bp->nama_bahan }}</option>
-                                    @endforeach
-                                </select>
-                            </td>
-                            <td><input type="number" name="bp_jumlah[]" class="form-control form-control-sm bp-jumlah" value="0" min="0" step="0.01"></td>
-                            <td><select name="bp_satuan[]" class="form-select form-select-sm bp-satuan">
-                                    <option value="">-- Satuan --</option>
-                                    @foreach($satuans as $satuan)
-                                        <option value="{{ $satuan->kode }}">{{ $satuan->kode }}</option>
-                                    @endforeach
-                                </select></td>
-                            <td class="bp-harga text-end">Rp 0</td>
-                            <td class="bp-subtotal text-end fw-bold">Rp 0</td>
-                            <td class="text-center"><button type="button" class="btn btn-danger btn-sm btn-hapus-bp"><i class="bi bi-trash"></i></button></td>
-                        </tr>
-                    </tbody>
-                    <tfoot><tr class="table-info"><td colspan="4" class="text-end fw-bold">Total Bahan Penolong</td><td class="text-end fw-bold" id="totalBP">Rp 0</td><td></td></tr></tfoot>
-                </table>
-                <button type="button" class="btn btn-info btn-sm text-dark" id="btnTambahBP"><i class="bi bi-plus"></i> Tambah Bahan Penolong</button>
-            </div>
-        </div>
-
         <!-- Ringkasan Biaya Bahan -->
         <div class="card shadow-sm mb-3 border-success">
             <div class="card-header bg-success text-white"><h5 class="mb-0"><i class="bi bi-calculator me-2"></i>Ringkasan Biaya Bahan</h5></div>
             <div class="card-body">
                 <table class="table table-bordered">
                     <tr><td width="60%">Total Biaya Bahan Baku (BBB)</td><td class="text-end fw-bold" id="summaryBBB">Rp 0</td></tr>
-                    <tr><td>Total Bahan Penolong</td><td class="text-end fw-bold" id="summaryBP">Rp 0</td></tr>
                     <tr class="table-success"><td class="fw-bold fs-5">TOTAL BIAYA BAHAN PER UNIT</td><td class="text-end fw-bold fs-5" id="totalBiayaBahan">Rp 0</td></tr>
                 </table>
             </div>
@@ -498,13 +461,13 @@ function attachBBB(row) {
     row.querySelector('.btn-hapus-bbb').addEventListener('click', () => { row.remove(); hitungTotalBBB(); });
 }
 
-function hitungBP(row) {
-    const sel = row.querySelector('.bp-select'), jml = row.querySelector('.bp-jumlah'), sat = row.querySelector('.bp-satuan');
+function hitungBBB(row) {
+    const sel = row.querySelector('.bbb-select'), jml = row.querySelector('.bbb-jumlah'), sat = row.querySelector('.bbb-satuan');
     const opt = sel.options[sel.selectedIndex];
     if (!opt.value) { 
-        row.querySelector('.bp-harga').textContent = 'Rp 0'; 
-        row.querySelector('.bp-subtotal').textContent = 'Rp 0'; 
-        hitungTotalBP(); 
+        row.querySelector('.bbb-harga').textContent = 'Rp 0'; 
+        row.querySelector('.bbb-subtotal').textContent = 'Rp 0'; 
+        hitungTotalBBB(); 
         return; 
     }
     
@@ -520,27 +483,13 @@ function hitungBP(row) {
     // Convert price to selected unit (auto-detect category)
     const convertedHarga = convertPrice(baseHarga, baseUnit, selectedUnit);
     
-    row.querySelector('.bp-harga').textContent = formatRupiah(convertedHarga);
-    row.querySelector('.bp-subtotal').textContent = formatRupiah((parseFloat(jml.value) || 0) * convertedHarga);
-    hitungTotalBP();
+    row.querySelector('.bbb-harga').textContent = formatRupiah(convertedHarga);
+    row.querySelector('.bbb-subtotal').textContent = formatRupiah((parseFloat(jml.value) || 0) * convertedHarga);
+    hitungTotalBBB();
 }
-function hitungTotalBP() {
-    let t = 0; document.querySelectorAll('.bp-row').forEach(r => t += parseRupiah(r.querySelector('.bp-subtotal').textContent));
-    document.getElementById('totalBP').textContent = formatRupiah(t);
-    document.getElementById('summaryBP').textContent = formatRupiah(t);
-    hitungHPP();
-}
-function attachBP(row) {
-    row.querySelector('.bp-select').addEventListener('change', () => hitungBP(row));
-    row.querySelector('.bp-jumlah').addEventListener('input', () => hitungBP(row));
-    row.querySelector('.bp-satuan').addEventListener('change', () => hitungBP(row));
-    row.querySelector('.btn-hapus-bp').addEventListener('click', () => { row.remove(); hitungTotalBP(); });
-}
-
 function hitungHPP() {
     const bbb = parseRupiah(document.getElementById('summaryBBB').textContent);
-    const bp = parseRupiah(document.getElementById('summaryBP').textContent);
-    const total = bbb + bp; // Hanya BBB + Bahan Pendukung
+    const total = bbb; // Hanya BBB
     const jumlahProduk = getJumlahProduk();
     
     // Update Total Biaya Bahan per unit
@@ -550,7 +499,6 @@ function hitungHPP() {
 
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.bbb-row').forEach(r => attachBBB(r));
-    document.querySelectorAll('.bp-row').forEach(r => attachBP(r));
     
     // Add event listener for jumlahProduk
     const jumlahProdukField = document.getElementById('jumlahProduk');
@@ -558,25 +506,22 @@ document.addEventListener('DOMContentLoaded', () => {
         jumlahProdukField.addEventListener('input', hitungHPP);
     }
     
-    // Form submission validation - hanya cek BBB dan BP
+    // Form submission validation - hanya cek BBB
     document.getElementById('bomForm').addEventListener('submit', function(e) {
         const totalBBB = parseRupiah(document.getElementById('totalBBB').textContent);
-        const totalBP = parseRupiah(document.getElementById('totalBP').textContent);
         const totalBiayaBahan = parseRupiah(document.getElementById('totalBiayaBahan').textContent);
         
-        // Check if any material costs have been calculated
-        if (totalBBB === 0 && totalBP === 0) {
+        if (totalBiayaBahan <= 0) {
             e.preventDefault();
             alert('PERINGATAN: Tidak dapat menyimpan biaya bahan!\n\n' +
                   'Anda belum menghitung biaya bahan apapun.\n\n' +
-                  'Silakan isi minimal salah satu dari:\n' +
-                  '• Biaya Bahan Baku (BBB)\n' +
-                  '• Bahan Penolong/Pendukung\n\n' +
+                  'Silakan isi Biaya Bahan Baku (BBB).\n\n' +
                   'Kemudian coba simpan kembali.');
             return false;
         }
     });
     
+    // Add BBB row
     document.getElementById('btnTambahBBB').addEventListener('click', () => {
         const templateRow = document.querySelector('.bbb-row');
         const newRow = templateRow.cloneNode(true);
@@ -597,28 +542,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Recalculate totals
         hitungTotalBBB();
-    });
-    
-    document.getElementById('btnTambahBP').addEventListener('click', () => {
-        const templateRow = document.querySelector('.bp-row');
-        const newRow = templateRow.cloneNode(true);
-        
-        // Reset all form values
-        newRow.querySelector('.bp-select').value = '';
-        newRow.querySelector('.bp-jumlah').value = '0';
-        newRow.querySelector('.bp-satuan').value = '';
-        newRow.querySelector('.bp-harga').textContent = 'Rp 0';
-        newRow.querySelector('.bp-subtotal').textContent = 'Rp 0';
-        
-        // Clear any selected state
-        newRow.querySelector('.bp-select').selectedIndex = 0;
-        
-        // Add to table
-        document.getElementById('bpBody').appendChild(newRow);
-        attachBP(newRow);
-        
-        // Recalculate totals
-        hitungTotalBP();
     });
     
     // Initial calculation

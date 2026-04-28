@@ -24,12 +24,11 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Nama Bahan</th>
-                            <th>Satuan Utama</th>
-                            <th class="text-end">Harga Satuan Utama</th>
-                            <th>COA Pembelian</th>
-                            <th>COA Persediaan</th>
-                            <th>COA HPP</th>
+                            <th class="text-center">Nama Bahan</th>
+                            <th class="text-center">Satuan Utama</th>
+                            <th class="text-center">Harga Satuan Utama</th>
+                            <th class="text-center">Stok Saat Ini</th>
+                            <th class="text-center">Stok Minimum</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -46,39 +45,39 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td>
+                                <td class="text-center">
                                     @if($bahan->satuan)
                                         {{ $bahan->satuan->nama }}
                                     @else
                                         -
                                     @endif
                                 </td>
-                                <td class="text-end fw-semibold">
+                                <td class="text-center fw-semibold">
                                     Rp {{ number_format($bahan->harga_satuan_display ?? $bahan->harga_satuan ?? 0, 0, ',', '.') }}
                                 </td>
-                                <td>
-                                    @if($bahan->coaPembelian)
-                                        <small class="text-muted">{{ $bahan->coaPembelian->kode_akun }}</small><br>
-                                        {{ $bahan->coaPembelian->nama_akun }}
-                                    @else
-                                        -
-                                    @endif
+                                <td class="text-center">
+                                    <div class="fw-semibold text-primary">
+                                        {{ rtrim(rtrim(number_format($bahan->stok_real_time ?? 0, 2, ',', '.'), '0'), ',') }}
+                                    </div>
+                                    <small class="text-muted">
+                                        @if($bahan->satuan)
+                                            {{ $bahan->satuan->nama }}
+                                        @else
+                                            Unit
+                                        @endif
+                                    </small>
                                 </td>
-                                <td>
-                                    @if($bahan->coaPersediaan)
-                                        <small class="text-muted">{{ $bahan->coaPersediaan->kode_akun }}</small><br>
-                                        {{ $bahan->coaPersediaan->nama_akun }}
-                                    @else
-                                        -
-                                    @endif
-                                </td>
-                                <td>
-                                    @if($bahan->coaHpp)
-                                        <small class="text-muted">{{ $bahan->coaHpp->kode_akun }}</small><br>
-                                        {{ $bahan->coaHpp->nama_akun }}
-                                    @else
-                                        -
-                                    @endif
+                                <td class="text-center">
+                                    <div class="fw-semibold {{ ($bahan->stok_real_time ?? 0) <= ($bahan->stok_minimum ?? 0) ? 'text-danger' : 'text-success' }}">
+                                        {{ rtrim(rtrim(number_format($bahan->stok_minimum ?? 0, 2, ',', '.'), '0'), ',') }}
+                                    </div>
+                                    <small class="text-muted">
+                                        @if($bahan->satuan)
+                                            {{ $bahan->satuan->nama }}
+                                        @else
+                                            Unit
+                                        @endif
+                                    </small>
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
@@ -97,7 +96,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="text-center py-4">
+                                <td colspan="6" class="text-center py-4">
                                     <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data bahan baku</p>
                                 </td>

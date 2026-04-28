@@ -109,88 +109,66 @@ class BahanBakuObserver
     private function recalculateProductBiayaBahan(Produk $produk)
     {
         $converter = new UnitConverter();
-        $totalBiayaBahan = 0;
+        $totalBiayaBahanBaku = 0; // HANYA hitung bahan baku, tanpa pendukung
         
         // 1. Hitung biaya dari Bahan Baku (BomDetail)
         $bomDetails = BomDetail::with('bahanBaku.satuan')
-            ->where('bom_id', function($query) use ($produk) {
-                $query->select('id')->from('boms')->where('produk_id', $produk->id);
-            })
+            ->where('produk_id', $produk->id)
             ->get();
         
         foreach ($bomDetails as $detail) {
-            if (!$detail->bahanBaku) continue;
-            
-            $satuanBase = is_object($detail->bahanBaku->satuan) 
-                ? $detail->bahanBaku->satuan->nama 
-                : ($detail->bahanBaku->satuan ?? 'unit');
-            
             try {
-                $qtyBase = $converter->convert(
-                    (float) $detail->jumlah,
-                    $detail->satuan ?: $satuanBase,
-                    $satuanBase
+                $qtyBase = $converter->convertToBase(
+                    $detail->jumlah,
+                    $detail->satuan,
+                    $detail->bahanBaku->satuan->satuan ?? 'KG'
                 );
                 
-                $totalBiayaBahan += $detail->bahanBaku->harga_satuan * $qtyBase;
+                $totalBiayaBahanBaku += $detail->bahanBaku->harga_satuan * $qtyBase;
             } catch (\Exception $e) {
                 Log::error('Error calculating bahan baku cost', [
                     'produk_id' => $produk->id,
-                    'detail_id' => $detail->id,
+                    'bahan_baku_id' => $detail->bahan_baku_id,
                     'error' => $e->getMessage()
                 ]);
             }
         }
         
-        // 2. Hitung biaya dari Bahan Pendukung (BomJobBahanPendukung)
-        $bomJobCosting = BomJobCosting::where('produk_id', $produk->id)->first();
+        // 2. Hitung biaya dari Bahan Baku (BomJobBBB)
+        $jobBBB = BomJobBBB::with('bahanBaku.satuan')
+            ->whereHas('bomJobCosting', function($query) use ($produk) {
+                $query->where('produk_id', $produk->id);
+            })
+            ->get();
         
-        if ($bomJobCosting) {
-            $bomJobBahanPendukung = \App\Models\BomJobBahanPendukung::with('bahanPendukung.satuan')
-                ->where('bom_job_costing_id', $bomJobCosting->id)
-                ->get();
-            
-            foreach ($bomJobBahanPendukung as $jobPendukung) {
-                if (!$jobPendukung->bahanPendukung) continue;
+        foreach ($jobBBB as $bbb) {
+            try {
+                $qtyBase = $converter->convertToBase(
+                    $bbb->jumlah,
+                    $bbb->satuan,
+                    $bbb->bahanBaku->satuan->satuan ?? 'KG'
+                );
                 
-                $satuanBase = is_object($jobPendukung->bahanPendukung->satuan) 
-                    ? $jobPendukung->bahanPendukung->satuan->nama 
-                    : ($jobPendukung->bahanPendukung->satuan ?? 'unit');
-                
-                try {
-                    $qtyBase = $converter->convert(
-                        (float) $jobPendukung->jumlah,
-                        $jobPendukung->satuan ?: $satuanBase,
-                        $satuanBase
-                    );
-                    
-                    $totalBiayaBahan += $jobPendukung->bahanPendukung->harga_satuan * $qtyBase;
-                } catch (\Exception $e) {
-                    Log::error('Error calculating bahan pendukung cost', [
-                        'produk_id' => $produk->id,
-                        'job_pendukung_id' => $jobPendukung->id,
-                        'error' => $e->getMessage()
-                    ]);
-                }
+                $totalBiayaBahanBaku += $bbb->bahanBaku->harga_satuan * $qtyBase;
+            } catch (\Exception $e) {
+                Log::error('Error calculating BBB cost', [
+                    'produk_id' => $produk->id,
+                    'bom_job_bbb_id' => $bbb->id,
+                    'error' => $e->getMessage()
+                ]);
             }
-            
-            // 3. Update BomJobCosting total_bbb
-            $bomJobCosting->recalculate();
-            
-            Log::info('🔄 BomJobCosting Recalculated', [
-                'bom_job_costing_id' => $bomJobCosting->id,
-                'produk' => $produk->nama_produk,
-                'total_bbb' => $bomJobCosting->total_bbb,
-                'total_hpp' => $bomJobCosting->total_hpp
-            ]);
         }
         
-        // 4. Update biaya bahan dan harga_bom di produk
+        // NOTE: Bahan Pendukung DIHAPUS dari perhitungan biaya bahan baku
+        // Bahan pendukung akan dihitung di BOP sesuai permintaan user
+        
+        // 3. Update biaya bahan baku di produk (HANYA bahan baku)
         $produk->update([
-            'biaya_bahan' => $totalBiayaBahan
+            'biaya_bahan' => $totalBiayaBahanBaku
         ]);
         
         // Update harga_bom dengan HPP lengkap (BBB + Bahan Pendukung + BTKL + BOP)
+        $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
         if ($bomJobCosting) {
             $produk->update([
                 'harga_bom' => $bomJobCosting->total_hpp  // HPP lengkap
@@ -199,14 +177,14 @@ class BahanBakuObserver
             Log::info('💰 Harga BOM Updated with HPP', [
                 'produk_id' => $produk->id,
                 'nama_produk' => $produk->nama_produk,
-                'biaya_bahan' => $totalBiayaBahan,
+                'biaya_bahan' => $totalBiayaBahanBaku,
                 'harga_bom' => $bomJobCosting->total_hpp
             ]);
         } else {
             Log::info('💰 Biaya Bahan Updated', [
                 'produk_id' => $produk->id,
                 'nama_produk' => $produk->nama_produk,
-                'biaya_bahan' => $totalBiayaBahan
+                'biaya_bahan' => $totalBiayaBahanBaku
             ]);
         }
     }
@@ -433,35 +411,8 @@ class BahanBakuObserver
                 }
             }
             
-            // 3. Hitung biaya dari Bahan Pendukung
-            $bomJobBahanPendukung = \App\Models\BomJobBahanPendukung::with('bahanPendukung.satuan')
-                ->where('bom_job_costing_id', $bomJobCosting->id)
-                ->where('harga_satuan', '>', 0) // Hanya yang masih memiliki harga
-                ->get();
-            
-            foreach ($bomJobBahanPendukung as $jobPendukung) {
-                if (!$jobPendukung->bahanPendukung) continue;
-                
-                $satuanBase = is_object($jobPendukung->bahanPendukung->satuan) 
-                    ? $jobPendukung->bahanPendukung->satuan->nama 
-                    : ($jobPendukung->bahanPendukung->satuan ?? 'unit');
-                
-                try {
-                    $qtyBase = $converter->convert(
-                        (float) $jobPendukung->jumlah,
-                        $jobPendukung->satuan ?: $satuanBase,
-                        $satuanBase
-                    );
-                    
-                    $totalBiayaBahan += $jobPendukung->bahanPendukung->harga_satuan * $qtyBase;
-                } catch (\Exception $e) {
-                    Log::error('Error calculating remaining bahan pendukung cost', [
-                        'produk_id' => $produk->id,
-                        'job_pendukung_id' => $jobPendukung->id,
-                        'error' => $e->getMessage()
-                    ]);
-                }
-            }
+            // NOTE: Bahan Pendukung DIHAPUS dari perhitungan biaya bahan baku
+        // Bahan pendukung akan dihitung di BOP sesuai permintaan user
             
             // 4. Update BomJobCosting
             $bomJobCosting->recalculate();

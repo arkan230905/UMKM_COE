@@ -203,7 +203,7 @@ input[name="total[]"]:focus, input[name="total_pendukung[]"]:focus {
                                             data-satuan="{{ $bb->satuan->nama ?? 'Tidak Diketahui' }}"
                                             data-satuan-id="{{ $bb->satuan_id ?? '' }}"
                                             data-satuan-utama="{{ $bb->satuan ?? 'KG' }}">
-                                        {{ $bb->nama_bahan }} - Rp {{ number_format($bb->harga_satuan ?? 0, 0, ',', '.') }}
+                                        {{ $bb->nama_bahan }}
                                     </option>
                                 @endforeach
                             </select>
@@ -266,7 +266,7 @@ input[name="total[]"]:focus, input[name="total_pendukung[]"]:focus {
                                             data-harga="{{ $bp->harga_satuan ?? 0 }}" 
                                             data-satuan="{{ $bp->satuan->nama ?? 'Tidak Diketahui' }}"
                                             data-satuan-id="{{ $bp->satuan_id ?? '' }}">
-                                        {{ $bp->nama_bahan }} - Rp {{ number_format($bp->harga_satuan ?? 0, 0, ',', '.') }}
+                                        {{ $bp->nama_bahan }}
                                     </option>
                                 @endforeach
                             </select>
@@ -456,7 +456,7 @@ function addBahanBakuRow() {
                             data-satuan="{{ $bb->satuan->nama ?? 'Tidak Diketahui' }}"
                             data-satuan-id="{{ $bb->satuan_id ?? '' }}"
                             data-satuan-utama="{{ $bb->satuan ?? 'KG' }}">
-                        {{ $bb->nama_bahan }} - Rp {{ number_format($bb->harga_satuan ?? 0, 0, ',', '.') }}
+                        {{ $bb->nama_bahan }}
                     </option>
                 @endforeach
             </select>
@@ -546,7 +546,7 @@ function addBahanPendukungRow() {
                             data-harga="{{ $bp->harga_satuan ?? 0 }}" 
                             data-satuan="{{ $bp->satuan->nama ?? 'Tidak Diketahui' }}"
                             data-satuan-id="{{ $bp->satuan_id ?? '' }}">
-                        {{ $bp->nama_bahan }} - Rp {{ number_format($bp->harga_satuan ?? 0, 0, ',', '.') }}
+                        {{ $bp->nama_bahan }}
                     </option>
                 @endforeach
             </select>

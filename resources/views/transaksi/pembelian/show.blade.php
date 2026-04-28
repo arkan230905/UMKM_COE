@@ -200,7 +200,11 @@
                     <div class="col-md-2">
                         <label class="form-label fw-bold">Jumlah</label>
                         <div class="info-display">
-                            {{ number_format($detail->jumlah, 2) }}
+                            @php
+                                $qty = $detail->jumlah;
+                                $qtyFormatted = ($qty == floor($qty)) ? number_format($qty, 0, ',', '.') : number_format($qty, 2, ',', '.');
+                            @endphp
+                            {{ $qtyFormatted }}
                         </div>
                     </div>
                     
@@ -251,7 +255,11 @@
                                 <label class="form-label small fw-bold">Jumlah dalam Satuan Utama</label>
                                 <div class="info-display bg-light">
                                     <small class="text-muted">Input manual jumlah dalam satuan utama</small><br>
-                                    <strong>{{ number_format($detail->jumlah_satuan_utama ?? 0, 2) }} {{ $detail->satuan_utama ?? '' }}</strong>
+                                    @php
+                                        $qtyUtama = $detail->jumlah_satuan_utama ?? 0;
+                                        $qtyUtamaFormatted = ($qtyUtama == floor($qtyUtama)) ? number_format($qtyUtama, 0, ',', '.') : number_format($qtyUtama, 2, ',', '.');
+                                    @endphp
+                                    <strong>{{ $qtyUtamaFormatted }} {{ $detail->satuan_utama ?? '' }}</strong>
                                 </div>
                             </div>
                             
@@ -270,13 +278,19 @@
                                         $manualInput = $detail->jumlah_satuan_utama ?? 0;
                                         $calculatedValue = $detail->jumlah * ($detail->faktor_konversi ?? 1);
                                         $isManualInput = $rawJumlahSatuanUtama !== null && abs($manualInput - $calculatedValue) > 0.01;
+                                        
+                                        // Format numbers
+                                        $qtyJumlah = $detail->jumlah;
+                                        $qtyJumlahFmt = ($qtyJumlah == floor($qtyJumlah)) ? number_format($qtyJumlah, 0, ',', '.') : number_format($qtyJumlah, 2, ',', '.');
+                                        $manualInputFmt = ($manualInput == floor($manualInput)) ? number_format($manualInput, 0, ',', '.') : number_format($manualInput, 2, ',', '.');
+                                        $calculatedValueFmt = ($calculatedValue == floor($calculatedValue)) ? number_format($calculatedValue, 0, ',', '.') : number_format($calculatedValue, 2, ',', '.');
                                     @endphp
                                     @if($isManualInput)
                                         <span class="badge bg-warning text-dark">Manual Input</span><br>
-                                        {{ number_format($detail->jumlah, 2) }} {{ $detail->satuan_nama }} = {{ number_format($manualInput, 2) }} {{ $detail->satuan_utama }}
+                                        {{ $qtyJumlahFmt }} {{ $detail->satuan_nama }} = {{ $manualInputFmt }} {{ $detail->satuan_utama }}
                                     @else
                                         <span class="badge bg-info">Otomatis</span><br>
-                                        {{ number_format($detail->jumlah, 2) }} {{ $detail->satuan_nama }} = {{ number_format($calculatedValue, 2) }} {{ $detail->satuan_utama }}
+                                        {{ $qtyJumlahFmt }} {{ $detail->satuan_nama }} = {{ $calculatedValueFmt }} {{ $detail->satuan_utama }}
                                     @endif
                                 </div>
                             </div>
@@ -370,7 +384,11 @@
                                 <div class="col-md-4">
                                     <label class="form-label small fw-bold">Jumlah dalam Sub Satuan</label>
                                     <div class="form-control fw-bold bg-light">
-                                        {{ number_format($konversi->jumlah_konversi, 2) }}
+                                        @php
+                                            $qtyKonversi = $konversi->jumlah_konversi;
+                                            $qtyKonversiFmt = ($qtyKonversi == floor($qtyKonversi)) ? number_format($qtyKonversi, 0, ',', '.') : number_format($qtyKonversi, 2, ',', '.');
+                                        @endphp
+                                        {{ $qtyKonversiFmt }}
                                     </div>
                                     <small class="text-muted">Jumlah dalam sub satuan yang dipilih</small>
                                 </div>
@@ -556,44 +574,44 @@
                         </thead>
                         <tbody>
                             @php
-                                // Get actual journal entries for this purchase
-                                $journalEntries = \App\Models\JournalEntry::where('ref_type', 'purchase')
-                                    ->where('ref_id', $pembelian->id)
-                                    ->with('lines.coa')
-                                    ->orderBy('id', 'desc')
-                                    ->first();
+                                // Get actual journal entries for this purchase from jurnal_umum table
+                                $journalEntries = \App\Models\JurnalUmum::where('tipe_referensi', 'pembelian')
+                                    ->where('referensi', $pembelian->nomor_pembelian)
+                                    ->with('coa')
+                                    ->orderBy('id', 'asc')
+                                    ->get();
                                 
                                 $totalDebit = 0;
                                 $totalCredit = 0;
                             @endphp
                             
-                            @if($journalEntries && $journalEntries->lines)
-                                @foreach($journalEntries->lines as $line)
+                            @if($journalEntries && $journalEntries->count() > 0)
+                                @foreach($journalEntries as $entry)
                                     @php
-                                        $totalDebit += $line->debit;
-                                        $totalCredit += $line->credit;
+                                        $totalDebit += $entry->debit;
+                                        $totalCredit += $entry->kredit;
                                     @endphp
                                     <tr>
-                                        <td>{{ $journalEntries->tanggal ? \Carbon\Carbon::parse($journalEntries->tanggal)->format('d-m-Y') : '-' }}</td>
+                                        <td>{{ $entry->tanggal ? \Carbon\Carbon::parse($entry->tanggal)->format('d-m-Y') : '-' }}</td>
                                         <td>
-                                            @if($line->coa)
-                                                <span class="badge bg-primary">{{ $line->coa->nama_akun }}</span><br>
-                                                <small class="text-muted">{{ $line->coa->kode_akun }}</small>
+                                            @if($entry->coa)
+                                                <span class="badge bg-primary">{{ $entry->coa->nama_akun }}</span><br>
+                                                <small class="text-muted">{{ $entry->coa->kode_akun }}</small>
                                             @else
                                                 <span class="badge bg-secondary">COA tidak ditemukan</span>
                                             @endif
                                         </td>
-                                        <td>{{ $line->memo ?? $journalEntries->memo }}</td>
+                                        <td>{{ $entry->keterangan }}</td>
                                         <td class="text-end">
-                                            @if($line->debit > 0)
-                                                Rp {{ number_format($line->debit, 0, ',', '.') }}
+                                            @if($entry->debit > 0)
+                                                Rp {{ number_format($entry->debit, 0, ',', '.') }}
                                             @else
                                                 -
                                             @endif
                                         </td>
                                         <td class="text-end">
-                                            @if($line->credit > 0)
-                                                Rp {{ number_format($line->credit, 0, ',', '.') }}
+                                            @if($entry->kredit > 0)
+                                                Rp {{ number_format($entry->kredit, 0, ',', '.') }}
                                             @else
                                                 -
                                             @endif

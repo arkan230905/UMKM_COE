@@ -13,32 +13,16 @@
 
     <div class="card shadow">
         <div class="card-body">
-            <form action="{{ route('master-data.bahan-pendukung.update', $bahanPendukung) }}" method="POST" novalidate>
+            <form action="{{ route('master-data.bahan-pendukung.update', $bahanPendukung->id) }}" method="POST">
                 @csrf
                 @method('PUT')
-
-                @if($errors->any())
-                    <div class="alert alert-danger">
-                        <ul class="mb-0">
-                            @foreach($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
                 
                 <div class="row">
-                    <div class="col-md-2">
-                        <div class="mb-3">
-                            <label class="form-label">Kode Bahan</label>
-                            <input type="text" class="form-control" value="{{ $bahanPendukung->kode_bahan }}" readonly>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <div class="mb-3">
                             <label class="form-label">Nama Bahan <span class="text-danger">*</span></label>
                             <input type="text" name="nama_bahan" class="form-control @error('nama_bahan') is-invalid @enderror" 
-                                   value="{{ old('nama_bahan', $bahanPendukung->nama_bahan) }}" required>
+                                   value="{{ old('nama_bahan', $bahanPendukung->nama_bahan) }}" placeholder="Contoh: Gas LPG, Minyak Goreng" required>
                             @error('nama_bahan')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -49,8 +33,9 @@
                             <label class="form-label">Kategori <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <select name="kategori_id" class="form-select @error('kategori_id') is-invalid @enderror" required>
+                                    <option value="">Pilih Kategori</option>
                                     @foreach($kategoris as $kat)
-                                        <option value="{{ $kat->id }}" {{ ($bahanPendukung->kategori_id ?? '') == $kat->id ? 'selected' : '' }}>{{ $kat->nama }}</option>
+                                        <option value="{{ $kat->id }}" {{ old('kategori_id', $bahanPendukung->kategori_id) == $kat->id ? 'selected' : '' }}>{{ $kat->nama }}</option>
                                     @endforeach
                                 </select>
                                 <a href="{{ route('master-data.kategori-bahan-pendukung.index') }}" class="btn btn-outline-secondary" title="Kelola Kategori">
@@ -64,10 +49,25 @@
                     </div>
                     <div class="col-md-3">
                         <div class="mb-3">
+                            <label class="form-label">Kode Bahan</label>
+                            <input type="text" name="kode_bahan" class="form-control @error('kode_bahan') is-invalid @enderror" 
+                                   value="{{ old('kode_bahan', $bahanPendukung->kode_bahan) }}" placeholder="Contoh: BP001">
+                            @error('kode_bahan')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="text-muted">Kosongkan untuk auto generate</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="mb-3">
                             <label class="form-label">Satuan <span class="text-danger">*</span></label>
                             <select name="satuan_id" class="form-select @error('satuan_id') is-invalid @enderror" required>
+                                <option value="">Pilih Satuan</option>
                                 @foreach($satuans as $satuan)
-                                    <option value="{{ $satuan->id }}" {{ $bahanPendukung->satuan_id == $satuan->id ? 'selected' : '' }}>
+                                    <option value="{{ $satuan->id }}" {{ old('satuan_id', $bahanPendukung->satuan_id) == $satuan->id ? 'selected' : '' }}>
                                         {{ $satuan->nama }} ({{ $satuan->kode }})
                                     </option>
                                 @endforeach
@@ -77,52 +77,62 @@
                             @enderror
                         </div>
                     </div>
-                </div>
-
-                <div class="row">
                     <div class="col-md-3">
                         <div class="mb-3">
-                            <label class="form-label">Harga per Satuan <span class="text-danger">*</span></label>
+                            <label class="form-label">Harga Satuan <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-                                <input type="text" name="harga_satuan" class="form-control number-input" 
-                                       value="{{ old('harga_satuan', number_format($bahanPendukung->harga_satuan, 0, ',', '.')) }}" required>
+                                <input type="text" name="harga_satuan" class="form-control number-input @error('harga_satuan') is-invalid @enderror" 
+                                       value="{{ old('harga_satuan', $bahanPendukung->harga_satuan) }}" placeholder="0" required>
                             </div>
+                            @error('harga_satuan')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="mb-3">
                             <label class="form-label">Stok</label>
-                            <input type="text" name="stok" class="form-control decimal-input" 
-                                   value="{{ old('stok', $bahanPendukung->stok ? rtrim(rtrim(number_format($bahanPendukung->stok, 5, ',', '.'), '0'), ',') : '') }}">
-                            <small class="text-muted">Stok saat ini</small>
+                            <div class="input-group">
+                                <input type="text" name="stok" class="form-control number-input @error('stok') is-invalid @enderror" 
+                                       value="{{ old('stok', $bahanPendukung->stok) }}" placeholder="0">
+                                <span class="input-group-text" id="satuan_utama_display"></span>
+                            </div>
+                            @error('stok')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="text-muted">Informasi: Saldo awal ini mencatat stok per tanggal 1 bulan berjalan.</small>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <div class="mb-3">
                             <label class="form-label">Stok Minimum</label>
-                            <input type="text" name="stok_minimum" class="form-control decimal-input" 
-                                   value="{{ old('stok_minimum', $bahanPendukung->stok_minimum ? rtrim(rtrim(number_format($bahanPendukung->stok_minimum, 5, ',', '.'), '0'), ',') : '') }}">
+                            <div class="input-group">
+                                <input type="text" name="stok_minimum" class="form-control number-input @error('stok_minimum') is-invalid @enderror" 
+                                       value="{{ old('stok_minimum', $bahanPendukung->stok_minimum) }}" placeholder="0">
+                                <span class="input-group-text" id="satuan_utama_display_min"></span>
+                            </div>
+                            @error('stok_minimum')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                             <small class="text-muted">Batas minimum</small>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-12">
                         <div class="mb-3">
-                            <label class="form-label">Status</label>
-                            <div class="form-check form-switch mt-2">
-                                <input type="checkbox" name="is_active" class="form-check-input" id="is_active" 
-                                       {{ $bahanPendukung->is_active ? 'checked' : '' }}>
-                                <label class="form-check-label" for="is_active">Aktif</label>
-                            </div>
+                            <label class="form-label">Deskripsi</label>
+                            <textarea name="deskripsi" class="form-control @error('deskripsi') is-invalid @enderror" 
+                                      rows="3" placeholder="Deskripsi bahan pendukung">{{ old('deskripsi', $bahanPendukung->deskripsi) }}</textarea>
+                            @error('deskripsi')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
                 </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Deskripsi</label>
-                    <textarea name="deskripsi" class="form-control" rows="3">{{ old('deskripsi', $bahanPendukung->deskripsi) }}</textarea>
-                </div>
-
+                
                 <!-- Sub Satuan Section -->
                 <div class="card mt-4">
                     <div class="card-header bg-light">
@@ -137,8 +147,8 @@
                                     <i class="fas fa-info-circle me-2"></i>
                                     <strong>Contoh:</strong> Jika satuan utama adalah Kilogram, maka:
                                     <br>• Sub Satuan 1: 1 Kilogram = 1000 Gram
-                                    <br>• Sub Satuan 2: 1 Kilogram = 3 Potong  
-                                    <br>• Sub Satuan 3: 2 Kilogram = 1 Ekor
+                                    <br>• Sub Satuan 2: 1 Kilogram = 3 Botol  
+                                    <br>• Sub Satuan 3: 2 Kilogram = 1 Tabung
                                     <br><small class="text-muted">Kolom "Satuan Utama" akan otomatis terisi sesuai pilihan satuan utama di atas.</small>
                                 </div>
                             </div>
@@ -148,8 +158,8 @@
                         <div class="row align-items-end mb-3">
                             <div class="col-md-2">
                                 <label class="form-label">Konversi 1 <span class="text-danger">*</span></label>
-                                <input type="text" name="sub_satuan_1_konversi" class="form-control decimal-input @error('sub_satuan_1_konversi') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_1_konversi', $bahanPendukung->sub_satuan_1_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_1_konversi, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1" required>
+                                <input type="text" name="sub_satuan_1_konversi" class="form-control number-input @error('sub_satuan_1_konversi') is-invalid @enderror" 
+                                       value="{{ old('sub_satuan_1_konversi', $bahanPendukung->sub_satuan_1_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_1_konversi, 4, ',', ''), '0'), ',') : '1') }}" placeholder="1" required>
                                 @error('sub_satuan_1_konversi')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -163,8 +173,8 @@
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Nilai 1 <span class="text-danger">*</span></label>
-                                <input type="text" name="sub_satuan_1_nilai" class="form-control decimal-input @error('sub_satuan_1_nilai') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_1_nilai', $bahanPendukung->sub_satuan_1_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_1_nilai, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1" required>
+                                <input type="text" name="sub_satuan_1_nilai" class="form-control number-input @error('sub_satuan_1_nilai') is-invalid @enderror" 
+                                       value="{{ old('sub_satuan_1_nilai', $bahanPendukung->sub_satuan_1_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_1_nilai, 4, ',', ''), '0'), ',') : '1') }}" placeholder="1" required>
                                 @error('sub_satuan_1_nilai')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -194,8 +204,8 @@
                         <div class="row align-items-end mb-3">
                             <div class="col-md-2">
                                 <label class="form-label">Konversi 2</label>
-                                <input type="text" name="sub_satuan_2_konversi" class="form-control decimal-input @error('sub_satuan_2_konversi') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_2_konversi', $bahanPendukung->sub_satuan_2_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_2_konversi, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1">
+                                <input type="text" name="sub_satuan_2_konversi" class="form-control number-input @error('sub_satuan_2_konversi') is-invalid @enderror" 
+                                       value="{{ old('sub_satuan_2_konversi', $bahanPendukung->sub_satuan_2_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_2_konversi, 4, ',', ''), '0'), ',') : '1') }}" placeholder="1">
                                 @error('sub_satuan_2_konversi')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -208,8 +218,8 @@
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Nilai 2</label>
-                                <input type="text" name="sub_satuan_2_nilai" class="form-control decimal-input @error('sub_satuan_2_nilai') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_2_nilai', $bahanPendukung->sub_satuan_2_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_2_nilai, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1">
+                                <input type="text" name="sub_satuan_2_nilai" class="form-control number-input @error('sub_satuan_2_nilai') is-invalid @enderror" 
+                                       value="{{ old('sub_satuan_2_nilai', $bahanPendukung->sub_satuan_2_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_2_nilai, 4, ',', ''), '0'), ',') : '1') }}" placeholder="1">
                                 @error('sub_satuan_2_nilai')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -239,8 +249,8 @@
                         <div class="row align-items-end mb-3">
                             <div class="col-md-2">
                                 <label class="form-label">Konversi 3</label>
-                                <input type="text" name="sub_satuan_3_konversi" class="form-control decimal-input @error('sub_satuan_3_konversi') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_3_konversi', $bahanPendukung->sub_satuan_3_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_3_konversi, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1">
+                                <input type="text" name="sub_satuan_3_konversi" class="form-control number-input @error('sub_satuan_3_konversi') is-invalid @enderror" 
+                                       value="{{ old('sub_satuan_3_konversi', $bahanPendukung->sub_satuan_3_konversi ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_3_konversi, 4, ',', ''), '0'), ',') : '1') }}" placeholder="1">
                                 @error('sub_satuan_3_konversi')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -253,8 +263,8 @@
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Nilai 3</label>
-                                <input type="text" name="sub_satuan_3_nilai" class="form-control decimal-input @error('sub_satuan_3_nilai') is-invalid @enderror" 
-                                       value="{{ old('sub_satuan_3_nilai', $bahanPendukung->sub_satuan_3_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_3_nilai, 5, ',', '.'), '0'), ',') : '') }}" placeholder="1">
+                                <input type="text" name="sub_satuan_3_nilai" class="form-control number-input @error('sub_satuan_3_nilai') is-invalid @enderror" 
+                                       value="{{ old('sub_satuan_3_nilai', $bahanPendukung->sub_satuan_3_nilai ? rtrim(rtrim(number_format($bahanPendukung->sub_satuan_3_nilai, 4, ',', ''), '0'), ',') : '1') }}" placeholder="1">
                                 @error('sub_satuan_3_nilai')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -284,7 +294,7 @@
 
                 <hr>
                 
-                <!-- COA Fields -->
+                <!-- COA Fields - COMPLETELY MANUAL -->
                 <h5 class="mb-3">Akun COA</h5>
                 <div class="row">
                     <div class="col-md-4">
@@ -293,9 +303,7 @@
                             <select name="coa_pembelian_id" id="coa_pembelian_id" class="form-select" required>
                                 <option value="">-- Pilih COA Pembelian --</option>
                                 @foreach($coas as $coa)
-                                    <option value="{{ $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}" {{ old('coa_pembelian_id', $bahanPendukung->coa_pembelian_id) == $coa->kode_akun ? 'selected' : '' }}>
-                                        {{ $coa->nama_akun }} ({{ $coa->kode_akun }})
-                                    </option>
+                                    <option value="{{ $coa->kode_akun }}" {{ old('coa_pembelian_id', $bahanPendukung->coa_pembelian_id) == $coa->kode_akun ? 'selected' : '' }}>{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
                                 @endforeach
                             </select>
                             <small class="text-muted">* Wajib diisi</small>
@@ -307,9 +315,7 @@
                             <select name="coa_persediaan_id" id="coa_persediaan_id" class="form-select" required>
                                 <option value="">-- Pilih COA Persediaan --</option>
                                 @foreach($coas as $coa)
-                                    <option value="{{ $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}" {{ old('coa_persediaan_id', $bahanPendukung->coa_persediaan_id) == $coa->kode_akun ? 'selected' : '' }}>
-                                        {{ $coa->nama_akun }} ({{ $coa->kode_akun }})
-                                    </option>
+                                    <option value="{{ $coa->kode_akun }}" {{ old('coa_persediaan_id', $bahanPendukung->coa_persediaan_id) == $coa->kode_akun ? 'selected' : '' }}>{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
                                 @endforeach
                             </select>
                             <small class="text-muted">* Wajib diisi</small>
@@ -321,9 +327,7 @@
                             <select name="coa_hpp_id" id="coa_hpp_id" class="form-select" required>
                                 <option value="">-- Pilih COA HPP --</option>
                                 @foreach($coas as $coa)
-                                    <option value="{{ $coa->kode_akun }}" data-tipe="{{ $coa->tipe_akun }}" data-kategori="{{ $coa->kategori_akun }}" data-induk="{{ $coa->kode_induk }}" {{ old('coa_hpp_id', $bahanPendukung->coa_hpp_id) == $coa->kode_akun ? 'selected' : '' }}>
-                                        {{ $coa->nama_akun }} ({{ $coa->kode_akun }})
-                                    </option>
+                                    <option value="{{ $coa->kode_akun }}" {{ old('coa_hpp_id', $bahanPendukung->coa_hpp_id) == $coa->kode_akun ? 'selected' : '' }}>{{ $coa->nama_akun }} ({{ $coa->kode_akun }})</option>
                                 @endforeach
                             </select>
                             <small class="text-muted">* Wajib diisi</small>
@@ -331,19 +335,24 @@
                     </div>
                 </div>
 
-                <hr>
-                <div class="d-flex justify-content-end gap-2">
-                    <a href="{{ route('master-data.bahan-pendukung.index') }}" class="btn btn-secondary">Batal</a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Update
-                    </button>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Simpan
+                            </button>
+                            <a href="{{ route('master-data.bahan-pendukung.index') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Batal
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 </div>
-@endsection
 
+<!-- NO JAVASCRIPT AUTO-FILL - COMPLETELY MANUAL COA SELECTION -->
 @push('scripts')
 <script>
 function clearSubSatuan(index) {
@@ -353,50 +362,61 @@ function clearSubSatuan(index) {
     document.querySelector(`input[name="sub_satuan_${index}_nilai"]`).value = '1';
 }
 
-// Number formatting functions
-function formatNumber(input) {
-    let value = input.value.replace(/[^\d,]/g, '');
+// Handle number input with comma decimal separator
+function setupNumberInputs() {
+    const numberInputs = document.querySelectorAll('.number-input');
     
-    if (value === '') return;
-    
-    // Handle comma as decimal separator
-    if (value.includes(',')) {
-        let parts = value.split(',');
-        if (parts.length === 2) {
-            // Format: integer part + comma + decimal part
-            let integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-            let decimalPart = parts[1];
-            input.value = integerPart + ',' + decimalPart;
-        } else {
-            // Only integer part
-            input.value = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    numberInputs.forEach(input => {
+        input.addEventListener('input', function(e) {
+            let value = e.target.value;
+            
+            // Allow numbers, comma, and dot
+            value = value.replace(/[^0-9,\.]/g, '');
+            
+            // Replace multiple commas/dots with single one
+            value = value.replace(/[,\.]{2,}/g, ',');
+            
+            // Ensure only one decimal separator
+            const parts = value.split(/[,\.]/);
+            if (parts.length > 2) {
+                value = parts[0] + ',' + parts.slice(1).join('');
+            }
+            
+            e.target.value = value;
+        });
+        
+        input.addEventListener('blur', function(e) {
+            let value = e.target.value;
+            if (value && !isNaN(value.replace(',', '.'))) {
+                // Format the number properly
+                const numValue = parseFloat(value.replace(',', '.'));
+                if (numValue === Math.floor(numValue)) {
+                    e.target.value = numValue.toString();
+                } else {
+                    e.target.value = numValue.toString().replace('.', ',');
+                }
+            }
+        });
+    });
+}
+
+// Convert commas to dots before form submission
+function convertCommasToDots() {
+    const numberInputs = document.querySelectorAll('.number-input');
+    numberInputs.forEach(input => {
+        if (input.value) {
+            input.value = input.value.replace(',', '.');
         }
-    } else {
-        // Only integer, add thousand separators
-        input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    }
-}
-
-function formatDecimal(input) {
-    let value = input.value.replace(/[^\d,]/g, '');
-    
-    if (value === '') return;
-    
-    // Handle comma as decimal separator - keep it simple for decimal inputs
-    input.value = value;
-}
-
-function parseFormattedNumber(value) {
-    if (!value) return '';
-    
-    // Remove thousand separators (dots) and convert comma to dot for server
-    return value.replace(/\./g, '').replace(',', '.');
+    });
 }
 
 // Update satuan utama display when main satuan changes
 document.addEventListener('DOMContentLoaded', function() {
     const satuanSelect = document.querySelector('select[name="satuan_id"]');
     const satuanUtamaTexts = document.querySelectorAll('.satuan-utama-text');
+    
+    // Setup number inputs
+    setupNumberInputs();
     
     function updateSatuanUtamaDisplay() {
         const selectedOption = satuanSelect.options[satuanSelect.selectedIndex];
@@ -418,117 +438,15 @@ document.addEventListener('DOMContentLoaded', function() {
     satuanSelect.addEventListener('change', updateSatuanUtamaDisplay);
     updateSatuanUtamaDisplay();
     
-    // Add event listeners for number formatting
-    document.querySelectorAll('.number-input').forEach(input => {
-        input.addEventListener('input', function() {
-            formatNumber(this);
-        });
-    });
-    
-    document.querySelectorAll('.decimal-input').forEach(input => {
-        input.addEventListener('input', function() {
-            formatDecimal(this);
-        });
-    });
-    
     // Form validation and submission
     const form = document.querySelector('form');
     if (form) {
         form.addEventListener('submit', function(e) {
-            let isValid = true;
-            const requiredFields = [
-                'sub_satuan_1_konversi', 'sub_satuan_1_id', 'sub_satuan_1_nilai',
-                'sub_satuan_2_konversi', 'sub_satuan_2_id', 'sub_satuan_2_nilai',
-                'sub_satuan_3_konversi', 'sub_satuan_3_id', 'sub_satuan_3_nilai'
-            ];
-            
-            requiredFields.forEach(fieldName => {
-                const field = document.querySelector(`[name="${fieldName}"]`);
-                if (field && (!field.value || field.value.trim() === '')) {
-                    field.classList.add('is-invalid');
-                    isValid = false;
-                } else if (field) {
-                    field.classList.remove('is-invalid');
-                }
-            });
-            
-            if (!isValid) {
-                e.preventDefault();
-                alert('Mohon lengkapi semua field Sub Satuan yang wajib diisi.');
-                return;
-            }
-            
-            // Convert formatted numbers back to standard format for server processing
-            document.querySelectorAll('.number-input, .decimal-input').forEach(input => {
-                if (input.value) {
-                    input.value = parseFormattedNumber(input.value);
-                }
-            });
+            // Convert commas to dots before validation
+            convertCommasToDots();
         });
     }
-    });
-    
-    // Auto-fill COA fields based on account type and parent
-    function autoFillCOA() {
-        // Get all COA options
-        const coaOptions = document.querySelectorAll('#coa_pembelian_id option[data-tipe]');
-        
-        // Group COA by type and parent
-        const coaByType = {};
-        coaOptions.forEach(option => {
-            const type = option.dataset.tipe;
-            const parent = option.dataset.induk;
-            
-            if (!coaByType[type]) {
-                coaByType[type] = {};
-            }
-            
-            if (!coaByType[type][parent]) {
-                coaByType[type][parent] = [];
-            }
-            
-            coaByType[type][parent].push(option.value);
-        });
-        
-        // Auto-fill logic
-        ['coa_pembelian_id', 'coa_persediaan_id', 'coa_hpp_id'].forEach(fieldId => {
-            const field = document.getElementById(fieldId);
-            if (!field) return;
-            
-            // Clear current selection
-            field.value = '';
-            
-            // Add change event listener
-            field.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                const selectedType = selectedOption.dataset.tipe;
-                const selectedParent = selectedOption.dataset.induk;
-                
-                // Auto-fill other fields with same type and parent
-                ['coa_pembelian_id', 'coa_persediaan_id', 'coa_hpp_id'].forEach(otherFieldId => {
-                    if (otherFieldId !== fieldId) {
-                        const otherField = document.getElementById(otherFieldId);
-                        if (otherField) {
-                            // Clear current selection
-                            otherField.value = '';
-                            
-                            // Find matching COA
-                            const matchingOptions = Array.from(otherField.options).filter(opt => 
-                                opt.dataset.tipe === selectedType && opt.dataset.induk === selectedParent
-                            );
-                            
-                            if (matchingOptions.length > 0) {
-                                otherField.value = matchingOptions[0].value;
-                            }
-                        }
-                    }
-                });
-            });
-        });
-    }
-    
-    // Initialize auto-fill when page loads
-    document.addEventListener('DOMContentLoaded', autoFillCOA);
 });
 </script>
 @endpush
+@endsection

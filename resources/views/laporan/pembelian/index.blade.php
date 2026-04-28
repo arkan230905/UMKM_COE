@@ -1,5 +1,60 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+    .nowrap {
+        white-space: nowrap;
+    }
+    
+    .table-retur {
+        min-width: 1300px;
+    }
+    
+    .table td, .table th {
+        vertical-align: middle;
+        text-align: center !important;
+    }
+    
+    /* Force center alignment for all table content */
+    .table-pembelian td,
+    .table-pembelian th,
+    .table-pembelian td div,
+    .table-pembelian td span {
+        text-align: center !important;
+    }
+    
+    /* Summary Grid Layout */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 16px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .summary-grid .col {
+        padding: 0;
+    }
+    
+    @media (max-width: 1400px) {
+        .summary-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    
+    @media (max-width: 992px) {
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -125,6 +180,14 @@
     nav .pagination,
     .card-footer .pagination {
         font-size: 0.7rem !important;
+    }
+    
+    /* Force center alignment for all table content */
+    .table-pembelian td,
+    .table-pembelian th,
+    .table-pembelian td div,
+    .table-pembelian td span {
+        text-align: center !important;
     }
     
     /* Khusus untuk Laravel pagination arrows */
