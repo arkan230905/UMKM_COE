@@ -39,19 +39,19 @@
                                     <div class="col-md-6">
                                         <div class="form-group mb-3">
                                             <label>Nama Perusahaan</label>
-                                            <input type="text" class="form-control" id="companyName" value="{{ $company->nama ?? '' }}" placeholder="Nama Perusahaan">
+                                            <input type="text" class="form-control" id="companyName" value="{{ $catalogSections['cover']['company_name'] ?? $company->nama ?? '' }}" placeholder="Nama Perusahaan">
                                         </div>
                                         <div class="form-group mb-3">
                                             <label>Tagline</label>
-                                            <input type="text" class="form-control" id="companyTagline" value="BRANDING PRODUCT." placeholder="BRANDING PRODUCT.">
+                                            <input type="text" class="form-control" id="companyTagline" value="{{ $catalogSections['cover']['company_tagline'] ?? 'BRANDING PRODUCT.' }}" placeholder="BRANDING PRODUCT.">
                                         </div>
                                         <div class="form-group mb-3">
                                             <label>Deskripsi Perusahaan</label>
-                                            <textarea class="form-control resizable-textarea" id="companyDescription" rows="4" placeholder="Masukkan deskripsi perusahaan Anda...">{{ $company->catalog_description ?? 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem.' }}</textarea>
+                                            <textarea class="form-control resizable-textarea" id="companyDescription" rows="4" placeholder="Masukkan deskripsi perusahaan Anda...">{{ $catalogSections['cover']['company_description'] ?? $company->catalog_description ?? 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.' }}</textarea>
                                         </div>
                                         <div class="form-group mb-3">
                                             <label>Text Tombol</label>
-                                            <input type="text" class="form-control" id="exploreText" value="Explore" placeholder="Explore">
+                                            <input type="text" class="form-control" id="exploreText" value="{{ $catalogSections['cover']['explore_text'] ?? 'Explore' }}" placeholder="Explore">
                                         </div>
                                     </div>
                                     <div class="col-md-6">
@@ -60,10 +60,18 @@
                                             <input type="file" id="coverPhotoInput" class="form-control" accept="image/jpeg,image/png,image/jpg,image/gif" onchange="previewCoverImage(event)">
                                             <small class="form-text text-muted">Format: JPG, JPEG, PNG, GIF. Maksimal 5MB. Klik untuk memilih foto.</small>
                                             
-                                            <div id="coverPreviewContainer" class="mt-3" style="display: {{ ($company && $company->foto) ? 'block' : 'none' }};">
+                                            <div id="coverPreviewContainer" class="mt-3" style="display: {{ ($catalogSections['cover']['cover_photo'] ?? ($company && $company->foto)) ? 'block' : 'none' }};">
                                                 <p class="small mb-2 text-muted">Preview foto cover:</p>
                                                 <div class="preview-image-wrapper">
-                                                    <img id="coverPreviewImage" src="{{ ($company && $company->foto) ? asset('storage/'.$company->foto) : '' }}" alt="Preview" class="preview-img">
+                                                    @php
+                                                        $coverSrc = '';
+                                                        if (!empty($catalogSections['cover']['cover_photo'])) {
+                                                            $coverSrc = ($company && $company->foto) ? asset('storage/'.$company->foto) : '';
+                                                        } elseif ($company && $company->foto) {
+                                                            $coverSrc = asset('storage/'.$company->foto);
+                                                        }
+                                                    @endphp
+                                                    <img id="coverPreviewImage" src="{{ $coverSrc }}" alt="Preview" class="preview-img">
                                                     <button type="button" class="btn-remove-preview" onclick="removeCoverPreview()" title="Hapus foto">
                                                         <i class="fas fa-times"></i>
                                                     </button>
@@ -84,11 +92,11 @@
                             <div class="section-content">
                                 <div class="form-group mb-3">
                                     <label>Judul Section</label>
-                                    <input type="text" class="form-control" id="teamTitle" value="THE TEAM." placeholder="THE TEAM.">
+                                    <input type="text" class="form-control" id="teamTitle" value="{{ $catalogSections['team']['title'] ?? 'THE TEAM.' }}" placeholder="THE TEAM.">
                                 </div>
                                 <div class="form-group mb-3">
                                     <label>Deskripsi Team</label>
-                                    <textarea class="form-control resizable-textarea" id="teamDescription" rows="3" placeholder="Deskripsi tentang tim...">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.</textarea>
+                                    <textarea class="form-control resizable-textarea" id="teamDescription" rows="3" placeholder="Deskripsi tentang tim...">{{ $catalogSections['team']['description'] ?? 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.' }}</textarea>
                                 </div>
                                 
                                 <!-- Team Members -->
@@ -100,15 +108,21 @@
                                         </button>
                                     </div>
                                     <div id="teamMembersList">
-                                        <!-- Default team members -->
-                                        <div class="team-member-item" data-member-index="0">
+                                        @php
+                                            $savedMembers = $catalogSections['team']['members'] ?? [
+                                                ['name' => 'Joko Susilo', 'position' => 'Direktur Utama', 'description' => 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', 'photo' => null],
+                                                ['name' => 'Sari Wulandari', 'position' => 'Manajer Produksi', 'description' => 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', 'photo' => null],
+                                            ];
+                                        @endphp
+                                        @foreach($savedMembers as $idx => $member)
+                                        <div class="team-member-item" data-member-index="{{ $idx }}">
                                             <div class="row g-3 align-items-start mb-3">
                                                 <div class="col-md-2">
                                                     <label class="form-label small">Foto</label>
                                                     <input type="file" class="form-control form-control-sm member-photo-input" accept="image/jpeg,image/png,image/jpg,image/gif" onchange="previewMemberImage(event, this)">
-                                                    <div class="member-preview-container mt-2" style="display: none;">
+                                                    <div class="member-preview-container mt-2" style="{{ !empty($member['photo']) ? 'display: block;' : 'display: none;' }}">
                                                         <div class="member-preview-wrapper">
-                                                            <img class="member-preview-img" src="" alt="Preview">
+                                                            <img class="member-preview-img" src="{{ $member['photo'] ?? '' }}" alt="Preview">
                                                             <button type="button" class="btn-remove-member-preview" onclick="removeMemberPreview(this)" title="Hapus foto">
                                                                 <i class="fas fa-times"></i>
                                                             </button>
@@ -117,15 +131,15 @@
                                                 </div>
                                                 <div class="col-md-3">
                                                     <label class="form-label small">Nama Lengkap</label>
-                                                    <input type="text" class="form-control form-control-sm" placeholder="Nama Lengkap" value="Joko Susilo">
+                                                    <input type="text" class="form-control form-control-sm" placeholder="Nama Lengkap" value="{{ $member['name'] ?? '' }}">
                                                 </div>
                                                 <div class="col-md-2">
                                                     <label class="form-label small">Jabatan</label>
-                                                    <input type="text" class="form-control form-control-sm" placeholder="Jabatan" value="Direktur Utama">
+                                                    <input type="text" class="form-control form-control-sm" placeholder="Jabatan" value="{{ $member['position'] ?? '' }}">
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label small">Deskripsi Singkat</label>
-                                                    <textarea class="form-control form-control-sm resizable-textarea" rows="2" placeholder="Deskripsi singkat...">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</textarea>
+                                                    <textarea class="form-control form-control-sm resizable-textarea" rows="2" placeholder="Deskripsi singkat...">{{ $member['description'] ?? '' }}</textarea>
                                                 </div>
                                                 <div class="col-md-1">
                                                     <label class="form-label small">&nbsp;</label>
@@ -135,41 +149,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        
-                                        <div class="team-member-item" data-member-index="1">
-                                            <div class="row g-3 align-items-start mb-3">
-                                                <div class="col-md-2">
-                                                    <label class="form-label small">Foto</label>
-                                                    <input type="file" class="form-control form-control-sm member-photo-input" accept="image/jpeg,image/png,image/jpg,image/gif" onchange="previewMemberImage(event, this)">
-                                                    <div class="member-preview-container mt-2" style="display: none;">
-                                                        <div class="member-preview-wrapper">
-                                                            <img class="member-preview-img" src="" alt="Preview">
-                                                            <button type="button" class="btn-remove-member-preview" onclick="removeMemberPreview(this)" title="Hapus foto">
-                                                                <i class="fas fa-times"></i>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <label class="form-label small">Nama Lengkap</label>
-                                                    <input type="text" class="form-control form-control-sm" placeholder="Nama Lengkap" value="Sari Wulandari">
-                                                </div>
-                                                <div class="col-md-2">
-                                                    <label class="form-label small">Jabatan</label>
-                                                    <input type="text" class="form-control form-control-sm" placeholder="Jabatan" value="Manajer Produksi">
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label small">Deskripsi Singkat</label>
-                                                    <textarea class="form-control form-control-sm resizable-textarea" rows="2" placeholder="Deskripsi singkat...">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</textarea>
-                                                </div>
-                                                <div class="col-md-1">
-                                                    <label class="form-label small">&nbsp;</label>
-                                                    <button type="button" class="btn btn-danger btn-sm w-100 remove-member" onclick="removeTeamMemberRow(this)" style="display: none;">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        @endforeach
                                     </div>
                                 </div>
                             </div>
@@ -184,7 +164,7 @@
                             <div class="section-content">
                                 <div class="form-group mb-3">
                                     <label>Judul Section</label>
-                                    <input type="text" class="form-control" id="productsTitle" value="PRODUCT MATERIAL." placeholder="PRODUCT MATERIAL.">
+                                    <input type="text" class="form-control" id="productsTitle" value="{{ $catalogSections['products']['title'] ?? 'PRODUCT MATERIAL.' }}" placeholder="PRODUCT MATERIAL.">
                                 </div>
                                 <div class="alert alert-info">
                                     <i class="fas fa-info-circle me-2"></i>
@@ -237,29 +217,29 @@
                                     <div class="col-md-6">
                                         <div class="form-group mb-3">
                                             <label>Judul Section</label>
-                                            <input type="text" class="form-control" id="locationTitle" value="LOKASI KAMI." placeholder="LOKASI KAMI.">
+                                            <input type="text" class="form-control" id="locationTitle" value="{{ $catalogSections['location']['title'] ?? 'LOKASI KAMI.' }}" placeholder="LOKASI KAMI.">
                                         </div>
                                         <div class="form-group mb-3">
                                             <label>Nama Lokasi</label>
-                                            <input type="text" class="form-control" id="locationName" value="{{ $company->nama ?? '' }}" placeholder="Nama Perusahaan">
+                                            <input type="text" class="form-control" id="locationName" value="{{ $catalogSections['location']['name'] ?? $company->nama ?? '' }}" placeholder="Nama Perusahaan">
                                         </div>
                                         <div class="form-group mb-3">
                                             <label>Alamat</label>
-                                            <textarea class="form-control resizable-textarea" id="locationAddress" rows="3" placeholder="Alamat lengkap...">{{ $company->alamat ?? '' }}</textarea>
+                                            <textarea class="form-control resizable-textarea" id="locationAddress" rows="3" placeholder="Alamat lengkap...">{{ $catalogSections['location']['address'] ?? $company->alamat ?? '' }}</textarea>
                                         </div>
                                         <div class="form-group mb-3">
                                             <label>Nomor Telepon</label>
-                                            <input type="text" class="form-control" id="locationPhone" value="{{ $company->telepon ?? '' }}" placeholder="Nomor telepon">
+                                            <input type="text" class="form-control" id="locationPhone" value="{{ $catalogSections['location']['phone'] ?? $company->telepon ?? '' }}" placeholder="Nomor telepon">
                                         </div>
                                         <div class="form-group mb-3">
                                             <label>Email</label>
-                                            <input type="email" class="form-control" id="locationEmail" value="{{ $company->email ?? '' }}" placeholder="Email perusahaan">
+                                            <input type="email" class="form-control" id="locationEmail" value="{{ $catalogSections['location']['email'] ?? $company->email ?? '' }}" placeholder="Email perusahaan">
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group mb-3">
                                             <label>Link Google Maps</label>
-                                            <input type="url" class="form-control" id="mapsLink" value="{{ $company->maps_link ?? '' }}" placeholder="https://maps.google.com/...">
+                                            <input type="url" class="form-control" id="mapsLink" value="{{ $catalogSections['location']['maps_link'] ?? $company->maps_link ?? '' }}" placeholder="https://maps.google.com/...">
                                             <small class="text-muted">Paste link embed Google Maps</small>
                                         </div>
                                         <div class="map-preview">
@@ -555,7 +535,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 // ===== GLOBAL VARIABLES =====
-var teamMemberIndex = 2; // Start from 2 because we have 2 default members
+var teamMemberIndex = {{ count($catalogSections['team']['members'] ?? [['',''],['','']]) }}; // Start from saved member count
 
 // ===== TEAM MEMBER FUNCTIONS (EXACTLY like in pembelian/create) =====
 function addTeamMemberRow() {
@@ -775,6 +755,52 @@ $(document).ready(function() {
 
 // ===== GLOBAL FUNCTIONS FOR PHOTO PREVIEW =====
 
+// Compress image before upload
+function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function(event) {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                
+                // Calculate new dimensions (more aggressive)
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width *= maxHeight / height;
+                        height = maxHeight;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Convert to base64 with compression
+                const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
+                resolve(compressedBase64);
+            };
+            img.onerror = function() {
+                reject(new Error('Failed to load image'));
+            };
+        };
+        reader.onerror = function() {
+            reject(new Error('Failed to read file'));
+        };
+    });
+}
+
 // Cover photo functions
 function previewCoverImage(event) {
     const file = event.target.files[0];
@@ -799,12 +825,14 @@ function previewCoverImage(event) {
             return;
         }
         
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            previewImage.src = e.target.result;
+        // Compress and preview (smaller size and lower quality for cover)
+        compressImage(file, 800, 800, 0.7).then(compressedBase64 => {
+            previewImage.src = compressedBase64;
             previewContainer.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
+        }).catch(error => {
+            console.error('Error compressing image:', error);
+            Swal.fire('Error', 'Gagal memproses foto. Silakan coba lagi.', 'error');
+        });
     } else {
         previewContainer.style.display = 'none';
     }
@@ -843,12 +871,14 @@ function previewMemberImage(event, inputElement) {
             return;
         }
         
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            previewImage.src = e.target.result;
+        // Compress and preview (smaller size for team members)
+        compressImage(file, 400, 400, 0.7).then(compressedBase64 => {
+            previewImage.src = compressedBase64;
             previewContainer.style.display = 'block';
-        };
-        reader.readAsDataURL(file);
+        }).catch(error => {
+            console.error('Error compressing image:', error);
+            Swal.fire('Error', 'Gagal memproses foto. Silakan coba lagi.', 'error');
+        });
     } else {
         previewContainer.style.display = 'none';
     }

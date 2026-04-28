@@ -21,6 +21,7 @@ class KelolaCatalogController extends Controller
     {
         // Get current company
         $company = null;
+        $catalogSections = [];
         if (Auth::check()) {
             $user = Auth::user();
             $company = Perusahaan::find($user->perusahaan_id);
@@ -33,9 +34,19 @@ class KelolaCatalogController extends Controller
                 ->where('show_in_catalog', true)
                 ->orderBy('nama_produk', 'asc')
                 ->get();
+
+            // Load saved catalog sections
+            $sections = \DB::table('catalog_sections')
+                ->where('perusahaan_id', $company->id)
+                ->orderBy('order')
+                ->get();
+
+            foreach ($sections as $section) {
+                $catalogSections[$section->section_type] = json_decode($section->content, true);
+            }
         }
 
-        return view('kelola-catalog.index', compact('company', 'produks'));
+        return view('kelola-catalog.index', compact('company', 'produks', 'catalogSections'));
     }
 
     /**

@@ -460,246 +460,130 @@ body {
     }
 }
 </style>
+
 @endpush
 
 @section('content')
+@php
+    $coverSection    = ($sections && $sections->isNotEmpty()) ? $sections->firstWhere('section_type', 'cover')    : null;
+    $teamSection     = ($sections && $sections->isNotEmpty()) ? $sections->firstWhere('section_type', 'team')     : null;
+    $productsSection = ($sections && $sections->isNotEmpty()) ? $sections->firstWhere('section_type', 'products') : null;
 
-@if($company && $sections && $sections->isNotEmpty())
-    @php
-        $coverSection = $sections->firstWhere('section_type', 'cover');
-        $teamSection = $sections->firstWhere('section_type', 'team');
-        $productsSection = $sections->firstWhere('section_type', 'products');
-        $locationSection = $sections->firstWhere('section_type', 'location');
-    @endphp
+    $coverData = [
+        'company_name'        => $company->nama ?? 'NAMA PERUSAHAAN',
+        'company_tagline'     => 'BRANDING PRODUCT.',
+        'company_description' => 'Perusahaan manufaktur COE yang berfokus pada efisiensi biaya produksi, pengelolaan sumber daya yang optimal, serta pengendalian proses yang terintegrasi untuk menghasilkan produk berkualitas tinggi secara konsisten.',
+        'explore_text'        => 'Explore',
+    ];
+    $teamData = [
+        'title'       => 'THE TEAM.',
+        'description' => 'Didukung oleh fullstack developer yang kompeten dan pembimbing berpengalaman, tim ini menghadirkan solusi digital terintegrasi dengan pendekatan strategis, presisi teknis, dan standar kualitas tinggi.',
+        'members'     => [
+            ['name'=>'Joko Susilo',    'position'=>'Direktur Utama',   'description'=>'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', 'photo'=>''],
+            ['name'=>'Sari Wulandari', 'position'=>'Manajer Produksi', 'description'=>'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', 'photo'=>''],
+        ],
+    ];
+    if ($coverSection && $coverSection->content) $coverData = array_merge($coverData, $coverSection->content);
+    if ($teamSection  && $teamSection->content)  $teamData  = array_merge($teamData,  $teamSection->content);
+@endphp
 
-    <!-- COVER SECTION -->
-    @if($coverSection)
-    <section class="cover-section">
-        <div class="cover-container">
-            <div class="cover-image">
-                @if($company->foto)
-                    <img src="{{ asset('storage/'.$company->foto) }}" alt="{{ $company->nama }}">
-                @else
-                    <div class="default-cover">
-                        <div class="city-silhouette"></div>
-                    </div>
-                @endif
-            </div>
-            <div class="cover-content">
-                <div class="cover-left">
-                    <h1 class="company-name">{{ $coverSection->content['company_name'] ?? $company->nama }}</h1>
-                    <h2 class="company-tagline">{{ $coverSection->content['company_tagline'] ?? 'BRANDING PRODUCT.' }}</h2>
-                </div>
-                <div class="cover-right">
-                    <div class="company-info">
-                        <p class="company-description">{{ $coverSection->content['company_description'] ?? $company->catalog_description }}</p>
-                        <div class="explore-button">
-                            {{ $coverSection->content['explore_text'] ?? 'Explore' }}
-                        </div>
-                    </div>
-                </div>
-                <div class="dorth-text">DORTH</div>
-            </div>
+<!-- COVER SECTION -->
+<section class="cover-section">
+    <div class="cover-container">
+        <div class="cover-image">
+            @if($company && $company->foto)
+                <img src="{{ asset('storage/'.$company->foto) }}" alt="{{ $company->nama }}">
+            @else
+                <div class="default-cover"><div class="city-silhouette"></div></div>
+            @endif
         </div>
-    </section>
-    @endif
-
-    <!-- TEAM SECTION -->
-    @if($teamSection && isset($teamSection->content['members']))
-    <section class="team-section">
-        <div class="container">
-            <div class="team-header">
-                <h2 class="section-title">{{ $teamSection->title ?? 'THE TEAM.' }}</h2>
-                <div class="section-line"></div>
-                @if(isset($teamSection->content['description']))
-                <p class="team-description">{{ $teamSection->content['description'] }}</p>
-                @endif
+        <div class="cover-content">
+            <div class="cover-left">
+                <h1 class="company-name">{{ $coverData['company_name'] }}</h1>
+                <h2 class="company-tagline">{{ $coverData['company_tagline'] }}</h2>
             </div>
-            
-            <div class="team-content">
-                <div class="team-left">
-                    <div class="about-team">
-                        <h3>About Team</h3>
-                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem.</p>
-                        
-                        <div class="team-stats">
-                            <div class="stat-item">
-                                <h4>{{ count($teamSection->content['members']) }}</h4>
-                                <p>Team Members</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="team-right">
-                    @foreach($teamSection->content['members'] as $index => $member)
-                    <div class="team-member {{ $index % 2 == 0 ? 'member-left' : 'member-right' }}">
-                        <div class="member-photo">
-                            <img src="{{ $member['photo'] ?? 'https://via.placeholder.com/150x150/333333/ffffff?text=Team' }}" alt="{{ $member['name'] ?? 'Team Member' }}">
-                        </div>
-                        <div class="member-info">
-                            <h4>{{ $member['name'] ?? 'Nama Anggota' }}</h4>
-                            <h5>{{ $member['position'] ?? 'Jabatan' }}</h5>
-                            <p>{{ $member['description'] ?? 'Deskripsi anggota tim...' }}</p>
-                        </div>
-                    </div>
-                    @endforeach
+            <div class="cover-right">
+                <div class="company-info">
+                    <p class="company-description">{{ $coverData['company_description'] }}</p>
+                    <div class="explore-button">{{ $coverData['explore_text'] }}</div>
                 </div>
             </div>
+            <div class="dorth-text">DORTH</div>
         </div>
-    </section>
-    @endif
+    </div>
+</section>
 
-    <!-- PRODUCTS SECTION -->
-    @if($productsSection)
-    <section class="products-section">
-        <div class="container">
-            <div class="products-header">
-                <h2 class="section-title">{{ $productsSection->title ?? 'PRODUCT MATERIAL.' }}</h2>
-                <div class="section-line"></div>
+<!-- TEAM SECTION -->
+<section class="team-section">
+    <div class="container">
+        <div class="team-header">
+            <h2 class="section-title">{{ $teamData['title'] }}</h2>
+            <div class="section-line"></div>
+            <p class="team-description">{{ $teamData['description'] }}</p>
+        </div>
+        <div class="team-content">
+            <div class="team-left">
+                <div class="about-team">
+                    <h3>About Team</h3>
+                    <p>{{ $teamData['description'] }}</p>
+                    <div class="team-stats">
+                        <div class="stat-item">
+                            <h4>{{ count($teamData['members']) }}</h4>
+                            <p>Team Members</p>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <div class="products-grid">
-                @forelse($produks->take(8) as $produk)
-                <div class="product-item">
-                    <div class="product-image">
-                        @if($produk->foto)
-                            <img src="{{ asset('storage/'.$produk->foto) }}" alt="{{ $produk->nama_produk }}">
+            <div class="team-right">
+                @foreach($teamData['members'] as $index => $member)
+                <div class="team-member {{ $index % 2 == 0 ? 'member-left' : 'member-right' }}">
+                    <div class="member-photo">
+                        @if(!empty($member['photo']))
+                            <img src="{{ $member['photo'] }}" alt="{{ $member['name'] }}">
                         @else
-                            <div class="no-image">
-                                <i class="fas fa-image"></i>
-                            </div>
+                            <img src="https://via.placeholder.com/150x150/333333/ffffff?text={{ urlencode(substr($member['name'],0,3)) }}" alt="{{ $member['name'] }}">
                         @endif
                     </div>
-                    <div class="product-info">
-                        <h4>{{ $produk->nama_produk }}</h4>
-                        <p>{{ Str::limit($produk->deskripsi ?: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor.', 80) }}</p>
+                    <div class="member-info">
+                        <h4>{{ $member['name'] }}</h4>
+                        <h5>{{ $member['position'] }}</h5>
+                        <p>{{ $member['description'] }}</p>
                     </div>
                 </div>
-                @empty
-                <div class="no-products">
-                    <p>Belum ada produk tersedia</p>
-                </div>
-                @endforelse
+                @endforeach
             </div>
         </div>
-    </section>
-    @endif
+    </div>
+</section>
 
-@else
-    <!-- DEFAULT FALLBACK -->
-    <section class="cover-section">
-        <div class="cover-container">
-            <div class="cover-image">
-                @if($company && $company->foto)
-                    <img src="{{ asset('storage/'.$company->foto) }}" alt="{{ $company->nama }}">
-                @else
-                    <div class="default-cover">
-                        <div class="city-silhouette"></div>
-                    </div>
-                @endif
-            </div>
-            <div class="cover-content">
-                <div class="cover-left">
-                    <h1 class="company-name">{{ $company->nama ?? 'NAMA PERUSAHAAN' }}</h1>
-                    <h2 class="company-tagline">BRANDING PRODUCT.</h2>
-                </div>
-                <div class="cover-right">
-                    <div class="company-info">
-                        <p class="company-description">{{ $company->catalog_description ?? 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem.' }}</p>
-                        <div class="explore-button">Explore</div>
-                    </div>
-                </div>
-                <div class="dorth-text">DORTH</div>
-            </div>
+<!-- PRODUCTS SECTION -->
+<section class="products-section">
+    <div class="container">
+        <div class="products-header">
+            <h2 class="section-title">{{ $productsSection->title ?? 'PRODUCT MATERIAL.' }}</h2>
+            <div class="section-line"></div>
         </div>
-    </section>
-
-    <!-- DEFAULT TEAM SECTION -->
-    <section class="team-section">
-        <div class="container">
-            <div class="team-header">
-                <h2 class="section-title">THE TEAM.</h2>
-                <div class="section-line"></div>
-                <p class="team-description">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor.</p>
-            </div>
-            
-            <div class="team-content">
-                <div class="team-left">
-                    <div class="about-team">
-                        <h3>About Team</h3>
-                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.</p>
-                        
-                        <div class="team-stats">
-                            <div class="stat-item">
-                                <h4>2</h4>
-                                <p>Team Members</p>
-                            </div>
-                        </div>
-                    </div>
+        <div class="products-grid">
+            @forelse($produks->take(8) as $produk)
+            <div class="product-item">
+                <div class="product-image">
+                    @if($produk->foto)
+                        <img src="{{ asset('storage/'.$produk->foto) }}" alt="{{ $produk->nama_produk }}">
+                    @else
+                        <div class="no-image"><i class="fas fa-image"></i></div>
+                    @endif
                 </div>
-                
-                <div class="team-right">
-                    <div class="team-member member-left">
-                        <div class="member-photo">
-                            <img src="https://via.placeholder.com/150x150/333333/ffffff?text=CEO" alt="CEO">
-                        </div>
-                        <div class="member-info">
-                            <h4>Joko Susilo</h4>
-                            <h5>Direktur Utama</h5>
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="team-member member-right">
-                        <div class="member-photo">
-                            <img src="https://via.placeholder.com/150x150/666666/ffffff?text=MGR" alt="Manager">
-                        </div>
-                        <div class="member-info">
-                            <h4>Sari Wulandari</h4>
-                            <h5>Manajer Produksi</h5>
-                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.</p>
-                        </div>
-                    </div>
+                <div class="product-info">
+                    <h4>{{ $produk->nama_produk }}</h4>
+                    <p>{{ Str::limit($produk->deskripsi ?: '', 80) }}</p>
                 </div>
             </div>
+            @empty
+            <div class="no-products"><p>Belum ada produk tersedia</p></div>
+            @endforelse
         </div>
-    </section>
-
-    <!-- DEFAULT PRODUCTS SECTION -->
-    <section class="products-section">
-        <div class="container">
-            <div class="products-header">
-                <h2 class="section-title">PRODUCT MATERIAL.</h2>
-                <div class="section-line"></div>
-            </div>
-            
-            <div class="products-grid">
-                @forelse($produks->take(8) as $produk)
-                <div class="product-item">
-                    <div class="product-image">
-                        @if($produk->foto)
-                            <img src="{{ asset('storage/'.$produk->foto) }}" alt="{{ $produk->nama_produk }}">
-                        @else
-                            <div class="no-image">
-                                <i class="fas fa-image"></i>
-                            </div>
-                        @endif
-                    </div>
-                    <div class="product-info">
-                        <h4>{{ $produk->nama_produk }}</h4>
-                        <p>{{ Str::limit($produk->deskripsi ?: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', 80) }}</p>
-                    </div>
-                </div>
-                @empty
-                <div class="no-products">
-                    <p>Belum ada produk tersedia</p>
-                </div>
-                @endforelse
-            </div>
-        </div>
-    </section>
-@endif
+    </div>
+</section>
 
 <!-- TOMBOL BELI -->
 <section class="cta-section">
