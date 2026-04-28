@@ -1863,6 +1863,63 @@ Route::get('/', function () {
 // Catalog Route - Public
 Route::get('/catalog', [ProdukController::class, 'catalog'])->name('catalog');
 
+// TEMP: Seed catalog sections with correct data
+Route::get('/update-catalog-desc-now', function () {
+    $company = \App\Models\Perusahaan::first();
+    if (!$company) return response('Company not found', 500);
+
+    $newCompanyDesc = "Perusahaan manufaktur COE yang berfokus pada efisiensi biaya produksi, pengelolaan sumber daya yang optimal, serta pengendalian proses yang terintegrasi untuk menghasilkan produk berkualitas tinggi secara konsisten.";
+    $newTeamDesc = "Didukung oleh fullstack developer yang kompeten dan pembimbing berpengalaman, tim ini menghadirkan solusi digital terintegrasi dengan pendekatan strategis, presisi teknis, dan standar kualitas tinggi.";
+
+    $out = [];
+    $out[] = "Company ID: {$company->id} | Nama: {$company->nama}";
+
+    // Check enum values
+    $enumCheck = \DB::select("SHOW COLUMNS FROM catalog_sections LIKE 'section_type'");
+    $out[] = "Enum: " . ($enumCheck[0]->Type ?? 'unknown');
+
+    // Delete all existing sections
+    $deleted = \DB::table('catalog_sections')->where('perusahaan_id', $company->id)->delete();
+    $out[] = "Deleted old sections: {$deleted}";
+
+    // Insert sections one by one with try/catch
+    $inserts = [
+        ['type'=>'cover',    'order'=>1, 'title'=>'Cover',             'content'=>['company_name'=>$company->nama,'company_tagline'=>'BRANDING PRODUCT.','company_description'=>$newCompanyDesc,'explore_text'=>'Explore','cover_photo'=>'']],
+        ['type'=>'team',     'order'=>2, 'title'=>'THE TEAM.',         'content'=>['title'=>'THE TEAM.','description'=>$newTeamDesc,'members'=>[['name'=>'Joko Susilo','position'=>'Direktur Utama','description'=>'Lorem ipsum.','photo'=>''],['name'=>'Sari Wulandari','position'=>'Manajer Produksi','description'=>'Lorem ipsum.','photo'=>'']]]],
+        ['type'=>'products', 'order'=>3, 'title'=>'PRODUCT MATERIAL.', 'content'=>['title'=>'PRODUCT MATERIAL.']],
+        ['type'=>'location', 'order'=>4, 'title'=>'LOKASI KAMI.',      'content'=>['title'=>'LOKASI KAMI.','name'=>$company->nama,'address'=>$company->alamat??'','phone'=>$company->telepon??'','email'=>$company->email??'','maps_link'=>$company->maps_link??'']],
+    ];
+
+    foreach ($inserts as $row) {
+        try {
+            \DB::table('catalog_sections')->insert([
+                'perusahaan_id' => $company->id,
+                'section_type'  => $row['type'],
+                'title'         => $row['title'],
+                'content'       => json_encode($row['content']),
+                'order'         => $row['order'],
+                'is_active'     => 1,
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ]);
+            $out[] = "✅ Inserted: {$row['type']}";
+        } catch (\Exception $e) {
+            $out[] = "❌ Failed {$row['type']}: " . $e->getMessage();
+        }
+    }
+
+    // Update company description
+    $company->catalog_description = $newCompanyDesc;
+    $company->save();
+    $out[] = "✅ Company catalog_description updated";
+
+    // Verify count
+    $count = \DB::table('catalog_sections')->where('perusahaan_id', $company->id)->count();
+    $out[] = "Total sections in DB: {$count}";
+
+    return '<pre>' . implode("\n", $out) . '</pre><br><a href="/catalog">→ Buka /catalog</a>';
+});
+
 // Pelanggan Login Routes - Public
 Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
     Route::get('/login', [PelangganLoginController::class, 'showLoginForm'])->name('login');
