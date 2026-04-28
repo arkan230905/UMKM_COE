@@ -1,0 +1,43 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('ongkir_settings', function (Blueprint $table) {
+            // Drop old columns
+            $table->dropColumn(['range_berat_min', 'range_berat_max', 'harga_per_kg', 'minimal_ongkir']);
+            
+            // Add new columns
+            $table->decimal('jarak_min', 8, 2)->default(0)->comment('dalam km');
+            $table->decimal('jarak_max', 8, 2)->nullable()->comment('dalam km, null = tidak terbatas');
+            $table->decimal('harga_ongkir', 15, 2)->default(0);
+            
+            // Modify status column
+            $table->dropColumn('status');
+        });
+        
+        Schema::table('ongkir_settings', function (Blueprint $table) {
+            $table->boolean('status')->default(true)->comment('true = aktif, false = nonaktif');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('ongkir_settings', function (Blueprint $table) {
+            // Drop new columns
+            $table->dropColumn(['jarak_min', 'jarak_max', 'harga_ongkir', 'status']);
+            
+            // Restore old columns
+            $table->decimal('range_berat_min', 8, 2)->default(0);
+            $table->decimal('range_berat_max', 8, 2)->nullable()->comment('null = tidak terbatas');
+            $table->decimal('harga_per_kg', 15, 2)->default(0);
+            $table->decimal('minimal_ongkir', 15, 2)->default(0);
+            $table->enum('status', ['aktif', 'nonaktif'])->default('aktif');
+        });
+    }
+};

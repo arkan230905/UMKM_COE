@@ -13,7 +13,12 @@ return new class extends Migration
     {
         Schema::create('bukti_pembayaran', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('penjualan_id');
+            $table->string('file_path');
+            $table->text('keterangan')->nullable();
             $table->timestamps();
+
+            $table->foreign('penjualan_id')->references('id')->on('penjualans')->onDelete('cascade');
         });
     }
 

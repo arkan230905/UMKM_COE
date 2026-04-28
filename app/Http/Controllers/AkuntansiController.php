@@ -276,6 +276,9 @@ class AkuntansiController extends Controller
                 $q->where('ju.debit', '>', 0)
                   ->orWhere('ju.kredit', '>', 0);
             })
+            // PERBAIKAN: Exclude pembelian transactions to avoid duplicates with journal_entries
+            ->whereIn('ju.tipe_referensi', [
+                'penyusutan', 'adjustment', 'manual' // Only manual entries, exclude 'pembelian'
             ->where('coas.user_id', auth()->id())
             // PENTING: Exclude production entries that are already in journal_entries
             // to avoid duplication
@@ -318,7 +321,10 @@ class AkuntansiController extends Controller
             $jurnalUmumQuery->where('coas.kode_akun', $accountCode);
         }
         
-        $jurnalUmumResults = $jurnalUmumQuery->get();
+        // Only execute query if not filtering for purchase
+        if (!isset($jurnalUmumResults)) {
+            $jurnalUmumResults = $jurnalUmumQuery->get();
+        }
         
         // Group jurnal_umum results by date and memo untuk menggabungkan debit/kredit
         $jurnalUmumGrouped = $jurnalUmumResults->groupBy(function($item) {

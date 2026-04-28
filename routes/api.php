@@ -62,3 +62,21 @@ Route::get('/aset/kategori', [\App\Http\Controllers\Api\AsetController::class, '
 
 // Presensi API Routes
 Route::get('/presensi/jam-kerja', [PresensiController::class, 'getJamKerja'])->name('api.presensi.jam-kerja');
+
+// Produk API Routes
+Route::get('/produk/{id}', function($id) {
+    $produk = \App\Models\Produk::find($id);
+    if (!$produk) {
+        return response()->json(['success' => false, 'message' => 'Produk tidak ditemukan'], 404);
+    }
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'id' => $produk->id,
+            'nama_produk' => $produk->nama_produk,
+            'harga_jual' => $produk->harga_jual,
+            'stok' => $produk->stok,
+            'barcode' => $produk->barcode
+        ]
+    ]);
+})->name('api.produk.show');

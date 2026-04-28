@@ -4,59 +4,35 @@
 
 @push('styles')
 <style>
-/* Horizontal Tabs Style - Mengikuti gaya Satuan | Konversi */
-.horizontal-tabs {
-    display: flex;
-    align-items: center;
-    gap: 0;
+/* Tab Navigation - Style seperti laporan penjualan */
+.nav-tabs-custom {
+    border-bottom: 1px solid #e5e7eb;
     margin-bottom: 1.5rem;
-    border-bottom: 2px solid #f0e6dc;
-    padding-bottom: 0;
-    background: linear-gradient(to bottom, #faf8f6, transparent);
-    padding: 1rem 0 0;
-    margin: -1rem -1rem 1.5rem -1rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
-    position: relative;
-    z-index: 10;
 }
 
-.tab-btn {
+.nav-tabs-custom .tab-btn {
     background: none;
     border: none;
-    padding: 0.75rem 1.25rem;
+    padding: 1rem 2rem;
     font-size: 0.95rem;
     font-weight: 500;
-    color: #8B7355;
+    color: #6c757d;
     cursor: pointer;
     transition: all 0.3s ease;
     border-bottom: 3px solid transparent;
-    margin-bottom: -2px;
-    border-radius: 8px 8px 0 0;
-    position: relative;
-    z-index: 11;
-    pointer-events: all;
+    margin-bottom: -1px;
+    margin-right: 2rem;
 }
 
-.tab-btn:hover {
-    color: #7a6348;
-    background: rgba(139, 115, 85, 0.05);
-    transform: translateY(-1px);
+.nav-tabs-custom .tab-btn:hover {
+    color: #495057;
+    border-bottom-color: #d1d5db;
 }
 
-.tab-btn.active {
+.nav-tabs-custom .tab-btn.active {
     color: #8B7355;
-    font-weight: 600;
     border-bottom-color: #8B7355;
-    background: rgba(139, 115, 85, 0.08);
-}
-
-.tab-separator {
-    color: #d4c4b0;
-    font-size: 1.2rem;
-    margin: 0 0.75rem;
-    user-select: none;
-    font-weight: 300;
+    font-weight: 600;
 }
 
 .tab-pane {
@@ -97,7 +73,7 @@
     line-height: 1.2;
 }
 
-/* Action Layout Style - 2 Baris Grid di Tengah */
+/* Action Layout Style - Layout yang lebih rapi dan kompak */
 .action-layout {
     display: flex;
     flex-direction: column;
@@ -111,6 +87,7 @@
     align-items: center;
     justify-content: center;
     gap: 0.25rem;
+    flex-wrap: wrap;
 }
 
 /* Modal fixes */
@@ -136,17 +113,6 @@
 .modal-body {
     max-height: 70vh;
     overflow-y: auto;
-}
-
-.action-left {
-    display: flex;
-    align-items: center;
-}
-
-.action-right {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
 }
 
 .btn-minimal {
@@ -304,101 +270,132 @@
         <h2 class="mb-0">
             <i class="fas fa-shopping-cart me-2"></i>Data Penjualan
         </h2>
-        <a href="{{ route('transaksi.penjualan.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Tambah Penjualan
-        </a>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" onclick="openPenjualanSetting()" title="Pengaturan Penjualan">
+                <i class="fas fa-cog me-1"></i>Pengaturan
+            </button>
+            <a href="{{ route('transaksi.penjualan.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Tambah Penjualan
+            </a>
+        </div>
     </div>
 
-    <!-- Ringkasan Penjualan Harian -->
-    <div class="card mb-4 border-primary">
-        <div class="card-header bg-primary text-white">
-            <h6 class="mb-0">
-                <i class="fas fa-chart-line me-2"></i>Ringkasan Penjualan Harian
-                <small class="text-white ms-2">(Hari Ini: {{ now()->format('d/m/Y') }})</small>
-            </h6>
+    <!-- Summary Cards - Style seperti laporan -->
+    <div class="row g-2 mb-4">
+        <div class="col-md-2">
+            <div class="card bg-light border-0">
+                <div class="card-body text-center py-3">
+                    <div class="text-muted small mb-1">Total Penjualan (Hari Ini)</div>
+                    <h5 class="mb-1 text-primary fw-bold">Rp {{ number_format($totalPenjualan, 0, ',', '.') }}</h5>
+                    <small class="{{ $penjualanChange >= 0 ? 'text-success' : 'text-danger' }}">
+                        <i class="fas fa-arrow-{{ $penjualanChange >= 0 ? 'up' : 'down' }} me-1"></i>{{ number_format(abs($penjualanChange), 1) }}% dari kemarin
+                    </small>
+                </div>
+            </div>
         </div>
-        <div class="card-body py-3">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <div class="summary-card">
-                        <div class="summary-label">Total Penjualan</div>
-                        <div class="summary-value text-primary">Rp {{ number_format($totalPenjualan, 0, ',', '.') }}</div>
-                    </div>
+        <div class="col-md-2">
+            <div class="card bg-light border-0">
+                <div class="card-body text-center py-3">
+                    <div class="text-muted small mb-1">Total Transaksi (Hari Ini)</div>
+                    <h5 class="mb-1 text-info fw-bold">{{ number_format($jumlahTransaksiHariIni, 0, ',', '.') }}</h5>
+                    <small class="{{ $transaksiChange >= 0 ? 'text-success' : 'text-danger' }}">
+                        <i class="fas fa-arrow-{{ $transaksiChange >= 0 ? 'up' : 'down' }} me-1"></i>{{ number_format(abs($transaksiChange), 1) }}% dari kemarin
+                    </small>
                 </div>
-                <div class="col-md-3">
-                    <div class="summary-card">
-                        <div class="summary-label">Jumlah Transaksi</div>
-                        <div class="summary-value text-info">{{ number_format($jumlahTransaksiHariIni, 0, ',', '.') }}</div>
-                    </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-light border-0">
+                <div class="card-body text-center py-3">
+                    <div class="text-muted small mb-1">Total Produk Terjual (Hari Ini)</div>
+                    <h5 class="mb-1 text-warning fw-bold">{{ number_format($totalProdukTerjual, 0, ',', '.') }}</h5>
+                    <small class="{{ $produkChange >= 0 ? 'text-success' : 'text-danger' }}">
+                        <i class="fas fa-arrow-{{ $produkChange >= 0 ? 'up' : 'down' }} me-1"></i>{{ number_format(abs($produkChange), 1) }}% dari kemarin
+                    </small>
                 </div>
-                <div class="col-md-3">
-                    <div class="summary-card">
-                        <div class="summary-label">Produk Terjual</div>
-                        <div class="summary-value text-warning">{{ number_format($totalProdukTerjual, 0, ',', '.') }}</div>
-                    </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-light border-0">
+                <div class="card-body text-center py-3">
+                    <div class="text-muted small mb-1">Total Ongkir (Hari Ini)</div>
+                    <h5 class="mb-1 text-info fw-bold">Rp {{ number_format($totalOngkir, 0, ',', '.') }}</h5>
+                    <small class="{{ $ongkirChange >= 0 ? 'text-success' : 'text-danger' }}">
+                        <i class="fas fa-arrow-{{ $ongkirChange >= 0 ? 'up' : 'down' }} me-1"></i>{{ number_format(abs($ongkirChange), 1) }}% dari kemarin
+                    </small>
                 </div>
-                <div class="col-md-3">
-                    <div class="summary-card">
-                        <div class="summary-label">Total Profit</div>
-                        <div class="summary-value {{ $totalProfit >= 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($totalProfit, 0, ',', '.') }}</div>
-                    </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-light border-0">
+                <div class="card-body text-center py-3">
+                    <div class="text-muted small mb-1">Total Diskon (Hari Ini)</div>
+                    <h5 class="mb-1 text-danger fw-bold">Rp {{ number_format($totalDiskon, 0, ',', '.') }}</h5>
+                    <small class="{{ $diskonChange >= 0 ? 'text-danger' : 'text-success' }}">
+                        <i class="fas fa-arrow-{{ $diskonChange >= 0 ? 'up' : 'down' }} me-1"></i>{{ number_format(abs($diskonChange), 1) }}% dari kemarin
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-light border-0">
+                <div class="card-body text-center py-3">
+                    <div class="text-muted small mb-1">Total Profit (Hari Ini)</div>
+                    <h5 class="mb-1 {{ $totalProfit >= 0 ? 'text-success' : 'text-danger' }} fw-bold">Rp {{ number_format($totalProfit, 0, ',', '.') }}</h5>
+                    <small class="{{ $profitChange >= 0 ? 'text-success' : 'text-danger' }}">
+                        <i class="fas fa-arrow-{{ $profitChange >= 0 ? 'up' : 'down' }} me-1"></i>{{ number_format(abs($profitChange), 1) }}% dari kemarin
+                    </small>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Filter Section -->
+    <!-- Filter Section - Compact Style -->
     <div class="card mb-4">
-        <div class="card-header">
-            <h6 class="mb-0">
+        <div class="card-body">
+            <h6 class="mb-3" style="color: #1f2937; font-weight: 600;">
                 <i class="fas fa-filter me-2"></i>Filter Transaksi
             </h6>
-        </div>
-        <div class="card-body">
-            <form method="GET" action="{{ route('transaksi.penjualan.index') }}">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">Nomor Transaksi</label>
-                        <input type="text" name="nomor_transaksi" class="form-control" 
-                               value="{{ request('nomor_transaksi') }}" placeholder="Cari nomor transaksi...">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Tanggal Mulai</label>
-                        <input type="date" name="tanggal_mulai" class="form-control" 
-                               value="{{ request('tanggal_mulai') }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Tanggal Selesai</label>
-                        <input type="date" name="tanggal_selesai" class="form-control" 
-                               value="{{ request('tanggal_selesai') }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Metode Pembayaran</label>
-                        <select name="payment_method" class="form-select">
-                            <option value="">Semua Metode</option>
-                            <option value="cash" {{ request('payment_method') == 'cash' ? 'selected' : '' }}>Tunai</option>
-                            <option value="transfer" {{ request('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer</option>
-                            <option value="credit" {{ request('payment_method') == 'credit' ? 'selected' : '' }}>Kredit</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
-                            <option value="">Semua Status</option>
-                            <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
-                            <option value="belum_lunas" {{ request('status') == 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
-                        </select>
-                    </div>
-                    <div class="col-md-12">
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search me-2"></i>Filter
-                            </button>
-                            <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-redo me-2"></i>Reset
-                            </a>
-                        </div>
-                    </div>
+            <form method="GET" action="{{ route('transaksi.penjualan.index') }}" class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label small">Nomor Transaksi</label>
+                    <input type="text" name="nomor_transaksi" class="form-control form-control-sm" 
+                           value="{{ request('nomor_transaksi') }}" placeholder="Cari nomor transaksi...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Tanggal Mulai</label>
+                    <input type="date" name="tanggal_mulai" class="form-control form-control-sm" 
+                           value="{{ request('tanggal_mulai') }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Tanggal Selesai</label>
+                    <input type="date" name="tanggal_selesai" class="form-control form-control-sm" 
+                           value="{{ request('tanggal_selesai') }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Metode Pembayaran</label>
+                    <select name="payment_method" class="form-select form-select-sm">
+                        <option value="">Semua Metode</option>
+                        <option value="cash" {{ request('payment_method') == 'cash' ? 'selected' : '' }}>Tunai</option>
+                        <option value="transfer" {{ request('payment_method') == 'transfer' ? 'selected' : '' }}>Transfer</option>
+                        <option value="credit" {{ request('payment_method') == 'credit' ? 'selected' : '' }}>Kredit</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Status</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">Semua Status</option>
+                        <option value="lunas" {{ request('status') == 'lunas' ? 'selected' : '' }}>Lunas</option>
+                        <option value="belum_lunas" {{ request('status') == 'belum_lunas' ? 'selected' : '' }}>Belum Lunas</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-sm" style="background: #8B7355; color: white; border-radius: 6px;">
+                        <i class="fas fa-search me-1"></i>Filter
+                    </button>
+                    <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-outline-secondary btn-sm" style="border-radius: 6px;">
+                        <i class="fas fa-redo me-1"></i>Reset
+                    </a>
                 </div>
             </form>
         </div>
@@ -406,14 +403,13 @@
 
     <div class="card">
         <div class="card-body">
-            <!-- Custom Tabs Navigation -->
-            <div class="horizontal-tabs">
+            <!-- Custom Tabs Navigation - Style seperti laporan -->
+            <div class="nav-tabs-custom mb-4">
                 <button class="tab-btn active" onclick="showTab('penjualan-list', this)">
-                    <i class="fas fa-shopping-cart me-2"></i>Penjualan
+                    Penjualan
                 </button>
-                <span class="tab-separator">|</span>
                 <button class="tab-btn" onclick="showTab('retur-list', this)">
-                    <i class="fas fa-undo me-2"></i>Retur
+                    Retur
                 </button>
             </div>
             
@@ -492,15 +488,32 @@
                                 <td class="text-end">
                                     @if($detailCount > 1)
                                         @foreach($penjualan->details as $d)
-                                            <div>Rp {{ number_format($d->harga_satuan ?? 0, 0, ',', '.') }}</div>
+                                            @php
+                                                $hargaSatuan = $d->harga_satuan ?? 0;
+                                                if ($hargaSatuan == 0 && $d->produk) {
+                                                    $hargaSatuan = $d->produk->harga_jual ?? 0;
+                                                }
+                                            @endphp
+                                            <div>Rp {{ number_format($hargaSatuan, 0, ',', '.') }}</div>
                                         @endforeach
                                     @elseif($detailCount === 1)
-                                        Rp {{ number_format($penjualan->details[0]->harga_satuan ?? 0, 0, ',', '.') }}
+                                        @php
+                                            $hargaSatuan = $penjualan->details[0]->harga_satuan ?? 0;
+                                            if ($hargaSatuan == 0 && $penjualan->details[0]->produk) {
+                                                $hargaSatuan = $penjualan->details[0]->produk->harga_jual ?? 0;
+                                            }
+                                        @endphp
+                                        Rp {{ number_format($hargaSatuan, 0, ',', '.') }}
                                     @else
                                         @php
                                             $hdrHarga = $penjualan->harga_satuan;
-                                            if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
-                                                $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                                            if (is_null($hdrHarga) || $hdrHarga == 0) {
+                                                if ($penjualan->produk) {
+                                                    $hdrHarga = $penjualan->produk->harga_jual ?? 0;
+                                                }
+                                                if (($hdrHarga == 0) && ($penjualan->jumlah ?? 0) > 0) {
+                                                    $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                                                }
                                             }
                                         @endphp
                                         Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}
@@ -591,15 +604,16 @@
                                             <a href="{{ route('transaksi.retur-penjualan.detail-retur', $penjualan->id) }}" class="btn-minimal btn-info" data-bs-toggle="tooltip" title="Proses Retur">
                                                 Retur
                                             </a>
-                                            <form action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn-minimal btn-danger" data-bs-toggle="tooltip" title="Hapus Transaksi">
-                                                    Hapus
-                                                </button>
-                                            </form>
+                                            <button type="submit" class="btn-minimal btn-danger" onclick="confirmDelete({{ $penjualan->id }})" data-bs-toggle="tooltip" title="Hapus Transaksi">
+                                                Hapus
+                                            </button>
                                         </div>
                                     </div>
+                                    <!-- Hidden form for delete -->
+                                    <form id="deleteForm{{ $penjualan->id }}" action="{{ route('transaksi.penjualan.destroy', $penjualan->id) }}" method="POST" style="display: none;">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
                                 </td>
                             </tr>
                         @endforeach
@@ -674,26 +688,23 @@
                                         </td>
                                         <td class="text-center">
                                             <div class="action-layout">
-                                                <div class="action-left">
-                                                    <button type="button" class="btn-minimal btn-detail" data-bs-toggle="modal" data-bs-target="#returDetailModal{{ $retur->id }}">
+                                                <div class="action-row gap-1">
+                                                    <button type="button" class="btn-minimal btn-detail" data-bs-toggle="modal" data-bs-target="#returDetailModal{{ $retur->id }}" title="Detail Retur">
                                                         Detail
                                                     </button>
-                                                </div>
-                                                <div class="action-right">
-                                                    <div class="action-row">
-                                                        <a href="{{ route('transaksi.retur-penjualan.edit', $retur->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Retur">
-                                                            Edit
-                                                        </a>
-                                                        <form action="{{ route('transaksi.retur-penjualan.destroy', $retur->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin hapus retur ini?')">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button type="submit" class="btn-minimal btn-danger" data-bs-toggle="tooltip" title="Hapus Retur">
-                                                                Hapus
-                                                            </button>
-                                                        </form>
-                                                    </div>
+                                                    <a href="{{ route('transaksi.retur-penjualan.edit', $retur->id) }}" class="btn-minimal btn-warning" data-bs-toggle="tooltip" title="Edit Retur">
+                                                        Edit
+                                                    </a>
+                                                    <button type="button" class="btn-minimal btn-danger" onclick="confirmDeleteRetur({{ $retur->id }})" data-bs-toggle="tooltip" title="Hapus Retur">
+                                                        Hapus
+                                                    </button>
                                                 </div>
                                             </div>
+                                            <!-- Hidden form for delete retur -->
+                                            <form id="deleteReturForm{{ $retur->id }}" action="{{ route('transaksi.retur-penjualan.destroy', $retur->id) }}" method="POST" style="display: none;">
+                                                @csrf
+                                                @method('DELETE')
+                                            </form>
                                         </td>
                                     </tr>
                                 @empty
@@ -765,13 +776,22 @@
                         $totalProfit = $margin;
                     }
                     
-                    // Additional costs
+                    // Additional costs from database
                     $biayaOngkir = $penjualan->biaya_ongkir ?? 0;
-                    $biayaServis = $penjualan->biaya_servis ?? 0;
-                    $biayaPPN = $totalSubtotal * 0.11; // 11% PPN
+                    $biayaPPN = $penjualan->biaya_ppn ?? 0;
                     
-                    // Calculate grand total
-                    $grandTotal = $totalSubtotal + $biayaPPN + $biayaOngkir + $biayaServis;
+                    // Jika biaya_ppn belum tersimpan (transaksi lama), hitung dari selisih total
+                    if ($biayaPPN == 0 && $penjualan->total > 0) {
+                        $selisih = (float)$penjualan->total - $totalSubtotal - $biayaOngkir;
+                        // Jika selisih mendekati 11% dari subtotal+ongkir, anggap itu PPN
+                        $estimasiPPN = ($totalSubtotal + $biayaOngkir) * 0.11;
+                        if ($selisih > 0 && abs($selisih - $estimasiPPN) < 1) {
+                            $biayaPPN = $selisih;
+                        }
+                    }
+                    
+                    // Calculate grand total if not stored
+                    $grandTotal = $penjualan->grand_total ?? ($totalSubtotal + $biayaPPN + $biayaOngkir - ($penjualan->diskon_nominal ?? 0));
                     
                     // Check return status
                     $hasRetur = $penjualan->returs()->exists();
@@ -827,8 +847,8 @@
                         @endif
                     </div>
                 </div>
-                
-                <h6 class="mb-3"><i class="fas fa-box me-2"></i>Detail Produk</h6>
+
+                <h6 class="mb-3 mt-4"><i class="fas fa-box me-2"></i>Detail Produk</h6>
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered mb-0">
                         <thead class="table-light">
@@ -902,61 +922,64 @@
                     </table>
                 </div>
                 
-                <!-- Ringkasan Transaksi -->
-                <h6 class="mb-2 mt-1"><i class="fas fa-calculator me-2"></i>Ringkasan Transaksi</h6>
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="p-3 bg-light rounded">
-                            <small class="text-muted d-block">Subtotal Produk</small>
-                            <strong class="text-primary">Rp {{ number_format($totalSubtotal, 0, ',', '.') }}</strong>
+                <h6 class="mb-3 mt-4"><i class="fas fa-receipt me-2"></i>Rincian Biaya</h6>
+                <div class="row g-2">
+                    <!-- Subtotal Produk -->
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Subtotal Produk:</span>
+                            <span class="fw-bold">Rp {{ number_format($totalSubtotal, 0, ',', '.') }}</span>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="p-3 bg-light rounded">
-                            <small class="text-muted d-block">Total HPP</small>
-                            <strong class="text-info">Rp {{ number_format($totalHPP, 0, ',', '.') }}</strong>
+                    
+                    <!-- Biaya Ongkir -->
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Biaya Ongkir:</span>
+                            <span class="fw-bold {{ ($penjualan->biaya_ongkir ?? 0) > 0 ? 'text-warning' : '' }}">
+                                Rp {{ number_format($penjualan->biaya_ongkir ?? 0, 0, ',', '.') }}
+                            </span>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="p-3 bg-light rounded">
-                            <small class="text-muted d-block">Total Profit</small>
-                            <strong class="{{ $totalProfit >= 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($totalProfit, 0, ',', '.') }}</strong>
+                    
+                    <!-- Biaya PPN -->
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            @php
+                                $ppnPersen = 0;
+                                if ($biayaPPN > 0 && $totalSubtotal > 0) {
+                                    $ppnBase = $totalSubtotal + $biayaOngkir;
+                                    $ppnPersen = $ppnBase > 0 ? ($biayaPPN / $ppnBase * 100) : 0;
+                                }
+                            @endphp
+                            <span class="text-muted">PPN ({{ $ppnPersen > 0 ? number_format($ppnPersen, 0) : '0' }}%):</span>
+                            <span class="fw-bold {{ $biayaPPN > 0 ? 'text-secondary' : '' }}">
+                                Rp {{ number_format($biayaPPN, 0, ',', '.') }}
+                            </span>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="p-3 bg-light rounded">
-                            <small class="text-muted d-block">Total Penjualan</small>
-                            <strong class="text-dark">Rp {{ number_format($grandTotal, 0, ',', '.') }}</strong>
+                    
+                    <!-- Diskon -->
+                    @if(($penjualan->diskon_nominal ?? 0) > 0)
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Diskon:</span>
+                            <span class="fw-bold text-danger">
+                                -Rp {{ number_format($penjualan->diskon_nominal ?? 0, 0, ',', '.') }}
+                            </span>
                         </div>
                     </div>
+                    @endif
                 </div>
                 
-                <!-- Additional Costs Summary -->
-                <div class="row mt-2">
-                    @if($biayaOngkir > 0)
-                    <div class="col-md-4">
-                        <div class="p-2 bg-secondary bg-opacity-10 rounded">
-                            <small class="text-muted d-block">Biaya Ongkir</small>
-                            <strong class="text-secondary">Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</strong>
-                        </div>
-                    </div>
-                    @endif
-                    
-                    @if($biayaServis > 0)
-                    <div class="col-md-4">
-                        <div class="p-2 bg-secondary bg-opacity-10 rounded">
-                            <small class="text-muted d-block">Biaya Servis</small>
-                            <strong class="text-secondary">Rp {{ number_format($biayaServis, 0, ',', '.') }}</strong>
-                        </div>
-                    </div>
-                    @endif
-                    
-                    <div class="col-md-4">
-                        <div class="p-2 bg-warning bg-opacity-10 rounded">
-                            <small class="text-muted d-block">Biaya PPN (11%)</small>
-                            <strong class="text-warning">Rp {{ number_format($biayaPPN, 0, ',', '.') }}</strong>
-                        </div>
-                    </div>
+                <hr class="my-2">
+                
+                <!-- Grand Total -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <span class="fw-bold text-dark">TOTAL KESELURUHAN:</span>
+                    <span class="fw-bold fs-5 text-primary">
+                        Rp {{ number_format($penjualan->grand_total ?? $penjualan->total, 0, ',', '.') }}
+                    </span>
                 </div>
 
                 <!-- Bukti Pembayaran -->
@@ -1118,6 +1141,9 @@
                 @endif
             </div>
             <div class="modal-footer">
+                <a href="{{ route('transaksi.penjualan.show', $penjualan->id) }}" class="btn btn-primary">
+                    <i class="fas fa-external-link-alt me-2"></i>Detail Lanjut
+                </a>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
@@ -1489,6 +1515,20 @@ function deleteBuktiModal(buktiId, penjualanId) {
         });
     }
 }
+
+// Function to confirm delete penjualan
+function confirmDelete(penjualanId) {
+    if (confirm('Yakin ingin hapus transaksi ini?')) {
+        document.getElementById('deleteForm' + penjualanId).submit();
+    }
+}
+
+// Function to confirm delete retur
+function confirmDeleteRetur(returId) {
+    if (confirm('Yakin ingin hapus retur ini?')) {
+        document.getElementById('deleteReturForm' + returId).submit();
+    }
+}
 </script>
 
 <style>
@@ -1508,4 +1548,798 @@ function deleteBuktiModal(buktiId, penjualanId) {
     }
 }
 </style>
+
+<!-- ================================================================
+     MODAL PENGATURAN PENJUALAN
+     ================================================================ -->
+<div class="modal fade" id="modalPengaturanPenjualan" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#8B7355; color:white;">
+                <div>
+                    <h5 class="modal-title mb-0"><i class="fas fa-cog me-2"></i>Pengaturan Penjualan</h5>
+                    <small style="opacity:.8;">Kelola pengaturan ongkir per kilo dan paket menu untuk transaksi penjualan.</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <!-- Tab Nav — Paket Menu kiri, Ongkir kanan -->
+                <div class="px-4 pt-3" style="border-bottom:1px solid #e5e7eb;">
+                    <button class="setting-tab-btn active me-3" onclick="switchSettingTab('paket', this)">
+                        <i class="fas fa-box-open me-1"></i>Paket Menu
+                    </button>
+                    <button class="setting-tab-btn" onclick="switchSettingTab('ongkir', this)">
+                        <i class="fas fa-truck me-1"></i>Ongkir (Per Kilo)
+                    </button>
+                </div>
+
+                <!-- TAB PAKET MENU (default active) -->
+                <div id="setting-tab-paket" class="setting-tab-content p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h6 class="mb-0">Pengaturan Paket Menu</h6>
+                            <small class="text-muted">Buat paket menu untuk memudahkan penjualan dan berikan harga spesial untuk paket.</small>
+                        </div>
+                        <button class="btn btn-sm text-white" style="background:#8B7355;" onclick="showPaketModal()">
+                            <i class="fas fa-plus me-1"></i>Tambah Paket Menu
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>No</th>
+                                    <th>Nama Paket</th>
+                                    <th>Isi Paket</th>
+                                    <th class="text-end">Harga Normal</th>
+                                    <th class="text-end">Harga Paket</th>
+                                    <th class="text-end">Diskon</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paket-tbody">
+                                <tr><td colspan="8" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3">
+                        <small class="text-info"><i class="fas fa-info-circle me-1"></i>Paket menu akan muncul saat input transaksi pada pilihan Produk / Paket.</small>
+                    </div>
+                </div>
+
+                <!-- TAB ONGKIR — simple, clean -->
+                <div id="setting-tab-ongkir" class="setting-tab-content p-4" style="display:none;">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <h6 class="mb-0">Daftar Ongkir (Per Jarak)</h6>
+                            <small class="text-muted">Atur tarif ongkir berdasarkan jarak tempuh (km).</small>
+                        </div>
+                        <button class="btn btn-sm text-white" style="background:#8B7355;" onclick="showOngkirModal()">
+                            <i class="fas fa-plus me-1"></i>Tambah
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>No</th>
+                                    <th>Jarak (km)</th>
+                                    <th class="text-end">Harga Ongkir (Rp)</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ongkir-tbody">
+                                <tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah/Edit Ongkir (nested) -->
+<div class="modal fade" id="modalOngkirForm" tabindex="-1" style="z-index:1070;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+        <div class="modal-content">
+            <div class="modal-header py-2" style="background:#8B7355;color:white;">
+                <h6 class="modal-title mb-0" id="ongkir-modal-title">Tambah Range Ongkir</h6>
+                <button type="button" class="btn-close btn-close-white" onclick="closeOngkirModal()"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="ongkir-edit-id">
+                <div class="mb-3">
+                    <label class="form-label small">Jarak Min (km)</label>
+                    <input type="number" id="ongkir-jarak-min" class="form-control form-control-sm" step="0.1" min="0" placeholder="0">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small">Jarak Max (km) <span class="text-muted small">(kosong = tak terbatas)</span></label>
+                    <input type="number" id="ongkir-jarak-max" class="form-control form-control-sm" step="0.1" min="0" placeholder="∞">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small">Harga Ongkir (Rp)</label>
+                    <input type="text" id="ongkir-harga" class="form-control form-control-sm" placeholder="0" 
+                           oninput="formatCurrency(this)" onblur="formatCurrency(this)">
+                </div>
+                <div class="mb-1">
+                    <label class="form-label small">Status</label>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="ongkir-status" checked>
+                        <label class="form-check-label" for="ongkir-status">
+                            <span id="ongkir-status-label">Aktif</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button class="btn btn-sm btn-secondary" onclick="closeOngkirModal()">Batal</button>
+                <button class="btn btn-sm text-white" style="background:#8B7355;" onclick="saveOngkir()">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah/Edit Paket Menu (nested) -->
+<div class="modal fade" id="modalPaketForm" tabindex="-1" style="z-index:1070;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+        <div class="modal-content">
+            <div class="modal-header py-2" style="background:#8B7355;color:white;">
+                <h6 class="modal-title mb-0" id="paket-modal-title">Tambah Paket Menu</h6>
+                <button type="button" class="btn-close btn-close-white" onclick="closePaketModal()"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="paket-edit-id">
+                <div class="mb-3">
+                    <label class="form-label small">Nama Paket</label>
+                    <input type="text" id="paket-nama" class="form-control form-control-sm" placeholder="Contoh: Paket Hemat 1">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small">Harga Paket (Rp)</label>
+                    <input type="text" id="paket-harga" class="form-control form-control-sm" placeholder="0" 
+                           oninput="formatCurrency(this)" onblur="formatCurrency(this)">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Isi Paket</label>
+                    <div id="paket-items-container"></div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary mt-2 w-100" onclick="addPaketItem()">
+                        <i class="fas fa-plus me-1"></i>Tambah Produk
+                    </button>
+                </div>
+                <div class="mb-1">
+                    <label class="form-label small">Status</label>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="paket-status" checked>
+                        <label class="form-check-label" for="paket-status">
+                            <span id="paket-status-label">Aktif</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button class="btn btn-sm btn-secondary" onclick="closePaketModal()">Batal</button>
+                <button class="btn btn-sm text-white" style="background:#8B7355;" onclick="savePaket()">Simpan</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.setting-tab-btn {
+    background: none;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #6c757d;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s;
+}
+.setting-tab-btn.active { color: #8B7355; border-bottom-color: #8B7355; font-weight: 600; }
+.setting-tab-btn:hover { color: #495057; }
+</style>
+
+<script>
+let allProduks = [];
+let ongkirModalInstance = null;
+
+function openPenjualanSetting() {
+    const modal = new bootstrap.Modal(document.getElementById('modalPengaturanPenjualan'));
+    modal.show();
+    
+    // Only fetch if data not yet loaded (no background refresh)
+    if (!allProduks || allProduks.length === 0) {
+        loadSettingData().catch(error => {
+            console.error('Failed to load initial data:', error);
+        });
+    }
+    // If already loaded, just show cached data — no re-fetch
+}
+
+function switchSettingTab(tab, btn) {
+    document.querySelectorAll('.setting-tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.setting-tab-content').forEach(c => c.style.display = 'none');
+    btn.classList.add('active');
+    document.getElementById('setting-tab-' + tab).style.display = 'block';
+    
+    // Ensure data is loaded when switching to paket tab
+    if (tab === 'paket' && (!allProduks || allProduks.length === 0)) {
+        loadSettingData();
+    }
+}
+
+function loadSettingData() {
+    const url = '{{ route("transaksi.penjualan-setting.index") }}';
+    
+    return fetch(url)
+        .then(r => {
+            if (!r.ok) {
+                throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+            }
+            return r.json();
+        })
+        .then(data => {
+            if (!data.produks) {
+                throw new Error('Data produk tidak ditemukan dalam response');
+            }
+            
+            allProduks = data.produks;
+            
+            // Update any existing dropdowns immediately
+            setTimeout(() => {
+                updatePaketDropdowns();
+            }, 100);
+            
+            if (data.ongkir_settings) {
+                renderOngkirTable(data.ongkir_settings);
+            }
+            if (data.paket_menus) {
+                renderPaketTable(data.paket_menus);
+            }
+            
+            return data;
+        })
+        .catch(error => {
+            console.error('Error in loadSettingData:', error);
+            showSettingToast('danger', 'Gagal memuat data: ' + (error?.message || 'Unknown error'));
+            return null; // jangan re-throw agar tidak crash caller
+        });
+}
+
+// ── ONGKIR ────────────────────────────────────────────────────────
+function renderOngkirTable(rows) {
+    const tbody = document.getElementById('ongkir-tbody');
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Belum ada data range ongkir</td></tr>';
+        return;
+    }
+    tbody.innerHTML = rows.map((r, i) => `
+        <tr>
+            <td>${i+1}</td>
+            <td>${jarakLabel(r)}</td>
+            <td class="text-end">Rp ${parseInt(r.harga_ongkir).toLocaleString('id-ID')}</td>
+            <td class="text-center">
+                <div class="form-check form-switch d-flex justify-content-center">
+                    <input class="form-check-input" type="checkbox" ${r.status ? 'checked' : ''} 
+                           onchange="toggleOngkirStatus(${r.id}, this.checked)">
+                </div>
+            </td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-warning me-1" onclick="editOngkir(${JSON.stringify(r).replace(/"/g,'&quot;')})">Edit</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteOngkir(${r.id})"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`).join('');
+}
+
+function jarakLabel(r) {
+    if (r.jarak_max === null) return `> ${r.jarak_min} km`;
+    if (r.jarak_min == 0) return `0 - ${r.jarak_max} km`;
+    return `${r.jarak_min} - ${r.jarak_max} km`;
+}
+
+function showOngkirModal() {
+    document.getElementById('ongkir-modal-title').textContent = 'Tambah Range Ongkir';
+    document.getElementById('ongkir-edit-id').value = '';
+    ['ongkir-jarak-min','ongkir-jarak-max','ongkir-harga'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('ongkir-status').checked = true;
+    updateStatusLabel();
+    ongkirModalInstance = new bootstrap.Modal(document.getElementById('modalOngkirForm'));
+    ongkirModalInstance.show();
+}
+
+function closeOngkirModal() {
+    if (ongkirModalInstance) ongkirModalInstance.hide();
+}
+
+function editOngkir(r) {
+    document.getElementById('ongkir-modal-title').textContent = 'Edit Range Ongkir';
+    document.getElementById('ongkir-edit-id').value = r.id;
+    document.getElementById('ongkir-jarak-min').value = r.jarak_min;
+    document.getElementById('ongkir-jarak-max').value = r.jarak_max ?? '';
+    document.getElementById('ongkir-harga').value = parseInt(r.harga_ongkir).toLocaleString('id-ID');
+    document.getElementById('ongkir-status').checked = r.status;
+    updateStatusLabel();
+    ongkirModalInstance = new bootstrap.Modal(document.getElementById('modalOngkirForm'));
+    ongkirModalInstance.show();
+}
+
+function updateStatusLabel() {
+    const checkbox = document.getElementById('ongkir-status');
+    const label = document.getElementById('ongkir-status-label');
+    label.textContent = checkbox.checked ? 'Aktif' : 'Nonaktif';
+}
+
+function formatCurrency(input) {
+    let value = input.value.replace(/[^\d]/g, '');
+    if (value) {
+        value = parseInt(value).toLocaleString('id-ID');
+        input.value = value;
+    }
+}
+
+function parseCurrency(value) {
+    return parseInt(value.replace(/[^\d]/g, '')) || 0;
+}
+
+function toggleOngkirStatus(id, status) {
+    // Get current data from the row to send complete payload
+    fetch('{{ route("transaksi.penjualan-setting.index") }}')
+        .then(r => r.json())
+        .then(data => {
+            const ongkir = data.ongkir_settings.find(o => o.id == id);
+            if (ongkir) {
+                const payload = {
+                    jarak_min: ongkir.jarak_min,
+                    jarak_max: ongkir.jarak_max,
+                    harga_ongkir: ongkir.harga_ongkir,
+                    status: status
+                };
+                ajaxRequest(`/transaksi/penjualan-setting/ongkir/${id}`, 'PUT', payload, () => {
+                    showSettingToast('success', status ? 'Ongkir diaktifkan' : 'Ongkir dinonaktifkan');
+                });
+            }
+        });
+}
+
+function updateOngkirRowOptimistic(id, data) {
+    const tbody = document.getElementById('ongkir-tbody');
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(row => {
+        const editBtn = row.querySelector(`button[onclick*="editOngkir"]`);
+        if (editBtn && editBtn.getAttribute('onclick').includes(`"id":${id}`)) {
+            // Update the row content
+            const cells = row.querySelectorAll('td');
+            cells[1].textContent = jarakLabel(data);
+            cells[2].textContent = `Rp ${parseInt(data.harga_ongkir).toLocaleString('id-ID')}`;
+            const checkbox = cells[3].querySelector('input[type="checkbox"]');
+            if (checkbox) checkbox.checked = data.status;
+        }
+    });
+}
+
+function addOngkirRowOptimistic(data) {
+    const tbody = document.getElementById('ongkir-tbody');
+    const rowCount = tbody.querySelectorAll('tr').length;
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td>${rowCount + 1}</td>
+        <td>${jarakLabel(data)}</td>
+        <td class="text-end">Rp ${parseInt(data.harga_ongkir).toLocaleString('id-ID')}</td>
+        <td class="text-center">
+            <div class="form-check form-switch d-flex justify-content-center">
+                <input class="form-check-input" type="checkbox" ${data.status ? 'checked' : ''} disabled>
+            </div>
+        </td>
+        <td class="text-center">
+            <span class="text-muted small">Menyimpan...</span>
+        </td>
+    `;
+    tbody.appendChild(newRow);
+}
+
+function saveOngkir() {
+    const id = document.getElementById('ongkir-edit-id').value;
+    const jarakMin = parseFloat(document.getElementById('ongkir-jarak-min').value) || 0;
+    const jarakMax = document.getElementById('ongkir-jarak-max').value ? parseFloat(document.getElementById('ongkir-jarak-max').value) : null;
+    const hargaOngkir = parseCurrency(document.getElementById('ongkir-harga').value);
+    
+    // Validation
+    if (jarakMin < 0) {
+        showSettingToast('danger', 'Jarak minimum tidak boleh negatif');
+        return;
+    }
+    if (jarakMax !== null && jarakMax <= jarakMin) {
+        showSettingToast('danger', 'Jarak maksimum harus lebih besar dari jarak minimum');
+        return;
+    }
+    if (hargaOngkir <= 0) {
+        showSettingToast('danger', 'Harga ongkir harus lebih dari 0');
+        return;
+    }
+    
+    const payload = {
+        jarak_min: jarakMin,
+        jarak_max: jarakMax,
+        harga_ongkir: hargaOngkir,
+        status: document.getElementById('ongkir-status').checked,
+    };
+    
+    const url = id ? `/transaksi/penjualan-setting/ongkir/${id}` : '/transaksi/penjualan-setting/ongkir';
+    
+    // Optimasi: Update UI dulu, baru kirim request
+    const newData = {
+        id: id || Date.now(), // temporary ID for new items
+        jarak_min: jarakMin,
+        jarak_max: jarakMax,
+        harga_ongkir: hargaOngkir,
+        status: payload.status
+    };
+    
+    // Close modal immediately
+    closeOngkirModal();
+    
+    // Update table optimistically
+    if (id) {
+        // Update existing row
+        updateOngkirRowOptimistic(id, newData);
+    } else {
+        // Add new row
+        addOngkirRowOptimistic(newData);
+    }
+    
+    // Send request in background
+    ajaxRequest(url, id ? 'PUT' : 'POST', payload, () => {
+        // Refresh data to get correct IDs and sync
+        loadSettingData();
+    });
+}
+
+function deleteOngkir(id) {
+    if (!confirm('Hapus range ongkir ini?')) return;
+    ajaxRequest(`/transaksi/penjualan-setting/ongkir/${id}`, 'DELETE', {}, () => loadSettingData());
+}
+
+// Event listener untuk switch status
+document.addEventListener('DOMContentLoaded', function() {
+    const statusSwitch = document.getElementById('ongkir-status');
+    if (statusSwitch) {
+        statusSwitch.addEventListener('change', updateStatusLabel);
+    }
+    
+    const paketStatusSwitch = document.getElementById('paket-status');
+    if (paketStatusSwitch) {
+        paketStatusSwitch.addEventListener('change', updatePaketStatusLabel);
+    }
+});
+
+// ── PAKET MENU ────────────────────────────────────────────────────
+function renderPaketTable(rows) {
+    const tbody = document.getElementById('paket-tbody');
+    if (!tbody) {
+        console.error('paket-tbody element not found');
+        return;
+    }
+    
+    if (!rows || !rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Belum ada data paket menu</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = rows.map((p, i) => `
+        <tr>
+            <td>${i+1}</td>
+            <td><strong>${p.nama_paket}</strong></td>
+            <td>${p.details.map(d => `<div>• ${d.produk?.nama_produk ?? '-'} (${d.jumlah} porsi)</div>`).join('')}</td>
+            <td class="text-end text-decoration-line-through text-muted">Rp ${parseInt(p.harga_normal).toLocaleString('id-ID')}</td>
+            <td class="text-end text-success fw-bold">Rp ${parseInt(p.harga_paket).toLocaleString('id-ID')}</td>
+            <td class="text-end"><span class="badge bg-warning text-dark">${parseFloat(p.diskon_persen).toFixed(2)}%</span></td>
+            <td class="text-center">
+                <div class="form-check form-switch d-flex justify-content-center">
+                    <input class="form-check-input" type="checkbox" ${p.status === 'aktif' ? 'checked' : ''} 
+                           onchange="togglePaketStatus(${p.id}, this.checked)">
+                </div>
+            </td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-warning me-1" onclick="editPaket(${JSON.stringify(p).replace(/"/g,'&quot;')})">Edit</button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deletePaket(${p.id})"><i class="fas fa-trash"></i></button>
+            </td>
+        </tr>`).join('');
+}
+
+let paketModalInstance = null;
+
+function showPaketModal() {
+    try {
+        // Check if modal element exists
+        const modalElement = document.getElementById('modalPaketForm');
+        if (!modalElement) {
+            console.error('Modal element not found');
+            alert('Modal tidak ditemukan');
+            return;
+        }
+        
+        // Setup modal content
+        document.getElementById('paket-modal-title').textContent = 'Tambah Paket Menu';
+        document.getElementById('paket-edit-id').value = '';
+        document.getElementById('paket-nama').value = '';
+        document.getElementById('paket-harga').value = '';
+        document.getElementById('paket-status').checked = true;
+        updatePaketStatusLabel();
+        document.getElementById('paket-items-container').innerHTML = '';
+        
+        // Show modal immediately
+        paketModalInstance = new bootstrap.Modal(modalElement);
+        paketModalInstance.show();
+        
+        // Use cached data if available, otherwise load
+        if (allProduks && allProduks.length > 0) {
+            addPaketItem();
+        } else {
+            // Add placeholder first
+            addPaketItem();
+            
+            // Load data quickly
+            loadSettingData()
+                .then(() => {
+                    updatePaketDropdowns();
+                })
+                .catch(error => {
+                    console.error('Failed to load data:', error);
+                    // Show error in dropdown
+                    document.querySelectorAll('.paket-produk-select').forEach(select => {
+                        select.innerHTML = '<option value="">Error memuat produk</option>';
+                        select.disabled = true;
+                    });
+                });
+        }
+        
+    } catch (error) {
+        console.error('Error in showPaketModal:', error);
+        alert('Terjadi kesalahan: ' + error.message);
+    }
+}
+
+function closePaketModal() {
+    if (paketModalInstance) paketModalInstance.hide();
+}
+
+function updatePaketStatusLabel() {
+    const checkbox = document.getElementById('paket-status');
+    const label = document.getElementById('paket-status-label');
+    label.textContent = checkbox.checked ? 'Aktif' : 'Nonaktif';
+}
+
+function togglePaketStatus(id, status) {
+    // Get current data to send complete payload
+    fetch('{{ route("transaksi.penjualan-setting.index") }}')
+        .then(r => r.json())
+        .then(data => {
+            const paket = data.paket_menus.find(p => p.id == id);
+            if (paket) {
+                const payload = {
+                    nama_paket: paket.nama_paket,
+                    harga_paket: paket.harga_paket,
+                    status: status ? 'aktif' : 'nonaktif',
+                    items: paket.details.map(d => ({
+                        produk_id: d.produk_id,
+                        jumlah: d.jumlah
+                    }))
+                };
+                ajaxRequest(`/transaksi/penjualan-setting/paket/${id}`, 'PUT', payload, () => {
+                    showSettingToast('success', status ? 'Paket diaktifkan' : 'Paket dinonaktifkan');
+                });
+            }
+        });
+}
+
+function addPaketItem(selectedProdukId = '', selectedJumlah = '') {
+    const container = document.getElementById('paket-items-container');
+    const itemIndex = container.children.length;
+    
+    // Check if products are available
+    if (!allProduks || allProduks.length === 0) {
+        // Add placeholder item that will be updated when data loads
+        const itemHtml = `
+            <div class="paket-item mb-2" data-index="${itemIndex}">
+                <div class="mb-2">
+                    <select class="form-select form-select-sm paket-produk-select" required disabled>
+                        <option value="">Memuat produk...</option>
+                    </select>
+                </div>
+                <div class="d-flex gap-2">
+                    <input type="number" class="form-control form-control-sm paket-jumlah-input flex-grow-1" 
+                           placeholder="Jumlah" min="0.01" step="0.01" value="${selectedJumlah}" required>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaketItem(this)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', itemHtml);
+        return;
+    }
+    
+    const itemHtml = `
+        <div class="paket-item mb-2" data-index="${itemIndex}">
+            <div class="mb-2">
+                <select class="form-select form-select-sm paket-produk-select" required>
+                    <option value="">Pilih Produk</option>
+                    ${allProduks.map(p => `<option value="${p.id}" ${p.id == selectedProdukId ? 'selected' : ''}>${p.nama_produk}</option>`).join('')}
+                </select>
+            </div>
+            <div class="d-flex gap-2">
+                <input type="number" class="form-control form-control-sm paket-jumlah-input flex-grow-1" 
+                       placeholder="Jumlah" min="0.01" step="0.01" value="${selectedJumlah}" required>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePaketItem(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('beforeend', itemHtml);
+}
+
+// Function to update existing dropdowns when data loads
+function updatePaketDropdowns() {
+    if (!allProduks || allProduks.length === 0) {
+        return;
+    }
+    
+    const dropdowns = document.querySelectorAll('.paket-produk-select');
+    
+    dropdowns.forEach((select) => {
+        const selectedValue = select.value;
+        const optionsHtml = `
+            <option value="">Pilih Produk</option>
+            ${allProduks.map(p => `<option value="${p.id}" ${p.id == selectedValue ? 'selected' : ''}>${p.nama_produk}</option>`).join('')}
+        `;
+        
+        select.innerHTML = optionsHtml;
+        select.disabled = false;
+    });
+}
+
+function removePaketItem(btn) {
+    btn.closest('.paket-item').remove();
+}
+
+function editPaket(p) {
+    document.getElementById('paket-modal-title').textContent = 'Edit Paket Menu';
+    document.getElementById('paket-edit-id').value = p.id;
+    document.getElementById('paket-nama').value = p.nama_paket;
+    document.getElementById('paket-harga').value = parseInt(p.harga_paket).toLocaleString('id-ID');
+    document.getElementById('paket-status').checked = p.status === 'aktif';
+    updatePaketStatusLabel();
+    
+    // Load existing items
+    document.getElementById('paket-items-container').innerHTML = '';
+    
+    // Ensure products are loaded before adding items
+    if (allProduks && allProduks.length > 0) {
+        p.details.forEach(detail => {
+            addPaketItem(detail.produk_id, detail.jumlah);
+        });
+    } else {
+        // Load products first if not available
+        loadSettingData().then(() => {
+            p.details.forEach(detail => {
+                addPaketItem(detail.produk_id, detail.jumlah);
+            });
+        });
+    }
+    
+    paketModalInstance = new bootstrap.Modal(document.getElementById('modalPaketForm'));
+    paketModalInstance.show();
+}
+
+function savePaket() {
+    const id = document.getElementById('paket-edit-id').value;
+    const namaPaket = document.getElementById('paket-nama').value.trim();
+    const hargaPaket = parseCurrency(document.getElementById('paket-harga').value);
+    const status = document.getElementById('paket-status').checked ? 'aktif' : 'nonaktif';
+    
+    // Validation
+    if (!namaPaket) {
+        showSettingToast('danger', 'Nama paket harus diisi');
+        return;
+    }
+    if (hargaPaket <= 0) {
+        showSettingToast('danger', 'Harga paket harus lebih dari 0');
+        return;
+    }
+    
+    // Get items
+    const items = [];
+    document.querySelectorAll('.paket-item').forEach(item => {
+        const produkId = item.querySelector('.paket-produk-select').value;
+        const jumlah = parseFloat(item.querySelector('.paket-jumlah-input').value) || 0;
+        if (produkId && jumlah > 0) {
+            items.push({ produk_id: produkId, jumlah: jumlah });
+        }
+    });
+    
+    if (items.length === 0) {
+        showSettingToast('danger', 'Minimal harus ada 1 produk dalam paket');
+        return;
+    }
+    
+    const payload = {
+        nama_paket: namaPaket,
+        harga_paket: hargaPaket,
+        status: status,
+        items: items
+    };
+    
+    const url = id ? `/transaksi/penjualan-setting/paket/${id}` : '/transaksi/penjualan-setting/paket';
+    
+    // Close modal immediately for better UX
+    closePaketModal();
+    
+    ajaxRequest(url, id ? 'PUT' : 'POST', payload, (response) => {
+        showSettingToast('success', response.message || 'Paket menu berhasil disimpan');
+        
+        // Force reload data and ensure table refresh
+        loadSettingData().then((data) => {
+            // Force re-render the table with fresh data
+            if (data.paket_menus) {
+                renderPaketTable(data.paket_menus);
+            }
+        }).catch(error => {
+            console.error('Error reloading data after save:', error);
+            showSettingToast('warning', 'Data berhasil disimpan, silakan refresh halaman untuk melihat perubahan');
+        });
+    });
+}
+
+function deletePaket(id) {
+    if (!confirm('Hapus paket menu ini?')) return;
+    ajaxRequest(`/transaksi/penjualan-setting/paket/${id}`, 'DELETE', {}, () => loadSettingData());
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function fmt(n) { return Number(n).toLocaleString('id-ID'); }
+
+function ajaxRequest(url, method, data, onSuccess) {
+    fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+        body: method !== 'DELETE' ? JSON.stringify(data) : undefined,
+    })
+    .then(r => {
+        if (!r.ok) {
+            throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+        }
+        return r.json();
+    })
+    .then(res => {
+        if (res.success) { 
+            showSettingToast('success', res.message); 
+            onSuccess(); 
+        }
+        else showSettingToast('danger', res.message || 'Terjadi kesalahan');
+    })
+    .catch(error => {
+        console.error('Ajax error:', error);
+        showSettingToast('danger', 'Terjadi kesalahan jaringan: ' + (error?.message || 'Unknown error'));
+    });
+}
+
+function showSettingToast(type, msg) {
+    const t = document.createElement('div');
+    t.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    t.style.cssText = 'top:20px;right:20px;z-index:9999;min-width:280px;';
+    t.innerHTML = `${msg}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3000);
+}
+</script>
 @endsection

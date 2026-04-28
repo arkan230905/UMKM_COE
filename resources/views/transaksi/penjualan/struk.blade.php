@@ -214,14 +214,13 @@
                 
                 // Additional costs
                 $biayaOngkir = $penjualan->biaya_ongkir ?? 0;
-                $biayaServis = $penjualan->biaya_servis ?? 0;
                 
                 // Calculate PPN (11%) - only on subtotal, not on additional costs
                 $ppnRate = 0.11;
                 $ppnAmount = $subtotal * $ppnRate;
                 
                 // Calculate total
-                $grandTotal = $subtotal + $ppnAmount + $biayaOngkir + $biayaServis;
+                $grandTotal = $subtotal + $ppnAmount + $biayaOngkir;
                 
                 // Apply discount if exists
                 if($penjualan->diskon_nominal > 0) {
@@ -236,12 +235,6 @@
             @if($biayaOngkir > 0)
             <div class="summary-row">
                 <span>Biaya Ongkir Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</span>
-            </div>
-            @endif
-            
-            @if($biayaServis > 0)
-            <div class="summary-row">
-                <span>Biaya Servis Rp {{ number_format($biayaServis, 0, ',', '.') }}</span>
             </div>
             @endif
             
@@ -264,15 +257,12 @@
             </div>
             
             <!-- Additional Payment Details -->
-            @if($biayaOngkir > 0 || $biayaServis > 0)
+            @if($biayaOngkir > 0)
             <div class="separator"></div>
             <div class="summary-row" style="font-size: 9px; margin-top: 8px;">
                 <span style="text-align: left; width: 100%;">
                     @if($biayaOngkir > 0)
                     <div>Ongkir: Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</div>
-                    @endif
-                    @if($biayaServis > 0)
-                    <div>Servis: Rp {{ number_format($biayaServis, 0, ',', '.') }}</div>
                     @endif
                     <div>PPN: Rp {{ number_format($ppnAmount, 0, ',', '.') }}</div>
                 </span>

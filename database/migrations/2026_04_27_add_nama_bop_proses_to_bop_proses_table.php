@@ -12,6 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('bop_proses', function (Blueprint $table) {
+            $table->string('nama_bop_proses')->nullable()->after('id');
+            
+            // Make proses_produksi_id nullable since we're using nama_bop_proses now
             if (!\Illuminate\Support\Facades\Schema::hasColumn('bop_proses', 'nama_bop_proses')) {
                 $table->string('nama_bop_proses')->nullable()->after('id');
             }
