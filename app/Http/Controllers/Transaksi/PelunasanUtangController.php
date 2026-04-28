@@ -54,11 +54,21 @@ class PelunasanUtangController extends Controller
         // Ambil akun kas/bank menggunakan helper untuk konsistensi
         $akunKas = \App\Helpers\AccountHelper::getKasBankAccounts();
         
-        return view('transaksi.pelunasan-utang.create', compact('pembayarans', 'akunKas'));
+        // Ambil COA untuk pelunasan utang (biasanya akun Hutang Usaha)
+        $coaPelunasan = Coa::where('kategori_akun', 'Kewajiban')
+            ->where('nama_akun', 'like', '%utang%')
+            ->orWhere('kode_akun', '211') // Hutang Usaha
+            ->get();
+        
+        return view('transaksi.pelunasan-utang.create', compact('pembayarans', 'akunKas', 'coaPelunasan'));
     }
 
     public function store(Request $request)
     {
+        // Use raw value if available, otherwise clean the formatted value
+        $jumlahValue = $request->jumlah_raw ?: str_replace('.', '', $request->jumlah);
+        $request->merge(['jumlah' => $jumlahValue]);
+        
         $request->validate([
             'tanggal' => 'required|date',
             'pembelian_id' => 'required|exists:pembelians,id',
@@ -260,6 +270,7 @@ class PelunasanUtangController extends Controller
             'success' => true,
             'data' => [
                 'sisa_utang' => $sisaUtang,
+                'total_pembelian' => $pembelian->total_harga ?? 0,
                 'vendor' => $pembelian->vendor->nama ?? '-',
                 'kode_pembelian' => $pembelian->kode_pembelian ?? 'PB-' . $pembelian->id
             ]

@@ -279,6 +279,7 @@ class AkuntansiController extends Controller
             // PERBAIKAN: Exclude pembelian transactions to avoid duplicates with journal_entries
             ->whereIn('ju.tipe_referensi', [
                 'penyusutan', 'adjustment', 'manual' // Only manual entries, exclude 'pembelian'
+            ])
             ->where('coas.user_id', auth()->id())
             // PENTING: Exclude production entries that are already in journal_entries
             // to avoid duplication
