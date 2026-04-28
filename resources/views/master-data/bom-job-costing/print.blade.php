@@ -68,18 +68,7 @@
         <tfoot><tr class="total-row"><td colspan="4" class="text-end fw-bold">Total BTKL</td><td class="text-end fw-bold">Rp {{ number_format($bom->total_btkl, 0, ',', '.') }}</td></tr></tfoot>
     </table>
 
-    <div class="section-title bp">3. Bahan Penolong</div>
-    <table>
-        <thead><tr><th>#</th><th>Bahan</th><th class="text-center">Jumlah</th><th class="text-center">Satuan</th><th class="text-end">Harga</th><th class="text-end">Subtotal</th></tr></thead>
-        <tbody>
-            @forelse($bom->detailBahanPendukung as $i => $d)
-            <tr><td>{{ $i+1 }}</td><td>{{ $d->bahanPendukung->nama_bahan ?? '-' }}</td><td class="text-center">{{ number_format($d->jumlah, 2) }}</td><td class="text-center">{{ $d->satuan }}</td><td class="text-end">Rp {{ number_format($d->harga_satuan, 0, ',', '.') }}</td><td class="text-end fw-bold">Rp {{ number_format($d->subtotal, 0, ',', '.') }}</td></tr>
-            @empty<tr><td colspan="6" class="text-center">-</td></tr>@endforelse
-        </tbody>
-        <tfoot><tr class="total-row"><td colspan="5" class="text-end fw-bold">Total Bahan Penolong</td><td class="text-end fw-bold">Rp {{ number_format($bom->total_bahan_pendukung, 0, ',', '.') }}</td></tr></tfoot>
-    </table>
-
-    <div class="section-title bop">4. Biaya Overhead Pabrik (BOP)</div>
+    <div class="section-title bop">3. Biaya Overhead Pabrik (BOP)</div>
     <table>
         <thead><tr><th>#</th><th>Komponen</th><th class="text-center">Jumlah</th><th class="text-end">Tarif</th><th class="text-end">Subtotal</th></tr></thead>
         <tbody>
@@ -94,7 +83,6 @@
     <table>
         <tr><td width="70%">Total BBB</td><td class="text-end fw-bold">Rp {{ number_format($bom->total_bbb, 0, ',', '.') }}</td></tr>
         <tr><td>Total BTKL</td><td class="text-end fw-bold">Rp {{ number_format($bom->total_btkl, 0, ',', '.') }}</td></tr>
-        <tr><td>Total Bahan Penolong</td><td class="text-end fw-bold">Rp {{ number_format($bom->total_bahan_pendukung, 0, ',', '.') }}</td></tr>
         <tr><td>Total BOP</td><td class="text-end fw-bold">Rp {{ number_format($bom->total_bop, 0, ',', '.') }}</td></tr>
         <tr class="grand-total"><td class="fw-bold">TOTAL HPP ({{ number_format($bom->jumlah_produk) }} pcs)</td><td class="text-end fw-bold">Rp {{ number_format($bom->total_hpp, 0, ',', '.') }}</td></tr>
         <tr class="hpp-unit"><td class="fw-bold">HPP PER UNIT</td><td class="text-end fw-bold">Rp {{ number_format($bom->hpp_per_unit, 0, ',', '.') }}</td></tr>

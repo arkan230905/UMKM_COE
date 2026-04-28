@@ -195,7 +195,14 @@
                         <i class="fas fa-receipt me-2"></i>Struk Penjualan
                     </button>
                 </li>
+                <li class="nav-item" role="presentation" style="display: block !important;">
+                    <button class="nav-link" id="bukti-pembayaran-tab" data-bs-toggle="tab" data-bs-target="#bukti-pembayaran-pane" type="button" role="tab" aria-controls="bukti-pembayaran-pane" aria-selected="false" style="display: block !important; background-color: #f8f9fa; border: 1px solid #dee2e6;">
+                        <i class="fas fa-file-image me-2"></i>Bukti Pembayaran
+                    </button>
+                </li>
             </ul>
+            
+            <!-- DEBUG: Tab count = 3 tabs should be visible - Updated {{ date('Y-m-d H:i:s') }} -->
 
             {{-- Tab Content --}}
             <div class="tab-content" id="penjualanTabsContent">
@@ -311,6 +318,110 @@
                                                 </form>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {{-- Bukti Pembayaran Section --}}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="mb-0"><i class="fas fa-file-image me-2"></i>Bukti Pembayaran</h5>
+                                </div>
+                                <div class="card-body">
+                                    @php
+                                        // Ambil bukti pembayaran dari database
+                                        $buktiPembayaranInline = $penjualan->buktiPembayaran ?? collect();
+                                    @endphp
+                                    
+                                    {{-- Upload Form --}}
+                                    <div class="mb-4">
+                                        <h6 class="fw-bold mb-3">Upload Bukti Transfer</h6>
+                                        <form id="uploadBuktiFormInline" enctype="multipart/form-data">
+                                            @csrf
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <input type="file" class="form-control" id="bukti_file_inline" name="bukti_file" 
+                                                               accept="image/*,.pdf,.doc,.docx" required>
+                                                        <div class="form-text">Format: JPG, PNG, PDF (Max 5MB)</div>
+                                                        <div class="invalid-feedback" id="file-error-inline"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="mb-3">
+                                                        <input type="text" class="form-control" id="keterangan_inline" name="keterangan" 
+                                                               placeholder="Contoh: Transfer dari rekening pribadi, referensi: ...">
+                                                        <div class="form-text">Catatan (Opsional)</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-upload me-2"></i>Upload Bukti
+                                            </button>
+                                        </form>
+                                    </div>
+                                    
+                                    <hr>
+                                    
+                                    {{-- Daftar Bukti Pembayaran --}}
+                                    <div class="mb-3">
+                                        <h6 class="fw-bold mb-3">Daftar Bukti Pembayaran</h6>
+                                        @if($buktiPembayaranInline->count() > 0)
+                                            <div class="row">
+                                                @foreach($buktiPembayaranInline as $bukti)
+                                                    <div class="col-md-4 mb-3">
+                                                        <div class="card bukti-card">
+                                                            <div class="card-body text-center p-3">
+                                                                @if(in_array(strtolower(pathinfo($bukti->file_path, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif']))
+                                                                    <img src="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                                         class="img-fluid rounded mb-2 bukti-image" 
+                                                                         onclick="showImageModal('{{ asset('storage/' . $bukti->file_path) }}', '{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}')">
+                                                                @else
+                                                                    <div class="text-center py-4">
+                                                                        <i class="fas fa-file-alt fa-3x text-muted mb-2"></i>
+                                                                        <p class="mb-0 small">{{ basename($bukti->file_path) }}</p>
+                                                                    </div>
+                                                                @endif
+                                                                
+                                                                <small class="text-muted d-block mb-1">{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}</small>
+                                                                <small class="text-muted d-block mb-2">{{ $bukti->created_at->format('d/m/Y H:i') }}</small>
+                                                                
+                                                                <div class="bukti-actions">
+                                                                    <a href="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                                       target="_blank" 
+                                                                       class="btn btn-sm btn-outline-primary me-1"
+                                                                       title="Lihat">
+                                                                        <i class="fas fa-eye"></i>
+                                                                    </a>
+                                                                    <a href="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                                       download 
+                                                                       class="btn btn-sm btn-outline-success me-1"
+                                                                       title="Download">
+                                                                        <i class="fas fa-download"></i>
+                                                                    </a>
+                                                                    <button type="button" 
+                                                                            class="btn btn-sm btn-outline-danger"
+                                                                            onclick="deleteBukti({{ $bukti->id }})"
+                                                                            title="Hapus">
+                                                                        <i class="fas fa-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @else
+                                            <div class="empty-bukti">
+                                                <i class="fas fa-file-image fa-3x text-muted mb-3"></i>
+                                                <h6 class="text-muted">Belum ada bukti pembayaran</h6>
+                                                <p class="text-muted">Upload bukti pembayaran untuk melengkapi transaksi</p>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -470,6 +581,79 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Bukti Pembayaran Tab --}}
+                <div class="tab-pane fade" id="bukti-pembayaran-pane" role="tabpanel" aria-labelledby="bukti-pembayaran-tab">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="fas fa-file-image me-2"></i>Bukti Pembayaran</h5>
+                                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadBuktiModal">
+                                    <i class="fas fa-plus me-2"></i>Tambah Bukti
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            @php
+                                // Ambil bukti pembayaran dari database (asumsi ada relasi)
+                                $buktiPembayaran = $penjualan->buktiPembayaran ?? collect();
+                            @endphp
+                            
+                            @if($buktiPembayaran->count() > 0)
+                                <div class="row">
+                                    @foreach($buktiPembayaran as $bukti)
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card bukti-card">
+                                                <div class="card-body text-center p-3">
+                                                    @if(in_array(strtolower(pathinfo($bukti->file_path, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif']))
+                                                        <img src="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                             class="img-fluid rounded mb-2 bukti-image" 
+                                                             onclick="showImageModal('{{ asset('storage/' . $bukti->file_path) }}', '{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}')">
+                                                    @else
+                                                        <div class="text-center py-4">
+                                                            <i class="fas fa-file-alt fa-3x text-muted mb-2"></i>
+                                                            <p class="mb-0 small">{{ basename($bukti->file_path) }}</p>
+                                                        </div>
+                                                    @endif
+                                                    
+                                                    <small class="text-muted d-block mb-1">{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}</small>
+                                                    <small class="text-muted d-block mb-2">{{ $bukti->created_at->format('d/m/Y H:i') }}</small>
+                                                    
+                                                    <div class="bukti-actions">
+                                                        <a href="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                           target="_blank" 
+                                                           class="btn btn-sm btn-outline-primary me-1"
+                                                           title="Lihat">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a href="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                           download 
+                                                           class="btn btn-sm btn-outline-success me-1"
+                                                           title="Download">
+                                                            <i class="fas fa-download"></i>
+                                                        </a>
+                                                        <button type="button" 
+                                                                class="btn btn-sm btn-outline-danger"
+                                                                onclick="deleteBukti({{ $bukti->id }})"
+                                                                title="Hapus">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="empty-bukti">
+                                    <i class="fas fa-file-image fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">Belum ada bukti pembayaran</h5>
+                                    <p class="text-muted">Klik tombol "Tambah Bukti" untuk mengunggah bukti pembayaran</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -522,6 +706,58 @@
         </div>
     </div>
     @endif
+</div>
+
+{{-- Modal Upload Bukti Pembayaran --}}
+<div class="modal fade" id="uploadBuktiModal" tabindex="-1" aria-labelledby="uploadBuktiModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadBuktiModalLabel">
+                    <i class="fas fa-upload me-2"></i>Upload Bukti Pembayaran
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="uploadBuktiForm" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="bukti_file" class="form-label">File Bukti Pembayaran</label>
+                        <input type="file" class="form-control" id="bukti_file" name="bukti_file" 
+                               accept="image/*,.pdf,.doc,.docx" required>
+                        <div class="form-text">Format yang didukung: JPG, PNG, PDF, DOC, DOCX (Max: 5MB)</div>
+                        <div class="invalid-feedback" id="file-error"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="keterangan" class="form-label">Keterangan</label>
+                        <textarea class="form-control" id="keterangan" name="keterangan" rows="3" 
+                                  placeholder="Masukkan keterangan bukti pembayaran..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- Modal Preview Image --}}
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-labelledby="imagePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imagePreviewModalLabel">Preview Bukti Pembayaran</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="previewImage" src="" class="img-fluid" alt="Preview">
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -656,6 +892,55 @@ body.printing * {
 .tab-pane#struk-pane.active .struk-container {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+}
+
+/* Bukti Pembayaran Styles */
+.bukti-card {
+    transition: transform 0.2s ease-in-out;
+    border: 1px solid #dee2e6;
+}
+
+.bukti-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.bukti-image {
+    max-height: 150px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.bukti-image:hover {
+    opacity: 0.8;
+}
+
+.bukti-actions .btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.empty-bukti {
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Force tab visibility */
+#bukti-pembayaran-tab {
+    display: block !important;
+    visibility: visible !important;
+}
+
+.nav-tabs .nav-item {
+    display: block !important;
 }
 </style>
 
@@ -870,7 +1155,174 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
+// Function to show image modal
+function showImageModal(imageSrc, title) {
+    document.getElementById('previewImage').src = imageSrc;
+    document.getElementById('imagePreviewModalLabel').textContent = title;
+    const imageModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+    imageModal.show();
+}
+
+// Function to delete bukti pembayaran
+function deleteBukti(buktiId) {
+    if (confirm('Yakin ingin menghapus bukti pembayaran ini?')) {
+        fetch(`/transaksi/penjualan/{{ $penjualan->id }}/bukti-pembayaran/${buktiId}`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Gagal menghapus bukti pembayaran: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat menghapus bukti pembayaran: ' + error.message);
+        });
+    }
+}
+
+// Handle upload bukti pembayaran form
+document.getElementById('uploadBuktiForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('bukti_file');
+    const file = fileInput.files[0];
+    const fileError = document.getElementById('file-error');
+    
+    // Reset error state
+    fileInput.classList.remove('is-invalid');
+    fileError.textContent = '';
+    
+    // Validate file size (5MB = 5 * 1024 * 1024 bytes)
+    if (file && file.size > 5 * 1024 * 1024) {
+        fileInput.classList.add('is-invalid');
+        fileError.textContent = 'Ukuran file tidak boleh lebih dari 5MB';
+        return;
+    }
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    // Show loading state
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+    submitBtn.disabled = true;
+    
+    fetch(`/transaksi/penjualan/{{ $penjualan->id }}/bukti-pembayaran`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Reload page to show new bukti
+            location.reload();
+        } else {
+            alert('Gagal upload bukti pembayaran: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat upload bukti pembayaran: ' + error.message);
+    })
+    .finally(() => {
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
+// Handle upload bukti pembayaran form (inline in detail tab)
+document.getElementById('uploadBuktiFormInline')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('bukti_file_inline');
+    const file = fileInput.files[0];
+    const fileError = document.getElementById('file-error-inline');
+    
+    // Reset error state
+    fileInput.classList.remove('is-invalid');
+    fileError.textContent = '';
+    
+    // Validate file size (5MB = 5 * 1024 * 1024 bytes)
+    if (file && file.size > 5 * 1024 * 1024) {
+        fileInput.classList.add('is-invalid');
+        fileError.textContent = 'Ukuran file tidak boleh lebih dari 5MB';
+        return;
+    }
+    
+    const formData = new FormData(this);
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    
+    // Show loading state
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+    submitBtn.disabled = true;
+    
+    fetch(`/transaksi/penjualan/{{ $penjualan->id }}/bukti-pembayaran`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Reload page to show new bukti
+            location.reload();
+        } else {
+            alert('Gagal upload bukti pembayaran: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat upload bukti pembayaran: ' + error.message);
+    })
+    .finally(() => {
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+});
+
 // Prevent any potential 404 requests
+document.addEventListener('DOMContentLoaded', function() {
+    // Force initialize Bootstrap tabs if needed
+    try {
+        const tabElements = document.querySelectorAll('[data-bs-toggle="tab"]');
+        tabElements.forEach(function(tabElement) {
+            new bootstrap.Tab(tabElement);
+        });
+    } catch (error) {
+        console.error('Error initializing Bootstrap tabs:', error);
+    }
+});
 window.addEventListener('error', function(e) {
     if (e.target && e.target.src && e.target.src.includes('404')) {
         console.warn('Blocked 404 request:', e.target.src);

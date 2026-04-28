@@ -29,4 +29,5 @@ class BomJobBOP extends Model
 
     public function bomJobCosting() { return $this->belongsTo(BomJobCosting::class, 'bom_job_costing_id'); }
     public function bop() { return $this->belongsTo(Bop::class, 'bop_id'); }
+    public function bopProses() { return $this->belongsTo(\App\Models\BopProses::class, 'bop_id'); }
 }

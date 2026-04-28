@@ -7,6 +7,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Jabatan extends Model
 {
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // Global scope for multi-tenant isolation
+        static::addGlobalScope('user_id', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+    }
+    
     protected $fillable = [
         'kode_jabatan', 
         'nama', 
@@ -19,7 +31,8 @@ class Jabatan extends Model
         'asuransi', 
         'tarif',
         'tarif_per_jam', 
-        'deskripsi'
+        'deskripsi',
+        'user_id'
     ];
 
     protected $casts = [
@@ -41,11 +54,12 @@ class Jabatan extends Model
     }
 
     /**
-     * Relasi ke pegawai
+     * Relasi ke pegawai - temporary fix for missing jabatan_id column
      */
     public function pegawais(): HasMany
     {
-        return $this->hasMany(Pegawai::class, 'jabatan_id');
+        // Use jabatan string field instead of jabatan_id until column is added
+        return $this->hasMany(Pegawai::class, 'jabatan', 'nama');
     }
 
     /**

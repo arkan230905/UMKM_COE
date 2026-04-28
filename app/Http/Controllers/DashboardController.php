@@ -24,8 +24,11 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Master Data
-        $totalPegawai     = Pegawai::count();
+        $user = auth()->user();
+        $userRole = $user->role;
+        
+        // Master Data - Filter berdasarkan user untuk multi-tenant
+        $totalPegawai     = \Schema::hasTable('pegawais') ? Pegawai::count() : 0;
         $totalPresensi    = Presensi::count();
         $totalProduk      = Produk::count();
         $totalVendor      = Vendor::count();
@@ -100,34 +103,65 @@ class DashboardController extends Controller
         // ✅ TAMBAHAN: Detail Kas & Bank untuk dashboard
         $kasBankDetails = $this->getKasBankDetails();
 
-        return view('dashboard', compact(
-            'totalPegawai',
-            'totalPresensi', 
-            'totalProduk',
-            'totalVendor',
-            'totalBahanBaku',
-            'totalSatuan',
-            'totalBOP',
-            'totalBOM',
-            'totalCOA',
-            'totalProduksi',
-            'totalPembelian',
-            'totalPenjualan',
-            'totalRetur',
-            'totalPenggajian',
-            'totalKasBank',
-            'pendapatanBulanIni',
-            'totalPiutang',
-            'totalUtang',
-            'recentExpensePayments',
-            'recentApSettlements',
-            'trendPenjualan',
-            'trendPembelian',
-            'trendProduksi',
-            'trendRetur',
-            'salesChartData',
-            'kasBankDetails'
-        ));
+        // Return different dashboard based on user role
+        if ($userRole === 'pegawai') {
+            // Prepare stats for pegawai dashboard
+            $stats = [
+                'total_hadir' => Presensi::where('status', 'hadir')->count(),
+                'persentasi_kehadiran' => 95, // Default value, can be calculated later
+                'total_hari_kerja' => 22, // Default working days in month
+                'today_status' => [
+                    'sudah_lengkap' => false, // Default value, can be calculated based on today's presensi
+                    'jam_masuk' => '08:00', // Default value, can be calculated from today's presensi
+                    'jam_keluar' => null // Default value, can be calculated from today's presensi
+                ]
+            ];
+            
+            // Prepare recent attendance for pegawai dashboard
+            $recentAttendance = Presensi::orderBy('tgl_presensi', 'desc')
+                ->limit(7)
+                ->get();
+            
+            // Pegawai Dashboard - Limited access
+            return view('pegawai.dashboard', [
+                'user' => $user,
+                'pegawai' => $user, // Pass user as pegawai for view compatibility
+                'totalPresensi' => $totalPresensi,
+                'totalPenggajian' => $totalPenggajian,
+                'stats' => $stats,
+                'recentAttendance' => $recentAttendance
+            ]);
+        } else {
+            // Admin/Owner Dashboard - Full access
+            return view('dashboard', compact(
+                'totalPegawai',
+                'totalPresensi', 
+                'totalProduk',
+                'totalVendor',
+                'totalBahanBaku',
+                'totalSatuan',
+                'totalBOP',
+                'totalBOM',
+                'totalCOA',
+                'totalProduksi',
+                'totalPembelian',
+                'totalPenjualan',
+                'totalRetur',
+                'totalPenggajian',
+                'totalKasBank',
+                'pendapatanBulanIni',
+                'totalPiutang',
+                'totalUtang',
+                'recentExpensePayments',
+                'recentApSettlements',
+                'trendPenjualan',
+                'trendPembelian',
+                'trendProduksi',
+                'trendRetur',
+                'salesChartData',
+                'kasBankDetails'
+            ));
+        }
     }
 
     /**

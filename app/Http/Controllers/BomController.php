@@ -380,12 +380,14 @@ class BomController extends Controller
             $totalBiayaBOP = 0;
 
             if ($bomJobCosting) {
-                $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
+                // NOTE: total_biaya_bahan HANYA menghitung bahan baku, tanpa bahan pendukung
+                $totalBiayaBahan = $bomJobCosting->total_bbb;  // HANYA BBB
                 $totalBiayaBTKL = $bomJobCosting->total_btkl;
                 $totalBiayaBOP = $bomJobCosting->total_bop;
             }
 
-            $totalBiayaBOM = $totalBiayaBahan + $totalBiayaBTKL + $totalBiayaBOP;
+            // Total BOM lengkap tetap menghitung semua komponen
+            $totalBiayaBOM = $bomJobCosting ? $bomJobCosting->total_hpp : ($totalBiayaBahan + $totalBiayaBTKL + $totalBiayaBOP);
 
             return response()->json([
                 'success' => true,
@@ -808,7 +810,7 @@ class BomController extends Controller
             }
         }
 
-        // Get Bahan Pendukung from BOM
+        // Get Bahan Pendukung from BOM (displayed separately, not added to biaya_bahan total)
         if ($bomJobCosting && $bomJobCosting->detailBahanPendukung) {
             foreach ($bomJobCosting->detailBahanPendukung as $detail) {
                 $bahanPendukung = $detail->bahanPendukung;
@@ -821,7 +823,8 @@ class BomController extends Controller
                     'satuan' => $detail->satuan ?? $bahanPendukung->satuan->nama ?? 'Unit',
                     'harga_per_unit' => $biayaPerProduk
                 ];
-                $breakdown['biaya_bahan']['total'] += $biayaPerProduk;
+                // NOTE: Bahan pendukung TIDAK ditambahkan ke total biaya_bahan
+                // Sesuai permintaan user, biaya bahan baku HANYA menghitung bahan baku
             }
         }
 
@@ -941,9 +944,9 @@ class BomController extends Controller
                     ->with('info', 'Tidak ada produk dengan biaya bahan yang dapat dihitung HPP-nya. Pastikan produk sudah memiliki data BOM dengan biaya bahan.');
             }
             
-            // Get all BTKL processes with their BOP
+            // Get all BTKL processes
             $prosesBtkl = ProsesProduksi::where('kapasitas_per_jam', '>', 0)
-                ->with(['jabatan', 'bopProses'])
+                ->with(['jabatan'])
                 ->get()
                 ->map(function($proses) {
                     // Calculate tarif BTKL: Jumlah Pegawai × Tarif per Jam Jabatan
@@ -958,30 +961,6 @@ class BomController extends Controller
                     $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
                     $btklPerProduk = $proses->kapasitas_per_jam > 0 ? $tarifBtkl / $proses->kapasitas_per_jam : 0;
                     
-                    // Get BOP data if exists
-                    $bopPerProduk = 0;
-                    $totalBopPerJam = 0;
-                    $komponenBop = [];
-                    
-                    if ($proses->bopProses) {
-                        // Use BOP per produk directly (not calculated from per jam)
-                        $bopPerProduk = $proses->bopProses->bop_per_unit ?? 0;
-                        
-                        // Get komponen BOP for display
-                        if ($proses->bopProses->komponen_bop) {
-                            $komponenBop = is_array($proses->bopProses->komponen_bop) 
-                                ? $proses->bopProses->komponen_bop 
-                                : json_decode($proses->bopProses->komponen_bop, true);
-                            
-                            // Calculate total BOP per jam from component rates for display purposes
-                            if (is_array($komponenBop)) {
-                                foreach ($komponenBop as $komponen) {
-                                    $totalBopPerJam += floatval($komponen['rate_per_hour'] ?? 0);
-                                }
-                            }
-                        }
-                    }
-                    
                     return [
                         'id' => $proses->id,
                         'kode_proses' => $proses->kode_proses,
@@ -991,15 +970,40 @@ class BomController extends Controller
                         'tarif_per_jam_jabatan' => $tarifPerJamJabatan,
                         'tarif_btkl' => $tarifBtkl,
                         'kapasitas_per_jam' => $proses->kapasitas_per_jam,
-                        'btkl_per_produk' => $btklPerProduk,
-                        'total_bop_per_jam' => $totalBopPerJam,
-                        'bop_per_produk' => $bopPerProduk,
-                        'komponen_bop' => $komponenBop,
-                        'has_bop' => $proses->bopProses !== null
+                        'btkl_per_produk' => $btklPerProduk
                     ];
                 });
             
-            return view('master-data.bom.create', compact('produks', 'prosesBtkl'));
+            // Get all BOP processes separately
+            $prosesBop = \App\Models\BopProses::where('is_active', true)
+                ->with('prosesProduksi')
+                ->get()
+                ->map(function($bop) {
+                    // Get komponen BOP for display
+                    $komponenBop = [];
+                    if ($bop->komponen_bop) {
+                        $komponenBop = is_array($bop->komponen_bop) 
+                            ? $bop->komponen_bop 
+                            : json_decode($bop->komponen_bop, true);
+                    }
+                    
+                    // Generate kode from nama_bop_proses if no prosesProduksi
+                    $kodeProses = $bop->prosesProduksi ? $bop->prosesProduksi->kode_proses : 'BOP-' . $bop->id;
+                    
+                    return [
+                        'id' => $bop->id,
+                        'nama_bop_proses' => $bop->nama_bop_proses,
+                        'proses_produksi_id' => $bop->proses_produksi_id,
+                        'nama_proses' => $bop->prosesProduksi->nama_proses ?? 'Umum',
+                        'kode_proses' => $kodeProses,
+                        'total_bop_per_jam' => $bop->total_bop_per_jam,
+                        'bop_per_unit' => $bop->bop_per_unit,
+                        'kapasitas_per_jam' => $bop->kapasitas_per_jam,
+                        'komponen_bop' => $komponenBop
+                    ];
+                });
+            
+            return view('master-data.bom.create', compact('produks', 'prosesBtkl', 'prosesBop'));
             
         } catch (\Exception $e) {
             return redirect()->route('master-data.harga-pokok-produksi.index')
@@ -1016,6 +1020,8 @@ class BomController extends Controller
                 'produk_id' => 'required|exists:produks,id',
                 'proses_ids' => 'required|array|min:1',
                 'proses_ids.*' => 'exists:proses_produksis,id',
+                'bop_ids' => 'nullable|array',
+                'bop_ids.*' => 'exists:bop_proses,id',
                 'biaya_bahan' => 'required|numeric|min:0',
                 'total_btkl' => 'required|numeric|min:0',
                 'total_bop' => 'required|numeric|min:0',
@@ -1033,9 +1039,9 @@ class BomController extends Controller
             BomJobBTKL::where('bom_job_costing_id', $bomJobCosting->id)->delete();
             BomJobBOP::where('bom_job_costing_id', $bomJobCosting->id)->delete();
 
-            // Save BTKL and BOP for each selected process
+            // Save BTKL for each selected process
             foreach ($validated['proses_ids'] as $prosesId) {
-                $proses = ProsesProduksi::with(['jabatan', 'bopProses'])->find($prosesId);
+                $proses = ProsesProduksi::with(['jabatan'])->find($prosesId);
                 
                 if (!$proses) continue;
                 
@@ -1062,18 +1068,24 @@ class BomController extends Controller
                     'subtotal' => $btklPerProduk,
                     'keterangan' => $jumlahPegawai . ' pegawai @ Rp ' . number_format($tarifPerJamJabatan, 0, ',', '.') . '/jam',
                 ]);
-                
-                // Save BOP if exists
-                if ($proses->bopProses) {
-                    // Use BOP per produk directly (not calculated from per jam)
-                    $bopPerProduk = $proses->bopProses->bop_per_unit ?? 0;
+            }
+
+            // Save BOP for each selected BOP process
+            if (isset($validated['bop_ids']) && is_array($validated['bop_ids'])) {
+                foreach ($validated['bop_ids'] as $bopId) {
+                    $bopProses = \App\Models\BopProses::with('prosesProduksi')->find($bopId);
+                    
+                    if (!$bopProses) continue;
+                    
+                    // Use BOP per produk directly
+                    $bopPerProduk = $bopProses->bop_per_unit ?? 0;
                     
                     // Get komponen BOP
                     $komponenBop = [];
-                    if ($proses->bopProses->komponen_bop) {
-                        $komponenBop = is_array($proses->bopProses->komponen_bop) 
-                            ? $proses->bopProses->komponen_bop 
-                            : json_decode($proses->bopProses->komponen_bop, true);
+                    if ($bopProses->komponen_bop) {
+                        $komponenBop = is_array($bopProses->komponen_bop) 
+                            ? $bopProses->komponen_bop 
+                            : json_decode($bopProses->komponen_bop, true);
                     }
                     
                     // Save each BOP component
@@ -1092,7 +1104,7 @@ class BomController extends Controller
                             BomJobBOP::create([
                                 'bom_job_costing_id' => $bomJobCosting->id,
                                 'bop_id' => null,
-                                'nama_bop' => $proses->nama_proses . ' - ' . ($komponen['component'] ?? 'BOP'),
+                                'nama_bop' => $bopProses->nama_bop_proses . ' - ' . ($komponen['component'] ?? 'BOP'),
                                 'tarif' => $ratePerPcs,
                                 'jumlah' => 1,
                                 'subtotal' => $ratePerPcs,
@@ -1149,9 +1161,9 @@ class BomController extends Controller
                 ->pluck('id')
                 ->toArray();
             
-            // Get all BTKL processes with their BOP
+            // Get all BTKL processes
             $prosesBtkl = ProsesProduksi::where('kapasitas_per_jam', '>', 0)
-                ->with(['jabatan', 'bopProses'])
+                ->with(['jabatan'])
                 ->get()
                 ->map(function($proses) use ($selectedProsesIds) {
                     // Calculate tarif BTKL: Jumlah Pegawai × Tarif per Jam Jabatan
@@ -1166,37 +1178,6 @@ class BomController extends Controller
                     $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
                     $btklPerProduk = $proses->kapasitas_per_jam > 0 ? $tarifBtkl / $proses->kapasitas_per_jam : 0;
                     
-                    // Get BOP data if exists
-                    $bopPerProduk = 0;
-                    $totalBopPerJam = 0;
-                    $komponenBop = [];
-                    
-                    if ($proses->bopProses) {
-                        // Calculate total BOP per jam from component rates (not stored total)
-                        $totalBopPerJam = 0;
-                        if ($proses->bopProses->komponen_bop) {
-                            $komponenBop = is_array($proses->bopProses->komponen_bop) 
-                                ? $proses->bopProses->komponen_bop 
-                                : json_decode($proses->bopProses->komponen_bop, true);
-                            
-                            if (is_array($komponenBop)) {
-                                foreach ($komponenBop as $komponen) {
-                                    $totalBopPerJam += floatval($komponen['rate_per_hour'] ?? 0);
-                                }
-                            }
-                        }
-                        
-                        // Use BOP per produk directly (not calculated from per jam)
-                        $bopPerProduk = $proses->bopProses->bop_per_unit ?? 0;
-                        
-                        // Get komponen BOP
-                        if ($proses->bopProses->komponen_bop) {
-                            $komponenBop = is_array($proses->bopProses->komponen_bop) 
-                                ? $proses->bopProses->komponen_bop 
-                                : json_decode($proses->bopProses->komponen_bop, true);
-                        }
-                    }
-                    
                     return [
                         'id' => $proses->id,
                         'kode_proses' => $proses->kode_proses,
@@ -1207,15 +1188,60 @@ class BomController extends Controller
                         'tarif_btkl' => $tarifBtkl,
                         'kapasitas_per_jam' => $proses->kapasitas_per_jam,
                         'btkl_per_produk' => $btklPerProduk,
-                        'total_bop_per_jam' => $totalBopPerJam,
-                        'bop_per_produk' => $bopPerProduk,
-                        'komponen_bop' => $komponenBop,
-                        'has_bop' => $proses->bopProses !== null,
                         'is_selected' => in_array($proses->id, $selectedProsesIds)
                     ];
                 });
             
-            return view('master-data.bom.edit', compact('produk', 'bomJobCosting', 'prosesBtkl', 'selectedProsesIds'));
+            // Get selected BOP processes
+            $selectedBopIds = BomJobBOP::where('bom_job_costing_id', $bomJobCosting->id)
+                ->pluck('nama_bop')
+                ->toArray();
+            
+            // Extract BOP process IDs from nama_bop (format: "nama_bop_proses - component")
+            $selectedBopProsesIds = [];
+            foreach ($selectedBopIds as $namaBop) {
+                // Extract the nama_bop_proses part (before the " - ")
+                $parts = explode(' - ', $namaBop);
+                if (count($parts) > 0) {
+                    $namaBopProses = $parts[0];
+                    $bopProses = \App\Models\BopProses::where('nama_bop_proses', $namaBopProses)->first();
+                    if ($bopProses) {
+                        $selectedBopProsesIds[] = $bopProses->id;
+                    }
+                }
+            }
+            
+            // Get all BOP processes separately
+            $prosesBop = \App\Models\BopProses::where('is_active', true)
+                ->with('prosesProduksi')
+                ->get()
+                ->map(function($bop) use ($selectedBopProsesIds) {
+                    // Get komponen BOP for display
+                    $komponenBop = [];
+                    if ($bop->komponen_bop) {
+                        $komponenBop = is_array($bop->komponen_bop) 
+                            ? $bop->komponen_bop 
+                            : json_decode($bop->komponen_bop, true);
+                    }
+                    
+                    // Generate kode from nama_bop_proses if no prosesProduksi
+                    $kodeProses = $bop->prosesProduksi ? $bop->prosesProduksi->kode_proses : 'BOP-' . $bop->id;
+                    
+                    return [
+                        'id' => $bop->id,
+                        'nama_bop_proses' => $bop->nama_bop_proses,
+                        'proses_produksi_id' => $bop->proses_produksi_id,
+                        'nama_proses' => $bop->prosesProduksi->nama_proses ?? 'Umum',
+                        'kode_proses' => $kodeProses,
+                        'total_bop_per_jam' => $bop->total_bop_per_jam,
+                        'bop_per_unit' => $bop->bop_per_unit,
+                        'kapasitas_per_jam' => $bop->kapasitas_per_jam,
+                        'komponen_bop' => $komponenBop,
+                        'is_selected' => in_array($bop->id, $selectedBopProsesIds)
+                    ];
+                });
+            
+            return view('master-data.bom.edit', compact('produk', 'bomJobCosting', 'prosesBtkl', 'prosesBop', 'selectedProsesIds', 'selectedBopProsesIds'));
             
         } catch (\Exception $e) {
             return redirect()->route('master-data.harga-pokok-produksi.index')
@@ -1231,6 +1257,8 @@ class BomController extends Controller
             $validated = $request->validate([
                 'proses_ids' => 'required|array|min:1',
                 'proses_ids.*' => 'exists:proses_produksis,id',
+                'bop_ids' => 'nullable|array',
+                'bop_ids.*' => 'exists:bop_proses,id',
                 'biaya_bahan' => 'required|numeric|min:0',
                 'total_btkl' => 'required|numeric|min:0',
                 'total_bop' => 'required|numeric|min:0',
@@ -1249,9 +1277,9 @@ class BomController extends Controller
             BomJobBTKL::where('bom_job_costing_id', $bomJobCosting->id)->delete();
             BomJobBOP::where('bom_job_costing_id', $bomJobCosting->id)->delete();
 
-            // Save BTKL and BOP for each selected process (same logic as store)
+            // Save BTKL for each selected process
             foreach ($validated['proses_ids'] as $prosesId) {
-                $proses = ProsesProduksi::with(['jabatan', 'bopProses'])->find($prosesId);
+                $proses = ProsesProduksi::with(['jabatan'])->find($prosesId);
                 
                 if (!$proses) continue;
                 
@@ -1278,18 +1306,24 @@ class BomController extends Controller
                     'subtotal' => $btklPerProduk,
                     'keterangan' => $jumlahPegawai . ' pegawai @ Rp ' . number_format($tarifPerJamJabatan, 0, ',', '.') . '/jam',
                 ]);
-                
-                // Save BOP if exists
-                if ($proses->bopProses) {
-                    // Use BOP per produk directly (not calculated from per jam)
-                    $bopPerProduk = $proses->bopProses->bop_per_unit ?? 0;
+            }
+
+            // Save BOP for each selected BOP process
+            if (isset($validated['bop_ids']) && is_array($validated['bop_ids'])) {
+                foreach ($validated['bop_ids'] as $bopId) {
+                    $bopProses = \App\Models\BopProses::with('prosesProduksi')->find($bopId);
+                    
+                    if (!$bopProses) continue;
+                    
+                    // Use BOP per produk directly
+                    $bopPerProduk = $bopProses->bop_per_unit ?? 0;
                     
                     // Get komponen BOP
                     $komponenBop = [];
-                    if ($proses->bopProses->komponen_bop) {
-                        $komponenBop = is_array($proses->bopProses->komponen_bop) 
-                            ? $proses->bopProses->komponen_bop 
-                            : json_decode($proses->bopProses->komponen_bop, true);
+                    if ($bopProses->komponen_bop) {
+                        $komponenBop = is_array($bopProses->komponen_bop) 
+                            ? $bopProses->komponen_bop 
+                            : json_decode($bopProses->komponen_bop, true);
                     }
                     
                     // Save each BOP component
@@ -1308,7 +1342,7 @@ class BomController extends Controller
                             BomJobBOP::create([
                                 'bom_job_costing_id' => $bomJobCosting->id,
                                 'bop_id' => null,
-                                'nama_bop' => $proses->nama_proses . ' - ' . ($komponen['component'] ?? 'BOP'),
+                                'nama_bop' => $bopProses->nama_bop_proses . ' - ' . ($komponen['component'] ?? 'BOP'),
                                 'tarif' => $ratePerPcs,
                                 'jumlah' => 1,
                                 'subtotal' => $ratePerPcs,

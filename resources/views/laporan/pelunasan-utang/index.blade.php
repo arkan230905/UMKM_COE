@@ -9,19 +9,10 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Laporan Pelunasan Utang</h5>
-                    {{-- Debug info --}}
-                    {{-- Bulan: {{ request('bulan') ? request('bulan') : 'Tidak ada' }} --}}
-                    {{-- Has bulan: {{ request()->has('bulan') ? 'Ya' : 'Tidak' }} --}}
-                    {{-- Count pelunasan: {{ $pelunasanUtang ? $pelunasanUtang->count() : 'Tidak ada data' }} --}}
-                    
-                    @if(request()->has('bulan'))
-                        <a href="{{ route('laporan.pelunasan-utang', ['bulan' => request('bulan'), 'export' => 'pdf']) }}" 
-                           class="btn btn-danger btn-sm" target="_blank">
-                            <i class="fas fa-file-pdf"></i> Export PDF
-                        </a>
-                    @else
-                        <span class="text-muted small">Pilih bulan untuk export PDF</span>
-                    @endif
+                    <a href="{{ route('laporan.export.pelunasan-utang', ['bulan' => request('bulan', now()->format('Y-m'))]) }}" 
+                       class="btn btn-danger btn-sm" target="_blank">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </a>
                 </div>
                 <div class="card-body">
                     <form action="{{ route('laporan.pelunasan-utang') }}" method="GET" class="mb-4">

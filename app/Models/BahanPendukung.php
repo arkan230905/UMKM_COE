@@ -10,6 +10,18 @@ class BahanPendukung extends Model
     use HasFactory;
 
     protected $table = 'bahan_pendukungs';
+    
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // Global scope for multi-tenant isolation
+        static::addGlobalScope('user_id', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+    }
 
     protected $fillable = [
         'kode_bahan',
@@ -20,6 +32,7 @@ class BahanPendukung extends Model
         'saldo_awal',
         'tanggal_saldo_awal',
         'stok_minimum',
+        // 'stok', // REMOVED: stok should not be directly fillable, use saldo_awal for initial stock
         'kategori_id',
         'is_active',
         'sub_satuan_1_id',
@@ -33,7 +46,8 @@ class BahanPendukung extends Model
         'sub_satuan_3_nilai',
         'coa_pembelian_id',    // COA untuk pembelian
         'coa_persediaan_id',    // COA untuk persediaan
-        'coa_hpp_id'           // COA untuk HPP
+        'coa_hpp_id',          // COA untuk HPP
+        'user_id',             // Multi-tenant support
     ];
 
     protected $casts = [
@@ -50,7 +64,7 @@ class BahanPendukung extends Model
         'sub_satuan_3_nilai' => 'decimal:4',
     ];
 
-    protected $appends = ['stok_aman', 'status_stok'];
+    protected $appends = ['stok_aman', 'status_stok', 'stok'];
 
     /**
      * Boot method untuk auto-generate kode
@@ -62,6 +76,58 @@ class BahanPendukung extends Model
                 $model->kode_bahan = self::generateKode();
             }
         });
+        
+        // NOTE: Initial stock movement is handled by BahanPendukungObserver::created()
+        // Do not create stock movement here to avoid duplication
+    }
+
+    /**
+     * Get the stok attribute (maps to real-time stock from stock movements)
+     */
+    public function getStokAttribute()
+    {
+        return $this->stok_real_time;
+    }
+
+    /**
+     * Set the stok attribute (updates through stock movement system)
+     * This is a legacy compatibility method - new code should use StockService directly
+     */
+    public function setStokAttribute($value)
+    {
+        // For legacy compatibility, we'll create a stock movement
+        // But this should be avoided in new code
+        $currentStock = $this->stok_real_time;
+        $difference = $value - $currentStock;
+        
+        if (abs($difference) > 0.0001) {
+            // Only create stock movement if the model has been saved (has ID)
+            if (!$this->id) {
+                \Log::info("Skipping stock movement for unsaved BahanPendukung. Stock will be set on initial save.");
+                return;
+            }
+            
+            \Log::warning("Legacy stok setter used for BahanPendukung ID {$this->id}. Use StockService instead.", [
+                'current_stock' => $currentStock,
+                'new_value' => $value,
+                'difference' => $difference
+            ]);
+            
+            // Create a stock movement for the difference
+            \App\Models\StockMovement::create([
+                'item_type' => 'support',
+                'item_id' => $this->id,
+                'direction' => $difference > 0 ? 'in' : 'out',
+                'qty' => abs($difference),
+                'unit' => $this->satuanRelation->nama ?? 'unit',
+                'unit_cost' => $this->harga_satuan ?? 0,
+                'total_cost' => ($this->harga_satuan ?? 0) * abs($difference),
+                'ref_type' => 'adjustment',
+                'ref_id' => null,
+                'tanggal' => now()->format('Y-m-d'),
+                'keterangan' => 'Legacy stock adjustment via model setter'
+            ]);
+        }
     }
 
     /**
@@ -155,7 +221,76 @@ class BahanPendukung extends Model
      */
     public function getStokAmanAttribute(): bool
     {
-        return $this->stok >= $this->stok_minimum;
+        return $this->stok_real_time >= $this->stok_minimum;
+    }
+
+    /**
+     * Get real-time stock from stock movements
+     */
+    public function getStokRealTimeAttribute()
+    {
+        $stockIn = \App\Models\StockMovement::where('item_type', 'support')
+            ->where('item_id', $this->id)
+            ->where('direction', 'in')
+            ->sum('qty');
+
+        $stockOut = \App\Models\StockMovement::where('item_type', 'support')
+            ->where('item_id', $this->id)
+            ->where('direction', 'out')
+            ->sum('qty');
+
+        $netStock = $stockIn - $stockOut;
+        
+        // If no stock movements exist, use saldo_awal from master data
+        if ($stockIn == 0 && $stockOut == 0 && $this->saldo_awal > 0) {
+            return (float)$this->saldo_awal;
+        }
+
+        return $netStock;
+    }
+
+    /**
+     * Calculate sub unit price with new logic for decimal values
+     * For decimal values (< 1): (harga_utama * nilai * 100) / 100
+     * For whole numbers (>= 1): harga_utama / konversi
+     */
+    public function calculateSubUnitPrice($subUnitNumber)
+    {
+        $hargaUtama = $this->harga_satuan_display ?? $this->harga_satuan ?? 0;
+        
+        if ($hargaUtama <= 0) {
+            return 0;
+        }
+
+        $konversi = null;
+        $nilai = null;
+
+        switch ($subUnitNumber) {
+            case 1:
+                $konversi = $this->sub_satuan_1_konversi ?? 1;
+                $nilai = $this->sub_satuan_1_nilai ?? 1;
+                break;
+            case 2:
+                $konversi = $this->sub_satuan_2_konversi ?? 1;
+                $nilai = $this->sub_satuan_2_nilai ?? 1;
+                break;
+            case 3:
+                $konversi = $this->sub_satuan_3_konversi ?? 1;
+                $nilai = $this->sub_satuan_3_nilai ?? 1;
+                break;
+            default:
+                return 0;
+        }
+
+        // Jika nilai adalah desimal (< 1), gunakan rumus baru
+        if ($nilai < 1) {
+            // Rumus: (harga_utama * nilai * 100) / 100
+            // Contoh: nilai = 0.25 -> (25000 * 0.25 * 100) / 100 = (25000 * 25) / 100
+            return ($hargaUtama * $nilai * 100) / 100;
+        } else {
+            // Untuk nilai >= 1, gunakan rumus: harga_utama / nilai
+            return $hargaUtama / $nilai;
+        }
     }
 
     /**
@@ -163,9 +298,9 @@ class BahanPendukung extends Model
      */
     public function getStatusStokAttribute(): string
     {
-        if ($this->stok <= 0) {
+        if ($this->stok_real_time <= 0) {
             return 'Habis';
-        } elseif ($this->stok < $this->stok_minimum) {
+        } elseif ($this->stok_real_time < $this->stok_minimum) {
             return 'Menipis';
         }
         return 'Aman';
@@ -346,6 +481,15 @@ class BahanPendukung extends Model
     public function convertToSatuanUtama($quantity, $fromUnit)
     {
         $quantity = (float) $quantity;
+        
+        // If fromUnit is numeric, it's a satuan ID - convert to name
+        if (is_numeric($fromUnit)) {
+            $satuanModel = \App\Models\Satuan::find($fromUnit);
+            if ($satuanModel) {
+                $fromUnit = $satuanModel->nama;
+            }
+        }
+        
         $fromUnit = strtoupper(trim($fromUnit));
         
         // Get base unit (satuan utama)
@@ -399,23 +543,25 @@ class BahanPendukung extends Model
         $fromUnit = strtoupper(trim($fromUnit));
         
         // Check sub_satuan_1
+        // Formula: quantity (in sub unit) × nilai = quantity in base unit
+        // Example: 50 ekor × 0.8 kg/ekor = 40 kg
         if ($this->subSatuan1 && strtoupper($this->subSatuan1->nama) === $fromUnit) {
-            if ($this->sub_satuan_1_konversi > 0) {
-                return $quantity / $this->sub_satuan_1_konversi;
+            if ($this->sub_satuan_1_nilai > 0) {
+                return $quantity * $this->sub_satuan_1_nilai;
             }
         }
         
         // Check sub_satuan_2
         if ($this->subSatuan2 && strtoupper($this->subSatuan2->nama) === $fromUnit) {
-            if ($this->sub_satuan_2_konversi > 0) {
-                return $quantity / $this->sub_satuan_2_konversi;
+            if ($this->sub_satuan_2_nilai > 0) {
+                return $quantity * $this->sub_satuan_2_nilai;
             }
         }
         
         // Check sub_satuan_3
         if ($this->subSatuan3 && strtoupper($this->subSatuan3->nama) === $fromUnit) {
-            if ($this->sub_satuan_3_konversi > 0) {
-                return $quantity / $this->sub_satuan_3_konversi;
+            if ($this->sub_satuan_3_nilai > 0) {
+                return $quantity * $this->sub_satuan_3_nilai;
             }
         }
         

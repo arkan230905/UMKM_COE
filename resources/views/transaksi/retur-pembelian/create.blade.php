@@ -94,7 +94,7 @@
                     <div class="col-md-3">
                         <div class="mb-3">
                             <label class="form-label">Tanggal Pembelian</label>
-                            <input type="text" class="form-control" value="{{ date('d/m/Y', strtotime($pembelian->tanggal_pembelian)) }}" readonly>
+                            <input type="text" class="form-control" value="{{ $pembelian->tanggal ? $pembelian->tanggal->format('d/m/Y') : date('d/m/Y') }}" readonly>
                         </div>
                     </div>
                     
@@ -246,7 +246,7 @@
                                         <td class="text-end" id="refund_subtotal">Rp 0</td>
                                     </tr>
                                     <tr>
-                                        <td class="text-end"><strong>PPN (11%):</strong></td>
+                                        <td class="text-end"><strong>PPN ({{ $pembelian->ppn_persen ?? 11 }}%):</strong></td>
                                         <td class="text-end" id="refund_ppn">Rp 0</td>
                                     </tr>
                                     <tr class="table-primary">
@@ -270,7 +270,7 @@
                                         <td class="text-end" id="tukar_subtotal">Rp 0</td>
                                     </tr>
                                     <tr>
-                                        <td class="text-end"><strong>PPN (11%):</strong></td>
+                                        <td class="text-end"><strong>PPN ({{ $pembelian->ppn_persen ?? 11 }}%):</strong></td>
                                         <td class="text-end" id="tukar_ppn">Rp 0</td>
                                     </tr>
                                     <tr class="table-info">
@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update individual row subtotal
             const row = input.closest('tr');
             const subtotalDisplay = row.querySelector('.subtotal-display');
-            subtotalDisplay.value = 'Rp ' + subtotal.toLocaleString('id-ID');
+            subtotalDisplay.value = 'Rp ' + Math.round(subtotal).toLocaleString('id-ID');
             
             // Add to totals
             totalAmount += subtotal;
@@ -363,23 +363,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Calculate PPN (11%)
-        const ppnAmount = totalAmount * 0.11;
+        // Get PPN percentage from pembelian (default to 11% if not set)
+        const ppnPersen = {{ $pembelian->ppn_persen ?? 11 }};
+        
+        // Calculate PPN based on pembelian's PPN percentage
+        const ppnAmount = totalAmount * (ppnPersen / 100);
         const totalWithPpn = totalAmount + ppnAmount;
         
         // Update summary based on jenis retur
         if (jenisRetur === 'refund') {
             // Refund summary - show all in currency
-            document.getElementById('refund_subtotal').textContent = 'Rp ' + totalAmount.toLocaleString('id-ID');
-            document.getElementById('refund_ppn').textContent = 'Rp ' + ppnAmount.toLocaleString('id-ID');
-            document.getElementById('refund_total').textContent = 'Rp ' + totalWithPpn.toLocaleString('id-ID');
+            document.getElementById('refund_subtotal').textContent = 'Rp ' + Math.round(totalAmount).toLocaleString('id-ID');
+            document.getElementById('refund_ppn').textContent = 'Rp ' + Math.round(ppnAmount).toLocaleString('id-ID');
+            document.getElementById('refund_total').textContent = 'Rp ' + Math.round(totalWithPpn).toLocaleString('id-ID');
         } else if (jenisRetur === 'tukar_barang') {
             // Tukar barang summary - show total in quantity + unit
-            document.getElementById('tukar_subtotal').textContent = 'Rp ' + totalAmount.toLocaleString('id-ID');
-            document.getElementById('tukar_ppn').textContent = 'Rp ' + ppnAmount.toLocaleString('id-ID');
+            document.getElementById('tukar_subtotal').textContent = 'Rp ' + Math.round(totalAmount).toLocaleString('id-ID');
+            document.getElementById('tukar_ppn').textContent = 'Rp ' + Math.round(ppnAmount).toLocaleString('id-ID');
             
             // Format quantity with unit
-            let qtyDisplay = totalQty.toLocaleString('id-ID');
+            let qtyDisplay = Math.round(totalQty).toLocaleString('id-ID');
             if (totalUnit) {
                 qtyDisplay += ' ' + totalUnit;
             } else {
@@ -402,11 +405,20 @@ document.addEventListener('DOMContentLoaded', function() {
         let jenisRetur = jenisReturSelect.value;
         let alasan = document.getElementById('alasan').value.trim();
         
+        // Collect all form data for debugging
+        const formData = new FormData(this);
+        const formObject = {};
+        for (let [key, value] of formData.entries()) {
+            formObject[key] = value;
+        }
+        
         console.log('Form submission attempt:', {
             jenisRetur: jenisRetur,
             alasan: alasan,
             formAction: this.action,
-            formMethod: this.method
+            formMethod: this.method,
+            formData: formObject,
+            csrfToken: document.querySelector('input[name="_token"]').value
         });
         
         // Check if jenis retur is selected
@@ -426,12 +438,29 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Check if at least one item has qty > 0
-        document.querySelectorAll('.qty-input').forEach(function(input) {
+        const qtyInputs = document.querySelectorAll('.qty-input');
+        const validItems = [];
+        
+        qtyInputs.forEach(function(input, index) {
             const qty = parseFloat(input.value) || 0;
             if (qty > 0) {
                 hasValidQty = true;
+                
+                // Get the row data
+                const row = input.closest('tr');
+                const pembelianDetailId = row.querySelector('input[name*="[pembelian_detail_id]"]').value;
+                const satuan = row.querySelector('input[name*="[satuan]"]').value;
+                
+                validItems.push({
+                    index: index,
+                    qty: qty,
+                    pembelian_detail_id: pembelianDetailId,
+                    satuan: satuan
+                });
             }
         });
+        
+        console.log('Valid items found:', validItems);
         
         if (!hasValidQty) {
             e.preventDefault();
@@ -440,7 +469,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
         
-        console.log('Form validation passed, submitting...');
+        console.log('Form validation passed, submitting with', validItems.length, 'valid items');
+        
+        // Add a loading indicator
+        const submitButton = this.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Menyimpan...';
+        }
+        
         return true;
     });
     

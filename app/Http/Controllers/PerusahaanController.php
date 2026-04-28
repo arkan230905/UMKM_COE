@@ -103,4 +103,71 @@ class PerusahaanController extends Controller
 
         return redirect('/tentang-perusahaan/detail')->with('success', "Data perusahaan '{$perusahaan->nama}' berhasil diperbarui.");
     }
+
+    // Update informasi bank
+    public function updateBankInfo(Request $request)
+    {
+        // Cek apakah user adalah owner
+        if (auth()->user()->role !== 'owner') {
+            abort(403, 'Hanya owner yang dapat mengedit informasi bank.');
+        }
+
+        try {
+            DB::transaction(function () use ($request) {
+                $banks = $request->input('banks', []);
+                
+                foreach ($banks as $bankData) {
+                    if (isset($bankData['coa_id'])) {
+                        $coa = \App\Models\Coa::find($bankData['coa_id']);
+                        if ($coa) {
+                            $coa->update([
+                                'nomor_rekening' => $bankData['nomor_rekening'] ?? null,
+                                'atas_nama' => $bankData['atas_nama'] ?? null,
+                            ]);
+                        }
+                    }
+                }
+            });
+
+            return redirect()->back()->with('success', 'Informasi bank berhasil diperbarui.');
+        } catch (\Exception $e) {
+            \Log::error('Error updating bank info: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat memperbarui informasi bank.');
+        }
+    }
+
+    // Update single bank field via AJAX
+    public function updateBankField(Request $request)
+    {
+        // Cek apakah user adalah owner
+        if (auth()->user()->role !== 'owner') {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'coa_id' => 'required|exists:coas,id',
+            'field' => 'required|in:nomor_rekening,atas_nama',
+            'value' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $coa = \App\Models\Coa::find($request->coa_id);
+            if ($coa) {
+                $coa->update([
+                    $request->field => $request->value
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data berhasil diperbarui',
+                    'value' => $request->value
+                ]);
+            }
+
+            return response()->json(['success' => false, 'message' => 'COA tidak ditemukan'], 404);
+        } catch (\Exception $e) {
+            \Log::error('Error updating bank field: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan'], 500);
+        }
+    }
 }

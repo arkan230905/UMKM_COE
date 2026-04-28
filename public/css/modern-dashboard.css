@@ -34,21 +34,58 @@ body {
     min-height: 100vh !important;
 }
 
-/* SIDEBAR STYLING - CLEAN & PROFESSIONAL */
+/* ========================= */
+/* SIDEBAR (FIXED + IMPROVED) */
+/* ========================= */
 .sidebar, aside.sidebar, div.sidebar {
-    background: #8B7355 !important;
-    width: 200px !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    height: 100vh !important;
-    overflow-y: auto !important;
-    z-index: 1000 !important;
-    padding: 0 !important;
-    box-shadow: 3px 0 20px rgba(0,0,0,0.15) !important;
-    flex-shrink: 0 !important;
-    margin: 0 !important;
-    border-right: 1px solid rgba(255,255,255,0.1) !important;
+    width: 200px;
+    min-height: 100vh; /* 🔥 penting */
+    height: auto; /* 🔥 biar ikut konten */
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0; /* 🔥 tambahan penting */
+    z-index: 1000;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: all 0.3s ease;
+    box-shadow: 4px 0 25px rgba(0,0,0,0.3);
+
+    background: linear-gradient(180deg, #6f5a44 0%, #7a624b 40%, #5a4532 100%);
+}
+
+/* 🔥 Topographic lines (lebih banyak & halus) */
+.sidebar::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+
+    background-image: url("data:image/svg+xml,...");
+
+    background-size: 100% auto; /* 🔥 bikin fleksibel */
+    background-repeat: repeat;  /* 🔥 ulang full */
+    
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* subtle lighting */
+.sidebar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background-image: url("data:image/svg+xml,%3Csvg width='300' height='300' viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='0.5' stroke-opacity='0.08'%3E%3Cpath d='M0 60 L80 30 L140 80 L200 50 L260 90 L300 60'/%3E%3Cpath d='M0 140 L90 100 L150 150 L210 120 L270 160 L300 140'/%3E%3Cpath d='M0 220 L100 180 L160 230 L220 200 L280 240 L300 220'/%3E%3C/g%3E%3C/svg%3E");
+
+    background-size: 100% 300px;
+    background-repeat: repeat-y;
+
+    opacity: 0.4;
+    pointer-events: none;
 }
 
 /* Custom Scrollbar */
@@ -65,7 +102,7 @@ body {
     border-radius: 2px !important;
 }
 
-/* USER PROFILE CARD - LIKE IN IMAGE */
+/* USER PROFILE CARD */
 .user-profile-card {
     background: rgba(0,0,0,0.2) !important;
     border-radius: 15px !important;
@@ -73,8 +110,55 @@ body {
     padding: 20px 15px !important;
     text-align: center !important;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+    position: relative !important;
+    z-index: 10 !important;
 }
 
+/* ========================= */
+/* COLLAPSIBLE MENU STYLING */
+/* ========================= */
+
+.collapsible-header {
+    cursor: pointer !important;
+    position: relative !important;
+    transition: all 0.3s ease !important;
+}
+
+.collapsible-header:hover {
+    background: rgba(255,255,255,0.15) !important;
+}
+
+.collapsible-icon {
+    position: absolute !important;
+    right: 15px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    transition: transform 0.3s ease !important;
+    font-size: 12px !important;
+    opacity: 0.7 !important;
+}
+
+.collapsible-header.expanded .collapsible-icon {
+    transform: translateY(-50%) rotate(180deg) !important;
+}
+
+.collapsible-menu {
+    max-height: 0 !important;
+    overflow: hidden !important;
+    transition: max-height 0.3s ease, opacity 0.3s ease !important;
+    opacity: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.collapsible-menu.show {
+    max-height: 500px !important;
+    opacity: 1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* (SEMUA KODE KAMU DARI SINI KE BAWAH TIDAK DIUBAH) */
 .user-avatar {
     width: 75px !important;
     height: 75px !important;
@@ -131,29 +215,34 @@ body {
     letter-spacing: 0.5px !important;
 }
 
-/* ROUNDED NAVIGATION LINKS - LIKE IN IMAGE */
+/* SIDEBAR NAVIGATION - Z-INDEX TO STAY ABOVE BACKGROUND */
+.sidebar-nav {
+    position: relative !important;
+    z-index: 10 !important;
+}
+
+/* NAVIGATION LINKS - NO BACKGROUND, TEXT ONLY */
 .nav-link-rounded,
 .sidebar a.nav-link-rounded,
 a.nav-link-rounded,
 .sidebar button.nav-link-rounded {
     color: rgba(255,255,255,0.9) !important;
-    background: rgba(0,0,0,0.15) !important;
-    border-radius: 20px !important;
-    margin: 3px 10px !important;
-    padding: 10px 15px !important;
+    background: transparent !important;
+    border-radius: 0 !important;
+    margin: 2px 10px !important;
+    padding: 8px 12px !important;
     transition: all 0.3s ease !important;
-    font-size: 13px !important;
+    font-size: 12px !important;
     font-weight: 500 !important;
     display: flex !important;
     align-items: center !important;
-    border: 1px solid rgba(0,0,0,0.1) !important;
+    border: none !important;
     text-decoration: none !important;
     position: relative !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    max-height: 42px !important;
+    min-height: 36px !important;
+    height: auto !important;
     box-sizing: border-box !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+    box-shadow: none !important;
     width: calc(100% - 20px) !important;
     cursor: pointer !important;
     clear: both !important;
@@ -164,9 +253,9 @@ a.nav-link-rounded,
 .sidebar a.nav-link-rounded i,
 a.nav-link-rounded i,
 .sidebar button.nav-link-rounded i {
-    margin-right: 10px !important;
-    font-size: 14px !important;
-    width: 18px !important;
+    margin-right: 8px !important;
+    font-size: 13px !important;
+    width: 16px !important;
     text-align: center !important;
     color: rgba(255,255,255,0.9) !important;
     transition: all 0.3s ease !important;
@@ -178,71 +267,73 @@ a.nav-link-rounded i,
 a.nav-link-rounded span,
 .sidebar button.nav-link-rounded span {
     flex: 1 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
     line-height: 1.2 !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    display: flex !important;
+    align-items: center !important;
 }
 
 .nav-link-rounded:hover,
 .sidebar a.nav-link-rounded:hover,
 a.nav-link-rounded:hover,
 .sidebar button.nav-link-rounded:hover {
-    background: linear-gradient(135deg, #C9B59C 0%, #B8A082 100%) !important;
-    color: #4A4A4A !important;
+    background: rgba(255,255,255,0.1) !important;
+    color: white !important;
     text-decoration: none !important;
     transform: translateX(3px) !important;
-    border-color: #C9B59C !important;
-    box-shadow: 0 4px 20px rgba(201, 181, 156, 0.4) !important;
 }
 
 .nav-link-rounded:hover i,
 .sidebar a.nav-link-rounded:hover i,
 a.nav-link-rounded:hover i,
 .sidebar button.nav-link-rounded:hover i {
-    color: #4A4A4A !important;
-    transform: scale(1.1) !important;
-    text-shadow: 0 1px 2px rgba(255,255,255,0.2) !important;
+    color: white !important;
+    transform: scale(1.05) !important;
 }
 
 .nav-link-rounded.active,
 .sidebar a.nav-link-rounded.active,
 a.nav-link-rounded.active {
-    background: linear-gradient(135deg, #C9B59C 0%, #B8A082 100%) !important;
-    color: #4A4A4A !important;
+    background: rgba(255,255,255,0.15) !important;
+    color: white !important;
     font-weight: 600 !important;
-    border-color: #C9B59C !important;
-    box-shadow: 0 4px 20px rgba(201, 181, 156, 0.4) !important;
     transform: translateX(2px) !important;
 }
 
 .nav-link-rounded.active i,
 .sidebar a.nav-link-rounded.active i,
 a.nav-link-rounded.active i {
-    color: #4A4A4A !important;
-    text-shadow: 0 1px 2px rgba(255,255,255,0.2) !important;
+    color: white !important;
 }
 
-/* SECTION SPACING - CLEAR SEPARATION */
+/* SECTION SPACING - CONSISTENT WITH NAVIGATION */
 .nav-section-header-rounded {
     color: white !important;
-    font-size: 11px !important;
-    font-weight: 800 !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
     text-transform: uppercase !important;
-    letter-spacing: 1.5px !important;
-    padding: 14px 20px !important;
-    margin: 25px 10px 10px 10px !important;
+    letter-spacing: 1px !important;
+    padding: 10px 12px !important;
+    margin: 15px 10px 8px 10px !important;
     display: flex !important;
     align-items: center !important;
-    background: linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.3) 100%) !important;
-    border-radius: 25px !important;
+    background: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.2) 100%) !important;
+    border-radius: 12px !important;
     position: relative !important;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.25) !important;
-    height: 46px !important;
-    min-height: 46px !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+    min-height: 36px !important;
+    height: auto !important;
     box-sizing: border-box !important;
-    border: 2px solid rgba(255,255,255,0.15) !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5) !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    line-height: 1.2 !important;
 }
 
 /* First section header gets normal margin */
@@ -251,17 +342,18 @@ a.nav-link-rounded.active i {
 }
 
 .nav-section-header-rounded i {
-    margin-right: 12px !important;
-    font-size: 14px !important;
+    margin-right: 8px !important;
+    font-size: 12px !important;
     color: white !important;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5) !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5) !important;
     background: rgba(255,255,255,0.1) !important;
-    width: 28px !important;
-    height: 28px !important;
+    width: 20px !important;
+    height: 20px !important;
     border-radius: 50% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    flex-shrink: 0 !important;
 }
 
 .nav-section-header-rounded span {
@@ -285,71 +377,84 @@ a.nav-link-rounded.active i {
     display: none !important;
 }
 
-/* LOGOUT BUTTON STYLING - SAME ALIGNMENT AS OTHER LINKS */
-.sidebar .logout-btn,
-.sidebar button.logout-btn,
-button.logout-btn.nav-link-rounded {
-    background: #FF937E !important;
-    background-image: linear-gradient(135deg, #FF937E 0%, #FF8A73 100%) !important;
+/* LOGOUT BUTTON */
+.sidebar .logout-btn {
+    background: linear-gradient(135deg, #e53935 0%, #c62828 100%) !important;
     border: none !important;
     color: white !important;
     cursor: pointer !important;
-    /* Ensure same alignment as other nav links */
     display: flex !important;
     align-items: center !important;
-    justify-content: flex-start !important;
-    text-align: left !important;
-    padding: 10px 15px !important;
-    margin: 3px 10px !important;
+    padding: 10px 14px !important;
+    margin: 8px 10px 16px 10px !important;
     width: calc(100% - 20px) !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    max-height: 42px !important;
-    border-radius: 20px !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    box-shadow: 0 2px 8px rgba(255, 147, 126, 0.3) !important;
+    border-radius: 10px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px !important;
     transition: all 0.3s ease !important;
+    text-align: left !important;
+    min-height: 40px !important;
+    box-shadow: 0 4px 12px rgba(229, 57, 53, 0.35) !important;
+    position: relative !important;
+    overflow: hidden !important;
 }
 
-.sidebar .logout-btn i,
-.sidebar button.logout-btn i,
-button.logout-btn.nav-link-rounded i {
+/* shimmer effect */
+.sidebar .logout-btn::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 60% !important;
+    height: 100% !important;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent) !important;
+    transition: left 0.5s ease !important;
+    pointer-events: none !important;
+}
+
+.sidebar .logout-btn:hover::before {
+    left: 150% !important;
+}
+
+/* separator line above logout */
+.sidebar .logout-separator {
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent) !important;
+    margin: 8px 10px 4px 10px !important;
+}
+
+.sidebar .logout-btn i {
     color: white !important;
     margin-right: 10px !important;
     font-size: 14px !important;
     width: 18px !important;
     text-align: center !important;
     flex-shrink: 0 !important;
+    transition: transform 0.3s ease !important;
 }
 
-.sidebar .logout-btn span,
-.sidebar button.logout-btn span,
-button.logout-btn.nav-link-rounded span {
+.sidebar .logout-btn span {
+    color: white !important;
     flex: 1 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    line-height: 1.2 !important;
-    text-align: left !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
 }
 
-.sidebar .logout-btn:hover,
-.sidebar button.logout-btn:hover,
-button.logout-btn.nav-link-rounded:hover {
-    background: #BF1A1A !important;
-    background-image: linear-gradient(135deg, #BF1A1A 0%, #A01515 100%) !important;
-    border-color: #BF1A1A !important;
-    color: white !important;
-    box-shadow: 0 4px 20px rgba(191, 26, 26, 0.4) !important;
-    transform: translateX(3px) !important;
+
+.sidebar .logout-btn:hover {
+    background: linear-gradient(135deg, #ef5350 0%, #e53935 100%) !important;
+    box-shadow: 0 6px 20px rgba(229, 57, 53, 0.5) !important;
+    transform: translateY(-1px) !important;
 }
 
-.sidebar .logout-btn:hover i,
-.sidebar button.logout-btn:hover i,
-button.logout-btn.nav-link-rounded:hover i {
-    color: white !important;
-    transform: scale(1.1) !important;
+.sidebar .logout-btn:hover i:first-child {
+    transform: translateX(2px) !important;
+}
+
+.sidebar .logout-btn:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 8px rgba(229, 57, 53, 0.4) !important;
 }
 
 /* OLD NAVIGATION STYLES - REMOVED */

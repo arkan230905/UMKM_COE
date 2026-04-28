@@ -198,7 +198,39 @@ class StockService
      */
     public function getCurrentStock($itemId, $itemType)
     {
-        return KartuStok::getStockBalance($itemId, $itemType);
+        // Convert item type to match StockMovement conventions
+        $stockMovementType = $itemType;
+        if ($itemType === 'bahan_baku') {
+            $stockMovementType = 'material';
+        } elseif ($itemType === 'bahan_pendukung') {
+            $stockMovementType = 'support';
+        }
+        
+        // Calculate stock from StockMovement table (consistent with stok_real_time)
+        $stockIn = \App\Models\StockMovement::where('item_type', $stockMovementType)
+            ->where('item_id', $itemId)
+            ->where('direction', 'in')
+            ->sum('qty');
+
+        $stockOut = \App\Models\StockMovement::where('item_type', $stockMovementType)
+            ->where('item_id', $itemId)
+            ->where('direction', 'out')
+            ->sum('qty');
+
+        $netStock = $stockIn - $stockOut;
+        
+        // If no stock movements exist, get from master data
+        if ($stockIn == 0 && $stockOut == 0) {
+            if ($itemType === 'bahan_baku' || $stockMovementType === 'material') {
+                $item = \App\Models\BahanBaku::find($itemId);
+                return $item ? (float)($item->saldo_awal ?? 0) : 0;
+            } elseif ($itemType === 'bahan_pendukung' || $stockMovementType === 'support') {
+                $item = \App\Models\BahanPendukung::find($itemId);
+                return $item ? (float)($item->saldo_awal ?? 0) : 0;
+            }
+        }
+        
+        return $netStock;
     }
 
     /**
@@ -495,6 +527,52 @@ class StockService
     public function addLayerWithManualConversion($itemType, $itemId, $qty, $satuan, $unitCost, $refType, $refId, $tanggal, $manualConversionData = null)
     {
         try {
+            // Check if stock movement already exists for this purchase and item
+            $stockMovementItemType = $itemType === 'support' ? 'support' : ($itemType === 'material' ? 'material' : $itemType);
+            $stockMovementRefType = $refType === 'pembelian' ? 'purchase' : $refType;
+            
+            $existingMovement = \App\Models\StockMovement::where('item_type', $stockMovementItemType)
+                ->where('item_id', $itemId)
+                ->where('ref_type', $stockMovementRefType)
+                ->where('ref_id', $refId)
+                ->where('direction', 'in')
+                ->first();
+                
+            if ($existingMovement) {
+                Log::info('Stock movement already exists, skipping creation', [
+                    'item_type' => $stockMovementItemType,
+                    'item_id' => $itemId,
+                    'ref_type' => $stockMovementRefType,
+                    'ref_id' => $refId,
+                    'existing_movement_id' => $existingMovement->id
+                ]);
+                
+                // Still create stock layer if it doesn't exist
+                $existingLayer = \App\Models\StockLayer::where('item_type', $itemType)
+                    ->where('item_id', $itemId)
+                    ->where('ref_type', $refType)
+                    ->where('ref_id', $refId)
+                    ->first();
+                    
+                if (!$existingLayer) {
+                    $data = [
+                        'item_type' => $itemType,
+                        'item_id' => $itemId,
+                        'tanggal' => $tanggal ?? now()->format('Y-m-d'),
+                        'remaining_qty' => $qty,
+                        'unit_cost' => $unitCost,
+                        'satuan' => $satuan,
+                        'ref_type' => $refType,
+                        'ref_id' => $refId
+                    ];
+                    
+                    $stockLayer = \App\Models\StockLayer::create($data);
+                    return $stockLayer;
+                }
+                
+                return $existingLayer;
+            }
+            
             $data = [
                 'item_type' => $itemType,
                 'item_id' => $itemId,
@@ -510,11 +588,7 @@ class StockService
                 'manual_conversion_data' => $manualConversionData
             ]));
 
-            $stockLayer = StockLayer::create($data);
-            
-            // Also create stock movement with manual conversion data
-            $stockMovementItemType = $itemType === 'support' ? 'support' : ($itemType === 'material' ? 'material' : $itemType);
-            $stockMovementRefType = $refType === 'pembelian' ? 'purchase' : $refType;
+            $stockLayer = \App\Models\StockLayer::create($data);
             
             $totalCost = $qty * $unitCost;
             

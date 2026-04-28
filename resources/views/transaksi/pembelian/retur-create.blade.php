@@ -29,8 +29,11 @@
                         @enderror
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Alasan Singkat</label>
-                        <input type="text" name="alasan" class="form-control" value="{{ old('alasan') }}">
+                        <label class="form-label">Alasan Singkat <span class="text-danger">*</span></label>
+                        <input type="text" name="alasan" class="form-control" value="{{ old('alasan') }}" required>
+                        @error('alasan')
+                            <div class="text-danger small">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="col-md-12">
                         <label class="form-label">Catatan</label>
@@ -95,8 +98,63 @@
 
         <div class="mt-3 d-flex justify-content-between">
             <small class="text-muted">Qty retur tidak boleh melebihi qty beli dikurangi total retur sebelumnya.</small>
-            <button type="submit" class="btn btn-primary">Simpan Retur</button>
+            <button type="submit" class="btn btn-primary" id="submitBtn">Simpan Retur</button>
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            console.log('Form submit event triggered');
+            
+            // Validasi alasan
+            const alasan = document.querySelector('input[name="alasan"]');
+            if (!alasan || !alasan.value.trim()) {
+                e.preventDefault();
+                alert('Alasan retur harus diisi!');
+                if (alasan) alasan.focus();
+                return false;
+            }
+            
+            // Validasi jenis retur
+            const jenisRetur = document.querySelector('select[name="jenis_retur"]');
+            if (!jenisRetur || !jenisRetur.value) {
+                e.preventDefault();
+                alert('Jenis retur harus dipilih!');
+                if (jenisRetur) jenisRetur.focus();
+                return false;
+            }
+            
+            // Validasi minimal ada 1 item dengan qty > 0
+            const qtyInputs = document.querySelectorAll('input[name*="[qty]"]');
+            let hasValidItem = false;
+            
+            qtyInputs.forEach(function(input) {
+                const qty = parseFloat(input.value) || 0;
+                if (qty > 0) {
+                    hasValidItem = true;
+                }
+            });
+            
+            if (!hasValidItem) {
+                e.preventDefault();
+                alert('Minimal harus ada 1 item dengan qty retur lebih dari 0!');
+                return false;
+            }
+            
+            // Disable submit button untuk mencegah double submit
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Menyimpan...';
+            
+            console.log('Form validation passed, submitting...');
+            return true;
+        });
+    }
+});
+</script>
 @endsection

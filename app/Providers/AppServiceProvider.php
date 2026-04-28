@@ -68,7 +68,7 @@ class AppServiceProvider extends ServiceProvider
         
         // Real-time stock tracking observers
         PembelianDetail::observe(PembelianDetailObserver::class);
-        Pembelian::observe(PembelianObserver::class);
+        // Pembelian::observe(PembelianObserver::class); // REMOVED: Duplicate registration (already in EventServiceProvider)
         ProduksiDetail::observe(ProduksiDetailObserver::class);
         PenjualanDetail::observe(PenjualanDetailObserver::class);
 
@@ -84,7 +84,7 @@ class AppServiceProvider extends ServiceProvider
         // View composer global untuk semua tampilan
         View::composer('*', function ($view) {
             $view->with([
-                'totalPegawai'   => Pegawai::count(),
+                'totalPegawai'   => 0,
                 'totalPresensi'  => Presensi::count(),
                 'totalProduk'    => Produk::count(),
                 'totalVendor'    => Vendor::count(),

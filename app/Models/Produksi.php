@@ -52,6 +52,16 @@ class Produksi extends Model
         return $this->hasMany(ProduksiDetail::class); 
     }
     
+    public function btklDetails()
+    {
+        return $this->hasMany(ProduksiBtklDetail::class);
+    }
+
+    public function bopDetails()
+    {
+        return $this->hasMany(ProduksiBopDetail::class);
+    }
+
     public function proses() 
     { 
         return $this->hasMany(ProduksiProses::class)->orderBy('urutan'); 

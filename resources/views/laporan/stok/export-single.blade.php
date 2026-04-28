@@ -151,6 +151,12 @@
                                         @case('retur')
                                             Retur Pembelian
                                             @break
+                                        @case('retur_tukar_kirim')
+                                            Retur Barang Keluar
+                                            @break
+                                        @case('retur_tukar_terima')
+                                            Retur Barang Masuk
+                                            @break
                                         @case('production')
                                             {{ $summary['item_type'] === 'product' ? 'Hasil Produksi' : 'Pemakaian Produksi' }}
                                             @break
@@ -202,8 +208,13 @@
                             @else
                                 <td class="text-right">
                                     @if($row['pembelian_qty'] != 0)
+                                        @php
+                                            $isReturMasuk = isset($row['ref_type']) && $row['ref_type'] === 'retur_tukar_terima';
+                                        @endphp
                                         @if($row['pembelian_qty'] < 0)
-                                            <span style="color: red;">{{ number_format($row['pembelian_qty'], 0, ',', '.') }}</span>
+                                            <span style="color: red;">-{{ number_format(abs($row['pembelian_qty']), 0, ',', '.') }}</span>
+                                        @elseif($isReturMasuk)
+                                            <span style="color: green;">+{{ number_format($row['pembelian_qty'], 0, ',', '.') }}</span>
                                         @else
                                             {{ number_format($row['pembelian_qty'], 0, ',', '.') }}
                                         @endif
@@ -217,7 +228,7 @@
                                 <td class="text-right">
                                     @if($row['pembelian_total'] != 0)
                                         @if($row['pembelian_total'] < 0)
-                                            <span style="color: red;">{{ number_format($row['pembelian_total'], 0, ',', '.') }}</span>
+                                            <span style="color: red;">-{{ number_format(abs($row['pembelian_total']), 0, ',', '.') }}</span>
                                         @else
                                             {{ number_format($row['pembelian_total'], 0, ',', '.') }}
                                         @endif

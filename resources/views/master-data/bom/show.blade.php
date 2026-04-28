@@ -88,41 +88,6 @@
                 <div class="alert alert-info">Belum ada data bahan baku</div>
             @endif
 
-            <!-- Bahan Penolong/Pendukung -->
-            <h6 class="text-warning mb-3"><i class="fas fa-flask"></i> Bahan Penolong</h6>
-            @if($detailBahanPendukung && count($detailBahanPendukung) > 0)
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered table-striped">
-                        <thead class="table-warning">
-                            <tr>
-                                <th class="fw-bold"><i class="fas fa-tools me-1"></i>Bahan Penolong</th>
-                                <th class="text-center fw-bold">Jumlah/Quantity</th>
-                                <th class="text-center fw-bold">Satuan</th>
-                                <th class="text-end fw-bold">Nominal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($detailBahanPendukung as $bahan)
-                                <tr>
-                                    <td>{{ $bahan['nama_bahan'] }}</td>
-                                    <td class="text-center">{{ number_format($bahan['qty'], 0, ',', '.') }}</td>
-                                    <td class="text-center">{{ $bahan['satuan'] }}</td>
-                                    <td class="text-end">
-                                        @if($bahan['subtotal'] > 0)
-                                            Rp {{ number_format($bahan['subtotal'], 0, ',', '.') }}
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            @else
-                <div class="alert alert-info">Belum ada data bahan penolong</div>
-            @endif
-
             <!-- Total Biaya Bahan -->
             <div class="row">
                 <div class="col-md-6 offset-md-6">
@@ -142,21 +107,11 @@
                                         @endif
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td class="fw-semibold">Bahan Pendukung:</td>
-                                    <td class="text-end data-value" id="total-bahan-pendukung">
-                                        @if($totalBahanPendukung > 0)
-                                            Rp {{ number_format($totalBahanPendukung, 0, ',', '.') }}
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                </tr>
                                 <tr class="border-top border-2 border-primary">
                                     <th class="fw-bold text-primary">SUBTOTAL:</th>
                                     <th class="text-end fw-bold text-primary fs-6 data-value" id="total-biaya-bahan">
-                                        @if($totalBiayaBahan > 0)
-                                            Rp {{ number_format($totalBiayaBahan, 0, ',', '.') }}
+                                        @if($totalBBB > 0)
+                                            Rp {{ number_format($totalBBB, 0, ',', '.') }}
                                         @else
                                             <span class="text-muted">-</span>
                                         @endif

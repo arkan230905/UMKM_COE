@@ -7,13 +7,17 @@ use App\Models\Satuan;
 use App\Services\BomSyncService;
 use App\Services\BahanBakuService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BahanBakuController extends Controller
 {
     // Menampilkan semua data bahan baku
     public function index()
     {
-        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])->get();
+        // Sort by created_at ascending (oldest to newest)
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])
+            ->orderBy('created_at', 'asc')
+            ->get();
         
         // Hitung harga rata-rata untuk setiap bahan baku
         foreach ($bahanBaku as $bahan) {
@@ -67,11 +71,11 @@ class BahanBakuController extends Controller
         $this->convertCommaToDecimal($request);
         
         $request->validate([
-            'nama_bahan' => 'required|string|max:255',
+            'nama_bahan' => 'required|string|max:255|unique:bahan_bakus,nama_bahan,NULL,id,user_id,'.auth()->id(),
             'satuan_id' => 'required|exists:satuans,id',
             'stok' => 'nullable|numeric|min:0',
             'harga_satuan' => 'required|numeric|min:0',
-            'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan',
+            'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan,NULL,id,user_id,'.auth()->id(),
             'stok_minimum' => 'nullable|numeric|min:0',
             'deskripsi' => 'nullable|string|max:1000',
             'sub_satuan_1_id' => 'required|exists:satuans,id',
@@ -96,11 +100,11 @@ class BahanBakuController extends Controller
             $kodeBahan = 'BB' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
         }
         
-        BahanBaku::create([
+        $bahanBaku = BahanBaku::create([
             'nama_bahan' => $request->nama_bahan,
             'kode_bahan' => $kodeBahan,
             'satuan_id' => $request->satuan_id,
-            'stok' => $request->stok ?? 0,
+            'saldo_awal' => $request->stok ?? 0,
             'harga_satuan' => $request->harga_satuan,
             'stok_minimum' => $request->stok_minimum ?? 0,
             'deskripsi' => $request->deskripsi,
@@ -116,7 +120,25 @@ class BahanBakuController extends Controller
             'coa_pembelian_id' => $request->coa_pembelian_id,
             'coa_persediaan_id' => $request->coa_persediaan_id,
             'coa_hpp_id' => $request->coa_hpp_id,
+            'user_id' => auth()->id(),
         ]);
+
+        // Create initial stock movement if stock > 0
+        if (($request->stok ?? 0) > 0) {
+            \App\Models\StockMovement::create([
+                'item_type' => 'material',
+                'item_id' => $bahanBaku->id,
+                'tanggal' => now()->format('Y-m-d'),
+                'direction' => 'in',
+                'qty' => $request->stok,
+                'satuan' => $bahanBaku->satuan->nama ?? 'Unit',
+                'unit_cost' => $request->harga_satuan ?? 0,
+                'total_cost' => ($request->stok ?? 0) * ($request->harga_satuan ?? 0),
+                'ref_type' => 'initial_stock',
+                'ref_id' => 0,
+                'keterangan' => 'Stok awal ' . $request->nama_bahan,
+            ]);
+        }
 
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
     }
@@ -162,7 +184,7 @@ class BahanBakuController extends Controller
         // Update properties one by one and save
         $bahanBaku->nama_bahan = $request->nama_bahan;
         $bahanBaku->satuan_id = $request->satuan_id;
-        $bahanBaku->stok = $request->stok ?? 0;
+        $bahanBaku->saldo_awal = $request->stok ?? 0;
         $bahanBaku->harga_satuan = $request->harga_satuan ?: $bahanBaku->harga_rata_rata;
         $bahanBaku->stok_minimum = $request->stok_minimum ?? 0;
         $bahanBaku->deskripsi = $request->deskripsi;
@@ -296,16 +318,27 @@ class BahanBakuController extends Controller
             return 0;
         }
         
-        // Hitung total harga dan total quantity
+        // Hitung total harga dan total quantity dalam satuan utama
         $totalHarga = 0;
         $totalQuantity = 0;
         
         foreach ($details as $detail) {
-            $totalHarga += ($detail->harga_satuan ?? 0) * ($detail->jumlah ?? 0);
-            $totalQuantity += ($detail->jumlah ?? 0);
+            // Gunakan jumlah_dalam_satuan_utama untuk perhitungan yang benar
+            $quantityInMainUnit = $detail->jumlah_dalam_satuan_utama ?? 0;
+            
+            // Jika jumlah_dalam_satuan_utama = 0, skip detail ini
+            if ($quantityInMainUnit <= 0) {
+                continue;
+            }
+            
+            // Hitung total harga untuk detail ini
+            $detailTotalHarga = ($detail->harga_satuan ?? 0) * ($detail->jumlah ?? 0);
+            
+            $totalHarga += $detailTotalHarga;
+            $totalQuantity += $quantityInMainUnit;
         }
         
-        // Hitung harga rata-rata
+        // Hitung harga rata-rata per satuan utama
         $averageHarga = $totalQuantity > 0 ? $totalHarga / $totalQuantity : 0;
         
         return $averageHarga;

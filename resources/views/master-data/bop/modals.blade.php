@@ -9,52 +9,12 @@
             <form id="bopProsesForm" action="{{ route('master-data.bop.store-proses-simple') }}" method="POST">
                 @csrf
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label class="form-label">Proses Produksi</label>
-                            <select name="proses_produksi_id" id="proses_produksi_id" class="form-select" required>
-                                <option value="">Pilih Proses</option>
-                                @foreach($prosesProduksis as $proses)
-                                    <option value="{{ $proses->id }}" 
-                                            data-kapasitas="{{ $proses->kapasitas_per_jam }}"
-                                            data-tarif="{{ $proses->tarif_btkl }}"
-                                            data-biaya-per-unit="{{ $proses->biaya_per_produk }}"
-                                            data-nama="{{ $proses->nama_proses }}">
-                                        {{ $proses->nama_proses }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted">Hanya menampilkan nama proses</small>
-                        </div>
-                        <div class="col-md-6">
-                            <div id="btklInfo" class="alert alert-info d-none">
-                                <small>
-                                    <i class="bi bi-info-circle me-1"></i>
-                                    <span id="btklInfoText"></span>
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Process Info -->
-                    <div class="row mt-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Kapasitas (pcs/jam)</label>
-                            <input type="number" id="kapasitas" name="kapasitas" class="form-control" readonly>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">BTKL / Jam</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="text" id="btkl_per_jam" name="btkl_per_jam" class="form-control text-end" readonly>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">BTKL / produk</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="text" id="btkl_per_pcs" name="btkl_per_pcs" class="form-control text-end" readonly>
-                            </div>
+                    <!-- Nama BOP Proses -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label class="form-label">Nama BOP Proses <span class="text-danger">*</span></label>
+                            <input type="text" name="nama_bop_proses" id="nama_bop_proses" class="form-control" placeholder="Contoh: Pertumbuhan, Panen, Sortir, dll" required>
+                            <small class="text-muted">Masukkan nama proses BOP yang ingin Anda buat</small>
                         </div>
                     </div>
                     
@@ -80,8 +40,8 @@
                                         </thead>
                                         <tbody id="komponenRows">
                                             <tr>
-                                                <td><input type="text" name="komponen_name[]" class="form-control" placeholder="Nama komponen"></td>
-                                                <td><input type="number" name="komponen_rate[]" class="form-control komponen-rate" min="0" step="0.01" placeholder="Nilai per produk"></td>
+                                                <td><input type="text" name="komponen_name[]" class="form-control" placeholder="Nama komponen" required></td>
+                                                <td><input type="number" name="komponen_rate[]" class="form-control komponen-rate" min="0" step="0.01" placeholder="0" required></td>
                                                 <td><input type="text" name="komponen_desc[]" class="form-control" placeholder="Keterangan"></td>
                                                 <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">Hapus</button></td>
                                             </tr>
@@ -95,8 +55,7 @@
                                                         <input type="text" id="total_bop_per_jam" name="total_bop_per_jam" class="form-control text-end" readonly>
                                                     </div>
                                                 </td>
-                                                <td></td>
-                                                <td></td>
+                                                <td colspan="2"></td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -104,24 +63,6 @@
                                 <button type="button" class="btn btn-sm btn-success mt-2" onclick="addKomponenRow()">
                                     <i class="fas fa-plus"></i> Tambah Komponen
                                 </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Calculated Values -->
-                    <div class="row mt-3">
-                        <div class="col-md-3">
-                            <label class="form-label">BOP / produk</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="text" id="bop_per_pcs" class="form-control text-end" readonly>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Biaya / produk</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="text" id="biaya_per_produk" class="form-control text-end" readonly>
                             </div>
                         </div>
                     </div>
@@ -135,7 +76,10 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <span class="btn-text">Simpan</span>
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -150,45 +94,17 @@
                 <h5 class="modal-title">Edit BOP Proses</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="editBopProsesForm">
+            <form id="editBopProsesForm" action="" method="POST">
                 @csrf
+                @method('PUT')
                 <input type="hidden" name="id" id="editBopProsesId">
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label class="form-label">Proses Produksi</label>
-                            <input type="text" id="editNamaProses" class="form-control" readonly>
-                            <input type="hidden" name="proses_produksi_id" id="editProsesProduksiId">
-                        </div>
-                        <div class="col-md-6">
-                            <div id="editBtklInfo" class="alert alert-info">
-                                <small>
-                                    <i class="bi bi-info-circle me-1"></i>
-                                    <span id="editBtklInfoText">Data BTKL akan ditampilkan di sini</span>
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Process Info -->
-                    <div class="row mt-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Kapasitas (pcs/jam)</label>
-                            <input type="number" id="editKapasitas" class="form-control" readonly>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">BTKL / Jam</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="text" id="editBtklPerJam" name="btkl_per_jam" class="form-control text-end" readonly>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">BTKL / produk</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="text" id="editBtklPerPcs" class="form-control text-end" readonly>
-                            </div>
+                    <!-- Nama BOP Proses -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <label class="form-label">Nama BOP Proses <span class="text-danger">*</span></label>
+                            <input type="text" name="nama_bop_proses" id="editNamaBopProses" class="form-control" placeholder="Contoh: Pertumbuhan, Panen, Sortir, dll" required>
+                            <small class="text-muted">Masukkan nama proses BOP yang ingin Anda edit</small>
                         </div>
                     </div>
                     
@@ -196,6 +112,11 @@
                     <div class="row mt-3">
                         <div class="col-12">
                             <h6 class="mb-3">Komponen BOP</h6>
+                            <div class="alert alert-info">
+                                <small><i class="fas fa-info-circle me-1"></i>
+                                Masukkan nilai BOP <strong>per produk</strong> untuk setiap komponen. Sistem akan menjumlahkan semua komponen untuk mendapatkan Total BOP per produk.
+                                </small>
+                            </div>
                             <div id="editKomponenContainer">
                                 <div class="table-responsive">
                                     <table class="table table-bordered" id="editKomponenTable">
@@ -216,11 +137,10 @@
                                                 <td>
                                                     <div class="input-group">
                                                         <span class="input-group-text">Rp</span>
-                                                        <input type="text" id="editTotalBopPerJam" name="total_bop_per_jam" class="form-control text-end" readonly>
+                                                        <input type="text" id="editTotalBopPerProduk" name="total_bop_per_produk" class="form-control text-end" readonly>
                                                     </div>
                                                 </td>
-                                                <td></td>
-                                                <td></td>
+                                                <td colspan="2"></td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -232,34 +152,19 @@
                         </div>
                     </div>
                     
-                    <!-- Calculated Values -->
-                    <div class="row mt-3">
-                        <div class="col-md-4">
-                            <label class="form-label">BOP / produk</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="text" id="editBopPerPcs" class="form-control text-end" readonly>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Biaya / produk</label>
-                            <div class="input-group">
-                                <span class="input-group-text">Rp</span>
-                                <input type="text" id="editBiayaPerProduk" class="form-control text-end" readonly>
-                            </div>
-                        </div>
-                    </div>
-                    
                     <div class="row mt-3">
                         <div class="col-12">
                             <label class="form-label">Keterangan</label>
-                            <textarea id="editKeteranganProses" name="keterangan" class="form-control" rows="2"></textarea>
+                            <textarea id="editKeterangan" name="keterangan" class="form-control" rows="2"></textarea>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">Simpan</button>
+                    <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+                        <span class="btn-text">Simpan</span>
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    </button>
                 </div>
             </form>
         </div>

@@ -210,10 +210,9 @@ class BahanPendukungObserver
             ]);
         }
         
-        // 3. Update biaya bahan dan harga_bom di produk
-        $produk->update([
-            'biaya_bahan' => $totalBiayaBahan
-        ]);
+        // NOTE: Bahan pendukung TIDAK lagi mengupdate biaya_bahan
+        // Biaya bahan baku HANYA menghitung bahan baku, tanpa bahan pendukung
+        // Bahan pendukung sudah termasuk dalam perhitungan BOP
         
         // Update harga_bom dengan HPP lengkap (BBB + Bahan Pendukung + BTKL + BOP)
         if ($bomJobCosting) {
@@ -221,17 +220,11 @@ class BahanPendukungObserver
                 'harga_bom' => $bomJobCosting->total_hpp  // HPP lengkap
             ]);
             
-            Log::info('💰 Harga BOM Updated with HPP', [
+            Log::info('💰 Harga BOM Updated with HPP (Bahan Pendukung Changed)', [
                 'produk_id' => $produk->id,
                 'nama_produk' => $produk->nama_produk,
-                'biaya_bahan' => $totalBiayaBahan,
-                'harga_bom' => $bomJobCosting->total_hpp
-            ]);
-        } else {
-            Log::info('💰 Biaya Bahan Updated', [
-                'produk_id' => $produk->id,
-                'nama_produk' => $produk->nama_produk,
-                'biaya_bahan' => $totalBiayaBahan
+                'harga_bom' => $bomJobCosting->total_hpp,
+                'note' => 'biaya_bahan tidak diupdate karena hanya untuk bahan baku'
             ]);
         }
     }
@@ -427,30 +420,21 @@ class BahanPendukungObserver
             $bomJobCosting->recalculate();
         }
         
-        // 5. Update biaya bahan di produk
-        $produk->update([
-            'biaya_bahan' => $totalBiayaBahan
-        ]);
+        // NOTE: Bahan pendukung TIDAK lagi mengupdate biaya_bahan
+        // Biaya bahan baku HANYA menghitung bahan baku, tanpa bahan pendukung
         
-        // 6. Update harga_bom dengan HPP lengkap
+        // 5. Update harga_bom dengan HPP lengkap
         if ($bomJobCosting) {
             $produk->update([
                 'harga_bom' => $bomJobCosting->total_hpp
             ]);
             
-            Log::info('💰 Harga BOM Updated After Deletion', [
+            Log::info('💰 Harga BOM Updated After Bahan Pendukung Deletion', [
                 'produk_id' => $produk->id,
                 'nama_produk' => $produk->nama_produk,
                 'bahan_pendukung_dihapus' => $deletedBahanPendukung->nama_bahan,
-                'biaya_bahan_baru' => $totalBiayaBahan,
-                'harga_bom' => $bomJobCosting->total_hpp
-            ]);
-        } else {
-            Log::info('💰 Biaya Bahan Updated After Deletion', [
-                'produk_id' => $produk->id,
-                'nama_produk' => $produk->nama_produk,
-                'bahan_pendukung_dihapus' => $deletedBahanPendukung->nama_bahan,
-                'biaya_bahan_baru' => $totalBiayaBahan
+                'harga_bom' => $bomJobCosting->total_hpp,
+                'note' => 'biaya_bahan tidak diupdate karena hanya untuk bahan baku'
             ]);
         }
         
@@ -478,26 +462,25 @@ class BahanPendukungObserver
      */
     private function ensureInitialStockMovement(BahanPendukung $bahanPendukung): void
     {
-        // Check if initial stock movement already exists
-        $hasInitialStock = \App\Models\StockMovement::where('item_type', 'support')
+        // Check if ANY stock movement already exists for this item
+        $hasAnyStockMovement = \App\Models\StockMovement::where('item_type', 'support')
             ->where('item_id', $bahanPendukung->id)
-            ->where('ref_type', 'initial_stock')
             ->exists();
             
-        if (!$hasInitialStock) {
-            // Create initial stock movement
-            $stokAwal = $bahanPendukung->stok ?? 0;
-            $hargaRataRata = $bahanPendukung->harga_rata_rata ?? 0;
+        if (!$hasAnyStockMovement && ($bahanPendukung->saldo_awal ?? 0) > 0) {
+            // Create initial stock movement using saldo_awal
+            $stokAwal = $bahanPendukung->saldo_awal ?? 0;
+            $hargaSatuan = $bahanPendukung->harga_satuan ?? 0;
             
             \App\Models\StockMovement::create([
                 'item_type' => 'support',
                 'item_id' => $bahanPendukung->id,
-                'tanggal' => '2026-04-01', // Set consistent initial date
+                'tanggal' => now()->format('Y-m-d'),
                 'direction' => 'in',
                 'qty' => $stokAwal,
-                'satuan' => $bahanPendukung->satuan->nama ?? 'Unit',
-                'unit_cost' => $hargaRataRata,
-                'total_cost' => $stokAwal * $hargaRataRata,
+                'unit' => $bahanPendukung->satuanRelation->nama ?? 'Unit',
+                'unit_cost' => $hargaSatuan,
+                'total_cost' => $stokAwal * $hargaSatuan,
                 'ref_type' => 'initial_stock',
                 'ref_id' => 0,
                 'keterangan' => 'Stok awal ' . $bahanPendukung->nama_bahan,
@@ -506,7 +489,15 @@ class BahanPendukungObserver
             Log::info('Created initial stock movement for new bahan pendukung', [
                 'item_id' => $bahanPendukung->id,
                 'nama_bahan' => $bahanPendukung->nama_bahan,
-                'stok_awal' => $stokAwal
+                'saldo_awal' => $stokAwal,
+                'harga_satuan' => $hargaSatuan
+            ]);
+        } else {
+            Log::info('Skipped creating initial stock movement - already exists or no saldo_awal', [
+                'item_id' => $bahanPendukung->id,
+                'nama_bahan' => $bahanPendukung->nama_bahan,
+                'has_movement' => $hasAnyStockMovement,
+                'saldo_awal' => $bahanPendukung->saldo_awal ?? 0
             ]);
         }
     }
