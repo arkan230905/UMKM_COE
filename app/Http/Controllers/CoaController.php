@@ -305,17 +305,6 @@ class CoaController extends Controller
     {
         $coaColumn = \Illuminate\Support\Facades\Schema::hasColumn('journal_lines', 'coa_id') ? 'coa_id' : 'account_id';
 
-        // Cek apakah punya child accounts (kode_akun yang diawali kode ini + lebih panjang)
-        $childCount = \Illuminate\Support\Facades\DB::table('coas')
-            ->where('user_id', $coa->user_id)
-            ->where('kode_akun', 'LIKE', $coa->kode_akun . '%')
-            ->where('kode_akun', '!=', $coa->kode_akun)
-            ->count();
-        if ($childCount > 0) {
-            return redirect()->route('master-data.coa.index')
-                ->with('error', "Tidak dapat menghapus COA {$coa->kode_akun} karena masih memiliki {$childCount} sub-akun. Hapus sub-akun terlebih dahulu.");
-        }
-
         // Cek journal_lines
         if (\App\Models\JournalLine::where($coaColumn, $coa->id)->count() > 0) {
             return redirect()->route('master-data.coa.index')

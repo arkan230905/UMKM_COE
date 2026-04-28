@@ -7,13 +7,6 @@
         <a href="{{ route('pelanggan.returns.create') }}" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Ajukan Retur</a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show">{{ session('error') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-    @endif
-
     <div class="card border-0 shadow-sm">
         <div class="card-body">
             <div class="table-responsive">

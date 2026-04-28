@@ -6,10 +6,6 @@
 
     <a href="{{ route('master-data.satuan.create') }}" class="btn btn-primary mb-3">Tambah Satuan</a>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
     <table class="table table-bordered bg-white">
         <thead>
             <tr>
