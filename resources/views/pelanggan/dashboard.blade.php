@@ -3,13 +3,12 @@
 @section('content')
 <style>
 .hero-section {
-    background: linear-gradient(135deg, #f8f4e6 0%, #e8dcc0 100%);
-    border-radius: 20px;
+    border-radius: 0;
     padding: 3rem 2rem;
     margin-bottom: 3rem;
+    margin-top: 0;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
 .search-container {
@@ -162,6 +161,10 @@
     font-weight: 600;
     transition: all 0.3s ease;
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 .add-to-cart-btn:hover {
@@ -183,13 +186,16 @@
     background: #25d366;
     border: none;
     border-radius: 50px;
-    padding: 1rem 2rem;
+    padding: 1rem 2.5rem;
     color: white;
     font-weight: 600;
+    font-size: 1rem;
     transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
+    display: block;
+    width: fit-content;
+    margin: 0 auto;
+    text-align: center;
+    cursor: pointer;
 }
 
 .whatsapp-btn:hover {
@@ -200,23 +206,23 @@
 </style>
 
 <!-- Hero Section -->
-<div class="hero-section">
+<div class="hero-section" style="background: url('{{ asset('images/backround halaman pelanggan.jpg') }}') center center / cover no-repeat;">
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-6">
                 <h1 class="display-4 fw-bold text-dark mb-4">
-                    Selamat Datang di UMKM COE
+                    Selamat Datang di {{ \App\Models\Perusahaan::first()->nama ?? 'Toko Kami' }}
                 </h1>
                 <p class="lead text-muted mb-4">
                     Temukan produk berkualitas terbaik dengan harga terjangkau. 
                     Belanja sekarang dan nikmati pengalaman berbelanja yang menyenangkan!
                 </p>
                 <div class="d-flex gap-3">
-                    <a href="#products" class="btn btn-dark btn-lg rounded-pill">
-                        <i class="fas fa-shopping-bag me-2"></i> Mulai Belanja
+                    <a href="#products" class="btn btn-dark btn-lg rounded-pill" style="min-width:180px;text-align:center;">
+                        Mulai Belanja
                     </a>
-                    <a href="{{ route('pelanggan.cart') }}" class="btn btn-outline-dark btn-lg rounded-pill">
-                        <i class="fas fa-shopping-cart me-2"></i> Keranjang
+                    <a href="{{ route('pelanggan.cart') }}" class="btn btn-outline-dark btn-lg rounded-pill" style="min-width:150px;text-align:center;">
+                        Keranjang
                     </a>
                 </div>
             </div>
@@ -343,20 +349,36 @@
     <section class="contact-section">
         <div class="container">
             <h2 class="display-5 fw-bold mb-3">Butuh Bantuan?</h2>
-            <p class="lead mb-4">
-                Ada pertanyaan tentang produk atau pesanan? Hubungi kami melalui WhatsApp.
-            </p>
-            @php
-                $wa = $whatsappNumber ?? '';
-                $wa = preg_replace('/[^0-9]/', '', $wa);
-                $waLink = $wa ? 'https://wa.me/'.$wa : null;
-            @endphp
-            @if($waLink)
-            <a href="{{ $waLink }}" target="_blank" class="whatsapp-btn">
-                <i class="fab fa-whatsapp me-2"></i> Chat via WhatsApp
-            </a>
-            @endif
+            <p class="lead mb-4">Ada pertanyaan tentang produk atau pesanan?</p>
+            <button class="whatsapp-btn" onclick="document.getElementById('waModal').style.display='flex'">
+                Hubungi kami melalui WhatsApp
+            </button>
         </div>
     </section>
 </div>
+
+<!-- WA Modal -->
+<div id="waModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:16px;padding:2rem;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+        <div style="font-size:3rem;margin-bottom:0.5rem;">💬</div>
+        <h5 style="font-weight:700;margin-bottom:0.3rem;">Pilih Nomor WhatsApp</h5>
+        <p style="color:#888;font-size:0.85rem;margin-bottom:1.5rem;">Pilih salah satu nomor untuk menghubungi kami</p>
+        <div style="display:flex;flex-direction:column;gap:0.75rem;">
+            <a href="https://wa.me/6289561985919" target="_blank" style="background:#25D366;color:white;padding:0.75rem 1rem;border-radius:50px;text-decoration:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                <i class="fab fa-whatsapp"></i> 0895619859193
+            </a>
+            <a href="https://wa.me/6282118959085" target="_blank" style="background:#25D366;color:white;padding:0.75rem 1rem;border-radius:50px;text-decoration:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                <i class="fab fa-whatsapp"></i> 082118959085
+            </a>
+            <a href="https://wa.me/6285659739659" target="_blank" style="background:#25D366;color:white;padding:0.75rem 1rem;border-radius:50px;text-decoration:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                <i class="fab fa-whatsapp"></i> 085659739659
+            </a>
+            <a href="https://wa.me/6281298226841" target="_blank" style="background:#25D366;color:white;padding:0.75rem 1rem;border-radius:50px;text-decoration:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                <i class="fab fa-whatsapp"></i> 081298226841
+            </a>
+        </div>
+        <button onclick="document.getElementById('waModal').style.display='none'" style="margin-top:1.25rem;background:none;border:1px solid #ddd;padding:0.5rem 2rem;border-radius:50px;cursor:pointer;color:#666;">Tutup</button>
+    </div>
+</div>
+
 @endsection

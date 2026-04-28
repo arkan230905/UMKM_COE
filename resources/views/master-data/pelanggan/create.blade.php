@@ -98,6 +98,27 @@
                                 </div>
                             </div>
                             
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="address" class="form-label fw-bold">
+                                        <i class="fas fa-map-marker-alt me-1"></i> Alamat
+                                    </label>
+                                    <textarea class="form-control @error('address') is-invalid @enderror"
+                                              id="address"
+                                              name="address"
+                                              rows="3"
+                                              placeholder="Masukkan alamat lengkap pelanggan">{{ old('address') }}</textarea>
+                                    @error('address')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="password" class="form-label fw-bold">

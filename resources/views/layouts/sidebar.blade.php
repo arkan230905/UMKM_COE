@@ -71,7 +71,7 @@
                     <div class="logout-separator"></div>
                     <form method="POST" action="{{ route('logout') }}" style="margin: 0; padding: 0;">
                         @csrf
-                        <button type="submit" class="logout-btn">
+                        <button type="submit" class="nav-link-rounded" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important; color: white !important; margin: 2px 10px 16px 10px !important; padding: 8px 12px !important; border-radius: 12px !important; box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3) !important;">
                             <i class="fas fa-sign-out-alt"></i>
                             <span>Logout</span>
                         </button>
@@ -350,11 +350,11 @@
                 </a>
             </li>
             
-            <li class="nav-item">
+            <li class="nav-item mt-4">
                 <div class="logout-separator"></div>
                 <form method="POST" action="{{ route('logout') }}" style="margin: 0; padding: 0;">
                     @csrf
-                    <button type="submit" class="logout-btn">
+                    <button type="submit" class="nav-link-rounded" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important; color: white !important; margin: 2px 10px 16px 10px !important; padding: 8px 12px !important; border-radius: 12px !important; box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3) !important;">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Logout</span>
                     </button>
