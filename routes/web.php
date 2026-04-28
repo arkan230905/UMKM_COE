@@ -1871,53 +1871,21 @@ Route::get('/update-catalog-desc-now', function () {
     $newCompanyDesc = "Perusahaan manufaktur COE yang berfokus pada efisiensi biaya produksi, pengelolaan sumber daya yang optimal, serta pengendalian proses yang terintegrasi untuk menghasilkan produk berkualitas tinggi secara konsisten.";
     $newTeamDesc = "Didukung oleh fullstack developer yang kompeten dan pembimbing berpengalaman, tim ini menghadirkan solusi digital terintegrasi dengan pendekatan strategis, presisi teknis, dan standar kualitas tinggi.";
 
-    $out = [];
-    $out[] = "Company ID: {$company->id} | Nama: {$company->nama}";
-
-    // Check enum values
-    $enumCheck = \DB::select("SHOW COLUMNS FROM catalog_sections LIKE 'section_type'");
-    $out[] = "Enum: " . ($enumCheck[0]->Type ?? 'unknown');
-
     // Delete all existing sections
-    $deleted = \DB::table('catalog_sections')->where('perusahaan_id', $company->id)->delete();
-    $out[] = "Deleted old sections: {$deleted}";
+    \DB::table('catalog_sections')->where('perusahaan_id', $company->id)->delete();
 
-    // Insert sections one by one with try/catch
-    $inserts = [
-        ['type'=>'cover',    'order'=>1, 'title'=>'Cover',             'content'=>['company_name'=>$company->nama,'company_tagline'=>'BRANDING PRODUCT.','company_description'=>$newCompanyDesc,'explore_text'=>'Explore','cover_photo'=>'']],
-        ['type'=>'team',     'order'=>2, 'title'=>'THE TEAM.',         'content'=>['title'=>'THE TEAM.','description'=>$newTeamDesc,'members'=>[['name'=>'Joko Susilo','position'=>'Direktur Utama','description'=>'Lorem ipsum.','photo'=>''],['name'=>'Sari Wulandari','position'=>'Manajer Produksi','description'=>'Lorem ipsum.','photo'=>'']]]],
-        ['type'=>'products', 'order'=>3, 'title'=>'PRODUCT MATERIAL.', 'content'=>['title'=>'PRODUCT MATERIAL.']],
-        ['type'=>'location', 'order'=>4, 'title'=>'LOKASI KAMI.',      'content'=>['title'=>'LOKASI KAMI.','name'=>$company->nama,'address'=>$company->alamat??'','phone'=>$company->telepon??'','email'=>$company->email??'','maps_link'=>$company->maps_link??'']],
-    ];
+    // Insert fresh sections
+    \DB::table('catalog_sections')->insert([
+        ['perusahaan_id'=>$company->id,'section_type'=>'cover',    'title'=>'Cover',            'content'=>json_encode(['company_name'=>$company->nama,'company_tagline'=>'BRANDING PRODUCT.','company_description'=>$newCompanyDesc,'explore_text'=>'Explore','cover_photo'=>'']),'order'=>1,'is_active'=>1,'created_at'=>now(),'updated_at'=>now()],
+        ['perusahaan_id'=>$company->id,'section_type'=>'team',     'title'=>'THE TEAM.',        'content'=>json_encode(['title'=>'THE TEAM.','description'=>$newTeamDesc,'members'=>[['name'=>'Joko Susilo','position'=>'Direktur Utama','description'=>'Lorem ipsum dolor sit amet, consectetur adipiscing elit.','photo'=>''],['name'=>'Sari Wulandari','position'=>'Manajer Produksi','description'=>'Lorem ipsum dolor sit amet, consectetur adipiscing elit.','photo'=>'']]]),'order'=>2,'is_active'=>1,'created_at'=>now(),'updated_at'=>now()],
+        ['perusahaan_id'=>$company->id,'section_type'=>'products', 'title'=>'PRODUCT MATERIAL.','content'=>json_encode(['title'=>'PRODUCT MATERIAL.']),'order'=>3,'is_active'=>1,'created_at'=>now(),'updated_at'=>now()],
+        ['perusahaan_id'=>$company->id,'section_type'=>'location', 'title'=>'LOKASI KAMI.',     'content'=>json_encode(['title'=>'LOKASI KAMI.','name'=>$company->nama,'address'=>$company->alamat??'','phone'=>$company->telepon??'','email'=>$company->email??'','maps_link'=>$company->maps_link??'']),'order'=>4,'is_active'=>1,'created_at'=>now(),'updated_at'=>now()],
+    ]);
 
-    foreach ($inserts as $row) {
-        try {
-            \DB::table('catalog_sections')->insert([
-                'perusahaan_id' => $company->id,
-                'section_type'  => $row['type'],
-                'title'         => $row['title'],
-                'content'       => json_encode($row['content']),
-                'order'         => $row['order'],
-                'is_active'     => 1,
-                'created_at'    => now(),
-                'updated_at'    => now(),
-            ]);
-            $out[] = "✅ Inserted: {$row['type']}";
-        } catch (\Exception $e) {
-            $out[] = "❌ Failed {$row['type']}: " . $e->getMessage();
-        }
-    }
-
-    // Update company description
     $company->catalog_description = $newCompanyDesc;
     $company->save();
-    $out[] = "✅ Company catalog_description updated";
 
-    // Verify count
-    $count = \DB::table('catalog_sections')->where('perusahaan_id', $company->id)->count();
-    $out[] = "Total sections in DB: {$count}";
-
-    return '<pre>' . implode("\n", $out) . '</pre><br><a href="/catalog">→ Buka /catalog</a>';
+    return redirect('/kelola-catalog');
 });
 
 // Pelanggan Login Routes - Public

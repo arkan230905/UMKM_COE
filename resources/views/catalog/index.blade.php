@@ -50,7 +50,6 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    filter: grayscale(100%) contrast(1.2);
 }
 
 .default-cover {
@@ -259,12 +258,11 @@ body {
     height: 100%;
     object-fit: cover;
     border-radius: 0;
-    filter: grayscale(100%);
     transition: filter 0.3s;
 }
 
 .team-member:hover .member-photo img {
-    filter: grayscale(0%);
+    filter: none;
 }
 
 .member-info {
@@ -335,12 +333,11 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    filter: grayscale(100%);
-    transition: filter 0.3s;
+    transition: transform 0.3s;
 }
 
 .product-item:hover .product-image img {
-    filter: grayscale(0%);
+    transform: scale(1.05);
 }
 
 .product-image .no-image {
@@ -508,7 +505,7 @@ body {
                     <div class="explore-button">{{ $coverData['explore_text'] }}</div>
                 </div>
             </div>
-            <div class="dorth-text">DORTH</div>
+            <div class="dorth-text"></div>
         </div>
     </div>
 </section>
