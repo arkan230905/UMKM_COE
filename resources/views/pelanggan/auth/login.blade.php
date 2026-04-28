@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Pelanggan - UMKM COE</title>
+    <title>Login Pelanggan - {{ \App\Models\Perusahaan::first()->nama ?? 'Toko Kami' }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
-            background: linear-gradient(135deg, #f8f4e6 0%, #e8dcc0 100%);
+            background: url('/images/latar login pelanggan.jpg') center center / cover no-repeat fixed;
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -40,9 +40,12 @@
         }
         
         .brand-logo {
-            font-size: 2rem;
+            font-size: 1.6rem;
             font-weight: bold;
             margin-bottom: 1rem;
+            text-align: center;
+            line-height: 1.3;
+            word-break: break-word;
         }
         
         .brand-tagline {
@@ -126,7 +129,7 @@
             <div class="col-md-5 login-left">
                 <div class="brand-logo">
                     <i class="fas fa-shopping-bag me-2"></i>
-                    UMKM COE
+                    {{ \App\Models\Perusahaan::first()->nama ?? 'Toko Kami' }}
                 </div>
                 <div class="brand-tagline">
                     Temukan produk berkualitas terbaik untuk kebutuhan Anda
@@ -215,18 +218,23 @@
                         <label for="password" class="form-label fw-bold">
                             <i class="fas fa-lock me-2"></i>Password
                         </label>
-                        <input type="password" 
-                               class="form-control @error('password') is-invalid @enderror" 
-                               id="password" 
-                               name="password" 
-                               placeholder="Masukkan password Anda" 
-                               required 
-                               autocomplete="current-password">
-                        @error('password')
-                            <div class="invalid-feedback">
-                                {{ $message }}
-                            </div>
-                        @enderror
+                        <div class="input-group">
+                            <input type="password" 
+                                   class="form-control @error('password') is-invalid @enderror" 
+                                   id="password" 
+                                   name="password" 
+                                   placeholder="Masukkan password Anda" 
+                                   required 
+                                   autocomplete="current-password">
+                            <button type="button" class="btn btn-outline-secondary" id="togglePassword" tabindex="-1">
+                                <i class="fas fa-eye" id="toggleIcon"></i>
+                            </button>
+                            @error('password')
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
+                            @enderror
+                        </div>
                     </div>
 
                     <!-- Remember Me -->
@@ -261,29 +269,25 @@
                         </p>
                         
                         <!-- Contact Information -->
-                        <div class="mt-4 p-3 border rounded" style="background-color: #f8f9fa; border-color: #e9ecef !important;">
-                            <h6 class="mb-3 text-center fw-bold">
-                                <i class="fas fa-headset me-2"></i>Hubungi Kami
-                            </h6>
-                            <div class="row g-2">
-                                <div class="col-12">
-                                    <small class="d-block mb-2">
-                                        <i class="fas fa-phone me-2 text-primary"></i>
-                                        <strong>Telepon:</strong> +62 812-3456-7890
-                                    </small>
+                        <div class="mt-4 text-center">
+                            <button onclick="document.getElementById('waModalLogin').style.display='flex'" style="background:#25D366;border:none;border-radius:50px;padding:0.6rem 1.5rem;color:white;font-weight:600;cursor:pointer;font-size:0.9rem;">
+                                <i class="fab fa-whatsapp me-2"></i> Hubungi kami di WhatsApp untuk kendala
+                            </button>
+                        </div>
+
+                        <!-- WA Modal Login -->
+                        <div id="waModalLogin" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+                            <div style="background:white;border-radius:16px;padding:2rem;max-width:360px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                                <div style="font-size:3rem;margin-bottom:0.5rem;">💬</div>
+                                <h5 style="font-weight:700;margin-bottom:0.3rem;">Pilih Nomor WhatsApp</h5>
+                                <p style="color:#888;font-size:0.85rem;margin-bottom:1.5rem;">Pilih salah satu nomor untuk menghubungi kami</p>
+                                <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                                    <a href="https://wa.me/6289561985919" target="_blank" style="background:#25D366;color:white;padding:0.75rem 1rem;border-radius:50px;text-decoration:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;"><i class="fab fa-whatsapp"></i> 0895619859193</a>
+                                    <a href="https://wa.me/6282118959085" target="_blank" style="background:#25D366;color:white;padding:0.75rem 1rem;border-radius:50px;text-decoration:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;"><i class="fab fa-whatsapp"></i> 082118959085</a>
+                                    <a href="https://wa.me/6285659739659" target="_blank" style="background:#25D366;color:white;padding:0.75rem 1rem;border-radius:50px;text-decoration:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;"><i class="fab fa-whatsapp"></i> 085659739659</a>
+                                    <a href="https://wa.me/6281298226841" target="_blank" style="background:#25D366;color:white;padding:0.75rem 1rem;border-radius:50px;text-decoration:none;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;"><i class="fab fa-whatsapp"></i> 081298226841</a>
                                 </div>
-                                <div class="col-12">
-                                    <small class="d-block mb-2">
-                                        <i class="fas fa-envelope me-2 text-primary"></i>
-                                        <strong>Email:</strong> support@umkmcoe.com
-                                    </small>
-                                </div>
-                                <div class="col-12">
-                                    <small class="d-block">
-                                        <i class="fab fa-whatsapp me-2 text-success"></i>
-                                        <strong>WhatsApp:</strong> +62 812-3456-7890
-                                    </small>
-                                </div>
+                                <button onclick="document.getElementById('waModalLogin').style.display='none'" style="margin-top:1.25rem;background:none;border:1px solid #ddd;padding:0.5rem 2rem;border-radius:50px;cursor:pointer;color:#666;">Tutup</button>
                             </div>
                         </div>
                     </div>
@@ -293,5 +297,18 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const input = document.getElementById('password');
+            const icon  = document.getElementById('toggleIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        });
+    </script>
 </body>
 </html>

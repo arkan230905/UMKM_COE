@@ -27,22 +27,23 @@ class PelangganController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'required|string|max:20',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email',
+            'phone'    => 'required|string|max:20',
+            'address'  => 'nullable|string',
             'password' => 'required|min:6|confirmed',
         ]);
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'password' => Hash::make($request->password),
-            'role' => 'pelanggan',
-            'email_verified_at' => now(),
+            'name'               => $request->name,
+            'email'              => $request->email,
+            'phone'              => $request->phone,
+            'address'            => $request->address,
+            'password'           => Hash::make($request->password),
+            'role'               => 'pelanggan',
+            'email_verified_at'  => now(),
         ]);
-        
-        // Store plain password separately for admin view (security consideration)
+
         $user->plain_password = $request->password;
         $user->save();
 
@@ -101,16 +102,18 @@ class PelangganController extends Controller
         $pelanggan = User::where('role', 'pelanggan')->findOrFail($id);
 
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $id,
-            'phone' => 'required|string|max:20',
+            'name'    => 'required|string|max:255',
+            'email'   => 'required|email|unique:users,email,' . $id,
+            'phone'   => 'required|string|max:20',
+            'address' => 'nullable|string',
             'password' => 'nullable|min:6|confirmed',
         ]);
 
         $data = [
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
+            'name'    => $request->name,
+            'email'   => $request->email,
+            'phone'   => $request->phone,
+            'address' => $request->address,
         ];
 
         // Update password jika diisi

@@ -14,9 +14,14 @@ class LoginController extends Controller
      */
     public function showLoginForm(Request $request)
     {
-        // If already logged in, redirect to dashboard
+        // Hanya redirect ke dashboard jika sudah login sebagai pelanggan (role pelanggan)
         if (Auth::check()) {
-            return redirect()->route('pelanggan.dashboard');
+            if (Auth::user()->role === 'pelanggan') {
+                return redirect()->route('pelanggan.dashboard');
+            } else {
+                // Jika sudah login tapi bukan pelanggan, redirect ke dashboard admin
+                return redirect('/dashboard');
+            }
         }
 
         // Get redirect URL and product info from query parameters
@@ -38,6 +43,14 @@ class LoginController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
+
+            // Pastikan hanya role pelanggan yang bisa login di sini
+            if (Auth::user()->role !== 'pelanggan') {
+                Auth::logout();
+                return back()->withErrors([
+                    'email' => 'Akun ini bukan akun pelanggan.',
+                ])->withInput($request->only('email'));
+            }
 
             // Get redirect URL from request or default to dashboard
             $redirect = $request->input('redirect', 'pelanggan.dashboard');
