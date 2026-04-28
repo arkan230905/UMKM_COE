@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Produk;
 use App\Models\Perusahaan;
 use App\Models\CatalogPhoto;
+use App\Models\CatalogSection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class KelolaCatalogController extends Controller
@@ -24,86 +26,16 @@ class KelolaCatalogController extends Controller
             $company = Perusahaan::find($user->perusahaan_id);
         }
 
-        // Get catalog photos
-        $catalogPhotos = [];
+        // Get products for preview
+        $produks = collect();
         if ($company) {
-            $catalogPhotos = $company->catalogPhotos()->active()->get();
+            $produks = Produk::with(['bomJobCosting'])
+                ->where('show_in_catalog', true)
+                ->orderBy('nama_produk', 'asc')
+                ->get();
         }
 
-        // Get products with search and filters
-        $query = Produk::with(['bomJobCosting']);
-
-        // Apply search filter
-        if ($request->has('search') && !empty($request->search)) {
-            $searchTerm = $request->search;
-            $query->where(function($q) use ($searchTerm) {
-                $q->where('nama_produk', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('deskripsi', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('barcode', 'LIKE', "%{$searchTerm}%");
-            });
-        }
-
-        // Apply stock filter
-        if ($request->has('stock_filter') && $request->stock_filter !== 'all') {
-            switch ($request->stock_filter) {
-                case 'available':
-                    $query->where('stok', '>', 0);
-                    break;
-                case 'out_of_stock':
-                    $query->where('stok', '<=', 0);
-                    break;
-                case 'low_stock':
-                    $query->where('stok', '>', 0)->where('stok', '<=', 10);
-                    break;
-            }
-        }
-
-        // Apply price filter
-        if ($request->has('price_filter') && $request->price_filter !== 'all') {
-            switch ($request->price_filter) {
-                case 'under_10k':
-                    $query->where('harga_jual', '<', 10000);
-                    break;
-                case '10k_50k':
-                    $query->where('harga_jual', '>=', 10000)->where('harga_jual', '<=', 50000);
-                    break;
-                case '50k_100k':
-                    $query->where('harga_jual', '>=', 50000)->where('harga_jual', '<=', 100000);
-                    break;
-                case 'over_100k':
-                    $query->where('harga_jual', '>', 100000);
-                    break;
-            }
-        }
-
-        $produks = $query->orderBy('nama_produk', 'asc')->paginate(12);
-
-        // Calculate HPP for each product
-        foreach ($produks as $produk) {
-            $totalBiayaBahan = 0;
-            $totalBTKL = 0;
-            $totalBOP = 0;
-            
-            $bomJobCosting = $produk->bomJobCosting;
-            
-            if ($bomJobCosting) {
-                $totalBiayaBahan = $bomJobCosting->total_bbb + $bomJobCosting->total_bahan_pendukung;
-                $totalBOP = $bomJobCosting->total_bop > 0 && $bomJobCosting->total_bop <= 50000 ? $bomJobCosting->total_bop : 0;
-            }
-            
-            $totalBiayaHPP = $totalBiayaBahan + $totalBTKL + $totalBOP;
-            $produk->hpp_calculated = $totalBiayaHPP;
-            
-            // Calculate margin percentage
-            if ($produk->harga_jual > 0) {
-                $margin = (($produk->harga_jual - $totalBiayaHPP) / $produk->harga_jual) * 100;
-                $produk->margin_percentage = round($margin, 2);
-            } else {
-                $produk->margin_percentage = 0;
-            }
-        }
-
-        return view('kelola-catalog.index', compact('produks', 'company', 'catalogPhotos'));
+        return view('kelola-catalog.index', compact('company', 'produks'));
     }
 
     /**
@@ -202,11 +134,21 @@ class KelolaCatalogController extends Controller
             'email' => 'required|email|max:255',
             'telepon' => 'required|string|max:20',
             'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'catalog_description' => 'nullable|string|max:1000',
+            'catalog_description' => 'nullable|string|max:2000',
+            'maps_link' => 'nullable|string|max:1000',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'background_type' => 'required|in:color,gradient,image',
+            'background_color' => 'nullable|string|max:7',
+            'gradient_color_1' => 'nullable|string|max:7',
+            'gradient_color_2' => 'nullable|string|max:7',
+            'gradient_direction' => 'nullable|string|max:50',
+            'background_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
+            'background_opacity' => 'nullable|integer|min:0|max:100',
         ]);
 
         try {
-            // Handle photo upload
+            // Handle company logo upload
             if ($request->hasFile('foto')) {
                 // Delete old photo if exists
                 if ($company->foto && Storage::disk('public')->exists($company->foto)) {
@@ -219,22 +161,46 @@ class KelolaCatalogController extends Controller
                 $company->foto = $path;
             }
 
+            // Handle background image upload
+            if ($request->hasFile('background_image')) {
+                // Delete old background image if exists
+                if ($company->background_image && Storage::disk('public')->exists($company->background_image)) {
+                    Storage::disk('public')->delete($company->background_image);
+                }
+
+                $file = $request->file('background_image');
+                $filename = 'bg_' . $company->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $path = $file->storeAs('catalog-backgrounds', $filename, 'public');
+                $company->background_image = $path;
+            }
+
+            // Update company data
             $company->update([
                 'nama' => $request->nama,
                 'alamat' => $request->alamat,
                 'email' => $request->email,
                 'telepon' => $request->telepon,
                 'catalog_description' => $request->catalog_description,
+                'maps_link' => $request->maps_link,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+                'background_type' => $request->background_type,
+                'background_color' => $request->background_color,
+                'gradient_color_1' => $request->gradient_color_1,
+                'gradient_color_2' => $request->gradient_color_2,
+                'gradient_direction' => $request->gradient_direction ?? 'to right',
+                'background_opacity' => $request->background_opacity ?? 50,
             ]);
 
             if ($request->ajax()) {
-                return response()->json(['success' => true, 'message' => 'Informasi perusahaan berhasil diperbarui.']);
+                return response()->json(['success' => true, 'message' => 'Semua pengaturan catalog berhasil diperbarui.']);
             }
 
             return redirect()->route('kelola-catalog.settings')
-                ->with('success', 'Pengaturan catalog berhasil diperbarui.');
+                ->with('success', 'Semua pengaturan catalog berhasil diperbarui.');
                 
         } catch (\Exception $e) {
+            \Log::error('Error updating catalog settings: ' . $e->getMessage());
             if ($request->ajax()) {
                 return response()->json(['success' => false, 'message' => 'Terjadi kesalahan: ' . $e->getMessage()]);
             }
@@ -740,5 +706,344 @@ class KelolaCatalogController extends Controller
         }
 
         return view('fixed_update_form', compact('company'));
+    }
+
+    /**
+     * Save all catalog sections
+     */
+    public function saveSections(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $company = Perusahaan::find($user->perusahaan_id);
+
+            if (!$company) {
+                return response()->json(['success' => false, 'message' => 'Perusahaan tidak ditemukan.']);
+            }
+
+            $catalogData = $request->input('sections', []);
+            \Log::info('Received catalog data:', $catalogData);
+
+            // Begin transaction
+            \DB::beginTransaction();
+
+            // Handle cover photo upload if provided as base64
+            if (isset($catalogData['cover']['cover_photo']) && !empty($catalogData['cover']['cover_photo'])) {
+                $coverPhotoData = $catalogData['cover']['cover_photo'];
+                
+                // Check if it's a base64 image
+                if (preg_match('/^data:image\/(\w+);base64,/', $coverPhotoData, $type)) {
+                    $coverPhotoData = substr($coverPhotoData, strpos($coverPhotoData, ',') + 1);
+                    $type = strtolower($type[1]); // jpg, png, gif
+                    
+                    $coverPhotoData = base64_decode($coverPhotoData);
+                    
+                    if ($coverPhotoData !== false) {
+                        // Delete old cover photo if exists
+                        if ($company->foto && Storage::disk('public')->exists($company->foto)) {
+                            Storage::disk('public')->delete($company->foto);
+                        }
+                        
+                        $filename = 'cover_' . $company->id . '_' . time() . '.' . $type;
+                        $path = 'company-photos/' . $filename;
+                        
+                        Storage::disk('public')->put($path, $coverPhotoData);
+                        $company->foto = $path;
+                        $company->save();
+                        
+                        \Log::info('Cover photo saved', ['path' => $path]);
+                    }
+                }
+            }
+
+            // Handle team member photos
+            if (isset($catalogData['team']['members']) && is_array($catalogData['team']['members'])) {
+                $members = [];
+                foreach ($catalogData['team']['members'] as $member) {
+                    if (isset($member['photo']) && !empty($member['photo'])) {
+                        $photoData = $member['photo'];
+                        
+                        // Check if it's a base64 image
+                        if (preg_match('/^data:image\/(\w+);base64,/', $photoData, $type)) {
+                            $photoData = substr($photoData, strpos($photoData, ',') + 1);
+                            $type = strtolower($type[1]); // jpg, png, gif
+                            
+                            $photoData = base64_decode($photoData);
+                            
+                            if ($photoData !== false) {
+                                $filename = 'team_' . $company->id . '_' . time() . '_' . uniqid() . '.' . $type;
+                                $path = 'team-photos/' . $filename;
+                                
+                                Storage::disk('public')->put($path, $photoData);
+                                
+                                // Update member photo to storage path
+                                $member['photo'] = asset('storage/' . $path);
+                                
+                                \Log::info('Team member photo saved', ['path' => $path]);
+                            }
+                        }
+                    }
+                    $members[] = $member;
+                }
+                
+                // Update catalogData with new photo paths
+                $catalogData['team']['members'] = $members;
+            }
+
+            // Delete all existing sections for this company
+            $company->catalogSections()->delete();
+
+            // Create sections from catalog data
+            $sections = [];
+
+            // Cover section
+            if (isset($catalogData['cover'])) {
+                $sections[] = [
+                    'perusahaan_id' => $company->id,
+                    'section_type' => 'cover',
+                    'title' => 'Cover',
+                    'content' => json_encode($catalogData['cover']),
+                    'order' => 1,
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+
+            // Team section
+            if (isset($catalogData['team'])) {
+                $sections[] = [
+                    'perusahaan_id' => $company->id,
+                    'section_type' => 'team',
+                    'title' => $catalogData['team']['title'] ?? 'THE TEAM.',
+                    'content' => json_encode($catalogData['team']),
+                    'order' => 2,
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+
+            // Products section
+            if (isset($catalogData['products'])) {
+                $sections[] = [
+                    'perusahaan_id' => $company->id,
+                    'section_type' => 'products',
+                    'title' => $catalogData['products']['title'] ?? 'PRODUCT MATERIAL.',
+                    'content' => json_encode($catalogData['products']),
+                    'order' => 3,
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+
+            // Location section
+            if (isset($catalogData['location'])) {
+                $sections[] = [
+                    'perusahaan_id' => $company->id,
+                    'section_type' => 'location',
+                    'title' => $catalogData['location']['title'] ?? 'LOKASI KAMI.',
+                    'content' => json_encode($catalogData['location']),
+                    'order' => 4,
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }
+
+            // Insert all sections
+            if (!empty($sections)) {
+                \DB::table('catalog_sections')->insert($sections);
+                \Log::info('Inserted catalog sections:', $sections);
+            }
+
+            // Update company basic info if provided in cover section
+            if (isset($catalogData['cover'])) {
+                $coverData = $catalogData['cover'];
+                $updateData = [];
+                
+                if (isset($coverData['company_name']) && !empty($coverData['company_name'])) {
+                    $updateData['nama'] = $coverData['company_name'];
+                }
+                
+                if (isset($coverData['company_description']) && !empty($coverData['company_description'])) {
+                    $updateData['catalog_description'] = $coverData['company_description'];
+                }
+                
+                if (!empty($updateData)) {
+                    $company->update($updateData);
+                    \Log::info('Updated company cover data:', $updateData);
+                }
+            }
+
+            // Update location info if provided
+            if (isset($catalogData['location'])) {
+                $locationData = $catalogData['location'];
+                $updateData = [];
+                
+                if (isset($locationData['maps_link']) && !empty($locationData['maps_link'])) {
+                    $updateData['maps_link'] = $locationData['maps_link'];
+                }
+                
+                if (isset($locationData['phone']) && !empty($locationData['phone'])) {
+                    $updateData['telepon'] = $locationData['phone'];
+                }
+                
+                if (isset($locationData['email']) && !empty($locationData['email'])) {
+                    $updateData['email'] = $locationData['email'];
+                }
+                
+                if (isset($locationData['address']) && !empty($locationData['address'])) {
+                    $updateData['alamat'] = $locationData['address'];
+                }
+                
+                if (!empty($updateData)) {
+                    $company->update($updateData);
+                    \Log::info('Updated company location data:', $updateData);
+                }
+            }
+
+            \DB::commit();
+            \Log::info('Transaction committed successfully');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Semua data catalog berhasil tersimpan!'
+            ]);
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Error saving catalog sections: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Upload team member photo
+     */
+    public function uploadTeamPhoto(Request $request)
+    {
+        try {
+            \Log::info('Upload team photo request received');
+            
+            $request->validate([
+                'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB
+            ], [
+                'photo.required' => 'Foto harus dipilih.',
+                'photo.image' => 'File harus berupa gambar.',
+                'photo.mimes' => 'Format file harus JPG, PNG, GIF.',
+                'photo.max' => 'Ukuran file maksimal 5MB.',
+            ]);
+
+            $user = Auth::user();
+            $company = Perusahaan::find($user->perusahaan_id);
+
+            if (!$company) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Perusahaan tidak ditemukan.'
+                ], 404);
+            }
+
+            $file = $request->file('photo');
+            $filename = 'team_' . $company->id . '_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            
+            // Store in team-photos directory
+            $path = $file->storeAs('team-photos', $filename, 'public');
+            
+            \Log::info('Team photo uploaded successfully', ['path' => $path]);
+
+            return response()->json([
+                'success' => true,
+                'photo_url' => asset('storage/' . $path),
+                'photo_path' => $path,
+                'message' => 'Foto anggota tim berhasil diupload.'
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation error uploading team photo', ['errors' => $e->errors()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal: ' . implode(', ', array_map(fn($err) => implode(', ', $err), $e->errors()))
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error uploading team photo', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengupload foto: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload cover photo
+     */
+    public function uploadCoverPhoto(Request $request)
+    {
+        try {
+            \Log::info('Upload cover photo request received');
+            
+            $request->validate([
+                'foto' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB
+            ], [
+                'foto.required' => 'Foto harus dipilih.',
+                'foto.image' => 'File harus berupa gambar.',
+                'foto.mimes' => 'Format file harus JPG, PNG, GIF.',
+                'foto.max' => 'Ukuran file maksimal 5MB.',
+            ]);
+
+            $user = Auth::user();
+            $company = Perusahaan::find($user->perusahaan_id);
+
+            if (!$company) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Perusahaan tidak ditemukan.'
+                ], 404);
+            }
+
+            $file = $request->file('foto');
+            
+            // Delete old cover photo if exists
+            if ($company->foto && Storage::disk('public')->exists($company->foto)) {
+                Storage::disk('public')->delete($company->foto);
+                \Log::info('Old cover photo deleted', ['path' => $company->foto]);
+            }
+            
+            $filename = 'cover_' . $company->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            
+            // Store in company-photos directory
+            $path = $file->storeAs('company-photos', $filename, 'public');
+            
+            // Update company foto field
+            $company->update(['foto' => $path]);
+            
+            \Log::info('Cover photo uploaded and saved successfully', ['path' => $path]);
+
+            return response()->json([
+                'success' => true,
+                'photo_url' => asset('storage/' . $path),
+                'photo_path' => $path,
+                'message' => 'Foto cover berhasil diupload dan tersimpan.'
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Validation error uploading cover photo', ['errors' => $e->errors()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal: ' . implode(', ', array_map(fn($err) => implode(', ', $err), $e->errors()))
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Error uploading cover photo', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengupload foto: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

@@ -459,6 +459,12 @@ class ProdukController extends Controller
             $catalogPhotos = $company->catalogPhotos()->active()->get();
         }
 
-        return view('catalog.index', compact('produks', 'company', 'catalogPhotos'));
+        // Check if company has catalog sections (builder data)
+        $sections = collect();
+        if ($company) {
+            $sections = $company->catalogSections()->where('is_active', true)->orderBy('order')->get();
+        }
+
+        return view('catalog.index', compact('produks', 'company', 'catalogPhotos', 'sections'));
     }
 }
