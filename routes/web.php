@@ -3462,6 +3462,11 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::post('/photos/{id}', [KelolaCatalogController::class, 'updatePhoto'])->name('photos.update');
         Route::delete('/photos/{id}', [KelolaCatalogController::class, 'deletePhoto'])->name('photos.delete');
         Route::post('/photos/reorder', [KelolaCatalogController::class, 'reorderPhotos'])->name('photos.reorder');
+        
+        // Catalog builder routes
+        Route::post('/builder/save', [KelolaCatalogController::class, 'saveSections'])->name('builder.save');
+        Route::post('/builder/upload-cover-photo', [KelolaCatalogController::class, 'uploadCoverPhoto'])->name('builder.upload-cover-photo');
+        Route::post('/builder/upload-team-photo', [KelolaCatalogController::class, 'uploadTeamPhoto'])->name('builder.upload-team-photo');
     });
 
     // ================================================================

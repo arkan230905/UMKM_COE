@@ -1,713 +1,715 @@
 @extends('layouts.catalog')
 
-@section('title', 'E-Catalog UMKM Desa')
+@section('title', 'E-Catalog ' . ($company->nama ?? 'UMKM'))
 
-@section('content')
-
-<!-- ================= HERO SLIDER ================= -->
-<section class="hero-slider">
-    <div class="slider-container-full">
-        <div class="slider-wrapper">
-            @forelse($catalogPhotos as $index => $photo)
-            <div class="slide {{ $index == 0 ? 'active' : '' }}">
-                <img src="{{ asset('storage/'.$photo->foto) }}" alt="{{ $photo->judul ?: 'Foto Catalog' }}">
-                @if($photo->judul || $photo->deskripsi)
-                <div class="slide-overlay">
-                    <div class="slide-content">
-                        @if($photo->judul)
-                        <h2>{{ $photo->judul }}</h2>
-                        @endif
-                        @if($photo->deskripsi)
-                        <p>{{ $photo->deskripsi }}</p>
-                        @endif
-                    </div>
-                </div>
-                @endif
-            </div>
-            @empty
-            <!-- Fallback to product photos if no catalog photos -->
-            @forelse($produks->take(3) as $index => $produk)
-            <div class="slide {{ $index == 0 ? 'active' : '' }}">
-                @if($produk->foto)
-                    <img src="{{ asset('storage/'.$produk->foto) }}" alt="{{ $produk->nama_produk }}">
-                @else
-                    <img src="/images/no-image.png" alt="{{ $produk->nama_produk }}">
-                @endif
-            </div>
-            @empty
-            <!-- Default fallback images -->
-            <div class="slide active">
-                <img src="/images/umkm-default-1.jpg" alt="UMKM Produk">
-            </div>
-            <div class="slide">
-                <img src="/images/umkm-default-2.jpg" alt="UMKM Produk">
-            </div>
-            <div class="slide">
-                <img src="/images/umkm-default-3.jpg" alt="UMKM Produk">
-            </div>
-            @endforelse
-            @endforelse
-        </div>
-        
-        <!-- Slider Controls -->
-        <button class="slider-btn prev-btn" onclick="changeSlide(-1)">
-            <i class="fas fa-chevron-left"></i>
-        </button>
-        <button class="slider-btn next-btn" onclick="changeSlide(1)">
-            <i class="fas fa-chevron-right"></i>
-        </button>
-        
-        <!-- Slider Indicators -->
-        <div class="slider-indicators">
-            @php
-                $totalSlides = $catalogPhotos->count() > 0 ? $catalogPhotos->count() : max($produks->count(), 3);
-            @endphp
-            @for($i = 0; $i < $totalSlides; $i++)
-            <span class="indicator {{ $i == 0 ? 'active' : '' }}" onclick="goToSlide({{ $i }})"></span>
-            @endfor
-        </div>
-    </div>
-</section>
-
-<!-- ================= TENTANG PERUSAHAAN ================= -->
-@if($company)
-<section class="section-white">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-12">
-                <div class="row g-4 align-items-center">
-                    <div class="col-md-6">
-                        @if($company->foto)
-                            <img src="{{ asset('storage/'.$company->foto) }}" alt="Logo {{ $company->nama }}" class="img-fluid rounded-3 shadow">
-                        @else
-                            <img src="/images/company-default.jpg" alt="Logo {{ $company->nama }}" class="img-fluid rounded-3 shadow">
-                        @endif
-                    </div>
-                    <div class="col-md-6">
-                        <div class="desa-content">
-                            <h1 class="section-title mb-4">Tentang {{ $company->nama }}</h1>
-                            @if($company->catalog_description)
-                            <p class="desa-description">
-                                {!! nl2br(e($company->catalog_description)) !!}
-                            </p>
-                            @else
-                            <p class="desa-description">
-                                {{ $company->nama }} adalah sebuah UMKM yang bergerak di bidang {{ $company->jenis_usaha ?? 'produksi makanan' }}, 
-                                terletak di {{ $company->alamat }}. Perusahaan ini berkomitmen untuk menyediakan produk berkualitas tinggi 
-                                dengan bahan baku pilihan dan proses produksi yang higienis.
-                            </p>
-                            <p class="desa-description">
-                                Dengan pengalaman dalam industri {{ $company->jenis_usaha ?? 'makanan' }}, {{ $company->nama }} 
-                                terus berinovasi untuk menghadirkan produk terbaik bagi konsumen. Kami menjunjung tinggi nilai-nilai 
-                                kualitas, kebersihan, dan kepuasan pelanggan dalam setiap produk yang kami hasilkan.
-                            </p>
-                            <p class="desa-description">
-                                <strong>Kontak:</strong><br>
-                                <i class="fas fa-envelope me-1"></i>{{ $company->email }}<br>
-                                <i class="fas fa-phone me-1"></i>{{ $company->telepon }}<br>
-                                <i class="fas fa-map-marker-alt me-1"></i>{{ $company->alamat }}
-                            </p>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-@else
-<!-- Default section jika tidak ada company yang login -->
-<section class="section-white">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-12 text-center">
-                <h2 class="section-title mb-4">Selamat Datang di Katalog UMKM</h2>
-                <p class="desa-description">
-                    Silakan login untuk melihat katalog produk dari UMKM pilihan Anda.
-                </p>
-            </div>
-        </div>
-    </div>
-</section>
-@endif
-
-<!-- ================= PETA LOKASI ================= -->
-@if($company)
-<section class="section-white">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-12">
-                <h2 class="section-title mb-4 text-center">Lokasi {{ $company->nama }}</h2>
-                <div class="map-container">
-                    <div class="map-wrapper">
-                        @if($company->maps_link)
-                        <!-- Use custom maps link if provided -->
-                        <iframe 
-                            src="{{ $company->maps_link }}"
-                            width="100%" 
-                            height="450" 
-                            style="border:0; border-radius: 15px;" 
-                            allowfullscreen="" 
-                            loading="lazy" 
-                            referrerpolicy="no-referrer-when-downgrade">
-                        </iframe>
-                        @elseif($company->latitude && $company->longitude)
-                        <!-- Use coordinates if available -->
-                        <iframe 
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!2d{{ $company->longitude }}!3d{{ $company->latitude }}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1sen!2sid!4v1234567890123"
-                            width="100%" 
-                            height="450" 
-                            style="border:0; border-radius: 15px;" 
-                            allowfullscreen="" 
-                            loading="lazy" 
-                            referrerpolicy="no-referrer-when-downgrade">
-                        </iframe>
-                        @else
-                        <!-- Fallback to address search -->
-                        <iframe 
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!2d107.9234567890123!3d-6.8234567890123!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1sen!2sid!4v1234567890123"
-                            width="100%" 
-                            height="450" 
-                            style="border:0; border-radius: 15px;" 
-                            allowfullscreen="" 
-                            loading="lazy" 
-                            referrerpolicy="no-referrer-when-downgrade">
-                        </iframe>
-                        @endif
-                    </div>
-                    <div class="map-info mt-3">
-                        <p class="text-center mb-0">
-                            <i class="fas fa-map-marker-alt me-2"></i>
-                            <strong>{{ $company->nama }}</strong>, {{ $company->alamat }}
-                        </p>
-                        <p class="text-center mt-2">
-                            @if($company->maps_link)
-                            <a href="{{ $company->maps_link }}" 
-                               target="_blank" 
-                               class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-external-link-alt me-2"></i>Buka di Google Maps
-                            </a>
-                            @else
-                            <a href="https://maps.google.com/?q={{ urlencode($company->alamat) }}" 
-                               target="_blank" 
-                               class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-external-link-alt me-2"></i>Buka di Google Maps
-                            </a>
-                            @endif
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-@endif
-
-<!-- ================= PRODUK UMKM ================= -->
-@if($company)
-<section class="section-white">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-12">
-                <h2 class="section-title mb-4 text-center">PRODUK {{ strtoupper($company->nama) }}</h2>
-                <div class="produk-box">
-                    <div class="row g-4">
-                        @forelse($produks as $produk)
-                        <div class="col-md-4">
-                            <div class="card-produk">
-                                @if($produk->foto)
-                                    <img src="{{ asset('storage/'.$produk->foto) }}">
-                                @else
-                                    <img src="/images/no-image.png">
-                                @endif
-
-                                <div class="card-body text-center">
-                                    <h5>{{ $produk->nama_produk }}</h5>
-                                    <p class="deskripsi">
-                                        {{ $produk->deskripsi ? Str::limit($produk->deskripsi, 100) : 'Tidak ada deskripsi' }}
-                                    </p>
-                                    <p class="price">
-                                        Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                        @empty
-                        <div class="col-12 text-center">
-                            <p class="text-muted">Belum ada produk tersedia</p>
-                        </div>
-                        @endforelse
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-@else
-<!-- Section jika tidak ada company yang login -->
-<section class="section-white">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-12 text-center">
-                <h3 class="section-title mb-4">Produk Tidak Tersedia</h3>
-                <p class="desa-description">
-                    Silakan login terlebih dahulu untuk melihat produk dari UMKM pilihan Anda.
-                </p>
-            </div>
-        </div>
-    </div>
-</section>
-@endif
-
-<!-- ================= TOMBOL BELI ================= -->
-<section class="section-white">
-    <div class="container">
-        <div class="row">
-            <div class="col-lg-12 text-center">
-                <button class="btn-beli" onclick="window.location.href='/pelanggan/login'">
-                    klik disini untuk membeli
-                </button>
-            </div>
-        </div>
-    </div>
-</section>
-
-
-
-<!-- ================= STYLE ================= -->
+@push('styles')
 <style>
-.hero-slider {
+/* RESET & BASE */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* COVER SECTION */
+.cover-section {
+    height: 100vh;
+    min-height: 600px;
     position: relative;
-    width: 100%;
+    background: #f5f5f5;
     overflow: hidden;
 }
 
-.slider-container-full {
-    position: relative;
-    width: 100%;
-    height: 70vh;
-    min-height: 500px;
-    overflow: hidden;
-}
-
-.slider-wrapper {
-    display: flex;
-    height: 100%;
-    transition: transform 0.5s ease-in-out;
-}
-
-.slide {
-    min-width: 100%;
+.cover-container {
     height: 100%;
     position: relative;
 }
 
-.slide img {
+.cover-image {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 70%;
+    height: 100%;
+    z-index: 1;
+}
+
+.cover-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    filter: grayscale(100%) contrast(1.2);
 }
 
-.slide-overlay {
+.default-cover {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    position: relative;
+}
+
+.city-silhouette {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,0.7));
-    color: white;
-    padding: 2rem;
+    height: 40%;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400"><path d="M0,400 L0,300 L100,300 L100,200 L200,200 L200,250 L300,250 L300,150 L400,150 L400,180 L500,180 L500,120 L600,120 L600,160 L700,160 L700,100 L800,100 L800,140 L900,140 L900,80 L1000,80 L1000,200 L1100,200 L1100,300 L1200,300 L1200,400 Z" fill="%23000000" opacity="0.3"/></svg>') no-repeat center bottom;
+    background-size: cover;
 }
 
-.slide-content h2 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-}
-
-.slide-content p {
-    font-size: 1.2rem;
-    margin: 0;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-}
-
-.slider-btn {
+.cover-content {
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: rgba(255,255,255,0.9);
-    border: none;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    color: #3a3a3a;
-    transition: all 0.3s;
-    z-index: 10;
+    padding: 60px;
 }
 
-.slider-btn:hover {
-    background: rgba(255,255,255,1);
-    transform: translateY(-50%) scale(1.1);
+.cover-left {
+    flex: 1;
+    max-width: 50%;
 }
 
-.prev-btn {
-    left: 30px;
+.company-name {
+    font-size: 4.5rem;
+    font-weight: 900;
+    line-height: 0.9;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: -2px;
+    color: #333;
 }
 
-.next-btn {
-    right: 30px;
+.company-tagline {
+    font-size: 2.8rem;
+    font-weight: 300;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #333;
+    margin: 0;
 }
 
-.slider-indicators {
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 15px;
-    z-index: 10;
+.cover-right {
+    flex: 1;
+    max-width: 40%;
+    margin-left: auto;
+    padding-left: 40px;
 }
 
-.indicator {
-    width: 15px;
-    height: 15px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.5);
-    cursor: pointer;
-    transition: all 0.3s;
+.company-info {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 30px;
+    border-radius: 0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-.indicator.active {
-    background: #ffc107;
-    width: 40px;
-    border-radius: 8px;
-}
-
-.section-soft {
-    background: #f7f4ef;
-    padding: 80px 0;
-}
-.section-white {
-    background: #ffffff;
-    padding: 80px 0;
-}
-.section-title {
-    font-weight: 500;
-    color: #3a3a3a;
-}
-
-/* Tentang Desa Styles */
-.desa-content {
-    padding-left: 2rem;
-    padding-right: 0;
-}
-
-.desa-description {
-    font-size: 1.1rem;
-    line-height: 1.7;
-    color: #555;
-    margin-bottom: 0.5rem;
+.company-description {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #666;
+    margin-bottom: 25px;
     text-align: justify;
 }
 
-.desa-content .section-title {
-    color: #3a3a3a;
-    font-size: 2.5rem;
-    font-weight: 800;
-}
-
-/* Gambar lebih besar */
-.section-white img {
-    max-height: 450px;
-    width: 100%;
-    object-fit: cover;
-}
-
-/* Map Styles */
-.map-container {
-    margin-top: 2rem;
-}
-
-.map-wrapper {
-    border-radius: 15px;
-    overflow: hidden;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-}
-
-.map-wrapper iframe {
-    width: 100%;
-    height: 450px;
-    border: none;
-}
-
-.map-info {
-    text-align: center;
-    color: #555;
-}
-
-.map-info .btn-outline-primary {
-    color: #007bff;
-    border-color: #007bff;
-    transition: all 0.3s ease;
-}
-
-.map-info .btn-outline-primary:hover {
-    background-color: #007bff;
+.explore-button {
+    display: inline-block;
+    padding: 12px 25px;
+    background: #333;
     color: white;
-}
-
-/* Responsive untuk Map */
-@media (max-width: 768px) {
-    .map-wrapper iframe {
-        height: 300px;
-    }
-}
-
-/* Produk Box Styles */
-.produk-box {
-    background: #f8f9fa;
-    border: 2px solid #e9ecef;
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-    margin-top: 1rem;
-}
-
-.produk-box .section-title {
-    color: #3a3a3a;
+    text-transform: uppercase;
     font-weight: 600;
-    margin-bottom: 2rem;
-}
-
-/* Responsive untuk Produk Box */
-@media (max-width: 768px) {
-    .produk-box {
-        padding: 1.5rem;
-        margin-top: 0.5rem;
-    }
-}
-
-/* Tombol Beli Styles */
-.btn-beli {
-    background: linear-gradient(135deg, #ffc107, #ff9800);
-    color: #3a3a3a;
-    border: none;
-    padding: 15px 40px;
-    font-size: 1.2rem;
-    font-weight: 600;
-    border-radius: 50px;
+    letter-spacing: 1px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
+    transition: all 0.3s;
+    border: none;
+    font-size: 0.9rem;
+}
+
+.explore-button:hover {
+    background: #555;
+    transform: translateY(-2px);
+}
+
+.dorth-text {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    z-index: 3;
+}
+
+/* TEAM SECTION */
+.team-section {
+    background: #fff;
+    padding: 100px 0;
+}
+
+.team-header {
+    margin-bottom: 80px;
+}
+
+.section-title {
+    font-size: 3rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.section-line {
+    width: 100px;
+    height: 3px;
+    background: #333;
+    margin-bottom: 30px;
+}
+
+.team-description {
+    font-size: 1.1rem;
+    color: #666;
+    max-width: 600px;
+    line-height: 1.6;
+}
+
+.team-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+}
+
+.about-team h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.about-team p {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #666;
+    margin-bottom: 40px;
+}
+
+.team-stats {
+    display: flex;
+    gap: 30px;
+}
+
+.stat-item h4 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.stat-item p {
+    font-size: 0.9rem;
+    color: #666;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
-.btn-beli:hover {
-    background: linear-gradient(135deg, #ff9800, #f57c00);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(255, 152, 0, 0.4);
+.team-member {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 40px;
+    align-items: flex-start;
 }
 
-.btn-beli:active {
-    transform: translateY(0);
+.member-left {
+    flex-direction: row;
 }
 
-/* Responsive untuk Tentang Desa */
-@media (max-width: 901px) {
-    .desa-content {
-        padding-left: 1.5rem;
-        padding-right: 0;
-        margin-top: 1rem;
-    }
-    
-    .desa-description {
-        font-size: 1rem;
-        line-height: 1.6;
-    }
-    
-    .desa-content .section-title {
-        font-size: 1.8rem;
-        text-align: center;
-    }
-    
-    .section-white img {
-        max-height: 400px;
-    }
+.member-right {
+    flex-direction: row-reverse;
+    text-align: right;
 }
 
-@media (max-width: 768px) {
-    .desa-content {
-        padding-left: 1rem;
-        padding-right: 0;
-        margin-top: 1rem;
-    }
-    
-    .desa-description {
-        font-size: 0.95rem;
-        line-height: 1.5;
-    }
-    
-    .desa-content .section-title {
-        font-size: 1.6rem;
-        text-align: center;
-    }
-    
-    .section-white img {
-        max-height: 350px;
-    }
+.member-photo {
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
 }
 
-.card-produk {
-    background: #fff;
-    border-radius: 20px;
-    padding: 15px;
-    box-shadow: 0 10px 25px rgba(0,0,0,.08);
-}
-.card-produk img {
+.member-photo img {
     width: 100%;
-    height: 220px;
+    height: 100%;
     object-fit: cover;
-    border-radius: 15px;
-}
-.price {
-    font-weight: bold;
-    color: #d39e00;
+    border-radius: 0;
+    filter: grayscale(100%);
+    transition: filter 0.3s;
 }
 
-.deskripsi {
-    font-size: 0.9rem;
+.team-member:hover .member-photo img {
+    filter: grayscale(0%);
+}
+
+.member-info {
+    flex: 1;
+}
+
+.member-info h4 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.member-info h5 {
+    font-size: 1rem;
+    font-weight: 500;
     color: #666;
-    line-height: 1.4;
-    margin-bottom: 1rem;
-    min-height: 2.8rem;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
-.step {
-    background: #f7f4ef;
-    padding: 20px;
-    border-radius: 15px;
+
+.member-info p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #666;
+}
+
+/* PRODUCTS SECTION */
+.products-section {
+    background: #f8f9fa;
+    padding: 100px 0;
+}
+
+.products-header {
+    text-align: center;
+    margin-bottom: 80px;
+}
+
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 30px;
+}
+
+.product-item {
+    background: white;
+    border-radius: 0;
+    overflow: hidden;
+    transition: transform 0.3s;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.product-item:hover {
+    transform: translateY(-5px);
+}
+
+.product-image {
+    height: 200px;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(100%);
+    transition: filter 0.3s;
+}
+
+.product-item:hover .product-image img {
+    filter: grayscale(0%);
+}
+
+.product-image .no-image {
+    color: #ccc;
+    font-size: 2rem;
+}
+
+.product-info {
+    padding: 25px;
+}
+
+.product-info h4 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.product-info p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #666;
+    margin: 0;
+}
+
+/* CTA SECTION */
+.cta-section {
+    background: #333;
+    padding: 60px 0;
+}
+
+.btn-beli {
+    background: #fff;
+    color: #333;
+    border: none;
+    padding: 15px 40px;
+    font-size: 1.1rem;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s;
 }
 
-/* Responsive */
+.btn-beli:hover {
+    background: #f0f0f0;
+    transform: translateY(-2px);
+}
+
+.no-products {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+/* RESPONSIVE */
 @media (max-width: 768px) {
-    .slider-container-full {
-        height: 60vh;
-        min-height: 400px;
+    .cover-content {
+        flex-direction: column;
+        padding: 40px 20px;
+        text-align: center;
     }
     
-    .slider-btn {
-        width: 45px;
-        height: 45px;
-        font-size: 16px;
+    .cover-left, .cover-right {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
     }
     
-    .prev-btn {
-        left: 15px;
+    .cover-right {
+        margin-top: 40px;
     }
     
-    .next-btn {
-        right: 15px;
+    .cover-image {
+        width: 100%;
+        opacity: 0.3;
     }
     
-    .slider-indicators {
-        bottom: 20px;
-        gap: 10px;
+    .company-name {
+        font-size: 2.5rem;
     }
     
-    .indicator {
-        width: 10px;
-        height: 10px;
+    .company-tagline {
+        font-size: 1.8rem;
     }
     
-    .indicator.active {
-        width: 25px;
+    .dorth-text {
+        display: none;
     }
-}
-
-@media (max-width: 480px) {
-    .slider-container-full {
-        height: 50vh;
-        min-height: 350px;
+    
+    .team-content {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+    
+    .team-member {
+        flex-direction: column !important;
+        text-align: center !important;
+    }
+    
+    .member-photo {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto;
+    }
+    
+    .section-title {
+        font-size: 2rem;
+    }
+    
+    .products-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
     }
 }
 </style>
+@endpush
 
-<!-- ================= SCRIPT ================= -->
-<script>
-function orderProduct(id) {
-    window.location.href = '/pelanggan/login?redirect=catalog&product=' + id;
-}
+@section('content')
 
-// Slider functionality
-let currentSlide = 0;
-const slides = document.querySelectorAll('.slide');
-const indicators = document.querySelectorAll('.indicator');
-const totalSlides = slides.length;
+@if($company && $sections && $sections->isNotEmpty())
+    @php
+        $coverSection = $sections->firstWhere('section_type', 'cover');
+        $teamSection = $sections->firstWhere('section_type', 'team');
+        $productsSection = $sections->firstWhere('section_type', 'products');
+        $locationSection = $sections->firstWhere('section_type', 'location');
+    @endphp
 
-function showSlide(index) {
-    // Hide all slides
-    slides.forEach(slide => slide.classList.remove('active'));
-    indicators.forEach(indicator => indicator.classList.remove('active'));
-    
-    // Show current slide
-    slides[index].classList.add('active');
-    indicators[index].classList.add('active');
-    
-    // Move slider wrapper
-    const sliderWrapper = document.querySelector('.slider-wrapper');
-    sliderWrapper.style.transform = `translateX(-${index * 100}%)`;
-}
+    <!-- COVER SECTION -->
+    @if($coverSection)
+    <section class="cover-section">
+        <div class="cover-container">
+            <div class="cover-image">
+                @if($company->foto)
+                    <img src="{{ asset('storage/'.$company->foto) }}" alt="{{ $company->nama }}">
+                @else
+                    <div class="default-cover">
+                        <div class="city-silhouette"></div>
+                    </div>
+                @endif
+            </div>
+            <div class="cover-content">
+                <div class="cover-left">
+                    <h1 class="company-name">{{ $coverSection->content['company_name'] ?? $company->nama }}</h1>
+                    <h2 class="company-tagline">{{ $coverSection->content['company_tagline'] ?? 'BRANDING PRODUCT.' }}</h2>
+                </div>
+                <div class="cover-right">
+                    <div class="company-info">
+                        <p class="company-description">{{ $coverSection->content['company_description'] ?? $company->catalog_description }}</p>
+                        <div class="explore-button">
+                            {{ $coverSection->content['explore_text'] ?? 'Explore' }}
+                        </div>
+                    </div>
+                </div>
+                <div class="dorth-text">DORTH</div>
+            </div>
+        </div>
+    </section>
+    @endif
 
-function changeSlide(direction) {
-    currentSlide += direction;
-    
-    if (currentSlide >= totalSlides) {
-        currentSlide = 0;
-    } else if (currentSlide < 0) {
-        currentSlide = totalSlides - 1;
-    }
-    
-    showSlide(currentSlide);
-}
+    <!-- TEAM SECTION -->
+    @if($teamSection && isset($teamSection->content['members']))
+    <section class="team-section">
+        <div class="container">
+            <div class="team-header">
+                <h2 class="section-title">{{ $teamSection->title ?? 'THE TEAM.' }}</h2>
+                <div class="section-line"></div>
+                @if(isset($teamSection->content['description']))
+                <p class="team-description">{{ $teamSection->content['description'] }}</p>
+                @endif
+            </div>
+            
+            <div class="team-content">
+                <div class="team-left">
+                    <div class="about-team">
+                        <h3>About Team</h3>
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem.</p>
+                        
+                        <div class="team-stats">
+                            <div class="stat-item">
+                                <h4>{{ count($teamSection->content['members']) }}</h4>
+                                <p>Team Members</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="team-right">
+                    @foreach($teamSection->content['members'] as $index => $member)
+                    <div class="team-member {{ $index % 2 == 0 ? 'member-left' : 'member-right' }}">
+                        <div class="member-photo">
+                            <img src="{{ $member['photo'] ?? 'https://via.placeholder.com/150x150/333333/ffffff?text=Team' }}" alt="{{ $member['name'] ?? 'Team Member' }}">
+                        </div>
+                        <div class="member-info">
+                            <h4>{{ $member['name'] ?? 'Nama Anggota' }}</h4>
+                            <h5>{{ $member['position'] ?? 'Jabatan' }}</h5>
+                            <p>{{ $member['description'] ?? 'Deskripsi anggota tim...' }}</p>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </section>
+    @endif
 
-function goToSlide(index) {
-    currentSlide = index;
-    showSlide(currentSlide);
-}
+    <!-- PRODUCTS SECTION -->
+    @if($productsSection)
+    <section class="products-section">
+        <div class="container">
+            <div class="products-header">
+                <h2 class="section-title">{{ $productsSection->title ?? 'PRODUCT MATERIAL.' }}</h2>
+                <div class="section-line"></div>
+            </div>
+            
+            <div class="products-grid">
+                @forelse($produks->take(8) as $produk)
+                <div class="product-item">
+                    <div class="product-image">
+                        @if($produk->foto)
+                            <img src="{{ asset('storage/'.$produk->foto) }}" alt="{{ $produk->nama_produk }}">
+                        @else
+                            <div class="no-image">
+                                <i class="fas fa-image"></i>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="product-info">
+                        <h4>{{ $produk->nama_produk }}</h4>
+                        <p>{{ Str::limit($produk->deskripsi ?: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor.', 80) }}</p>
+                    </div>
+                </div>
+                @empty
+                <div class="no-products">
+                    <p>Belum ada produk tersedia</p>
+                </div>
+                @endforelse
+            </div>
+        </div>
+    </section>
+    @endif
 
-// Auto-slide functionality
-function startAutoSlide() {
-    setInterval(() => {
-        changeSlide(1);
-    }, 4000); // Change slide every 4 seconds
-}
+@else
+    <!-- DEFAULT FALLBACK -->
+    <section class="cover-section">
+        <div class="cover-container">
+            <div class="cover-image">
+                @if($company && $company->foto)
+                    <img src="{{ asset('storage/'.$company->foto) }}" alt="{{ $company->nama }}">
+                @else
+                    <div class="default-cover">
+                        <div class="city-silhouette"></div>
+                    </div>
+                @endif
+            </div>
+            <div class="cover-content">
+                <div class="cover-left">
+                    <h1 class="company-name">{{ $company->nama ?? 'NAMA PERUSAHAAN' }}</h1>
+                    <h2 class="company-tagline">BRANDING PRODUCT.</h2>
+                </div>
+                <div class="cover-right">
+                    <div class="company-info">
+                        <p class="company-description">{{ $company->catalog_description ?? 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem.' }}</p>
+                        <div class="explore-button">Explore</div>
+                    </div>
+                </div>
+                <div class="dorth-text">DORTH</div>
+            </div>
+        </div>
+    </section>
 
-// Initialize slider
-document.addEventListener('DOMContentLoaded', function() {
-    if (slides.length > 0) {
-        showSlide(0);
-        startAutoSlide();
-        
-        // Pause auto-slide on hover
-        const sliderContainer = document.querySelector('.slider-container');
-        let autoSlideInterval;
-        
-        sliderContainer.addEventListener('mouseenter', () => {
-            clearInterval(autoSlideInterval);
-        });
-        
-        sliderContainer.addEventListener('mouseleave', () => {
-            startAutoSlide();
-        });
-    }
-});
-</script>
+    <!-- DEFAULT TEAM SECTION -->
+    <section class="team-section">
+        <div class="container">
+            <div class="team-header">
+                <h2 class="section-title">THE TEAM.</h2>
+                <div class="section-line"></div>
+                <p class="team-description">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor.</p>
+            </div>
+            
+            <div class="team-content">
+                <div class="team-left">
+                    <div class="about-team">
+                        <h3>About Team</h3>
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.</p>
+                        
+                        <div class="team-stats">
+                            <div class="stat-item">
+                                <h4>2</h4>
+                                <p>Team Members</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="team-right">
+                    <div class="team-member member-left">
+                        <div class="member-photo">
+                            <img src="https://via.placeholder.com/150x150/333333/ffffff?text=CEO" alt="CEO">
+                        </div>
+                        <div class="member-info">
+                            <h4>Joko Susilo</h4>
+                            <h5>Direktur Utama</h5>
+                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="team-member member-right">
+                        <div class="member-photo">
+                            <img src="https://via.placeholder.com/150x150/666666/ffffff?text=MGR" alt="Manager">
+                        </div>
+                        <div class="member-info">
+                            <h4>Sari Wulandari</h4>
+                            <h5>Manajer Produksi</h5>
+                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DEFAULT PRODUCTS SECTION -->
+    <section class="products-section">
+        <div class="container">
+            <div class="products-header">
+                <h2 class="section-title">PRODUCT MATERIAL.</h2>
+                <div class="section-line"></div>
+            </div>
+            
+            <div class="products-grid">
+                @forelse($produks->take(8) as $produk)
+                <div class="product-item">
+                    <div class="product-image">
+                        @if($produk->foto)
+                            <img src="{{ asset('storage/'.$produk->foto) }}" alt="{{ $produk->nama_produk }}">
+                        @else
+                            <div class="no-image">
+                                <i class="fas fa-image"></i>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="product-info">
+                        <h4>{{ $produk->nama_produk }}</h4>
+                        <p>{{ Str::limit($produk->deskripsi ?: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', 80) }}</p>
+                    </div>
+                </div>
+                @empty
+                <div class="no-products">
+                    <p>Belum ada produk tersedia</p>
+                </div>
+                @endforelse
+            </div>
+        </div>
+    </section>
+@endif
+
+<!-- TOMBOL BELI -->
+<section class="cta-section">
+    <div class="container">
+        <div class="text-center">
+            <button class="btn-beli" onclick="window.location.href='/pelanggan/login'">
+                klik disini untuk membeli
+            </button>
+        </div>
+    </div>
+</section>
 
 @endsection
