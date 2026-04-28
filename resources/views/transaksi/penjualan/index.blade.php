@@ -1810,7 +1810,8 @@ function loadSettingData() {
         })
         .catch(error => {
             console.error('Error in loadSettingData:', error);
-            throw error;
+            showSettingToast('danger', 'Gagal memuat data: ' + (error?.message || 'Unknown error'));
+            return null; // jangan re-throw agar tidak crash caller
         });
 }
 
@@ -2328,7 +2329,7 @@ function ajaxRequest(url, method, data, onSuccess) {
     })
     .catch(error => {
         console.error('Ajax error:', error);
-        showSettingToast('danger', 'Terjadi kesalahan jaringan: ' + error.message);
+        showSettingToast('danger', 'Terjadi kesalahan jaringan: ' + (error?.message || 'Unknown error'));
     });
 }
 

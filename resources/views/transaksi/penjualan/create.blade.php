@@ -531,13 +531,24 @@ mark.bg-warning {
         tableRows.forEach(row => {
             const produkSelect = row.querySelector('.produk-select');
             if (produkSelect && produkSelect.value) {
-                const subtotalVal = row.querySelector('.subtotal').value;
+                const subtotalEl = row.querySelector('.subtotal');
+                const subtotalRaw = subtotalEl.getAttribute('data-raw');
+                const subtotalVal = subtotalRaw
+                    ? parseFloat(subtotalRaw)
+                    : parseFloat(subtotalEl.value.replace(/\./g, '').replace(',', '.')) || 0;
+
+                const hargaEl = row.querySelector('.harga');
+                const hargaRaw = hargaEl.getAttribute('data-raw');
+                const hargaVal = hargaRaw
+                    ? parseFloat(hargaRaw)
+                    : parseFloat(hargaEl.value.replace(/\./g, '').replace(',', '.')) || 0;
+
                 tableData.push({
                     produk_id: produkSelect.value,
                     jumlah: row.querySelector('.jumlah').value,
-                    harga_satuan: parseFloat(row.querySelector('.harga').value) || 0,
+                    harga_satuan: hargaVal,
                     diskon_persen: row.querySelector('.diskon').value,
-                    subtotal: parseFloat(subtotalVal) || parseCurrency(subtotalVal)
+                    subtotal: subtotalVal
                 });
             }
         });
@@ -694,10 +705,11 @@ function handleProdukChange(selectElement) {
     console.log('Data-price attribute:', selectedOption.getAttribute('data-price'));
     console.log('Parsed harga:', harga);
     
-    // Set harga
-    hargaInput.value = harga;
-    
-    console.log('Input value after setting:', hargaInput.value);
+    // Set harga — store raw number in data-raw, display formatted
+    hargaInput.removeAttribute('readonly');
+    hargaInput.value = harga.toLocaleString('id-ID');
+    hargaInput.setAttribute('readonly', 'readonly');
+    hargaInput.setAttribute('data-raw', harga);
     
     // Recalculate row and total
     recalcRow(tr);
@@ -722,7 +734,8 @@ function recalcRow(tr) {
     const q = Math.round(parseFloat(tr.querySelector('.jumlah').value) || 0);
     tr.querySelector('.jumlah').value = q;
     const hargaEl = tr.querySelector('.harga');
-    const p = parseFloat(hargaEl.value) || 0;
+    // Baca data-raw (nilai numerik murni), fallback strip titik ribuan
+    const p = parseFloat(hargaEl.getAttribute('data-raw') || hargaEl.value.replace(/\./g, '').replace(',', '.')) || 0;
     const dPct = Math.min(Math.max(parseFloat(tr.querySelector('.diskon').value) || 0, 0), 100);
     const sub = q * p;
     const dNom = sub * (dPct/100.0);
@@ -731,7 +744,6 @@ function recalcRow(tr) {
     tr.querySelector('.subtotal').value = Math.round(line).toLocaleString('id-ID');
     // Store raw value for calculations
     tr.querySelector('.subtotal').setAttribute('data-raw', line);
-    // Call hitungTotal to update totals
     hitungTotal();
 }
 
@@ -769,9 +781,12 @@ function setPriceFromSelect(tr) {
         }
     }
     
-    // Set price directly as number
+    // Set price — store raw number in data-raw, display formatted
     const hargaInput = tr.querySelector('.harga');
-    hargaInput.value = price;
+    hargaInput.removeAttribute('readonly');
+    hargaInput.value = price.toLocaleString('id-ID');
+    hargaInput.setAttribute('readonly', 'readonly');
+    hargaInput.setAttribute('data-raw', price);
     
     // Update stok info
     const stokInfo = tr.querySelector('.stok-info');
@@ -1768,33 +1783,31 @@ function navigateSearchResults(direction) {
         if (e.target && e.target.classList.contains('produk-select')) {
             const tr = e.target.closest('tr');
             const hargaInput = tr.querySelector('.harga');
-            
-            console.log('Product select changed!');
-            console.log('Selected value:', e.target.value);
-            
+
             if (!e.target.value) {
+                hargaInput.removeAttribute('readonly');
                 hargaInput.value = 0;
+                hargaInput.setAttribute('readonly', 'readonly');
+                hargaInput.removeAttribute('data-raw');
                 recalcRow(tr);
                 hitungTotal();
                 return;
             }
-            
+
             // Ambil harga dari data-price
             const selectedOption = e.target.options[e.target.selectedIndex];
             const harga = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-            
-            console.log('Data-price attribute:', selectedOption.getAttribute('data-price'));
-            console.log('Parsed harga:', harga);
-            
-            // Set harga
-            hargaInput.value = harga;
-            
-            console.log('Input value after setting:', hargaInput.value);
-            
+
+            // Set harga — store raw number in data-raw, display formatted
+            hargaInput.removeAttribute('readonly');
+            hargaInput.value = harga.toLocaleString('id-ID');
+            hargaInput.setAttribute('readonly', 'readonly');
+            hargaInput.setAttribute('data-raw', harga);
+
             // Recalculate row and total
             recalcRow(tr);
             hitungTotal();
-            
+
             // Update stock info
             const stok = parseFloat(selectedOption.getAttribute('data-stok')) || 0;
             const stokInfo = tr.querySelector('.stok-info');

@@ -43,9 +43,9 @@ class PenjualanController extends Controller
         $statsToday = DB::table('penjualans')
             ->whereDate('tanggal', $today)
             ->selectRaw('
-                COUNT(*)                    AS jumlah_transaksi,
-                COALESCE(SUM(total), 0)     AS total_penjualan,
-                COALESCE(SUM(biaya_ongkir), 0) AS total_ongkir,
+                COUNT(*)                         AS jumlah_transaksi,
+                COALESCE(SUM(total), 0)          AS total_penjualan,
+                COALESCE(SUM(biaya_ongkir), 0)   AS total_ongkir,
                 COALESCE(SUM(diskon_nominal), 0) AS total_diskon
             ')
             ->first();
@@ -53,9 +53,9 @@ class PenjualanController extends Controller
         $statsYesterday = DB::table('penjualans')
             ->whereDate('tanggal', $yesterday)
             ->selectRaw('
-                COUNT(*)                    AS jumlah_transaksi,
-                COALESCE(SUM(total), 0)     AS total_penjualan,
-                COALESCE(SUM(biaya_ongkir), 0) AS total_ongkir,
+                COUNT(*)                         AS jumlah_transaksi,
+                COALESCE(SUM(total), 0)          AS total_penjualan,
+                COALESCE(SUM(biaya_ongkir), 0)   AS total_ongkir,
                 COALESCE(SUM(diskon_nominal), 0) AS total_diskon
             ')
             ->first();
@@ -417,17 +417,27 @@ class PenjualanController extends Controller
                 }
             }
             
+            // Resolve coa_id dari sumber_dana (kode akun yang dipilih user)
+            $sumberDanaKode = $paymentData['sumber_dana'] ?? null;
+            $coaId = null;
+            if ($sumberDanaKode) {
+                $coaRecord = \App\Models\Coa::where('kode_akun', $sumberDanaKode)->first();
+                $coaId = $coaRecord?->id;
+            }
+
             // Create penjualan header
             $penjualan = Penjualan::create([
-                'tanggal' => $tanggal,
+                'tanggal'        => $tanggal,
                 'payment_method' => $request->input('payment_method'),
-                'jumlah' => collect($items)->sum('jumlah'),
-                'harga_satuan' => null,
+                'coa_id'         => $coaId,
+                'user_id'        => auth()->id(),
+                'jumlah'         => collect($items)->sum('jumlah'),
+                'harga_satuan'   => null,
                 'diskon_nominal' => 0,
-                'total' => $paymentData['total'],
-                'biaya_ongkir' => $paymentData['biaya_ongkir'] ?? 0,
-                'biaya_ppn' => $paymentData['total_ppn'] ?? 0,
-                'grand_total' => $paymentData['total'] ?? 0,
+                'total'          => $paymentData['total'],
+                'biaya_ongkir'   => $paymentData['biaya_ongkir'] ?? 0,
+                'biaya_ppn'      => $paymentData['total_ppn'] ?? 0,
+                'grand_total'    => $paymentData['total'] ?? 0,
             ]);
             
             // Create detail items
@@ -439,10 +449,10 @@ class PenjualanController extends Controller
                     'penjualan_id' => $penjualan->id,
                     'produk_id' => $item['produk_id'],
                     'jumlah' => $qty,
-                    'harga_satuan' => $item['harga_satuan'],
-                    'diskon_persen' => $item['diskon_persen'] ?? 0,
+                    'harga_satuan' => (float) $item['harga_satuan'],
+                    'diskon_persen' => (float) ($item['diskon_persen'] ?? 0),
                     'diskon_nominal' => 0,
-                    'subtotal' => $item['subtotal'],
+                    'subtotal' => (float) $item['subtotal'],
                 ]);
                 
                 // Consume stock
