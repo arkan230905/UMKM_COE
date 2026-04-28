@@ -49,13 +49,18 @@
             {{-- Tipe Akun --}}
             <div class="col-md-4">
                 <label class="form-label">Tipe Akun</label>
-                <select name="tipe_akun" id="tipe_akun" class="form-select" required onchange="updateKategoriOptions()">
+                <select name="tipe_akun" id="tipe_akun" class="form-select" required>
                     <option value="">Pilih tipe</option>
-                    <option value="ASET">Aset</option>
-                    <option value="KEWAJIBAN">Kewajiban</option>
-                    <option value="MODAL">Modal</option>
-                    <option value="PENDAPATAN">Pendapatan</option>
-                    <option value="BEBAN">Beban</option>
+                    <option value="Asset" {{ old('tipe_akun')==='Asset'?'selected':'' }}>Aset</option>
+                    <option value="Liability" {{ old('tipe_akun')==='Liability'?'selected':'' }}>Kewajiban</option>
+                    <option value="Equity" {{ old('tipe_akun')==='Equity'?'selected':'' }}>Modal / Ekuitas</option>
+                    <option value="Revenue" {{ old('tipe_akun')==='Revenue'?'selected':'' }}>Pendapatan</option>
+                    <option value="Expense" {{ old('tipe_akun')==='Expense'?'selected':'' }}>Beban</option>
+                    <option value="Biaya Bahan Baku" {{ old('tipe_akun')==='Biaya Bahan Baku'?'selected':'' }}>Biaya Bahan Baku</option>
+                    <option value="Biaya Tenaga Kerja Langsung" {{ old('tipe_akun')==='Biaya Tenaga Kerja Langsung'?'selected':'' }}>Biaya Tenaga Kerja Langsung</option>
+                    <option value="Biaya Overhead Pabrik" {{ old('tipe_akun')==='Biaya Overhead Pabrik'?'selected':'' }}>Biaya Overhead Pabrik</option>
+                    <option value="Biaya Tenaga Kerja Tidak Langsung" {{ old('tipe_akun')==='Biaya Tenaga Kerja Tidak Langsung'?'selected':'' }}>Biaya Tenaga Kerja Tidak Langsung</option>
+                    <option value="BOP Tidak Langsung Lainnya" {{ old('tipe_akun')==='BOP Tidak Langsung Lainnya'?'selected':'' }}>BOP Tidak Langsung Lainnya</option>
                 </select>
             </div>
 
@@ -117,36 +122,7 @@
     </form>
 </div>
 
-<script>
-// Function to update kategori options based on tipe akun
-function updateKategoriOptions() {
-    const tipeAkun = document.getElementById('tipe_akun').value;
-    const kategoriSelect = document.getElementById('kategori_akun');
-    
-    // Hide all category groups
-    const allGroups = kategoriSelect.querySelectorAll('optgroup');
-    allGroups.forEach(group => {
-        group.style.display = 'none';
-    });
-    
-    // Show relevant category group
-    if (tipeAkun === 'Asset') {
-        document.getElementById('asset_categories').style.display = 'block';
-    } else if (tipeAkun === 'Liability') {
-        document.getElementById('liability_categories').style.display = 'block';
-    } else if (tipeAkun === 'Equity') {
-        document.getElementById('equity_categories').style.display = 'block';
-    } else if (tipeAkun === 'Revenue') {
-        document.getElementById('revenue_categories').style.display = 'block';
-    } else if (tipeAkun === 'Expense') {
-        document.getElementById('expense_categories').style.display = 'block';
-    }
-    
-    // Reset kategori selection
-    kategoriSelect.value = '';
-}
-
-// Enable/disable generate button based on parent selection
+<script>// Enable/disable generate button based on parent selection
 document.getElementById('parent_coa_id').addEventListener('change', function() {
     const btn = document.getElementById('btnGenerate');
     const sel = this;
@@ -154,13 +130,10 @@ document.getElementById('parent_coa_id').addEventListener('change', function() {
 
     if (sel.value) {
         const opt = sel.options[sel.selectedIndex];
-        // Auto-fill tipe_akun, kategori_akun, saldo_normal dari parent
         const tipe = opt.getAttribute('data-tipe');
-        const kategori = opt.getAttribute('data-kategori');
         const saldoNormal = opt.getAttribute('data-saldo-normal');
 
         if (tipe) document.getElementById('tipe_akun').value = tipe;
-        if (kategori) document.getElementById('kategori_akun').value = kategori;
         if (saldoNormal) document.getElementById('saldo_normal').value = saldoNormal;
     } else {
         // Reset jika tidak ada parent
@@ -187,7 +160,6 @@ function generateChildKode() {
                 return;
             }
 
-            // Set kode akun
             document.getElementById('kode_akun').value = data.kode_akun;
             document.getElementById('kode_akun').readOnly = true;
             document.getElementById('auto_generate_kode').value = '1';
@@ -206,7 +178,6 @@ function generateChildKode() {
                 if (saldoEl) saldoEl.value = data.parent_saldo_normal;
             }
 
-            // Show info
             document.getElementById('infoKode').textContent = data.kode_akun;
             document.getElementById('infoParent').textContent = data.parent_kode + ' - ' + data.parent_nama;
             document.getElementById('generateInfo').style.display = 'block';
@@ -219,21 +190,6 @@ function generateChildKode() {
             btn.innerHTML = '<i class="bi bi-lightning-charge"></i> Generate Kode Anak';
         });
 }
-
-// Initialize category options on page load
-document.addEventListener('DOMContentLoaded', function() {
-    // Hide all category groups initially
-    const allGroups = document.querySelectorAll('#kategori_akun optgroup');
-    allGroups.forEach(group => {
-        group.style.display = 'none';
-    });
-    
-    // Show categories if tipe_akun is pre-selected
-    const tipeAkun = document.getElementById('tipe_akun').value;
-    if (tipeAkun) {
-        updateKategoriOptions();
-    }
-});
 
 // Money formatting (IDR) for saldo_awal
 (function(){

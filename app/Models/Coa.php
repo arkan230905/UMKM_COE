@@ -108,11 +108,7 @@ class Coa extends Model
         
     /**
      * Generate kode akun anak otomatis berdasarkan prefix induk.
-     *
-     * Contoh:
-     *   prefix '114', existing: 114,1141,1142,1143,1144 → return '1145'
-     *   prefix '51',  existing: 51,510,511,512           → return '513'
-     *   prefix '11',  existing: 11 (belum ada anak)      → return '111'
+     * Scope ke user_id yang sedang login agar tidak konflik antar user.
      *
      * @param string $prefix  Kode akun induk (misal '114', '51', '21')
      * @return string         Kode akun anak berikutnya
@@ -122,8 +118,11 @@ class Coa extends Model
         $prefixLen = strlen($prefix);
         $childLen = $prefixLen + 1;
 
-        // Cari kode_akun anak langsung (panjang = prefix + 1 digit) yang diawali prefix
+        $userId = auth()->id();
+
+        // Cari kode_akun anak langsung (panjang = prefix + 1 digit) milik user ini
         $maxChild = self::withoutGlobalScopes()
+            ->where('user_id', $userId)
             ->where('kode_akun', 'LIKE', $prefix . '%')
             ->whereRaw('LENGTH(kode_akun) = ?', [$childLen])
             ->orderByRaw('CAST(kode_akun AS UNSIGNED) DESC')
@@ -138,6 +137,7 @@ class Coa extends Model
 
             if ($parentPrefix !== '') {
                 $firstSibling = self::withoutGlobalScopes()
+                    ->where('user_id', $userId)
                     ->where('kode_akun', 'LIKE', $parentPrefix . '%')
                     ->whereRaw('LENGTH(kode_akun) = ?', [$childLen])
                     ->orderByRaw('CAST(kode_akun AS UNSIGNED) ASC')
@@ -152,9 +152,9 @@ class Coa extends Model
             $nextNum = (int) ($prefix . $startDigit);
         }
 
-        // Pastikan kode yang dihasilkan belum ada (hindari konflik)
+        // Pastikan kode yang dihasilkan belum ada untuk user ini
         $candidate = (string) $nextNum;
-        while (self::withoutGlobalScopes()->where('kode_akun', $candidate)->exists()) {
+        while (self::withoutGlobalScopes()->where('user_id', $userId)->where('kode_akun', $candidate)->exists()) {
             $nextNum++;
             $candidate = (string) $nextNum;
         }

@@ -101,17 +101,9 @@
                             <div class="card-body">
                                 <div class="row">
                                     <!-- Bahan Baku -->
-                                    <div class="col-md-6">
+                                    <div class="col-md-12">
                                         <h6 class="text-success mb-3">Bahan Baku</h6>
                                         <div id="bahan-baku-list">
-                                            <!-- Will be populated by JavaScript -->
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Bahan Pendukung -->
-                                    <div class="col-md-6">
-                                        <h6 class="text-warning mb-3">Bahan Pendukung</h6>
-                                        <div id="bahan-pendukung-list">
                                             <!-- Will be populated by JavaScript -->
                                         </div>
                                     </div>
@@ -192,6 +184,55 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Preview Jurnal Akuntansi -->
+                        <div class="card mt-3" id="jurnal-preview-section" style="display: none;">
+                            <div class="card-header bg-dark text-white">
+                                <h6 class="mb-0"><i class="fas fa-book me-2"></i>Preview Jurnal Akuntansi</h6>
+                                <small class="text-white-50">Jurnal yang akan dibuat saat produksi diproses</small>
+                            </div>
+                            <div class="card-body p-0">
+                                <table class="table table-sm table-bordered mb-0" style="table-layout:fixed; width:100%; font-size:12px;">
+                                    <colgroup>
+                                        <col style="width:28%">
+                                        <col style="width:22%">
+                                        <col style="width:8%">
+                                        <col style="width:21%">
+                                        <col style="width:21%">
+                                    </colgroup>
+                                    <thead>
+                                        <tr class="table-secondary">
+                                            <th class="py-2 ps-3">Keterangan</th>
+                                            <th class="py-2">Akun</th>
+                                            <th class="py-2 text-center">Ref</th>
+                                            <th class="py-2 text-end pe-3">Debit</th>
+                                            <th class="py-2 text-end pe-3">Kredit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="table-primary">
+                                            <td colspan="5" class="text-center fw-bold py-2">Produksi</td>
+                                        </tr>
+                                        <tbody id="jurnal-produksi-body"></tbody>
+
+                                        <tr class="table-info">
+                                            <td colspan="5" class="text-center fw-bold py-2">BTKL WIP</td>
+                                        </tr>
+                                        <tbody id="jurnal-btkl-body"></tbody>
+
+                                        <tr class="table-warning">
+                                            <td colspan="5" class="text-center fw-bold py-2">BOP WIP</td>
+                                        </tr>
+                                        <tbody id="jurnal-bop-body"></tbody>
+
+                                        <tr class="table-success">
+                                            <td colspan="5" class="text-center fw-bold py-2">Sudah selesai produksi</td>
+                                        </tr>
+                                        <tbody id="jurnal-wip-barangjadi-body"></tbody>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -224,7 +265,7 @@ function calculateDailyProduction() {
     
     if (jumlahBulanan > 0 && hariBulanan > 0) {
         const qtyPerHari = jumlahBulanan / hariBulanan;
-        document.getElementById('qty_produksi').value = qtyPerHari.toFixed(2);
+        document.getElementById('qty_produksi').value = Math.round(qtyPerHari);
         
         // Recalculate cost breakdown with new daily quantity
         calculateCostBreakdown();
@@ -250,23 +291,17 @@ function calculateCostBreakdown() {
     document.getElementById('bop-section').style.display = 'block';
     document.getElementById('total-section').style.display = 'block';
     
-    // Calculate Biaya Bahan
+    // Calculate Biaya Bahan (hanya bahan baku)
     let totalBiayaBahan = 0;
     
     // Bahan Baku
     const bahanBakuHtml = currentBomData.biaya_bahan.bahan_baku.map((bahan, index) => {
-        // harga_per_unit now contains the subtotal (total cost for the recipe)
         const totalPerProduksi = bahan.harga_per_unit * qty;
         const totalQtyTerpakai = bahan.qty * qty;
         
-        // Calculate stock reduction based on conversion
         let stockReduction = totalQtyTerpakai;
         let stockUnit = bahan.satuan;
-        
-        // If different units, show conversion
         if (bahan.satuan !== bahan.satuan_bahan) {
-            // Show conversion info
-            const konversiInfo = bahan.konversi_info || `Konversi: ${bahan.satuan} → ${bahan.satuan_bahan}`;
             stockReduction = `${totalQtyTerpakai} ${bahan.satuan}`;
             stockUnit = bahan.satuan_bahan;
         }
@@ -283,24 +318,7 @@ function calculateCostBreakdown() {
         `;
     }).join('');
     
-    // Bahan Pendukung
-    const bahanPendukungHtml = currentBomData.biaya_bahan.bahan_pendukung.map((bahan, index) => {
-        // harga_per_unit now contains the subtotal (total cost for the recipe)
-        const totalPerProduksi = bahan.harga_per_unit * qty;
-        const totalQtyTerpakai = bahan.qty * qty;
-        totalBiayaBahan += totalPerProduksi;
-        return `
-            <div class="mb-2">
-                <strong>${index + 1}. ${bahan.nama}:</strong> ${formatRupiah(totalPerProduksi)}
-                <br><small class="text-muted">(${formatRupiah(bahan.harga_per_unit)} per produk × ${qty} qty produksi per hari)</small>
-                <br><small class="text-info">Resep: ${totalQtyTerpakai} ${bahan.satuan}</small>
-                <br><small class="text-danger">Stok berkurang: ${totalQtyTerpakai} ${bahan.satuan}</small>
-            </div>
-        `;
-    }).join('');
-    
     document.getElementById('bahan-baku-list').innerHTML = bahanBakuHtml || '<p class="text-muted">Tidak ada data bahan baku</p>';
-    document.getElementById('bahan-pendukung-list').innerHTML = bahanPendukungHtml || '<p class="text-muted">Tidak ada data bahan pendukung</p>';
     document.getElementById('total-biaya-bahan').textContent = formatRupiah(totalBiayaBahan);
     
     // Calculate BTKL
@@ -384,23 +402,32 @@ function calculateCostBreakdown() {
     const bopHtml = currentBomData.bop.map(bop => {
         const totalPerProduksi = bop.harga_per_unit * qty;
         totalBop += totalPerProduksi;
-        return `
-            <tr>
+
+        // Render komponen detail jika ada
+        let komponenHtml = '';
+        if (bop.komponen && bop.komponen.length > 0) {
+            komponenHtml = bop.komponen.map(k => {
+                const totalK = k.rate_per_hour * qty;
+                return `<tr class="table-light">
+                    <td class="ps-4 text-muted"><small>↳ ${k.nama}</small></td>
+                    <td><small class="text-muted">${formatRupiah(k.rate_per_hour)} × ${qty}</small></td>
+                    <td class="text-end"><small>${formatRupiah(totalK)}</small></td>
+                </tr>`;
+            }).join('');
+        }
+
+        return `<tr class="fw-bold">
                 <td>${bop.nama}</td>
-                <td>
-                    ${formatRupiah(bop.harga_per_unit)}
-                    <br><small class="text-muted">(${formatRupiah(bop.harga_per_unit)} per unit × ${qty} qty produksi per hari)</small>
-                </td>
-                <td class="fw-bold">${formatRupiah(totalPerProduksi)}</td>
-            </tr>
-        `;
+                <td><small class="text-muted">${formatRupiah(bop.harga_per_unit)} per unit × ${qty}</small></td>
+                <td class="fw-bold text-end">${formatRupiah(totalPerProduksi)}</td>
+            </tr>${komponenHtml}`;
     }).join('');
-    
+
     if (bopHtml) {
         document.getElementById('bop-list').innerHTML = bopHtml + `
             <tr class="table-warning">
                 <td colspan="2" class="fw-bold">Total BOP</td>
-                <td class="fw-bold">${formatRupiah(totalBop)}</td>
+                <td class="fw-bold text-end">${formatRupiah(totalBop)}</td>
             </tr>
         `;
     } else {
@@ -411,7 +438,108 @@ function calculateCostBreakdown() {
     const totalKeseluruhan = totalBiayaBahan + totalBtkl + totalBop;
     document.getElementById('harga-pokok').textContent = formatRupiah(totalKeseluruhan);
     document.getElementById('total-keseluruhan').textContent = formatRupiah(totalKeseluruhan);
-    
+
+    // ── Preview Jurnal ──────────────────────────────────────────
+    document.getElementById('jurnal-preview-section').style.display = 'block';
+
+    const bom = currentBomData;
+
+    // COA WIP spesifik per kategori
+    const bdpBbbKode  = bom.coa_bdp_bbb?.kode  ?? '1171';
+    const bdpBbbNama  = bom.coa_bdp_bbb?.nama  ?? 'BDP - BBB';
+    const bdpBtklKode = bom.coa_bdp_btkl?.kode ?? '1172';
+    const bdpBtklNama = bom.coa_bdp_btkl?.nama ?? 'BDP - BTKL';
+    const bdpBopKode  = bom.coa_bdp_bop?.kode  ?? '1173';
+    const bdpBopNama  = bom.coa_bdp_bop?.nama  ?? 'BDP - BOP';
+
+    // Helper: baris debit
+    const rowD = (ket, akunKode, akunNama, val) =>
+        `<tr>
+            <td class="ps-3">${ket}</td>
+            <td><span class="badge bg-secondary me-1">${akunKode}</span>${akunNama}</td>
+            <td class="text-center text-muted" style="font-size:10px">${akunKode}</td>
+            <td class="text-end pe-3 fw-semibold text-nowrap">${formatRupiah(val)}</td>
+            <td class="text-end pe-3"></td>
+        </tr>`;
+
+    // Helper: baris kredit (indent)
+    const rowK = (ket, akunKode, akunNama, val) =>
+        `<tr>
+            <td class="ps-5 text-muted">${ket}</td>
+            <td><span class="badge bg-secondary me-1">${akunKode}</span>${akunNama}</td>
+            <td class="text-center text-muted" style="font-size:10px">${akunKode}</td>
+            <td class="text-end pe-3"></td>
+            <td class="text-end pe-3 text-nowrap">${formatRupiah(val)}</td>
+        </tr>`;
+
+    const empty5 = `<tr><td colspan="5" class="text-center text-muted ps-3">-</td></tr>`;
+
+    // ── Jurnal 1: Produksi — BBB → BDP-BBB ───────────────────
+    let j1 = '';
+    bom.biaya_bahan.bahan_baku.forEach(b => {
+        const total = b.harga_per_unit * qty;
+        if (total <= 0) return;
+        const persKode = b.coa_persediaan_kode ?? '114';
+        const persNama = b.coa_persediaan_nama ?? b.nama;
+        j1 += rowD('Barang dalam proses - BBB', bdpBbbKode, bdpBbbNama, total);
+        j1 += rowK(b.nama, persKode, persNama, total);
+    });
+    document.getElementById('jurnal-produksi-body').innerHTML = j1 || empty5;
+
+    // ── Jurnal 2a: BTKL WIP → BDP-BTKL ──────────────────────
+    let j2a = '';
+    if (totalBtkl > 0) {
+        j2a += rowD('Barang dalam proses - BTKL', bdpBtklKode, bdpBtklNama, totalBtkl);
+        bom.btkl.forEach(b => {
+            const total = b.harga_per_unit * qty;
+            if (total <= 0) return;
+            const kreditKode = b.coa_kredit_kode ?? '211';
+            const kreditNama = b.coa_kredit_nama ?? 'Hutang Gaji';
+            j2a += rowK(`Hutang Gaji — ${b.nama}`, kreditKode, kreditNama, total);
+        });
+    }
+    document.getElementById('jurnal-btkl-body').innerHTML = j2a || empty5;
+
+    // ── Jurnal 2b: BOP WIP → BDP-BOP ─────────────────────────
+    let j2b = '';
+    bom.bop.forEach(bop => {
+        const totalBopProses = bop.harga_per_unit * qty;
+        if (totalBopProses <= 0) return;
+        j2b += rowD('Barang dalam proses - BOP', bdpBopKode, bdpBopNama, totalBopProses);
+        if (bop.komponen && bop.komponen.length > 0) {
+            bop.komponen.forEach(k => {
+                const totalK = k.rate_per_hour * qty;
+                if (totalK <= 0) return;
+                const kreditKode = k.kredit_kode ?? k.coa_kode ?? '53';
+                const kreditNama = k.kredit_nama ?? k.coa_nama ?? 'BOP';
+                j2b += rowK(`${bop.nama} — ${k.nama}`, kreditKode, kreditNama, totalK);
+            });
+        } else {
+            j2b += rowK(bop.nama, '53', 'BOP', totalBopProses);
+        }
+    });
+    document.getElementById('jurnal-bop-body').innerHTML = j2b || empty5;
+
+    // ── Jurnal 3: BDP → Persediaan Barang Jadi ───────────────
+    let j3 = '';
+    if (totalKeseluruhan > 0) {
+        const coaSelect = document.getElementById('coa_persediaan_barang_jadi_id');
+        const coaOpt   = coaSelect.options[coaSelect.selectedIndex];
+        const coaText  = coaOpt?.text || 'Pers. Barang Jadi';
+        const coaParts = coaText.split(' - ');
+        const coaKode  = coaParts[0]?.trim() ?? '116';
+        const coaNama  = coaParts.slice(1).join(' - ').trim() || coaText;
+
+        j3 += rowD('Persediaan Barang Jadi', coaKode, coaNama, totalKeseluruhan);
+        if (totalBiayaBahan > 0) j3 += rowK('BDP - BBB',  bdpBbbKode,  bdpBbbNama,  totalBiayaBahan);
+        if (totalBtkl > 0)       j3 += rowK('BDP - BTKL', bdpBtklKode, bdpBtklNama, totalBtkl);
+        if (totalBop  > 0)       j3 += rowK('BDP - BOP',  bdpBopKode,  bdpBopNama,  totalBop);
+    }
+    document.getElementById('jurnal-wip-barangjadi-body').innerHTML = j3 || empty5;
+
+    // Update jurnal 3 saat COA barang jadi diganti
+    document.getElementById('coa_persediaan_barang_jadi_id').onchange = () => calculateCostBreakdown();
+
     // Enable submit button
     document.getElementById('submit-btn').disabled = false;
 }
@@ -422,6 +550,7 @@ function hideAllSections() {
     document.getElementById('btkl-section').style.display = 'none';
     document.getElementById('bop-section').style.display = 'none';
     document.getElementById('total-section').style.display = 'none';
+    document.getElementById('jurnal-preview-section').style.display = 'none';
     document.getElementById('submit-btn').disabled = true;
 }
 

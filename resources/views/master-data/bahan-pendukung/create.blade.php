@@ -81,14 +81,9 @@
                             <label class="form-label">Harga Satuan <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-
                                 <input type="text" name="harga_satuan" id="harga_satuan" class="form-control price-input @error('harga_satuan') is-invalid @enderror" 
                                        value="{{ old('harga_satuan', '0') }}" required>
                                 <input type="hidden" name="harga_satuan_raw" id="harga_satuan_raw" value="0">
-
-                                <input type="text" name="harga_satuan" class="form-control number-input @error('harga_satuan') is-invalid @enderror" 
-                                       value="{{ old('harga_satuan') }}" placeholder="0" required>
-
                             </div>
                             @error('harga_satuan')
                                 <div class="invalid-feedback">{{ $message }}</div>

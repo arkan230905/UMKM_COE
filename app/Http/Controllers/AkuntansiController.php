@@ -187,7 +187,7 @@ class AkuntansiController extends Controller
         // Gunakan query dengan leftJoin untuk memastikan nama akun selalu diambil
         $query = \DB::table('journal_entries as je')
             ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
-            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id') // Perbaikan: join berdasarkan coa_id
+            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
             ->select([
                 'je.*',
                 'jl.id as line_id',
@@ -202,6 +202,7 @@ class AkuntansiController extends Controller
                 $q->where('jl.debit', '!=', 0)
                   ->orWhere('jl.credit', '!=', 0);
             })
+            ->where('coas.user_id', auth()->id())
             ->orderBy('je.tanggal','asc')
             ->orderBy('je.created_at','asc')
             ->orderBy('je.id','asc')
@@ -254,8 +255,8 @@ class AkuntansiController extends Controller
             $entries->push($entry);
         }
         
-        // TAMBAHAN: Ambil data dari tabel jurnal_umum (untuk penyusutan dan transaksi lain)
-        // Hanya ambil yang tidak ada di journal_entries untuk menghindari duplikasi
+        // TAMBAHAN: Ambil data dari tabel jurnal_umum (untuk penyusutan, pembelian, dan transaksi lain)
+        // Ambil semua transaksi dari jurnal_umum KECUALI yang sudah ada di journal_entries
         $jurnalUmumQuery = \DB::table('jurnal_umum as ju')
             ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
             ->select([
@@ -278,6 +279,14 @@ class AkuntansiController extends Controller
             // PERBAIKAN: Exclude pembelian transactions to avoid duplicates with journal_entries
             ->whereIn('ju.tipe_referensi', [
                 'penyusutan', 'adjustment', 'manual' // Only manual entries, exclude 'pembelian'
+            ->where('coas.user_id', auth()->id())
+            // PENTING: Exclude production entries that are already in journal_entries
+            // to avoid duplication
+            ->whereNotIn('ju.tipe_referensi', [
+                'production_material',
+                'production_labor_overhead', 
+                'production_bop',
+                'production_finish'
             ])
             ->orderBy('ju.tanggal','asc')
             ->orderBy('ju.created_at','asc')
@@ -286,12 +295,26 @@ class AkuntansiController extends Controller
         if ($from) { $jurnalUmumQuery->whereDate('ju.tanggal','>=',$from); }
         if ($to)   { $jurnalUmumQuery->whereDate('ju.tanggal','<=',$to); }
         
-        // Handle ref_type filtering - skip jurnal_umum if filtering for purchase
-        if ($refType && $refType !== 'purchase') { 
-            $jurnalUmumQuery->where('ju.tipe_referensi', $refType);
-        } elseif ($refType === 'purchase') {
-            // Skip jurnal_umum query entirely for purchase transactions
-            $jurnalUmumResults = collect();
+        // Handle ref_type filtering
+        if ($refType) {
+            // Map ref_type from URL parameter to database value
+            $mappedRefType = $refType;
+            if ($refType === 'purchase') {
+                $mappedRefType = 'pembelian';
+            } elseif ($refType === 'sale') {
+                $mappedRefType = 'penjualan';
+            }
+            
+            $jurnalUmumQuery->where('ju.tipe_referensi', $mappedRefType);
+        }
+        
+        // Handle ref_id filtering for purchase
+        if ($refType === 'purchase' && $refId) {
+            // Get pembelian nomor to match with referensi
+            $pembelian = \App\Models\Pembelian::find($refId);
+            if ($pembelian && $pembelian->nomor_pembelian) {
+                $jurnalUmumQuery->where('ju.referensi', $pembelian->nomor_pembelian);
+            }
         }
         
         if ($accountCode) { 

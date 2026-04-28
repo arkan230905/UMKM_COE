@@ -182,9 +182,9 @@ class PembelianController extends Controller
         ])->get();
         $satuans = \App\Models\Satuan::all();
         
-        // Ambil data COA untuk metode pembayaran yang spesifik saja
+        // Ambil data COA kas/bank milik user yang login
         $kasbank = \App\Models\Coa::whereIn('kode_akun', ['111', '112', '113'])
-            ->where('tipe_akun', 'Aset')
+            ->whereIn('tipe_akun', ['Aset', 'Asset', 'ASET'])
             ->orderBy('kode_akun')
             ->get();
             
@@ -1133,7 +1133,7 @@ class PembelianController extends Controller
         
         // Filter COA untuk metode pembayaran yang spesifik saja
         $kasbank = Coa::whereIn('kode_akun', ['111', '112', '113'])
-            ->where('tipe_akun', 'Aset')
+            ->whereIn('tipe_akun', ['Aset', 'Asset', 'ASET'])
             ->orderBy('kode_akun')
             ->get();
         

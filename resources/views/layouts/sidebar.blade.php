@@ -68,9 +68,10 @@
 
                 <!-- Logout -->
                 <li class="nav-item mt-4">
-                    <form method="POST" action="{{ route('logout') }}">
+                    <div class="logout-separator"></div>
+                    <form method="POST" action="{{ route('logout') }}" style="margin: 0; padding: 0;">
                         @csrf
-                        <button type="submit" class="nav-link-rounded" style="width: 100%; text-align: left; background: none; border: none; cursor: pointer;">
+                        <button type="submit" class="logout-btn">
                             <i class="fas fa-sign-out-alt"></i>
                             <span>Logout</span>
                         </button>
@@ -350,9 +351,10 @@
             </li>
             
             <li class="nav-item">
-                <form method="POST" action="{{ route('logout') }}" style="margin: 0; padding: 0; display: block;">
+                <div class="logout-separator"></div>
+                <form method="POST" action="{{ route('logout') }}" style="margin: 0; padding: 0;">
                     @csrf
-                    <button type="submit" class="nav-link-rounded logout-btn" style="width: 100%; border: none; cursor: pointer;">
+                    <button type="submit" class="logout-btn">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Logout</span>
                     </button>

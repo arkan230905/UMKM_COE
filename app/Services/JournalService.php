@@ -29,7 +29,7 @@ class JournalService
         $coa = $query->first();
         if ($coa) return (int)$coa->getAttribute('id');
 
-        throw new \RuntimeException("COA dengan kode {$code} tidak ditemukan.");
+        throw new \RuntimeException("COA dengan kode {$code} tidak ditemukan. Silakan buat COA terlebih dahulu di master data.");
     }
 
     /**

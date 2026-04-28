@@ -63,37 +63,36 @@ class CoaController extends Controller
     
     /**
      * Get saldo awal inventory untuk COA tertentu
-     * Mengambil dari bahan_bakus atau bahan_pendukungs berdasarkan kode_akun
+     * Mengambil dari bahan_bakus atau bahan_pendukungs berdasarkan coa_persediaan_id = kode_akun
      */
     private function getInventorySaldoAwalForCoa($kodeAkun)
     {
-        // Mapping kode akun Jasuke ke bahan baku
-        $bahanBakuMapping = [
-            '1141' => 'Jagung',
-        ];
+        $userId = auth()->id();
 
-        // Mapping kode akun Jasuke ke bahan pendukung
-        $bahanPendukungMapping = [
-            '1151' => 'Susu',
-            '1152' => 'Keju',
-            '1153' => 'Kemasan',
-        ];
+        // Cari di bahan_bakus milik user ini
+        $bahanBakus = \App\Models\BahanBaku::where('user_id', $userId)
+            ->where('coa_persediaan_id', $kodeAkun)
+            ->get();
 
-        if (isset($bahanBakuMapping[$kodeAkun])) {
-            $bahan = \App\Models\BahanBaku::where('nama_bahan', $bahanBakuMapping[$kodeAkun])->first();
-            if ($bahan) {
-                return $bahan->saldo_awal * $bahan->harga_satuan;
-            }
+        $total = 0;
+        $found = false;
+
+        foreach ($bahanBakus as $bahan) {
+            $total += ($bahan->saldo_awal ?? 0) * ($bahan->harga_satuan ?? 0);
+            $found = true;
         }
 
-        if (isset($bahanPendukungMapping[$kodeAkun])) {
-            $bahan = \App\Models\BahanPendukung::where('nama_bahan', $bahanPendukungMapping[$kodeAkun])->first();
-            if ($bahan) {
-                return $bahan->saldo_awal * $bahan->harga_satuan;
-            }
+        // Cari di bahan_pendukungs milik user ini
+        $bahanPendukungs = \App\Models\BahanPendukung::where('user_id', $userId)
+            ->where('coa_persediaan_id', $kodeAkun)
+            ->get();
+
+        foreach ($bahanPendukungs as $bahan) {
+            $total += ($bahan->saldo_awal ?? 0) * ($bahan->harga_satuan ?? 0);
+            $found = true;
         }
 
-        return null;
+        return $found ? $total : null;
     }
     
     /**
@@ -142,9 +141,8 @@ class CoaController extends Controller
 
     public function create()
     {
-        // Ambil semua COA sebagai pilihan akun induk, urut hierarkis
-        $parentCoas = Coa::withoutGlobalScopes()
-            ->whereNotNull('nama_akun')
+        // Ambil COA milik user yang login sebagai pilihan akun induk
+        $parentCoas = Coa::whereNotNull('nama_akun')
             ->where('nama_akun', '!=', '')
             ->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)")
             ->get(['id', 'kode_akun', 'nama_akun', 'tipe_akun', 'kategori_akun', 'saldo_normal']);
@@ -156,33 +154,41 @@ class CoaController extends Controller
     {
         // Jika user memilih akun induk dan mode auto-generate
         if ($request->filled('parent_coa_id') && $request->boolean('auto_generate_kode')) {
-            $parentCoa = Coa::withoutGlobalScopes()->find($request->parent_coa_id);
+            $parentCoa = Coa::find($request->parent_coa_id);
             if ($parentCoa) {
                 $generatedKode = Coa::generateChildCode($parentCoa->kode_akun);
                 $request->merge(['kode_akun' => $generatedKode]);
             }
         }
 
-        // Define allowed tipe_akun values
-        $allowedTipeAkun = [
-            'Asset', 'Aset', 'ASET',
-            'Liability', 'Kewajiban', 'KEWAJIBAN', 
-            'Equity', 'Ekuitas', 'Modal', 'MODAL',
-            'Revenue', 'Pendapatan', 'PENDAPATAN',
-            'Expense', 'Beban', 'BEBAN', 'Biaya',
-            'Biaya Bahan Baku', 'Biaya Tenaga Kerja Langsung', 
-            'Biaya Overhead Pabrik', 'Biaya Tenaga Kerja Tidak Langsung', 
-            'BOP Tidak Langsung Lainnya'
+        // Normalize tipe_akun: map alias ke nilai enum DB
+        $tipeAkunMap = [
+            'ASET'       => 'Asset',
+            'Aset'       => 'Asset',
+            'KEWAJIBAN'  => 'Liability',
+            'Kewajiban'  => 'Liability',
+            'MODAL'      => 'Equity',
+            'Modal'      => 'Equity',
+            'Ekuitas'    => 'Equity',
+            'PENDAPATAN' => 'Revenue',
+            'Pendapatan' => 'Revenue',
+            'BEBAN'      => 'Expense',
+            'Beban'      => 'Expense',
+            'Biaya'      => 'Expense',
         ];
+        if (isset($tipeAkunMap[$request->tipe_akun])) {
+            $request->merge(['tipe_akun' => $tipeAkunMap[$request->tipe_akun]]);
+        }
 
         $validated = $request->validate([
             'kode_akun' => [
                 'required',
-                'unique:coas,kode_akun',
+                \Illuminate\Validation\Rule::unique('coas', 'kode_akun')
+                    ->where('user_id', auth()->id()),
                 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:' . implode(',', $allowedTipeAkun),
+            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Biaya Bahan Baku,Biaya Tenaga Kerja Langsung,Biaya Overhead Pabrik,Biaya Tenaga Kerja Tidak Langsung,BOP Tidak Langsung Lainnya',
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',
@@ -193,7 +199,7 @@ class CoaController extends Controller
             'kode_akun.required' => 'Kode akun wajib diisi.',
             'nama_akun.required' => 'Nama akun wajib diisi.',
             'tipe_akun.required' => 'Tipe akun wajib dipilih.',
-            'tipe_akun.in' => 'Tipe akun harus salah satu dari: Aset, Kewajiban, Modal, Pendapatan, Beban',
+            'tipe_akun.in' => 'Tipe akun harus salah satu dari: Asset, Liability, Equity, Revenue, Expense',
         ]);
 
         $coaData = [
@@ -227,8 +233,8 @@ class CoaController extends Controller
 
     public function edit(Coa $coa)
     {
-        $parentCoas = Coa::withoutGlobalScopes()
-            ->whereNotNull('nama_akun')
+        // Ambil COA milik user yang login (kecuali dirinya sendiri)
+        $parentCoas = Coa::whereNotNull('nama_akun')
             ->where('nama_akun', '!=', '')
             ->where('id', '!=', $coa->id)
             ->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)")
@@ -239,26 +245,35 @@ class CoaController extends Controller
 
     public function update(Request $request, Coa $coa)
     {
-        // Define allowed tipe_akun values
-        $allowedTipeAkun = [
-            'Asset', 'Aset', 'ASET',
-            'Liability', 'Kewajiban', 'KEWAJIBAN', 
-            'Equity', 'Ekuitas', 'Modal', 'MODAL',
-            'Revenue', 'Pendapatan', 'PENDAPATAN',
-            'Expense', 'Beban', 'BEBAN', 'Biaya',
-            'Biaya Bahan Baku', 'Biaya Tenaga Kerja Langsung', 
-            'Biaya Overhead Pabrik', 'Biaya Tenaga Kerja Tidak Langsung', 
-            'BOP Tidak Langsung Lainnya'
+        // Normalize tipe_akun: map uppercase/alias ke nilai enum DB
+        $tipeAkunMap = [
+            'ASET'       => 'Asset',
+            'Aset'       => 'Asset',
+            'KEWAJIBAN'  => 'Liability',
+            'Kewajiban'  => 'Liability',
+            'MODAL'      => 'Equity',
+            'Modal'      => 'Equity',
+            'Ekuitas'    => 'Equity',
+            'PENDAPATAN' => 'Revenue',
+            'Pendapatan' => 'Revenue',
+            'BEBAN'      => 'Expense',
+            'Beban'      => 'Expense',
+            'Biaya'      => 'Expense',
         ];
+        if (isset($tipeAkunMap[$request->tipe_akun])) {
+            $request->merge(['tipe_akun' => $tipeAkunMap[$request->tipe_akun]]);
+        }
 
         $validated = $request->validate([
             'kode_akun' => [
                 'required',
-                'unique:coas,kode_akun,' . $coa->id,
+                \Illuminate\Validation\Rule::unique('coas', 'kode_akun')
+                    ->where('user_id', auth()->id())
+                    ->ignore($coa->id),
                 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
-            'tipe_akun' => 'required|in:' . implode(',', $allowedTipeAkun),
+            'tipe_akun' => 'required|in:Asset,Liability,Equity,Revenue,Expense,Biaya Bahan Baku,Biaya Tenaga Kerja Langsung,Biaya Overhead Pabrik,Biaya Tenaga Kerja Tidak Langsung,BOP Tidak Langsung Lainnya',
             'saldo_normal' => 'nullable|in:debit,kredit',
             'saldo_awal' => 'nullable|numeric',
             'tanggal_saldo_awal' => 'nullable|date',
@@ -269,7 +284,7 @@ class CoaController extends Controller
             'kode_akun.required' => 'Kode akun wajib diisi.',
             'nama_akun.required' => 'Nama akun wajib diisi.',
             'tipe_akun.required' => 'Tipe akun wajib dipilih.',
-            'tipe_akun.in' => 'Tipe akun harus salah satu dari: Aset, Kewajiban, Modal, Pendapatan, Beban',
+            'tipe_akun.in' => 'Tipe akun harus salah satu dari: Asset, Liability, Equity, Revenue, Expense',
         ]);
 
         $coa->update([

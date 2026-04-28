@@ -7,10 +7,6 @@
         <a href="{{ route('transaksi.pembelian.index') }}?tab=retur" class="btn btn-secondary">Kembali</a>
     </div>
 
-    @if(session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
-
     <form action="{{ route('transaksi.retur-pembelian.store') }}" method="POST">
         @csrf
         <input type="hidden" name="pembelian_id" value="{{ $pembelian->id }}">

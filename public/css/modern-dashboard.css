@@ -377,71 +377,84 @@ a.nav-link-rounded.active i {
     display: none !important;
 }
 
-/* LOGOUT BUTTON STYLING - SAME ALIGNMENT AS OTHER LINKS */
-.sidebar .logout-btn,
-.sidebar button.logout-btn,
-button.logout-btn.nav-link-rounded {
-    background: #FF937E !important;
-    background-image: linear-gradient(135deg, #FF937E 0%, #FF8A73 100%) !important;
+/* LOGOUT BUTTON */
+.sidebar .logout-btn {
+    background: linear-gradient(135deg, #e53935 0%, #c62828 100%) !important;
     border: none !important;
     color: white !important;
     cursor: pointer !important;
-    /* Ensure same alignment as other nav links */
     display: flex !important;
     align-items: center !important;
-    justify-content: flex-start !important;
-    text-align: left !important;
-    padding: 10px 15px !important;
-    margin: 3px 10px !important;
+    padding: 10px 14px !important;
+    margin: 8px 10px 16px 10px !important;
     width: calc(100% - 20px) !important;
-    height: 42px !important;
-    min-height: 42px !important;
-    max-height: 42px !important;
-    border-radius: 20px !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    box-shadow: 0 2px 8px rgba(255, 147, 126, 0.3) !important;
+    border-radius: 10px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px !important;
     transition: all 0.3s ease !important;
+    text-align: left !important;
+    min-height: 40px !important;
+    box-shadow: 0 4px 12px rgba(229, 57, 53, 0.35) !important;
+    position: relative !important;
+    overflow: hidden !important;
 }
 
-.sidebar .logout-btn i,
-.sidebar button.logout-btn i,
-button.logout-btn.nav-link-rounded i {
+/* shimmer effect */
+.sidebar .logout-btn::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: -100% !important;
+    width: 60% !important;
+    height: 100% !important;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent) !important;
+    transition: left 0.5s ease !important;
+    pointer-events: none !important;
+}
+
+.sidebar .logout-btn:hover::before {
+    left: 150% !important;
+}
+
+/* separator line above logout */
+.sidebar .logout-separator {
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent) !important;
+    margin: 8px 10px 4px 10px !important;
+}
+
+.sidebar .logout-btn i {
     color: white !important;
     margin-right: 10px !important;
     font-size: 14px !important;
     width: 18px !important;
     text-align: center !important;
     flex-shrink: 0 !important;
+    transition: transform 0.3s ease !important;
 }
 
-.sidebar .logout-btn span,
-.sidebar button.logout-btn span,
-button.logout-btn.nav-link-rounded span {
+.sidebar .logout-btn span {
+    color: white !important;
     flex: 1 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    line-height: 1.2 !important;
-    text-align: left !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
 }
 
-.sidebar .logout-btn:hover,
-.sidebar button.logout-btn:hover,
-button.logout-btn.nav-link-rounded:hover {
-    background: #BF1A1A !important;
-    background-image: linear-gradient(135deg, #BF1A1A 0%, #A01515 100%) !important;
-    border-color: #BF1A1A !important;
-    color: white !important;
-    box-shadow: 0 4px 20px rgba(191, 26, 26, 0.4) !important;
-    transform: translateX(3px) !important;
+
+.sidebar .logout-btn:hover {
+    background: linear-gradient(135deg, #ef5350 0%, #e53935 100%) !important;
+    box-shadow: 0 6px 20px rgba(229, 57, 53, 0.5) !important;
+    transform: translateY(-1px) !important;
 }
 
-.sidebar .logout-btn:hover i,
-.sidebar button.logout-btn:hover i,
-button.logout-btn.nav-link-rounded:hover i {
-    color: white !important;
-    transform: scale(1.1) !important;
+.sidebar .logout-btn:hover i:first-child {
+    transform: translateX(2px) !important;
+}
+
+.sidebar .logout-btn:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 8px rgba(229, 57, 53, 0.4) !important;
 }
 
 /* FORCE RED COLOR FOR LOGOUT BUTTON - HIGHEST SPECIFICITY */
