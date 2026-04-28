@@ -10,10 +10,6 @@
         <a href="{{ route('master-data.bom-job-costing.show', $produk->id) }}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Kembali</a>
     </div>
 
-    @if(session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
-
     <form action="{{ route('master-data.bom-job-costing.update', $produk->id) }}" method="POST" id="bomForm">
         @csrf
         @method('PUT')

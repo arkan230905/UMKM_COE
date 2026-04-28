@@ -19,10 +19,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
     <!-- Informasi Dasar -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white border-bottom border-3 border-primary">

@@ -6,10 +6,6 @@
         <div class="card-body p-5">
             <h2 class="mb-4 text-center">🏢 Tentang Perusahaan</h2>
 
-            @if(session('success'))
-                <div class="alert alert-success text-center">{{ session('success') }}</div>
-            @endif
-
             <!-- TAMPILAN DATA -->
             <div id="info-section">
                 <h5>Nama Perusahaan</h5>

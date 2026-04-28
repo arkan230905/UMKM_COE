@@ -17,10 +17,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
-    @endif
-
     <!-- Info Produk -->
     <div class="card shadow-sm mb-3">
         <div class="card-header bg-dark text-white"><h5 class="mb-0"><i class="bi bi-box me-2"></i>Informasi Produk</h5></div>
