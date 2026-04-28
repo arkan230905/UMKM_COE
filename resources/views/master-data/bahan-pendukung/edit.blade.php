@@ -434,7 +434,7 @@ function setupPriceFormatting() {
         
         // Initial format - parse float first to handle decimals, then convert to int
         let initialValue = parseFloat(priceInput.value) || 0;
-        initialValue = Math.round(initialValue); // Round to nearest integer
+        initialValue = Math.floor(initialValue); // Use Math.floor to remove decimals
         priceInput.value = initialValue.toLocaleString('id-ID');
         if (priceRawInput) {
             priceRawInput.value = initialValue;
@@ -455,7 +455,7 @@ function setupPriceFormatting() {
         
         // Initial format - parse float first to handle decimals, then convert to int
         let initialMinValue = parseFloat(stokMinInput.value) || 0;
-        initialMinValue = Math.round(initialMinValue); // Round to nearest integer
+        initialMinValue = Math.floor(initialMinValue); // Use Math.floor to remove decimals
         stokMinInput.value = initialMinValue.toLocaleString('id-ID');
         if (stokMinRawInput) {
             stokMinRawInput.value = initialMinValue;
