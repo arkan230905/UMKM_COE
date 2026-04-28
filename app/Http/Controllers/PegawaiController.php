@@ -100,6 +100,7 @@ class PegawaiController extends Controller
             'bank' => $validated['bank'],
             'nomor_rekening' => $validated['nomor_rekening'],
             'nama_rekening' => $validated['nama_rekening'],
+            'user_id' => auth()->id(),
         ];
         
         // Log data being saved for debugging

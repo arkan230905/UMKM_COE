@@ -580,6 +580,7 @@ class AsetController extends Controller
 
         $nilaiBuku   = $totalPerolehan;
         $totalAkumul = 0;
+        $startYear   = $startDate->year; // tahun kalender mulai (mis. 2022)
 
         for ($tahun = 1; $tahun <= $umurManfaat; $tahun++) {
             // Jumlah bulan dalam segmen tahun ini
@@ -624,7 +625,7 @@ class AsetController extends Controller
             $nilaiBuku   -= $penyusutan;
 
             $schedule[] = [
-                'tahun'       => $tahun,
+                'tahun'       => $startYear + ($tahun - 1), // 2022, 2023, 2024, ...
                 'penyusutan'  => round($penyusutan, 2),
                 'akumulasi'   => round($totalAkumul, 2),
                 'nilai_buku'  => round($nilaiBuku, 2),

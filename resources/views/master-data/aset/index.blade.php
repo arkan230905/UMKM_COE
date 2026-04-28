@@ -4,9 +4,9 @@
 
 @section('content')
 <div class="container mt-4">
-    <div class="row mb-3">
+    <div class="row mb-3 align-items-center">
         <div class="col-md-6">
-            <h2>Daftar Aset</h2>
+            <h2 class="mb-0 fw-bold">Daftar Aset</h2>
         </div>
         <div class="col-md-6 text-end">
             <a href="{{ route('master-data.aset.create') }}" class="btn btn-primary">Tambah Aset</a>
@@ -16,7 +16,7 @@
     <!-- Filter Section -->
     <div class="card mb-4">
         <div class="card-body">
-            <form method="GET" action="{{ route('master-data.aset.index') }}" class="row g-3">
+            <form method="GET" action="{{ route('master-data.aset.index') }}" class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label for="jenis_aset" class="form-label">Jenis Aset</label>
                     <select name="jenis_aset" id="jenis_aset" class="form-select" onchange="this.form.submit()">
@@ -45,11 +45,11 @@
                     <label for="status" class="form-label">Status</label>
                     <select name="status" id="status" class="form-select" onchange="this.form.submit()">
                         <option value="">-- Semua Status --</option>
-                        <option value="aktif" {{ request('status') == 'aktif' ? 'selected' : '' }}>Aktif</option>
+                        <option value="aktif"    {{ request('status') == 'aktif'    ? 'selected' : '' }}>Aktif</option>
                         <option value="nonaktif" {{ request('status') == 'nonaktif' ? 'selected' : '' }}>Nonaktif</option>
-                        <option value="dijual" {{ request('status') == 'dijual' ? 'selected' : '' }}>Dijual</option>
-                        <option value="hilang" {{ request('status') == 'hilang' ? 'selected' : '' }}>Hilang</option>
-                        <option value="rusak" {{ request('status') == 'rusak' ? 'selected' : '' }}>Rusak</option>
+                        <option value="dijual"   {{ request('status') == 'dijual'   ? 'selected' : '' }}>Dijual</option>
+                        <option value="hilang"   {{ request('status') == 'hilang'   ? 'selected' : '' }}>Hilang</option>
+                        <option value="rusak"    {{ request('status') == 'rusak'    ? 'selected' : '' }}>Rusak</option>
                     </select>
                 </div>
                 <div class="col-md-12">
@@ -58,7 +58,7 @@
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-search"></i> Cari
                         </button>
-                        @if(request()->has('jenis_aset') || request()->has('kategori') || request()->has('status') || request()->has('search'))
+                        @if(request()->anyFilled(['jenis_aset','kategori_aset_id','status','search']))
                             <a href="{{ route('master-data.aset.index') }}" class="btn btn-outline-secondary">
                                 <i class="fas fa-undo"></i> Reset
                             </a>
@@ -70,39 +70,50 @@
     </div>
 
     <div class="card">
-        <div class="card-body">
+        <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-striped table-hover">
+                <table class="table table-hover mb-0">
                     <thead class="custom-table-header">
                         <tr>
-                            <th>No</th>
+                            <th class="text-center" style="width:45px">No</th>
                             <th>Kode Aset</th>
                             <th>Nama Aset</th>
                             <th>Jenis Aset</th>
                             <th>Kategori</th>
-                            <th>Harga Perolehan (Rp)</th>
-                            <th>Tanggal Beli</th>
+                            <th class="text-end">Harga Perolehan (Rp)</th>
+                            <th class="text-center">Tanggal Beli</th>
                             <th>Metode Penyusutan</th>
-                            <th>Penyusutan Bulan Ini</th>
-                            <th>Status Posting</th>
+                            <th class="text-end">Penyusutan Bulan Ini</th>
+                            <th class="text-center">Status Posting</th>
                             <th>COA Aset</th>
                             <th>COA Akumulasi Penyusutan</th>
                             <th>COA Beban Penyusutan</th>
-                            <th>Status</th>
-                            <th>Aksi</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($asets as $key => $aset)
                             <tr>
-                                <td>{{ $key + 1 }}</td>
-                                <td>{{ $aset->kode_aset }}</td>
-                                <td>{{ $aset->nama_aset }}</td>
+                                <td class="text-center">{{ ($asets->currentPage()-1)*$asets->perPage()+$key+1 }}</td>
+                                <td><span class="kode-aset">{{ $aset->kode_aset }}</span></td>
+                                <td class="fw-semibold">{{ $aset->nama_aset }}</td>
                                 <td>{{ $aset->kategori->jenisAset->nama ?? '-' }}</td>
                                 <td>{{ $aset->kategori->nama ?? '-' }}</td>
                                 <td class="text-end">{{ number_format($aset->harga_perolehan, 0, ',', '.') }}</td>
-                                <td>{{ $aset->tanggal_beli ? (is_string($aset->tanggal_beli) ? \Carbon\Carbon::parse($aset->tanggal_beli)->format('d/m/Y') : $aset->tanggal_beli->format('d/m/Y')) : '-' }}</td>
-                                <td>{{ $aset->metode_penyusutan ? ucfirst(str_replace('_', ' ', $aset->metode_penyusutan)) : '-' }}</td>
+                                <td class="text-center">
+                                    {{ $aset->tanggal_beli ? \Carbon\Carbon::parse($aset->tanggal_beli)->format('d/m/Y') : '-' }}
+                                </td>
+                                <td>
+                                    @php
+                                        $metodeLabel = [
+                                            'garis_lurus'        => 'Garis Lurus',
+                                            'saldo_menurun'      => 'Saldo Menurun',
+                                            'sum_of_years_digits'=> 'Sum of Years Digits',
+                                        ][$aset->metode_penyusutan] ?? ucfirst(str_replace('_',' ',$aset->metode_penyusutan ?? '-'));
+                                    @endphp
+                                    {{ $metodeLabel }}
+                                </td>
                                 <td class="text-end">
                                     @if(isset($aset->monthly_depreciation) && $aset->monthly_depreciation > 0)
                                         @if($aset->expense_coa_id && $aset->accum_depr_coa_id)
@@ -110,7 +121,7 @@
                                         @else
                                             <span class="text-warning fw-bold" title="COA belum lengkap">
                                                 Rp {{ number_format($aset->monthly_depreciation, 0, ',', '.') }}
-                                                <i class="fas fa-exclamation-triangle ms-1"></i>
+                                                <i class="fas fa-exclamation-triangle ms-1" style="font-size:.7rem"></i>
                                             </span>
                                         @endif
                                     @else
@@ -121,90 +132,74 @@
                                     @if(isset($aset->is_posted_this_month) && $aset->is_posted_this_month)
                                         <span class="badge bg-success">Sudah Posting</span>
                                     @else
-                                        <span class="badge bg-warning">Belum Posting</span>
+                                        <span class="badge bg-warning text-dark">Belum Posting</span>
                                     @endif
                                 </td>
+                                {{-- COA Aset --}}
                                 <td>
                                     @if($aset->assetCoa)
-                                        <small class="text-muted">{{ $aset->assetCoa->kode_akun }}</small><br>
-                                        {{ $aset->assetCoa->nama_akun }}
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
+                                        <div class="coa-cell">
+                                            <span class="coa-kode">{{ $aset->assetCoa->kode_akun }}</span>
+                                            <span class="coa-nama">{{ $aset->assetCoa->nama_akun }}</span>
+                                        </div>
+                                    @else <span class="text-muted">-</span> @endif
                                 </td>
+                                {{-- COA Akumulasi --}}
                                 <td>
                                     @if($aset->accumDepreciationCoa)
-                                        <small class="text-muted">{{ $aset->accumDepreciationCoa->kode_akun }}</small><br>
-                                        {{ $aset->accumDepreciationCoa->nama_akun }}
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
+                                        <div class="coa-cell">
+                                            <span class="coa-kode">{{ $aset->accumDepreciationCoa->kode_akun }}</span>
+                                            <span class="coa-nama">{{ $aset->accumDepreciationCoa->nama_akun }}</span>
+                                        </div>
+                                    @else <span class="text-muted">-</span> @endif
                                 </td>
+                                {{-- COA Beban --}}
                                 <td>
                                     @if($aset->expenseCoa)
-                                        <small class="text-muted">{{ $aset->expenseCoa->kode_akun }}</small><br>
-                                        {{ $aset->expenseCoa->nama_akun }}
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
+                                        <div class="coa-cell">
+                                            <span class="coa-kode">{{ $aset->expenseCoa->kode_akun }}</span>
+                                            <span class="coa-nama">{{ $aset->expenseCoa->nama_akun }}</span>
+                                        </div>
+                                    @else <span class="text-muted">-</span> @endif
                                 </td>
-                                <td>
+                                {{-- Status --}}
+                                <td class="text-center">
                                     @php
-                                        $badgeClass = [
-                                            'aktif' => 'bg-success',
-                                            'disewakan' => 'bg-info',
-                                            'dioperasikan' => 'bg-primary',
-                                            'dihapus' => 'bg-danger'
-                                        ][$aset->status] ?? 'bg-secondary';
+                                        $badgeClass = ['aktif'=>'bg-success','disewakan'=>'bg-info','dioperasikan'=>'bg-primary','dihapus'=>'bg-danger'][$aset->status] ?? 'bg-secondary';
                                     @endphp
-                                    <span class="badge {{ $badgeClass }}">
-                                        {{ ucfirst($aset->status) }}
-                                    </span>
+                                    <span class="badge {{ $badgeClass }}">{{ ucfirst($aset->status) }}</span>
                                 </td>
-                                <td>
-                                    <div class="btn-group-vertical" role="group">
-                                        <!-- Regular action buttons -->
-                                        <div class="btn-group mb-1" role="group">
+                                {{-- Aksi --}}
+                                <td class="text-center">
+                                    <div class="d-flex flex-column align-items-center gap-1">
+                                        <div class="d-flex gap-1">
+                                            <a href="{{ route('master-data.aset.show', $aset->id) }}" class="btn btn-sm btn-secondary" title="Lihat">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
                                             <a href="{{ route('master-data.aset.edit', $aset->id) }}" class="btn btn-sm btn-primary" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form action="{{ route('master-data.aset.destroy', $aset->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus aset ini?')">
-                                                @csrf
-                                                @method('DELETE')
+                                            <form action="{{ route('master-data.aset.destroy', $aset->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus aset ini?')">
+                                                @csrf @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-danger" title="Hapus">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
-                                            <a href="{{ route('master-data.aset.show', $aset->id) }}" class="btn btn-sm btn-secondary" title="Lihat">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
                                         </div>
-                                        
-                                        <!-- Individual depreciation posting button -->
-                                        @if(isset($aset->monthly_depreciation) && $aset->monthly_depreciation > 0 && !$aset->is_posted_this_month)
-                                            @if($aset->expense_coa_id && $aset->accum_depr_coa_id)
-                                                <button type="button" 
-                                                        class="btn btn-sm btn-success post-depreciation-btn" 
-                                                        data-aset-id="{{ $aset->id }}"
-                                                        data-aset-name="{{ $aset->nama_aset }}"
-                                                        data-amount="{{ number_format($aset->monthly_depreciation, 0, ',', '.') }}"
-                                                        title="Posting Penyusutan">
-                                                    <i class="fas fa-calculator"></i> Posting
-                                                </button>
-                                            @else
-                                                <button type="button" 
-                                                        class="btn btn-sm btn-warning" 
-                                                        disabled 
-                                                        title="COA belum lengkap - silakan edit aset untuk melengkapi COA">
-                                                    <i class="fas fa-exclamation-triangle"></i> COA?
-                                                </button>
-                                            @endif
-                                        @elseif($aset->is_posted_this_month)
-                                            <button type="button" class="btn btn-sm btn-outline-success" disabled title="Sudah diposting">
+                                        @if(isset($aset->is_posted_this_month) && $aset->is_posted_this_month)
+                                            <button class="btn btn-sm btn-outline-success" disabled>
                                                 <i class="fas fa-check"></i> Posted
                                             </button>
+                                        @elseif(isset($aset->monthly_depreciation) && $aset->monthly_depreciation > 0 && $aset->expense_coa_id && $aset->accum_depr_coa_id)
+                                            <button type="button" class="btn btn-sm btn-success post-depreciation-btn"
+                                                data-aset-id="{{ $aset->id }}"
+                                                data-aset-name="{{ $aset->nama_aset }}"
+                                                data-amount="{{ number_format($aset->monthly_depreciation, 0, ',', '.') }}"
+                                                title="Posting Penyusutan">
+                                                <i class="fas fa-calculator"></i> Posting
+                                            </button>
                                         @else
-                                            <button type="button" class="btn btn-sm btn-outline-secondary" disabled title="Tidak ada penyusutan">
+                                            <button class="btn btn-sm btn-outline-secondary" disabled title="Tidak tersedia">
                                                 <i class="fas fa-minus"></i> N/A
                                             </button>
                                         @endif
@@ -213,237 +208,135 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="15" class="text-center py-4">Tidak ada data aset</td>
+                                <td colspan="15" class="text-center py-5 text-muted">
+                                    <i class="fas fa-box-open d-block mb-2" style="font-size:2rem;opacity:.4"></i>
+                                    Tidak ada data aset
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-            
-            {{-- Pagination --}}
+
             @if($asets->hasPages())
-                <div class="d-flex justify-content-center mt-3">
+                <div class="px-3 py-2 border-top">
                     {{ $asets->withQueryString()->links() }}
                 </div>
             @endif
         </div>
     </div>
 </div>
+@endsection
 
 @push('styles')
 <style>
-    .table th {
-        white-space: nowrap;
-        font-size: 0.875rem;
-    }
-    .table td {
-        font-size: 0.875rem;
-        vertical-align: middle;
-    }
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
-        border-radius: 0.375rem;
-        transition: all 0.15s ease-in-out;
-    }
-    
-    /* Custom table header with brown color matching theme */
-    .custom-table-header {
-        background-color: #7D6347 !important;
-        color: white !important;
-    }
-    
+    /* Header tabel coklat */
     .custom-table-header th {
         background-color: #7D6347 !important;
-        color: white !important;
-        border-color: #8B6F47 !important;
+        color: #fff !important;
         font-weight: 600;
-        padding: 0.75rem 0.5rem;
+        font-size: .82rem;
+        padding: 10px 12px;
+        white-space: nowrap;
+        vertical-align: middle;
+        border: none;
     }
-    
-    /* COA columns styling */
-    .table td:nth-child(11),
-    .table td:nth-child(12), 
-    .table td:nth-child(13) {
-        min-width: 180px;
-        max-width: 200px;
-        font-size: 0.8rem;
-        line-height: 1.2;
+
+    /* Body tabel */
+    .table tbody td {
+        font-size: .83rem;
+        padding: 10px 12px;
+        vertical-align: middle;
     }
-    
-    .table th:nth-child(11),
-    .table th:nth-child(12),
-    .table th:nth-child(13) {
-        min-width: 180px;
-        text-align: center;
+
+    /* Kode aset */
+    .kode-aset {
+        font-size: .83rem;
+        color: #212529;
+        font-weight: 500;
     }
-    
-    /* New depreciation columns styling */
-    .table th:nth-child(9),
-    .table th:nth-child(10) {
-        min-width: 120px;
-        text-align: center;
+
+    /* COA cell — kode dan nama sejajar rapi */
+    .coa-cell {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.4;
+        min-width: 150px;
     }
-    
-    .table td:nth-child(9),
-    .table td:nth-child(10) {
-        min-width: 120px;
-        font-size: 0.85rem;
+    .coa-kode {
+        font-size: .78rem;
+        font-weight: 600;
+        color: #212529;
     }
-    
-    /* Action column styling */
-    .table th:nth-child(15),
-    .table td:nth-child(15) {
-        min-width: 140px;
+    .coa-nama {
+        font-size: .8rem;
+        color: #212529;
     }
-    
-    /* Standardized button styling */
-    .btn-group .btn-sm {
-        min-width: 35px;
-        height: 31px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 1px;
-    }
-    
-    .btn-group .btn-sm i {
-        font-size: 0.75rem;
-    }
-    
-    /* Primary button (Edit) - Brown theme */
+
+    /* Tombol primary coklat */
     .btn-primary {
         background-color: #7D6347;
         border-color: #7D6347;
     }
-    
     .btn-primary:hover {
-        background-color: #8B6F47;
-        border-color: #8B6F47;
+        background-color: #5c4733;
+        border-color: #5c4733;
     }
-    
-    /* Danger button (Delete) - Red but consistent style */
-    .btn-danger {
-        background-color: #dc3545;
-        border-color: #dc3545;
-    }
-    
-    .btn-danger:hover {
-        background-color: #c82333;
-        border-color: #c82333;
-    }
-    
-    /* Secondary button (View) - Gray/light brown */
-    .btn-secondary {
-        background-color: #6c757d;
-        border-color: #6c757d;
-    }
-    
-    .btn-secondary:hover {
-        background-color: #5a6268;
-        border-color: #545b62;
-    }
-    
-    /* Make table more compact for additional columns */
-    .table-responsive {
-        overflow-x: auto;
-    }
-    
-    .table td, .table th {
-        padding: 0.5rem 0.4rem;
-    }
-    
-    /* COA text styling */
-    .table td small {
-        display: block;
-        color: #6c757d;
-        font-weight: 500;
+
+    /* Ukuran tombol aksi seragam */
+    .btn-sm {
+        min-width: 30px;
+        height: 30px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .75rem;
+        padding: 0 8px;
     }
 </style>
 @endpush
 
 @push('scripts')
 <script>
-    // Format mata uang
-    document.addEventListener('DOMContentLoaded', function() {
-        // Format input harga
-        const formatRupiah = (number) => {
-            return new Intl.NumberFormat('id-ID', {
-                style: 'currency',
-                currency: 'IDR',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0
-            }).format(number);
-        };
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.post-depreciation-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const id     = this.dataset.asetId;
+            const name   = this.dataset.asetName;
+            const amount = this.dataset.amount;
 
-        // Format harga saat halaman dimuat
-        document.querySelectorAll('.harga-format').forEach(element => {
-            if (element.textContent.trim() !== '') {
-                element.textContent = formatRupiah(parseInt(element.textContent));
-            }
-        });
+            if (!confirm(`Posting penyusutan untuk "${name}" sebesar Rp ${amount}?`)) return;
 
-        // Handle individual depreciation posting
-        document.querySelectorAll('.post-depreciation-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const asetId = this.dataset.asetId;
-                const asetName = this.dataset.asetName;
-                const amount = this.dataset.amount;
-                
-                if (confirm(`Apakah Anda yakin ingin memposting penyusutan untuk aset "${asetName}" sebesar Rp ${amount}?`)) {
-                    // Disable button and show loading
-                    this.disabled = true;
-                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Posting...';
-                    
-                    // Send AJAX request
-                    fetch(`/master-data/aset/${asetId}/post-depreciation`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                        },
-                        body: JSON.stringify({})
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Show success message
-                            alert(`✅ ${data.message}\nJumlah: Rp ${data.amount}`);
-                            
-                            // Update button to show posted status
-                            this.className = 'btn btn-sm btn-outline-success';
-                            this.innerHTML = '<i class="fas fa-check"></i> Posted';
-                            this.title = 'Sudah diposting';
-                            
-                            // Update status badge in the same row
-                            const row = this.closest('tr');
-                            const statusCell = row.querySelector('td:nth-child(10)');
-                            if (statusCell) {
-                                statusCell.innerHTML = '<span class="badge bg-success">Sudah Posting</span>';
-                            }
-                        } else {
-                            // Show error message
-                            alert(`❌ ${data.message}`);
-                            
-                            // Re-enable button
-                            this.disabled = false;
-                            this.innerHTML = '<i class="fas fa-calculator"></i> Posting';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('❌ Terjadi kesalahan saat memposting penyusutan');
-                        
-                        // Re-enable button
-                        this.disabled = false;
-                        this.innerHTML = '<i class="fas fa-calculator"></i> Posting';
-                    });
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Proses...';
+
+            fetch(`/master-data/aset/${id}/post-depreciation`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({})
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    localStorage.setItem('flash_msg', data.message);
+                    localStorage.setItem('flash_type', 'success');
+                    location.reload();
+                } else {
+                    alert('❌ ' + data.message);
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-calculator"></i> Posting';
                 }
+            })
+            .catch(() => {
+                alert('❌ Terjadi kesalahan');
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-calculator"></i> Posting';
             });
         });
     });
+});
 </script>
 @endpush
-
-@endsection
-

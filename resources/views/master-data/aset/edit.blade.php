@@ -682,76 +682,62 @@ function hitungPerhitunganTahunanSumOfYears(total, residu, umur) {
 function hitungPerhitunganTahunan(total, residu, umur, tarifPersen, bulanMulai) {
     const tabelContainer = document.getElementById('tabel_perhitungan_tahunan');
     const tabelBody = document.getElementById('tabel_perhitungan_body');
-    
+
     if (!umur || umur <= 0) {
         tabelContainer.style.display = 'none';
         return;
     }
-    
-    // Gunakan tarif standar saldo menurun ganda: 2 / umur manfaat
+
+    // Ambil tahun mulai dari tanggal akuisisi/beli aset
+    const tglMulaiEl = document.getElementById('tanggal_akuisisi') || document.getElementById('tanggal_beli');
+    const tglMulai   = tglMulaiEl ? tglMulaiEl.value : '';
+    const startYear  = tglMulai ? new Date(tglMulai).getFullYear() : new Date().getFullYear();
+
+    // Hitung bulan tersisa di tahun pertama (Sep=9 → 4 bulan)
+    const bulanMulaiAset = tglMulai ? new Date(tglMulai).getMonth() + 1 : 9;
+    const bulanTersisa   = 13 - bulanMulaiAset; // Sep → 4, Jan → 12
+
     const rate = 2 / umur;
     let bookValue = total;
     let totalPenyusutan = 0;
-    
     let html = '';
-    
-    // Simulasi pola Excel: tahun pertama 4 bulan, tahun penuh, tahun terakhir 8 bulan
-    // Tahun pertama (4 bulan)
-    let penyusutan = total * rate * (4 / 12);
-    const maxDepreciable = Math.max(bookValue - residu, 0);
-    const penyusutanActual = Math.min(penyusutan, maxDepreciable);
-    
-    bookValue -= penyusutanActual;
-    bookValue = Math.round(bookValue);
-    totalPenyusutan += penyusutanActual;
-    totalPenyusutan = Math.round(totalPenyusutan);
-    
-    html += `
-        <tr>
-            <td class="text-center">2022 (4)</td>
-            <td class="text-end">Rp ${formatRupiah(Math.round(penyusutanActual))}</td>
-            <td class="text-end">Rp ${formatRupiah(totalPenyusutan)}</td>
-            <td class="text-end">Rp ${formatRupiah(bookValue)}</td>
-        </tr>
-    `;
-    
-    // Tahun penuh berikutnya (2027-2030)
-    const tahunPenuh = ['2027', '2028', '2029', '2030'];
-    for (let i = 0; i < tahunPenuh.length; i++) {
-        penyusutan = bookValue * rate;
-        const maxDepreciable = Math.max(bookValue - residu, 0);
-        const penyusutanActual = Math.min(penyusutan, maxDepreciable);
-        
-        bookValue -= penyusutanActual;
-        bookValue = Math.round(bookValue);
-        totalPenyusutan += penyusutanActual;
-        totalPenyusutan = Math.round(totalPenyusutan);
-        
+
+    for (let i = 0; i < umur; i++) {
+        const yearLabel = startYear + i;
+        let penyusutan, labelTahun;
+
+        if (i === 0) {
+            // Tahun pertama: pro-rata
+            penyusutan  = total * rate * (bulanTersisa / 12);
+            labelTahun  = `${yearLabel} (${bulanTersisa})`;
+        } else if (i === umur - 1) {
+            // Tahun terakhir: sisa ke nilai residu
+            const bulanTerakhir = 12 - bulanTersisa; // sisa bulan di tahun terakhir
+            penyusutan  = bookValue - residu;
+            labelTahun  = bulanTerakhir > 0 ? `${yearLabel} (${bulanTerakhir})` : `${yearLabel}`;
+        } else {
+            penyusutan = bookValue * rate;
+            labelTahun = `${yearLabel}`;
+        }
+
+        const maxDepr = Math.max(bookValue - residu, 0);
+        penyusutan = Math.min(penyusutan, maxDepr);
+
+        bookValue        = Math.round(bookValue - penyusutan);
+        totalPenyusutan  = Math.round(totalPenyusutan + penyusutan);
+
         html += `
             <tr>
-                <td class="text-center">${tahunPenuh[i]}</td>
-                <td class="text-end">Rp ${formatRupiah(Math.round(penyusutanActual))}</td>
+                <td class="text-center">${labelTahun}</td>
+                <td class="text-end">Rp ${formatRupiah(Math.round(penyusutan))}</td>
                 <td class="text-end">Rp ${formatRupiah(totalPenyusutan)}</td>
                 <td class="text-end">Rp ${formatRupiah(bookValue)}</td>
             </tr>
         `;
+
+        if (bookValue <= residu) break;
     }
-    
-    // Tahun terakhir (2031, 8 bulan, dikoreksi ke nilai residu)
-    penyusutan = bookValue - residu;
-    bookValue = residu;
-    totalPenyusutan += penyusutan;
-    totalPenyusutan = Math.round(totalPenyusutan);
-    
-    html += `
-        <tr>
-            <td class="text-center">2031 (8)</td>
-            <td class="text-end">Rp ${formatRupiah(Math.round(penyusutan))}</td>
-            <td class="text-end">Rp ${formatRupiah(totalPenyusutan)}</td>
-            <td class="text-end">Rp ${formatRupiah(bookValue)}</td>
-        </tr>
-    `;
-    
+
     tabelBody.innerHTML = html;
     tabelContainer.style.display = 'block';
 }
