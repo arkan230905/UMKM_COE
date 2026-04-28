@@ -420,7 +420,7 @@ function setupPriceFormatting() {
             if (priceRawInput) priceRawInput.value = numValue;
         });
         
-        const initialValue = parseInt(priceInput.value.replace(/\./g, '')) || 0;
+        const initialValue = Math.floor(parseFloat(priceInput.value) || 0); // Use Math.floor to remove decimals
         priceInput.value = initialValue.toLocaleString('id-ID');
         if (priceRawInput) priceRawInput.value = initialValue;
     }
@@ -434,7 +434,7 @@ function setupPriceFormatting() {
             if (stokMinRawInput) stokMinRawInput.value = numValue;
         });
         
-        const initialMinValue = parseInt(stokMinInput.value.replace(/\./g, '')) || 0;
+        const initialMinValue = Math.floor(parseFloat(stokMinInput.value) || 0); // Use Math.floor to remove decimals
         stokMinInput.value = initialMinValue.toLocaleString('id-ID');
         if (stokMinRawInput) stokMinRawInput.value = initialMinValue;
     }
