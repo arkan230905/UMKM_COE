@@ -151,7 +151,8 @@
                                         Rp
                                     </div>
                                 </div>
-                                <input type="number" class="form-control @error('jumlah') is-invalid @enderror" name="jumlah" id="jumlah" value="{{ old('jumlah') }}" min="1" step="0.01" required>
+                                <input type="text" class="form-control price-input @error('jumlah') is-invalid @enderror" name="jumlah" id="jumlah" value="{{ old('jumlah') }}" placeholder="0" required>
+                                <input type="hidden" name="jumlah_raw" id="jumlah_raw" value="{{ old('jumlah') }}">
                                 @error('jumlah')
                                     <div class="invalid-feedback">
                                         {{ $message }}
@@ -188,7 +189,50 @@
 
 @push('scripts')
     <script>
+        // Format price input with thousand separator
+        function setupPriceFormatting() {
+            const jumlahInput = document.getElementById('jumlah');
+            const jumlahRawInput = document.getElementById('jumlah_raw');
+            
+            if (jumlahInput) {
+                // Format on input
+                jumlahInput.addEventListener('input', function(e) {
+                    let value = e.target.value;
+                    value = value.replace(/[^0-9]/g, '');
+                    const numValue = parseInt(value) || 0;
+                    e.target.value = numValue.toLocaleString('id-ID');
+                    if (jumlahRawInput) {
+                        jumlahRawInput.value = numValue;
+                    }
+                });
+                
+                // Initial format if there's a value
+                if (jumlahInput.value) {
+                    const initialValue = Math.floor(parseFloat(jumlahInput.value) || 0);
+                    jumlahInput.value = initialValue.toLocaleString('id-ID');
+                    if (jumlahRawInput) {
+                        jumlahRawInput.value = initialValue;
+                    }
+                }
+            }
+            
+            // Before form submission, use raw values
+            const form = jumlahInput ? jumlahInput.closest('form') : null;
+            if (form) {
+                form.addEventListener('submit', function() {
+                    if (jumlahInput && jumlahRawInput && jumlahRawInput.value) {
+                        jumlahInput.value = jumlahRawInput.value;
+                    } else if (jumlahInput) {
+                        jumlahInput.value = jumlahInput.value.replace(/\./g, '');
+                    }
+                });
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            // Setup price formatting
+            setupPriceFormatting();
+            
             // Handle pembelian selection
             const pembelianSelect = document.querySelector('select[name="pembelian_id"]');
             const detailSection = document.getElementById('detail-pembelian');
@@ -196,6 +240,7 @@
             const totalPembelian = document.getElementById('total-pembelian');
             const sisaUtangDetail = document.getElementById('sisa-utang-detail');
             const jumlahInput = document.getElementById('jumlah');
+            const jumlahRawInput = document.getElementById('jumlah_raw');
             const sisaUtangSpan = document.getElementById('sisa-utang');
             
             if (pembelianSelect) {
@@ -216,9 +261,12 @@
                                     totalPembelian.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(data.data.total_pembelian);
                                     sisaUtangDetail.textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(data.data.sisa_utang);
                                     
-                                    // Auto-fill jumlah with sisa utang
-                                    jumlahInput.value = data.data.sisa_utang;
-                                    jumlahInput.max = data.data.sisa_utang;
+                                    // Auto-fill jumlah with sisa utang (formatted)
+                                    const sisaUtangValue = Math.floor(data.data.sisa_utang);
+                                    jumlahInput.value = sisaUtangValue.toLocaleString('id-ID');
+                                    if (jumlahRawInput) {
+                                        jumlahRawInput.value = sisaUtangValue;
+                                    }
                                     
                                     // Format and display remaining debt
                                     const formatter = new Intl.NumberFormat('id-ID', {
@@ -242,6 +290,9 @@
                         // Hide detail section if no purchase selected
                         detailSection.style.display = 'none';
                         jumlahInput.value = '';
+                        if (jumlahRawInput) {
+                            jumlahRawInput.value = '';
+                        }
                         sisaUtangSpan.textContent = 'Rp 0';
                     }
                 });

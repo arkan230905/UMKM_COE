@@ -47,7 +47,13 @@ class JournalService
 
             $totalDebit = 0.0; $totalCredit = 0.0;
             foreach ($lines as $ln) {
-                $aid = $this->coaId($ln['code'], $userId);
+                // Handle both 'code' and 'coa_id' fields
+                if (isset($ln['coa_id'])) {
+                    $aid = (int)$ln['coa_id'];
+                } else {
+                    $aid = $this->coaId($ln['code'], $userId);
+                }
+                
                 $debit = (float)($ln['debit'] ?? 0); $credit = (float)($ln['credit'] ?? 0);
                 $lineMemo = $ln['memo'] ?? null;
                 
@@ -265,17 +271,31 @@ class JournalService
             case 'cash':
                 // Use specific bank account if provided, otherwise default to Kas
                 if ($pembelian->bank_id) {
-                    // bank_id is stored as COA ID, not code
+                    // bank_id is stored as COA ID, not code - use it directly
                     $bankCoa = \App\Models\Coa::find($pembelian->bank_id);
                     if ($bankCoa) {
-                        $creditAccount = $bankCoa->kode_akun;
-                        $creditMemo = 'Pembayaran tunai pembelian via ' . $bankCoa->nama_akun;
+                        // Use the COA ID directly instead of resolving by code
+                        $lines[] = [
+                            'coa_id' => $bankCoa->id, // Use direct COA ID
+                            'debit' => 0,
+                            'credit' => $totalAmount,
+                            'memo' => 'Pembayaran tunai pembelian via ' . $bankCoa->nama_akun
+                        ];
+                        
+                        // Create journal entry
+                        $memo = 'Pembelian #' . $pembelian->nomor_pembelian . ' - ' . ($pembelian->vendor->nama_vendor ?? 'Vendor');
+                        $tanggal = $pembelian->tanggal instanceof \Carbon\Carbon ? 
+                                   $pembelian->tanggal->format('Y-m-d') : 
+                                   $pembelian->tanggal;
+                        
+                        $service->post($tanggal, 'purchase', $pembelian->id, $memo, $lines);
+                        return; // Exit early since we handled the credit line directly
                     } else {
-                        $creditAccount = '112'; // Kas
+                        $creditAccount = '1111'; // Use a more specific Kas code
                         $creditMemo = 'Pembayaran tunai pembelian';
                     }
                 } else {
-                    $creditAccount = '112'; // Kas
+                    $creditAccount = '1111'; // Use a more specific Kas code
                     $creditMemo = 'Pembayaran tunai pembelian';
                 }
                 break;
@@ -283,11 +303,25 @@ class JournalService
             case 'transfer':
                 // Use specific bank account if provided, otherwise default to Kas di Bank
                 if ($pembelian->bank_id) {
-                    // bank_id is stored as COA ID, not code
+                    // bank_id is stored as COA ID, not code - use it directly
                     $bankCoa = \App\Models\Coa::find($pembelian->bank_id);
                     if ($bankCoa) {
-                        $creditAccount = $bankCoa->kode_akun;
-                        $creditMemo = 'Pembayaran transfer pembelian via ' . $bankCoa->nama_akun;
+                        // Use the COA ID directly instead of resolving by code
+                        $lines[] = [
+                            'coa_id' => $bankCoa->id, // Use direct COA ID
+                            'debit' => 0,
+                            'credit' => $totalAmount,
+                            'memo' => 'Pembayaran transfer pembelian via ' . $bankCoa->nama_akun
+                        ];
+                        
+                        // Create journal entry
+                        $memo = 'Pembelian #' . $pembelian->nomor_pembelian . ' - ' . ($pembelian->vendor->nama_vendor ?? 'Vendor');
+                        $tanggal = $pembelian->tanggal instanceof \Carbon\Carbon ? 
+                                   $pembelian->tanggal->format('Y-m-d') : 
+                                   $pembelian->tanggal;
+                        
+                        $service->post($tanggal, 'purchase', $pembelian->id, $memo, $lines);
+                        return; // Exit early since we handled the credit line directly
                     } else {
                         $creditAccount = '1102'; // Kas di Bank
                         $creditMemo = 'Pembayaran transfer pembelian';
