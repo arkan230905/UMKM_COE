@@ -62,8 +62,9 @@
                             <label class="form-label">Harga Satuan <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-                                <input type="text" name="harga_satuan" class="form-control number-input @error('harga_satuan') is-invalid @enderror" 
-                                       value="{{ old('harga_satuan') }}" placeholder="0" required>
+                                <input type="text" name="harga_satuan" id="harga_satuan" class="form-control price-input @error('harga_satuan') is-invalid @enderror" 
+                                       value="{{ old('harga_satuan', '0') }}" placeholder="0" required>
+                                <input type="hidden" name="harga_satuan_raw" id="harga_satuan_raw" value="0">
                             </div>
                             @error('harga_satuan')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -96,20 +97,6 @@
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                             <small class="text-muted">Batas minimum</small>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label class="form-label">Stok Saat Ini</label>
-                            <div class="input-group">
-                                <input type="text" name="stok_real_time" class="form-control number-input @error('stok_real_time') is-invalid @enderror" 
-                                       value="{{ old('stok_real_time') }}" placeholder="0" readonly>
-                                <span class="input-group-text" id="satuan_utama_display_current"></span>
-                            </div>
-                            @error('stok_real_time')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <small class="text-muted">Stok real-time dari sistem</small>
                         </div>
                     </div>
                 </div>
@@ -404,6 +391,53 @@ function convertCommasToDots() {
     });
 }
 
+// Format price input with thousand separator
+function setupPriceFormatting() {
+    const priceInput = document.getElementById('harga_satuan');
+    const priceRawInput = document.getElementById('harga_satuan_raw');
+    
+    if (!priceInput) return;
+    
+    // Format on input
+    priceInput.addEventListener('input', function(e) {
+        let value = e.target.value;
+        
+        // Remove non-numeric characters
+        value = value.replace(/[^0-9]/g, '');
+        
+        // Parse to number
+        const numValue = parseInt(value) || 0;
+        
+        // Format with thousand separator (dots)
+        e.target.value = numValue.toLocaleString('id-ID');
+        
+        // Store raw value
+        if (priceRawInput) {
+            priceRawInput.value = numValue;
+        }
+    });
+    
+    // Initial format
+    const initialValue = parseInt(priceInput.value.replace(/\./g, '')) || 0;
+    priceInput.value = initialValue.toLocaleString('id-ID');
+    if (priceRawInput) {
+        priceRawInput.value = initialValue;
+    }
+    
+    // Before form submission, use raw value
+    const form = priceInput.closest('form');
+    if (form) {
+        form.addEventListener('submit', function() {
+            if (priceRawInput && priceRawInput.value) {
+                priceInput.value = priceRawInput.value;
+            } else {
+                // Fallback: remove dots
+                priceInput.value = priceInput.value.replace(/\./g, '');
+            }
+        });
+    }
+}
+
 // Update satuan utama display when main satuan changes
 document.addEventListener('DOMContentLoaded', function() {
     const satuanSelect = document.querySelector('select[name="satuan_id"]');
@@ -411,6 +445,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup number inputs
     setupNumberInputs();
+    
+    // Setup price formatting
+    setupPriceFormatting();
     
     function updateSatuanUtamaDisplay() {
         const selectedOption = satuanSelect.options[satuanSelect.selectedIndex];

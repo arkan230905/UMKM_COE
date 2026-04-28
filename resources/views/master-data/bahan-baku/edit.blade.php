@@ -67,8 +67,9 @@
                             <label class="form-label">Harga per Satuan <span class="text-danger">*</span></label>
                             <div class="input-group">
                                 <span class="input-group-text">Rp</span>
-                                <input type="number" name="harga_satuan" class="form-control @error('harga_satuan') is-invalid @enderror" 
-                                       value="{{ old('harga_satuan', $bahanBaku->harga_satuan) }}" min="0" step="100" required>
+                                <input type="text" name="harga_satuan" id="harga_satuan" class="form-control price-input @error('harga_satuan') is-invalid @enderror" 
+                                       value="{{ old('harga_satuan', $bahanBaku->harga_satuan) }}" placeholder="0" required>
+                                <input type="hidden" name="harga_satuan_raw" id="harga_satuan_raw" value="{{ $bahanBaku->harga_satuan }}">
                             </div>
                             <div class="mt-2">
                                 <small class="text-muted">
@@ -98,8 +99,9 @@
                     <div class="col-md-3">
                         <div class="mb-3">
                             <label class="form-label">Stok Minimum</label>
-                            <input type="number" name="stok_minimum" class="form-control @error('stok_minimum') is-invalid @enderror" 
-                                   value="{{ old('stok_minimum', $bahanBaku->stok_minimum ?? 0) }}" min="0" step="0.01">
+                            <input type="text" name="stok_minimum" id="stok_minimum" class="form-control price-input @error('stok_minimum') is-invalid @enderror" 
+                                   value="{{ old('stok_minimum', $bahanBaku->stok_minimum ?? 0) }}" placeholder="0">
+                            <input type="hidden" name="stok_minimum_raw" id="stok_minimum_raw" value="{{ $bahanBaku->stok_minimum ?? 0 }}">
                             @error('stok_minimum')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -402,6 +404,60 @@ function convertCommasToDots() {
     });
 }
 
+// Format price input with thousand separator
+function setupPriceFormatting() {
+    const priceInput = document.getElementById('harga_satuan');
+    const priceRawInput = document.getElementById('harga_satuan_raw');
+    const stokMinInput = document.getElementById('stok_minimum');
+    const stokMinRawInput = document.getElementById('stok_minimum_raw');
+    
+    // Format harga satuan
+    if (priceInput) {
+        priceInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^0-9]/g, '');
+            const numValue = parseInt(value) || 0;
+            e.target.value = numValue.toLocaleString('id-ID');
+            if (priceRawInput) priceRawInput.value = numValue;
+        });
+        
+        const initialValue = parseInt(priceInput.value.replace(/\./g, '')) || 0;
+        priceInput.value = initialValue.toLocaleString('id-ID');
+        if (priceRawInput) priceRawInput.value = initialValue;
+    }
+    
+    // Format stok minimum
+    if (stokMinInput) {
+        stokMinInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^0-9]/g, '');
+            const numValue = parseInt(value) || 0;
+            e.target.value = numValue.toLocaleString('id-ID');
+            if (stokMinRawInput) stokMinRawInput.value = numValue;
+        });
+        
+        const initialMinValue = parseInt(stokMinInput.value.replace(/\./g, '')) || 0;
+        stokMinInput.value = initialMinValue.toLocaleString('id-ID');
+        if (stokMinRawInput) stokMinRawInput.value = initialMinValue;
+    }
+    
+    // Before form submission
+    const form = priceInput ? priceInput.closest('form') : null;
+    if (form) {
+        form.addEventListener('submit', function() {
+            if (priceInput && priceRawInput && priceRawInput.value) {
+                priceInput.value = priceRawInput.value;
+            } else if (priceInput) {
+                priceInput.value = priceInput.value.replace(/\./g, '');
+            }
+            
+            if (stokMinInput && stokMinRawInput && stokMinRawInput.value) {
+                stokMinInput.value = stokMinRawInput.value;
+            } else if (stokMinInput) {
+                stokMinInput.value = stokMinInput.value.replace(/\./g, '');
+            }
+        });
+    }
+}
+
 // Update satuan utama display when main satuan changes
 document.addEventListener('DOMContentLoaded', function() {
     const satuanSelect = document.querySelector('select[name="satuan_id"]');
@@ -409,6 +465,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup number inputs
     setupNumberInputs();
+    
+    // Setup price formatting
+    setupPriceFormatting();
     
     function updateSatuanUtamaDisplay() {
         const selectedOption = satuanSelect.options[satuanSelect.selectedIndex];
