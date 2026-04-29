@@ -283,11 +283,6 @@ class AkuntansiController extends Controller
             ->whereIn('ju.tipe_referensi', [
                 'penyusutan', 'adjustment', 'manual' // Only manual entries, exclude 'pembelian'
             ])
-            ->where('coas.user_id', auth()->id())
-            // PENTING: Exclude production entries that are already in journal_entries
-            // to avoid duplication
-                'penyusutan', 'adjustment', 'manual'
-            ])
             ->where(function($q) {
                 $q->where('coas.user_id', auth()->id())
                   ->orWhereNull('coas.user_id');
