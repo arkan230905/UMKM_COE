@@ -77,9 +77,16 @@ Route::get('/pembelian/{id}/journal', function($id) {
         ->orderBy('id', 'asc')
         ->get();
     
+    // Convert debit/kredit to numbers for proper JavaScript formatting
+    $journalsArray = $journalEntries->toArray();
+    foreach ($journalsArray as &$journal) {
+        $journal['debit'] = (float) $journal['debit'];
+        $journal['kredit'] = (float) $journal['kredit'];
+    }
+    
     return response()->json([
         'success' => true,
-        'journals' => $journalEntries->toArray(),
+        'journals' => $journalsArray,
         'pembelian' => [
             'id' => $pembelian->id,
             'nomor_pembelian' => $pembelian->nomor_pembelian,
