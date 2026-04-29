@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Console Test Instructions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .step {
+            background: #e3f2fd;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #2196f3;
+        }
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .important {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Instruksi Debug Console</h1>
+    
+    <div class="card">
+        <h2>Langkah 1: Buka Halaman Penjualan</h2>
+        <div class="step">
+            <p><strong>URL:</strong> <code>http://127.0.0.1:8000/transaksi/penjualan/create</code></p>
+            <p><strong>Action:</strong> Tekan <code>Ctrl + F5</code> untuk hard refresh</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Langkah 2: Buka Console</h2>
+        <div class="step">
+            <p><strong>Tekan:</strong> <code>F12</code></p>
+            <p><strong>Klik tab:</strong> <code>Console</code></p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Langkah 3: Cek Log yang Muncul</h2>
+        <div class="important">
+            <p><strong>⚠️ PENTING:</strong> Screenshot console log dan kirim ke developer!</p>
+        </div>
+        
+        <h3>Yang HARUS muncul:</h3>
+        <pre style="background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 4px; overflow-x: auto;">
+=== BARCODE SCANNER DEBUG ===
+Product Data loaded: 2 products
+Product Data keys (barcodes): ['8992000000001', '8992000000002']
+Searchable Products loaded: 2 products
+First product in searchableProducts: {id: 1, nama: 'Ayam Crispy Macdi', ...}
+Products with barcode: 2
+        </pre>
+        
+        <h3>Jika TIDAK muncul atau berbeda:</h3>
+        <ul>
+            <li>Screenshot console log</li>
+            <li>Cek apakah ada error (text merah)</li>
+            <li>Kirim screenshot ke developer</li>
+        </ul>
+    </div>
+    
+    <div class="card">
+        <h2>Langkah 4: Test Ketik di Input</h2>
+        <div class="step">
+            <p><strong>Ketik:</strong> <code>8</code> (satu angka)</p>
+            <p><strong>Lihat console, harus muncul:</strong></p>
+            <pre style="background: #1e1e1e; color: #d4d4d4; padding: 10px; border-radius: 4px;">
+Input event fired! Value: 8 Length: 1
+Manual typing detected, showing search results...
+            </pre>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>Langkah 5: Test Scan/Ketik Barcode</h2>
+        <div class="step">
+            <p><strong>Ketik:</strong> <code>8992000000001</code></p>
+            <p><strong>Tekan:</strong> <code>Enter</code></p>
+            <p><strong>Lihat console, harus muncul log lengkap</strong></p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>📸 Screenshot yang Dibutuhkan</h2>
+        <ol>
+            <li><strong>Console log saat halaman load</strong> (langkah 3)</li>
+            <li><strong>Console log saat ketik "8"</strong> (langkah 4)</li>
+            <li><strong>Console log saat scan barcode</strong> (langkah 5)</li>
+            <li><strong>Screenshot halaman lengkap</strong></li>
+        </ol>
+    </div>
+    
+    <div class="card" style="background: #ffebee;">
+        <h2>🚨 Jika Tidak Ada Log di Console</h2>
+        <p><strong>Kemungkinan masalah:</strong></p>
+        <ul>
+            <li>JavaScript error (cek tab Console untuk text merah)</li>
+            <li>File tidak ter-load (refresh dengan Ctrl+F5)</li>
+            <li>Browser cache (clear cache)</li>
+        </ul>
+        <p><strong>Solusi:</strong></p>
+        <ol>
+            <li>Tekan <code>Ctrl + Shift + Delete</code></li>
+            <li>Clear cache</li>
+            <li>Refresh halaman (<code>Ctrl + F5</code>)</li>
+            <li>Coba lagi</li>
+        </ol>
+    </div>
+    
+    <div class="card" style="background: #e8f5e9;">
+        <h2>✅ Jika Semua Log Muncul</h2>
+        <p>Sistem berfungsi dengan baik! Lanjutkan testing sesuai checklist.</p>
+    </div>
+</body>
+</html>

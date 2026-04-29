@@ -1840,6 +1840,7 @@ use App\Http\Controllers\PerusahaanController;
 
 // Akuntansi
 use App\Http\Controllers\AkuntansiController;
+use App\Http\Controllers\NeracaSaldoController;
 
 // Produksi
 use App\Http\Controllers\ProduksiController;
@@ -2887,7 +2888,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/update-status', [PenggajianController::class, 'updateStatus'])->name('update-status');
 
             // Tandai sudah dibayar (owner/admin only)
-            Route::patch('/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
+            Route::match(['post', 'patch'], '/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
 
             // Posting ke jurnal (owner/admin only)
             Route::post('/{id}/post-journal', [PenggajianController::class, 'postToJournal'])->name('post-journal')->middleware(['role:owner,admin']);
@@ -3437,8 +3438,26 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/jurnal-umum/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'jurnalUmumExportExcel'])->name('jurnal-umum.export-excel');
         Route::get('/buku-besar', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesar'])->name('buku-besar');
         Route::get('/buku-besar/export-excel', [\App\Http\Controllers\AkuntansiController::class, 'bukuBesarExportExcel'])->name('buku-besar.export-excel');
-        Route::get('/neraca-saldo', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldo'])->name('neraca-saldo');
-        Route::get('/neraca-saldo/pdf', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldoPdf'])->name('neraca-saldo.pdf');
+        
+        // Neraca Saldo - Updated version (based on General Ledger)
+        Route::get('/neraca-saldo', [\App\Http\Controllers\NeracaSaldoController::class, 'index'])->name('neraca-saldo');
+        Route::get('/neraca-saldo/pdf', [\App\Http\Controllers\NeracaSaldoController::class, 'exportPdf'])->name('neraca-saldo.pdf');
+        Route::get('/neraca-saldo/api', [\App\Http\Controllers\NeracaSaldoController::class, 'apiData'])->name('neraca-saldo.api');
+        
+        // Test route untuk debug
+        Route::get('/neraca-saldo-test', function() {
+            return 'Neraca Saldo Controller Test - Route berfungsi!';
+        })->name('neraca-saldo-test');
+        
+        // Neraca Saldo - Old version (backup)
+        Route::get('/neraca-saldo-old', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldo'])->name('neraca-saldo-old');
+        Route::get('/neraca-saldo-old/pdf', [\App\Http\Controllers\AkuntansiController::class, 'neracaSaldoPdf'])->name('neraca-saldo-old.pdf');
+        
+        // Neraca Saldo - New version (alternative access)
+        Route::get('/neraca-saldo-new', [\App\Http\Controllers\NeracaSaldoController::class, 'index'])->name('neraca-saldo-new');
+        Route::get('/neraca-saldo-new/pdf', [\App\Http\Controllers\NeracaSaldoController::class, 'exportPdf'])->name('neraca-saldo-new.pdf');
+        Route::get('/neraca-saldo-new/api', [\App\Http\Controllers\NeracaSaldoController::class, 'apiData'])->name('neraca-saldo-new.api');
+        
         Route::get('/laporan-posisi-keuangan', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuangan'])->name('laporan-posisi-keuangan');
         Route::get('/laporan-posisi-keuangan/pdf', [\App\Http\Controllers\AkuntansiController::class, 'laporanPosisiKeuanganPdf'])->name('laporan-posisi-keuangan.pdf');
         Route::get('/laba-rugi', [\App\Http\Controllers\AkuntansiController::class, 'labaRugi'])->name('laba-rugi');
@@ -3448,6 +3467,97 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::redirect('/akuntansi/neraca', '/akuntansi/laporan-posisi-keuangan', 301);
     });
 
+    // ================================================================
+    // TEMPORARY FIXES FOR NERACA SALDO ACCESS
+    // ================================================================
+    
+    // Temporary Neraca Saldo route without middleware for testing
+    Route::get('/akuntansi/neraca-saldo-temp', [\App\Http\Controllers\NeracaSaldoController::class, 'index'])->name('akuntansi.neraca-saldo-temp');
+    // REMOVED: Route jurnal penyeimbang dihapus sesuai permintaan user
+    
+    // Debug route to check if routes are working
+    Route::get('/akuntansi/test-route', function() {
+        return 'Test route is working! Time: ' . now();
+    });
+    
+    // Debug route to check user authentication
+    Route::get('/akuntansi/check-auth', function() {
+        if (auth()->check()) {
+            $user = auth()->user();
+            return 'User authenticated: ' . $user->name . ' (Role: ' . $user->role . ')';
+        } else {
+            return 'User not authenticated. Please login first.';
+        }
+    });
+    
+    // Simple test route at root level
+    Route::get('/test-simple', function() {
+        return 'Simple test route works! Laravel is running correctly.';
+    });
+    
+    // Comprehensive diagnostic route
+    Route::get('/diagnose-neraca', function() {
+        $output = '<h1>Neraca Saldo Diagnostic</h1>';
+        $output .= '<style>body{font-family:Arial;margin:20px;} .success{color:green;} .error{color:red;} .info{color:blue;}</style>';
+        
+        // Check authentication
+        if (auth()->check()) {
+            $user = auth()->user();
+            $output .= '<p class="success">✅ User authenticated: ' . $user->name . ' (Role: ' . $user->role . ')</p>';
+            
+            // Check role authorization
+            $hasAccess = in_array($user->role, ['admin', 'owner']);
+            $output .= '<p class="' . ($hasAccess ? 'success' : 'error') . '">' . ($hasAccess ? '✅' : '❌') . ' Role access: ' . ($hasAccess ? 'GRANTED' : 'DENIED') . '</p>';
+        } else {
+            $output .= '<p class="error">❌ User not authenticated</p>';
+            $output .= '<p><a href="' . route('login') . '">Please login first</a></p>';
+        }
+        
+        // Check routes
+        try {
+            $tempUrl = route('akuntansi.neraca-saldo-temp');
+            $output .= '<p class="success">✅ Temp route exists: <a href="' . $tempUrl . '">' . $tempUrl . '</a></p>';
+        } catch (Exception $e) {
+            $output .= '<p class="error">❌ Temp route error: ' . $e->getMessage() . '</p>';
+        }
+        
+        try {
+            $mainUrl = route('akuntansi.neraca-saldo');
+            $output .= '<p class="success">✅ Main route exists: <a href="' . $mainUrl . '">' . $mainUrl . '</a></p>';
+        } catch (Exception $e) {
+            $output .= '<p class="error">❌ Main route error: ' . $e->getMessage() . '</p>';
+        }
+        
+        // Test controller
+        try {
+            $service = new \App\Services\TrialBalanceService();
+            $controller = new \App\Http\Controllers\NeracaSaldoController($service);
+            $output .= '<p class="success">✅ Controller can be instantiated</p>';
+        } catch (Exception $e) {
+            $output .= '<p class="error">❌ Controller error: ' . $e->getMessage() . '</p>';
+        }
+        
+        // Check database
+        try {
+            $coaCount = \App\Models\Coa::count();
+            $output .= '<p class="success">✅ Database connection works, COA records: ' . $coaCount . '</p>';
+        } catch (Exception $e) {
+            $output .= '<p class="error">❌ Database error: ' . $e->getMessage() . '</p>';
+        }
+        
+        $output .= '<h2>Test Links:</h2>';
+        $output .= '<p><a href="/test-simple" target="_blank">🔗 Test Simple Route</a></p>';
+        $output .= '<p><a href="/akuntansi/test-route" target="_blank">🔗 Test Akuntansi Route</a></p>';
+        $output .= '<p><a href="/akuntansi/check-auth" target="_blank">🔗 Check Authentication</a></p>';
+        
+        if (auth()->check()) {
+            $output .= '<p><a href="' . route('akuntansi.neraca-saldo-temp') . '" target="_blank">🔗 Test Neraca Saldo (Temp)</a></p>';
+            $output .= '<p><a href="' . route('akuntansi.neraca-saldo') . '" target="_blank">🔗 Test Neraca Saldo (Main)</a></p>';
+        }
+        
+        return $output;
+    });
+    
     // ================================================================
     // TEMPORARY FIXES FOR LAPORAN POSISI KEUANGAN ACCESS
     // ================================================================

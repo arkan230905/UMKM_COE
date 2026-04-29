@@ -7,6 +7,11 @@ use Illuminate\Http\Request;
 
 class KategoriProdukController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
     public function index()
     {
         $kategoris = KategoriProduk::withCount('produks')->orderBy('nama')->get();
@@ -21,7 +26,7 @@ class KategoriProdukController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'kode_kategori' => 'required|string|max:20|unique:kategori_produks,kode_kategori',
+            'kode_kategori' => 'nullable|string|max:50|unique:kategori_produks,kode_kategori'
             'nama'          => 'required|string|max:100',
             'deskripsi'     => 'nullable|string',
         ]);
@@ -72,6 +77,12 @@ class KategoriProdukController extends Controller
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Kategori berhasil diperbarui.']);
         }
+      
+        if (empty($request->kode_kategori)) {
+        $request->merge([
+        'kode_kategori' => 'KAT-' . strtoupper(uniqid())
+        ]);
+    }
 
         return redirect()->route('master-data.produk.index')
                          ->with('success', 'Kategori berhasil diperbarui.');
@@ -84,7 +95,10 @@ class KategoriProdukController extends Controller
         if (request()->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Kategori berhasil dihapus.']);
         }
-
+      
+        if ($kategori->produks()->count() > 0) {
+            return back()->with('error', 'Kategori tidak bisa dihapus karena masih digunakan oleh produk');
+        }
         return redirect()->route('master-data.produk.index')
                          ->with('success', 'Kategori berhasil dihapus.');
     }

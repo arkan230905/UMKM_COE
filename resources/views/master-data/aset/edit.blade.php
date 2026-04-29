@@ -262,11 +262,6 @@
                         @enderror
                     </div>
 
-                    <div class="col-md-6 mb-3">
-                        <label for="tanggal_akuisisi" class="form-label text-dark">Tanggal Akuisisi</label>
-                        <input type="date" class="form-control bg-white text-dark" 
-                               id="tanggal_akuisisi" name="tanggal_akuisisi" value="{{ old('tanggal_akuisisi', $aset->tanggal_akuisisi) }}">
-                    </div>
                 </div>
 
                 <!-- Section Penyusutan -->
@@ -308,7 +303,7 @@
                         <div class="col-md-6 mb-3">
                             <label for="tanggal_akuisisi" class="form-label text-dark">Tanggal Akuisisi</label>
                             <input type="date" class="form-control bg-white text-dark" 
-                                   id="tanggal_akuisisi" name="tanggal_akuisisi" value="{{ old('tanggal_akuisisi', $aset->tanggal_akuisisi) }}">
+                                   id="tanggal_akuisisi" name="tanggal_akuisisi" value="{{ old('tanggal_akuisisi', $aset->tanggal_akuisisi ? \Carbon\Carbon::parse($aset->tanggal_akuisisi)->format('Y-m-d') : '') }}">
                         </div>
                     </div>
 
@@ -793,27 +788,31 @@ document.addEventListener('DOMContentLoaded', function() {
     hitungTotal();
     loadKategoriAset();
     checkPenyusutan(); // Ensure penyusutan section is properly shown/hidden
+    hitungPenyusutan(); // Hitung ulang setelah semua siap
     
     // Add event listeners
-    document.getElementById('harga_perolehan').addEventListener('input', hitungTotal);
-    document.getElementById('biaya_perolehan').addEventListener('input', hitungTotal);
-    document.getElementById('nilai_residu').addEventListener('input', hitungPenyusutan);
-    document.getElementById('umur_manfaat').addEventListener('input', hitungPenyusutan);
-    document.getElementById('metode_penyusutan').addEventListener('change', hitungPenyusutan);
+    if (document.getElementById('harga_perolehan')) document.getElementById('harga_perolehan').addEventListener('input', hitungTotal);
+    if (document.getElementById('biaya_perolehan')) document.getElementById('biaya_perolehan').addEventListener('input', hitungTotal);
+    if (document.getElementById('nilai_residu')) document.getElementById('nilai_residu').addEventListener('input', hitungPenyusutan);
+    if (document.getElementById('umur_manfaat')) document.getElementById('umur_manfaat').addEventListener('input', hitungPenyusutan);
+    if (document.getElementById('metode_penyusutan')) document.getElementById('metode_penyusutan').addEventListener('change', hitungPenyusutan);
 });
 
 // Strip formatting before form submission
-document.getElementById('asetForm').addEventListener('submit', function(e) {
-    const hargaInput = document.getElementById('harga_perolehan');
-    const residuInput = document.getElementById('nilai_residu');
-    
-    // Unformat values before submission
-    if (hargaInput) {
-        hargaInput.value = unformatRupiah(hargaInput.value);
-    }
-    if (residuInput) {
-        residuInput.value = unformatRupiah(residuInput.value);
-    }
-});
+const asetFormEl = document.getElementById('asetForm');
+if (asetFormEl) {
+    asetFormEl.addEventListener('submit', function(e) {
+        const hargaInput = document.getElementById('harga_perolehan');
+        const residuInput = document.getElementById('nilai_residu');
+        
+        // Unformat values before submission
+        if (hargaInput) {
+            hargaInput.value = unformatRupiah(hargaInput.value);
+        }
+        if (residuInput) {
+            residuInput.value = unformatRupiah(residuInput.value);
+        }
+    });
+}
 </script>
 @endsection

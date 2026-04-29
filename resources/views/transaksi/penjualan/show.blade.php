@@ -41,7 +41,7 @@
         
         // Additional costs
         $biayaOngkir = $penjualan->biaya_ongkir ?? 0;
-        $biayaPPN = $totalSubtotal * 0.11; // 11% PPN
+        $biayaPPN = ($totalSubtotal + $biayaOngkir) * 0.11; // 11% PPN dari subtotal + ongkir
         
         // Calculate grand total
         $grandTotal = $totalSubtotal + $biayaPPN + $biayaOngkir - $totalDiskon;
@@ -519,21 +519,29 @@
                                         {{-- Summary --}}
                                         <div class="summary-section">
                                             <div class="summary-row">
-                                                <span>Subtotal</span>
+                                                <span>Subtotal Produk:</span>
                                                 <span>Rp {{ number_format($totalSubtotal, 0, ',', '.') }}</span>
                                             </div>
-                                            @if($totalDiskon > 0)
-                                                <div class="summary-row">
-                                                    <span>Total Diskon</span>
-                                                    <span>-Rp {{ number_format($totalDiskon, 0, ',', '.') }}</span>
-                                                </div>
+                                            @if($biayaOngkir > 0)
+                                            <div class="summary-row">
+                                                <span>Biaya Ongkir:</span>
+                                                <span>Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</span>
+                                            </div>
                                             @endif
+                                            <div class="summary-row">
+                                                <span>Biaya PPN (11%):</span>
+                                                <span>Rp {{ number_format($biayaPPN, 0, ',', '.') }}</span>
+                                            </div>
+                                            <div class="summary-row">
+                                                <span>Total Diskon:</span>
+                                                <span>-Rp {{ number_format($totalDiskon, 0, ',', '.') }}</span>
+                                            </div>
                                         </div>
                                         
                                         <div class="total-section">
                                             <div class="total-row">
-                                                <span>TOTAL:</span>
-                                                <span>Rp {{ number_format($penjualan->total, 0, ',', '.') }}</span>
+                                                <span>Total Pembayaran:</span>
+                                                <span>Rp {{ number_format($grandTotal, 0, ',', '.') }}</span>
                                             </div>
                                         </div>
                                         

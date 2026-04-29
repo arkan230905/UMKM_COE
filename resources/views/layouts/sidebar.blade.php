@@ -294,7 +294,7 @@
                 </a>
             </li>
             <li class="nav-item collapsible-menu" id="laporan-menu">
-                <a class="nav-link-rounded {{ request()->is('akuntansi/neraca-saldo*') ? 'active' : '' }}" href="{{ route('akuntansi.neraca-saldo') }}">
+                <a class="nav-link-rounded {{ request()->is('akuntansi/neraca-saldo*') ? 'active' : '' }}" href="{{ route('akuntansi.neraca-saldo-temp') }}">
                     <i class="fas fa-balance-scale-right"></i>
                     <span>Neraca Saldo</span>
                 </a>

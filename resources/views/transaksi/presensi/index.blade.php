@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Presensi')
+
 @section('content')
 <style>
 /* CSS Reset untuk menghilangkan underline - HIGHEST PRIORITY */

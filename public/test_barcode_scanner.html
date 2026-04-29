@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Barcode Scanner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .log-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-success { color: #4ec9b0; }
+        .log-error { color: #f48771; }
+        .log-warning { color: #dcdcaa; }
+        .log-info { color: #9cdcfe; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4"><i class="fas fa-barcode"></i> Test Barcode Scanner System</h1>
+        
+        <!-- Test 1: Product Data -->
+        <div class="test-card">
+            <h3><i class="fas fa-database"></i> Test 1: Product Data Loaded</h3>
+            <div id="test1-result"></div>
+        </div>
+        
+        <!-- Test 2: Barcode Scanner Input -->
+        <div class="test-card">
+            <h3><i class="fas fa-keyboard"></i> Test 2: Barcode Scanner Input</h3>
+            <div class="mb-3">
+                <label class="form-label">Scan atau ketik barcode:</label>
+                <div class="input-group">
+                    <input type="text" id="barcode-input" class="form-control form-control-lg" 
+                           placeholder="Scan barcode atau ketik: 8992000000001" autofocus>
+                    <button class="btn btn-primary" onclick="testBarcode()">
+                        <i class="fas fa-search"></i> Test
+                    </button>
+                </div>
+            </div>
+            <div id="test2-result"></div>
+        </div>
+        
+        <!-- Test 3: Search Function -->
+        <div class="test-card">
+            <h3><i class="fas fa-search"></i> Test 3: Search Function</h3>
+            <div class="mb-3">
+                <label class="form-label">Ketik untuk mencari:</label>
+                <input type="text" id="search-input" class="form-control" 
+                       placeholder="Ketik: ayam atau 8992" oninput="testSearch(this.value)">
+            </div>
+            <div id="test3-result"></div>
+        </div>
+        
+        <!-- Console Log -->
+        <div class="test-card">
+            <h3><i class="fas fa-terminal"></i> Console Log</h3>
+            <div class="log-output" id="console-log"></div>
+        </div>
+    </div>
+
+    <script>
+        // Product data (from database)
+        const productData = {
+            '8992000000001': {
+                id: 1,
+                nama: 'Ayam Crispy Macdi',
+                harga: 25000,
+                stok: 160,
+                barcode: '8992000000001'
+            },
+            '8992000000002': {
+                id: 2,
+                nama: 'Ayam Goreng Bundo',
+                harga: 5333,
+                stok: 160,
+                barcode: '8992000000002'
+            },
+        };
+
+        const searchableProducts = [
+            {
+                id: 1,
+                nama: 'Ayam Crispy Macdi',
+                harga: 25000,
+                stok: 160,
+                barcode: '8992000000001',
+                type: 'produk',
+                searchText: 'ayam crispy macdi 8992000000001'
+            },
+            {
+                id: 2,
+                nama: 'Ayam Goreng Bundo',
+                harga: 5333,
+                stok: 160,
+                barcode: '8992000000002',
+                type: 'produk',
+                searchText: 'ayam goreng bundo 8992000000002'
+            },
+        ];
+
+        // Console log override
+        const originalLog = console.log;
+        const logOutput = document.getElementById('console-log');
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            
+            let className = 'log-info';
+            if (message.includes('ERROR') || message.includes('❌')) className = 'log-error';
+            if (message.includes('SUCCESS') || message.includes('✅')) className = 'log-success';
+            if (message.includes('WARNING') || message.includes('⚠️')) className = 'log-warning';
+            
+            logOutput.innerHTML += `<div class="${className}">${new Date().toLocaleTimeString()} - ${message}</div>`;
+            logOutput.scrollTop = logOutput.scrollHeight;
+        };
+
+        // Test 1: Check product data
+        function test1() {
+            const result = document.getElementById('test1-result');
+            const count = Object.keys(productData).length;
+            
+            if (count > 0) {
+                result.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> 
+                        <strong>PASSED:</strong> ${count} products loaded
+                        <ul class="mt-2 mb-0">
+                            ${Object.entries(productData).map(([barcode, product]) => 
+                                `<li>Barcode: <code>${barcode}</code> → ${product.nama} (Stok: ${product.stok})</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                `;
+                console.log('✅ Test 1 PASSED: Product data loaded successfully');
+            } else {
+                result.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle"></i> 
+                        <strong>FAILED:</strong> No products loaded
+                    </div>
+                `;
+                console.log('❌ Test 1 FAILED: No products in productData');
+            }
+        }
+
+        // Test 2: Barcode lookup
+        function testBarcode() {
+            const input = document.getElementById('barcode-input');
+            const barcode = input.value.trim();
+            const result = document.getElementById('test2-result');
+            
+            console.log('=== Testing Barcode Lookup ===');
+            console.log('Input barcode:', barcode);
+            
+            const product = productData[barcode];
+            
+            if (product) {
+                result.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> 
+                        <strong>FOUND:</strong> Product found!
+                        <div class="mt-2">
+                            <strong>ID:</strong> ${product.id}<br>
+                            <strong>Nama:</strong> ${product.nama}<br>
+                            <strong>Barcode:</strong> <code>${product.barcode}</code><br>
+                            <strong>Harga:</strong> Rp ${product.harga.toLocaleString('id-ID')}<br>
+                            <strong>Stok:</strong> ${product.stok}
+                        </div>
+                    </div>
+                `;
+                console.log('✅ Product FOUND:', product);
+            } else {
+                result.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times-circle"></i> 
+                        <strong>NOT FOUND:</strong> Product with barcode "${barcode}" not found
+                        <div class="mt-2">
+                            <strong>Available barcodes:</strong>
+                            <ul class="mb-0">
+                                ${Object.keys(productData).map(b => `<li><code>${b}</code></li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                console.log('❌ Product NOT FOUND for barcode:', barcode);
+                console.log('Available barcodes:', Object.keys(productData));
+            }
+        }
+
+        // Test 3: Search function
+        function testSearch(query) {
+            const result = document.getElementById('test3-result');
+            
+            if (!query) {
+                result.innerHTML = '';
+                return;
+            }
+            
+            console.log('=== Testing Search ===');
+            console.log('Search query:', query);
+            
+            const q = query.toLowerCase();
+            const results = searchableProducts.filter(p =>
+                (p.barcode && p.barcode.toLowerCase().startsWith(q)) ||
+                (p.searchText && p.searchText.includes(q))
+            );
+            
+            console.log('Search results:', results.length, 'products');
+            
+            if (results.length > 0) {
+                result.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> 
+                        <strong>FOUND:</strong> ${results.length} product(s) found
+                        <ul class="mt-2 mb-0">
+                            ${results.map(p => 
+                                `<li><strong>${p.nama}</strong> - <code>${p.barcode}</code> - Rp ${p.harga.toLocaleString('id-ID')}</li>`
+                            ).join('')}
+                        </ul>
+                    </div>
+                `;
+            } else {
+                result.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>NO RESULTS:</strong> No products match "${query}"
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-test on Enter key
+        document.getElementById('barcode-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                testBarcode();
+            }
+        });
+
+        // Run test 1 on load
+        window.addEventListener('load', function() {
+            console.log('=== Barcode Scanner Test Page Loaded ===');
+            test1();
+        });
+    </script>
+</body>
+</html>

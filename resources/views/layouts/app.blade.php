@@ -2,6 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>SIMCOST - @yield('title', 'Dashboard')</title>
     <!-- Favicon menggunakan logo asli - PRIORITAS UKURAN BESAR -->
     <link rel="icon" type="image/png" sizes="128x128" href="{{ asset('images/logo.png') }}?v={{ time() }}">

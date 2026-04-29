@@ -30,6 +30,15 @@
 
                 <!-- Hidden fields untuk data pegawai - akan diisi otomatis dari kualifikasi -->
                 <input type="hidden" name="pegawai_selected" id="hidden_pegawai_selected" value="0">
+                <input type="hidden" name="gaji_pokok" id="hidden_gaji_pokok" value="0">
+                <input type="hidden" name="tarif_per_jam" id="hidden_tarif_per_jam" value="0">
+                <input type="hidden" name="tunjangan_jabatan" id="hidden_tunjangan_jabatan" value="0">
+                <input type="hidden" name="tunjangan_transport" id="hidden_tunjangan_transport" value="0">
+                <input type="hidden" name="tunjangan_konsumsi" id="hidden_tunjangan_konsumsi" value="0">
+                <input type="hidden" name="total_tunjangan" id="hidden_tunjangan" value="0">
+                <input type="hidden" name="asuransi" id="hidden_asuransi" value="0">
+                <input type="hidden" name="jenis_pegawai" id="hidden_jenis_pegawai" value="">
+                <input type="hidden" name="total_jam_kerja" id="hidden_total_jam_kerja" value="0">
                 <!-- Note: Data gaji akan diambil langsung dari kualifikasi dan presensi, bukan dari form -->>
 
                 <!-- Informasi Pegawai -->
@@ -41,16 +50,25 @@
                         <select name="pegawai_id" id="pegawai_id" class="form-select form-select-lg" required onchange="loadPegawaiData()">
                             <option value="">-- Pilih Pegawai --</option>
                             @foreach ($pegawais as $pegawai)
+                                @php
+                                    $jabatan = $pegawai->jabatanRelasi;
+                                    $gajiPokok = $jabatan ? ($jabatan->gaji_pokok ?? 0) : ($pegawai->gaji_pokok ?? 0);
+                                    $tarif = $jabatan ? ($jabatan->tarif_per_jam ?? 0) : ($pegawai->tarif_per_jam ?? 0);
+                                    $tunjanganJabatan = $jabatan ? ($jabatan->tunjangan ?? 0) : ($pegawai->tunjangan ?? 0);
+                                    $tunjanganTransport = $jabatan ? ($jabatan->tunjangan_transport ?? 0) : ($pegawai->tunjangan_transport ?? 0);
+                                    $tunjanganKonsumsi = $jabatan ? ($jabatan->tunjangan_konsumsi ?? 0) : ($pegawai->tunjangan_konsumsi ?? 0);
+                                    $asuransi = $jabatan ? ($jabatan->asuransi ?? 0) : ($pegawai->asuransi ?? 0);
+                                @endphp
                                 <option value="{{ $pegawai->id }}"
                                         data-jenis="{{ strtolower($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'btktl') }}"
-                                        data-gaji-pokok="{{ $pegawai->jabatanRelasi->gaji_pokok ?? $pegawai->gaji_pokok ?? 0 }}"
-                                        data-tarif="{{ $pegawai->jabatanRelasi->tarif_per_jam ?? $pegawai->tarif_per_jam ?? 0 }}"
-                                        data-tunjangan-jabatan="{{ $pegawai->jabatanRelasi->tunjangan ?? 0 }}"
-                                        data-tunjangan-transport="{{ $pegawai->jabatanRelasi->tunjangan_transport ?? 0 }}"
-                                        data-tunjangan-konsumsi="{{ $pegawai->jabatanRelasi->tunjangan_konsumsi ?? 0 }}"
-                                        data-asuransi="{{ $pegawai->jabatanRelasi->asuransi ?? 0 }}">
+                                        data-gaji-pokok="{{ $gajiPokok }}"
+                                        data-tarif="{{ $tarif }}"
+                                        data-tunjangan-jabatan="{{ $tunjanganJabatan }}"
+                                        data-tunjangan-transport="{{ $tunjanganTransport }}"
+                                        data-tunjangan-konsumsi="{{ $tunjanganKonsumsi }}"
+                                        data-asuransi="{{ $asuransi }}">
                                     {{ $pegawai->nama }} - {{ $pegawai->jabatan_nama ?? 'Staff' }} ({{ strtoupper($pegawai->jenis_pegawai ?? $pegawai->kategori ?? 'BTKTL') }})
-                                    [Gaji: {{ number_format($pegawai->jabatanRelasi->gaji_pokok ?? $pegawai->gaji_pokok ?? 0, 0, ',', '.') }}, Tarif: {{ number_format($pegawai->jabatanRelasi->tarif_per_jam ?? $pegawai->tarif_per_jam ?? 0, 0, ',', '.') }}]
+                                    [Gaji: {{ number_format($gajiPokok, 0, ',', '.') }}, Tarif: {{ number_format($tarif, 0, ',', '.') }}]
                                 </option>
                             @endforeach
                         </select>
@@ -101,15 +119,7 @@
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
-                            <!-- BTKTL Fields -->
-                            <div class="col-md-6" id="field-gaji-pokok">
-                                <label for="display_gaji_pokok" class="form-label">Gaji Pokok</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">Rp</span>
-                                    <input type="text" id="display_gaji_pokok" class="form-control" readonly value="0">
-                                </div>
-                            </div>
-
+                            <!-- BTKL Fields -->
                             <div class="col-md-6" id="field-tarif" style="display:none;">
                                 <label for="display_tarif" class="form-label">Tarif per Jam</label>
                                 <div class="input-group">
@@ -127,12 +137,46 @@
                             </div>
 
                             <div class="col-md-6" id="field-gaji-dasar" style="display:none;">
-                                <label for="display_gaji_dasar" class="form-label fw-bold text-primary">Gaji Dasar</label>
+                                <label for="display_gaji_dasar" class="form-label fw-bold text-primary">Total Gaji (diluar tunjangan)</label>
                                 <div class="input-group">
                                     <span class="input-group-text">Rp</span>
                                     <input type="text" id="display_gaji_dasar" class="form-control fw-bold" readonly value="0">
                                 </div>
                                 <small class="text-success"><i class="bi bi-calculator"></i> Tarif per Jam × Total Jam Kerja</small>
+                            </div>
+
+                            <!-- BTKTL Fields -->
+                            <div class="col-md-6" id="field-gaji-pokok">
+                                <label for="display_gaji_pokok" class="form-label fw-bold">Gaji Pokok</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rp</span>
+                                    <input type="text" id="display_gaji_pokok" class="form-control fw-bold" readonly value="0">
+                                </div>
+                            </div>
+
+                            <!-- Tunjangan Detail -->
+                            <div class="col-md-6">
+                                <label for="display_tunjangan_jabatan" class="form-label">Tunjangan Jabatan</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rp</span>
+                                    <input type="text" id="display_tunjangan_jabatan" class="form-control" readonly value="0">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="display_tunjangan_transport" class="form-label">Tunjangan Transport</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rp</span>
+                                    <input type="text" id="display_tunjangan_transport" class="form-control" readonly value="0">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="display_tunjangan_konsumsi" class="form-label">Tunjangan Konsumsi</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">Rp</span>
+                                    <input type="text" id="display_tunjangan_konsumsi" class="form-control" readonly value="0">
+                                </div>
                             </div>
 
                             <div class="col-md-6">
@@ -165,7 +209,7 @@
                                 <label for="bonus" class="form-label">Bonus</label>
                                 <div class="input-group">
                                     <span class="input-group-text">Rp</span>
-                                    <input type="number" step="0.01" min="0" name="bonus" id="bonus" 
+                                    <input type="number" step="0.01" min="0" name="bonus" id="bonus"
                                            class="form-control" value="0" onchange="hitungTotal()">
                                 </div>
                                 <small class="text-muted">Bonus kinerja, lembur, dll</small>
@@ -178,7 +222,7 @@
                                 <label for="potongan" class="form-label">Potongan</label>
                                 <div class="input-group">
                                     <span class="input-group-text">Rp</span>
-                                    <input type="number" step="0.01" min="0" name="potongan" id="potongan" 
+                                    <input type="number" step="0.01" min="0" name="potongan" id="potongan"
                                            class="form-control" value="0" onchange="hitungTotal()">
                                 </div>
                                 <small class="text-muted">Keterlambatan, pinjaman, dll</small>
@@ -257,6 +301,9 @@ let pegawaiData = {
     jenis: 'btktl',
     gajiPokok: 0,
     tarif: 0,
+    tunjanganJabatan: 0,
+    tunjanganTransport: 0,
+    tunjanganKonsumsi: 0,
     totalTunjangan: 0,
     asuransi: 0,
     jamKerja: 0,
@@ -302,8 +349,21 @@ function loadPegawaiData() {
                 pegawaiData.jenis = data.jenis || 'btktl';
                 pegawaiData.gajiPokok = parseFloat(data.gaji_pokok) || 0;
                 pegawaiData.tarif = parseFloat(data.tarif) || 0;
-                pegawaiData.totalTunjangan = parseFloat(data.total_tunjangan) || 0;
+                pegawaiData.tunjanganJabatan = parseFloat(data.tunjangan_jabatan) || 0;
+                pegawaiData.tunjanganTransport = parseFloat(data.tunjangan_transport) || 0;
+                pegawaiData.tunjanganKonsumsi = parseFloat(data.tunjangan_konsumsi) || 0;
+                pegawaiData.totalTunjangan = pegawaiData.tunjanganJabatan + pegawaiData.tunjanganTransport + pegawaiData.tunjanganKonsumsi;
                 pegawaiData.asuransi = parseFloat(data.asuransi) || 0;
+
+                // Update hidden fields
+                document.getElementById('hidden_gaji_pokok').value = pegawaiData.gajiPokok;
+                document.getElementById('hidden_tarif_per_jam').value = pegawaiData.tarif;
+                document.getElementById('hidden_tunjangan_jabatan').value = pegawaiData.tunjanganJabatan;
+                document.getElementById('hidden_tunjangan_transport').value = pegawaiData.tunjanganTransport;
+                document.getElementById('hidden_tunjangan_konsumsi').value = pegawaiData.tunjanganKonsumsi;
+                document.getElementById('hidden_tunjangan').value = pegawaiData.totalTunjangan;
+                document.getElementById('hidden_asuransi').value = pegawaiData.asuransi;
+                document.getElementById('hidden_jenis_pegawai').value = pegawaiData.jenis;
                 
                 // System updates pegawaiData silently
                 
@@ -333,16 +393,19 @@ function loadPegawaiData() {
 // Update display fields (READ-ONLY - data dari kualifikasi dan presensi)
 function updateDisplayFields() {
     // Update display fields
-    document.getElementById('display_gaji_pokok').value = pegawaiData.gajiPokok.toLocaleString('id-ID');
     document.getElementById('display_tarif').value = pegawaiData.tarif.toLocaleString('id-ID');
-    document.getElementById('display_total_tunjangan').value = pegawaiData.totalTunjangan.toLocaleString('id-ID');
-    document.getElementById('display_asuransi').value = pegawaiData.asuransi.toLocaleString('id-ID');
     document.getElementById('display_jam_kerja').value = pegawaiData.jamKerja.toLocaleString('id-ID');
     document.getElementById('display_gaji_dasar').value = pegawaiData.gajiDasar.toLocaleString('id-ID');
+    document.getElementById('display_gaji_pokok').value = pegawaiData.gajiPokok.toLocaleString('id-ID');
+    document.getElementById('display_tunjangan_jabatan').value = pegawaiData.tunjanganJabatan.toLocaleString('id-ID');
+    document.getElementById('display_tunjangan_transport').value = pegawaiData.tunjanganTransport.toLocaleString('id-ID');
+    document.getElementById('display_tunjangan_konsumsi').value = pegawaiData.tunjanganKonsumsi.toLocaleString('id-ID');
+    document.getElementById('display_total_tunjangan').value = pegawaiData.totalTunjangan.toLocaleString('id-ID');
+    document.getElementById('display_asuransi').value = pegawaiData.asuransi.toLocaleString('id-ID');
 
     // Show/hide fields based on employee type
     updateFieldVisibility();
-    
+
     // Recalculate total
     hitungTotal();
 }
@@ -401,10 +464,13 @@ function loadJamKerjaFromPresensi() {
                 
                 // Calculate gaji dasar for BTKL (tarif dari kualifikasi × jam dari presensi)
                 pegawaiData.gajiDasar = pegawaiData.tarif * pegawaiData.jamKerja;
-                
+
+                // Update hidden field for total jam kerja
+                document.getElementById('hidden_total_jam_kerja').value = pegawaiData.jamKerja;
+
                 // Update display fields
                 updateDisplayFields();
-                
+
                 // Enable submit button
                 enableSubmitButton();
 
@@ -440,34 +506,43 @@ function resetPegawaiData() {
         jenis: 'btktl',
         gajiPokok: 0,
         tarif: 0,
+        tunjanganJabatan: 0,
+        tunjanganTransport: 0,
+        tunjanganKonsumsi: 0,
         totalTunjangan: 0,
         asuransi: 0,
         jamKerja: 0,
         gajiDasar: 0
     };
-    
+
     // Reset hidden fields
     document.getElementById('hidden_gaji_pokok').value = 0;
     document.getElementById('hidden_tarif_per_jam').value = 0;
+    document.getElementById('hidden_tunjangan_jabatan').value = 0;
+    document.getElementById('hidden_tunjangan_transport').value = 0;
+    document.getElementById('hidden_tunjangan_konsumsi').value = 0;
     document.getElementById('hidden_tunjangan').value = 0;
     document.getElementById('hidden_asuransi').value = 0;
     document.getElementById('hidden_jenis_pegawai').value = '';
     document.getElementById('hidden_total_jam_kerja').value = 0;
 
     // Reset display fields
-    document.getElementById('display_gaji_pokok').value = '0';
     document.getElementById('display_tarif').value = '0';
-    document.getElementById('display_total_tunjangan').value = '0';
-    document.getElementById('display_asuransi').value = '0';
     document.getElementById('display_jam_kerja').value = '0';
     document.getElementById('display_gaji_dasar').value = '0';
+    document.getElementById('display_gaji_pokok').value = '0';
+    document.getElementById('display_tunjangan_jabatan').value = '0';
+    document.getElementById('display_tunjangan_transport').value = '0';
+    document.getElementById('display_tunjangan_konsumsi').value = '0';
+    document.getElementById('display_total_tunjangan').value = '0';
+    document.getElementById('display_asuransi').value = '0';
 
     // Show BTKTL fields by default
     document.getElementById('field-gaji-pokok').style.display = 'block';
     document.getElementById('field-tarif').style.display = 'none';
     document.getElementById('field-jam-kerja').style.display = 'none';
     document.getElementById('field-gaji-dasar').style.display = 'none';
-    
+
     hitungTotal();
 }
 
@@ -475,7 +550,7 @@ function resetPegawaiData() {
 function loadStaticPegawaiData() {
     const select = document.getElementById('pegawai_id');
     const option = select.options[select.selectedIndex];
-    
+
     if (option.value) {
         pegawaiData.jenis = option.dataset.jenis || 'btktl';
         pegawaiData.gajiPokok = parseFloat(option.dataset.gajiPokok) || 0;
@@ -484,73 +559,65 @@ function loadStaticPegawaiData() {
         const tunjanganJabatan = parseFloat(option.dataset.tunjanganJabatan) || 0;
         const tunjanganTransport = parseFloat(option.dataset.tunjanganTransport) || 0;
         const tunjanganKonsumsi = parseFloat(option.dataset.tunjanganKonsumsi) || 0;
+        pegawaiData.tunjanganJabatan = tunjanganJabatan;
+        pegawaiData.tunjanganTransport = tunjanganTransport;
+        pegawaiData.tunjanganKonsumsi = tunjanganKonsumsi;
         pegawaiData.totalTunjangan = tunjanganJabatan + tunjanganTransport + tunjanganKonsumsi || parseFloat(option.dataset.tunjangan) || 0;
         pegawaiData.asuransi = parseFloat(option.dataset.asuransi) || 0;
 
         // Update hidden fields
         document.getElementById('hidden_gaji_pokok').value = pegawaiData.gajiPokok;
         document.getElementById('hidden_tarif_per_jam').value = pegawaiData.tarif;
+        document.getElementById('hidden_tunjangan_jabatan').value = pegawaiData.tunjanganJabatan;
+        document.getElementById('hidden_tunjangan_transport').value = pegawaiData.tunjanganTransport;
+        document.getElementById('hidden_tunjangan_konsumsi').value = pegawaiData.tunjanganKonsumsi;
         document.getElementById('hidden_tunjangan').value = pegawaiData.totalTunjangan;
         document.getElementById('hidden_asuransi').value = pegawaiData.asuransi;
         document.getElementById('hidden_jenis_pegawai').value = pegawaiData.jenis;
         document.getElementById('hidden_total_jam_kerja').value = pegawaiData.jamKerja;
 
         // Update display
-        document.getElementById('display_gaji_pokok').value = pegawaiData.gajiPokok.toLocaleString('id-ID');
-        document.getElementById('display_tarif').value = pegawaiData.tarif.toLocaleString('id-ID');
-        document.getElementById('display_total_tunjangan').value = pegawaiData.totalTunjangan.toLocaleString('id-ID');
-        document.getElementById('display_asuransi').value = pegawaiData.asuransi.toLocaleString('id-ID');
-        document.getElementById('display_jam_kerja').value = '0';
-        document.getElementById('display_gaji_dasar').value = '0';
+        updateDisplayFields();
 
-        // Show/hide fields based on employee type
-        updateFieldVisibility();
-        
         // Load jam kerja if BTKL
         if (pegawaiData.jenis === 'btkl') {
             loadJamKerja();
         } else {
             // Calculate gaji dasar for BTKTL
             pegawaiData.gajiDasar = pegawaiData.gajiPokok;
-            document.getElementById('display_gaji_dasar').value = pegawaiData.gajiDasar.toLocaleString('id-ID');
+            updateDisplayFields();
         }
     } else {
         // Reset hidden fields
         document.getElementById('hidden_gaji_pokok').value = 0;
         document.getElementById('hidden_tarif_per_jam').value = 0;
+        document.getElementById('hidden_tunjangan_jabatan').value = 0;
+        document.getElementById('hidden_tunjangan_transport').value = 0;
+        document.getElementById('hidden_tunjangan_konsumsi').value = 0;
         document.getElementById('hidden_tunjangan').value = 0;
         document.getElementById('hidden_asuransi').value = 0;
         document.getElementById('hidden_jenis_pegawai').value = '';
         document.getElementById('hidden_total_jam_kerja').value = 0;
 
-        // Reset display fields
-        document.getElementById('display_gaji_pokok').value = '0';
-        document.getElementById('display_tarif').value = '0';
-        document.getElementById('display_total_tunjangan').value = '0';
-        document.getElementById('display_asuransi').value = '0';
-        document.getElementById('display_jam_kerja').value = '0';
-        document.getElementById('display_gaji_dasar').value = '0';
-
         // Reset pegawaiData
         pegawaiData.gajiPokok = 0;
         pegawaiData.tarif = 0;
+        pegawaiData.tunjanganJabatan = 0;
+        pegawaiData.tunjanganTransport = 0;
+        pegawaiData.tunjanganKonsumsi = 0;
         pegawaiData.totalTunjangan = 0;
         pegawaiData.asuransi = 0;
         pegawaiData.jamKerja = 0;
         pegawaiData.gajiDasar = 0;
 
-        // Hide BTKL fields
-        document.getElementById('field-gaji-pokok').style.display = 'block';
-        document.getElementById('field-tarif').style.display = 'none';
-        document.getElementById('field-jam-kerja').style.display = 'none';
-        document.getElementById('field-gaji-dasar').style.display = 'none';
+        updateDisplayFields();
     }
 }
 
 // Load jam kerja dari presensi
 function loadJamKerja() {
     console.log('=== loadJamKerja() called ===');
-    
+
     const pegawaiId = document.getElementById('pegawai_id').value;
     const tanggal = document.getElementById('tanggal_penggajian').value;
 
@@ -569,68 +636,60 @@ function loadJamKerja() {
         const apiUrl = `/api/presensi/jam-kerja?pegawai_id=${pegawaiId}&month=${month}&year=${year}`;
         console.log('API URL:', apiUrl);
 
-        // Show loading indicator
-        document.getElementById('display_jam_kerja').value = 'Loading...';
-
         // Fetch jam kerja dari server
         fetch(apiUrl)
             .then(response => {
                 console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
                 return response.json();
             })
             .then(data => {
                 console.log('API Response:', data);
-                
+
                 if (data.error) {
                     console.error('API Error:', data.message);
-                    alert('Error loading attendance data: ' + data.message);
                     pegawaiData.jamKerja = 0;
                 } else {
-                    console.log('data.total_jam:', data.total_jam);
-                    console.log('typeof data.total_jam:', typeof data.total_jam);
-                    
                     pegawaiData.jamKerja = parseFloat(data.total_jam) || 0;
-                    console.log('pegawaiData.jamKerja after parseFloat:', pegawaiData.jamKerja);
                 }
-                
+
                 // Calculate gaji dasar for BTKL
                 pegawaiData.gajiDasar = pegawaiData.tarif * pegawaiData.jamKerja;
-                
-                // Update form fields
-                updateFormFields();
-                
+
+                // Update display fields
+                updateDisplayFields();
+
                 // Enable submit button
                 enableSubmitButton();
-
-                // System handles logic silently in background
             })
             .catch(error => {
-                // Clear timeouts to prevent conflicts
-                clearTimeout(timeoutId);
-                clearTimeout(timeoutId2);
-                
-                // Set default values silently without user notification
+                console.error('Error loading presensi data:', error);
                 pegawaiData.jamKerja = 0;
                 pegawaiData.gajiDasar = 0;
-                
-                // Update form fields
-                updateFormFields();
-                
-                // Enable submit button - system handles logic in background
+
+                // Update display fields
+                updateDisplayFields();
+
+                // Enable submit button
                 enableSubmitButton();
             });
     } else {
         // Reset jam kerja for non-BTKL employees
         pegawaiData.jamKerja = 0;
         pegawaiData.gajiDasar = pegawaiData.gajiPokok; // Use gaji pokok for BTKTL
-        
-        // Update form fields
-        updateFormFields();
-        
+
+        // Update display fields
+        updateDisplayFields();
+
         // Enable submit button
         enableSubmitButton();
     }
+}
+
+// Enable submit button and restore normal text
+function enableSubmitButton() {
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="bi bi-save"></i> Simpan Penggajian';
 }
 
 // Update field visibility based on employee type
@@ -648,13 +707,6 @@ function updateFieldVisibility() {
         document.getElementById('field-jam-kerja').style.display = 'none';
         document.getElementById('field-gaji-dasar').style.display = 'none';
     }
-}
-
-// Enable submit button and restore normal text
-function enableSubmitButton() {
-    const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = false;
-    submitBtn.innerHTML = '<i class="bi bi-save"></i> Simpan Penggajian';
 }
 
 // Hitung total gaji
@@ -684,20 +736,11 @@ function hitungTotal() {
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     hitungTotal();
-    
+
     // Add event listeners for real-time calculation
     document.getElementById('bonus').addEventListener('input', hitungTotal);
     document.getElementById('potongan').addEventListener('input', hitungTotal);
-    
-    // Add event listeners to reset jam kerja when pegawai or tanggal changes
-    document.getElementById('pegawai_id').addEventListener('change', function() {
-        // Reset jam kerja field immediately when pegawai changes
-        document.getElementById('display_jam_kerja').value = '0';
-        pegawaiData.jamKerja = 0;
-        pegawaiData.gajiDasar = 0;
-        updateDisplayFields();
-    });
-    
+
     // Add event listener for tanggal change to reload presensi data
     document.getElementById('tanggal_penggajian').addEventListener('change', function() {
         const pegawaiId = document.getElementById('pegawai_id').value;
@@ -706,7 +749,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loadJamKerjaFromPresensi();
         }
     });
-        
+
     // Debug form submission
     document.getElementById('formPenggajian').addEventListener('submit', function(e) {
         console.log('Form data yang akan dikirim:');
