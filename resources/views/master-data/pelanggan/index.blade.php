@@ -54,6 +54,7 @@
                             <th>Nama</th>
                             <th>Email</th>
                             <th>No. Telepon</th>
+                            <th>Alamat</th>
                             <th>Password</th>
                             <th>Total Pesanan</th>
                             <th>Terdaftar</th>
@@ -76,6 +77,7 @@
                                 </td>
                                 <td>{{ $pelanggan->email ?? '-' }}</td>
                                 <td>{{ $pelanggan->phone ?? '-' }}</td>
+                                <td>{{ $pelanggan->address ? \Illuminate\Support\Str::limit($pelanggan->address, 40) : '-' }}</td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="password-text" data-password="{{ $pelanggan->plain_password ?? $pelanggan->password }}">••••••••</span>
@@ -120,7 +122,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-4">
+                                <td colspan="9" class="text-center py-4">
                                     <i class="fas fa-users fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data pelanggan</p>
                                 </td>

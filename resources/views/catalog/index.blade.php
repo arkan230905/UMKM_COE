@@ -586,9 +586,25 @@ body {
 <section class="cta-section">
     <div class="container">
         <div class="text-center">
-            <button class="btn-beli" onclick="window.location.href='/pelanggan/login'">
-                klik disini untuk membeli
-            </button>
+            @if(auth()->check())
+                @if(auth()->user()->role === 'pelanggan')
+                    <button class="btn-beli" onclick="window.location.href='{{ route('pelanggan.dashboard') }}'">
+                        Masuk ke Dashboard
+                    </button>
+                @else
+                    <p class="text-white mb-3">Anda sudah login sebagai {{ auth()->user()->role }}. Silakan logout untuk login sebagai pelanggan.</p>
+                    <a href="{{ route('logout') }}" class="btn btn-danger btn-lg" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                        <i class="fas fa-sign-out-alt me-2"></i> Logout
+                    </a>
+                    <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                        @csrf
+                    </form>
+                @endif
+            @else
+                <button class="btn-beli" onclick="window.location.href='{{ route('pelanggan.login') }}'">
+                    klik disini untuk membeli
+                </button>
+            @endif
         </div>
     </div>
 </section>

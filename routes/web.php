@@ -1863,6 +1863,16 @@ Route::get('/', function () {
 // Catalog Route - Public
 Route::get('/catalog', [ProdukController::class, 'catalog'])->name('catalog');
 
+// TEMP: Run migration add address to users
+Route::get('/run-migration-address', function () {
+    try {
+        \DB::statement("ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT NULL AFTER phone");
+        return 'Migration berhasil! Kolom address ditambahkan ke tabel users. <a href="/master-data/pelanggan/create">Cek halaman create pelanggan</a>';
+    } catch (\Exception $e) {
+        return 'Error: ' . $e->getMessage();
+    }
+});
+
 // TEMP: Seed catalog sections with correct data
 Route::get('/update-catalog-desc-now', function () {
     $company = \App\Models\Perusahaan::first();
@@ -1890,12 +1900,12 @@ Route::get('/update-catalog-desc-now', function () {
 
 // Pelanggan Login Routes - Public
 Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
-    Route::get('/login', [PelangganLoginController::class, 'showLoginForm'])->name('login');
+    Route::get('/login', [PelangganLoginController::class, 'showLoginForm'])->name('login')->middleware('guest');
     Route::post('/login', [PelangganLoginController::class, 'login'])->name('login.post');
     Route::post('/logout', [PelangganLoginController::class, 'logout'])->name('logout');
     
     // Register
-    Route::get('/register', [RegisterController::class, 'showPelangganRegisterForm'])->name('register');
+    Route::get('/register', [RegisterController::class, 'showPelangganRegisterForm'])->name('register')->middleware('guest');
     Route::post('/register', [RegisterController::class, 'registerPelanggan'])->name('register.post');
 });
 

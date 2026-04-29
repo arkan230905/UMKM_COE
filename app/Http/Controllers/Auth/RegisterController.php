@@ -144,26 +144,26 @@ class RegisterController extends Controller
     /**
      * Handle a customer registration request.
      */
-    public function registerPelanggan(Request $request)
+    public function registerPelanggan(\Illuminate\Http\Request $request)
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'name'     => ['required', 'string', 'max:255'],
+            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'phone'    => ['required', 'string', 'max:20'],
+            'address'  => ['nullable', 'string'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'no_telepon' => ['required', 'string', 'max:15'],
-            'alamat' => ['required', 'string', 'max:500'],
         ]);
 
         DB::beginTransaction();
         try {
             $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
+                'name'     => $request->name,
+                'email'    => $request->email,
                 'password' => Hash::make($request->password),
-                'role' => 'pelanggan',
-                'no_telepon' => $request->no_telepon,
-                'alamat' => $request->alamat,
-                'status' => 'aktif',
+                'role'     => 'pelanggan',
+                'phone'    => $request->phone,
+                'address'  => $request->address,
+                'status'   => 'aktif',
             ]);
 
             DB::commit();
@@ -171,7 +171,7 @@ class RegisterController extends Controller
             auth()->login($user);
 
             return redirect()->route('pelanggan.dashboard')
-                ->with('success', 'Registrasi berhasil! Selamat datang di UMKM Desa Karangpakuan.');
+                ->with('success', 'Registrasi berhasil! Selamat datang.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()

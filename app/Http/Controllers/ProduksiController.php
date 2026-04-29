@@ -112,40 +112,19 @@ class ProduksiController extends Controller
             $bom = \App\Models\Bom::where('produk_id', $produk->id)->first();
             $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
             
-            // Total Biaya Bahan = Bahan Baku (Bom.details) + Bahan Pendukung (BomJobBahanPendukung)
-            $totalBahanBakuPerUnit = $bom ? $bom->details->sum('total_harga') : 0;
-            $totalBahanPendukungPerUnit = 0;
-            if ($bomJobCosting) {
-                $bahanPendukungDetails = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->get();
-                foreach ($bahanPendukungDetails as $detail) {
-                    $totalBahanPendukungPerUnit += $detail->subtotal;
-                }
-            }
-            $totalBahanPerUnit = $totalBahanBakuPerUnit + $totalBahanPendukungPerUnit;
-            $totalBahan = $totalBahanPerUnit * $qtyProd;
-            
-            // Total BTKL dan BOP dari BOM Job Costing (sama seperti di BOM index)
+            // Total BTKL dan BOP dari BOM Job Costing (per unit × qty)
             $totalBTKLPerUnit = 0;
             $totalBOPPerUnit = 0;
             
             if ($bomJobCosting) {
-                // Ambil total BTKL langsung dari BomJobCosting
                 $totalBTKLPerUnit = $bomJobCosting->total_btkl ?? 0;
-                
-                // Ambil total BOP dari BomJobCosting
-                $totalBOPPerUnit = $bomJobCosting->total_bop ?? 0;
+                $totalBOPPerUnit  = $bomJobCosting->total_bop  ?? 0;
             }
             
             $totalBTKL = $totalBTKLPerUnit * $qtyProd;
-            $totalBOP = $totalBOPPerUnit * $qtyProd;
-            $totalBiaya = $totalBahan + $totalBTKL + $totalBOP;
+            $totalBOP  = $totalBOPPerUnit  * $qtyProd;
 
-            $produksi->update([
-                'total_bahan' => $totalBahan,
-                'total_btkl' => $totalBTKL,
-                'total_bop' => $totalBOP,
-                'total_biaya' => $totalBiaya,
-            ]);
+            // total_bahan akan dihitung setelah detail disimpan (lihat di bawah)
 
             // Simpan detail BBB ke produksi_details
             if ($bomJobCosting) {
@@ -229,6 +208,17 @@ class ProduksiController extends Controller
                     ]);
                 }
             }
+
+            // Hitung total_bahan dari detail yang sudah disimpan (bukan dari BOM)
+            $totalBahan = \App\Models\ProduksiDetail::where('produksi_id', $produksi->id)->sum('subtotal');
+            $totalBiaya = $totalBahan + $totalBTKL + $totalBOP;
+
+            $produksi->update([
+                'total_bahan' => $totalBahan,
+                'total_btkl'  => $totalBTKL,
+                'total_bop'   => $totalBOP,
+                'total_biaya' => $totalBiaya,
+            ]);
 
             // Don't process production or consume materials - only save the plan
             // Material consumption will happen when "Mulai Produksi" button is clicked
@@ -523,15 +513,8 @@ class ProduksiController extends Controller
             \App\Models\ProduksiBopDetail::where('produksi_id', $produksi->id)->delete();
 
             // Hitung ulang biaya
-            $bom           = \App\Models\Bom::where('produk_id', $produk->id)->first();
             $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $produk->id)->first();
 
-            $totalBahanBakuPerUnit    = $bom ? $bom->details->sum('total_harga') : 0;
-            $totalBahanPendukungPerUnit = 0;
-            if ($bomJobCosting) {
-                $totalBahanPendukungPerUnit = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->sum('subtotal');
-            }
-            $totalBahan = ($totalBahanBakuPerUnit + $totalBahanPendukungPerUnit) * $qtyProd;
             $totalBTKL  = ($bomJobCosting->total_btkl ?? 0) * $qtyProd;
             $totalBOP   = ($bomJobCosting->total_bop  ?? 0) * $qtyProd;
 
@@ -541,10 +524,7 @@ class ProduksiController extends Controller
                 'jumlah_produksi_bulanan'       => $request->jumlah_produksi_bulanan,
                 'hari_produksi_bulanan'         => $request->hari_produksi_bulanan,
                 'qty_produksi'                  => $qtyProd,
-                'total_bahan'                   => $totalBahan,
-                'total_btkl'                    => $totalBTKL,
-                'total_bop'                     => $totalBOP,
-                'total_biaya'                   => $totalBahan + $totalBTKL + $totalBOP,
+                // total_bahan dan total_biaya akan diupdate setelah detail disimpan
             ]);
 
             // Simpan ulang detail (sama seperti store)
@@ -609,6 +589,15 @@ class ProduksiController extends Controller
                     ]);
                 }
             }
+
+            // Hitung total_bahan dari detail yang sudah disimpan (bukan dari BOM)
+            $totalBahan = \App\Models\ProduksiDetail::where('produksi_id', $produksi->id)->sum('subtotal');
+            $produksi->update([
+                'total_bahan'  => $totalBahan,
+                'total_btkl'   => $totalBTKL,
+                'total_bop'    => $totalBOP,
+                'total_biaya'  => $totalBahan + $totalBTKL + $totalBOP,
+            ]);
 
             return redirect()->route('transaksi.produksi.show', $produksi->id)
                 ->with('success', 'Rencana produksi berhasil diperbarui.');
@@ -1136,6 +1125,17 @@ class ProduksiController extends Controller
                 }
                 unset($bb);
 
+                // Bahan pendukung: tambahkan coa_persediaan_kode & coa_persediaan_nama
+                foreach ($breakdown['biaya_bahan']['bahan_pendukung'] as &$bp) {
+                    $bahan = \App\Models\BahanPendukung::where('user_id', $userId)
+                        ->where('nama_bahan', $bp['nama'])->first();
+                    $bp['coa_persediaan_kode'] = $bahan->coa_persediaan_id ?? null;
+                    $bp['coa_persediaan_nama'] = $bahan && $bahan->coa_persediaan_id
+                        ? ($allCoas[$bahan->coa_persediaan_id]->nama_akun ?? $bahan->coa_persediaan_id)
+                        : null;
+                }
+                unset($bp);
+
                 // BTKL: tambahkan coa_kode per proses (520, 521, 522 dst)
                 // BTKL: kredit ke Hutang Gaji, debit ke akun BTKL per proses
                 $coaHutangGaji = \App\Models\Coa::withoutGlobalScopes()
@@ -1171,7 +1171,7 @@ class ProduksiController extends Controller
                     'Tepung Terigu'        => ['kode' => '533', 'nama' => 'BOP-Tepung Terigu',            'kredit_prefix' => '115'],
                     'Tepung Maizena'       => ['kode' => '534', 'nama' => 'BOP-Tepung Maizena',           'kredit_prefix' => '115'],
                     'Lada'                 => ['kode' => '535', 'nama' => 'BOP- Lada',                    'kredit_prefix' => '115'],
-                    'Bubuk Kaldu'          => ['kode' => '536', 'nama' => 'BOP- Bubuk Kaldu',             'kredit_prefix' => '115'],
+                    'Bubuk Kaldu'          => ['kode' => '536', 'nama' => 'BOP- Bubuk Kaldu',             'kredit_kode' => '1155'],
                     'Bubuk Bawang'         => ['kode' => '537', 'nama' => 'BOP- Bubuk Bawang Putih',      'kredit_prefix' => '115'],
                     'Bawang Putih'         => ['kode' => '537', 'nama' => 'BOP- Bubuk Bawang Putih',      'kredit_prefix' => '115'],
                     'Kemasan'              => ['kode' => '538', 'nama' => 'BOP-Kemasan',                  'kredit_prefix' => '115'],
@@ -1337,11 +1337,45 @@ class ProduksiController extends Controller
         foreach ($bopCoaMap as $keyword => $cfg) {
             if (stripos($namaKomponen, $keyword) !== false) {
                 if (isset($cfg['kredit_prefix'])) {
+                    // Coba match nama_akun dengan kata-kata dari namaKomponen (partial, tiap kata)
+                    $words = array_filter(explode(' ', $namaKomponen), fn($w) => strlen($w) > 3);
+                    $coaKredit = null;
+
+                    // 1. Coba exact match nama komponen
                     $coaKredit = \App\Models\Coa::withoutGlobalScopes()
                         ->where('user_id', $userId)
                         ->where('kode_akun', 'LIKE', $cfg['kredit_prefix'] . '%')
                         ->where('nama_akun', 'LIKE', '%' . $namaKomponen . '%')
-                        ->first() ?? $allCoas[$cfg['kredit_prefix']] ?? null;
+                        ->first();
+
+                    // 2. Coba match tiap kata penting dari namaKomponen
+                    if (!$coaKredit) {
+                        foreach ($words as $word) {
+                            $coaKredit = \App\Models\Coa::withoutGlobalScopes()
+                                ->where('user_id', $userId)
+                                ->where('kode_akun', 'LIKE', $cfg['kredit_prefix'] . '%')
+                                ->where('kode_akun', '!=', $cfg['kredit_prefix']) // hindari parent account
+                                ->where('nama_akun', 'LIKE', '%' . $word . '%')
+                                ->first();
+                            if ($coaKredit) break;
+                        }
+                    }
+
+                    // 3. Fallback ke keyword itu sendiri
+                    if (!$coaKredit) {
+                        $coaKredit = \App\Models\Coa::withoutGlobalScopes()
+                            ->where('user_id', $userId)
+                            ->where('kode_akun', 'LIKE', $cfg['kredit_prefix'] . '%')
+                            ->where('kode_akun', '!=', $cfg['kredit_prefix'])
+                            ->where('nama_akun', 'LIKE', '%' . $keyword . '%')
+                            ->first();
+                    }
+
+                    // 4. Fallback ke parent account
+                    if (!$coaKredit) {
+                        $coaKredit = $allCoas[$cfg['kredit_prefix']] ?? null;
+                    }
+
                     return [$coaKredit->kode_akun ?? $cfg['kredit_prefix'], $coaKredit->nama_akun ?? 'Pers. Bahan Pendukung'];
                 } else {
                     $coaKredit = $allCoas[$cfg['kredit_kode']] ?? null;
@@ -1511,11 +1545,23 @@ class ProduksiController extends Controller
         $totalMaterialCost = 0;
 
         foreach ($produksiDetails as $detail) {
+            // Bahan Baku
             if ($detail->bahan_baku_id && $detail->bahanBaku) {
                 $bahan = $detail->bahanBaku;
                 $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
                     ->where('user_id', $userId)
                     ->where('kode_akun', $bahan->coa_persediaan_id ?? '114')->first();
+                if ($coaPersediaan && $detail->subtotal > 0) {
+                    $materialEntries[] = ['code' => $coaPersediaan->kode_akun, 'debit' => 0, 'credit' => $detail->subtotal, 'memo' => "Konsumsi {$bahan->nama_bahan}"];
+                    $totalMaterialCost += $detail->subtotal;
+                }
+            }
+            // Bahan Pendukung
+            elseif ($detail->bahan_pendukung_id && $detail->bahanPendukung) {
+                $bahan = $detail->bahanPendukung;
+                $coaPersediaan = \App\Models\Coa::withoutGlobalScopes()
+                    ->where('user_id', $userId)
+                    ->where('kode_akun', $bahan->coa_persediaan_id ?? '115')->first();
                 if ($coaPersediaan && $detail->subtotal > 0) {
                     $materialEntries[] = ['code' => $coaPersediaan->kode_akun, 'debit' => 0, 'credit' => $detail->subtotal, 'memo' => "Konsumsi {$bahan->nama_bahan}"];
                     $totalMaterialCost += $detail->subtotal;
@@ -1602,41 +1648,52 @@ class ProduksiController extends Controller
             $prosesOrder++;
         }
 
-        // Calculate BOP for each process
-        $bomJobBOPs = \App\Models\BomJobBOP::where('bom_job_costing_id', $bomJobCosting->id)->get();
-        
-        // Group BOP by process name and multiply by production quantity
+        // Calculate BOP for each process — group by nama_proses dari ProduksiBopDetail
+        // (lebih akurat daripada parsing nama_bop dari BomJobBOP)
         $bopByProcess = [];
-        foreach ($bomJobBOPs as $bomJobBOP) {
-            $namaProses = 'Umum';
-            $namaBiaya = strtolower($bomJobBOP->nama_bop ?? '');
-            
-            // Map BOP components to process names based on naming convention
-            if (stripos($namaBiaya, 'penggorengan') !== false || stripos($namaBiaya, 'goreng') !== false) {
-                $namaProses = 'Penggorengan';
-            } elseif (stripos($namaBiaya, 'perbumbuan') !== false || stripos($namaBiaya, 'bumbu') !== false) {
-                $namaProses = 'Perbumbuan';
-            } elseif (stripos($namaBiaya, 'pengemasan') !== false || stripos($namaBiaya, 'kemas') !== false) {
-                $namaProses = 'Pengemasan';
-            }
-            
+        $bopDetails = \App\Models\ProduksiBopDetail::where('produksi_id', $produksi->id)->get();
+        foreach ($bopDetails as $bopDetail) {
+            $namaProses = $bopDetail->nama_proses;
             if (!isset($bopByProcess[$namaProses])) {
                 $bopByProcess[$namaProses] = 0;
             }
-            // Multiply by production quantity to get total BOP for this production
-            $bopByProcess[$namaProses] += ($bomJobBOP->subtotal ?? 0) * $produksi->qty_produksi;
+            $bopByProcess[$namaProses] += (float)$bopDetail->total;
+        }
+
+        // Fallback: jika ProduksiBopDetail belum ada, hitung dari BomJobBOP
+        if (empty($bopByProcess)) {
+            $bomJobBOPs = \App\Models\BomJobBOP::where('bom_job_costing_id', $bomJobCosting->id)->get();
+            foreach ($bomJobBOPs as $bomJobBOP) {
+                $namaBop  = $bomJobBOP->nama_bop ?? '';
+                $dashPos  = strpos($namaBop, ' - ');
+                $namaProses = $dashPos !== false ? trim(substr($namaBop, 0, $dashPos)) : 'Umum';
+                if (!isset($bopByProcess[$namaProses])) {
+                    $bopByProcess[$namaProses] = 0;
+                }
+                $bopByProcess[$namaProses] += ($bomJobBOP->subtotal ?? 0) * $produksi->qty_produksi;
+            }
         }
         
         // Update BOP for each process
         foreach ($produksi->proses as $proses) {
             $bopAmount = 0;
             
-            // Find matching BOP for this process
-            foreach ($bopByProcess as $prosesName => $bopValue) {
-                if (stripos($proses->nama_proses, $prosesName) !== false || 
-                    ($prosesName === 'Umum' && !isset($bopByProcess[$proses->nama_proses]))) {
-                    $bopAmount = $bopValue;
-                    break;
+            // Exact match dulu
+            if (isset($bopByProcess[$proses->nama_proses])) {
+                $bopAmount = $bopByProcess[$proses->nama_proses];
+            } else {
+                // Partial match sebagai fallback
+                foreach ($bopByProcess as $prosesName => $bopValue) {
+                    if ($prosesName !== 'Umum' &&
+                        (stripos($proses->nama_proses, $prosesName) !== false ||
+                         stripos($prosesName, $proses->nama_proses) !== false)) {
+                        $bopAmount = $bopValue;
+                        break;
+                    }
+                }
+                // Jika masih 0, cek apakah ada bucket 'Umum'
+                if ($bopAmount == 0 && isset($bopByProcess['Umum'])) {
+                    $bopAmount = $bopByProcess['Umum'];
                 }
             }
             
