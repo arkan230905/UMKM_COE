@@ -2887,7 +2887,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/update-status', [PenggajianController::class, 'updateStatus'])->name('update-status');
 
             // Tandai sudah dibayar (owner/admin only)
-            Route::patch('/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
+            Route::match(['post', 'patch'], '/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
 
             // Posting ke jurnal (owner/admin only)
             Route::post('/{id}/post-journal', [PenggajianController::class, 'postToJournal'])->name('post-journal')->middleware(['role:owner,admin']);
