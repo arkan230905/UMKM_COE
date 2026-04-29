@@ -715,19 +715,30 @@ class AkuntansiController extends Controller
 
     public function laporanPosisiKeuangan(Request $request)
     {
-        $periode = $request->get('periode', now()->format('Y-m'));
+        // Gunakan format bulan/tahun seperti neraca saldo untuk konsistensi
+        $bulan = $request->get('bulan', date('m'));
+        $tahun = $request->get('tahun', date('Y'));
         
-        // Parse periode to get bulan and tahun
-        $tahun = substr($periode, 0, 4);
-        $bulan = substr($periode, 5, 2);
+        // Validasi range
+        if ($bulan < 1 || $bulan > 12) {
+            $bulan = date('m');
+        }
+        if ($tahun < 2020 || $tahun > 2030) {
+            $tahun = date('Y');
+        }
         
-        // Get data using helper method
-        $data = $this->getLaporanPosisiKeuanganData($bulan, $tahun);
+        // Ensure bulan is zero-padded
+        $bulan = str_pad($bulan, 2, '0', STR_PAD_LEFT);
         
-        // Add periode to data for view
-        $data['periode'] = $periode;
-        
-        return view('akuntansi.laporan_posisi_keuangan', $data);
+        // Hitung periode - sama seperti neraca saldo
+        $tanggalAwal = \Carbon\Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
+        $tanggalAkhir = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
+
+        // Gunakan NeracaService untuk konsistensi dengan neraca saldo
+        $neracaService = app(\App\Services\NeracaService::class);
+        $neraca = $neracaService->generateLaporanPosisiKeuangan($tanggalAwal, $tanggalAkhir);
+
+        return view('akuntansi.laporan_posisi_keuangan', compact('neraca', 'bulan', 'tahun'));
     }
 
     private function getLaporanPosisiKeuanganData($bulan, $tahun)
