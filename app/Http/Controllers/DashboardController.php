@@ -30,6 +30,12 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
+        
+        // Handle unauthenticated users
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
+        }
+        
         $userRole = $user->role;
         
         // Master Data - Filter berdasarkan user untuk multi-tenant (same query as PegawaiController)
