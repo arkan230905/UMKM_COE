@@ -1175,6 +1175,9 @@ class ProduksiController extends Controller
                     'Bubuk Bawang'         => ['kode' => '537', 'nama' => 'BOP- Bubuk Bawang Putih',      'kredit_prefix' => '115'],
                     'Bawang Putih'         => ['kode' => '537', 'nama' => 'BOP- Bubuk Bawang Putih',      'kredit_prefix' => '115'],
                     'Kemasan'              => ['kode' => '538', 'nama' => 'BOP-Kemasan',                  'kredit_prefix' => '115'],
+                    'Susu'                 => ['kode' => '539', 'nama' => 'BOP-Susu',                    'kredit_prefix' => '115'],
+                    'Keju'                 => ['kode' => '540', 'nama' => 'BOP-Keju',                    'kredit_prefix' => '115'],
+                    'Cup'                  => ['kode' => '541', 'nama' => 'BOP-Cup/Kemasan',             'kredit_prefix' => '115'],
                     // ── BTKTL → kredit ke Hutang Gaji (211) ──
                     'BTKTL'                => ['kode' => '54',  'nama' => 'BOP BTKTL',                    'kredit_kode' => '211'],
                     'Pegawai Pemasaran'    => ['kode' => '540', 'nama' => 'BOP BTKTL - Biaya Pegawai Pemasaran', 'kredit_kode' => '211'],
