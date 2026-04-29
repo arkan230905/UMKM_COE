@@ -265,23 +265,26 @@ class AkuntansiController extends Controller
             ->select([
                 'ju.id',
                 'ju.tanggal',
-                'ju.keterangan as memo',
-                'ju.referensi',
-                'ju.tipe_referensi as ref_type',
+                'ju.coa_id',
                 'ju.debit',
-                'ju.kredit as credit',
-                'ju.created_at',
+                'ju.kredit',
+                'ju.keterangan',
+                'ju.tipe_referensi',
+                'ju.referensi',
                 'coas.kode_akun',
                 'coas.nama_akun',
-                'coas.tipe_akun'
+                'coas.tipe_akun',
+                'ju.created_at',
+                \DB::raw("'ju_' as ref_type"),
+                \DB::raw('NULL as ref_id')
             ])
             ->where(function($q) {
                 $q->where('ju.debit', '>', 0)
                   ->orWhere('ju.kredit', '>', 0);
             })
-// Only manual entries, exclude 'pembelian'
+// Include all relevant transaction types including purchase
             ->whereIn('ju.tipe_referensi', [
-                'penyusutan', 'adjustment', 'manual' // Only manual entries, exclude 'pembelian'
+                'penyusutan', 'adjustment', 'manual', 'pembelian' // Include purchase journals
             ])
             ->where(function($q) {
                 $q->where('coas.user_id', auth()->id())
