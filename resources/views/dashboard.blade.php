@@ -86,6 +86,50 @@
                 <div class="card-body" style="padding: 0.75rem;">
                     <div class="row g-2">
                         <div class="col-lg-2 col-md-4 col-sm-6">
+                            <a href="{{ route('master-data.coa.index') }}" class="text-decoration-none">
+                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
+                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-book text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">COA</h6>
+                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalCOA }}</h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <a href="{{ route('master-data.aset.index') }}" class="text-decoration-none">
+                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
+                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-laptop text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Aset</h6>
+                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalAset }}</h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <a href="{{ route('master-data.satuan.dashboard') }}" class="text-decoration-none">
+                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
+                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-balance-scale text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Satuan</h6>
+                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalSatuan }}</h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <a href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}" class="text-decoration-none">
+                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
+                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-user-tie text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Kualifikasi TK</h6>
+                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalJabatan }}</h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
                             <a href="{{ route('master-data.pegawai.index') }}" class="text-decoration-none">
                                 <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
                                     <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
@@ -93,17 +137,6 @@
                                     </div>
                                     <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Pegawai</h6>
                                     <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalPegawai }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.produk.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-box text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Produk</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalProduk }}</h4>
                                 </div>
                             </a>
                         </div>
@@ -119,6 +152,17 @@
                             </a>
                         </div>
                         <div class="col-lg-2 col-md-4 col-sm-6">
+                            <a href="{{ route('master-data.pelanggan.index') }}" class="text-decoration-none">
+                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
+                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-user-friends text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Pelanggan</h6>
+                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalPelanggan }}</h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
                             <a href="{{ route('master-data.bahan-baku.index') }}" class="text-decoration-none">
                                 <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
                                     <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
@@ -130,24 +174,127 @@
                             </a>
                         </div>
                         <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.coa.index') }}" class="text-decoration-none">
+                            <a href="{{ route('master-data.bahan-pendukung.index') }}" class="text-decoration-none">
                                 <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
                                     <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-list-alt text-white" style="font-size: 0.75rem;"></i>
+                                        <i class="fas fa-flask text-white" style="font-size: 0.75rem;"></i>
                                     </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">COA</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalCOA }}</h4>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Bahan Pendukung</h6>
+                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalBahanPendukung }}</h4>
                                 </div>
                             </a>
                         </div>
                         <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('transaksi.pembelian.index') }}" class="text-decoration-none">
+                            <a href="{{ route('master-data.produk.index') }}" class="text-decoration-none">
                                 <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
                                     <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-box text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Produk</h6>
+                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalProduk }}</h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <a href="{{ route('master-data.biaya-bahan.index') }}" class="text-decoration-none">
+                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
+                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-calculator text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Biaya Bahan</h6>
+                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalBOM }}</h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <a href="{{ route('master-data.btkl.index') }}" class="text-decoration-none">
+                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
+                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-industry text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">BTKL</h6>
+                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalBTKL }}</h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <a href="{{ route('master-data.bop.index') }}" class="text-decoration-none">
+                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
+                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-chart-pie text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">BOP</h6>
+                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalBOP }}</h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-lg-2 col-md-4 col-sm-6">
+                            <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="text-decoration-none">
+                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
+                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-sitemap text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Harga Pokok</h6>
+                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalBOM }}</h4>
+                                </div>
+                            </a>
+                        </div>
+                                            </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions Section -->
+    <div class="row g-2 mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0" style="font-size: 0.875rem;"><i class="fas fa-exchange-alt me-2"></i>Transaksi</h5>
+                </div>
+                <div class="card-body" style="padding: 0.75rem;">
+                    <div class="row g-2">
+                        <div class="col-lg-3 col-md-6">
+                            <a href="{{ route('transaksi.penjualan.index') }}" class="text-decoration-none">
+                                <div class="text-center p-2 rounded transaction-card" style="background-color: #e8f5e8; border: 1px solid rgba(40, 167, 69, 0.1); cursor: pointer; transition: all 0.3s ease;">
+                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: #28a745; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-cash-register text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Penjualan</h6>
+                                    <h4 class="mb-0" style="color: #28a745; font-size: 1.125rem;">{{ $totalPenjualan }}</h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <a href="{{ route('transaksi.pembelian.index') }}" class="text-decoration-none">
+                                <div class="text-center p-2 rounded transaction-card" style="background-color: #fff3cd; border: 1px solid rgba(255, 193, 7, 0.1); cursor: pointer; transition: all 0.3s ease;">
+                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: #ffc107; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
                                         <i class="fas fa-shopping-cart text-white" style="font-size: 0.75rem;"></i>
                                     </div>
                                     <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Pembelian</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalPembelian }}</h4>
+                                    <h4 class="mb-0" style="color: #ffc107; font-size: 1.125rem;">{{ $totalPembelian }}</h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <a href="{{ route('transaksi.produksi.index') }}" class="text-decoration-none">
+                                <div class="text-center p-2 rounded transaction-card" style="background-color: #d1ecf1; border: 1px solid rgba(13, 202, 240, 0.1); cursor: pointer; transition: all 0.3s ease;">
+                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: #0dcaf0; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-industry text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Produksi</h6>
+                                    <h4 class="mb-0" style="color: #0dcaf0; font-size: 1.125rem;">{{ $totalProduksi }}</h4>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <a href="{{ route('transaksi.retur.index') }}" class="text-decoration-none">
+                                <div class="text-center p-2 rounded transaction-card" style="background-color: #f8d7da; border: 1px solid rgba(248, 215, 218, 0.1); cursor: pointer; transition: all 0.3s ease;">
+                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: #dc3545; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-undo text-white" style="font-size: 0.75rem;"></i>
+                                    </div>
+                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Retur</h6>
+                                    <h4 class="mb-0" style="color: #dc3545; font-size: 1.125rem;">{{ $totalRetur }}</h4>
                                 </div>
                             </a>
                         </div>
