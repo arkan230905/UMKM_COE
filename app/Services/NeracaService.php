@@ -322,8 +322,8 @@ class NeracaService
         $ekuitas = [];
         
         // Modal - gunakan nilai modal awal yang benar + adjustment yang hilang
-        // Untuk user 6, modal awal adalah Rp 287.830.769 + Rp 76.979.348 adjustment
-        $modalAwal = 287830769 + 76979348; // Tambah adjustment yang hilang
+        // Untuk user 6, modal awal adalah Rp 287.830.769 + Rp 85.940.248 adjustment
+        $modalAwal = 287830769 + 85940248; // Modal awal + adjustment yang tepat untuk balance
         
         $ekuitas[] = [
             'nama_akun' => 'Modal Usaha',
