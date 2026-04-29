@@ -45,7 +45,11 @@ class JabatanController extends Controller
         ]);
 
         $data = $request->validate([
-            'nama' => 'required|string|max:255|unique:jabatans,nama',
+            'nama' => [
+                'required', 'string', 'max:255',
+                \Illuminate\Validation\Rule::unique('jabatans', 'nama')
+                    ->where('user_id', auth()->id()),
+            ],
             'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
@@ -73,6 +77,7 @@ class JabatanController extends Controller
         $nextNumber = $lastJabatan ? ((int) substr($lastJabatan->kode_jabatan, 2) + 1) : 1;
         
         $data['kode_jabatan'] = $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        $data['user_id'] = auth()->id();
 
         Jabatan::create($data);
 
@@ -98,7 +103,12 @@ class JabatanController extends Controller
         ]);
 
         $data = $request->validate([
-            'nama' => 'required|string|max:255|unique:jabatans,nama,' . $jabatan->id,
+            'nama' => [
+                'required', 'string', 'max:255',
+                \Illuminate\Validation\Rule::unique('jabatans', 'nama')
+                    ->where('user_id', auth()->id())
+                    ->ignore($jabatan->id),
+            ],
             'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
