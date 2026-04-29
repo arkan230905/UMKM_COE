@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Produk;
+use App\Models\KategoriProduk;
 use App\Models\PenjualanDetail;
 use App\Models\Produksi;
 use App\Models\Bom;
@@ -15,10 +16,40 @@ use Illuminate\Support\Facades\DB;
 
 class ProdukController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Get all products
-        $produks = Produk::with(['bomJobCosting'])->get();
+        // Get filter parameters
+        $search = $request->get('search', '');
+        $kategoriFilter = $request->get('kategori', null);
+        $statusFilter = $request->get('status', '');
+        
+        // Get all categories with product counts
+        $kategoris = KategoriProduk::withCount('produks')->get();
+        
+        // Build query
+        $query = Produk::with(['bomJobCosting', 'kategori']);
+        
+        // Apply search filter
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('nama_produk', 'like', "%{$search}%")
+                  ->orWhere('barcode', 'like', "%{$search}%");
+            });
+        }
+        
+        // Apply category filter
+        if ($kategoriFilter) {
+            $query->where('kategori_id', $kategoriFilter);
+        }
+        
+        // Apply status filter
+        if ($statusFilter === 'aktif') {
+            $query->where('stok', '>', 0);
+        } elseif ($statusFilter === 'habis') {
+            $query->where('stok', '<=', 0);
+        }
+        
+        $produks = $query->get();
         
         // Calculate HPP using ONLY data from BomJobCosting (same as harga-pokok-produksi page)
         $hargaBom = [];
@@ -62,7 +93,7 @@ class ProdukController extends Controller
             }
         }
         
-        return view('master-data.produk.index', compact('produks', 'hargaBom'));
+        return view('master-data.produk.index', compact('produks', 'hargaBom', 'kategoris', 'search', 'kategoriFilter', 'statusFilter'));
     }
 
     public function katalogPelanggan()
@@ -81,7 +112,8 @@ class ProdukController extends Controller
 
     public function create()
     {
-        return view('master-data.produk.create');
+        $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
+        return view('master-data.produk.create', compact('kategoris'));
     }
     
     public function show($id)
@@ -109,6 +141,7 @@ class ProdukController extends Controller
     {
         $request->validate([
             'nama_produk' => 'required|string|max:255',
+            'kategori_id' => 'nullable|exists:kategori_produks,id',
             'deskripsi' => 'nullable|string',
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
             'harga_jual' => 'required|numeric|min:0',
@@ -130,6 +163,7 @@ class ProdukController extends Controller
 
         Produk::create([
             'nama_produk' => $request->nama_produk,
+            'kategori_id' => $request->input('kategori_id'),
             'deskripsi' => $request->deskripsi,
             'foto' => $fotoPath,
             'harga_jual' => $hargaJual,
@@ -146,7 +180,8 @@ class ProdukController extends Controller
 
     public function edit(Produk $produk)
     {
-        return view('master-data.produk.edit', compact('produk'));
+        $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
+        return view('master-data.produk.edit', compact('produk', 'kategoris'));
     }
     
     /**
@@ -221,6 +256,7 @@ class ProdukController extends Controller
         // Regular update validation
         $request->validate([
             'nama_produk' => 'required|string|max:255',
+            'kategori_id' => 'nullable|exists:kategori_produks,id',
             'deskripsi' => 'nullable|string',
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
             'harga_jual' => 'required|string',
@@ -250,10 +286,11 @@ class ProdukController extends Controller
 
         $data = [
             'nama_produk' => $request->nama_produk,
+            'kategori_id' => $request->input('kategori_id'),
             'deskripsi' => $request->deskripsi,
             'harga_jual' => $hargaJual,
             'hpp' => $hppToUse,
-            'harga_bom' => $hppToUse, // Update harga_bom to match HPP
+            'harga_bom' => $hppToUse,
             'bopb_method' => $request->input('bopb_method'),
             'bopb_rate' => $request->input('bopb_rate'),
             'labor_hours_per_unit' => $request->input('labor_hours_per_unit'),
