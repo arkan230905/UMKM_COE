@@ -447,8 +447,8 @@ class JournalService
         }
         if ($subtotalProduk <= 0) {
             $subtotalProduk = (float)($penjualan->subtotal_produk ?? $penjualan->total ?? 0)
-                            - (float)($penjualan->biaya_ongkir ?? 0)
-                            - (float)($penjualan->total_ppn ?? $penjualan->biaya_ppn ?? 0);
+                            - (float)($penjualan->biaya_ongkir ?? 0);
+            // Don't subtract PPN - total is already before PPN, grand_total includes PPN
         }
 
         $biayaOngkir = (float)($penjualan->biaya_ongkir ?? 0);
