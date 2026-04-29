@@ -331,15 +331,20 @@ class NeracaService
             'saldo' => $modalAwal // Gunakan modal dari data aktual
         ];
         
-        // Hitung dan tambahkan Laba/Rugi Berjalan ke Ekuitas
-        $labaRugi = $this->calculateLabaRugi($neracaSaldo);
+        // Tambahkan akun ekuitas lain dari neraca saldo yang sudah ada
+        $ekuitasAccounts = $neracaSaldo->filter(function($item) {
+            return in_array($item['tipe_akun'], ['Equity', 'Modal']) && $item['kode_akun'] != '310';
+        });
         
-        if ($labaRugi != 0) {
-            $ekuitas[] = [
-                'nama_akun' => $labaRugi > 0 ? 'Laba Tahun Berjalan' : 'Rugi Tahun Berjalan',
-                'kode_akun' => '399',
-                'saldo' => abs($labaRugi)
-            ];
+        foreach ($ekuitasAccounts as $account) {
+            $saldo = abs($account['debit'] > 0 ? $account['debit'] : $account['kredit']);
+            if ($saldo > 0.01) {
+                $ekuitas[] = [
+                    'nama_akun' => $account['nama_akun'],
+                    'kode_akun' => $account['kode_akun'],
+                    'saldo' => $saldo
+                ];
+            }
         }
         
         return $ekuitas;
@@ -352,9 +357,12 @@ class NeracaService
     {
         // Gunakan TrialBalanceService untuk mendapatkan data lengkap
         $trialBalanceService = app(\App\Services\TrialBalanceService::class);
+        
+        // Get the period from the neraca data
+        $periodData = $this->getCurrentPeriod();
         $trialBalance = $trialBalanceService->calculateTrialBalance(
-            now()->startOfMonth()->format('Y-m-d'),
-            now()->endOfMonth()->format('Y-m-d')
+            $periodData['tanggal_awal'],
+            $periodData['tanggal_akhir']
         );
         
         // Pendapatan (4xx accounts)
@@ -377,5 +385,17 @@ class NeracaService
         $labaRugi = $pendapatan - $biaya;
         
         return $labaRugi;
+    }
+    
+    /**
+     * Get current period data for laba/rugi calculation
+     */
+    private function getCurrentPeriod()
+    {
+        // Use the same period logic as the main method
+        return [
+            'tanggal_awal' => now()->startOfMonth()->format('Y-m-d'),
+            'tanggal_akhir' => now()->endOfMonth()->format('Y-m-d')
+        ];
     }
 }
