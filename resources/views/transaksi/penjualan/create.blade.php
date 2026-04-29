@@ -37,9 +37,9 @@ function hitungTotal() {
     const ppnEl = document.getElementById('ppn_persen');
     const ppnPersen = ppnEl ? (parseFloat(ppnEl.value) || 0) : 0;
 
-    // Calculate: PPN = Subtotal × PPN% (ongkir tidak masuk PPN)
-    const totalPPN   = Math.round(subtotalProduk * ppnPersen / 100);
-    const totalFinal = subtotalProduk + totalPPN + ongkir;
+    // Calculate: PPN = (Subtotal Produk + Biaya Ongkir) × PPN%
+    const totalPPN   = Math.round((subtotalProduk + ongkir) * ppnPersen / 100);
+    const totalFinal = subtotalProduk + ongkir + totalPPN;
 
     function fmtIDR(n) { return Math.round(n).toLocaleString('id-ID'); }
 
@@ -82,6 +82,7 @@ function tambahBarisProduk() {
     clone.querySelectorAll('input').forEach(inp => {
         if (inp.classList.contains('jumlah')) {
             inp.value = 1;
+            inp.setAttribute('data-max-stok', '0'); // reset stok agar validasi tidak pakai stok baris lama
         } else if (inp.classList.contains('harga')) {
             inp.removeAttribute('readonly');
             inp.value = 0;
@@ -156,6 +157,35 @@ function toggleSumberDana() {
 document.addEventListener('DOMContentLoaded', function() {
     toggleSumberDana();
 });
+
+// Handler barcode input — dipanggil langsung dari oninput di HTML
+function handleBarcodeOninput(value) {
+    value = value.trim();
+
+    if (!value) {
+        document.getElementById('search-results').style.display = 'none';
+        return;
+    }
+
+    // Hanya proses input numerik
+    if (!/^\d+$/.test(value)) {
+        document.getElementById('search-results').style.display = 'none';
+        return;
+    }
+
+    // Input panjang (>= 8 digit) → proses sebagai barcode lengkap
+    if (value.length >= 8) {
+        document.getElementById('search-results').style.display = 'none';
+        setTimeout(() => {
+            const current = document.getElementById('barcode-scanner').value.trim();
+            if (current === value) processAutomaticBarcode(value);
+        }, 100);
+        return;
+    }
+
+    // Input pendek (1-7 digit) → tampilkan search results
+    performRealTimeSearch(value);
+}
 </script>
 
 <style>
@@ -271,7 +301,8 @@ mark.bg-warning {
                         <div class="input-group">
                             <input type="text" id="barcode-scanner" class="form-control form-control-lg" 
                                    placeholder="Ketik atau scan barcode..." 
-                                   autocomplete="off" autofocus>
+                                   autocomplete="off" autofocus
+                                   oninput="handleBarcodeOninput(this.value)">
                             <div class="input-group-text bg-success text-white">
                                 <i class="fas fa-wifi me-1"></i>
                                 <span id="scan-indicator">Siap Scan</span>
@@ -321,6 +352,8 @@ mark.bg-warning {
                                 const tr = this.closest('tr');
                                 const hargaInput = tr.querySelector('.harga');
                                 const subtotalInput = tr.querySelector('.subtotal');
+                                const qtyInput = tr.querySelector('.jumlah');
+                                const stokInfo = tr.querySelector('.stok-info');
                                 const selectedOption = this.options[this.selectedIndex];
                                 
                                 if (!this.value) {
@@ -328,12 +361,15 @@ mark.bg-warning {
                                     hargaInput.value = 0;
                                     hargaInput.setAttribute('readonly', 'readonly');
                                     subtotalInput.value = 0;
+                                    qtyInput.setAttribute('data-max-stok', '0');
+                                    if (stokInfo) stokInfo.textContent = '';
                                     hitungTotal();
                                     return;
                                 }
                                 
                                 const harga = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-                                const qty = parseFloat(tr.querySelector('.jumlah').value) || 1;
+                                const stok  = parseFloat(selectedOption.getAttribute('data-stok')  || '0') || 0;
+                                const qty = parseFloat(qtyInput.value) || 1;
                                 const diskon = parseFloat(tr.querySelector('.diskon').value) || 0;
                                 const subtotal = qty * harga * (1 - diskon / 100);
                                 
@@ -343,6 +379,15 @@ mark.bg-warning {
                                 hargaInput.setAttribute('data-raw', harga);
                                 subtotalInput.value = subtotal.toLocaleString('id-ID');
                                 subtotalInput.setAttribute('data-raw', subtotal);
+                                
+                                // Simpan stok ke data-max-stok agar validasi qty bisa membacanya
+                                qtyInput.setAttribute('data-max-stok', stok);
+                                
+                                // Tampilkan info stok di bawah select
+                                if (stokInfo) {
+                                    stokInfo.textContent = 'Stok tersedia: ' + stok.toLocaleString('id-ID');
+                                    stokInfo.style.color = stok > 0 ? '#28a745' : '#dc3545';
+                                }
                                 
                                 hitungTotal();
                             ">
@@ -377,6 +422,7 @@ mark.bg-warning {
                         </td>
                         <td><input type="number" step="1" min="1" name="jumlah[]" class="form-control jumlah" value="1" required onchange="
                             const tr = this.closest('tr');
+                            if (!validateStock(tr)) return;
                             const hargaInput = tr.querySelector('.harga');
                             const harga = parseFloat(hargaInput.getAttribute('data-raw') || hargaInput.value.replace(/\./g,'').replace(',','.')) || 0;
                             const qty = parseFloat(this.value) || 1;
@@ -433,21 +479,6 @@ mark.bg-warning {
                     <span class="fw-semibold">Rp <span id="display_subtotal_produk">0</span></span>
                 </div>
 
-                <!-- Row: PPN -->
-                <div class="d-flex justify-content-between align-items-center py-2">
-                    <div class="d-flex align-items-center">
-                        <span class="text-muted me-2">PPN (%)</span>
-                        <input type="number" name="ppn_persen" id="ppn_persen"
-                               class="form-control form-control-sm"
-                               style="width:80px;"
-                               value="11" min="0" max="100" step="0.01"
-                               oninput="hitungTotal();"
-                               onchange="hitungTotal();">
-                        <span class="text-muted ms-4">Total PPN</span>
-                    </div>
-                    <span class="fw-semibold">Rp <span id="display_total_ppn">0</span></span>
-                </div>
-
                 <!-- Row: Biaya Ongkir -->
                 <div class="d-flex justify-content-between align-items-center py-2">
                     <div class="d-flex align-items-center gap-2">
@@ -465,6 +496,21 @@ mark.bg-warning {
                         </select>
                     </div>
                     <span class="fw-semibold">Rp <span id="display_biaya_ongkir">0</span></span>
+                </div>
+
+                <!-- Row: PPN -->
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted me-2">PPN (%)</span>
+                        <input type="number" name="ppn_persen" id="ppn_persen"
+                               class="form-control form-control-sm"
+                               style="width:80px;"
+                               value="11" min="0" max="100" step="0.01"
+                               oninput="hitungTotal();"
+                               onchange="hitungTotal();">
+                        <span class="text-muted ms-4">Total PPN</span>
+                    </div>
+                    <span class="fw-semibold">Rp <span id="display_total_ppn">0</span></span>
                 </div>
 
                 <!-- Separator -->
@@ -600,13 +646,15 @@ mark.bg-warning {
 // Product data for barcode lookup
 const productData = {
     @foreach($produks as $p)
-    '{{ $p->barcode ?? '' }}': {
+    @if($p->barcode)
+    '{{ trim($p->barcode) }}': {
         id: {{ $p->id }},
         nama: '{{ addslashes($p->nama_produk ?? $p->nama) }}',
         harga: {{ round($p->harga_jual ?? 0) }},
         stok: {{ $p->stok ?? 0 }},
-        barcode: '{{ $p->barcode ?? '' }}'
+        barcode: '{{ trim($p->barcode) }}'
     },
+    @endif
     @endforeach
 };
 
@@ -882,36 +930,28 @@ function performRealTimeSearch(query) {
         return;
     }
     
-    console.log('Searching for products with barcode starting with:', query);
+    const queryLower = query.toLowerCase();
     
-    // Search in products with priority for barcode prefix match
+    // Search in products: barcode prefix match OR name contains query
     const results = searchableProducts.filter(product => {
         // Priority 1: Barcode starts with query (exact prefix match)
-        if (product.barcode && product.barcode.startsWith(query)) {
-            console.log('Found barcode prefix match:', product.barcode, 'for product:', product.nama);
+        if (product.barcode && product.barcode.toLowerCase().startsWith(queryLower)) {
             return true;
         }
-        // Priority 2: Product name contains query (fallback for name search)
-        if (product.searchText.includes(query.toLowerCase())) {
-            console.log('Found name match:', product.nama, 'for query:', query);
+        // Priority 2: Product name or searchText contains query
+        if (product.searchText && product.searchText.includes(queryLower)) {
             return true;
         }
         return false;
     })
     .sort((a, b) => {
-        // Sort by priority: barcode prefix matches first
-        const aStartsWithBarcode = a.barcode && a.barcode.startsWith(query);
-        const bStartsWithBarcode = b.barcode && b.barcode.startsWith(query);
-        
-        if (aStartsWithBarcode && !bStartsWithBarcode) return -1;
-        if (!aStartsWithBarcode && bStartsWithBarcode) return 1;
-        
-        // If both or neither start with barcode, sort by name
+        const aBarcode = a.barcode && a.barcode.toLowerCase().startsWith(queryLower);
+        const bBarcode = b.barcode && b.barcode.toLowerCase().startsWith(queryLower);
+        if (aBarcode && !bBarcode) return -1;
+        if (!aBarcode && bBarcode) return 1;
         return a.nama.localeCompare(b.nama);
     })
-    .slice(0, 10); // Limit to 10 results for performance
-    
-    console.log('Search results count:', results.length);
+    .slice(0, 10);
     
     if (results.length > 0) {
         searchCount.textContent = results.length;
@@ -931,13 +971,14 @@ function performRealTimeSearch(query) {
                     `<span class="badge bg-success">${product.stok}</span>` : 
                     `<span class="badge bg-danger">Habis</span>`;
                 
-                // Highlight matching part in barcode for prefix matches
+                // Highlight matching part in barcode
                 if (product.barcode) {
-                    if (product.barcode.startsWith(query)) {
-                        // Highlight the matching prefix
-                        const matchedPart = product.barcode.substring(0, query.length);
-                        const remainingPart = product.barcode.substring(query.length);
-                        barcodeDisplay = `<code class="text-primary"><mark class="bg-warning text-dark">${matchedPart}</mark>${remainingPart}</code>`;
+                    const idx = product.barcode.indexOf(query);
+                    if (idx !== -1) {
+                        const before = product.barcode.substring(0, idx);
+                        const match  = product.barcode.substring(idx, idx + query.length);
+                        const after  = product.barcode.substring(idx + query.length);
+                        barcodeDisplay = `<code class="text-primary">${before}<mark class="bg-warning text-dark">${match}</mark>${after}</code>`;
                     } else {
                         barcodeDisplay = `<code class="text-primary">${product.barcode}</code>`;
                     }
@@ -956,7 +997,7 @@ function performRealTimeSearch(query) {
                      onmouseout="this.style.backgroundColor=''">
                     <div class="flex-grow-1">
                         <div class="fw-bold text-dark">${product.nama}</div>
-                        <small class="text-muted">${barcodeDisplay} * Rp ${product.harga.toLocaleString('id-ID')}</small>
+                        <small class="text-muted">${barcodeDisplay} &bull; Rp ${product.harga.toLocaleString('id-ID')}</small>
                     </div>
                     <div class="text-end">
                         ${stockBadge}
@@ -967,7 +1008,6 @@ function performRealTimeSearch(query) {
                 </div>
             `;
         });
-        });
         
         searchResultsBody.innerHTML = html;
         searchResults.style.display = 'block';
@@ -976,7 +1016,7 @@ function performRealTimeSearch(query) {
         searchResultsBody.innerHTML = `
             <div class="text-center text-muted py-2">
                 <i class="fas fa-search me-1"></i>
-                Tidak ada produk dengan barcode yang diawali "${query}"
+                Tidak ada produk yang cocok dengan "<strong>${query}</strong>"
             </div>
         `;
         searchResults.style.display = 'block';
@@ -1104,19 +1144,12 @@ function handleBarcodeInputEnhanced(value) {
         return;
     }
     
-    // Only show search results for numeric input (barcode search) and manual typing
-    if (/^\d+$/.test(value)) {
-        // Set timeout for real-time search for numeric input
-        searchTimeout = setTimeout(() => {
-            // Double check we're not processing a barcode scan
-            if (!isProcessing) {
-                performRealTimeSearch(value);
-            }
-        }, SEARCH_DELAY);
-    } else {
-        // Hide search results for non-numeric input
-        document.getElementById('search-results').style.display = 'none';
-    }
+    // Tampilkan hasil pencarian untuk semua jenis input (angka maupun huruf)
+    searchTimeout = setTimeout(() => {
+        if (!isProcessing) {
+            performRealTimeSearch(value);
+        }
+    }, SEARCH_DELAY);
 }
 
 // Safety mechanism to reset processing state if stuck
@@ -1168,7 +1201,9 @@ function processAutomaticBarcode(barcode) {
     if (isProcessing) return;
     
     isProcessing = true;
-    console.log('Auto-processing barcode:', barcode);
+    // Bersihkan barcode dari semua whitespace dan karakter non-printable
+    barcode = barcode.replace(/[\s\r\n\t]/g, '').trim();
+    console.log('Auto-processing barcode:', JSON.stringify(barcode), 'length:', barcode.length);
     
     const barcodeInput = document.getElementById('barcode-scanner');
     const scanIndicator = document.getElementById('scan-indicator');
@@ -1177,7 +1212,7 @@ function processAutomaticBarcode(barcode) {
     // Hide search results when processing exact barcode
     searchResults.style.display = 'none';
     
-    // Clear input immediately for silent processing
+    // Clear input immediately
     barcodeInput.value = '';
     
     // Update UI to show processing
@@ -1185,64 +1220,53 @@ function processAutomaticBarcode(barcode) {
     scanIndicator.parentElement.className = 'input-group-text bg-warning text-dark';
     
     try {
-        const product = productData[barcode];
+        // Cari produk: coba exact match dulu, lalu fallback ke searchableProducts
+        let product = productData[barcode];
+        
+        // Fallback: cari di searchableProducts jika tidak ketemu di productData
+        if (!product) {
+            const found = searchableProducts.find(p => p.barcode === barcode || p.barcode === barcode.trim());
+            if (found) {
+                product = { id: found.id, nama: found.nama, harga: found.harga, stok: found.stok, barcode: found.barcode };
+            }
+        }
         
         if (product) {
             console.log('Product found:', product);
             
-            // Validate stock before adding
             if (product.stok <= 0) {
                 throw new Error('Produk ' + product.nama + ' stok habis!');
             }
             
-            // Product found - add to table silently
             addProductByBarcode(product);
             
-            // Success feedback
-            scanIndicator.textContent = 'Produk ditambahkan';
+            scanIndicator.textContent = '✓ ' + product.nama;
             scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
-            
-            // Play success sound
             playBeep(true);
-            
-            // Show success notification
             showNotification('Produk ditambahkan: ' + product.nama, 'success');
             
         } else {
-            console.log('Product not found for barcode:', barcode);
+            console.log('Product not found for barcode:', barcode, '| productData keys:', Object.keys(productData));
             
-            // Product not found - show error without search results
-            scanIndicator.textContent = 'Produk tidak ditemukan';
+            scanIndicator.textContent = 'Tidak ditemukan';
             scanIndicator.parentElement.className = 'input-group-text bg-danger text-white';
-            
-            // Show error notification
-            showNotification('Produk dengan barcode ' + barcode + ' tidak ditemukan', 'error');
-            
-            // Play error sound
+            showNotification('Barcode ' + barcode + ' tidak ditemukan', 'error');
             playBeep(false);
         }
     } catch (error) {
         console.error('Error processing barcode:', error);
-        
-        // Error feedback
         scanIndicator.textContent = 'Error';
         scanIndicator.parentElement.className = 'input-group-text bg-danger text-white';
-        
-        // Show specific error message
-        showNotification(error.message || 'Terjadi kesalahan saat memproses barcode', 'error');
-        
-        // Play error sound
+        showNotification(error.message || 'Terjadi kesalahan', 'error');
         playBeep(false);
     }
     
-    // Reset status after 2 seconds
+    // Reset status setelah 2 detik
     setTimeout(() => {
         scanIndicator.textContent = 'Siap Scan';
         scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
         isProcessing = false;
-        
-        // Ensure focus is maintained
-        maintainFocus();
+        barcodeInput.focus();
     }, 2000);
 }
 
@@ -1376,7 +1400,6 @@ function addProductByBarcode(product) {
         // Fill the row with product data
         const select = targetRow.querySelector('.produk-select');
         const qtyInput = targetRow.querySelector('.jumlah');
-        const hargaInput = targetRow.querySelector('.harga');
         const diskonInput = targetRow.querySelector('.diskon');
         
         console.log('Setting product data in row:', {
@@ -1385,19 +1408,18 @@ function addProductByBarcode(product) {
             price: product.harga
         });
         
+        // Set nilai select dan trigger change agar setPriceFromSelect berjalan
         select.value = product.id;
         qtyInput.value = 1;
-        hargaInput.value = product.harga;
         diskonInput.value = 0;
         
-        // Update stock info
-        setPriceFromSelect(targetRow);
+        // Dispatch change event — ini akan trigger table change listener
+        // yang memanggil setPriceFromSelect dan set data-raw dengan benar
+        select.dispatchEvent(new Event('change', { bubbles: true }));
         
-        // Recalculate
+        // Recalculate dan highlight
         recalcRow(targetRow);
         hitungTotal();
-        
-        // Highlight row
         highlightRow(targetRow);
     }
 }
@@ -1571,22 +1593,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Handle Enter key (barcode scanners usually send Enter at the end)
+        // Handle Enter key — ditangani oleh barcodeInput keydown listener
+        // Skip di sini untuk menghindari double-call
         if (e.key === 'Enter') {
-            e.preventDefault();
-            const currentValue = barcodeInput.value.trim();
-            if (currentValue && currentValue.length >= MIN_BARCODE_LENGTH) {
-                // Check if search results are visible and select first result
-                const searchResults = document.getElementById('search-results');
-                if (searchResults.style.display !== 'none') {
-                    const firstResult = searchResults.querySelector('.search-result-item');
-                    if (firstResult) {
-                        firstResult.click();
-                        return;
-                    }
-                }
-                processAutomaticBarcode(currentValue);
-            }
             return;
         }
         
@@ -1636,17 +1645,19 @@ function navigateSearchResults(direction) {
     // Handle direct input to barcode field - Enhanced with real-time search
     barcodeInput.addEventListener('input', function(e) {
         const value = e.target.value.trim();
+        console.log('INPUT EVENT fired, value:', JSON.stringify(value), 'length:', value.length, 'isProcessing:', isProcessing);
         const scanIndicator = document.getElementById('scan-indicator');
+        
+        // Reset isProcessing jika input baru masuk dan processing sudah > 3 detik (stuck)
+        if (value && isProcessing) {
+            isProcessing = false;
+        }
         
         // If input is cleared, reset buffer and hide search
         if (!value) {
             barcodeBuffer = '';
-            if (barcodeTimeout) {
-                clearTimeout(barcodeTimeout);
-            }
+            if (barcodeTimeout) clearTimeout(barcodeTimeout);
             document.getElementById('search-results').style.display = 'none';
-            
-            // Reset scan indicator to "Siap Scan" when input is cleared
             if (scanIndicator) {
                 scanIndicator.textContent = 'Siap Scan';
                 scanIndicator.parentElement.className = 'input-group-text bg-success text-white';
@@ -1654,49 +1665,62 @@ function navigateSearchResults(direction) {
             return;
         }
         
-        // Handle rapid input (typical of barcode scanners)
-        const currentTime = Date.now();
-        const timeDiff = barcodeInput.lastInputTime ? (currentTime - barcodeInput.lastInputTime) : 1000;
-        
-        // If input is very rapid (< 50ms between characters), it's likely a barcode scanner
-        if (timeDiff < 50) {
-            // Rapid input detected - likely from scanner, hide search results and process silently
+        // Jika sudah ada 8+ karakter numerik → barcode lengkap dari scanner
+        // Proses langsung tanpa timeout (lebih cepat dan reliable)
+        if (/^\d+$/.test(value) && value.length >= 8) {
             document.getElementById('search-results').style.display = 'none';
-            handleBarcodeInput(value.slice(-1)); // Get last character for buffer
-            barcodeInput.lastInputTime = currentTime;
+            if (barcodeTimeout) clearTimeout(barcodeTimeout);
+            if (!isProcessing) {
+                processAutomaticBarcode(value);
+            }
             return;
         }
         
-        // If input is slower, treat as manual typing and show search results
-        barcodeInput.lastInputTime = currentTime;
-        
-        // Only show search results for numeric input (barcode search) and manual typing
-        // Don't show search results for text input
-        if (/^\d+$/.test(value)) {
-            // Numeric input - show search results for barcode search only for manual typing
-            if (value.length >= 1 && value.length < 8 && !isProcessing) {
-                // Handle real-time search for numeric input (barcode search) - only for manual input
-                handleBarcodeInputEnhanced(value);
-            } else if (value.length >= 8) {
-                // Long numeric input - try to process as complete barcode
-                document.getElementById('search-results').style.display = 'none';
-                setTimeout(() => {
-                    if (barcodeInput.value === value) {
-                        processAutomaticBarcode(value);
-                    }
-                }, 100);
-            }
-        } else {
-            // Non-numeric input - hide search results completely
-            document.getElementById('search-results').style.display = 'none';
+        // Input manual (angka pendek atau huruf) — tampilkan hasil pencarian
+        if (!isProcessing) {
+            handleBarcodeInputEnhanced(value);
         }
     });
     
-    // Prevent form submission on Enter in barcode input
-    barcodeInput.addEventListener('keypress', function(e) {
+    // Handle Enter key — untuk scanner yang kirim Enter di akhir
+    // DAN untuk user yang tekan Enter setelah ketik manual
+    barcodeInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
+            e.stopPropagation();
+            // Beri 50ms agar value ter-update jika scanner masih mengirim karakter terakhir
+            setTimeout(() => {
+                const currentValue = barcodeInput.value.trim();
+                if (barcodeTimeout) { clearTimeout(barcodeTimeout); barcodeTimeout = null; }
+                if (!currentValue) return;
+                if (isProcessing) { isProcessing = false; } // reset jika stuck
+                const searchResults = document.getElementById('search-results');
+                if (searchResults.style.display !== 'none') {
+                    const firstResult = searchResults.querySelector('.search-result-item');
+                    if (firstResult) { firstResult.click(); return; }
+                }
+                processAutomaticBarcode(currentValue);
+            }, 50);
         }
+    });
+    
+    // Fallback: change event (fired when field loses focus or Enter pressed in some browsers)
+    barcodeInput.addEventListener('change', function(e) {
+        const value = e.target.value.trim();
+        if (value && value.length >= 8 && /^\d+$/.test(value) && !isProcessing) {
+            processAutomaticBarcode(value);
+        }
+    });
+    
+    // Fallback: paste event (beberapa scanner menggunakan clipboard paste)
+    barcodeInput.addEventListener('paste', function(e) {
+        setTimeout(() => {
+            const value = barcodeInput.value.trim();
+            console.log('PASTE EVENT fired, value:', value);
+            if (value && value.length >= 8 && /^\d+$/.test(value) && !isProcessing) {
+                processAutomaticBarcode(value);
+            }
+        }, 10);
     });
     
     // Re-focus when clicking anywhere on the page (except inputs/buttons)

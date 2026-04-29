@@ -7,12 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 class PaketMenu extends Model
 {
     protected $fillable = [
-        'nama_paket', 'harga_normal', 'harga_paket', 'diskon_persen', 'status', 'keterangan',
+        'nama_paket', 'harga_normal', 'harga_paket', 'diskon_persen', 'status', 'keterangan', 'produk_id',
     ];
 
     public function details()
     {
         return $this->hasMany(PaketMenuDetail::class);
+    }
+
+    /** Produk yang otomatis dibuat saat paket disimpan */
+    public function produk()
+    {
+        return $this->belongsTo(Produk::class);
     }
 
     // Auto-calculate diskon when saving

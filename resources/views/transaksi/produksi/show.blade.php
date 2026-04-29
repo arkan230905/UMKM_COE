@@ -62,13 +62,19 @@
     </div>
 
     {{-- Detail Bahan Baku --}}
+    @php
+        $detailsBahanBaku = $produksi->details->where('bahan_baku_id', '!=', null);
+        $detailsBahanPendukung = $produksi->details->where('bahan_pendukung_id', '!=', null);
+        $totalBahanBaku = $detailsBahanBaku->sum('subtotal');
+        $totalBahanPendukung = $detailsBahanPendukung->sum('subtotal');
+    @endphp
     <div class="card mb-3">
         <div class="card-header bg-success text-white"><h6 class="mb-0">Biaya Bahan Baku</h6></div>
         <div class="card-body p-0">
             <table class="table table-sm table-bordered mb-0">
-                <thead class="table-light"><tr><th>#</th><th>Nama Bahan</th><th>Qty Resep</th><th>Harga/Unit</th><th class="text-end">Subtotal</th></tr></thead>
+                <thead class="table-light"><tr><th>No</th><th>Nama Bahan</th><th>Qty Resep</th><th>Harga/Unit</th><th class="text-end">Subtotal</th></tr></thead>
                 <tbody>
-                    @forelse($produksi->details->where('bahan_baku_id','!=',null) as $d)
+                    @forelse($detailsBahanBaku as $d)
                     <tr>
                         <td>{{ $loop->iteration }}</td>
                         <td>{{ $d->bahanBaku->nama_bahan ?? '-' }}</td>
@@ -80,17 +86,41 @@
                     <tr><td colspan="5" class="text-center text-muted">Belum ada data</td></tr>
                     @endforelse
                 </tbody>
-                <tfoot class="table-light"><tr><td colspan="4" class="text-end fw-bold">Total</td><td class="text-end fw-bold">Rp {{ number_format($produksi->total_bahan,0,',','.') }}</td></tr></tfoot>
+                <tfoot class="table-light"><tr><td colspan="4" class="text-end fw-bold">Total</td><td class="text-end fw-bold">Rp {{ number_format($totalBahanBaku,0,',','.') }}</td></tr></tfoot>
             </table>
         </div>
     </div>
+
+    {{-- Detail Bahan Pendukung --}}
+    @if($detailsBahanPendukung->count() > 0)
+    <div class="card mb-3">
+        <div class="card-header bg-success text-white" style="background-color:#1a7a4a !important;"><h6 class="mb-0">Biaya Bahan Pendukung</h6></div>
+        <div class="card-body p-0">
+            <table class="table table-sm table-bordered mb-0">
+                <thead class="table-light"><tr><th>No</th><th>Nama Bahan</th><th>Qty Resep</th><th>Harga/Unit</th><th class="text-end">Subtotal</th></tr></thead>
+                <tbody>
+                    @foreach($detailsBahanPendukung as $d)
+                    <tr>
+                        <td>{{ $loop->iteration }}</td>
+                        <td>{{ $d->bahanPendukung->nama_bahan ?? '-' }}</td>
+                        <td>{{ rtrim(rtrim(number_format($d->qty_resep,4,',','.'),'0'),',') }} {{ $d->satuan_resep }}</td>
+                        <td>Rp {{ number_format($d->harga_satuan,0,',','.') }}</td>
+                        <td class="text-end">Rp {{ number_format($d->subtotal,0,',','.') }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+                <tfoot class="table-light"><tr><td colspan="4" class="text-end fw-bold">Total</td><td class="text-end fw-bold">Rp {{ number_format($totalBahanPendukung,0,',','.') }}</td></tr></tfoot>
+            </table>
+        </div>
+    </div>
+    @endif
 
     {{-- Detail BTKL --}}
     <div class="card mb-3">
         <div class="card-header bg-warning text-dark"><h6 class="mb-0">Biaya Tenaga Kerja Langsung (BTKL)</h6></div>
         <div class="card-body p-0">
             <table class="table table-sm table-bordered mb-0">
-                <thead class="table-light"><tr><th>#</th><th>Proses</th><th>Tarif/Unit</th><th class="text-end">Total</th><th>COA Debit</th><th>COA Kredit</th></tr></thead>
+                <thead class="table-light"><tr><th>No</th><th>Proses</th><th>Tarif/Unit</th><th class="text-end">Total</th><th>COA Debit</th><th>COA Kredit</th></tr></thead>
                 <tbody>
                     @forelse($produksi->btklDetails as $d)
                     <tr>
@@ -115,7 +145,7 @@
         <div class="card-header bg-info text-white"><h6 class="mb-0">Biaya Overhead Pabrik (BOP)</h6></div>
         <div class="card-body p-0">
             <table class="table table-sm table-bordered mb-0">
-                <thead class="table-light"><tr><th>#</th><th>Proses</th><th>Komponen</th><th>Rate/Unit</th><th class="text-end">Total</th><th>COA Debit</th><th>COA Kredit</th></tr></thead>
+                <thead class="table-light"><tr><th>No</th><th>Proses</th><th>Komponen</th><th>Rate/Unit</th><th class="text-end">Total</th><th>COA Debit</th><th>COA Kredit</th></tr></thead>
                 <tbody>
                     @forelse($produksi->bopDetails as $d)
                     <tr>

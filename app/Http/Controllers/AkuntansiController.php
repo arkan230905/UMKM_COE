@@ -376,61 +376,28 @@ class AkuntansiController extends Controller
     private function ensurePurchaseJournalExists($purchaseId)
     {
         try {
-            \Log::info('Ensuring purchase journal exists', ['purchase_id' => $purchaseId]);
-            
-            // Get purchase data
             $pembelian = \App\Models\Pembelian::with([
                 'vendor',
                 'details.bahanBaku',
                 'details.bahanPendukung'
             ])->find($purchaseId);
 
-            if (!$pembelian) {
-                \Log::warning('Purchase not found for journal generation', ['id' => $purchaseId]);
-                return;
-            }
+            if (!$pembelian) return;
 
-            // Check if journal already exists in jurnal_umum table
-            $existingJournal = \App\Models\JurnalUmum::where('tipe_referensi', 'pembelian')
-                ->where('referensi', $pembelian->nomor_pembelian)
+            // Cek apakah sudah ada di journal_entries (sistem modern)
+            $existingEntry = \App\Models\JournalEntry::where('ref_type', 'purchase')
+                ->where('ref_id', $purchaseId)
                 ->first();
 
-            if ($existingJournal) {
-                \Log::info('Journal already exists for purchase', [
-                    'purchase_id' => $purchaseId, 
-                    'nomor_pembelian' => $pembelian->nomor_pembelian
-                ]);
-                return; // Journal already exists, no need to recreate
-            }
+            if ($existingEntry) return; // Sudah ada, tidak perlu dibuat ulang
 
-            \Log::info('Creating journal for purchase', [
-                'purchase_id' => $purchaseId,
-                'nomor_pembelian' => $pembelian->nomor_pembelian,
-                'total_harga' => $pembelian->total_harga,
-                'details_count' => $pembelian->details->count()
-            ]);
-
-            // Create journal using PembelianJournalService
-            $journalService = new \App\Services\PembelianJournalService();
-            $result = $journalService->createJournalFromPembelian($pembelian);
-
-            if ($result) {
-                \Log::info('Auto-generated journal for purchase', [
-                    'purchase_id' => $purchaseId,
-                    'nomor_pembelian' => $pembelian->nomor_pembelian
-                ]);
-            } else {
-                \Log::warning('Failed to generate journal for purchase', [
-                    'purchase_id' => $purchaseId,
-                    'nomor_pembelian' => $pembelian->nomor_pembelian
-                ]);
-            }
+            // Buat jurnal menggunakan JournalService (sistem modern)
+            \App\Services\JournalService::createJournalFromPembelian($pembelian);
 
         } catch (\Exception $e) {
             \Log::error('Failed to auto-generate purchase journal', [
                 'purchase_id' => $purchaseId,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
             ]);
         }
     }

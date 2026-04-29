@@ -2640,6 +2640,9 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{produk}', [ProdukController::class, 'destroy'])->name('destroy');
         });
         
+        // Kategori Produk routes
+        Route::resource('kategori-produk', \App\Http\Controllers\KategoriProdukController::class);
+        
         // Biaya Bahan routes
         Route::prefix('biaya-bahan')->name('biaya-bahan.')->group(function () {
             Route::get('/', [BiayaBahanController::class, 'index'])->name('index');
@@ -2885,7 +2888,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/{id}/update-status', [PenggajianController::class, 'updateStatus'])->name('update-status');
 
             // Tandai sudah dibayar (owner/admin only)
-            Route::patch('/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
+            Route::match(['post', 'patch'], '/{id}/mark-paid', [PenggajianController::class, 'markAsPaid'])->name('markAsPaid')->middleware(['role:owner,admin']);
 
             // Posting ke jurnal (owner/admin only)
             Route::post('/{id}/post-journal', [PenggajianController::class, 'postToJournal'])->name('post-journal')->middleware(['role:owner,admin']);

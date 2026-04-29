@@ -1,568 +1,360 @@
 @extends('layouts.app')
-
 @section('title', 'Daftar Produk')
-
-@section('content')
-<style>
-    /* Horizontal Scroll Table - Force scroll */
-    .card-body {
-        padding: 1rem;
-    }
-    
-    .table-scroll-wrapper {
-        width: 100%;
-        overflow-x: auto;
-        overflow-y: visible;
-        -webkit-overflow-scrolling: touch;
-        border: 1px solid #dee2e6;
-        border-radius: 4px;
-    }
-    
-    .table-scroll-wrapper::-webkit-scrollbar {
-        height: 10px;
-    }
-    
-    .table-scroll-wrapper::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-    }
-    
-    .table-scroll-wrapper::-webkit-scrollbar-thumb {
-        background: #007bff;
-        border-radius: 4px;
-    }
-    
-    .table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
-        background: #0056b3;
-    }
-    
-    #dataTable {
-        min-width: 1400px !important;
-        width: 100%;
-        margin-bottom: 0;
-    }
-    
-    #dataTable th, #dataTable td {
-        white-space: nowrap;
-        vertical-align: middle;
-        padding: 0.5rem 0.75rem;
-    }
-    
-    .scroll-hint {
-        text-align: center;
-        padding: 5px;
-        background: #e9ecef;
-        color: #666;
-        font-size: 12px;
-        border-radius: 0 0 4px 4px;
-    }
-</style>
-
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Daftar Produk</h1>
-        <div class="btn-group">
-            <a href="{{ route('master-data.produk.print-barcode-all') }}" class="btn btn-info" target="_blank">
-                <i class="fas fa-barcode"></i> Cetak Semua Barcode
-            </a>
-            <a href="{{ route('master-data.produk.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Tambah Produk
-            </a>
-        </div>
-    </div>
-
-    
-    <div class="card shadow mb-4">
-        <div class="card-body">
-            <div class="scroll-hint">← Geser tabel ke kiri/kanan untuk melihat semua kolom →</div>
-            <div class="table-scroll-wrapper">
-                <table class="table table-bordered table-hover" id="dataTable" cellspacing="0">
-                    <thead class="thead-light">
-                        <tr>
-                            <th width="5%">No</th>
-                            <th>Foto</th>
-                            <th>Barcode</th>
-                            <th>Nama Produk</th>
-                            <th>Deskripsi</th>
-                            <th class="text-right">Harga Pokok Produksi</th>
-                            <th class="text-right">Harga Jual</th>
-                            <th class="text-center">Stok</th>
-                            <th width="12%" class="text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($produks as $produk)
-                            @php
-                                // Get HPP from calculated array
-                                $hargaBomProduk = $hargaBom[$produk->id] ?? 0;
-                                
-                                // Use stored harga_jual from database, not recalculate
-                                $hargaJual = $produk->harga_jual ?? 0;
-                                
-                                // Debug: log values
-                                error_log("DASHBOARD DEBUG - Produk: {$produk->nama_produk}, ID: {$produk->id}");
-                                error_log("DASHBOARD DEBUG - Harga Jual from DB: " . ($produk->harga_jual ?? 'NULL'));
-                                error_log("DASHBOARD DEBUG - Harga Jual variable: {$hargaJual}");
-                                error_log("DASHBOARD DEBUG - HPP: {$hargaBomProduk}");
-                                
-                                $stok = (float) $produk->stok;
-                            @endphp
-                            <tr>
-                                <td>{{ $loop->iteration }}</td>
-                                <td class="text-center">
-                                    @if($produk->foto)
-                                        <div class="product-image-wrapper" 
-                                             onclick="showImageModal('{{ Storage::url($produk->foto) }}', '{{ addslashes($produk->nama_produk) }}')"
-                                             style="width: 35px !important; height: 35px !important; cursor: pointer; position: relative; display: inline-block;">
-                                            <img src="{{ Storage::url($produk->foto) }}" 
-                                                 alt="{{ $produk->nama_produk }}" 
-                                                 class="product-thumbnail"
-                                                 style="width: 35px !important; height: 35px !important; object-fit: cover; border-radius: 4px;"
-                                                 onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/%3E%3Ctext fill=%22%23999%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3ENo Image%3C/text%3E%3C/svg%3E';">
-                                            <div class="image-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; border-radius: 4px;">
-                                                <i class="fas fa-search-plus" style="color: white; font-size: 14px;"></i>
-                                            </div>
-                                        </div>
-                                    @else
-                                        <div class="no-image-placeholder" style="width: 35px !important; height: 35px !important;">
-                                            <i class="fas fa-image" style="font-size: 12px;"></i>
-                                        </div>
-                                    @endif
-                                </td>
-                                <td class="barcode-cell text-center">
-                                    @if($produk->barcode)
-                                        <div class="barcode-wrapper">
-                                            <svg class="barcode-svg" data-barcode="{{ $produk->barcode }}"></svg>
-                                            <div class="barcode-number">{{ $produk->barcode }}</div>
-                                        </div>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
-                                <td>{{ $produk->nama_produk }}</td>
-                                <td>{{ $produk->deskripsi ? \Illuminate\Support\Str::limit($produk->deskripsi, 50) : '-' }}</td>
-                                <td class="text-right">Rp {{ number_format($hargaBomProduk, 0, ',', '.') }}</td>
-                                <td class="text-right font-weight-bold">Rp {{ number_format($hargaJual, 0, ',', '.') }}</td>
-                                <td class="text-center {{ $stok <= 0 ? 'text-danger font-weight-bold' : '' }}">
-                                    {{ number_format($stok, 0, ',', '.') }}
-                                </td>
-                                <td class="text-center">
-                                    <div class="btn-group" role="group">
-                                        @if($produk->barcode)
-                                        <a href="{{ route('master-data.produk.print-barcode', $produk->id) }}" 
-                                           class="btn btn-sm btn-info" 
-                                           data-bs-toggle="tooltip" 
-                                           title="Cetak Label Barcode"
-                                           target="_blank">
-                                            <i class="fas fa-barcode"></i>
-                                        </a>
-                                        @endif
-                                        <a href="{{ route('master-data.produk.edit', $produk->id) }}" 
-                                           class="btn btn-sm btn-warning" 
-                                           data-bs-toggle="tooltip" 
-                                           title="Edit">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form action="{{ route('master-data.produk.destroy', $produk->id) }}" 
-                                              method="POST" 
-                                              class="d-inline" 
-                                              onsubmit="return confirm('Yakin ingin menghapus produk ini?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger" data-bs-toggle="tooltip" title="Hapus">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="9" class="text-center">Tidak ada data produk</td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
 
 @push('styles')
 <style>
-    /* Horizontal Scroll Table */
-    .table-responsive {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        margin-bottom: 1rem;
-    }
-    
-    .table-responsive::-webkit-scrollbar {
-        height: 8px;
-    }
-    
-    .table-responsive::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-    }
-    
-    .table-responsive::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 4px;
-    }
-    
-    .table-responsive::-webkit-scrollbar-thumb:hover {
-        background: #555;
-    }
-    
-    #dataTable {
-        min-width: 1200px;
-        white-space: nowrap;
-    }
-    
-    .table th, .table td {
-        vertical-align: middle;
-        padding: 0.5rem 0.75rem;
-    }
-    .btn-group .btn {
-        margin: 0 2px;
-    }
-    .text-right {
-        text-align: right !important;
-    }
-    .text-center {
-        text-align: center !important;
-    }
-    
-    /* Product Image Styling */
-    .product-image-wrapper {
-        position: relative;
-        display: inline-block;
-        width: 40px;
-        height: 40px;
-        overflow: hidden;
-        border-radius: 4px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-    
-    .product-image-wrapper:hover {
-        transform: scale(1.1);
-        box-shadow: 0 3px 10px rgba(0,0,0,0.25);
-        z-index: 10;
-    }
-    
-    .product-thumbnail {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        cursor: pointer;
-        transition: opacity 0.3s ease;
-    }
-    
-    .product-image-wrapper:hover .product-thumbnail {
-        opacity: 0.85;
-    }
-    
-    .image-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.6);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-        border-radius: 4px;
-    }
-    
-    .product-image-wrapper:hover .image-overlay {
-        opacity: 1 !important;
-    }
-    
-    .image-overlay i {
-        color: white;
-        font-size: 14px;
-    }
-    
-    .no-image-placeholder {
-        width: 40px;
-        height: 40px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: #f8f9fa;
-        border: 1px dashed #dee2e6;
-        border-radius: 4px;
-        color: #6c757d;
-    }
-    
-    .no-image-placeholder i {
-        font-size: 14px;
-        margin-bottom: 0;
-    }
-    
-    .no-image-placeholder .small {
-        font-size: 7px;
-        line-height: 1;
-    }
-    
-    /* Barcode Styling - Supermarket Style */
-    .barcode-cell {
-        min-width: 120px;
-    }
-    .barcode-wrapper {
-        display: inline-block;
-        background: #fff;
-        padding: 4px 8px;
-        border-radius: 4px;
-        border: 1px solid #e9ecef;
-        text-align: center;
-    }
-    .barcode-svg {
-        display: block;
-        margin: 0 auto;
-    }
-    .barcode-number {
-        font-family: 'Courier New', monospace;
-        font-size: 10px;
-        color: #333;
-        margin-top: 2px;
-        letter-spacing: 1px;
-    }
-    
-    /* Modal Image Styling */
-    #imageModal .modal-dialog {
-        max-width: 90vw;
-    }
-    
-    #imageModal .modal-body {
-        background: #000;
-        padding: 20px;
-        min-height: 400px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    #imageModal .modal-content {
-        background: transparent;
-        border: none;
-    }
-    
-    #imageModal .modal-header {
-        background: #fff;
-        border-bottom: 1px solid #dee2e6;
-    }
-    
-    #modalImage {
-        border-radius: 4px;
-        max-width: 100%;
-        max-height: 80vh;
-        object-fit: contain;
-        box-shadow: 0 4px 20px rgba(255,255,255,0.1);
-    }
-    
-    /* Simple table styling for empty tables */
-    .table-simple {
-        width: 100%;
-    }
-    
-    .table-simple td {
-        text-align: center;
-        padding: 3rem 1rem;
-        color: #6c757d;
-        font-style: italic;
-    }
+.produk-page { background:#F7F4F0; min-height:100vh; padding:28px 24px; font-family:'Poppins',sans-serif; }
+.produk-container { max-width:1400px; margin:0 auto; }
+.produk-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+.produk-header-left h1 { font-size:22px; font-weight:700; color:#2C1810; margin:0 0 3px 0; }
+.produk-header-left p { font-size:12px; color:#A89080; margin:0; }
+.produk-header-right { display:flex; gap:10px; align-items:center; }
+.btn-cetak { display:inline-flex; align-items:center; gap:7px; padding:9px 16px; background:white; border:1.5px solid #D4C4B0; border-radius:8px; color:#7A6350; font-size:13px; font-weight:500; text-decoration:none; transition:all 0.2s; }
+.btn-cetak:hover { background:#F5EFE8; border-color:#8B7355; color:#5C4A35; }
+.btn-tambah-prod { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; background:linear-gradient(135deg,#8B7355,#6B5535); border:none; border-radius:8px; color:white; font-size:13px; font-weight:600; text-decoration:none; transition:all 0.2s; box-shadow:0 2px 8px rgba(139,115,85,0.35); }
+.btn-tambah-prod:hover { background:linear-gradient(135deg,#7A6349,#5A4425); color:white; transform:translateY(-1px); }
+.produk-layout { display:flex; gap:20px; align-items:flex-start; }
+.produk-sidebar { width:240px; flex-shrink:0; }
+.sidebar-card { background:white; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,0.07); overflow:hidden; margin-bottom:12px; }
+.sidebar-card-header { padding:16px 18px 12px; border-bottom:1px solid #F0EAE2; }
+.sidebar-card-header h3 { font-size:14px; font-weight:700; color:#2C1810; margin:0; }
+.kat-all { display:flex; align-items:center; gap:10px; padding:11px 18px; text-decoration:none; transition:all 0.2s; border-bottom:1px solid #F5F0EB; }
+.kat-all:hover { background:#FBF8F5; }
+.kat-all.active { background:linear-gradient(135deg,#8B7355,#7A6349); }
+.kat-icon { width:30px; height:30px; border-radius:7px; background:#F0EAE2; display:flex; align-items:center; justify-content:center; font-size:12px; color:#8B7355; flex-shrink:0; }
+.kat-all.active .kat-icon { background:rgba(255,255,255,0.2); color:white; }
+.kat-all .kat-label { flex:1; font-size:13px; font-weight:500; color:#4A3728; }
+.kat-all.active .kat-label { color:white; }
+.kat-all .kat-count { font-size:11px; font-weight:600; color:#A89080; background:#F0EAE2; padding:2px 8px; border-radius:20px; }
+.kat-all.active .kat-count { background:rgba(255,255,255,0.25); color:white; }
+.kat-list { list-style:none; padding:0; margin:0; }
+.kat-list li { border-bottom:1px solid #F5F0EB; }
+.kat-list li:last-child { border-bottom:none; }
+.kat-link { display:flex; align-items:center; gap:10px; padding:11px 18px; text-decoration:none; transition:all 0.2s; }
+.kat-link:hover { background:#FBF8F5; }
+.kat-link.active { background:#F5EFE8; }
+.kat-link .kat-icon { background:#F5F0EB; color:#A89080; }
+.kat-link.active .kat-icon { background:#EDE4D8; color:#8B7355; }
+.kat-link .kat-label { flex:1; font-size:13px; color:#6A5545; }
+.kat-link.active .kat-label { color:#5C4A35; font-weight:600; }
+.kat-link .kat-count { font-size:11px; font-weight:600; color:#B0A090; background:#F0EAE2; padding:2px 8px; border-radius:20px; }
+.kat-link.active .kat-count { background:#DDD0C0; color:#7A6349; }
+.btn-add-kat { display:flex; align-items:center; justify-content:center; gap:7px; padding:11px 16px; background:white; border:1.5px dashed #C8B8A0; border-radius:10px; color:#8B7355; font-size:12px; font-weight:500; text-decoration:none; transition:all 0.2s; width:100%; }
+.btn-add-kat:hover { background:#F5EFE8; border-color:#8B7355; border-style:solid; color:#6B5535; }
+.produk-content { flex:1; min-width:0; }
+.filter-card { background:white; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,0.07); padding:16px 20px; margin-bottom:16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.search-wrap { flex:1; min-width:220px; position:relative; }
+.search-wrap .si { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#C0B0A0; font-size:13px; }
+.search-input { width:100%; padding:9px 12px 9px 36px; border:1.5px solid #E8DDD0; border-radius:8px; font-size:13px; color:#4A3728; background:#FDFAF7; outline:none; transition:all 0.2s; }
+.search-input:focus { border-color:#8B7355; background:white; box-shadow:0 0 0 3px rgba(139,115,85,0.1); }
+.search-input::placeholder { color:#C0B0A0; }
+.f-select { padding:9px 12px; border:1.5px solid #E8DDD0; border-radius:8px; font-size:13px; color:#4A3728; background:#FDFAF7; cursor:pointer; min-width:140px; outline:none; }
+.f-select:focus { border-color:#8B7355; }
+.btn-cari { padding:9px 16px; background:#8B7355; border:none; border-radius:8px; color:white; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; }
+.btn-cari:hover { background:#7A6349; }
+.btn-reset { padding:9px 14px; background:white; border:1.5px solid #E8DDD0; border-radius:8px; color:#A89080; font-size:13px; cursor:pointer; text-decoration:none; display:flex; align-items:center; gap:6px; }
+.btn-reset:hover { background:#F5EFE8; color:#7A6349; }
+.table-card { background:white; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,0.07); overflow:hidden; }
+.table-card-head { padding:16px 20px; border-bottom:1px solid #F0EAE2; display:flex; align-items:center; justify-content:space-between; }
+.table-card-head h4 { font-size:14px; font-weight:600; color:#2C1810; margin:0; }
+.table-card-head span { font-size:12px; color:#A89080; }
+.table-wrap { overflow-x:auto; }
+.pt { width:100%; border-collapse:collapse; font-size:13px; }
+.pt thead tr { background:#FDFAF7; border-bottom:1.5px solid #EDE4D8; }
+.pt th { padding:12px 14px; text-align:left; font-weight:600; color:#8B7355; white-space:nowrap; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; }
+.pt th.tc { text-align:center; } .pt th.tr { text-align:right; }
+.pt tbody tr { border-bottom:1px solid #F5F0EB; transition:background 0.15s; }
+.pt tbody tr:last-child { border-bottom:none; }
+.pt tbody tr:hover { background:#FDFAF7; }
+.pt td { padding:13px 14px; vertical-align:middle; color:#3A2A1E; }
+.td-no { text-align:center; color:#B0A090; font-size:12px; width:40px; }
+.td-foto { text-align:center; width:70px; }
+.pimg { width:48px; height:48px; border-radius:10px; object-fit:cover; cursor:pointer; border:2px solid #F0EAE2; transition:all 0.2s; }
+.pimg:hover { border-color:#8B7355; transform:scale(1.08); }
+.pimg-ph { width:48px; height:48px; border-radius:10px; background:#F5F0EB; display:flex; align-items:center; justify-content:center; color:#C8B8A0; font-size:16px; margin:0 auto; }
+.td-bc { text-align:center; width:110px; }
+.bc-svg { height:32px; display:block; margin:0 auto 2px; }
+.bc-num { font-size:9px; color:#B0A090; letter-spacing:0.5px; }
+.td-nama { min-width:140px; }
+.pname { font-weight:600; color:#2C1810; font-size:13px; }
+.td-kat { width:110px; }
+.kb { display:inline-flex; align-items:center; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; }
+.kb-mkn { background:#FFF3E0; color:#E65100; }
+.kb-mnm { background:#E3F2FD; color:#1565C0; }
+.kb-pkt { background:#E8F5E9; color:#2E7D32; }
+.kb-lain { background:#F5F5F5; color:#757575; }
+.td-harga { text-align:right; min-width:110px; white-space:nowrap; }
+.hval { font-weight:600; color:#2C1810; font-size:13px; }
+.td-stok { text-align:center; width:60px; }
+.sval { font-weight:700; font-size:14px; color:#2C1810; }
+.td-status { text-align:center; width:80px; }
+.sbadge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; }
+.s-aktif { background:#E8F5E9; color:#2E7D32; }
+.s-habis { background:#FFEBEE; color:#C62828; }
+.td-aksi { text-align:center; width:100px; white-space:nowrap; }
+.ba { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:7px; border:none; cursor:pointer; font-size:12px; transition:all 0.2s; margin:0 2px; text-decoration:none; }
+.ba-bc { background:#E3F2FD; color:#1565C0; } .ba-bc:hover { background:#BBDEFB; }
+.ba-ed { background:#FFF8E1; color:#E65100; } .ba-ed:hover { background:#FFE0B2; }
+.ba-del { background:#FFEBEE; color:#C62828; } .ba-del:hover { background:#FFCDD2; }
+.empty-st { text-align:center; padding:60px 20px; color:#B0A090; }
+.empty-st i { font-size:40px; margin-bottom:12px; display:block; color:#D4C4B0; }
+.pg-bar { display:flex; justify-content:space-between; align-items:center; padding:14px 20px; border-top:1px solid #F0EAE2; flex-wrap:wrap; gap:10px; }
+.pg-info { font-size:12px; color:#A89080; }
+.pg-btns { display:flex; gap:4px; align-items:center; }
+.pgb { width:32px; height:32px; border:1.5px solid #E8DDD0; background:white; border-radius:7px; cursor:pointer; font-size:12px; font-weight:500; color:#7A6349; transition:all 0.2s; display:flex; align-items:center; justify-content:center; }
+.pgb:hover { background:#F5EFE8; border-color:#C8B8A0; }
+.pgb.active { background:#8B7355; border-color:#8B7355; color:white; font-weight:700; }
+.pg-sel { padding:5px 10px; border:1.5px solid #E8DDD0; border-radius:7px; font-size:12px; color:#7A6349; background:white; cursor:pointer; outline:none; }
+@media(max-width:1024px){ .produk-layout{flex-direction:column;} .produk-sidebar{width:100%;} .filter-card{flex-direction:column;align-items:stretch;} }
 </style>
 @endpush
 
-<!-- Lightbox untuk preview foto fullscreen -->
-<div id="imageLightbox" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; cursor: pointer;" onclick="closeLightbox()">
-    <div style="position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; z-index: 10000;" onclick="closeLightbox()">&times;</div>
-    <div style="position: absolute; top: 20px; left: 30px; color: white; font-size: 20px; z-index: 10000;" id="lightboxTitle"></div>
-    <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 60px 20px 20px 20px;">
-        <img id="lightboxImage" src="" alt="Foto Produk" style="max-width: 95%; max-height: 95%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 30px rgba(255,255,255,0.3);">
+@section('content')
+<div class="produk-page">
+<div class="produk-container">
+
+{{-- HEADER --}}
+<div class="produk-header">
+    <div class="produk-header-left">
+        <h1><i class="fas fa-box-open" style="color:#8B7355;margin-right:8px;"></i>Daftar Produk</h1>
+        <p>Kelola semua produk yang tersedia dalam sistem</p>
+    </div>
+    <div class="produk-header-right">
+        <a href="{{ route('master-data.produk.print-barcode-all') }}" class="btn-cetak" target="_blank">
+            <i class="fas fa-barcode"></i> Cetak Barcode Semua
+        </a>
+        <a href="{{ route('master-data.produk.create') }}" class="btn-tambah-prod">
+            <i class="fas fa-plus"></i> Tambah Produk
+        </a>
     </div>
 </div>
 
-<!-- jQuery dan DataTables -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+{{-- MAIN LAYOUT --}}
+<div class="produk-layout">
 
-<!-- JsBarcode Library untuk tampilan barcode seperti supermarket -->
+    {{-- SIDEBAR --}}
+    <div class="produk-sidebar">
+        <div class="sidebar-card">
+            <div class="sidebar-card-header">
+                <h3><i class="fas fa-tags" style="color:#8B7355;margin-right:6px;"></i>Kategori Produk</h3>
+            </div>
+            <a href="{{ route('master-data.produk.index') }}"
+               class="kat-all {{ !isset($kategoriFilter) || !$kategoriFilter ? 'active' : '' }}">
+                <span class="kat-icon"><i class="fas fa-th-large"></i></span>
+                <span class="kat-label">Semua Kategori</span>
+                <span class="kat-count">{{ $produks->count() }}</span>
+            </a>
+            <ul class="kat-list">
+                @foreach($kategoris ?? [] as $kategori)
+                <li>
+                    <a href="{{ route('master-data.produk.index', ['kategori' => $kategori->id]) }}"
+                       class="kat-link {{ isset($kategoriFilter) && $kategoriFilter == $kategori->id ? 'active' : '' }}">
+                        <span class="kat-icon">
+                            @switch($kategori->kode_kategori)
+                                @case('MKN') <i class="fas fa-utensils"></i> @break
+                                @case('MNM') <i class="fas fa-coffee"></i> @break
+                                @case('PKT') <i class="fas fa-gift"></i> @break
+                                @default     <i class="fas fa-cube"></i>
+                            @endswitch
+                        </span>
+                        <span class="kat-label">{{ $kategori->nama }}</span>
+                        <span class="kat-count">{{ $kategori->produks_count }}</span>
+                    </a>
+                </li>
+                @endforeach
+            </ul>
+        </div>
+        <a href="{{ route('master-data.kategori-produk.create') }}" class="btn-add-kat">
+            <i class="fas fa-plus"></i> Tambah Kategori
+        </a>
+    </div>
+
+    {{-- CONTENT --}}
+    <div class="produk-content">
+
+        {{-- FILTER --}}
+        <form method="GET" action="{{ route('master-data.produk.index') }}" class="filter-card">
+            <div class="search-wrap">
+                <i class="fas fa-search si"></i>
+                <input type="text" name="search" value="{{ $search ?? '' }}"
+                       placeholder="Cari nama produk atau barcode..." class="search-input">
+            </div>
+            <select name="kategori" class="f-select">
+                <option value="">Semua Kategori</option>
+                @foreach($kategoris ?? [] as $kat)
+                    <option value="{{ $kat->id }}" {{ isset($kategoriFilter) && $kategoriFilter == $kat->id ? 'selected' : '' }}>{{ $kat->nama }}</option>
+                @endforeach
+            </select>
+            <select name="status" class="f-select">
+                <option value="">Semua Status</option>
+                <option value="aktif"  {{ isset($statusFilter) && $statusFilter == 'aktif'  ? 'selected' : '' }}>Aktif</option>
+                <option value="habis"  {{ isset($statusFilter) && $statusFilter == 'habis'  ? 'selected' : '' }}>Habis</option>
+            </select>
+            <button type="submit" class="btn-cari"><i class="fas fa-search"></i> Cari</button>
+            <a href="{{ route('master-data.produk.index') }}" class="btn-reset"><i class="fas fa-undo"></i> Reset</a>
+        </form>
+
+        {{-- TABLE --}}
+        <div class="table-card">
+            <div class="table-card-head">
+                <h4>Data Produk</h4>
+                <span>{{ $produks->count() }} produk ditemukan</span>
+            </div>
+            <div class="table-wrap">
+                <table class="pt">
+                    <thead>
+                        <tr>
+                            <th class="tc">No</th>
+                            <th class="tc">Foto</th>
+                            <th class="tc">Barcode</th>
+                            <th>Nama Produk</th>
+                            <th>Kategori</th>
+                            <th class="tr">Harga Pokok</th>
+                            <th class="tr">Harga Jual</th>
+                            <th class="tc">Stok</th>
+                            <th class="tc">Status</th>
+                            <th class="tc">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @forelse($produks as $produk)
+                        @php
+                            $hpp   = $hargaBom[$produk->id] ?? 0;
+                            $hjual = $produk->harga_jual ?? 0;
+                            $stok  = (float) $produk->stok;
+                            $kb = 'kb-lain';
+                            if ($produk->kategori) {
+                                switch ($produk->kategori->kode_kategori) {
+                                    case 'MKN': $kb = 'kb-mkn'; break;
+                                    case 'MNM': $kb = 'kb-mnm'; break;
+                                    case 'PKT': $kb = 'kb-pkt'; break;
+                                    case 'SNK': $kb = 'kb-snk'; break;
+                                    case 'BMB': $kb = 'kb-bmb'; break;
+                                }
+                            }
+                        @endphp
+                        <tr>
+                            <td class="td-no">{{ $loop->iteration }}</td>
+                            <td class="td-foto">
+                                @if($produk->foto)
+                                    <img src="{{ Storage::url($produk->foto) }}" alt="{{ $produk->nama_produk }}"
+                                         class="pimg"
+                                         onclick="showImg('{{ Storage::url($produk->foto) }}','{{ addslashes($produk->nama_produk) }}')"
+                                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22%3E%3Crect fill=%22%23f0ebe4%22 width=%2248%22 height=%2248%22/%3E%3C/svg%3E';">
+                                @else
+                                    <div class="pimg-ph"><i class="fas fa-image"></i></div>
+                                @endif
+                            </td>
+                            <td class="td-bc">
+                                @if($produk->barcode)
+                                    <svg class="bc-svg" data-barcode="{{ $produk->barcode }}"></svg>
+                                    <div class="bc-num">{{ $produk->barcode }}</div>
+                                @else
+                                    <span style="color:#D4C4B0;">—</span>
+                                @endif
+                            </td>
+                            <td class="td-nama"><div class="pname">{{ $produk->nama_produk }}</div></td>
+                            <td class="td-kat">
+                                @if($produk->kategori)
+                                    <span class="kb {{ $kb }}">{{ $produk->kategori->nama }}</span>
+                                @else
+                                    <span style="color:#D4C4B0;font-size:12px;">—</span>
+                                @endif
+                            </td>
+                            <td class="td-harga"><span class="hval">Rp {{ number_format($hpp,0,',','.') }}</span></td>
+                            <td class="td-harga"><span class="hval">Rp {{ number_format($hjual,0,',','.') }}</span></td>
+                            <td class="td-stok"><span class="sval">{{ number_format($stok,0,',','.') }}</span></td>
+                            <td class="td-status">
+                                @if($stok > 0)
+                                    <span class="sbadge s-aktif">Aktif</span>
+                                @else
+                                    <span class="sbadge s-habis">Habis</span>
+                                @endif
+                            </td>
+                            <td class="td-aksi">
+                                @if($produk->barcode)
+                                <a href="{{ route('master-data.produk.print-barcode', $produk->id) }}"
+                                   class="ba ba-bc" title="Cetak Barcode" target="_blank">
+                                    <i class="fas fa-barcode"></i>
+                                </a>
+                                @endif
+                                <a href="{{ route('master-data.produk.edit', $produk->id) }}"
+                                   class="ba ba-ed" title="Edit">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                                <form action="{{ route('master-data.produk.destroy', $produk->id) }}"
+                                      method="POST" class="d-inline"
+                                      onsubmit="return confirm('Yakin ingin menghapus produk ini?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="ba ba-del" title="Hapus">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="10">
+                                <div class="empty-st">
+                                    <i class="fas fa-box-open"></i>
+                                    <p>Belum ada data produk</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="pg-bar">
+                <span class="pg-info">Menampilkan {{ $produks->count() }} produk</span>
+                <div class="pg-btns">
+                    <button class="pgb" type="button"><i class="fas fa-chevron-left"></i></button>
+                    <button class="pgb active" type="button">1</button>
+                    <button class="pgb" type="button">2</button>
+                    <button class="pgb" type="button">3</button>
+                    <button class="pgb" type="button"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <select class="pg-sel">
+                    <option>10 / halaman</option>
+                    <option>25 / halaman</option>
+                    <option>50 / halaman</option>
+                </select>
+            </div>
+        </div>
+
+    </div>{{-- end produk-content --}}
+</div>{{-- end produk-layout --}}
+</div>{{-- end produk-container --}}
+</div>{{-- end produk-page --}}
+
+{{-- Lightbox --}}
+<div id="imgLb" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:9999;cursor:pointer;" onclick="closeImg()">
+    <div style="position:absolute;top:20px;right:28px;color:white;font-size:36px;font-weight:bold;cursor:pointer;" onclick="closeImg()">&times;</div>
+    <div style="position:absolute;top:20px;left:28px;color:rgba(255,255,255,0.7);font-size:14px;" id="imgLbTitle"></div>
+    <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:60px 20px 20px;">
+        <img id="imgLbSrc" src="" alt="" style="max-width:90%;max-height:90%;object-fit:contain;border-radius:12px;">
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-
-<!-- Initialize Barcodes -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Generate visual barcodes
-    document.querySelectorAll('.barcode-svg').forEach(function(svg) {
-        const barcodeValue = svg.getAttribute('data-barcode');
-        if (barcodeValue) {
-            try {
-                JsBarcode(svg, barcodeValue, {
-                    format: "EAN13",
-                    width: 1.2,
-                    height: 30,
-                    displayValue: false,
-                    margin: 0,
-                    background: "transparent"
-                });
-            } catch (e) {
-                // Fallback untuk barcode yang tidak valid EAN-13
-                JsBarcode(svg, barcodeValue, {
-                    format: "CODE128",
-                    width: 1,
-                    height: 30,
-                    displayValue: false,
-                    margin: 0,
-                    background: "transparent"
-                });
-            }
-        }
-    });
-    console.log('✅ Barcodes generated');
-});
-</script>
-
-<script>
-    // Fungsi global untuk lightbox - HARUS di atas agar bisa dipanggil dari onclick
-    window.showImageModal = function(imageUrl, productName) {
-        console.log('🖼️ Opening lightbox for:', productName, imageUrl);
-        
-        const lightbox = document.getElementById('imageLightbox');
-        const lightboxImage = document.getElementById('lightboxImage');
-        const lightboxTitle = document.getElementById('lightboxTitle');
-        
-        if (!lightbox || !lightboxImage || !lightboxTitle) {
-            console.error('❌ Lightbox elements not found!');
-            return;
-        }
-        
-        // Set image dan title
-        lightboxImage.src = imageUrl;
-        lightboxTitle.textContent = 'Foto Produk: ' + productName;
-        
-        // Tampilkan lightbox dengan fade in
-        lightbox.style.display = 'block';
-        setTimeout(() => {
-            lightbox.style.opacity = '1';
-        }, 10);
-        
-        console.log('✅ Lightbox opened successfully');
-    };
-    
-    // Fungsi global untuk menutup lightbox
-    window.closeLightbox = function() {
-        console.log('🔒 Closing lightbox');
-        const lightbox = document.getElementById('imageLightbox');
-        if (lightbox) {
-            lightbox.style.opacity = '0';
-            setTimeout(() => {
-                lightbox.style.display = 'none';
-            }, 300);
-        }
-    };
-    
-    // Tutup lightbox dengan tombol ESC
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            window.closeLightbox();
-        }
-    });
-
-    // Initialize setelah DOM ready
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('📋 Initializing page components');
-        
-        // Initialize tooltips Bootstrap 5
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-        
-        // Check if table has actual data (not just empty message)
-        const tableBody = document.querySelector('#dataTable tbody');
-        const hasRealData = tableBody && tableBody.children.length > 0 && 
-                           !tableBody.querySelector('td[colspan]');
-        
-        if (!hasRealData) {
-            console.log('ℹ️ Table is empty, skipping DataTable initialization');
-            // Add simple styling for empty table
-            const table = document.getElementById('dataTable');
-            if (table) {
-                table.classList.add('table-simple');
-            }
-            return;
-        }
-        
-        // Initialize DataTable only if we have data
-        console.log('📊 Table has data, initializing DataTable');
-        
-        // Destroy existing DataTable if exists
-        if ($.fn.DataTable.isDataTable('#dataTable')) {
-            $('#dataTable').DataTable().destroy();
-        }
-        
-        // Count actual columns in header
-        const headerCount = $('#dataTable thead th').length;
-        const lastColIndex = headerCount - 1;
-        
-        console.log('📊 DataTable initializing with ' + headerCount + ' columns');
-        
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.bc-svg').forEach(function (svg) {
+        var val = svg.getAttribute('data-barcode');
+        if (!val) return;
         try {
-            const table = $('#dataTable').DataTable({
-                "language": {
-                    "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json"
-                },
-                "columnDefs": [
-                    { 
-                        "orderable": false, 
-                        "targets": [0, lastColIndex] 
-                    },
-                    { 
-                        "searchable": false, 
-                        "targets": [0, lastColIndex] 
-                    },
-                    {
-                        "className": "text-end",
-                        "targets": [5, 7]
-                    },
-                    {
-                        "className": "text-center", 
-                        "targets": [1, 2, 6, 8, lastColIndex]
-                    }
-                ],
-                "order": [[3, 'asc']],
-                "pageLength": 25,
-                "autoWidth": false,
-                "responsive": false,
-                "scrollX": true
-            });
-            
-            // Update nomor urut otomatis setiap kali tabel di-render ulang
-            table.on('order.dt search.dt', function () {
-                let i = 1;
-                table.cells(null, 0, { search: 'applied', order: 'applied' }).every(function () {
-                    this.data(i++);
-                });
-            }).draw();
-            
-            console.log('✅ DataTable initialized successfully');
-            
-        } catch (error) {
-            console.error('❌ DataTable initialization failed:', error);
-            console.log('ℹ️ Falling back to simple table');
+            JsBarcode(svg, val, { format:'EAN13', width:1.2, height:32, displayValue:false, margin:0, background:'transparent' });
+        } catch(e) {
+            try { JsBarcode(svg, val, { format:'CODE128', width:1, height:32, displayValue:false, margin:0, background:'transparent' }); } catch(e2){}
         }
     });
+});
+window.showImg = function(url, name) {
+    document.getElementById('imgLbSrc').src = url;
+    document.getElementById('imgLbTitle').textContent = name;
+    document.getElementById('imgLb').style.display = 'block';
+};
+window.closeImg = function() { document.getElementById('imgLb').style.display = 'none'; };
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeImg(); });
 </script>
 @endsection
