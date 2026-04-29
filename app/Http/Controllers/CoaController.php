@@ -58,7 +58,38 @@ class CoaController extends Controller
             $posisiAkun[$coa->id] = $isDebitNormal ? 'Debit' : 'Kredit';
         }
         
-        return view('master-data.coa.index', compact('coas', 'periode', 'periods', 'saldoPeriode', 'posisiAkun'));
+        // Calculate header totals
+        $headerTotals = [];
+        $allCoaData = [];
+        
+        // Prepare all COA data
+        foreach ($coas as $coa) {
+            $allCoaData[$coa->kode_akun] = [
+                'nama' => $coa->nama_akun,
+                'saldo' => $saldoPeriode[$coa->id] ?? 0,
+                'is_header' => (strlen($coa->kode_akun) <= 2) || (substr($coa->kode_akun, -1) == '0')
+            ];
+        }
+        
+        // Calculate totals for header accounts
+        foreach ($allCoaData as $kode => $data) {
+            if ($data['is_header']) {
+                // This is a header account, calculate total including all children
+                $total = $data['saldo'];
+                
+                // Find all children (codes that start with this header code)
+                foreach ($allCoaData as $childKode => $childData) {
+                    if ($childKode != $kode && strpos($childKode, $kode) === 0) {
+                        // This is a child of the header
+                        $total += $childData['saldo'];
+                    }
+                }
+                
+                $headerTotals[$kode] = $total;
+            }
+        }
+        
+        return view('master-data.coa.index', compact('coas', 'periode', 'periods', 'saldoPeriode', 'posisiAkun', 'headerTotals'));
     }
     
     /**
