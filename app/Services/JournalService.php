@@ -371,7 +371,7 @@ class JournalService
         $service->deleteByRef('sale', $penjualan->id);
         
         $lines = [];
-        $totalAmount = $penjualan->total ?? 0;
+        $totalAmount = $penjualan->grand_total ?? $penjualan->total ?? 0;
         
         // Create debit entry based on payment method (Kas/Bank/Piutang)
         $debitAccount = null;
@@ -446,13 +446,13 @@ class JournalService
             $subtotalProduk += (float)($d->subtotal ?? ((float)$d->harga_satuan * (float)$d->jumlah));
         }
         if ($subtotalProduk <= 0) {
-            $subtotalProduk = (float)($penjualan->total ?? 0)
+            $subtotalProduk = (float)($penjualan->subtotal_produk ?? $penjualan->total ?? 0)
                             - (float)($penjualan->biaya_ongkir ?? 0)
-                            - (float)($penjualan->biaya_ppn ?? 0);
+                            - (float)($penjualan->total_ppn ?? $penjualan->biaya_ppn ?? 0);
         }
 
         $biayaOngkir = (float)($penjualan->biaya_ongkir ?? 0);
-        $biayaPPN    = (float)($penjualan->biaya_ppn    ?? 0);
+        $biayaPPN    = (float)($penjualan->total_ppn ?? $penjualan->biaya_ppn ?? 0);
         $userId      = $penjualan->user_id ?? null;
 
         // Helper: cari COA tanpa global scope, filter user_id jika ada

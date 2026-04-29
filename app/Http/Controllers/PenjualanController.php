@@ -217,8 +217,138 @@ class PenjualanController extends Controller
 
     public function update(Request $request, $id, StockService $stock, JournalService $journal)
     {
-        // Update logic here
-        return redirect()->route('transaksi.penjualan.index');
+        // Validate request data
+        $request->validate([
+            'tanggal' => 'required|date',
+            'waktu' => 'required',
+            'payment_method' => 'required|in:cash,transfer,credit',
+            'sumber_dana' => 'required',
+            'produk_id.*' => 'required',
+            'jumlah.*' => 'required|integer|min:1',
+            'harga_satuan.*' => 'required|numeric|min:0',
+            'diskon_persen.*' => 'nullable|numeric|min:0|max:100',
+            'biaya_ongkir' => 'nullable|numeric|min:0',
+            'ppn_persen' => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        return DB::transaction(function() use ($request, $id, $stock, $journal) {
+            $penjualan = Penjualan::findOrFail($id);
+            
+            // Get existing details for stock restoration
+            $existingDetails = $penjualan->details()->get();
+            
+            // Restore stock for existing items
+            foreach ($existingDetails as $detail) {
+                $produk = Produk::find($detail->produk_id);
+                if ($produk) {
+                    // Restore stock
+                    $produk->stok = (float)($produk->stok ?? 0) + $detail->jumlah;
+                    $produk->save();
+                    
+                    // Reverse stock consumption
+                    $stock->reverse('product', $detail->produk_id, $detail->jumlah, 'pcs', 'sale', $penjualan->id, $penjualan->tanggal);
+                }
+            }
+            
+            // Delete existing details
+            $penjualan->details()->delete();
+            
+            // Delete existing journals
+            $journal->deleteByRef('sale', (int)$penjualan->id);
+            $journal->deleteByRef('sale_cogs', (int)$penjualan->id);
+            
+            // Prepare new data
+            $tanggal = $request->tanggal . ' ' . $request->waktu;
+            $produkIds = $request->produk_id;
+            $jumlahs = $request->jumlah;
+            $hargaSatuans = $request->harga_satuan;
+            $diskonPersens = $request->diskon_persen ?? [];
+            $biayaOngkir = (float)($request->biaya_ongkir ?? 0);
+            $ppnPersen = (float)($request->ppn_persen ?? 11);
+            
+            // Calculate totals
+            $subtotalProduk = 0;
+            $items = [];
+            
+            foreach ($produkIds as $index => $produkId) {
+                $produk = Produk::findOrFail($produkId);
+                $qty = (int)$jumlahs[$index];
+                $harga = (float)$hargaSatuans[$index];
+                $diskonPersen = (float)($diskonPersens[$index] ?? 0);
+                $subtotal = $qty * $harga * (1 - $diskonPersen / 100);
+                
+                // Validate stock
+                if ((float)($produk->stok ?? 0) < $qty) {
+                    throw new \Exception("Stok {$produk->nama_produk} tidak cukup. Tersedia: " . ($produk->stok ?? 0) . ", Dibutuhkan: {$qty}");
+                }
+                
+                $subtotalProduk += $subtotal;
+                $items[] = [
+                    'produk_id' => $produkId,
+                    'jumlah' => $qty,
+                    'harga_satuan' => $harga,
+                    'diskon_persen' => $diskonPersen,
+                    'subtotal' => $subtotal
+                ];
+            }
+            
+            $totalPPN = ($subtotalProduk + $biayaOngkir) * ($ppnPersen / 100);
+            $grandTotal = $subtotalProduk + $biayaOngkir + $totalPPN;
+            
+            // Resolve coa_id dari sumber_dana
+            $sumberDanaKode = $request->sumber_dana;
+            $coaId = null;
+            if ($sumberDanaKode) {
+                $coaRecord = \App\Models\Coa::where('kode_akun', $sumberDanaKode)->first();
+                $coaId = $coaRecord?->id;
+            }
+            
+            // Update penjualan header
+            $penjualan->update([
+                'tanggal'        => $tanggal,
+                'payment_method' => $request->payment_method,
+                'coa_id'         => $coaId,
+                'jumlah'         => collect($items)->sum('jumlah'),
+                'harga_satuan'   => null,
+                'diskon_nominal' => 0,
+                'total'          => $subtotalProduk,
+                'biaya_ongkir'   => $biayaOngkir,
+                'biaya_ppn'      => $totalPPN,
+                'grand_total'    => $grandTotal,
+                'subtotal_produk' => $subtotalProduk,
+                'total_ppn'       => $totalPPN,
+                'ppn_persen'      => $ppnPersen,
+            ]);
+            
+            // Create new detail items
+            foreach ($items as $item) {
+                $produk = Produk::find($item['produk_id']);
+                $qty = $item['jumlah'];
+                
+                \App\Models\PenjualanDetail::create([
+                    'penjualan_id' => $penjualan->id,
+                    'produk_id' => $item['produk_id'],
+                    'jumlah' => $qty,
+                    'harga_satuan' => $item['harga_satuan'],
+                    'diskon_persen' => $item['diskon_persen'],
+                    'diskon_nominal' => 0,
+                    'subtotal' => $item['subtotal'],
+                ]);
+                
+                // Consume stock
+                $stock->consume('product', $item['produk_id'], $qty, 'pcs', 'sale', $penjualan->id, $tanggal);
+                
+                // Update stok
+                $produk->stok = (float)($produk->stok ?? 0) - $qty;
+                $produk->save();
+            }
+            
+            // Create journal entries
+            \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+            
+            return redirect()->route('transaksi.penjualan.show', $penjualan->id)
+                           ->with('success', 'Data penjualan berhasil diperbarui.');
+        });
     }
 
     public function destroy($id, JournalService $journal)
