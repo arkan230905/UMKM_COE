@@ -25,63 +25,81 @@ class KategoriProdukController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'kode_kategori' => 'nullable|string|max:50|unique:kategori_produks,kode_kategori',
-            'nama' => 'required|string|max:100|unique:kategori_produks,nama',
-            'deskripsi' => 'nullable|string|max:255',
+        $request->validate([
+            'kode_kategori' => 'nullable|string|max:50|unique:kategori_produks,kode_kategori'
+            'nama'          => 'required|string|max:100',
+            'deskripsi'     => 'nullable|string',
         ]);
 
-        // Auto-generate kode_kategori if not provided
-        if (empty($validated['kode_kategori'])) {
-            $validated['kode_kategori'] = 'KAT-' . strtoupper(uniqid());
-        }
-
-        KategoriProduk::create($validated);
-
-        return redirect()->route('master-data.kategori-produk.index')
-            ->with('success', 'Kategori produk berhasil ditambahkan');
-    }
-
-    public function edit($id)
-    {
-        $kategori = KategoriProduk::findOrFail($id);
-        return view('master-data.kategori-produk.edit', compact('kategori'));
-    }
-
-    public function update(Request $request, $id)
-    {
-        $kategori = KategoriProduk::findOrFail($id);
-        
-        $validated = $request->validate([
-            'kode_kategori' => 'nullable|string|max:50|unique:kategori_produks,kode_kategori,' . $id,
-            'nama' => 'required|string|max:100|unique:kategori_produks,nama,' . $id,
-            'deskripsi' => 'nullable|string|max:255',
+        $kategori = KategoriProduk::create([
+            'kode_kategori' => strtoupper($request->kode_kategori),
+            'nama'          => $request->nama,
+            'deskripsi'     => $request->deskripsi,
         ]);
 
-        // Auto-generate kode_kategori if not provided and current one is empty
-        if (empty($validated['kode_kategori']) && empty($kategori->kode_kategori)) {
-            $validated['kode_kategori'] = 'KAT-' . strtoupper(uniqid());
-        } elseif (empty($validated['kode_kategori'])) {
-            // Keep existing kode_kategori if new one is not provided
-            $validated['kode_kategori'] = $kategori->kode_kategori;
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Kategori berhasil ditambahkan.',
+                'id'      => $kategori->id,
+                'data'    => $kategori,
+            ]);
         }
 
-        $kategori->update($validated);
-
-        return redirect()->route('master-data.kategori-produk.index')
-            ->with('success', 'Kategori produk berhasil diperbarui');
+        return redirect()->route('master-data.produk.index')
+                         ->with('success', 'Kategori berhasil ditambahkan.');
     }
 
-    public function destroy($id)
+    public function show(KategoriProduk $kategoriProduk)
     {
-        $kategori = KategoriProduk::findOrFail($id);
-        
+        return redirect()->route('master-data.kategori-produk.index');
+    }
+
+    public function edit(KategoriProduk $kategoriProduk)
+    {
+        return view('master-data.kategori-produk.edit', ['kategori' => $kategoriProduk]);
+    }
+
+    public function update(Request $request, KategoriProduk $kategoriProduk)
+    {
+        $request->validate([
+            'kode_kategori' => 'required|string|max:20|unique:kategori_produks,kode_kategori,' . $kategoriProduk->id,
+            'nama'          => 'required|string|max:100',
+            'deskripsi'     => 'nullable|string',
+        ]);
+
+        $kategoriProduk->update([
+            'kode_kategori' => strtoupper($request->kode_kategori),
+            'nama'          => $request->nama,
+            'deskripsi'     => $request->deskripsi,
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Kategori berhasil diperbarui.']);
+        }
+      
+        if (empty($request->kode_kategori)) {
+        $request->merge([
+        'kode_kategori' => 'KAT-' . strtoupper(uniqid())
+        ]);
+    }
+
+        return redirect()->route('master-data.produk.index')
+                         ->with('success', 'Kategori berhasil diperbarui.');
+    }
+
+    public function destroy(KategoriProduk $kategoriProduk)
+    {
+        $kategoriProduk->delete();
+
+        if (request()->expectsJson()) {
+            return response()->json(['success' => true, 'message' => 'Kategori berhasil dihapus.']);
+        }
+      
         if ($kategori->produks()->count() > 0) {
             return back()->with('error', 'Kategori tidak bisa dihapus karena masih digunakan oleh produk');
         }
-
-        $kategori->delete();
-        return redirect()->route('master-data.kategori-produk.index')
-            ->with('success', 'Kategori produk berhasil dihapus');
+        return redirect()->route('master-data.produk.index')
+                         ->with('success', 'Kategori berhasil dihapus.');
     }
 }

@@ -12,17 +12,21 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('paket_menus', function (Blueprint $table) {
-            $table->unsignedBigInteger('produk_id')->nullable()->after('id');
-            $table->foreign('produk_id')->references('id')->on('produks')->nullOnDelete();
-        });
+        if (!Schema::hasColumn('paket_menus', 'produk_id')) {
+            Schema::table('paket_menus', function (Blueprint $table) {
+                $table->unsignedBigInteger('produk_id')->nullable()->after('id');
+                $table->foreign('produk_id')->references('id')->on('produks')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('paket_menus', function (Blueprint $table) {
-            $table->dropForeign(['produk_id']);
-            $table->dropColumn('produk_id');
-        });
+        if (Schema::hasColumn('paket_menus', 'produk_id')) {
+            Schema::table('paket_menus', function (Blueprint $table) {
+                $table->dropForeign(['produk_id']);
+                $table->dropColumn('produk_id');
+            });
+        }
     }
 };

@@ -23,6 +23,7 @@ class Produk extends Model
         'harga_beli',
         'hpp',
         'stok',
+        'is_unlimited_stok',
         'stok_minimum',
         'btkl_default',
         'bop_default',
