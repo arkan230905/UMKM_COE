@@ -57,33 +57,21 @@ class PembelianJournalService
             // 2. DEBIT: PPN Masukan (jika ada)
             $ppnNominal = (float) ($pembelian->ppn_nominal ?? 0);
             if ($ppnNominal > 0) {
-                // Try to find PPN Masukan COA, or use a generic account
-                $ppnCoa = \App\Models\Coa::where('kode_akun', '127')->first();
-                if (!$ppnCoa) {
-                    // Fallback: Use first available inventory account or create a generic entry
-                    $ppnCoa = \App\Models\Coa::where('kode_akun', '114')->first(); // Pers. Bahan Baku
-                }
+                // Use the new PPN Masukan COA (127)
+                $ppnCoa = $this->getCoaByCode('127'); // PPN Masukan
                 
-                if ($ppnCoa) {
-                    $lines[] = [
-                        'coa_id' => $ppnCoa->id,
-                        'debit' => $ppnNominal,
-                        'credit' => 0,
-                        'memo' => 'PPN Masukan'
-                    ];
-                    
-                    Log::info("Jurnal Pembelian - PPN Masukan", [
-                        'persen' => $pembelian->ppn_persen,
-                        'nominal' => $ppnNominal,
-                        'coa_used' => $ppnCoa->kode_akun
-                    ]);
-                } else {
-                    Log::warning("No suitable COA found for PPN, treating as cost", [
-                        'ppn_nominal' => $ppnNominal
-                    ]);
-                    // Add PPN to subtotal to maintain balance
-                    $subtotalAmount += $ppnNominal;
-                }
+                $lines[] = [
+                    'coa_id' => $ppnCoa->id,
+                    'debit' => $ppnNominal,
+                    'credit' => 0,
+                    'memo' => 'PPN Masukan'
+                ];
+                
+                Log::info("Jurnal Pembelian - PPN Masukan", [
+                    'persen' => $pembelian->ppn_persen,
+                    'nominal' => $ppnNominal,
+                    'coa_used' => $ppnCoa->kode_akun
+                ]);
             }
             
             // 3. DEBIT: Biaya Kirim (jika ada)
