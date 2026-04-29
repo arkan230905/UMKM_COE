@@ -260,11 +260,19 @@
         <div class="alert alert-warning shadow-sm mt-3">
             <div class="d-flex align-items-center">
                 <i class="bi bi-exclamation-triangle fs-4 me-3"></i>
-                <div>
+                <div class="flex-grow-1">
                     <h6 class="mb-1">⚠️ Neraca Saldo Tidak Seimbang</h6>
-                    <p class="mb-0 small">
-                        <strong>Kemungkinan penyebab:</strong> Ada kesalahan input jurnal, akun yang tidak seimbang, atau transaksi yang belum lengkap.
-                    </p>
+                    @if(isset($neracaSaldoData['imbalance_warning']))
+                        <p class="mb-2 small">
+                            <strong>{{ $neracaSaldoData['imbalance_warning']['message'] }}</strong><br>
+                            {{ $neracaSaldoData['imbalance_warning']['suggestion'] }}
+                        </p>
+                    @else
+                        <!-- REMOVED: Tombol jurnal penyeimbang dihapus sesuai permintaan user -->
+                        <p class="mb-0 small">
+                            <strong>Kemungkinan penyebab:</strong> Ada kesalahan input jurnal, akun yang tidak seimbang, atau transaksi yang belum lengkap.
+                        </p>
+                    @endif
                 </div>
             </div>
         </div>
@@ -649,6 +657,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-update PDF link when period changes
     bulanSelect.addEventListener('change', updatePdfLink);
     tahunInput.addEventListener('input', updatePdfLink);
+
+    // REMOVED: Jurnal penyeimbang JavaScript functions dihapus sesuai permintaan user
 
     // Form submission with AJAX
     periodForm.addEventListener('submit', function(e) {
