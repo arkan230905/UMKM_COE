@@ -189,8 +189,8 @@
                             `<span class="badge bg-primary">${entry.coa.nama_akun}</span><br><small class="text-muted">${entry.coa.kode_akun}</small>` : 
                             '<span class="badge bg-secondary">COA tidak ditemukan</span>';
                         const keterangan = entry.keterangan || '-';
-                        const debit = entry.debit > 0 ? 'Rp ' + entry.debit.toLocaleString('id-ID') : '-';
-                        const kredit = entry.kredit > 0 ? 'Rp ' + entry.kredit.toLocaleString('id-ID') : '-';
+                        const debit = entry.debit > 0 ? 'Rp ' + entry.debit.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+                        const kredit = entry.kredit > 0 ? 'Rp ' + entry.kredit.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
                         
                         rows += `
                             <tr>
@@ -204,8 +204,8 @@
                     });
                     
                     journalTableBody.innerHTML = rows;
-                    totalDebit.textContent = 'Rp ' + totalDebitAmount.toLocaleString('id-ID');
-                    totalCredit.textContent = 'Rp ' + totalCreditAmount.toLocaleString('id-ID');
+                    totalDebit.textContent = 'Rp ' + totalDebitAmount.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    totalCredit.textContent = 'Rp ' + totalCreditAmount.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 } else {
                     journalTableBody.innerHTML = `
                         <tr>
