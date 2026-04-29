@@ -103,10 +103,11 @@ class AsetController extends Controller
             
             $aset->monthly_depreciation = $penyusutanPerBulan;
             
-            // Check if already posted this month
-            $aset->is_posted_this_month = \App\Models\JurnalUmum::where('tanggal', now()->endOfMonth()->format('Y-m-d'))
-                ->where('keterangan', 'LIKE', "%{$aset->nama_aset}%")
-                ->where('keterangan', 'LIKE', '%Penyusutan%')
+            // Check if already posted this month using modern journal system
+            $aset->is_posted_this_month = \App\Models\JournalEntry::where('ref_type', 'depreciation')
+                ->where('ref_id', $aset->id)
+                ->whereYear('tanggal', now()->year)
+                ->whereMonth('tanggal', now()->month)
                 ->exists();
         }
         
@@ -376,7 +377,7 @@ class AsetController extends Controller
         \Log::info("  Nilai buku saat ini: Rp " . number_format($aset->nilai_buku, 2, ',', '.'));
         
         // Cek apakah aset sudah pernah diposting penyusutannya
-        $sudahDiposting = JournalEntry::where('ref_type', 'depr')
+        $sudahDiposting = JournalEntry::where('ref_type', 'depreciation')
             ->where('ref_id', $aset->id)
             ->exists();
         
@@ -524,7 +525,7 @@ class AsetController extends Controller
         $aset->load('kategori.jenisAset', 'assetCoa', 'accumDepreciationCoa', 'expenseCoa');
         
         // Cek apakah aset sudah pernah diposting penyusutannya
-        $sudahDiposting = JournalEntry::where('ref_type', 'depr')
+        $sudahDiposting = JournalEntry::where('ref_type', 'depreciation')
             ->where('ref_id', $aset->id)
             ->exists();
         
@@ -956,6 +957,7 @@ class AsetController extends Controller
     {
         try {
             $currentMonth = now()->format('Y-m');
+            $currentDate = now()->endOfMonth()->format('Y-m-d');
             
             // Check if asset has required COA relationships
             if (!$aset->expense_coa_id || !$aset->accum_depr_coa_id) {
@@ -965,10 +967,11 @@ class AsetController extends Controller
                 ]);
             }
             
-            // Check if depreciation already posted for this month
-            $existingEntry = \App\Models\JurnalUmum::where('tanggal', now()->endOfMonth()->format('Y-m-d'))
-                ->where('keterangan', 'LIKE', "%{$aset->nama_aset}%")
-                ->where('keterangan', 'LIKE', '%Penyusutan%')
+            // Check if depreciation already posted for this asset this month using modern journal system
+            $existingEntry = \App\Models\JournalEntry::where('ref_type', 'depreciation')
+                ->where('ref_id', $aset->id)
+                ->whereYear('tanggal', now()->year)
+                ->whereMonth('tanggal', now()->month)
                 ->first();
                 
             if ($existingEntry) {
@@ -988,42 +991,54 @@ class AsetController extends Controller
                 ]);
             }
 
-            // Create journal entries
-            $tanggal = now()->endOfMonth()->format('Y-m-d');
-            $keterangan = "Penyusutan Aset {$aset->nama_aset} ({$aset->metode_penyusutan}) {$currentMonth}";
-
-            // Debit: Beban Penyusutan
-            \App\Models\JurnalUmum::create([
-                'tanggal' => $tanggal,
-                'keterangan' => $keterangan,
+            // Create journal entry header
+            $memo = "Penyusutan Aset {$aset->nama_aset} ({$aset->metode_penyusutan}) - {$currentMonth}";
+            
+            $journalEntry = \App\Models\JournalEntry::create([
+                'tanggal' => $currentDate,
+                'ref_type' => 'depreciation',
+                'ref_id' => $aset->id,
+                'memo' => $memo,
+            ]);
+            
+            // Create journal lines
+            // DEBIT: Beban Penyusutan
+            \App\Models\JournalLine::create([
+                'journal_entry_id' => $journalEntry->id,
                 'coa_id' => $aset->expense_coa_id,
                 'debit' => $monthlyDepreciation,
-                'kredit' => 0,
-                'referensi' => $aset->kode_aset,
-                'tipe_referensi' => 'depreciation'
+                'credit' => 0,
+                'memo' => "Beban Penyusutan - {$aset->nama_aset}",
             ]);
-
-            // Credit: Akumulasi Penyusutan
-            \App\Models\JurnalUmum::create([
-                'tanggal' => $tanggal,
-                'keterangan' => $keterangan,
+            
+            // CREDIT: Akumulasi Penyusutan
+            \App\Models\JournalLine::create([
+                'journal_entry_id' => $journalEntry->id,
                 'coa_id' => $aset->accum_depr_coa_id,
                 'debit' => 0,
-                'kredit' => $monthlyDepreciation,
-                'referensi' => $aset->kode_aset,
-                'tipe_referensi' => 'depreciation'
+                'credit' => $monthlyDepreciation,
+                'memo' => "Akumulasi Penyusutan - {$aset->nama_aset}",
+            ]);
+
+            \Log::info('Depreciation journal entry created', [
+                'aset_id' => $aset->id,
+                'aset_name' => $aset->nama_aset,
+                'journal_entry_id' => $journalEntry->id,
+                'amount' => $monthlyDepreciation,
+                'date' => $currentDate
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Penyusutan berhasil diposting',
+                'message' => 'Penyusutan berhasil diposting ke Jurnal Umum dan Buku Besar',
                 'amount' => number_format($monthlyDepreciation, 0, ',', '.')
             ]);
 
         } catch (\Exception $e) {
             \Log::error('Error posting individual depreciation', [
                 'aset_id' => $aset->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
