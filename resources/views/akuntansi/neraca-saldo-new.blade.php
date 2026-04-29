@@ -80,122 +80,35 @@
 
     <!-- Main Content -->
     <div id="mainContent">
-        <!-- Summary Cards -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card bg-primary text-white shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="card-title mb-1">💰 Total Debit</h6>
-                                <h4 class="mb-0 fw-bold">Rp {{ number_format($neracaSaldoData['total_debit'], 0, ',', '.') }}</h4>
-                                <small class="opacity-75">Aset & Beban</small>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="bi bi-arrow-up-circle fs-1 opacity-75"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-success text-white shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="card-title mb-1">💳 Total Kredit</h6>
-                                <h4 class="mb-0 fw-bold">Rp {{ number_format($neracaSaldoData['total_kredit'], 0, ',', '.') }}</h4>
-                                <small class="opacity-75">Kewajiban, Modal & Pendapatan</small>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="bi bi-arrow-down-circle fs-1 opacity-75"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card {{ $neracaSaldoData['is_balanced'] ? 'bg-success' : 'bg-warning' }} text-white shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="card-title mb-1">⚖️ Status Keseimbangan</h6>
-                                <h5 class="mb-0 fw-bold">
-                                    @if($neracaSaldoData['is_balanced'])
-                                        ✅ SEIMBANG
-                                    @else
-                                        ⚠️ TIDAK SEIMBANG
-                                    @endif
-                                </h5>
-                                <small class="opacity-75">
-                                    @if($neracaSaldoData['is_balanced'])
-                                        Debit = Kredit
-                                    @else
-                                        Selisih: Rp {{ number_format(abs($neracaSaldoData['total_debit'] - $neracaSaldoData['total_kredit']), 0, ',', '.') }}
-                                    @endif
-                                </small>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="bi bi-{{ $neracaSaldoData['is_balanced'] ? 'check-circle' : 'exclamation-triangle' }} fs-1 opacity-75"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card bg-info text-white shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="card-title mb-1">📊 Total Akun Aktif</h6>
-                                <h4 class="mb-0 fw-bold">{{ count($neracaSaldoData['accounts']) }}</h4>
-                                <small class="opacity-75">Akun dengan saldo/aktivitas</small>
-                            </div>
-                            <div class="align-self-center">
-                                <i class="bi bi-list-ul fs-1 opacity-75"></i>
-                            </div>
-                        </div>
-                    </div>
+        <!-- Company Header -->
+        <div class="mb-4">
+            <div class="p-4 bg-white rounded-3 shadow-sm" style="width: 100%;">
+                <div class="text-center">
+                    <h4 class="fw-bold mb-2">PT MANUFAKTUR COE</h4>
+                    <p class="text-muted mb-2 small">Laporan Keuangan {{ \Carbon\Carbon::parse($tahun . '-' . $bulan . '-01')->isoFormat('MMMM YYYY') }}</p>
+                    <h5 class="fw-bold text-dark mb-0">Neraca Saldo</h5>
                 </div>
             </div>
         </div>
 
         <!-- Main Table -->
-        <div class="card shadow">
-            <div class="card-header bg-brown-gradient">
-                <div class="d-flex justify-content-between align-items-center text-white">
-                    <div>
-                        <h5 class="mb-1">
-                            <i class="bi bi-table"></i> NERACA SALDO
-                        </h5>
-                        <small>
-                            Periode: {{ \Carbon\Carbon::parse($tahun . '-' . $bulan . '-01')->isoFormat('MMMM YYYY') }}
-                        </small>
-                    </div>
-                    <div class="text-end">
-                        <small>Saldo akhir per akun</small>
-                    </div>
-                </div>
-            </div>
+        <div class="card shadow-sm border-0">
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0" id="trialBalanceTable">
-                        <thead class="table-dark sticky-top">
-                            <tr>
-                                <th class="text-center py-3" style="width: 5%">
-                                    <i class="bi bi-hash"></i> No
+                    <table class="table table-bordered align-middle mb-0" id="trialBalanceTable" style="border: 2px solid #8B7355;">
+                        <thead>
+                            <tr style="background-color: #f8f9fa; border-bottom: 2px solid #8B7355;">
+                                <th class="text-center py-3" style="width: 5%; border-right: 1px solid #8B7355; font-weight: 600;">
+                                    No
                                 </th>
-                                <th class="py-3" style="width: 15%">
-                                    <i class="bi bi-code-square"></i> Kode Akun
+                                <th class="py-3" style="width: 50%; border-right: 1px solid #8B7355; font-weight: 600;">
+                                    AKUN
                                 </th>
-                                <th class="py-3" style="width: 40%">
-                                    <i class="bi bi-bookmark"></i> Nama Akun
+                                <th class="text-center py-3" style="width: 22.5%; border-right: 1px solid #8B7355; font-weight: 600;">
+                                    DEBIT (RP)
                                 </th>
-                                <th class="text-end py-3" style="width: 20%">
-                                    <i class="bi bi-arrow-up-circle text-primary"></i> Debit
-                                </th>
-                                <th class="text-end py-3" style="width: 20%">
-                                    <i class="bi bi-arrow-down-circle text-success"></i> Kredit
+                                <th class="text-center py-3" style="width: 22.5%; font-weight: 600;">
+                                    KREDIT (RP)
                                 </th>
                             </tr>
                         </thead>
@@ -203,42 +116,37 @@
                             @php $no = 1; @endphp
                             @if(count($neracaSaldoData['accounts']) > 0)
                                 @foreach($neracaSaldoData['accounts'] as $account)
-                                    <tr class="border-bottom">
-                                        <td class="text-center fw-bold text-muted">{{ $no++ }}</td>
-                                        <td>
-                                            <span class="badge bg-secondary">{{ $account['kode_akun'] }}</span>
+                                    <tr style="border-bottom: 1px solid #dee2e6;">
+                                        <td class="text-center" style="border-right: 1px solid #8B7355; padding: 12px 8px; font-weight: 600;">
+                                            {{ $no++ }}
                                         </td>
-                                        <td>
+                                        <td style="border-right: 1px solid #dee2e6; padding: 12px 15px;">
                                             <div>
-                                                <strong>{{ $account['nama_akun'] }}</strong>
+                                                <strong>{{ $account['kode_akun'] }} - {{ $account['nama_akun'] }}</strong>
                                                 @if(isset($account['tipe_akun']))
                                                     <br><small class="text-muted">{{ $account['tipe_akun'] }}</small>
                                                 @endif
                                             </div>
                                         </td>
-                                        <td class="text-end">
+                                        <td class="text-end" style="border-right: 1px solid #dee2e6; padding: 12px 15px;">
                                             @if($account['debit'] > 0)
-                                                <span class="fw-bold text-primary">
-                                                    Rp {{ number_format($account['debit'], 0, ',', '.') }}
-                                                </span>
+                                                <strong>{{ number_format($account['debit'], 0, ',', '.') }}</strong>
                                             @else
-                                                <span class="text-muted">-</span>
+                                                <span class="text-muted">0</span>
                                             @endif
                                         </td>
-                                        <td class="text-end">
+                                        <td class="text-end" style="padding: 12px 15px;">
                                             @if($account['kredit'] > 0)
-                                                <span class="fw-bold text-success">
-                                                    Rp {{ number_format($account['kredit'], 0, ',', '.') }}
-                                                </span>
+                                                <strong>{{ number_format($account['kredit'], 0, ',', '.') }}</strong>
                                             @else
-                                                <span class="text-muted">-</span>
+                                                <span class="text-muted">0</span>
                                             @endif
                                         </td>
                                     </tr>
                                 @endforeach
                             @else
                                 <tr>
-                                    <td colspan="5" class="text-center py-5 text-muted">
+                                    <td colspan="4" class="text-center py-5 text-muted">
                                         <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                                         <h5>Tidak ada data transaksi</h5>
                                         <p>Belum ada transaksi untuk periode {{ \Carbon\Carbon::parse($tahun . '-' . $bulan . '-01')->isoFormat('MMMM YYYY') }}</p>
@@ -247,38 +155,43 @@
                             @endif
                         </tbody>
                         @if(count($neracaSaldoData['accounts']) > 0)
-                            <tfoot class="table-dark" id="trialBalanceFooter">
-                                <tr class="border-top-3">
-                                    <th colspan="3" class="text-end py-3">
-                                        <i class="bi bi-calculator"></i> <strong>TOTAL</strong>
+                            <tfoot>
+                                <tr style="background-color: #f8f9fa; border-top: 2px solid #8B7355; border-bottom: 2px solid #8B7355;">
+                                    <th class="text-center py-3" style="border-right: 1px solid #8B7355; font-weight: 600; padding: 15px;">
+                                        
                                     </th>
-                                    <th class="text-end py-3">
-                                        <span class="fs-5 fw-bold">
-                                            Rp {{ number_format($neracaSaldoData['total_debit'], 0, ',', '.') }}
-                                        </span>
+                                    <th class="text-end py-3" style="border-right: 1px solid #8B7355; font-weight: 600; padding: 15px;">
+                                        <strong>TOTAL</strong>
                                     </th>
-                                    <th class="text-end py-3">
-                                        <span class="fs-5 fw-bold">
-                                            Rp {{ number_format($neracaSaldoData['total_kredit'], 0, ',', '.') }}
-                                        </span>
+                                    <th class="text-end py-3" style="border-right: 1px solid #8B7355; font-weight: 600; padding: 15px;">
+                                        <strong>{{ number_format($neracaSaldoData['total_debit'], 0, ',', '.') }}</strong>
+                                    </th>
+                                    <th class="text-end py-3" style="font-weight: 600; padding: 15px;">
+                                        <strong>{{ number_format($neracaSaldoData['total_kredit'], 0, ',', '.') }}</strong>
                                     </th>
                                 </tr>
-                                <tr class="bg-{{ $neracaSaldoData['is_balanced'] ? 'success' : 'warning' }}">
-                                    <th colspan="3" class="text-end py-3 text-white">
-                                        <i class="bi bi-{{ $neracaSaldoData['is_balanced'] ? 'check-circle' : 'exclamation-triangle' }}"></i>
-                                        STATUS KESEIMBANGAN:
+                                <tr style="background-color: {{ $neracaSaldoData['is_balanced'] ? '#d4edda' : '#fff3cd' }}; border-bottom: 2px solid #8B7355;">
+                                    <th class="text-center py-3" style="border-right: 1px solid #8B7355; font-weight: 600; padding: 15px;">
+                                        
                                     </th>
-                                    <th colspan="2" class="text-center py-3 text-white">
+                                    <th class="text-end py-3" style="border-right: 1px solid #8B7355; font-weight: 600; padding: 15px;">
+                                        <strong>STATUS KESEIMBANGAN:</strong>
+                                    </th>
+                                    <th colspan="2" class="text-center py-3" style="font-weight: 600; padding: 15px;">
                                         @if($neracaSaldoData['is_balanced'])
-                                            <i class="bi bi-check-circle fs-4"></i>
-                                            <strong class="fs-5">BALANCED</strong>
-                                            <br><small>Total Debit = Total Kredit</small>
+                                            <span class="text-success">
+                                                <i class="bi bi-check-circle"></i>
+                                                <strong>SEIMBANG</strong>
+                                            </span>
+                                            <br><small class="text-muted">Total Debit = Total Kredit</small>
                                         @else
-                                            <i class="bi bi-exclamation-triangle fs-4"></i>
-                                            <strong class="fs-5">TIDAK SEIMBANG</strong>
+                                            <span class="text-warning">
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                                <strong>TIDAK SEIMBANG</strong>
+                                            </span>
                                             <br>
-                                            <small>
-                                                Selisih: Rp {{ number_format(abs($neracaSaldoData['total_debit'] - $neracaSaldoData['total_kredit']), 0, ',', '.') }}
+                                            <small class="text-muted">
+                                                Selisih: {{ number_format(abs($neracaSaldoData['total_debit'] - $neracaSaldoData['total_kredit']), 0, ',', '.') }}
                                             </small>
                                         @endif
                                     </th>
@@ -291,37 +204,52 @@
         </div>
     </div>
 
-    <!-- Informasi dan Penjelasan -->
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="alert alert-info">
-                <h6><i class="bi bi-info-circle"></i> Tentang Neraca Saldo</h6>
-                <ul class="mb-0 small">
-                    <li><strong>Sumber Data:</strong> Diambil langsung dari Buku Besar (journal_lines)</li>
-                    <li><strong>Logika:</strong> Saldo akhir = Saldo awal ± Mutasi periode</li>
-                    <li><strong>Keseimbangan:</strong> Total Debit harus = Total Kredit</li>
-                    <li><strong>Periode:</strong> {{ \Carbon\Carbon::parse($startDate)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($endDate)->format('d/m/Y') }}</li>
-                </ul>
+    <!-- Summary Information -->
+    <div class="row mt-3">
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title text-primary">
+                        <i class="bi bi-info-circle"></i> Informasi Neraca Saldo
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="mb-0 small text-muted">
+                                <li><strong>Sumber Data:</strong> Buku Besar (journal_lines)</li>
+                                <li><strong>Perhitungan:</strong> Saldo akhir = Saldo awal + Mutasi periode</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="mb-0 small text-muted">
+                                <li><strong>Prinsip:</strong> Total Debit harus sama dengan Total Kredit</li>
+                                <li><strong>Periode:</strong> {{ \Carbon\Carbon::parse($tahun . '-' . $bulan . '-01')->isoFormat('MMMM YYYY') }}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="alert alert-success">
-                <h6><i class="bi bi-check-circle"></i> Normal Balance Akun</h6>
-                <div class="row small">
-                    <div class="col-6">
-                        <strong>Saldo Normal Debit:</strong>
-                        <ul class="mb-0">
-                            <li>Aset (1xx)</li>
-                            <li>Beban (5xx, 6xx)</li>
-                        </ul>
-                    </div>
-                    <div class="col-6">
-                        <strong>Saldo Normal Kredit:</strong>
-                        <ul class="mb-0">
-                            <li>Kewajiban (2xx)</li>
-                            <li>Modal (3xx)</li>
-                            <li>Pendapatan (4xx)</li>
-                        </ul>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title text-success">
+                        <i class="bi bi-calculator"></i> Ringkasan
+                    </h6>
+                    <div class="small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Total Debit:</span>
+                            <strong class="text-primary">Rp {{ number_format($neracaSaldoData['total_debit'], 0, ',', '.') }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Total Kredit:</span>
+                            <strong class="text-success">Rp {{ number_format($neracaSaldoData['total_kredit'], 0, ',', '.') }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Status:</span>
+                            <span class="badge bg-{{ $neracaSaldoData['is_balanced'] ? 'success' : 'warning' }}">
+                                {{ $neracaSaldoData['is_balanced'] ? 'SEIMBANG' : 'TIDAK SEIMBANG' }}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -329,17 +257,16 @@
     </div>
 
     @if(!$neracaSaldoData['is_balanced'])
-        <div class="alert alert-warning">
-            <h6><i class="bi bi-exclamation-triangle"></i> Neraca Saldo Tidak Seimbang</h6>
-            <p class="mb-2">
-                Total Debit (Rp {{ number_format($neracaSaldoData['total_debit'], 0, ',', '.') }}) 
-                tidak sama dengan Total Kredit (Rp {{ number_format($neracaSaldoData['total_kredit'], 0, ',', '.') }}).
-            </p>
-            <p class="mb-0 small">
-                <strong>Kemungkinan penyebab:</strong>
-                Kesalahan input jurnal, transaksi yang belum diposting, atau ada jurnal yang tidak seimbang.
-                Silakan periksa kembali jurnal-jurnal pada periode ini.
-            </p>
+        <div class="alert alert-warning shadow-sm mt-3">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle fs-4 me-3"></i>
+                <div>
+                    <h6 class="mb-1">⚠️ Neraca Saldo Tidak Seimbang</h6>
+                    <p class="mb-0 small">
+                        <strong>Kemungkinan penyebab:</strong> Ada kesalahan input jurnal, akun yang tidak seimbang, atau transaksi yang belum lengkap.
+                    </p>
+                </div>
+            </div>
         </div>
     @endif
 </div>
@@ -351,6 +278,10 @@
 
 .bg-brown-gradient {
     background: linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #CD853F 100%) !important;
+}
+
+.bg-sidebar-brown {
+    background: linear-gradient(135deg, #8B7355 0%, #A0845C 50%, #B8956B 100%) !important;
 }
 
 .border-top-3 {
@@ -390,16 +321,48 @@
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
 }
 
-.table th {
-    border-top: none;
-    font-weight: 600;
-    letter-spacing: 0.5px;
+.table-bordered {
+    border: 2px solid #8B7355 !important;
 }
 
-.table-dark th {
-    background-color: #6F4E37 !important;
-    border-color: #8B4513 !important;
-    color: #fff !important;
+.table-bordered th,
+.table-bordered td {
+    border: 1px solid #dee2e6 !important;
+    vertical-align: middle;
+}
+
+.table thead th {
+    border-bottom: 2px solid #8B7355 !important;
+    background-color: #f8f9fa !important;
+    font-weight: 600 !important;
+    color: #495057 !important;
+}
+
+.table tfoot th {
+    border-top: 2px solid #8B7355 !important;
+    background-color: #f8f9fa !important;
+    font-weight: 600 !important;
+}
+
+/* Remove hover effect for cleaner look */
+.table-hover tbody tr:hover {
+    background-color: transparent;
+}
+
+/* Professional spacing */
+.table th,
+.table td {
+    padding: 12px 15px;
+    line-height: 1.4;
+}
+
+/* Clean borders */
+.table tbody tr {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table tbody tr:last-child {
+    border-bottom: 2px solid #8B7355;
 }
 
 .btn {
@@ -557,9 +520,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to update table with new data
     function updateTable(data) {
         const tbody = document.getElementById('trialBalanceBody');
-        const tfoot = document.getElementById('trialBalanceFooter');
+        const tfoot = document.querySelector('tfoot');
 
-        if (!tbody || !tfoot) {
+        if (!tbody) {
             console.error('Table elements not found');
             return;
         }
@@ -571,42 +534,41 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!data.accounts || data.accounts.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="text-center py-5 text-muted">
+                    <td colspan="4" class="text-center py-5 text-muted">
                         <i class="bi bi-inbox fs-1 d-block mb-2"></i>
                         <h5>Tidak ada data transaksi</h5>
                         <p>Belum ada transaksi untuk periode yang dipilih</p>
                     </td>
                 </tr>
             `;
-            tfoot.innerHTML = '';
+            if (tfoot) tfoot.style.display = 'none';
             return;
         }
 
         // Add new rows
         data.accounts.forEach((account, index) => {
             const row = document.createElement('tr');
-            row.className = 'border-bottom';
+            row.style.borderBottom = '1px solid #dee2e6';
             row.innerHTML = `
-                <td class="text-center fw-bold text-muted">${index + 1}</td>
-                <td>
-                    <span class="badge bg-secondary">${account.kode_akun}</span>
+                <td class="text-center" style="border-right: 1px solid #8B7355; padding: 12px 8px; font-weight: 600;">
+                    ${index + 1}
                 </td>
-                <td>
+                <td style="border-right: 1px solid #dee2e6; padding: 12px 15px;">
                     <div>
-                        <strong>${account.nama_akun}</strong>
+                        <strong>${account.kode_akun} - ${account.nama_akun}</strong>
                         ${account.tipe_akun ? `<br><small class="text-muted">${account.tipe_akun}</small>` : ''}
                     </div>
                 </td>
-                <td class="text-end">
+                <td class="text-end" style="border-right: 1px solid #dee2e6; padding: 12px 15px;">
                     ${account.debit > 0 ? 
-                        `<span class="fw-bold text-primary">Rp ${new Intl.NumberFormat('id-ID').format(account.debit)}</span>` : 
-                        '<span class="text-muted">-</span>'
+                        `<strong>${new Intl.NumberFormat('id-ID').format(account.debit)}</strong>` : 
+                        '<span class="text-muted">0</span>'
                     }
                 </td>
-                <td class="text-end">
+                <td class="text-end" style="padding: 12px 15px;">
                     ${account.kredit > 0 ? 
-                        `<span class="fw-bold text-success">Rp ${new Intl.NumberFormat('id-ID').format(account.kredit)}</span>` : 
-                        '<span class="text-muted">-</span>'
+                        `<strong>${new Intl.NumberFormat('id-ID').format(account.kredit)}</strong>` : 
+                        '<span class="text-muted">0</span>'
                     }
                 </td>
             `;
@@ -614,37 +576,41 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Update footer
-        const balanceStatus = data.is_balanced ? 
-            '<i class="bi bi-check-circle fs-4"></i><strong class="fs-5">BALANCED</strong><br><small>Total Debit = Total Kredit</small>' :
-            `<i class="bi bi-exclamation-triangle fs-4"></i><strong class="fs-5">TIDAK SEIMBANG</strong><br>
-             <small>Selisih: Rp ${new Intl.NumberFormat('id-ID').format(Math.abs(data.total_debit - data.total_kredit))}</small>`;
+        if (tfoot) {
+            tfoot.style.display = '';
+            const balanceStatus = data.is_balanced ? 
+                '<span class="text-success"><i class="bi bi-check-circle"></i><strong>SEIMBANG</strong></span><br><small class="text-muted">Total Debit = Total Kredit</small>' :
+                `<span class="text-warning"><i class="bi bi-exclamation-triangle"></i><strong>TIDAK SEIMBANG</strong></span><br>
+                 <small class="text-muted">Selisih: ${new Intl.NumberFormat('id-ID').format(Math.abs(data.total_debit - data.total_kredit))}</small>`;
 
-        tfoot.innerHTML = `
-            <tr class="border-top-3">
-                <th colspan="3" class="text-end py-3">
-                    <i class="bi bi-calculator"></i> <strong>TOTAL</strong>
-                </th>
-                <th class="text-end py-3">
-                    <span class="fs-5 fw-bold">
-                        Rp ${new Intl.NumberFormat('id-ID').format(data.total_debit)}
-                    </span>
-                </th>
-                <th class="text-end py-3">
-                    <span class="fs-5 fw-bold">
-                        Rp ${new Intl.NumberFormat('id-ID').format(data.total_kredit)}
-                    </span>
-                </th>
-            </tr>
-            <tr class="bg-${data.is_balanced ? 'success' : 'warning'}">
-                <th colspan="3" class="text-end py-3 text-white">
-                    <i class="bi bi-${data.is_balanced ? 'check-circle' : 'exclamation-triangle'}"></i>
-                    STATUS KESEIMBANGAN:
-                </th>
-                <th colspan="2" class="text-center py-3 text-white">
-                    ${balanceStatus}
-                </th>
-            </tr>
-        `;
+            tfoot.innerHTML = `
+                <tr style="background-color: #f8f9fa; border-top: 2px solid #8B7355; border-bottom: 2px solid #8B7355;">
+                    <th class="text-center py-3" style="border-right: 1px solid #8B7355; font-weight: 600; padding: 15px;">
+                        
+                    </th>
+                    <th class="text-end py-3" style="border-right: 1px solid #8B7355; font-weight: 600; padding: 15px;">
+                        <strong>TOTAL</strong>
+                    </th>
+                    <th class="text-end py-3" style="border-right: 1px solid #8B7355; font-weight: 600; padding: 15px;">
+                        <strong>${new Intl.NumberFormat('id-ID').format(data.total_debit)}</strong>
+                    </th>
+                    <th class="text-end py-3" style="font-weight: 600; padding: 15px;">
+                        <strong>${new Intl.NumberFormat('id-ID').format(data.total_kredit)}</strong>
+                    </th>
+                </tr>
+                <tr style="background-color: ${data.is_balanced ? '#d4edda' : '#fff3cd'}; border-bottom: 2px solid #8B7355;">
+                    <th class="text-center py-3" style="border-right: 1px solid #8B7355; font-weight: 600; padding: 15px;">
+                        
+                    </th>
+                    <th class="text-end py-3" style="border-right: 1px solid #8B7355; font-weight: 600; padding: 15px;">
+                        <strong>STATUS KESEIMBANGAN:</strong>
+                    </th>
+                    <th colspan="2" class="text-center py-3" style="font-weight: 600; padding: 15px;">
+                        ${balanceStatus}
+                    </th>
+                </tr>
+            `;
+        }
 
         // Update summary cards if they exist
         updateSummaryCards(data);
@@ -652,35 +618,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Function to update summary cards
     function updateSummaryCards(data) {
-        // Update Total Debit card
-        const debitCard = document.querySelector('.card.bg-primary h4');
-        if (debitCard) {
-            debitCard.textContent = `Rp ${new Intl.NumberFormat('id-ID').format(data.total_debit)}`;
-        }
-
-        // Update Total Kredit card
-        const kreditCard = document.querySelector('.card.bg-success h4');
-        if (kreditCard) {
-            kreditCard.textContent = `Rp ${new Intl.NumberFormat('id-ID').format(data.total_kredit)}`;
-        }
-
-        // Update Status card
-        const statusCard = document.querySelector('.card.bg-success h5, .card.bg-warning h5');
-        if (statusCard) {
-            const parentCard = statusCard.closest('.card');
-            if (parentCard) {
-                parentCard.className = `card ${data.is_balanced ? 'bg-success' : 'bg-warning'} text-white`;
-                statusCard.innerHTML = `
-                    <i class="bi bi-${data.is_balanced ? 'check-circle' : 'exclamation-triangle'}"></i> 
-                    ${data.is_balanced ? 'BALANCED' : 'TIDAK SEIMBANG'}
-                `;
+        // Update ringkasan di card kanan bawah
+        const summaryCard = document.querySelector('.col-md-4 .card-body');
+        if (summaryCard) {
+            const debitElement = summaryCard.querySelector('.text-primary');
+            const kreditElement = summaryCard.querySelector('.text-success');
+            const statusElement = summaryCard.querySelector('.badge');
+            
+            if (debitElement) {
+                debitElement.textContent = `Rp ${new Intl.NumberFormat('id-ID').format(data.total_debit)}`;
             }
-        }
-
-        // Update Total Akun card
-        const akunCard = document.querySelector('.card.bg-info h4');
-        if (akunCard) {
-            akunCard.textContent = data.accounts ? data.accounts.length : 0;
+            
+            if (kreditElement) {
+                kreditElement.textContent = `Rp ${new Intl.NumberFormat('id-ID').format(data.total_kredit)}`;
+            }
+            
+            if (statusElement) {
+                statusElement.className = `badge bg-${data.is_balanced ? 'success' : 'warning'}`;
+                statusElement.textContent = data.is_balanced ? 'SEIMBANG' : 'TIDAK SEIMBANG';
+            }
         }
     }
 
