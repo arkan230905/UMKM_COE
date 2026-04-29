@@ -8,6 +8,11 @@ use App\Models\Presensi;
 use App\Models\Produk;
 use App\Models\Vendor;
 use App\Models\BahanBaku;
+use App\Models\BahanPendukung;
+use App\Models\Pelanggan;
+use App\Models\Aset;
+use App\Models\Jabatan;
+use App\Models\Btkl;
 use App\Models\Bop;
 use App\Models\Bom;
 use App\Models\Coa;
@@ -27,19 +32,35 @@ class DashboardController extends Controller
         $user = auth()->user();
         $userRole = $user->role;
         
-        // Master Data - Filter berdasarkan user untuk multi-tenant
-        $totalPegawai     = \Schema::hasTable('pegawais') ? Pegawai::count() : 0;
+        // Master Data - Filter berdasarkan user untuk multi-tenant (same query as PegawaiController)
+        $totalPegawai     = Pegawai::count();
         $totalPresensi    = Presensi::count();
         $totalProduk      = Produk::count();
         $totalVendor      = Vendor::count();
         $totalBahanBaku   = BahanBaku::count();
         $totalSatuan      = \App\Models\Satuan::count();
+        $totalPelanggan   = Pelanggan::count();
+        $totalBahanPendukung = BahanPendukung::count();
+        $totalAset        = Aset::count();
+        $totalJabatan     = Jabatan::count();
+        
+        // Handle case when btkls table doesn't exist yet
+        $totalBTKL = 0;
+        try {
+            // Count from ProsesProduksi table since BTKL route uses ProsesProduksiController
+            if (\Schema::hasTable('proses_produksis')) {
+                $totalBTKL = \App\Models\ProsesProduksi::count();
+            }
+        } catch (\Exception $e) {
+            // Table doesn't exist or other error, default to 0
+        }
         
         // Handle case when bops table doesn't exist yet
         $totalBOP = 0;
         try {
-            if (\Schema::hasTable('bops')) {
-                $totalBOP = Bop::count();
+            // Count from BopProses table since BOP page uses BopController which displays BopProses data
+            if (\Schema::hasTable('bop_proses')) {
+                $totalBOP = \App\Models\BopProses::where('is_active', true)->count();
             }
         } catch (\Exception $e) {
             // Table doesn't exist or other error, default to 0
@@ -144,6 +165,11 @@ class DashboardController extends Controller
                 'totalBOM',
                 'totalCOA',
                 'totalProduksi',
+                'totalPelanggan',
+                'totalBahanPendukung',
+                'totalAset',
+                'totalJabatan',
+                'totalBTKL',
                 'totalPembelian',
                 'totalPenjualan',
                 'totalRetur',
