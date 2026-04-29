@@ -172,4 +172,7 @@ class NeracaSaldoController extends Controller
             ], 500);
         }
     }
+
+    // REMOVED: createOpeningBalanceJournal method dihapus sesuai permintaan user
+    // User tidak ingin jurnal penyeimbang otomatis
 }

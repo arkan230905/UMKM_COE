@@ -2124,6 +2124,10 @@ Route::middleware('auth')->group(function () {
         // Individual depreciation posting route
         Route::post('aset/{aset}/post-depreciation', [AsetController::class, 'postIndividualDepreciation'])->name('aset.post-depreciation');
         
+        // Asset acquisition posting routes
+        Route::post('aset/{aset}/post-to-journal', [AsetController::class, 'postAssetToJournal'])->name('aset.post-to-journal');
+        Route::post('aset/{aset}/unpost-from-journal', [AsetController::class, 'unpostAssetFromJournal'])->name('aset.unpost-from-journal');
+        
         // Debug route to check asset setup
         Route::get('aset/debug-setup', function() {
             $asets = \App\Models\Aset::with(['expenseCoa', 'accumDepreciationCoa'])->take(5)->get();
@@ -3405,6 +3409,11 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/kas-bank/{coaId}/detail-masuk', [\App\Http\Controllers\LaporanKasBankController::class, 'getDetailMasuk'])->name('kas-bank.detail-masuk');
         Route::get('/kas-bank/{coaId}/detail-keluar', [\App\Http\Controllers\LaporanKasBankController::class, 'getDetailKeluar'])->name('kas-bank.detail-keluar');
         
+        // Laporan Neraca (Posisi Keuangan)
+        Route::get('/neraca', [\App\Http\Controllers\NeracaController::class, 'index'])->name('neraca.index');
+        Route::get('/neraca/export-pdf', [\App\Http\Controllers\NeracaController::class, 'exportPdf'])->name('neraca.export-pdf');
+        Route::get('/neraca/export-excel', [\App\Http\Controllers\NeracaController::class, 'exportExcel'])->name('neraca.export-excel');
+        
         // Laporan Aset
         Route::get('/penyusutan-aset', [\App\Http\Controllers\AsetDepreciationController::class, 'index'])->name('penyusutan.aset');
         Route::get('/penyusutan-aset/{id}', [\App\Http\Controllers\AsetDepreciationController::class, 'show'])->name('penyusutan.aset.show');
@@ -3473,6 +3482,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
     
     // Temporary Neraca Saldo route without middleware for testing
     Route::get('/akuntansi/neraca-saldo-temp', [\App\Http\Controllers\NeracaSaldoController::class, 'index'])->name('akuntansi.neraca-saldo-temp');
+    // REMOVED: Route jurnal penyeimbang dihapus sesuai permintaan user
     
     // Debug route to check if routes are working
     Route::get('/akuntansi/test-route', function() {
