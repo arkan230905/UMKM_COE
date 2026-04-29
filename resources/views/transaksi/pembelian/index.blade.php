@@ -184,18 +184,21 @@
                         totalDebitAmount += entry.debit;
                         totalCreditAmount += entry.kredit;
                         
+                        const tanggal = entry.tanggal ? new Date(entry.tanggal).toLocaleDateString('id-ID') : '-';
+                        const coaInfo = entry.coa ? 
+                            `<span class="badge bg-primary">${entry.coa.nama_akun}</span><br><small class="text-muted">${entry.coa.kode_akun}</small>` : 
+                            '<span class="badge bg-secondary">COA tidak ditemukan</span>';
+                        const keterangan = entry.keterangan || '-';
+                        const debit = entry.debit > 0 ? 'Rp ' + entry.debit.toLocaleString('id-ID') : '-';
+                        const kredit = entry.kredit > 0 ? 'Rp ' + entry.kredit.toLocaleString('id-ID') : '-';
+                        
                         rows += `
                             <tr>
-                                <td>${entry.tanggal ? new Date(entry.tanggal).toLocaleDateString('id-ID') : '-'}</td>
-                                <td>
-                                    ${entry.coa ? 
-                                        `<span class="badge bg-primary">${entry.coa.nama_akun}</span><br><small class="text-muted">${entry.coa.kode_akun}</small>` : 
-                                        '<span class="badge bg-secondary">COA tidak ditemukan</span>'
-                                    }
-                                </td>
-                                <td>${entry.keterangan || '-'}</td>
-                                <td class="text-end">${entry.debit > 0 ? 'Rp ' + entry.debit.toLocaleString('id-ID') : '-'}</td>
-                                <td class="text-end">${entry.kredit > 0 ? 'Rp ' + entry.kredit.toLocaleString('id-ID') : '-'}</td>
+                                <td>${tanggal}</td>
+                                <td>${coaInfo}</td>
+                                <td>${keterangan}</td>
+                                <td class="text-end">${debit}</td>
+                                <td class="text-end">${kredit}</td>
                             </tr>
                         `;
                     });
@@ -331,6 +334,18 @@
 
 .table-success {
     background-color: #d1e7dd !important;
+}
+
+/* Fix journal modal table header text color */
+#journalModal .table-dark th {
+    color: #000 !important;
+    background-color: #343a40 !important;
+}
+
+/* Fix COA badges in journal modal */
+#journalModal .badge {
+    font-size: 0.8em;
+    margin-bottom: 2px;
 }
 </style>
 @endpush
