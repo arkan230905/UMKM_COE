@@ -569,7 +569,7 @@
                                         {{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})
                                     @endif
                                 </td>
-                                <td class="text-end fw-semibold"><strong>Rp {{ number_format($penjualan->total, 0, ',', '.') }}</strong></td>
+                                <td class="text-end fw-semibold"><strong>Rp {{ number_format($penjualan->grand_total ?? $penjualan->total, 0, ',', '.') }}</strong></td>
                                 <td>
                                     @php
                                         $totalQtyRetur = $penjualan->total_qty_retur;
@@ -2285,12 +2285,12 @@ function savePaket() {
     closePaketModal();
     
     ajaxRequest(url, id ? 'PUT' : 'POST', payload, (response) => {
-        showSettingToast('success', response.message || 'Paket menu berhasil disimpan');
+        showSettingToast('success', (response && response.message) ? response.message : 'Paket menu berhasil disimpan');
         
         // Force reload data and ensure table refresh
         loadSettingData().then((data) => {
             // Force re-render the table with fresh data
-            if (data.paket_menus) {
+            if (data && data.paket_menus) {
                 renderPaketTable(data.paket_menus);
             }
         }).catch(error => {
@@ -2316,20 +2316,38 @@ function ajaxRequest(url, method, data, onSuccess) {
     })
     .then(r => {
         if (!r.ok) {
-            throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+            // Try to parse error response as JSON first
+            return r.text().then(text => {
+                let msg = 'HTTP ' + r.status + ': ' + r.statusText;
+                try {
+                    var json = JSON.parse(text);
+                    if (json.message) msg = json.message;
+                    else if (json.error) msg = json.error;
+                } catch(e) {
+                    // HTML error page — extract meaningful message
+                    if (text.includes('SQLSTATE') || text.includes('Column not found')) {
+                        msg = 'Error database: kolom tidak ditemukan. Jalankan php artisan migrate.';
+                    } else if (text.includes('does not exist')) {
+                        msg = 'Error: tabel atau kolom belum ada. Jalankan php artisan migrate.';
+                    }
+                }
+                throw new Error(msg);
+            });
         }
         return r.json();
     })
     .then(res => {
-        if (res.success) { 
-            showSettingToast('success', res.message); 
-            onSuccess(); 
+        if (res && res.success) { 
+            showSettingToast('success', res.message || 'Berhasil'); 
+            onSuccess(res); 
+        } else if (res) {
+            showSettingToast('danger', res.message || 'Terjadi kesalahan');
         }
-        else showSettingToast('danger', res.message || 'Terjadi kesalahan');
     })
     .catch(error => {
         console.error('Ajax error:', error);
-        showSettingToast('danger', 'Terjadi kesalahan jaringan: ' + (error?.message || 'Unknown error'));
+        var msg = (error && error.message) ? error.message : 'Terjadi kesalahan tidak diketahui';
+        showSettingToast('danger', 'Terjadi kesalahan: ' + msg);
     });
 }
 
