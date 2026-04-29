@@ -328,9 +328,9 @@ class AkuntansiController extends Controller
         
         $jurnalUmumResults = $jurnalUmumQuery->get();
         
-        // Group jurnal_umum results by date and memo untuk menggabungkan debit/kredit
+        // Group jurnal_umum results by date and keterangan untuk menggabungkan debit/kredit
         $jurnalUmumGrouped = $jurnalUmumResults->groupBy(function($item) {
-            return $item->tanggal . '|' . $item->memo;
+            return $item->tanggal . '|' . $item->keterangan;
         });
         
         foreach ($jurnalUmumGrouped as $key => $group) {
@@ -342,12 +342,12 @@ class AkuntansiController extends Controller
                 'created_at' => $firstItem->created_at,
                 'ref_type' => $firstItem->ref_type,
                 'ref_id' => null,
-                'memo' => $firstItem->memo,
+                'memo' => $firstItem->keterangan,
                 'lines' => $group->map(function($item) {
                     return (object) [
                         'id' => $item->id,
                         'debit' => $item->debit,
-                        'credit' => $item->credit,
+                        'credit' => $item->kredit,
                         'memo' => null,
                         'account_code' => $item->kode_akun,
                         'account_name' => $item->nama_akun,
