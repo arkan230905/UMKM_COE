@@ -260,11 +260,21 @@
         <div class="alert alert-warning shadow-sm mt-3">
             <div class="d-flex align-items-center">
                 <i class="bi bi-exclamation-triangle fs-4 me-3"></i>
-                <div>
+                <div class="flex-grow-1">
                     <h6 class="mb-1">⚠️ Neraca Saldo Tidak Seimbang</h6>
-                    <p class="mb-0 small">
-                        <strong>Kemungkinan penyebab:</strong> Ada kesalahan input jurnal, akun yang tidak seimbang, atau transaksi yang belum lengkap.
-                    </p>
+                    @if(isset($neracaSaldoData['imbalance_warning']))
+                        <p class="mb-2 small">
+                            <strong>{{ $neracaSaldoData['imbalance_warning']['message'] }}</strong><br>
+                            {{ $neracaSaldoData['imbalance_warning']['suggestion'] }}
+                        </p>
+                        <button type="button" class="btn btn-sm btn-primary" id="createOpeningBalanceBtn">
+                            <i class="bi bi-plus-circle"></i> Buat Jurnal Penyeimbang
+                        </button>
+                    @else
+                        <p class="mb-0 small">
+                            <strong>Kemungkinan penyebab:</strong> Ada kesalahan input jurnal, akun yang tidak seimbang, atau transaksi yang belum lengkap.
+                        </p>
+                    @endif
                 </div>
             </div>
         </div>
@@ -649,6 +659,56 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-update PDF link when period changes
     bulanSelect.addEventListener('change', updatePdfLink);
     tahunInput.addEventListener('input', updatePdfLink);
+
+    // Handle create opening balance journal
+    const createOpeningBalanceBtn = document.getElementById('createOpeningBalanceBtn');
+    if (createOpeningBalanceBtn) {
+        createOpeningBalanceBtn.addEventListener('click', function() {
+            if (confirm('Apakah Anda yakin ingin membuat jurnal penyeimbang saldo awal? Ini akan menambahkan jurnal ke akun Modal Pemilik.')) {
+                createOpeningBalanceJournal();
+            }
+        });
+    }
+
+    // Function to create opening balance journal
+    function createOpeningBalanceJournal() {
+        const btn = document.getElementById('createOpeningBalanceBtn');
+        const originalText = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Membuat Jurnal...';
+        
+        fetch('{{ route("akuntansi.neraca-saldo-temp.create-opening-balance") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                tanggal: '{{ $startDate }}'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('success', data.message);
+                // Reload data after creating journal
+                setTimeout(() => {
+                    loadTrialBalance();
+                }, 1000);
+            } else {
+                throw new Error(data.message || 'Gagal membuat jurnal penyeimbang');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Terjadi kesalahan: ' + error.message);
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        });
+    }
 
     // Form submission with AJAX
     periodForm.addEventListener('submit', function(e) {
