@@ -30,8 +30,9 @@ class TrialBalanceService
     public function calculateTrialBalance($startDate, $endDate)
     {
         // Ambil semua COA yang aktif, diurutkan berdasarkan kode akun
-        // PERBAIKAN: Group by kode_akun untuk menghindari duplikasi
+        // PERBAIKAN: Filter by current user untuk multi-tenancy, lalu group by kode_akun
         $coas = Coa::select('id', 'kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal')
+            ->where('user_id', auth()->id())
             ->orderBy('kode_akun')
             ->get()
             ->groupBy('kode_akun')
