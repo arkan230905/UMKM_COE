@@ -184,13 +184,13 @@
                         totalDebitAmount += entry.debit;
                         totalCreditAmount += entry.kredit;
                         
-                        const tanggal = entry.tanggal ? new Date(entry.tanggal).toLocaleDateString('id-ID') : '-';
+                        const tanggal = entry.tanggal ? new Date(entry.tanggal).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-') : '-';
                         const coaInfo = entry.coa ? 
                             `<span class="badge bg-primary">${entry.coa.nama_akun}</span><br><small class="text-muted">${entry.coa.kode_akun}</small>` : 
                             '<span class="badge bg-secondary">COA tidak ditemukan</span>';
                         const keterangan = entry.keterangan || '-';
-                        const debit = entry.debit > 0 ? 'Rp ' + entry.debit.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
-                        const kredit = entry.kredit > 0 ? 'Rp ' + entry.kredit.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-';
+                        const debit = entry.debit > 0 ? 'Rp ' + entry.debit.toLocaleString('id-ID') : '-';
+                        const kredit = entry.kredit > 0 ? 'Rp ' + entry.kredit.toLocaleString('id-ID') : '-';
                         
                         rows += `
                             <tr>
@@ -204,8 +204,8 @@
                     });
                     
                     journalTableBody.innerHTML = rows;
-                    totalDebit.textContent = 'Rp ' + totalDebitAmount.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                    totalCredit.textContent = 'Rp ' + totalCreditAmount.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    totalDebit.textContent = 'Rp ' + totalDebitAmount.toLocaleString('id-ID');
+                    totalCredit.textContent = 'Rp ' + totalCreditAmount.toLocaleString('id-ID');
                 } else {
                     journalTableBody.innerHTML = `
                         <tr>
