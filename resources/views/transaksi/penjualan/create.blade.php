@@ -37,9 +37,9 @@ function hitungTotal() {
     const ppnEl = document.getElementById('ppn_persen');
     const ppnPersen = ppnEl ? (parseFloat(ppnEl.value) || 0) : 0;
 
-    // Calculate: PPN = Subtotal × PPN% (ongkir tidak masuk PPN)
-    const totalPPN   = Math.round(subtotalProduk * ppnPersen / 100);
-    const totalFinal = subtotalProduk + totalPPN + ongkir;
+    // Calculate: PPN = (Subtotal Produk + Biaya Ongkir) × PPN%
+    const totalPPN   = Math.round((subtotalProduk + ongkir) * ppnPersen / 100);
+    const totalFinal = subtotalProduk + ongkir + totalPPN;
 
     function fmtIDR(n) { return Math.round(n).toLocaleString('id-ID'); }
 
@@ -82,6 +82,7 @@ function tambahBarisProduk() {
     clone.querySelectorAll('input').forEach(inp => {
         if (inp.classList.contains('jumlah')) {
             inp.value = 1;
+            inp.setAttribute('data-max-stok', '0'); // reset stok agar validasi tidak pakai stok baris lama
         } else if (inp.classList.contains('harga')) {
             inp.removeAttribute('readonly');
             inp.value = 0;
@@ -351,6 +352,8 @@ mark.bg-warning {
                                 const tr = this.closest('tr');
                                 const hargaInput = tr.querySelector('.harga');
                                 const subtotalInput = tr.querySelector('.subtotal');
+                                const qtyInput = tr.querySelector('.jumlah');
+                                const stokInfo = tr.querySelector('.stok-info');
                                 const selectedOption = this.options[this.selectedIndex];
                                 
                                 if (!this.value) {
@@ -358,12 +361,15 @@ mark.bg-warning {
                                     hargaInput.value = 0;
                                     hargaInput.setAttribute('readonly', 'readonly');
                                     subtotalInput.value = 0;
+                                    qtyInput.setAttribute('data-max-stok', '0');
+                                    if (stokInfo) stokInfo.textContent = '';
                                     hitungTotal();
                                     return;
                                 }
                                 
                                 const harga = parseFloat(selectedOption.getAttribute('data-price')) || 0;
-                                const qty = parseFloat(tr.querySelector('.jumlah').value) || 1;
+                                const stok  = parseFloat(selectedOption.getAttribute('data-stok')  || '0') || 0;
+                                const qty = parseFloat(qtyInput.value) || 1;
                                 const diskon = parseFloat(tr.querySelector('.diskon').value) || 0;
                                 const subtotal = qty * harga * (1 - diskon / 100);
                                 
@@ -373,6 +379,15 @@ mark.bg-warning {
                                 hargaInput.setAttribute('data-raw', harga);
                                 subtotalInput.value = subtotal.toLocaleString('id-ID');
                                 subtotalInput.setAttribute('data-raw', subtotal);
+                                
+                                // Simpan stok ke data-max-stok agar validasi qty bisa membacanya
+                                qtyInput.setAttribute('data-max-stok', stok);
+                                
+                                // Tampilkan info stok di bawah select
+                                if (stokInfo) {
+                                    stokInfo.textContent = 'Stok tersedia: ' + stok.toLocaleString('id-ID');
+                                    stokInfo.style.color = stok > 0 ? '#28a745' : '#dc3545';
+                                }
                                 
                                 hitungTotal();
                             ">
@@ -407,6 +422,7 @@ mark.bg-warning {
                         </td>
                         <td><input type="number" step="1" min="1" name="jumlah[]" class="form-control jumlah" value="1" required onchange="
                             const tr = this.closest('tr');
+                            if (!validateStock(tr)) return;
                             const hargaInput = tr.querySelector('.harga');
                             const harga = parseFloat(hargaInput.getAttribute('data-raw') || hargaInput.value.replace(/\./g,'').replace(',','.')) || 0;
                             const qty = parseFloat(this.value) || 1;
@@ -463,21 +479,6 @@ mark.bg-warning {
                     <span class="fw-semibold">Rp <span id="display_subtotal_produk">0</span></span>
                 </div>
 
-                <!-- Row: PPN -->
-                <div class="d-flex justify-content-between align-items-center py-2">
-                    <div class="d-flex align-items-center">
-                        <span class="text-muted me-2">PPN (%)</span>
-                        <input type="number" name="ppn_persen" id="ppn_persen"
-                               class="form-control form-control-sm"
-                               style="width:80px;"
-                               value="11" min="0" max="100" step="0.01"
-                               oninput="hitungTotal();"
-                               onchange="hitungTotal();">
-                        <span class="text-muted ms-4">Total PPN</span>
-                    </div>
-                    <span class="fw-semibold">Rp <span id="display_total_ppn">0</span></span>
-                </div>
-
                 <!-- Row: Biaya Ongkir -->
                 <div class="d-flex justify-content-between align-items-center py-2">
                     <div class="d-flex align-items-center gap-2">
@@ -495,6 +496,21 @@ mark.bg-warning {
                         </select>
                     </div>
                     <span class="fw-semibold">Rp <span id="display_biaya_ongkir">0</span></span>
+                </div>
+
+                <!-- Row: PPN -->
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted me-2">PPN (%)</span>
+                        <input type="number" name="ppn_persen" id="ppn_persen"
+                               class="form-control form-control-sm"
+                               style="width:80px;"
+                               value="11" min="0" max="100" step="0.01"
+                               oninput="hitungTotal();"
+                               onchange="hitungTotal();">
+                        <span class="text-muted ms-4">Total PPN</span>
+                    </div>
+                    <span class="fw-semibold">Rp <span id="display_total_ppn">0</span></span>
                 </div>
 
                 <!-- Separator -->
