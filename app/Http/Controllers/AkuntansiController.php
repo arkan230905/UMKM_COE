@@ -265,23 +265,26 @@ class AkuntansiController extends Controller
             ->select([
                 'ju.id',
                 'ju.tanggal',
-                'ju.keterangan as memo',
-                'ju.referensi',
-                'ju.tipe_referensi as ref_type',
+                'ju.coa_id',
                 'ju.debit',
-                'ju.kredit as credit',
-                'ju.created_at',
+                'ju.kredit',
+                'ju.keterangan',
+                'ju.tipe_referensi',
+                'ju.referensi',
                 'coas.kode_akun',
                 'coas.nama_akun',
-                'coas.tipe_akun'
+                'coas.tipe_akun',
+                'ju.created_at',
+                \DB::raw("'ju_' as ref_type"),
+                \DB::raw('NULL as ref_id')
             ])
             ->where(function($q) {
                 $q->where('ju.debit', '>', 0)
                   ->orWhere('ju.kredit', '>', 0);
             })
-// Only manual entries, exclude 'pembelian'
+// Include all relevant transaction types including purchase
             ->whereIn('ju.tipe_referensi', [
-                'penyusutan', 'adjustment', 'manual' // Only manual entries, exclude 'pembelian'
+                'penyusutan', 'adjustment', 'manual', 'pembelian' // Include purchase journals
             ])
             ->where(function($q) {
                 $q->where('coas.user_id', auth()->id())
@@ -325,9 +328,9 @@ class AkuntansiController extends Controller
         
         $jurnalUmumResults = $jurnalUmumQuery->get();
         
-        // Group jurnal_umum results by date and memo untuk menggabungkan debit/kredit
+        // Group jurnal_umum results by date and keterangan untuk menggabungkan debit/kredit
         $jurnalUmumGrouped = $jurnalUmumResults->groupBy(function($item) {
-            return $item->tanggal . '|' . $item->memo;
+            return $item->tanggal . '|' . $item->keterangan;
         });
         
         foreach ($jurnalUmumGrouped as $key => $group) {
@@ -339,12 +342,12 @@ class AkuntansiController extends Controller
                 'created_at' => $firstItem->created_at,
                 'ref_type' => $firstItem->ref_type,
                 'ref_id' => null,
-                'memo' => $firstItem->memo,
+                'memo' => $firstItem->keterangan,
                 'lines' => $group->map(function($item) {
                     return (object) [
                         'id' => $item->id,
                         'debit' => $item->debit,
-                        'credit' => $item->credit,
+                        'credit' => $item->kredit,
                         'memo' => null,
                         'account_code' => $item->kode_akun,
                         'account_name' => $item->nama_akun,
