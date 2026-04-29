@@ -187,7 +187,7 @@ class AkuntansiController extends Controller
         // Gunakan query dengan leftJoin untuk memastikan nama akun selalu diambil
         $query = \DB::table('journal_entries as je')
             ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
-            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
+            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id') // Perbaikan: join berdasarkan coa_id
             ->select([
                 'je.*',
                 'jl.id as line_id',
@@ -202,7 +202,6 @@ class AkuntansiController extends Controller
                 $q->where('jl.debit', '!=', 0)
                   ->orWhere('jl.credit', '!=', 0);
             })
-            ->where('coas.user_id', auth()->id())
             ->orderBy('je.tanggal','asc')
             ->orderBy('je.created_at','asc')
             ->orderBy('je.id','asc')
@@ -255,8 +254,8 @@ class AkuntansiController extends Controller
             $entries->push($entry);
         }
         
-        // TAMBAHAN: Ambil data dari tabel jurnal_umum (untuk penyusutan, pembelian, dan transaksi lain)
-        // Ambil semua transaksi dari jurnal_umum KECUALI yang sudah ada di journal_entries
+        // TAMBAHAN: Ambil data dari tabel jurnal_umum (untuk penyusutan dan transaksi lain)
+        // Hanya ambil yang tidak ada di journal_entries untuk menghindari duplikasi
         $jurnalUmumQuery = \DB::table('jurnal_umum as ju')
             ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
             ->select([
@@ -276,18 +275,10 @@ class AkuntansiController extends Controller
                 $q->where('ju.debit', '>', 0)
                   ->orWhere('ju.kredit', '>', 0);
             })
-            // PERBAIKAN: Include all necessary transaction types, but exclude pembelian duplicates
+            // PERBAIKAN: Include pembelian transactions from jurnal_umum
             ->whereIn('ju.tipe_referensi', [
-                'penyusutan', 'adjustment', 'manual', 'sale' // Include sale transactions
-            ])
-            ->where('coas.user_id', auth()->id())
-            // PENTING: Exclude production entries that are already in journal_entries
-            // to avoid duplication
-            ->whereNotIn('ju.tipe_referensi', [
-                'production_material',
-                'production_labor_overhead', 
-                'production_bop',
-                'production_finish'
+                'pembelian', // Include purchase transactions
+                'penyusutan', 'adjustment', 'manual' // Keep other manual entries
             ])
             ->orderBy('ju.tanggal','asc')
             ->orderBy('ju.created_at','asc')
@@ -296,24 +287,20 @@ class AkuntansiController extends Controller
         if ($from) { $jurnalUmumQuery->whereDate('ju.tanggal','>=',$from); }
         if ($to)   { $jurnalUmumQuery->whereDate('ju.tanggal','<=',$to); }
         
-        // Handle ref_type filtering
-        if ($refType) {
-            // Map ref_type from URL parameter to database value
-            $mappedRefType = $refType;
+        // Handle ref_type filtering for purchase transactions
+        if ($refType) { 
             if ($refType === 'purchase') {
-                $mappedRefType = 'pembelian';
-            } elseif ($refType === 'sale') {
-                $mappedRefType = 'penjualan';
+                $jurnalUmumQuery->where('ju.tipe_referensi', 'pembelian');
+            } else {
+                $jurnalUmumQuery->where('ju.tipe_referensi', $refType);
             }
-            
-            $jurnalUmumQuery->where('ju.tipe_referensi', $mappedRefType);
         }
         
-        // Handle ref_id filtering for purchase
-        if ($refType === 'purchase' && $refId) {
-            // Get pembelian nomor to match with referensi
+        // Handle ref_id filtering for purchase transactions
+        if ($refId && $refType === 'purchase') {
+            // Get the pembelian nomor_pembelian for filtering
             $pembelian = \App\Models\Pembelian::find($refId);
-            if ($pembelian && $pembelian->nomor_pembelian) {
+            if ($pembelian) {
                 $jurnalUmumQuery->where('ju.referensi', $pembelian->nomor_pembelian);
             }
         }
@@ -322,10 +309,7 @@ class AkuntansiController extends Controller
             $jurnalUmumQuery->where('coas.kode_akun', $accountCode);
         }
         
-        // Only execute query if not filtering for purchase
-        if (!isset($jurnalUmumResults)) {
-            $jurnalUmumResults = $jurnalUmumQuery->get();
-        }
+        $jurnalUmumResults = $jurnalUmumQuery->get();
         
         // Group jurnal_umum results by date and memo untuk menggabungkan debit/kredit
         $jurnalUmumGrouped = $jurnalUmumResults->groupBy(function($item) {
@@ -376,28 +360,61 @@ class AkuntansiController extends Controller
     private function ensurePurchaseJournalExists($purchaseId)
     {
         try {
+            \Log::info('Ensuring purchase journal exists', ['purchase_id' => $purchaseId]);
+            
+            // Get purchase data
             $pembelian = \App\Models\Pembelian::with([
                 'vendor',
                 'details.bahanBaku',
                 'details.bahanPendukung'
             ])->find($purchaseId);
 
-            if (!$pembelian) return;
+            if (!$pembelian) {
+                \Log::warning('Purchase not found for journal generation', ['id' => $purchaseId]);
+                return;
+            }
 
-            // Cek apakah sudah ada di journal_entries (sistem modern)
-            $existingEntry = \App\Models\JournalEntry::where('ref_type', 'purchase')
-                ->where('ref_id', $purchaseId)
+            // Check if journal already exists in jurnal_umum table
+            $existingJournal = \App\Models\JurnalUmum::where('tipe_referensi', 'pembelian')
+                ->where('referensi', $pembelian->nomor_pembelian)
                 ->first();
 
-            if ($existingEntry) return; // Sudah ada, tidak perlu dibuat ulang
+            if ($existingJournal) {
+                \Log::info('Journal already exists for purchase', [
+                    'purchase_id' => $purchaseId, 
+                    'nomor_pembelian' => $pembelian->nomor_pembelian
+                ]);
+                return; // Journal already exists, no need to recreate
+            }
 
-            // Buat jurnal menggunakan JournalService (sistem modern)
-            \App\Services\JournalService::createJournalFromPembelian($pembelian);
+            \Log::info('Creating journal for purchase', [
+                'purchase_id' => $purchaseId,
+                'nomor_pembelian' => $pembelian->nomor_pembelian,
+                'total_harga' => $pembelian->total_harga,
+                'details_count' => $pembelian->details->count()
+            ]);
+
+            // Create journal using PembelianJournalService
+            $journalService = new \App\Services\PembelianJournalService();
+            $result = $journalService->createJournalFromPembelian($pembelian);
+
+            if ($result) {
+                \Log::info('Auto-generated journal for purchase', [
+                    'purchase_id' => $purchaseId,
+                    'nomor_pembelian' => $pembelian->nomor_pembelian
+                ]);
+            } else {
+                \Log::warning('Failed to generate journal for purchase', [
+                    'purchase_id' => $purchaseId,
+                    'nomor_pembelian' => $pembelian->nomor_pembelian
+                ]);
+            }
 
         } catch (\Exception $e) {
             \Log::error('Failed to auto-generate purchase journal', [
                 'purchase_id' => $purchaseId,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
     }
