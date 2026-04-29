@@ -160,6 +160,8 @@
 
 @push('scripts')
 <script>
+// Cache busting for journal modal
+const journalModalVersion = '2026-04-30-v2';
     // Function to load journal data for a specific pembelian
     function loadJournal(pembelianId, nomorPembelian) {
         // Show loading state
@@ -172,7 +174,7 @@
         totalCredit.textContent = 'Rp 0';
         
         // Fetch journal data
-        fetch(`/api/pembelian/${pembelianId}/journal`)
+        fetch(`/api/pembelian/${pembelianId}/journal?v=${journalModalVersion}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.journals && data.journals.length > 0) {
