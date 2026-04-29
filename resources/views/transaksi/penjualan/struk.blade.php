@@ -202,72 +202,69 @@
         <!-- Summary -->
         <div class="summary">
             @php
-                // Calculate subtotal (qty x harga satuan)
+                // Hitung subtotal dari detail produk (qty × harga satuan)
                 $subtotal = 0;
-                if($penjualan->details->count() > 0) {
-                    foreach($penjualan->details as $detail) {
+                if ($penjualan->details->count() > 0) {
+                    foreach ($penjualan->details as $detail) {
                         $subtotal += $detail->jumlah * $detail->harga_satuan;
                     }
-                } elseif($penjualan->produk) {
+                } elseif ($penjualan->produk) {
                     $subtotal = ($penjualan->jumlah ?? 0) * ($penjualan->harga_satuan ?? 0);
                 }
-                
-                // Additional costs
+
                 $biayaOngkir = $penjualan->biaya_ongkir ?? 0;
-                
-                // Calculate PPN (11%) - only on subtotal, not on additional costs
-                $ppnRate = 0.11;
-                $ppnAmount = $subtotal * $ppnRate;
-                
-                // Calculate total
-                $grandTotal = $subtotal + $ppnAmount + $biayaOngkir;
-                
-                // Apply discount if exists
-                if($penjualan->diskon_nominal > 0) {
-                    $grandTotal -= $penjualan->diskon_nominal;
-                }
+                $ppnAmount   = $penjualan->biaya_ppn ?? 0;
+
+                // Grand total dari DB (sudah benar saat disimpan)
+                // Fallback: hitung manual jika grand_total belum ada
+                $grandTotal = ($penjualan->grand_total > 0)
+                    ? $penjualan->grand_total
+                    : ($subtotal + $biayaOngkir + $ppnAmount - ($penjualan->diskon_nominal ?? 0));
+
+                $paymentLabel = match($penjualan->payment_method ?? 'cash') {
+                    'transfer' => 'Transfer Bank',
+                    'credit'   => 'Kredit',
+                    default    => 'Tunai',
+                };
             @endphp
-            
+
+            {{-- Subtotal Produk --}}
             <div class="summary-row">
-                <span>Subtotal Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
+                <span>Subtotal</span>
+                <span>Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
             </div>
-            
-            @if($biayaOngkir > 0)
+
+            {{-- Biaya Ongkir --}}
             <div class="summary-row">
-                <span>Biaya Ongkir Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</span>
+                <span>Ongkir</span>
+                <span>Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</span>
+            </div>
+
+            {{-- PPN --}}
+            <div class="summary-row">
+                <span>PPN</span>
+                <span>Rp {{ number_format($ppnAmount, 0, ',', '.') }}</span>
+            </div>
+
+            {{-- Diskon --}}
+            @if(($penjualan->diskon_nominal ?? 0) > 0)
+            <div class="summary-row">
+                <span>Diskon</span>
+                <span>- Rp {{ number_format($penjualan->diskon_nominal, 0, ',', '.') }}</span>
             </div>
             @endif
-            
-            <div class="summary-row">
-                <span>PPN (11%) Rp {{ number_format($ppnAmount, 0, ',', '.') }}</span>
-            </div>
-            
-            @if($penjualan->diskon_nominal > 0)
-            <div class="summary-row">
-                <span>Diskon -{{ number_format($penjualan->diskon_nominal, 0, ',', '.') }}</span>
-            </div>
-            @endif
-            
+
+            {{-- Total --}}
             <div class="summary-row total">
-                <span>TOTAL: Rp {{ number_format($grandTotal, 0, ',', '.') }}</span>
+                <span>TOTAL</span>
+                <span>Rp {{ number_format($grandTotal, 0, ',', '.') }}</span>
             </div>
-            
+
+            {{-- Metode Pembayaran --}}
             <div class="summary-row">
-                <span>Pembayaran: {{ ($penjualan->payment_method ?? 'cash') === 'credit' ? 'Kredit' : (($penjualan->payment_method ?? 'cash') === 'transfer' ? 'Transfer' : 'Tunai') }}</span>
+                <span>Pembayaran</span>
+                <span>{{ $paymentLabel }}</span>
             </div>
-            
-            <!-- Additional Payment Details -->
-            @if($biayaOngkir > 0)
-            <div class="separator"></div>
-            <div class="summary-row" style="font-size: 9px; margin-top: 8px;">
-                <span style="text-align: left; width: 100%;">
-                    @if($biayaOngkir > 0)
-                    <div>Ongkir: Rp {{ number_format($biayaOngkir, 0, ',', '.') }}</div>
-                    @endif
-                    <div>PPN: Rp {{ number_format($ppnAmount, 0, ',', '.') }}</div>
-                </span>
-            </div>
-            @endif
         </div>
 
         <!-- Garis Pemisah -->

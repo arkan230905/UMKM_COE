@@ -434,7 +434,7 @@ class PenjualanController extends Controller
                 'jumlah'         => collect($items)->sum('jumlah'),
                 'harga_satuan'   => null,
                 'diskon_nominal' => 0,
-                'total'          => $paymentData['total'],
+                'total'          => $paymentData['subtotal_produk'] ?? $paymentData['total'],
                 'biaya_ongkir'   => $paymentData['biaya_ongkir'] ?? 0,
                 'biaya_ppn'      => $paymentData['total_ppn'] ?? 0,
                 'grand_total'    => $paymentData['total'] ?? 0,
