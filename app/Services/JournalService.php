@@ -291,11 +291,11 @@ class JournalService
                         $service->post($tanggal, 'purchase', $pembelian->id, $memo, $lines);
                         return; // Exit early since we handled the credit line directly
                     } else {
-                        $creditAccount = '1111'; // Use a more specific Kas code
+                        $creditAccount = '112'; // Use correct Kas code
                         $creditMemo = 'Pembayaran tunai pembelian';
                     }
                 } else {
-                    $creditAccount = '1111'; // Use a more specific Kas code
+                    $creditAccount = '112'; // Use correct Kas code
                     $creditMemo = 'Pembayaran tunai pembelian';
                 }
                 break;
@@ -405,7 +405,7 @@ class JournalService
             switch ($penjualan->payment_method) {
                 case 'cash':
                     $coa = $findDebitCoa('Kas', 'Asset');
-                    $debitAccount = $coa ? $coa->kode_akun : '1111';
+                    $debitAccount = $coa ? $coa->kode_akun : '112';
                     $debitMemo    = 'Penerimaan tunai penjualan';
                     break;
                 case 'transfer':
@@ -414,7 +414,7 @@ class JournalService
                                ->where('nama_akun', 'like', '%bank%')
                                ->when($userId, fn($q) => $q->where('user_id', $userId))
                                ->first();
-                    $debitAccount = $coa ? $coa->kode_akun : '1111';
+                    $debitAccount = $coa ? $coa->kode_akun : '111';
                     $debitMemo    = 'Penerimaan transfer penjualan';
                     break;
                 case 'credit':
@@ -428,7 +428,7 @@ class JournalService
                     break;
                 default:
                     $coa = $findDebitCoa('Kas', 'Asset');
-                    $debitAccount = $coa ? $coa->kode_akun : '1111';
+                    $debitAccount = $coa ? $coa->kode_akun : '112';
                     $debitMemo    = 'Penerimaan penjualan';
             }
         }
