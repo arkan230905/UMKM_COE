@@ -79,21 +79,11 @@
                                 </td>
                                 <td class="text-end">
                                     @php
-                                        // Check if this is a header account and has total calculated
-                                        $isHeader = (strlen($coa->kode_akun) <= 2) || (substr($coa->kode_akun, -1) == '0');
                                         $saldo = $saldoPeriode[$coa->id] ?? 0;
-                                        
-                                        if ($isHeader && isset($headerTotals[$coa->kode_akun])) {
-                                            // Show header total with bold styling
-                                            $total = $headerTotals[$coa->kode_akun];
-                                            echo '<strong>' . number_format($total, 0, ',', '.') . '</strong>';
+                                        if ($saldo == floor($saldo)) {
+                                            echo number_format($saldo, 0, ',', '.');
                                         } else {
-                                            // Show regular individual saldo
-                                            if ($saldo == floor($saldo)) {
-                                                echo number_format($saldo, 0, ',', '.');
-                                            } else {
-                                                echo number_format($saldo, 2, ',', '.');
-                                            }
+                                            echo number_format($saldo, 2, ',', '.');
                                         }
                                     @endphp
                                 </td>
