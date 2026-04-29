@@ -173,40 +173,6 @@ class NeracaSaldoController extends Controller
         }
     }
 
-    /**
-     * Buat jurnal penyeimbang saldo awal
-     */
-    public function createOpeningBalanceJournal(Request $request)
-    {
-        try {
-            $tanggal = $request->get('tanggal', date('Y-m-d'));
-            
-            $result = $this->trialBalanceService->createOpeningBalanceJournal($tanggal);
-            
-            if ($result['success']) {
-                return response()->json([
-                    'success' => true,
-                    'message' => $result['message'],
-                    'data' => $result
-                ]);
-            } else {
-                return response()->json([
-                    'success' => false,
-                    'message' => $result['message']
-                ], 400);
-            }
-            
-        } catch (\Exception $e) {
-            \Log::error('Error creating opening balance journal', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan saat membuat jurnal penyeimbang',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
+    // REMOVED: createOpeningBalanceJournal method dihapus sesuai permintaan user
+    // User tidak ingin jurnal penyeimbang otomatis
 }

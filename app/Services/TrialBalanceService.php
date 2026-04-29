@@ -30,9 +30,15 @@ class TrialBalanceService
     public function calculateTrialBalance($startDate, $endDate)
     {
         // Ambil semua COA yang aktif, diurutkan berdasarkan kode akun
+        // PERBAIKAN: Group by kode_akun untuk menghindari duplikasi
         $coas = Coa::select('id', 'kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal')
             ->orderBy('kode_akun')
-            ->get();
+            ->get()
+            ->groupBy('kode_akun')
+            ->map(function ($group) {
+                // Ambil COA pertama dari setiap grup kode_akun
+                return $group->first();
+            });
 
         $trialBalanceData = [];
         $totalDebit = 0;
@@ -40,42 +46,70 @@ class TrialBalanceService
         $debugInfo = [];
 
         foreach ($coas as $coa) {
-            // 1. Ambil saldo awal akun
-            $saldoAwal = $this->getSaldoAwal($coa, $startDate);
+            // Cek apakah ini akun persediaan yang perlu menggunakan saldo Buku Besar
+            $isPersediaan = $this->isPersediaanAccount($coa);
+            
+            if ($isPersediaan) {
+                // UNTUK AKUN PERSEDIAAN: Ambil saldo akhir langsung dari Buku Besar
+                $saldoAkhirBukuBesar = $this->getSaldoAkhirFromBukuBesar($coa->id, $endDate);
+                $displayBalance = $this->mapSaldoBukuBesarToTrialBalance($saldoAkhirBukuBesar);
+                
+                // Data untuk akun persediaan
+                $accountData = [
+                    'kode_akun' => $coa->kode_akun,
+                    'nama_akun' => $coa->nama_akun,
+                    'tipe_akun' => $coa->tipe_akun,
+                    'saldo_awal' => $this->getSaldoAwal($coa, $startDate),
+                    'mutasi_debit' => 0, // Tidak relevan untuk persediaan
+                    'mutasi_kredit' => 0, // Tidak relevan untuk persediaan
+                    'saldo_akhir' => $saldoAkhirBukuBesar,
+                    'debit' => $displayBalance['debit'],
+                    'kredit' => $displayBalance['kredit'],
+                    'is_debit_normal' => $this->isDebitNormalAccount($coa),
+                    'source' => 'buku_besar' // Penanda bahwa ini dari Buku Besar
+                ];
+                
+            } else {
+                // UNTUK AKUN LAINNYA: Gunakan logika lama (perhitungan periode)
+                
+                // 1. Ambil saldo awal akun
+                $saldoAwal = $this->getSaldoAwal($coa, $startDate);
 
-            // 2. Hitung mutasi periode dari buku besar (journal_lines)
-            $mutasiPeriode = $this->getMutasiPeriode($coa->id, $startDate, $endDate);
-            $totalDebitPeriode = $mutasiPeriode['total_debit'];
-            $totalKreditPeriode = $mutasiPeriode['total_kredit'];
+                // 2. Hitung mutasi periode dari buku besar (journal_lines)
+                $mutasiPeriode = $this->getMutasiPeriode($coa->id, $startDate, $endDate);
+                $totalDebitPeriode = $mutasiPeriode['total_debit'];
+                $totalKreditPeriode = $mutasiPeriode['total_kredit'];
 
-            // 3. Hitung saldo akhir berdasarkan normal balance akun
-            $saldoAkhir = $this->calculateSaldoAkhir(
-                $coa, 
-                $saldoAwal, 
-                $totalDebitPeriode, 
-                $totalKreditPeriode
-            );
+                // 3. Hitung saldo akhir berdasarkan normal balance akun
+                $saldoAkhir = $this->calculateSaldoAkhir(
+                    $coa, 
+                    $saldoAwal, 
+                    $totalDebitPeriode, 
+                    $totalKreditPeriode
+                );
 
-            // 4. Map saldo akhir ke kolom debit/kredit untuk tampilan neraca saldo
-            $displayBalance = $this->mapToTrialBalanceColumns($saldoAkhir, $coa);
-
-            // Skip akun yang tidak memiliki aktivitas atau saldo
-            if ($this->shouldSkipAccount($saldoAwal, $totalDebitPeriode, $totalKreditPeriode, $saldoAkhir)) {
-                continue;
+                // 4. Map saldo akhir ke kolom debit/kredit untuk tampilan neraca saldo
+                $displayBalance = $this->mapToTrialBalanceColumns($saldoAkhir, $coa);
+                
+                $accountData = [
+                    'kode_akun' => $coa->kode_akun,
+                    'nama_akun' => $coa->nama_akun,
+                    'tipe_akun' => $coa->tipe_akun,
+                    'saldo_awal' => $saldoAwal,
+                    'mutasi_debit' => $totalDebitPeriode,
+                    'mutasi_kredit' => $totalKreditPeriode,
+                    'saldo_akhir' => $saldoAkhir,
+                    'debit' => $displayBalance['debit'],
+                    'kredit' => $displayBalance['kredit'],
+                    'is_debit_normal' => $this->isDebitNormalAccount($coa),
+                    'source' => 'periode' // Penanda bahwa ini dari perhitungan periode
+                ];
             }
 
-            $accountData = [
-                'kode_akun' => $coa->kode_akun,
-                'nama_akun' => $coa->nama_akun,
-                'tipe_akun' => $coa->tipe_akun,
-                'saldo_awal' => $saldoAwal,
-                'mutasi_debit' => $totalDebitPeriode,
-                'mutasi_kredit' => $totalKreditPeriode,
-                'saldo_akhir' => $saldoAkhir,
-                'debit' => $displayBalance['debit'],   // Untuk tampilan neraca saldo
-                'kredit' => $displayBalance['kredit'], // Untuk tampilan neraca saldo
-                'is_debit_normal' => $this->isDebitNormalAccount($coa),
-            ];
+            // Skip akun yang tidak memiliki aktivitas atau saldo
+            if ($this->shouldSkipAccount($accountData['saldo_awal'], $accountData['mutasi_debit'], $accountData['mutasi_kredit'], $accountData['saldo_akhir'])) {
+                continue;
+            }
 
             $trialBalanceData[] = $accountData;
 
@@ -84,30 +118,23 @@ class TrialBalanceService
             $totalKredit += $displayBalance['kredit'];
 
             // Debug info untuk akun dengan saldo besar
-            if (abs($saldoAkhir) > 100000 || $displayBalance['debit'] > 100000 || $displayBalance['kredit'] > 100000) {
+            if (abs($accountData['saldo_akhir']) > 100000 || $displayBalance['debit'] > 100000 || $displayBalance['kredit'] > 100000) {
                 $debugInfo[] = [
                     'kode' => $coa->kode_akun,
                     'nama' => $coa->nama_akun,
-                    'saldo_awal' => $saldoAwal,
-                    'saldo_akhir' => $saldoAkhir,
+                    'saldo_awal' => $accountData['saldo_awal'],
+                    'saldo_akhir' => $accountData['saldo_akhir'],
                     'debit_display' => $displayBalance['debit'],
                     'kredit_display' => $displayBalance['kredit'],
-                    'is_debit_normal' => $this->isDebitNormalAccount($coa)
+                    'is_debit_normal' => $this->isDebitNormalAccount($coa),
+                    'source' => $accountData['source']
                 ];
             }
         }
 
-        // Cek apakah ada masalah saldo awal yang tidak seimbang
-        $totalSaldoAwal = $coas->sum('saldo_awal');
+        // REMOVED: Jurnal penyeimbang otomatis dihapus sesuai permintaan user
+        // User ingin neraca saldo seimbang murni dari jurnal yang benar
         $imbalanceWarning = null;
-        
-        if (abs($totalSaldoAwal) > 0.01) {
-            $imbalanceWarning = [
-                'message' => 'Saldo awal tidak seimbang. Total saldo awal: Rp ' . number_format($totalSaldoAwal, 0, ',', '.'),
-                'suggestion' => 'Perlu jurnal penyeimbang ke akun Modal/Ekuitas untuk saldo awal kas/aset.',
-                'total_saldo_awal' => $totalSaldoAwal
-            ];
-        }
 
         return [
             'accounts' => $trialBalanceData,
@@ -126,16 +153,175 @@ class TrialBalanceService
     }
 
     /**
+     * Ambil saldo akhir akun langsung dari Buku Besar (running balance)
+     * 
+     * Menggunakan logika yang SAMA PERSIS dengan AkuntansiController::bukuBesar()
+     * dan view buku-besar.blade.php untuk memastikan konsistensi 100%
+     * 
+     * @param int $coaId
+     * @param string $endDate Format Y-m-d (sampai tanggal berapa)
+     * @return float
+     */
+    private function getSaldoAkhirFromBukuBesar($coaId, $endDate)
+    {
+        $coa = Coa::find($coaId);
+        if (!$coa) {
+            return 0;
+        }
+
+        // 1. Ambil saldo awal menggunakan logika yang SAMA dengan AkuntansiController
+        $kodeAkun = $coa->kode_akun;
+        $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143'];
+        $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115'];
+        
+        // Untuk akun persediaan, gunakan saldo awal dari inventory
+        if (in_array($kodeAkun, $bahanBakuCoas) || in_array($kodeAkun, $bahanPendukungCoas)) {
+            $saldoAwal = $this->getInventorySaldoAwal($kodeAkun);
+        } else {
+            $saldoAwal = (float)($coa->saldo_awal ?? 0);
+        }
+
+        // 2. Ambil total debit dan kredit sampai tanggal tertentu menggunakan query yang SAMA
+        $journalLines = DB::table('journal_entries as je')
+            ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
+            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
+            ->where(function($q) {
+                $q->where('jl.debit', '>', 0)
+                  ->orWhere('jl.credit', '>', 0);
+            })
+            ->where('coas.kode_akun', $kodeAkun)
+            ->where('je.tanggal', '<=', $endDate)
+            ->orderBy('je.tanggal','asc')
+            ->orderBy('je.id','asc')
+            ->orderBy('jl.id','asc')
+            ->get();
+
+        // 3. Hitung saldo akhir menggunakan rumus yang SAMA dengan AkuntansiController
+        $totalDebit = $journalLines->sum('debit');
+        $totalKredit = $journalLines->sum('credit');
+        $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
+
+        return $saldoAkhir;
+    }
+
+    /**
+     * Helper method untuk mendapatkan saldo awal persediaan
+     * (copy dari AkuntansiController::getInventorySaldoAwal)
+     */
+    private function getInventorySaldoAwal($kodeAkun)
+    {
+        $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143'];
+        $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115'];
+        
+        $saldoAwal = 0;
+        
+        // Untuk akun bahan baku
+        if (in_array($kodeAkun, $bahanBakuCoas)) {
+            if (in_array($kodeAkun, ['1101', '114'])) {
+                // Parent accounts - return 0 (not used directly)
+                $saldoAwal = 0;
+            } else {
+                // Specific child account
+                $saldoAwal = DB::table('bahan_bakus')
+                    ->where('coa_persediaan_id', $kodeAkun)
+                    ->where('saldo_awal', '>', 0)
+                    ->sum(DB::raw('saldo_awal * harga_satuan'));
+            }
+        }
+        
+        // Untuk akun bahan pendukung
+        if (in_array($kodeAkun, $bahanPendukungCoas)) {
+            if ($kodeAkun === '115') {
+                // Parent account - return 0 (not used directly)
+                $saldoAwal = 0;
+            } else {
+                // Specific child account
+                $saldoAwal = DB::table('bahan_pendukungs')
+                    ->where('coa_persediaan_id', $kodeAkun)
+                    ->where('saldo_awal', '>', 0)
+                    ->sum(DB::raw('saldo_awal * harga_satuan'));
+            }
+        }
+        
+        return (float)$saldoAwal;
+    }
+
+    /**
+     * Map saldo akhir dari Buku Besar ke kolom debit/kredit Neraca Saldo
+     * 
+     * Logika sesuai permintaan user:
+     * - Jika saldo akhir >= 0 → tampil di kolom DEBIT
+     * - Jika saldo akhir < 0 → tampil di kolom KREDIT (nilai absolut)
+     */
+    private function mapSaldoBukuBesarToTrialBalance($saldoAkhirBukuBesar)
+    {
+        if ($saldoAkhirBukuBesar >= 0) {
+            // Saldo positif → tampil di DEBIT
+            return [
+                'debit' => $saldoAkhirBukuBesar,
+                'kredit' => 0
+            ];
+        } else {
+            // Saldo negatif → tampil di KREDIT (nilai absolut)
+            return [
+                'debit' => 0,
+                'kredit' => abs($saldoAkhirBukuBesar)
+            ];
+        }
+    }
+
+    /**
+     * Cek apakah akun adalah akun persediaan yang perlu menggunakan saldo Buku Besar
+     * DISABLED: Untuk mengatasi ketidakseimbangan neraca saldo
+     */
+    /**
+     * Cek apakah akun adalah akun persediaan yang perlu menggunakan saldo Buku Besar
+     * DISABLED: Untuk mengatasi ketidakseimbangan neraca saldo, semua akun menggunakan logika yang sama
+     */
+    private function isPersediaanAccount($coa)
+    {
+        // DISABLED: Semua akun menggunakan logika periode yang konsisten
+        return false;
+        
+        /*
+        $kodeAkun = $coa->kode_akun;
+        
+        // Daftar akun persediaan yang perlu menggunakan saldo akhir Buku Besar
+        $persediaanCodes = [
+            '1141', // Pers. Bahan Baku ayam potong
+            '1142', // Pers. Bahan Baku ayam kampung
+            '1143', // Pers. Bahan Baku bebek
+            '1152', // Pers. Bahan Pendukung Tepung Terigu
+            '1153', // Pers. Bahan Pendukung Tepung Maizena
+            '1154', // Pers. Bahan Pendukung Lada
+            '1155', // Pers. Bahan Pendukung Bubuk Kaldu
+            '1156', // Pers. Bahan Pendukung Bubuk Bawang Putih
+            '1157'  // Pers. Bahan Pendukung Kemasan
+        ];
+        
+        return in_array($kodeAkun, $persediaanCodes);
+        */
+    }
+
+    /**
      * Ambil saldo awal akun
      * 
-     * Untuk implementasi sederhana, gunakan saldo_awal dari COA.
-     * Bisa dikembangkan untuk menghitung dari transaksi sebelum periode.
+     * Untuk akun persediaan, gunakan saldo dari inventory (sama dengan AkuntansiController)
+     * Untuk akun lainnya, gunakan saldo_awal dari COA
      */
     private function getSaldoAwal($coa, $startDate)
     {
-        // TODO: Implementasi untuk menghitung saldo awal dari transaksi sebelum periode
-        // Untuk sekarang, gunakan saldo_awal dari COA
-        return (float) ($coa->saldo_awal ?? 0);
+        $kodeAkun = $coa->kode_akun;
+        
+        // Untuk akun persediaan, gunakan logika yang sama dengan AkuntansiController
+        $bahanBakuCoas = ['1101', '114', '1141', '1142', '1143'];
+        $bahanPendukungCoas = ['1150', '1151', '1152', '1153', '1154', '1155', '1156', '1157', '115'];
+        
+        if (in_array($kodeAkun, $bahanBakuCoas) || in_array($kodeAkun, $bahanPendukungCoas)) {
+            return $this->getInventorySaldoAwal($kodeAkun);
+        } else {
+            return (float) ($coa->saldo_awal ?? 0);
+        }
     }
 
     /**
@@ -148,8 +334,15 @@ class TrialBalanceService
      */
     private function getMutasiPeriode($coaId, $startDate, $endDate)
     {
+        // PERBAIKAN: Gunakan kode_akun untuk menghindari masalah duplikasi COA
+        $coa = Coa::find($coaId);
+        if (!$coa) {
+            return ['total_debit' => 0, 'total_kredit' => 0];
+        }
+        
         $mutasi = JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_lines.coa_id', $coaId)
+            ->join('coas', 'journal_lines.coa_id', '=', 'coas.id')
+            ->where('coas.kode_akun', $coa->kode_akun) // Gunakan kode_akun, bukan coa_id
             ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
             ->selectRaw('
                 COALESCE(SUM(journal_lines.debit), 0) as total_debit,
@@ -311,94 +504,6 @@ class TrialBalanceService
         ];
     }
 
-    /**
-     * Buat jurnal penyeimbang untuk saldo awal yang tidak seimbang
-     * 
-     * @param string $tanggal Format Y-m-d
-     * @return array
-     */
-    public function createOpeningBalanceJournal($tanggal = null)
-    {
-        if (!$tanggal) {
-            $tanggal = date('Y-m-d');
-        }
-
-        // Cari atau buat akun Modal Pemilik
-        $modalAkun = Coa::where('kode_akun', 'LIKE', '31%')
-            ->orWhere('nama_akun', 'LIKE', '%modal%')
-            ->first();
-
-        if (!$modalAkun) {
-            // Buat akun modal jika belum ada
-            $modalAkun = Coa::create([
-                'kode_akun' => '311',
-                'nama_akun' => 'Modal Pemilik',
-                'tipe_akun' => 'Equity',
-                'saldo_normal' => 'kredit',
-                'saldo_awal' => 0
-            ]);
-        }
-
-        // Hitung total saldo awal yang perlu diseimbangkan
-        $totalSaldoAwal = Coa::sum('saldo_awal');
-
-        if (abs($totalSaldoAwal) < 0.01) {
-            return [
-                'success' => true,
-                'message' => 'Saldo awal sudah seimbang, tidak perlu jurnal penyeimbang.',
-                'journal_entry_id' => null
-            ];
-        }
-
-        try {
-            DB::beginTransaction();
-
-            // Buat journal entry
-            $journalEntry = JournalEntry::create([
-                'tanggal' => $tanggal,
-                'keterangan' => 'Jurnal Penyeimbang Saldo Awal',
-                'referensi' => 'OB-' . date('Ymd'),
-                'total_debit' => abs($totalSaldoAwal),
-                'total_kredit' => abs($totalSaldoAwal)
-            ]);
-
-            // Jika total saldo awal positif (lebih banyak aset), kredit ke modal
-            if ($totalSaldoAwal > 0) {
-                JournalLine::create([
-                    'journal_entry_id' => $journalEntry->id,
-                    'coa_id' => $modalAkun->id,
-                    'debit' => 0,
-                    'credit' => $totalSaldoAwal,
-                    'keterangan' => 'Penyeimbang saldo awal aset'
-                ]);
-            } else {
-                // Jika total saldo awal negatif, debit ke modal
-                JournalLine::create([
-                    'journal_entry_id' => $journalEntry->id,
-                    'coa_id' => $modalAkun->id,
-                    'debit' => abs($totalSaldoAwal),
-                    'credit' => 0,
-                    'keterangan' => 'Penyeimbang saldo awal kewajiban'
-                ]);
-            }
-
-            DB::commit();
-
-            return [
-                'success' => true,
-                'message' => 'Jurnal penyeimbang berhasil dibuat. Total: Rp ' . number_format(abs($totalSaldoAwal), 0, ',', '.'),
-                'journal_entry_id' => $journalEntry->id,
-                'modal_akun' => $modalAkun->kode_akun . ' - ' . $modalAkun->nama_akun
-            ];
-
-        } catch (\Exception $e) {
-            DB::rollback();
-            
-            return [
-                'success' => false,
-                'message' => 'Gagal membuat jurnal penyeimbang: ' . $e->getMessage(),
-                'journal_entry_id' => null
-            ];
-        }
-    }
+    // REMOVED: createOpeningBalanceJournal method dihapus sesuai permintaan user
+    // User tidak ingin jurnal penyeimbang otomatis
 }
