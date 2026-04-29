@@ -68,6 +68,18 @@ class PenjualanSettingController extends Controller
             ]);
         }
 
+        // ── Otomatis buat Produk dengan kategori Paket ──────────────
+        $kategoriPaket = \App\Models\KategoriProduk::where('kode_kategori', 'PKT')->first();
+        $produkBaru = Produk::create([
+            'nama_produk' => $request->nama_paket,
+            'kategori_id' => $kategoriPaket?->id,
+            'harga_jual'  => $request->harga_paket,
+            'deskripsi'   => 'Paket menu: ' . $request->nama_paket,
+            'stok'        => 9999,
+        ]);
+        $paket->update(['produk_id' => $produkBaru->id]);
+        // ────────────────────────────────────────────────────────────
+
         return response()->json(['success' => true, 'message' => 'Paket menu berhasil ditambahkan', 'data' => $paket->load('details.produk')]);
     }
 
@@ -106,12 +118,43 @@ class PenjualanSettingController extends Controller
             ]);
         }
 
+        // ── Otomatis update Produk yang terhubung ───────────────────
+        $kategoriPaket = \App\Models\KategoriProduk::where('kode_kategori', 'PKT')->first();
+        if ($paket->produk_id && $produkTerhubung = Produk::find($paket->produk_id)) {
+            // Update produk yang sudah ada
+            $produkTerhubung->update([
+                'nama_produk' => $request->nama_paket,
+                'kategori_id' => $kategoriPaket?->id,
+                'harga_jual'  => $request->harga_paket,
+                'deskripsi'   => 'Paket menu: ' . $request->nama_paket,
+            ]);
+        } else {
+            // Buat produk baru jika belum ada
+            $produkBaru = Produk::create([
+                'nama_produk' => $request->nama_paket,
+                'kategori_id' => $kategoriPaket?->id,
+                'harga_jual'  => $request->harga_paket,
+                'deskripsi'   => 'Paket menu: ' . $request->nama_paket,
+                'stok'        => 9999,
+            ]);
+            $paket->update(['produk_id' => $produkBaru->id]);
+        }
+        // ────────────────────────────────────────────────────────────
+
         return response()->json(['success' => true, 'message' => 'Paket menu berhasil diperbarui', 'data' => $paket->load('details.produk')]);
     }
 
     public function destroyPaket($id)
     {
-        PaketMenu::findOrFail($id)->delete();
+        $paket = PaketMenu::findOrFail($id);
+
+        // ── Hapus juga Produk yang terhubung ────────────────────────
+        if ($paket->produk_id) {
+            Produk::where('id', $paket->produk_id)->delete();
+        }
+        // ────────────────────────────────────────────────────────────
+
+        $paket->delete();
         return response()->json(['success' => true, 'message' => 'Paket menu berhasil dihapus']);
     }
 

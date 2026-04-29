@@ -156,6 +156,35 @@ function toggleSumberDana() {
 document.addEventListener('DOMContentLoaded', function() {
     toggleSumberDana();
 });
+
+// Handler barcode input — dipanggil langsung dari oninput di HTML
+function handleBarcodeOninput(value) {
+    value = value.trim();
+
+    if (!value) {
+        document.getElementById('search-results').style.display = 'none';
+        return;
+    }
+
+    // Hanya proses input numerik
+    if (!/^\d+$/.test(value)) {
+        document.getElementById('search-results').style.display = 'none';
+        return;
+    }
+
+    // Input panjang (>= 8 digit) → proses sebagai barcode lengkap
+    if (value.length >= 8) {
+        document.getElementById('search-results').style.display = 'none';
+        setTimeout(() => {
+            const current = document.getElementById('barcode-scanner').value.trim();
+            if (current === value) processAutomaticBarcode(value);
+        }, 100);
+        return;
+    }
+
+    // Input pendek (1-7 digit) → tampilkan search results
+    performRealTimeSearch(value);
+}
 </script>
 
 <style>
@@ -271,7 +300,8 @@ mark.bg-warning {
                         <div class="input-group">
                             <input type="text" id="barcode-scanner" class="form-control form-control-lg" 
                                    placeholder="Ketik atau scan barcode..." 
-                                   autocomplete="off" autofocus>
+                                   autocomplete="off" autofocus
+                                   oninput="handleBarcodeOninput(this.value)">
                             <div class="input-group-text bg-success text-white">
                                 <i class="fas fa-wifi me-1"></i>
                                 <span id="scan-indicator">Siap Scan</span>
@@ -925,13 +955,14 @@ function performRealTimeSearch(query) {
                     `<span class="badge bg-success">${product.stok}</span>` : 
                     `<span class="badge bg-danger">Habis</span>`;
                 
-                // Highlight matching part in barcode for prefix matches
+                // Highlight matching part in barcode
                 if (product.barcode) {
-                    if (product.barcode.startsWith(query)) {
-                        // Highlight the matching prefix
-                        const matchedPart = product.barcode.substring(0, query.length);
-                        const remainingPart = product.barcode.substring(query.length);
-                        barcodeDisplay = `<code class="text-primary"><mark class="bg-warning text-dark">${matchedPart}</mark>${remainingPart}</code>`;
+                    const idx = product.barcode.indexOf(query);
+                    if (idx !== -1) {
+                        const before = product.barcode.substring(0, idx);
+                        const match  = product.barcode.substring(idx, idx + query.length);
+                        const after  = product.barcode.substring(idx + query.length);
+                        barcodeDisplay = `<code class="text-primary">${before}<mark class="bg-warning text-dark">${match}</mark>${after}</code>`;
                     } else {
                         barcodeDisplay = `<code class="text-primary">${product.barcode}</code>`;
                     }
@@ -950,7 +981,7 @@ function performRealTimeSearch(query) {
                      onmouseout="this.style.backgroundColor=''">
                     <div class="flex-grow-1">
                         <div class="fw-bold text-dark">${product.nama}</div>
-                        <small class="text-muted">${barcodeDisplay} * Rp ${product.harga.toLocaleString('id-ID')}</small>
+                        <small class="text-muted">${barcodeDisplay} &bull; Rp ${product.harga.toLocaleString('id-ID')}</small>
                     </div>
                     <div class="text-end">
                         ${stockBadge}
@@ -960,7 +991,6 @@ function performRealTimeSearch(query) {
                     </div>
                 </div>
             `;
-        });
         });
         
         searchResultsBody.innerHTML = html;

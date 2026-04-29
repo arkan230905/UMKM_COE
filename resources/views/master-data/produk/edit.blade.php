@@ -37,6 +37,20 @@
             <label for="nama_produk" class="form-label">Nama Produk</label>
             <input type="text" name="nama_produk" id="nama_produk" class="form-control" value="{{ $produk->nama_produk }}" required>
         </div>
+
+        <div class="mb-3">
+            <label for="kategori_id" class="form-label">Kategori Produk</label>
+            <select name="kategori_id" id="kategori_id" class="form-control">
+                <option value="">-- Pilih Kategori --</option>
+                @foreach($kategoris as $kat)
+                    <option value="{{ $kat->id }}"
+                        {{ old('kategori_id', $produk->kategori_id) == $kat->id ? 'selected' : '' }}>
+                        {{ $kat->nama }}
+                    </option>
+                @endforeach
+            </select>
+            <small class="form-text text-muted">Opsional. Pilih kategori untuk produk ini.</small>
+        </div>
         <div class="mb-3">
             <label for="barcode" class="form-label">Barcode</label>
             <div class="input-group">
