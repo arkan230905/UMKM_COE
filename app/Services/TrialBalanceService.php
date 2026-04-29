@@ -30,8 +30,9 @@ class TrialBalanceService
     public function calculateTrialBalance($startDate, $endDate)
     {
         // Ambil semua COA yang aktif, diurutkan berdasarkan kode akun
-        // PERBAIKAN: Group by kode_akun untuk menghindari duplikasi
+        // PERBAIKAN: Filter by current user untuk multi-tenancy, lalu group by kode_akun
         $coas = Coa::select('id', 'kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal')
+            ->where('user_id', auth()->id())
             ->orderBy('kode_akun')
             ->get()
             ->groupBy('kode_akun')
@@ -392,8 +393,8 @@ class TrialBalanceService
         $firstDigit = substr($coa->kode_akun, 0, 1);
         $firstTwoDigits = substr($coa->kode_akun, 0, 2);
         
-        // Akun Akumulasi Penyusutan (12x) adalah KREDIT normal meskipun aset
-        if ($firstTwoDigits == '12') {
+        // Akun Akumulasi Penyusutan spesifik (120, 124, 126) adalah KREDIT normal meskipun aset
+        if (in_array($coa->kode_akun, ['120', '124', '126'])) {
             return false; // Akumulasi Penyusutan = Kredit normal
         }
         
