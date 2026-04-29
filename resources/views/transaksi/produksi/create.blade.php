@@ -474,8 +474,10 @@ function calculateCostBreakdown() {
 
     const empty5 = `<tr><td colspan="5" class="text-center text-muted ps-3">-</td></tr>`;
 
-    // ── Jurnal 1: Produksi — BBB → BDP-BBB ───────────────────
+    // ── Jurnal 1: Produksi — BBB & Bahan Pendukung → BDP-BBB ───────────────────
     let j1 = '';
+
+    // Bahan Baku
     bom.biaya_bahan.bahan_baku.forEach(b => {
         const total = b.harga_per_unit * qty;
         if (total <= 0) return;
@@ -484,6 +486,19 @@ function calculateCostBreakdown() {
         j1 += rowD('Barang dalam proses - BBB', bdpBbbKode, bdpBbbNama, total);
         j1 += rowK(b.nama, persKode, persNama, total);
     });
+
+    // Bahan Pendukung
+    if (bom.biaya_bahan.bahan_pendukung && bom.biaya_bahan.bahan_pendukung.length > 0) {
+        bom.biaya_bahan.bahan_pendukung.forEach(bp => {
+            const total = bp.harga_per_unit * qty;
+            if (total <= 0) return;
+            const persKode = bp.coa_persediaan_kode ?? '115';
+            const persNama = bp.coa_persediaan_nama ?? bp.nama;
+            j1 += rowD('Barang dalam proses - Bahan Pendukung', bdpBbbKode, bdpBbbNama, total);
+            j1 += rowK(bp.nama, persKode, persNama, total);
+        });
+    }
+
     document.getElementById('jurnal-produksi-body').innerHTML = j1 || empty5;
 
     // ── Jurnal 2a: BTKL WIP → BDP-BTKL ──────────────────────
