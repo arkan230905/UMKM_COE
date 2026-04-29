@@ -956,8 +956,10 @@ class AsetController extends Controller
     public function postIndividualDepreciation(Request $request, Aset $aset)
     {
         try {
-            $currentMonth = now()->format('Y-m');
+            $currentYear = now()->year;
+            $currentMonth = now()->month;
             $currentDate = now()->endOfMonth()->format('Y-m-d');
+            $periodeBulan = now()->format('M Y'); // Format: Apr 2026
             
             // Check if asset has required COA relationships
             if (!$aset->expense_coa_id || !$aset->accum_depr_coa_id) {
@@ -970,8 +972,8 @@ class AsetController extends Controller
             // Check if depreciation already posted for this asset this month using modern journal system
             $existingEntry = \App\Models\JournalEntry::where('ref_type', 'depreciation')
                 ->where('ref_id', $aset->id)
-                ->whereYear('tanggal', now()->year)
-                ->whereMonth('tanggal', now()->month)
+                ->whereYear('tanggal', $currentYear)
+                ->whereMonth('tanggal', $currentMonth)
                 ->first();
                 
             if ($existingEntry) {
@@ -981,8 +983,34 @@ class AsetController extends Controller
                 ]);
             }
 
-            // Calculate monthly depreciation
-            $monthlyDepreciation = $this->depreciationService->calculateCurrentMonthDepreciation($aset);
+            // ✅ PERBAIKAN: Generate schedule dan ambil nilai untuk bulan ini
+            $scheduleArray = $this->depreciationService->generateMonthlySchedule($aset);
+            
+            if (empty($scheduleArray)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak dapat generate schedule penyusutan untuk aset ini'
+                ]);
+            }
+            
+            // Cari baris schedule untuk bulan ini (format: "Apr 2026")
+            $scheduleForThisMonth = null;
+            foreach ($scheduleArray as $row) {
+                if ($row['tahun_bulan'] === $periodeBulan) {
+                    $scheduleForThisMonth = $row;
+                    break;
+                }
+            }
+            
+            if (!$scheduleForThisMonth) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Schedule penyusutan untuk bulan {$periodeBulan} tidak ditemukan. Aset mungkin belum mulai disusutkan atau sudah habis masa manfaatnya."
+                ]);
+            }
+            
+            // ✅ Ambil nilai penyusutan dari field 'penyusutan' di schedule
+            $monthlyDepreciation = (float) $scheduleForThisMonth['penyusutan'];
             
             if ($monthlyDepreciation <= 0) {
                 return response()->json([
@@ -992,7 +1020,7 @@ class AsetController extends Controller
             }
 
             // Create journal entry header
-            $memo = "Penyusutan Aset {$aset->nama_aset} ({$aset->metode_penyusutan}) - {$currentMonth}";
+            $memo = "Penyusutan Aset {$aset->nama_aset} ({$aset->metode_penyusutan}) - {$periodeBulan}";
             
             $journalEntry = \App\Models\JournalEntry::create([
                 'tanggal' => $currentDate,
@@ -1002,7 +1030,7 @@ class AsetController extends Controller
             ]);
             
             // Create journal lines
-            // DEBIT: Beban Penyusutan
+            // ✅ DEBIT: Beban Penyusutan (selalu debit, nominal dari schedule)
             \App\Models\JournalLine::create([
                 'journal_entry_id' => $journalEntry->id,
                 'coa_id' => $aset->expense_coa_id,
@@ -1011,7 +1039,7 @@ class AsetController extends Controller
                 'memo' => "Beban Penyusutan - {$aset->nama_aset}",
             ]);
             
-            // CREDIT: Akumulasi Penyusutan
+            // ✅ CREDIT: Akumulasi Penyusutan (selalu kredit, nominal yang sama)
             \App\Models\JournalLine::create([
                 'journal_entry_id' => $journalEntry->id,
                 'coa_id' => $aset->accum_depr_coa_id,
@@ -1020,18 +1048,22 @@ class AsetController extends Controller
                 'memo' => "Akumulasi Penyusutan - {$aset->nama_aset}",
             ]);
 
-            \Log::info('Depreciation journal entry created', [
+            \Log::info('Depreciation journal entry created from schedule', [
                 'aset_id' => $aset->id,
                 'aset_name' => $aset->nama_aset,
+                'periode_bulan' => $periodeBulan,
                 'journal_entry_id' => $journalEntry->id,
                 'amount' => $monthlyDepreciation,
-                'date' => $currentDate
+                'date' => $currentDate,
+                'source' => 'monthly_schedule_array',
+                'schedule_data' => $scheduleForThisMonth
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Penyusutan berhasil diposting ke Jurnal Umum dan Buku Besar',
-                'amount' => number_format($monthlyDepreciation, 0, ',', '.')
+                'amount' => number_format($monthlyDepreciation, 0, ',', '.'),
+                'periode' => $periodeBulan
             ]);
 
         } catch (\Exception $e) {
