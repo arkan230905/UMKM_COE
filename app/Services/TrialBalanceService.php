@@ -3,8 +3,7 @@
 namespace App\Services;
 
 use App\Models\Coa;
-use App\Models\JournalLine;
-use App\Models\JournalEntry;
+use App\Models\JurnalUmum;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -182,24 +181,25 @@ class TrialBalanceService
             $saldoAwal = (float)($coa->saldo_awal ?? 0);
         }
 
-        // 2. Ambil total debit dan kredit sampai tanggal tertentu menggunakan query yang SAMA
-        $journalLines = DB::table('journal_entries as je')
-            ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
-            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
-            ->where(function($q) {
-                $q->where('jl.debit', '>', 0)
-                  ->orWhere('jl.credit', '>', 0);
+        // 2. Ambil total debit dan kredit sampai tanggal tertentu menggunakan jurnal_umum table
+        $journalLines = DB::table('jurnal_umum as ju')
+            ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
+            ->where(function($q) use ($coa) {
+                $q->where('coas.kode_akun', $coa->kode_akun)
+                  ->orWhere('coas.id', $coa->id);
             })
-            ->where('coas.kode_akun', $kodeAkun)
-            ->where('je.tanggal', '<=', $endDate)
-            ->orderBy('je.tanggal','asc')
-            ->orderBy('je.id','asc')
-            ->orderBy('jl.id','asc')
+            ->where('ju.tanggal', '<=', $endDate)
+            ->select([
+                'ju.debit',
+                'ju.kredit',
+                'coas.kode_akun',
+                'coas.id as coa_id'
+            ])
             ->get();
 
         // 3. Hitung saldo akhir menggunakan rumus yang SAMA dengan AkuntansiController
         $totalDebit = $journalLines->sum('debit');
-        $totalKredit = $journalLines->sum('credit');
+        $totalKredit = $journalLines->sum('kredit');
         $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
 
         return $saldoAkhir;
@@ -341,13 +341,13 @@ class TrialBalanceService
             return ['total_debit' => 0, 'total_kredit' => 0];
         }
         
-        $mutasi = JournalLine::join('journal_entries', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
-            ->join('coas', 'journal_lines.coa_id', '=', 'coas.id')
+        $mutasi = DB::table('jurnal_umum as ju')
+            ->join('coas', 'ju.coa_id', '=', 'coas.id')
             ->where('coas.kode_akun', $coa->kode_akun) // Gunakan kode_akun, bukan coa_id
-            ->whereBetween('journal_entries.tanggal', [$startDate, $endDate])
+            ->whereBetween('ju.tanggal', [$startDate, $endDate])
             ->selectRaw('
-                COALESCE(SUM(journal_lines.debit), 0) as total_debit,
-                COALESCE(SUM(journal_lines.credit), 0) as total_kredit
+                COALESCE(SUM(ju.debit), 0) as total_debit,
+                COALESCE(SUM(ju.kredit), 0) as total_kredit
             ')
             ->first();
 

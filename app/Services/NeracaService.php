@@ -89,7 +89,7 @@ class NeracaService
                 $saldo = $account['debit']; // Ini adalah saldo akhir yang sudah dihitung oleh TrialBalanceService
             } elseif ($account['kredit'] > 0) {
                 // Akun normal kredit (kewajiban/ekuitas/pendapatan): Saldo Akhir = Saldo Awal - Debit + Kredit
-                $saldo = -$account['kredit']; // Negatif untuk kewajiban/ekuitas
+                $saldo = $account['kredit']; // Positive untuk balance sheet
             }
             
             $neracaSaldo[] = [
@@ -321,14 +321,14 @@ class NeracaService
     {
         $ekuitas = [];
         
-        // Modal - gunakan nilai modal awal yang benar + adjustment yang hilang
-        // Untuk user 6, modal awal adalah Rp 287.830.769 + Rp 85.940.248 adjustment
-        $modalAwal = 287830769 + 85940248; // Modal awal + adjustment yang tepat untuk balance
+        // Modal - gunakan nilai modal dari neraca saldo aktual
+        $modalUsaha = $neracaSaldo->firstWhere('kode_akun', '310');
+        $modalAwal = $modalUsaha ? abs($modalUsaha['saldo']) : 0;
         
         $ekuitas[] = [
             'nama_akun' => 'Modal Usaha',
             'kode_akun' => '310',
-            'saldo' => $modalAwal // Gunakan modal awal yang sebenarnya
+            'saldo' => $modalAwal // Gunakan modal dari data aktual
         ];
         
         // Hitung dan tambahkan Laba/Rugi Berjalan ke Ekuitas
