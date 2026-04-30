@@ -54,12 +54,11 @@ class Jabatan extends Model
     }
 
     /**
-     * Relasi ke pegawai - temporary fix for missing jabatan_id column
+     * Relasi ke pegawai - using proper foreign key relationship
      */
     public function pegawais(): HasMany
     {
-        // Use jabatan string field instead of jabatan_id until column is added
-        return $this->hasMany(Pegawai::class, 'jabatan', 'nama');
+        return $this->hasMany(Pegawai::class, 'jabatan_id');
     }
 
     /**
