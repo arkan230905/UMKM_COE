@@ -32,17 +32,48 @@
                                     <table class="table table-bordered" id="komponenTable">
                                         <thead>
                                             <tr>
-                                                <th>Komponen</th>
-                                                <th>Rp / produk</th>
-                                                <th>Keterangan</th>
-                                                <th>Aksi</th>
+                                                <th style="width: 20%;">Komponen</th>
+                                                <th style="width: 15%;">Rp / produk</th>
+                                                <th style="width: 20%;">COA Debit</th>
+                                                <th style="width: 20%;">COA Kredit</th>
+                                                <th style="width: 15%;">Keterangan</th>
+                                                <th style="width: 10%;">Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody id="komponenRows">
                                             <tr>
-                                                <td><input type="text" name="komponen_name[]" class="form-control" placeholder="Nama komponen" required></td>
-                                                <td><input type="number" name="komponen_rate[]" class="form-control komponen-rate" min="0" step="0.01" placeholder="0" required></td>
-                                                <td><input type="text" name="komponen_desc[]" class="form-control" placeholder="Keterangan"></td>
+                                                <td><input type="text" name="komponen_name[]" class="form-control form-control-sm" placeholder="Nama komponen" required></td>
+                                                <td><input type="number" name="komponen_rate[]" class="form-control form-control-sm komponen-rate" min="0" step="0.01" placeholder="0" required></td>
+                                                <td>
+                                                    <select name="komponen_coa_debit[]" class="form-select form-select-sm" required>
+                                                        <option value="">-- Pilih --</option>
+                                                        @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
+                                                            <option value="{{ $coa->kode_akun }}" {{ $coa->kode_akun == '1173' ? 'selected' : '' }}>
+                                                                {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                </td>
+                                                <td>
+                                                    <select name="komponen_coa_kredit[]" class="form-select form-select-sm" required>
+                                                        <option value="">-- Pilih --</option>
+                                                        <optgroup label="Hutang">
+                                                            @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '21%')->orderBy('kode_akun')->get() as $coa)
+                                                                <option value="{{ $coa->kode_akun }}" {{ $coa->kode_akun == '210' ? 'selected' : '' }}>
+                                                                    {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                                                </option>
+                                                            @endforeach
+                                                        </optgroup>
+                                                        <optgroup label="Persediaan">
+                                                            @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '115%')->orderBy('kode_akun')->get() as $coa)
+                                                                <option value="{{ $coa->kode_akun }}">
+                                                                    {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                                                </option>
+                                                            @endforeach
+                                                        </optgroup>
+                                                    </select>
+                                                </td>
+                                                <td><input type="text" name="komponen_desc[]" class="form-control form-control-sm" placeholder="Keterangan"></td>
                                                 <td><button type="button" class="btn btn-sm btn-danger" onclick="removeRow(this)">Hapus</button></td>
                                             </tr>
                                         </tbody>
@@ -50,12 +81,12 @@
                                             <tr class="table-primary fw-bold">
                                                 <td>Total BOP / produk</td>
                                                 <td>
-                                                    <div class="input-group">
+                                                    <div class="input-group input-group-sm">
                                                         <span class="input-group-text">Rp</span>
                                                         <input type="text" id="total_bop_per_jam" name="total_bop_per_jam" class="form-control text-end" readonly>
                                                     </div>
                                                 </td>
-                                                <td colspan="2"></td>
+                                                <td colspan="4"></td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -122,10 +153,12 @@
                                     <table class="table table-bordered" id="editKomponenTable">
                                         <thead>
                                             <tr>
-                                                <th>Komponen</th>
-                                                <th>Rp / produk</th>
-                                                <th>Keterangan</th>
-                                                <th>Aksi</th>
+                                                <th style="width: 20%;">Komponen</th>
+                                                <th style="width: 15%;">Rp / produk</th>
+                                                <th style="width: 20%;">COA Debit</th>
+                                                <th style="width: 20%;">COA Kredit</th>
+                                                <th style="width: 15%;">Keterangan</th>
+                                                <th style="width: 10%;">Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody id="editKomponenRows">
@@ -135,12 +168,12 @@
                                             <tr class="table-primary fw-bold">
                                                 <td>Total BOP / produk</td>
                                                 <td>
-                                                    <div class="input-group">
+                                                    <div class="input-group input-group-sm">
                                                         <span class="input-group-text">Rp</span>
                                                         <input type="text" id="editTotalBopPerProduk" name="total_bop_per_produk" class="form-control text-end" readonly>
                                                     </div>
                                                 </td>
-                                                <td colspan="2"></td>
+                                                <td colspan="4"></td>
                                             </tr>
                                         </tfoot>
                                     </table>

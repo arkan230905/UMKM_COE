@@ -26,7 +26,7 @@ class BopProses extends Model
         'bop_per_unit',
         'periode',
         'keterangan',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
