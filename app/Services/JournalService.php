@@ -453,6 +453,7 @@ class JournalService
 
         $biayaOngkir = (float)($penjualan->biaya_ongkir ?? 0);
         $biayaPPN    = (float)($penjualan->total_ppn ?? $penjualan->biaya_ppn ?? 0);
+        $diskonNominal = (float)($penjualan->diskon_nominal ?? 0);
         $userId      = $penjualan->user_id ?? null;
 
         // Helper: cari COA tanpa global scope, filter user_id jika ada
@@ -503,6 +504,38 @@ class JournalService
                 'debit'  => 0,
                 'credit' => $biayaOngkir,
                 'memo'   => 'Pendapatan ongkir',
+            ];
+        }
+        
+        // Dr. Diskon Penjualan (potongan pendapatan)
+        if ($diskonNominal > 0) {
+            $diskonCoa = $findCoa('Diskon Penjualan', 'Expense');
+            if (!$diskonCoa) {
+                $diskonCoa = Coa::withoutGlobalScopes()
+                    ->where('nama_akun', 'like', '%Diskon%')
+                    ->whereIn('tipe_akun', ['Expense', 'Beban'])
+                    ->when($userId, fn($q) => $q->where('user_id', $userId))
+                    ->orderBy('id', 'desc')
+                    ->first();
+            }
+            if (!$diskonCoa) {
+                // Buat COA Diskon Penjualan otomatis
+                $diskonCoa = Coa::create([
+                    'kode_akun' => '5112',
+                    'nama_akun' => 'Diskon Penjualan',
+                    'tipe_akun' => 'Expense',
+                    'kategori_akun' => 'Diskon',
+                    'saldo_normal' => 'Debit',
+                    'user_id' => $userId ?? 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+            $lines[] = [
+                'code'   => $diskonCoa->kode_akun,
+                'debit'  => $diskonNominal,
+                'credit' => 0,
+                'memo'   => 'Diskon penjualan',
             ];
         }
         
@@ -592,14 +625,16 @@ class JournalService
             // Nilai HPP per unit dari kolom hpp / harga_pokok / harga_bom
             $hppPerUnit = (float)($produk->hpp ?? $produk->harga_pokok ?? $produk->harga_bom ?? 0);
             $totalHPP   = round($hppPerUnit * $qty);
-            if ($totalHPP <= 0) continue;
 
             $namaProduk = $produk->nama_produk;
 
-            // Cari COA HPP yang sesuai (tidak buat baru)
-            $coaHppKode = $this->findCoaHpp($produk, $userId);
-            // Cari COA Persediaan Barang Jadi yang sesuai (tidak buat baru)
-            $coaPersediaanKode = $this->findCoaPersediaan($produk, $userId);
+            // Cari atau buat COA HPP yang sesuai
+            $coaHppKode = $this->getOrCreateCoaHpp($produk, $userId);
+            // Cari atau buat COA Persediaan Barang Jadi yang sesuai
+            $coaPersediaanKode = $this->getOrCreateCoaPersediaan($produk, $userId);
+
+            // Debug log
+            \Log::info("HPP Processing for {$namaProduk}: HPP={$totalHPP}, COA HPP={$coaHppKode}, COA Persediaan={$coaPersediaanKode}");
 
             // Jika salah satu COA tidak ditemukan, skip dan log warning
             if (!$coaHppKode || !$coaPersediaanKode) {
@@ -609,7 +644,8 @@ class JournalService
                 \Log::warning('HPP Journal skipped - COA tidak ditemukan: ' . implode(', ', $missing));
                 continue;
             }
-
+            
+            
             // Dr. HPP (nama produk)
             $lines[] = [
                 'code'   => $coaHppKode,
@@ -631,11 +667,11 @@ class JournalService
     }
 
     /**
-     * Cari COA HPP untuk produk dari COA yang sudah ada.
-     * Prioritas: COA spesifik produk → COA HPP umum (kode 56).
-     * Return null jika tidak ditemukan.
+     * Cari atau buat COA HPP untuk produk.
+     * Prioritas: COA spesifik produk → COA HPP umum → Buat baru.
+     * Return string kode_akun.
      */
-    private function findCoaHpp($produk, $userId): ?string
+    private function findOrCreateCoaHpp($produk, $userId): ?string
     {
         $namaProduk = $produk->nama_produk;
 
@@ -671,7 +707,8 @@ class JournalService
 
         if ($umum) return (string)$umum->kode_akun;
 
-        return null; // COA tidak ditemukan
+        // 3. Buat COA HPP baru otomatis
+        return $this->createCoaHpp($produk, $userId);
     }
 
     /**
@@ -732,20 +769,90 @@ class JournalService
     /**
      * Cari atau buat COA HPP untuk produk.
      * Nama: "HPP {nama_produk}", tipe: Beban, kode: 51xx
-     * @deprecated Gunakan findCoaHpp() — tidak lagi membuat COA baru otomatis
      */
     private function getOrCreateCoaHpp($produk, $userId): string
     {
-        return $this->findCoaHpp($produk, $userId) ?? '56';
+        // Cari COA yang sudah ada
+        $existingCoa = $this->findCoaHpp($produk, $userId);
+        if ($existingCoa) {
+            return $existingCoa;
+        }
+        
+        // Buat COA baru otomatis
+        $namaProduk = $produk->nama_produk;
+        
+        // Generate kode akun unik
+        $lastCoa = Coa::withoutGlobalScopes()
+            ->where('kode_akun', 'like', '56%')
+            ->orderBy('kode_akun', 'desc')
+            ->first();
+        
+        $nextKode = '561'; // Default
+        if ($lastCoa) {
+            $lastNum = (int)preg_replace('/[^0-9]/', '', $lastCoa->kode_akun);
+            $nextKode = '56' . ($lastNum + 1);
+        }
+        
+        // Buat COA baru
+        $newCoa = Coa::create([
+            'kode_akun' => $nextKode,
+            'nama_akun' => 'HPP ' . $namaProduk,
+            'tipe_akun' => 'Expense',
+            'kategori_akun' => 'HPP',
+            'saldo_normal' => 'Debit',
+            'user_id' => $userId ?? 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        
+        \Log::info("Created new COA HPP: {$nextKode} - HPP {$namaProduk}");
+        return $nextKode;
     }
 
     /**
      * Cari atau buat COA Persediaan Barang Jadi untuk produk.
-     * @deprecated Gunakan findCoaPersediaan() — tidak lagi membuat COA baru otomatis
      */
     private function getOrCreateCoaPersediaan($produk, $userId): string
     {
-        return $this->findCoaPersediaan($produk, $userId) ?? '116';
+        // Cari COA yang sudah ada
+        $existingCoa = $this->findCoaPersediaan($produk, $userId);
+        if ($existingCoa) {
+            return $existingCoa;
+        }
+        
+        // Buat COA baru otomatis
+        $namaProduk = $produk->nama_produk;
+        
+        // Generate kode akun unik
+        $lastCoa = Coa::withoutGlobalScopes()
+            ->where('kode_akun', 'like', '116%')
+            ->orderBy('kode_akun', 'desc')
+            ->first();
+        
+        $nextKode = '1161'; // Default
+        if ($lastCoa) {
+            $lastNum = (int)preg_replace('/[^0-9]/', '', $lastCoa->kode_akun);
+            $nextKode = '116' . ($lastNum + 1);
+        }
+        
+        // Buat COA baru
+        $newCoa = Coa::create([
+            'kode_akun' => $nextKode,
+            'nama_akun' => 'Pers. Barang Jadi ' . $namaProduk,
+            'tipe_akun' => 'Asset',
+            'kategori_akun' => 'Persediaan',
+            'saldo_normal' => 'Debit',
+            'user_id' => $userId ?? 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        
+        // Update produk dengan coa_persediaan_id
+        \DB::table('produks')->where('id', $produk->id)
+            ->update(['coa_persediaan_id' => $newCoa->id]);
+        
+        \Log::info("Created new COA Persediaan: {$nextKode} - Pers. Barang Jadi {$namaProduk}");
+        return $nextKode;
     }
 
     /**

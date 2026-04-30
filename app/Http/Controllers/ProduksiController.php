@@ -1817,22 +1817,31 @@ class ProduksiController extends Controller
         foreach ($produksi->proses as $proses) {
             $bopAmount = 0;
             
-            // Exact match dulu
-            if (isset($bopByProcess[$proses->nama_proses])) {
-                $bopAmount = $bopByProcess[$proses->nama_proses];
+            // Normalize process names by removing extra spaces for comparison
+            $normalizedProsesName = preg_replace('/\s+/', ' ', trim($proses->nama_proses));
+            
+            // Exact match dengan nama yang dinormalisasi
+            if (isset($bopByProcess[$normalizedProsesName])) {
+                $bopAmount = $bopByProcess[$normalizedProsesName];
             } else {
-                // Partial match sebagai fallback
-                foreach ($bopByProcess as $prosesName => $bopValue) {
-                    if ($prosesName !== 'Umum' &&
-                        (stripos($proses->nama_proses, $prosesName) !== false ||
-                         stripos($prosesName, $proses->nama_proses) !== false)) {
-                        $bopAmount = $bopValue;
-                        break;
+                // Coba match dengan nama asli (fallback)
+                if (isset($bopByProcess[$proses->nama_proses])) {
+                    $bopAmount = $bopByProcess[$proses->nama_proses];
+                } else {
+                    // Partial match sebagai fallback dengan normalisasi
+                    foreach ($bopByProcess as $prosesName => $bopValue) {
+                        $normalizedBopName = preg_replace('/\s+/', ' ', trim($prosesName));
+                        if ($prosesName !== 'Umum' && $normalizedBopName !== 'Umum' &&
+                            (stripos($normalizedProsesName, $normalizedBopName) !== false ||
+                             stripos($normalizedBopName, $normalizedProsesName) !== false)) {
+                            $bopAmount = $bopValue;
+                            break;
+                        }
                     }
-                }
-                // Jika masih 0, cek apakah ada bucket 'Umum'
-                if ($bopAmount == 0 && isset($bopByProcess['Umum'])) {
-                    $bopAmount = $bopByProcess['Umum'];
+                    // Jika masih 0, cek apakah ada bucket 'Umum'
+                    if ($bopAmount == 0 && isset($bopByProcess['Umum'])) {
+                        $bopAmount = $bopByProcess['Umum'];
+                    }
                 }
             }
             

@@ -77,12 +77,6 @@ class KategoriProdukController extends Controller
         if ($request->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Kategori berhasil diperbarui.']);
         }
-      
-        if (empty($request->kode_kategori)) {
-        $request->merge([
-        'kode_kategori' => 'KAT-' . strtoupper(uniqid())
-        ]);
-    }
 
         return redirect()->route('master-data.produk.index')
                          ->with('success', 'Kategori berhasil diperbarui.');
@@ -90,15 +84,17 @@ class KategoriProdukController extends Controller
 
     public function destroy(KategoriProduk $kategoriProduk)
     {
+        // Check if category has products
+        if ($kategoriProduk->produks()->count() > 0) {
+            return back()->with('error', 'Kategori tidak bisa dihapus karena masih digunakan oleh produk');
+        }
+
         $kategoriProduk->delete();
 
         if (request()->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'Kategori berhasil dihapus.']);
         }
-      
-        if ($kategori->produks()->count() > 0) {
-            return back()->with('error', 'Kategori tidak bisa dihapus karena masih digunakan oleh produk');
-        }
+
         return redirect()->route('master-data.produk.index')
                          ->with('success', 'Kategori berhasil dihapus.');
     }
