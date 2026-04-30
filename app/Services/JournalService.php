@@ -646,7 +646,7 @@ class JournalService
                   ->orWhere('nama_akun', 'Harga Pokok Penjualan ' . $namaProduk)
                   ->orWhere('nama_akun', 'like', '%HPP%' . $namaProduk . '%');
             })
-            ->whereIn('tipe_akun', ['Beban', 'HPP', 'Expense', 'Cost'])
+            ->whereIn('tipe_akun', ['Beban', 'HPP', 'Expense', 'Cost', 'Biaya'])
             ->where(function($q) use ($userId) {
                 $q->where('user_id', $userId)->orWhereNull('user_id');
             })
@@ -662,7 +662,7 @@ class JournalService
                   ->orWhere('nama_akun', 'Harga Pokok Penjualan')
                   ->orWhere('nama_akun', 'HPP');
             })
-            ->whereIn('tipe_akun', ['Beban', 'HPP', 'Expense', 'Cost'])
+            ->whereIn('tipe_akun', ['Beban', 'HPP', 'Expense', 'Cost', 'Biaya'])
             ->where(function($q) use ($userId) {
                 $q->where('user_id', $userId)->orWhereNull('user_id');
             })
