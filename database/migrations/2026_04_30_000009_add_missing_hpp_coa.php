@@ -22,7 +22,7 @@ return new class extends Migration
             'kategori_akun' => 'Biaya',
             'saldo_awal' => 0,
             'saldo_normal' => 'Debit',
-            'is_akun_header' => false,
+            // 'is_akun_header' => false, // Removed - column doesn't exist
             'user_id' => 1, // Will be updated for each company
             'company_id' => 1,
             'created_at' => now(),
@@ -37,7 +37,7 @@ return new class extends Migration
             'kategori_akun' => 'Biaya',
             'saldo_awal' => 0,
             'saldo_normal' => 'Debit',
-            'is_akun_header' => false,
+            // 'is_akun_header' => false, // Removed - column doesn't exist
             'user_id' => 1,
             'company_id' => 1,
             'created_at' => now(),
@@ -56,7 +56,7 @@ return new class extends Migration
                     'kategori_akun' => 'Biaya',
                     'saldo_awal' => 0,
                     'saldo_normal' => 'Debit',
-                    'is_akun_header' => false,
+                    // 'is_akun_header' => false, // Removed - column doesn't exist
                     'user_id' => $company->id,
                     'company_id' => $company->id,
                     'created_at' => now(),
@@ -71,7 +71,7 @@ return new class extends Migration
                     'kategori_akun' => 'Biaya',
                     'saldo_awal' => 0,
                     'saldo_normal' => 'Debit',
-                    'is_akun_header' => false,
+                    // 'is_akun_header' => false, // Removed - column doesn't exist
                     'user_id' => $company->id,
                     'company_id' => $company->id,
                     'created_at' => now(),
