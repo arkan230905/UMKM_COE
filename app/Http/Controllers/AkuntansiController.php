@@ -554,52 +554,46 @@ class AkuntansiController extends Controller
                 $saldoAwal = (float)($coa->saldo_awal ?? 0);
             }
 
-            // Simple query for journal entries
-            $query = \DB::table('journal_entries as je')
-                ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
-                ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
+            // Query jurnal umum data for buku besar
+            $query = \DB::table('jurnal_umum as ju')
+                ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
                 ->select([
-                    'je.*',
-                    'jl.id as line_id',
-                    'jl.debit',
-                    'jl.credit',
-                    'jl.memo as line_memo',
+                    'ju.*',
                     'coas.kode_akun',
                     'coas.nama_akun',
                     'coas.tipe_akun'
                 ])
                 ->where(function($q) {
-                    $q->where('jl.debit', '>', 0)
-                      ->orWhere('jl.credit', '>', 0);
+                    $q->where('ju.debit', '>', 0)
+                      ->orWhere('ju.kredit', '>', 0);
                 })
                 ->where('coas.kode_akun', $accountCode)
-                ->orderBy('je.tanggal','asc')
-                ->orderBy('je.id','asc')
-                ->orderBy('jl.id','asc');
+                ->orderBy('ju.tanggal','asc')
+                ->orderBy('ju.id','asc');
             
             if ($month && $year) {
-                $query->whereMonth('je.tanggal', $month)
-                       ->whereYear('je.tanggal', $year);
+                $query->whereMonth('ju.tanggal', $month)
+                       ->whereYear('ju.tanggal', $year);
             }
 
             $journalLines = $query->get();
 
-            // Group by journal entry untuk struktur yang sesuai dengan view
-            $groupedLines = $journalLines->groupBy('id');
+            // Group by referensi untuk struktur yang sesuai dengan view
+            $groupedLines = $journalLines->groupBy('referensi');
             
-            foreach ($groupedLines as $entryId => $entryLines) {
+            foreach ($groupedLines as $referensi => $entryLines) {
                 $firstLine = $entryLines->first();
                 
                 $lines->push((object) [
                     'id' => $firstLine->id,
                     'tanggal' => $firstLine->tanggal,
-                    'memo' => $firstLine->memo,
+                    'memo' => $firstLine->keterangan,
                     'lines' => $entryLines->map(function($line) {
                         return (object) [
-                            'id' => $line->line_id,
+                            'id' => $line->id,
                             'debit' => $line->debit,
-                            'credit' => $line->credit,
-                            'memo' => $line->line_memo,
+                            'credit' => $line->kredit,
+                            'memo' => $line->keterangan,
                             'coa' => (object) [
                                 'kode_akun' => $line->kode_akun,
                                 'nama_akun' => $line->nama_akun,
@@ -611,7 +605,7 @@ class AkuntansiController extends Controller
             }
 
             $totalDebit = $journalLines->sum('debit');
-            $totalKredit = $journalLines->sum('credit');
+            $totalKredit = $journalLines->sum('kredit');
             $saldoAkhir = $saldoAwal + $totalDebit - $totalKredit;
         }
 
