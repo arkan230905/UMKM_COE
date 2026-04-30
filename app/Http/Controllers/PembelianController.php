@@ -224,6 +224,9 @@ class PembelianController extends Controller
             $subSatuan3 = $freshBahanBaku->sub_satuan_3_id ? 
                 \DB::table('satuans')->where('id', $freshBahanBaku->sub_satuan_3_id)->first() : null;
             
+            // Get COA data
+            $coa = $bb->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bb->coa_persediaan_id)->first() : null;
+            
             $subSatuanData['bahan_baku'][$bb->id] = [
                 'satuan_utama' => $bb->satuan->nama ?? 'Unit',
                 'sub_satuan_1' => $subSatuan1 ? [
@@ -241,6 +244,8 @@ class PembelianController extends Controller
                     'nama' => $subSatuan3->nama,
                     'faktor_konversi' => (float)($freshBahanBaku->sub_satuan_3_nilai ?? 1) // Gunakan NILAI bukan KONVERSI
                 ] : null,
+                'coa_kode' => $coa ? $coa->kode_akun : '114',
+                'coa_nama' => $coa ? $coa->nama_akun : 'Persediaan Bahan Baku',
             ];
         }
         
@@ -263,6 +268,9 @@ class PembelianController extends Controller
             $subSatuan3 = $freshBahanPendukung->sub_satuan_3_id ? 
                 \DB::table('satuans')->where('id', $freshBahanPendukung->sub_satuan_3_id)->first() : null;
             
+            // Get COA data
+            $coa = $bp->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bp->coa_persediaan_id)->first() : null;
+            
             $subSatuanData['bahan_pendukung'][$bp->id] = [
                 'satuan_utama' => $bp->satuanRelation->nama ?? 'Unit',
                 'sub_satuan_1' => $subSatuan1 ? [
@@ -280,6 +288,8 @@ class PembelianController extends Controller
                     'nama' => $subSatuan3->nama,
                     'faktor_konversi' => (float)($freshBahanPendukung->sub_satuan_3_nilai ?? 1) // Gunakan NILAI bukan KONVERSI
                 ] : null,
+                'coa_kode' => $coa ? $coa->kode_akun : '115',
+                'coa_nama' => $coa ? $coa->nama_akun : 'Persediaan Bahan Pendukung',
             ];
         }
             
@@ -1165,6 +1175,9 @@ class PembelianController extends Controller
             $subSatuan3 = $freshBahanBaku->sub_satuan_3_id ? 
                 \DB::table('satuans')->where('id', $freshBahanBaku->sub_satuan_3_id)->first() : null;
             
+            // Get COA data
+            $coa = $bb->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bb->coa_persediaan_id)->first() : null;
+            
             $subSatuanData['bahan_baku'][$bb->id] = [
                 'satuan_utama' => $bb->satuan->nama ?? 'Unit',
                 'sub_satuan_1' => $subSatuan1 ? [
@@ -1182,6 +1195,8 @@ class PembelianController extends Controller
                     'nama' => $subSatuan3->nama,
                     'faktor_konversi' => (float)($freshBahanBaku->sub_satuan_3_nilai ?? 1)
                 ] : null,
+                'coa_kode' => $coa ? $coa->kode_akun : '114',
+                'coa_nama' => $coa ? $coa->nama_akun : 'Persediaan Bahan Baku',
             ];
         }
         
@@ -1204,6 +1219,9 @@ class PembelianController extends Controller
             $subSatuan3 = $freshBahanPendukung->sub_satuan_3_id ? 
                 \DB::table('satuans')->where('id', $freshBahanPendukung->sub_satuan_3_id)->first() : null;
             
+            // Get COA data
+            $coa = $bp->coa_persediaan_id ? \App\Models\Coa::where('kode_akun', $bp->coa_persediaan_id)->first() : null;
+            
             $subSatuanData['bahan_pendukung'][$bp->id] = [
                 'satuan_utama' => $bp->satuanRelation->nama ?? 'Unit',
                 'sub_satuan_1' => $subSatuan1 ? [
@@ -1221,6 +1239,8 @@ class PembelianController extends Controller
                     'nama' => $subSatuan3->nama,
                     'faktor_konversi' => (float)($freshBahanPendukung->sub_satuan_3_nilai ?? 1)
                 ] : null,
+                'coa_kode' => $coa ? $coa->kode_akun : '115',
+                'coa_nama' => $coa ? $coa->nama_akun : 'Persediaan Bahan Pendukung',
             ];
         }
         

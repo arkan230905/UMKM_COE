@@ -394,6 +394,57 @@
             </div>
         </div>
 
+        <!-- Preview Jurnal Pembelian -->
+        <div class="form-section" id="jurnal-preview-section" style="display: block;">
+            <div class="card border-dark">
+                <div class="card-header bg-dark text-white">
+                    <h6 class="mb-0"><i class="fas fa-book me-2"></i>Preview Jurnal Akuntansi</h6>
+                    <small class="text-white-50">Jurnal yang akan dibuat saat pembelian disimpan</small>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-bordered mb-0" style="table-layout:fixed; width:100%; font-size:12px;">
+                        <colgroup>
+                            <col style="width:28%">
+                            <col style="width:22%">
+                            <col style="width:8%">
+                            <col style="width:21%">
+                            <col style="width:21%">
+                        </colgroup>
+                        <thead>
+                            <tr class="table-secondary">
+                                <th class="py-2 ps-3">Keterangan</th>
+                                <th class="py-2">Akun</th>
+                                <th class="py-2 text-center">Ref</th>
+                                <th class="py-2 text-end pe-3">Debit</th>
+                                <th class="py-2 text-end pe-3">Kredit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="table-primary">
+                                <td colspan="5" class="text-center fw-bold py-2">Persediaan Barang</td>
+                            </tr>
+                            <tbody id="jurnal-persediaan-body"></tbody>
+
+                            <tr class="table-info">
+                                <td colspan="5" class="text-center fw-bold py-2">PPN Masukan</td>
+                            </tr>
+                            <tbody id="jurnal-ppn-body"></tbody>
+
+                            <tr class="table-warning">
+                                <td colspan="5" class="text-center fw-bold py-2">Biaya Kirim</td>
+                            </tr>
+                            <tbody id="jurnal-biaya-kirim-body"></tbody>
+
+                            <tr class="table-success">
+                                <td colspan="5" class="text-center fw-bold py-2">Pembayaran</td>
+                            </tr>
+                            <tbody id="jurnal-pembayaran-body"></tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- Total Section -->
         <div class="form-section">
             <div class="total-section">
@@ -555,15 +606,16 @@ function updateItemsBasedOnVendor(vendorSelect) {
             
             Object.keys(items).forEach(itemId => {
                 const item = items[itemId];
-                if (item.vendor_id == vendorId) {
-                    const option = document.createElement('option');
-                    option.value = itemId;
-                    option.setAttribute('data-tipe', vendorKategori === 'Bahan Baku' ? 'bahan_baku' : 'bahan_pendukung');
-                    option.setAttribute('data-nama', item.nama_bahan || item.nama);
-                    option.setAttribute('data-satuan', item.satuan?.nama || item.satuanRelation?.nama || '');
-                    option.textContent = item.nama_bahan || item.nama;
-                    select.appendChild(option);
-                }
+                // Remove vendor_id filtering since bahan_pendukungs doesn't have vendor_id column
+                const option = document.createElement('option');
+                option.value = itemId;
+                option.setAttribute('data-tipe', vendorKategori === 'Bahan Baku' ? 'bahan_baku' : 'bahan_pendukung');
+                option.setAttribute('data-nama', item.nama_bahan || item.nama);
+                option.setAttribute('data-satuan', item.satuan?.nama || item.satuanRelation?.nama || '');
+                option.setAttribute('data-coa-kode', item.coa_kode || '');
+                option.setAttribute('data-coa-nama', item.coa_nama || '');
+                option.textContent = item.nama_bahan || item.nama;
+                select.appendChild(option);
             });
         }
         
@@ -688,6 +740,150 @@ function calculateTotal() {
     document.getElementById('ppn_nominal_display').value = formatNumber(ppnNominal);
     document.getElementById('total_harga').textContent = formatCurrency(total);
     document.getElementById('total_harga_input').value = total;
+    
+    // Update journal preview
+    updateJournalPreview();
+}
+
+// Update journal preview function
+function updateJournalPreview() {
+    let subtotal = 0;
+    let items = [];
+    
+    // Collect item data
+    document.querySelectorAll('.item-row').forEach(row => {
+        const itemSelect = row.querySelector('.item-select');
+        const subtotalValue = row.querySelector('.subtotal-value');
+        const tipeInput = row.querySelector('.tipe-item-input');
+        
+        if (itemSelect && itemSelect.value && subtotalValue && subtotalValue.value && tipeInput) {
+            const selectedOption = itemSelect.options[itemSelect.selectedIndex];
+            const itemName = selectedOption ? selectedOption.text : 'Unknown Item';
+            const itemTipe = tipeInput.value;
+            const amount = parseFloat(subtotalValue.value) || 0;
+            
+            if (amount > 0) {
+                items.push({
+                    name: itemName,
+                    type: itemTipe,
+                    amount: amount
+                });
+                subtotal += amount;
+            }
+        }
+    });
+    
+    // Get additional costs
+    const biayaKirim = parseFloat(document.getElementById('biaya_kirim').value) || 0;
+    const ppnPersen = parseFloat(document.getElementById('ppn_persen').value) || 0;
+    const basePPN = subtotal + biayaKirim;
+    const ppnNominal = basePPN * (ppnPersen / 100);
+    const total = subtotal + biayaKirim + ppnNominal;
+    
+    // Get payment method
+    const bankSelect = document.querySelector('select[name="bank_id"]');
+    const selectedValue = bankSelect ? bankSelect.value : '';
+    
+    // Determine payment method based on selected value
+    let paymentMethod = 'credit'; // default
+    let bankName = 'Hutang Usaha';
+    
+    if (selectedValue === 'credit') {
+        paymentMethod = 'credit';
+        bankName = 'Hutang Usaha';
+    } else if (selectedValue && selectedValue !== '') {
+        // Check if it's a cash or bank account based on the text
+        const selectedText = bankSelect.options[bankSelect.selectedIndex].text.toLowerCase();
+        if (selectedText.includes('kas')) {
+            paymentMethod = 'cash';
+            bankName = 'Kas';
+        } else if (selectedText.includes('bank') || selectedText.includes('transfer')) {
+            paymentMethod = 'transfer';
+            bankName = 'Kas di Bank';
+        } else {
+            // Default to cash for other account types
+            paymentMethod = 'cash';
+            bankName = bankSelect.options[bankSelect.selectedIndex].text.replace(/[^\w\s]/gi, '').trim();
+        }
+    }
+    
+    // Show/hide journal preview section
+    const journalSection = document.getElementById('jurnal-preview-section');
+    if (items.length > 0) {
+        journalSection.style.display = 'block';
+    } else {
+        journalSection.style.display = 'none';
+        return;
+    }
+    
+    // Helper functions for journal rows
+    const rowD = (ket, akunKode, akunNama, val) =>
+        `<tr>
+            <td class="ps-3">${ket}</td>
+            <td><span class="badge bg-secondary me-1">${akunKode}</span>${akunNama}</td>
+            <td class="text-center text-muted" style="font-size:10px">${akunKode}</td>
+            <td class="text-end pe-3 fw-semibold text-nowrap">${formatCurrency(val)}</td>
+            <td class="text-end pe-3"></td>
+        </tr>`;
+
+    const rowK = (ket, akunKode, akunNama, val) =>
+        `<tr>
+            <td class="ps-5 text-muted">${ket}</td>
+            <td><span class="badge bg-secondary me-1">${akunKode}</span>${akunNama}</td>
+            <td class="text-center text-muted" style="font-size:10px">${akunKode}</td>
+            <td class="text-end pe-3"></td>
+            <td class="text-end pe-3 text-nowrap">${formatCurrency(val)}</td>
+        </tr>`;
+
+    const empty5 = `<tr><td colspan="5" class="text-center text-muted ps-3">-</td></tr>`;
+    
+    // 1. Persediaan Barang (Debit)
+    let j1 = '';
+    items.forEach(item => {
+        // Default COA codes based on item type
+        let coaKode = '114'; // Default for bahan baku
+        let coaNama = 'Persediaan Bahan Baku';
+        
+        if (item.type === 'bahan_pendukung') {
+            coaKode = '115';
+            coaNama = 'Persediaan Bahan Pendukung';
+        }
+        
+        j1 += rowD(item.name, coaKode, coaNama, item.amount);
+    });
+    document.getElementById('jurnal-persediaan-body').innerHTML = j1 || empty5;
+    
+    // 2. PPN Masukan (Debit)
+    let j2 = '';
+    if (ppnNominal > 0) {
+        j2 += rowD('PPN Masukan', '127', 'PPN Masukan', ppnNominal);
+    }
+    document.getElementById('jurnal-ppn-body').innerHTML = j2 || empty5;
+    
+    // 3. Biaya Kirim (Debit)
+    let j3 = '';
+    if (biayaKirim > 0) {
+        j3 += rowD('Biaya Kirim', '5111', 'Biaya Kirim', biayaKirim);
+    }
+    document.getElementById('jurnal-biaya-kirim-body').innerHTML = j3 || empty5;
+    
+    // 4. Pembayaran (Kredit)
+    let j4 = '';
+    let paymentCoaKode = '210'; // Default: Hutang Usaha
+    let paymentCoaNama = 'Hutang Usaha';
+    
+    if (paymentMethod === 'cash') {
+        paymentCoaKode = '112';
+        paymentCoaNama = 'Kas';
+    } else if (paymentMethod === 'transfer') {
+        paymentCoaKode = '111';
+        paymentCoaNama = 'Kas di Bank';
+    }
+    
+    if (total > 0) {
+        j4 += rowK(paymentCoaNama, paymentCoaKode, paymentCoaNama, total);
+    }
+    document.getElementById('jurnal-pembayaran-body').innerHTML = j4 || empty5;
 }
 
 // Debug form data
@@ -702,6 +898,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (vendorSelect && vendorSelect.value) {
         updateItemsBasedOnVendor(vendorSelect);
     }
+    
+    // Add event listener for payment method changes
+    const bankSelect = document.querySelector('select[name="bank_id"]');
+    if (bankSelect) {
+        bankSelect.addEventListener('change', function() {
+            calculateTotal();
+        });
+    }
+    
+    // Initialize journal preview on page load
+    updateJournalPreview();
 });
 </script>
 @endsection
