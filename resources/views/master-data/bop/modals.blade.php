@@ -18,6 +18,43 @@
                         </div>
                     </div>
                     
+                    <!-- COA Jurnal Produksi -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">COA Debit (BDP-BOP)</label>
+                            <select name="coa_debit_id" id="coa_debit_id" class="form-select">
+                                <option value="">-- Pilih COA Debit --</option>
+                                @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
+                                    <option value="{{ $coa->kode_akun }}" {{ $coa->kode_akun == '1173' ? 'selected' : '' }}>
+                                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">COA untuk debit BDP-BOP (default: 1173)</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">COA Kredit (Hutang/Persediaan)</label>
+                            <select name="coa_kredit_id" id="coa_kredit_id" class="form-select">
+                                <option value="">-- Pilih COA Kredit --</option>
+                                <optgroup label="Hutang">
+                                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '21%')->orderBy('kode_akun')->get() as $coa)
+                                        <option value="{{ $coa->kode_akun }}" {{ $coa->kode_akun == '210' ? 'selected' : '' }}>
+                                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                                <optgroup label="Persediaan Bahan Pendukung">
+                                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '115%')->orderBy('kode_akun')->get() as $coa)
+                                        <option value="{{ $coa->kode_akun }}">
+                                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            </select>
+                            <small class="text-muted">COA untuk kredit (Hutang Usaha atau Persediaan)</small>
+                        </div>
+                    </div>
+                    
                     <!-- BOP Components -->
                     <div class="row mt-3">
                         <div class="col-12">
@@ -105,6 +142,43 @@
                             <label class="form-label">Nama BOP Proses <span class="text-danger">*</span></label>
                             <input type="text" name="nama_bop_proses" id="editNamaBopProses" class="form-control" placeholder="Contoh: Pertumbuhan, Panen, Sortir, dll" required>
                             <small class="text-muted">Masukkan nama proses BOP yang ingin Anda edit</small>
+                        </div>
+                    </div>
+                    
+                    <!-- COA Jurnal Produksi -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">COA Debit (BDP-BOP)</label>
+                            <select name="coa_debit_id" id="editCoaDebitId" class="form-select">
+                                <option value="">-- Pilih COA Debit --</option>
+                                @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '117%')->orderBy('kode_akun')->get() as $coa)
+                                    <option value="{{ $coa->kode_akun }}">
+                                        {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">COA untuk debit BDP-BOP (default: 1173)</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">COA Kredit (Hutang/Persediaan)</label>
+                            <select name="coa_kredit_id" id="editCoaKreditId" class="form-select">
+                                <option value="">-- Pilih COA Kredit --</option>
+                                <optgroup label="Hutang">
+                                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '21%')->orderBy('kode_akun')->get() as $coa)
+                                        <option value="{{ $coa->kode_akun }}">
+                                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                                <optgroup label="Persediaan Bahan Pendukung">
+                                    @foreach(\App\Models\Coa::withoutGlobalScopes()->where('user_id', auth()->id())->where('kode_akun', 'LIKE', '115%')->orderBy('kode_akun')->get() as $coa)
+                                        <option value="{{ $coa->kode_akun }}">
+                                            {{ $coa->kode_akun }} - {{ $coa->nama_akun }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            </select>
+                            <small class="text-muted">COA untuk kredit (Hutang Usaha atau Persediaan)</small>
                         </div>
                     </div>
                     

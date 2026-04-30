@@ -732,6 +732,8 @@ class BopController extends Controller
                 'bop_per_unit' => $bopPerUnit,
                 'keterangan' => $request->input('keterangan', "BOP untuk {$request->input('nama_bop_proses')}"),
                 'is_active' => true,
+                'coa_debit_id' => $request->input('coa_debit_id', '1173'), // Default BDP-BOP
+                'coa_kredit_id' => $request->input('coa_kredit_id', '210'), // Default Hutang Usaha
             ];
             
             // Add periode if column exists
@@ -849,6 +851,8 @@ class BopController extends Controller
                 'total_bop_per_jam' => $totalBopPerJam,
                 'bop_per_unit' => $bopPerUnit,
                 'keterangan' => $validated['keterangan'] ?? null,
+                'coa_debit_id' => $request->input('coa_debit_id', $bopProses->coa_debit_id ?? '1173'),
+                'coa_kredit_id' => $request->input('coa_kredit_id', $bopProses->coa_kredit_id ?? '210'),
             ]);
 
             DB::commit();

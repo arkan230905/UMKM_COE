@@ -26,7 +26,9 @@ class BopProses extends Model
         'bop_per_unit',
         'periode',
         'keterangan',
-        'is_active'
+        'is_active',
+        'coa_debit_id',
+        'coa_kredit_id',
     ];
 
     protected $casts = [
@@ -91,6 +93,22 @@ class BopProses extends Model
     public function prosesProduksi()
     {
         return $this->belongsTo(ProsesProduksi::class, 'proses_produksi_id');
+    }
+
+    /**
+     * Relasi ke COA Debit (BDP-BOP)
+     */
+    public function coaDebit()
+    {
+        return $this->belongsTo(Coa::class, 'coa_debit_id', 'kode_akun');
+    }
+
+    /**
+     * Relasi ke COA Kredit (Hutang/Persediaan)
+     */
+    public function coaKredit()
+    {
+        return $this->belongsTo(Coa::class, 'coa_kredit_id', 'kode_akun');
     }
 
     /**

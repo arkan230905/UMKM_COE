@@ -554,6 +554,14 @@ function editBopProses(id) {
                 // Set nama BOP proses
                 document.getElementById('editNamaBopProses').value = bop.nama_bop_proses || '';
                 
+                // Set COA fields
+                if (document.getElementById('editCoaDebitId')) {
+                    document.getElementById('editCoaDebitId').value = bop.coa_debit_id || '1173';
+                }
+                if (document.getElementById('editCoaKreditId')) {
+                    document.getElementById('editCoaKreditId').value = bop.coa_kredit_id || '210';
+                }
+                
                 // Load components
                 loadEditComponents(bop);
                 
