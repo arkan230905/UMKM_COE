@@ -2,7 +2,7 @@
 @php
     $kapasitas = $bopProses->kapasitas_per_jam ?? 0;
     $totalBopPerProduk = $bopProses->total_bop_per_jam ?? 0; // This now stores per-product total
-    $btklPerJam = $bopProses->prosesProduksi->tarif_btkl ?? 0;
+    $btklPerJam = $bopProses->prosesProduksi ? ($bopProses->prosesProduksi->tarif_btkl ?? 0) : 0;
     $btklPerProduk = $kapasitas > 0 ? $btklPerJam / $kapasitas : 0;
     
     // Biaya per produk = BTKL per produk + Total BOP per produk
@@ -13,14 +13,14 @@
 @endphp
 
 <div class="container-fluid p-0">
-    <!-- Section: Informasi Proes -->
+    <!-- Section: Informasi Proses -->
     <div class="mb-4">
         <h6 class="mb-3 text-muted">Informasi Proses</h6>
         <div class="row g-3">
             <div class="col-6">
                 <div class="d-flex flex-column">
-                    <small class="text-muted mb-1">Proses</small>
-                    <strong class="fs-6">{{ $bopProses->prosesProduksi->nama_proses ?? 'N/A' }}</strong>
+                    <small class="text-muted mb-1">Nama BOP Proses</small>
+                    <strong class="fs-6">{{ $bopProses->nama_bop_proses ?? ($bopProses->prosesProduksi ? $bopProses->prosesProduksi->nama_proses : 'N/A') }}</strong>
                 </div>
             </div>
             <div class="col-6">
@@ -29,6 +29,7 @@
                     <strong class="fs-6">{{ $kapasitas }} pcs/jam</strong>
                 </div>
             </div>
+            @if($bopProses->prosesProduksi)
             <div class="col-6">
                 <div class="d-flex flex-column">
                     <small class="text-muted mb-1">BTKL / jam</small>
@@ -41,6 +42,7 @@
                     <strong class="fs-6 text-primary">Rp {{ number_format($btklPerProduk, 0, ',', '.') }}</strong>
                 </div>
             </div>
+            @endif
         </div>
     </div>
 

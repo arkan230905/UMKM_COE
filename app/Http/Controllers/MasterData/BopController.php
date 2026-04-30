@@ -383,8 +383,11 @@ class BopController extends Controller
         try {
             $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
             
-            // Get matching BTKL data based on process name
-            $btkl = \App\Models\Btkl::where('nama_btkl', $bopProses->prosesProduksi->nama_proses)->first();
+            // Get matching BTKL data based on process name (only if prosesProduksi exists)
+            $btkl = null;
+            if ($bopProses->prosesProduksi) {
+                $btkl = \App\Models\Btkl::where('nama_btkl', $bopProses->prosesProduksi->nama_proses)->first();
+            }
             
             return view('master-data.bop.show-proses-modal', compact('bopProses', 'btkl'));
             
