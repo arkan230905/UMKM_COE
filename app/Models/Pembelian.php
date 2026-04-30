@@ -15,6 +15,7 @@ class Pembelian extends Model
     protected $fillable = [
         'nomor_pembelian',
         'nomor_faktur',
+        'bukti_faktur',
         'vendor_id',
         'kode_pembelian',
         'tanggal',
@@ -62,19 +63,11 @@ class Pembelian extends Model
         });
         
         static::deleting(function ($pembelian) {
-            // Delete related pembelian details
-            $pembelian->pembelianDetails()->delete();
+            // Delete journal entries FIRST (before details are deleted)
+            $journalService = new \App\Services\JournalService();
+            $journalService->deleteByRef('purchase', $pembelian->id);
             
-            // Delete related AP settlements
-            $pembelian->apSettlements()->delete();
-            
-            // Delete related pelunasan
-            $pembelian->pelunasan()->delete();
-            
-            // Delete journal entries
-            \App\Services\JournalService::deleteByRef('purchase', $pembelian->id);
-            
-            // Update stock layers - reverse the stock movements
+            // Update stock layers - reverse the stock movements (before details are deleted)
             foreach ($pembelian->pembelianDetails as $detail) {
                 // Create reverse stock movement
                 \App\Models\StockMovement::create([
@@ -102,6 +95,15 @@ class Pembelian extends Model
                     $stockLayer->save();
                 }
             }
+            
+            // Delete related pembelian details LAST
+            $pembelian->pembelianDetails()->delete();
+            
+            // Delete related AP settlements
+            $pembelian->apSettlements()->delete();
+            
+            // Delete related pelunasan
+            $pembelian->pelunasan()->delete();
         });
     }
     
