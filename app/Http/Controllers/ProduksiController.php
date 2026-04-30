@@ -1297,6 +1297,7 @@ class ProduksiController extends Controller
     private function getBopCoaKeywordMap($allCoas, $userId): array
     {
         return [
+            // Bahan Pendukung - akan dicari dari master data bahan_pendukungs
             'Air Mineral'          => ['kredit_prefix' => '115'],
             'Air Galon'            => ['kredit_prefix' => '115'],
             'Minyak Goreng'        => ['kredit_prefix' => '115'],
@@ -1307,12 +1308,21 @@ class ProduksiController extends Controller
             'Bubuk Bawang'         => ['kredit_prefix' => '115'],
             'Bawang Putih'         => ['kredit_prefix' => '115'],
             'Kemasan'              => ['kredit_prefix' => '115'],
+            'Susu'                 => ['kredit_prefix' => '113'], // Pers. Bahan Pendukung
+            'Keju'                 => ['kredit_prefix' => '113'], // Pers. Bahan Pendukung
+            'Cup'                  => ['kredit_prefix' => '113'], // Pers. Bahan Pendukung
+            'Toples'               => ['kredit_prefix' => '113'], // Pers. Bahan Pendukung
+            'Botol'                => ['kredit_prefix' => '113'], // Pers. Bahan Pendukung
+            'Plastik'              => ['kredit_prefix' => '113'], // Pers. Bahan Pendukung
+            'Kardus'               => ['kredit_prefix' => '113'], // Pers. Bahan Pendukung
+            'Label'                => ['kredit_prefix' => '113'], // Pers. Bahan Pendukung
+            // BTKL dan BOP lainnya
             'BTKTL'                => ['kredit_kode' => '211'],
             'Pegawai'              => ['kredit_kode' => '211'],
             'Satpam'               => ['kredit_kode' => '211'],
             'Cleaning'             => ['kredit_kode' => '211'],
             'Mandor'               => ['kredit_kode' => '211'],
-            'Listrik'              => ['kredit_kode' => '210'],
+            'Listrik'              => ['kredit_prefix' => '113'], // Bisa jadi bahan pendukung atau hutang
             'Sewa'                 => ['kredit_kode' => '210'],
             'Penyusutan Gedung'    => ['kredit_kode' => '120'],
             'Penyusutan Peralatan' => ['kredit_kode' => '120'],
@@ -1337,18 +1347,44 @@ class ProduksiController extends Controller
         foreach ($bopCoaMap as $keyword => $cfg) {
             if (stripos($namaKomponen, $keyword) !== false) {
                 if (isset($cfg['kredit_prefix'])) {
-                    // Coba match nama_akun dengan kata-kata dari namaKomponen (partial, tiap kata)
+                    // PRIORITAS 1: Cari dari master data bahan pendukung berdasarkan nama
+                    $bahanPendukung = \App\Models\BahanPendukung::withoutGlobalScopes()
+                        ->where('user_id', $userId)
+                        ->where('nama_bahan', 'LIKE', '%' . $namaKomponen . '%')
+                        ->first();
+                    
+                    // Jika tidak ditemukan dengan nama lengkap, coba dengan keyword
+                    if (!$bahanPendukung) {
+                        $bahanPendukung = \App\Models\BahanPendukung::withoutGlobalScopes()
+                            ->where('user_id', $userId)
+                            ->where('nama_bahan', 'LIKE', '%' . $keyword . '%')
+                            ->first();
+                    }
+                    
+                    // Jika ditemukan bahan pendukung dan memiliki COA persediaan, gunakan itu
+                    if ($bahanPendukung && $bahanPendukung->coa_persediaan_id) {
+                        $coaKredit = \App\Models\Coa::withoutGlobalScopes()
+                            ->where('user_id', $userId)
+                            ->where('kode_akun', $bahanPendukung->coa_persediaan_id)
+                            ->first();
+                        
+                        if ($coaKredit) {
+                            return [$coaKredit->kode_akun, $coaKredit->nama_akun];
+                        }
+                    }
+                    
+                    // PRIORITAS 2: Coba match nama_akun dengan kata-kata dari namaKomponen (partial, tiap kata)
                     $words = array_filter(explode(' ', $namaKomponen), fn($w) => strlen($w) > 3);
                     $coaKredit = null;
 
-                    // 1. Coba exact match nama komponen
+                    // 2.1. Coba exact match nama komponen
                     $coaKredit = \App\Models\Coa::withoutGlobalScopes()
                         ->where('user_id', $userId)
                         ->where('kode_akun', 'LIKE', $cfg['kredit_prefix'] . '%')
                         ->where('nama_akun', 'LIKE', '%' . $namaKomponen . '%')
                         ->first();
 
-                    // 2. Coba match tiap kata penting dari namaKomponen
+                    // 2.2. Coba match tiap kata penting dari namaKomponen
                     if (!$coaKredit) {
                         foreach ($words as $word) {
                             $coaKredit = \App\Models\Coa::withoutGlobalScopes()
@@ -1361,7 +1397,7 @@ class ProduksiController extends Controller
                         }
                     }
 
-                    // 3. Fallback ke keyword itu sendiri
+                    // 2.3. Fallback ke keyword itu sendiri
                     if (!$coaKredit) {
                         $coaKredit = \App\Models\Coa::withoutGlobalScopes()
                             ->where('user_id', $userId)
@@ -1371,7 +1407,7 @@ class ProduksiController extends Controller
                             ->first();
                     }
 
-                    // 4. Fallback ke parent account
+                    // 2.4. Fallback ke parent account
                     if (!$coaKredit) {
                         $coaKredit = $allCoas[$cfg['kredit_prefix']] ?? null;
                     }
