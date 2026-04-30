@@ -703,13 +703,17 @@ class BopController extends Controller
             $komponenNames = $request->input('komponen_name', []);
             $komponenRates = $request->input('komponen_rate', []);
             $komponenDescs = $request->input('komponen_desc', []);
+            $komponenCoaDebits = $request->input('komponen_coa_debit', []);
+            $komponenCoaKredits = $request->input('komponen_coa_kredit', []);
 
             foreach ($komponenNames as $index => $name) {
                 if (!empty(trim($name)) && isset($komponenRates[$index]) && floatval($komponenRates[$index]) > 0) {
                     $components[] = [
                         'component' => trim($name),
                         'rate_per_hour' => floatval($komponenRates[$index]),
-                        'description' => $komponenDescs[$index] ?? ''
+                        'description' => $komponenDescs[$index] ?? '',
+                        'coa_debit' => $komponenCoaDebits[$index] ?? '1173',
+                        'coa_kredit' => $komponenCoaKredits[$index] ?? '210',
                     ];
                 }
             }
@@ -732,8 +736,6 @@ class BopController extends Controller
                 'bop_per_unit' => $bopPerUnit,
                 'keterangan' => $request->input('keterangan', "BOP untuk {$request->input('nama_bop_proses')}"),
                 'is_active' => true,
-                'coa_debit_id' => $request->input('coa_debit_id', '1173'), // Default BDP-BOP
-                'coa_kredit_id' => $request->input('coa_kredit_id', '210'), // Default Hutang Usaha
             ];
             
             // Add periode if column exists
@@ -819,6 +821,9 @@ class BopController extends Controller
             
             // Build components array from form data
             $components = [];
+            $komponenCoaDebits = $request->input('komponen_coa_debit', []);
+            $komponenCoaKredits = $request->input('komponen_coa_kredit', []);
+            
             foreach ($validated['komponen_name'] as $index => $name) {
                 $rate = floatval($validated['komponen_rate'][$index] ?? 0);
                 $desc = $validated['komponen_desc'][$index] ?? '';
@@ -828,6 +833,8 @@ class BopController extends Controller
                         'component' => trim($name),
                         'rate_per_hour' => $rate,
                         'description' => $desc,
+                        'coa_debit' => $komponenCoaDebits[$index] ?? '1173',
+                        'coa_kredit' => $komponenCoaKredits[$index] ?? '210',
                     ];
                 }
             }
@@ -851,8 +858,6 @@ class BopController extends Controller
                 'total_bop_per_jam' => $totalBopPerJam,
                 'bop_per_unit' => $bopPerUnit,
                 'keterangan' => $validated['keterangan'] ?? null,
-                'coa_debit_id' => $request->input('coa_debit_id', $bopProses->coa_debit_id ?? '1173'),
-                'coa_kredit_id' => $request->input('coa_kredit_id', $bopProses->coa_kredit_id ?? '210'),
             ]);
 
             DB::commit();
