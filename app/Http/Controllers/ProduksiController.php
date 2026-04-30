@@ -181,11 +181,13 @@ class ProduksiController extends Controller
                     ]);
                 }
 
-                // Detail BOP — gunakan logika mapping yang sama seperti getBomDetails
+                // Detail BOP — ambil COA dari BopProses komponen
                 $coaBdpBop = $allCoas['1173'] ?? $allCoas['117'] ?? null;
-                $bopCoaMap = $this->getBopCoaKeywordMap($allCoas, $userId);
 
-                $bomJobBOPs = \App\Models\BomJobBOP::where('bom_job_costing_id', $bomJobCosting->id)->get();
+                $bomJobBOPs = \App\Models\BomJobBOP::where('bom_job_costing_id', $bomJobCosting->id)
+                    ->with('bopProses')
+                    ->get();
+                    
                 foreach ($bomJobBOPs as $bomJobBOP) {
                     $namaBop  = $bomJobBOP->nama_bop ?? '';
                     $subtotal = (float)($bomJobBOP->subtotal ?? 0);
@@ -193,7 +195,55 @@ class ProduksiController extends Controller
                     $namaProses    = $dashPos !== false ? trim(substr($namaBop, 0, $dashPos)) : $namaBop;
                     $namaKomponen  = $dashPos !== false ? trim(substr($namaBop, $dashPos + 3)) : $namaBop;
 
-                    [$kreditKode, $kreditNama] = $this->resolveBopKredit($namaKomponen, $bopCoaMap, $allCoas, $userId);
+                    // PRIORITAS 1: Ambil COA dari BopProses komponen_bop
+                    $kreditKode = '210'; // Default
+                    $kreditNama = 'Hutang Usaha';
+                    $debitKode = '1173'; // Default
+                    $debitNama = 'BDP - BOP';
+                    
+                    if ($bomJobBOP->bopProses && $bomJobBOP->bopProses->komponen_bop) {
+                        $komponenBop = is_array($bomJobBOP->bopProses->komponen_bop) 
+                            ? $bomJobBOP->bopProses->komponen_bop 
+                            : json_decode($bomJobBOP->bopProses->komponen_bop, true);
+                        
+                        if (is_array($komponenBop)) {
+                            // Cari komponen yang sesuai dengan namaKomponen
+                            foreach ($komponenBop as $komponen) {
+                                $componentName = $komponen['component'] ?? '';
+                                if (stripos($componentName, $namaKomponen) !== false || stripos($namaKomponen, $componentName) !== false) {
+                                    // Gunakan COA dari komponen
+                                    if (!empty($komponen['coa_debit'])) {
+                                        $coaDebit = \App\Models\Coa::withoutGlobalScopes()
+                                            ->where('user_id', $userId)
+                                            ->where('kode_akun', $komponen['coa_debit'])
+                                            ->first();
+                                        if ($coaDebit) {
+                                            $debitKode = $coaDebit->kode_akun;
+                                            $debitNama = $coaDebit->nama_akun;
+                                        }
+                                    }
+                                    
+                                    if (!empty($komponen['coa_kredit'])) {
+                                        $coaKredit = \App\Models\Coa::withoutGlobalScopes()
+                                            ->where('user_id', $userId)
+                                            ->where('kode_akun', $komponen['coa_kredit'])
+                                            ->first();
+                                        if ($coaKredit) {
+                                            $kreditKode = $coaKredit->kode_akun;
+                                            $kreditNama = $coaKredit->nama_akun;
+                                        }
+                                    }
+                                    break; // Sudah ketemu, stop
+                                }
+                            }
+                        }
+                    }
+                    
+                    // PRIORITAS 2: Fallback ke resolveBopKredit jika tidak ada di komponen
+                    if ($kreditKode === '210' && $kreditNama === 'Hutang Usaha') {
+                        $bopCoaMap = $this->getBopCoaKeywordMap($allCoas, $userId);
+                        [$kreditKode, $kreditNama] = $this->resolveBopKredit($namaKomponen, $bopCoaMap, $allCoas, $userId);
+                    }
 
                     \App\Models\ProduksiBopDetail::create([
                         'produksi_id'     => $produksi->id,
@@ -201,8 +251,8 @@ class ProduksiController extends Controller
                         'nama_komponen'   => $namaKomponen,
                         'rate_per_unit'   => $subtotal,
                         'total'           => $subtotal * $qtyProd,
-                        'coa_debit_kode'  => $coaBdpBop->kode_akun ?? '1173',
-                        'coa_debit_nama'  => $coaBdpBop->nama_akun ?? 'BDP - BOP',
+                        'coa_debit_kode'  => $debitKode,
+                        'coa_debit_nama'  => $debitNama,
                         'coa_kredit_kode' => $kreditKode,
                         'coa_kredit_nama' => $kreditNama,
                     ]);
@@ -566,24 +616,74 @@ class ProduksiController extends Controller
                     ]);
                 }
 
-                // BOP
+                // BOP - ambil COA dari BopProses komponen
                 $coaBdpBop = $allCoas['1173'] ?? $allCoas['117'] ?? null;
-                $bopCoaMap = $this->getBopCoaKeywordMap($allCoas, $userId);
-                foreach (\App\Models\BomJobBOP::where('bom_job_costing_id', $bomJobCosting->id)->get() as $bomJobBOP) {
+                
+                foreach (\App\Models\BomJobBOP::where('bom_job_costing_id', $bomJobCosting->id)->with('bopProses')->get() as $bomJobBOP) {
                     $namaBop      = $bomJobBOP->nama_bop ?? '';
                     $subtotal     = (float)($bomJobBOP->subtotal ?? 0);
                     $dashPos      = strpos($namaBop, ' - ');
                     $namaProses   = $dashPos !== false ? trim(substr($namaBop, 0, $dashPos)) : $namaBop;
                     $namaKomponen = $dashPos !== false ? trim(substr($namaBop, $dashPos + 3)) : $namaBop;
-                    [$kreditKode, $kreditNama] = $this->resolveBopKredit($namaKomponen, $bopCoaMap, $allCoas, $userId);
+                    
+                    // PRIORITAS 1: Ambil COA dari BopProses komponen_bop
+                    $kreditKode = '210'; // Default
+                    $kreditNama = 'Hutang Usaha';
+                    $debitKode = '1173'; // Default
+                    $debitNama = 'BDP - BOP';
+                    
+                    if ($bomJobBOP->bopProses && $bomJobBOP->bopProses->komponen_bop) {
+                        $komponenBop = is_array($bomJobBOP->bopProses->komponen_bop) 
+                            ? $bomJobBOP->bopProses->komponen_bop 
+                            : json_decode($bomJobBOP->bopProses->komponen_bop, true);
+                        
+                        if (is_array($komponenBop)) {
+                            // Cari komponen yang sesuai dengan namaKomponen
+                            foreach ($komponenBop as $komponen) {
+                                $componentName = $komponen['component'] ?? '';
+                                if (stripos($componentName, $namaKomponen) !== false || stripos($namaKomponen, $componentName) !== false) {
+                                    // Gunakan COA dari komponen
+                                    if (!empty($komponen['coa_debit'])) {
+                                        $coaDebit = \App\Models\Coa::withoutGlobalScopes()
+                                            ->where('user_id', $userId)
+                                            ->where('kode_akun', $komponen['coa_debit'])
+                                            ->first();
+                                        if ($coaDebit) {
+                                            $debitKode = $coaDebit->kode_akun;
+                                            $debitNama = $coaDebit->nama_akun;
+                                        }
+                                    }
+                                    
+                                    if (!empty($komponen['coa_kredit'])) {
+                                        $coaKredit = \App\Models\Coa::withoutGlobalScopes()
+                                            ->where('user_id', $userId)
+                                            ->where('kode_akun', $komponen['coa_kredit'])
+                                            ->first();
+                                        if ($coaKredit) {
+                                            $kreditKode = $coaKredit->kode_akun;
+                                            $kreditNama = $coaKredit->nama_akun;
+                                        }
+                                    }
+                                    break; // Sudah ketemu, stop
+                                }
+                            }
+                        }
+                    }
+                    
+                    // PRIORITAS 2: Fallback ke resolveBopKredit jika tidak ada di komponen
+                    if ($kreditKode === '210' && $kreditNama === 'Hutang Usaha') {
+                        $bopCoaMap = $this->getBopCoaKeywordMap($allCoas, $userId);
+                        [$kreditKode, $kreditNama] = $this->resolveBopKredit($namaKomponen, $bopCoaMap, $allCoas, $userId);
+                    }
+                    
                     \App\Models\ProduksiBopDetail::create([
                         'produksi_id'     => $produksi->id,
                         'nama_proses'     => $namaProses,
                         'nama_komponen'   => $namaKomponen,
                         'rate_per_unit'   => $subtotal,
                         'total'           => $subtotal * $qtyProd,
-                        'coa_debit_kode'  => $coaBdpBop->kode_akun ?? '1173',
-                        'coa_debit_nama'  => $coaBdpBop->nama_akun ?? 'BDP - BOP',
+                        'coa_debit_kode'  => $debitKode,
+                        'coa_debit_nama'  => $debitNama,
                         'coa_kredit_kode' => $kreditKode,
                         'coa_kredit_nama' => $kreditNama,
                     ]);
