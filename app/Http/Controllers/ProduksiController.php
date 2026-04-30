@@ -1316,13 +1316,13 @@ class ProduksiController extends Controller
             'Plastik'              => ['kredit_prefix' => '113'], // Pers. Bahan Pendukung
             'Kardus'               => ['kredit_prefix' => '113'], // Pers. Bahan Pendukung
             'Label'                => ['kredit_prefix' => '113'], // Pers. Bahan Pendukung
-            // BTKL dan BOP lainnya
+            // BTKL dan BOP lainnya - langsung ke hutang/biaya
             'BTKTL'                => ['kredit_kode' => '211'],
             'Pegawai'              => ['kredit_kode' => '211'],
             'Satpam'               => ['kredit_kode' => '211'],
             'Cleaning'             => ['kredit_kode' => '211'],
             'Mandor'               => ['kredit_kode' => '211'],
-            'Listrik'              => ['kredit_prefix' => '113'], // Bisa jadi bahan pendukung atau hutang
+            'Listrik'              => ['kredit_kode' => '210'], // Hutang Usaha (bukan persediaan)
             'Sewa'                 => ['kredit_kode' => '210'],
             'Penyusutan Gedung'    => ['kredit_kode' => '120'],
             'Penyusutan Peralatan' => ['kredit_kode' => '120'],
