@@ -51,25 +51,47 @@
     <div class="mb-4">
         <h6 class="mb-3 text-muted">Komponen BOP</h6>
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover table-sm">
                 <thead class="table-light">
                     <tr>
-                        <th style="width: 8%" class="text-center">No</th>
-                        <th style="width: 42%">Komponen</th>
-                        <th style="width: 25%" class="text-end">Rp / produk</th>
-                        <th style="width: 25%">Keterangan</th>
+                        <th style="width: 5%" class="text-center">No</th>
+                        <th style="width: 20%">Komponen</th>
+                        <th style="width: 15%" class="text-end">Rp / produk</th>
+                        <th style="width: 20%">COA Debit</th>
+                        <th style="width: 20%">COA Kredit</th>
+                        <th style="width: 20%">Keterangan</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($komponenBop as $index => $komponen)
                         @php
                             $rate = floatval($komponen['rate_per_hour'] ?? 0);
+                            $coaDebit = $komponen['coa_debit'] ?? '1173';
+                            $coaKredit = $komponen['coa_kredit'] ?? '210';
+                            
+                            // Get COA names
+                            $coaDebitObj = \App\Models\Coa::withoutGlobalScopes()
+                                ->where('user_id', auth()->id())
+                                ->where('kode_akun', $coaDebit)
+                                ->first();
+                            $coaKreditObj = \App\Models\Coa::withoutGlobalScopes()
+                                ->where('user_id', auth()->id())
+                                ->where('kode_akun', $coaKredit)
+                                ->first();
                         @endphp
                         <tr>
                             <td class="text-center">{{ $index + 1 }}</td>
                             <td>{{ $komponen['component'] ?? 'N/A' }}</td>
                             <td class="text-end fw-semibold">Rp {{ number_format($rate, 0, ',', '.') }}</td>
-                            <td>{{ $komponen['description'] ?? $komponen['keterangan'] ?? '-' }}</td>
+                            <td>
+                                <small class="text-muted">{{ $coaDebit }}</small><br>
+                                <small>{{ $coaDebitObj ? $coaDebitObj->nama_akun : 'BDP-BOP' }}</small>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ $coaKredit }}</small><br>
+                                <small>{{ $coaKreditObj ? $coaKreditObj->nama_akun : 'Hutang Usaha' }}</small>
+                            </td>
+                            <td><small>{{ $komponen['description'] ?? $komponen['keterangan'] ?? '-' }}</small></td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -77,10 +99,16 @@
                     <tr class="fw-bold">
                         <td colspan="2" class="text-end">Total BOP / produk</td>
                         <td class="text-end text-success">Rp {{ number_format($totalBopPerProduk, 0, ',', '.') }}</td>
-                        <td></td>
+                        <td colspan="3"></td>
                     </tr>
                 </tfoot>
             </table>
+        </div>
+        
+        <!-- Info Jurnal -->
+        <div class="alert alert-info mt-3">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Jurnal Produksi:</strong> Setiap komponen akan membuat jurnal dengan COA Debit dan COA Kredit yang sudah ditentukan di atas.
         </div>
     </div>
     @else
