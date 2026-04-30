@@ -208,9 +208,14 @@
                                     </a>
                                     
                                     <!-- Row 2: Jurnal | Retur -->
-                                    <a href="{{ route('akuntansi.jurnal-umum', ['ref_type' => 'purchase', 'ref_id' => $pembelian->id]) }}" class="btn btn-sm btn-outline-primary w-100" title="Lihat Jurnal">
+                                    <button type="button" 
+                                            class="btn btn-sm btn-outline-primary w-100" 
+                                            title="Lihat Jurnal"
+                                            onclick="loadJournal({{ $pembelian->id }}, '{{ $pembelian->nomor_pembelian }}')"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#journalModal">
                                         Jurnal
-                                    </a>
+                                    </button>
                                     <a href="{{ route('transaksi.retur-pembelian.create', ['pembelian_id' => $pembelian->id]) }}" class="btn btn-sm btn-outline-info w-100" title="Proses Retur">
                                         Retur
                                     </a>

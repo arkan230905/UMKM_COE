@@ -261,6 +261,73 @@
     align-items: center;
     justify-content: center;
 }
+
+/* Multi-line product data styles */
+.multi-product-container,
+.multi-quantity,
+.multi-price,
+.multi-hpp,
+.multi-profit,
+.multi-discount {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.product-item {
+    display: flex;
+    align-items: center;
+    padding: 0.125rem 0;
+    border-bottom: 1px dotted #e9ecef;
+    font-size: 0.875rem;
+}
+
+.product-item:last-child {
+    border-bottom: none;
+}
+
+.qty-item,
+.price-item,
+.hpp-item,
+.profit-item,
+.discount-item {
+    padding: 0.125rem 0;
+    border-bottom: 1px dotted #e9ecef;
+    font-size: 0.875rem;
+}
+
+.qty-item:last-child,
+.price-item:last-child,
+.hpp-item:last-child,
+.profit-item:last-child,
+.discount-item:last-child {
+    border-bottom: none;
+}
+
+.single-product,
+.single-quantity,
+.single-price,
+.single-hpp,
+.single-profit,
+.single-discount {
+    padding: 0.25rem 0;
+    font-size: 0.875rem;
+}
+
+/* Table cell adjustments for better alignment */
+.table td {
+    vertical-align: top;
+    padding: 0.5rem;
+}
+
+/* Ensure proper spacing between rows */
+.table tbody tr {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table tbody tr:last-child {
+    border-bottom: none;
+}
 </style>
 @endpush
 
@@ -460,116 +527,161 @@
                                 @php $detailCount = $penjualan->details->count(); @endphp
                                 <td>
                                     @if($detailCount > 1)
-                                        @foreach($penjualan->details as $index => $d)
-                                            @if($index > 0)<br>@endif
-                                            <div>{{ $d->produk->nama_produk ?? '-' }}</div>
-                                        @endforeach
+                                        <div class="multi-product-container">
+                                            @foreach($penjualan->details as $d)
+                                                <div class="product-item">
+                                                    <i class="fas fa-box text-muted me-1" style="font-size: 0.7rem;"></i>
+                                                    {{ $d->produk->nama_produk ?? '-' }}
+                                                </div>
+                                            @endforeach
+                                        </div>
                                     @elseif($detailCount === 1)
-                                        {{ $penjualan->details[0]->produk->nama_produk ?? '-' }}
+                                        <div class="single-product">
+                                            <i class="fas fa-box text-muted me-1" style="font-size: 0.7rem;"></i>
+                                            {{ $penjualan->details[0]->produk->nama_produk ?? '-' }}
+                                        </div>
                                     @else
-                                        {{ $penjualan->produk?->nama_produk ?? '-' }}
+                                        <div class="single-product">
+                                            <i class="fas fa-box text-muted me-1" style="font-size: 0.7rem;"></i>
+                                            {{ $penjualan->produk?->nama_produk ?? '-' }}
+                                        </div>
                                     @endif
                                 </td>
                                 <td class="text-end">
                                     @if($detailCount > 1)
-                                        @foreach($penjualan->details as $d)
-                                            @if($loop->first)
-                                                {{ $d->produk->nama_produk }} - {{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}
-                                            @else
-                                                &nbsp;&nbsp;{{ $d->produk->nama_produk }} - {{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}
-                                            @endif
-                                        @endforeach
+                                        <div class="multi-quantity">
+                                            @foreach($penjualan->details as $d)
+                                                <div class="qty-item">
+                                                    <strong>{{ rtrim(rtrim(number_format($d->jumlah,2,',','.'),'0'),',') }}</strong>
+                                                </div>
+                                            @endforeach
+                                        </div>
                                     @elseif($detailCount === 1)
-                                        {{ $penjualan->details[0]->produk->nama_produk }} - {{ rtrim(rtrim(number_format($penjualan->details[0]->jumlah,4,',','.'),'0'),',') }}
+                                        <div class="single-quantity">
+                                            <strong>{{ rtrim(rtrim(number_format($penjualan->details[0]->jumlah,2,',','.'),'0'),',') }}</strong>
+                                        </div>
                                     @else
-                                        {{ $penjualan->produk?->nama_produk }} - {{ rtrim(rtrim(number_format($penjualan->jumlah,4,',','.'),'0'),',') }}
+                                        <div class="single-quantity">
+                                            <strong>{{ rtrim(rtrim(number_format($penjualan->jumlah,2,',','.'),'0'),',') }}</strong>
+                                        </div>
                                     @endif
                                 </td>
                                 <td class="text-end">
                                     @if($detailCount > 1)
-                                        @foreach($penjualan->details as $d)
+                                        <div class="multi-price">
+                                            @foreach($penjualan->details as $d)
+                                                @php
+                                                    $hargaSatuan = $d->harga_satuan ?? 0;
+                                                    if ($hargaSatuan == 0 && $d->produk) {
+                                                        $hargaSatuan = $d->produk->harga_jual ?? 0;
+                                                    }
+                                                @endphp
+                                                <div class="price-item">Rp {{ number_format($hargaSatuan, 0, ',', '.') }}</div>
+                                            @endforeach
+                                        </div>
+                                    @elseif($detailCount === 1)
+                                        <div class="single-price">
                                             @php
-                                                $hargaSatuan = $d->harga_satuan ?? 0;
-                                                if ($hargaSatuan == 0 && $d->produk) {
-                                                    $hargaSatuan = $d->produk->harga_jual ?? 0;
+                                                $hargaSatuan = $penjualan->details[0]->harga_satuan ?? 0;
+                                                if ($hargaSatuan == 0 && $penjualan->details[0]->produk) {
+                                                    $hargaSatuan = $penjualan->details[0]->produk->harga_jual ?? 0;
                                                 }
                                             @endphp
-                                            <div>Rp {{ number_format($hargaSatuan, 0, ',', '.') }}</div>
-                                        @endforeach
-                                    @elseif($detailCount === 1)
-                                        @php
-                                            $hargaSatuan = $penjualan->details[0]->harga_satuan ?? 0;
-                                            if ($hargaSatuan == 0 && $penjualan->details[0]->produk) {
-                                                $hargaSatuan = $penjualan->details[0]->produk->harga_jual ?? 0;
-                                            }
-                                        @endphp
-                                        Rp {{ number_format($hargaSatuan, 0, ',', '.') }}
+                                            Rp {{ number_format($hargaSatuan, 0, ',', '.') }}
+                                        </div>
                                     @else
-                                        @php
-                                            $hdrHarga = $penjualan->harga_satuan;
-                                            if (is_null($hdrHarga) || $hdrHarga == 0) {
-                                                if ($penjualan->produk) {
-                                                    $hdrHarga = $penjualan->produk->harga_jual ?? 0;
+                                        <div class="single-price">
+                                            @php
+                                                $hdrHarga = $penjualan->harga_satuan;
+                                                if (is_null($hdrHarga) || $hdrHarga == 0) {
+                                                    if ($penjualan->produk) {
+                                                        $hdrHarga = $penjualan->produk->harga_jual ?? 0;
+                                                    }
+                                                    if (($hdrHarga == 0) && ($penjualan->jumlah ?? 0) > 0) {
+                                                        $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                                                    }
                                                 }
-                                                if (($hdrHarga == 0) && ($penjualan->jumlah ?? 0) > 0) {
-                                                    $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
-                                                }
-                                            }
-                                        @endphp
-                                        Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}
+                                            @endphp
+                                            Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}
+                                        </div>
                                     @endif
                                 </td>
                                 <td class="text-end">
                                     @if($detailCount > 1)
-                                        @foreach($penjualan->details as $d)
-                                            <div>Rp {{ number_format($d->produk->getHPPForSaleDate($penjualan->tanggal), 0, ',', '.') }}</div>
-                                        @endforeach
+                                        <div class="multi-hpp">
+                                            @foreach($penjualan->details as $d)
+                                                <div class="hpp-item">Rp {{ number_format($d->produk->getHPPForSaleDate($penjualan->tanggal), 0, ',', '.') }}</div>
+                                            @endforeach
+                                        </div>
                                     @elseif($detailCount === 1)
-                                        Rp {{ number_format($penjualan->details[0]->produk->getHPPForSaleDate($penjualan->tanggal), 0, ',', '.') }}
+                                        <div class="single-hpp">
+                                            Rp {{ number_format($penjualan->details[0]->produk->getHPPForSaleDate($penjualan->tanggal), 0, ',', '.') }}
+                                        </div>
                                     @else
-                                        @php
-                                            $hdrHarga = $penjualan->harga_satuan;
-                                            if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
-                                                $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
-                                            }
-                                        @endphp
-                                        Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}
+                                        <div class="single-hpp">
+                                            @php
+                                                $hppValue = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
+                                            @endphp
+                                            Rp {{ number_format($hppValue, 0, ',', '.') }}
+                                        </div>
                                     @endif
                                 </td>
                                 <td class="text-end">
                                     @if($detailCount > 1)
-                                        @foreach($penjualan->details as $d)
-                                            @php $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal); $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah; @endphp
+                                        <div class="multi-profit">
+                                            @foreach($penjualan->details as $d)
+                                                @php $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal); $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah; @endphp
+                                                <div class="profit-item {{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
+                                            @endforeach
+                                        </div>
+                                    @elseif($detailCount === 1)
+                                        <div class="single-profit">
+                                            @php $actualHPP = $penjualan->details[0]->produk->getHPPForSaleDate($penjualan->tanggal); $margin = ($penjualan->details[0]->harga_satuan - $actualHPP) * $penjualan->details[0]->jumlah; @endphp
                                             <div class="{{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
-                                        @endforeach
-                                    @elseif($detailCount === 1)
-                                        @php $actualHPP = $penjualan->details[0]->produk->getHPPForSaleDate($penjualan->tanggal); $margin = ($penjualan->details[0]->harga_satuan - $actualHPP) * $penjualan->details[0]->jumlah; @endphp
-                                        <div class="{{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
+                                        </div>
                                     @else
-                                        @php
-                                            $hdrHarga = $penjualan->harga_satuan;
-                                            if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
-                                                $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
-                                            }
-                                        @endphp
-                                        Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}
+                                        <div class="single-profit">
+                                            @php
+                                                $hppValue = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
+                                                $hargaSatuan = $penjualan->harga_satuan ?? 0;
+                                                $margin = ($hargaSatuan - $hppValue) * ($penjualan->jumlah ?? 0);
+                                            @endphp
+                                            <div class="{{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</div>
+                                        </div>
                                     @endif
                                 </td>
                                 <td class="text-end">
                                     @if($detailCount > 1)
-                                        @foreach($penjualan->details as $d)
-                                            @php $sub = (float)$d->jumlah * (float)$d->harga_satuan; $disc = (float)($d->diskon_nominal ?? 0); $pct = $sub>0 ? ($disc/$sub*100) : 0; @endphp
-                                            <div>{{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})</div>
-                                        @endforeach
+                                        <div class="multi-discount">
+                                            @foreach($penjualan->details as $d)
+                                                @php $sub = (float)$d->jumlah * (float)$d->harga_satuan; $disc = (float)($d->diskon_nominal ?? 0); $pct = $sub>0 ? ($disc/$sub*100) : 0; @endphp
+                                                <div class="discount-item">{{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})</div>
+                                            @endforeach
+                                        </div>
                                     @elseif($detailCount === 1)
-                                        @php $d=$penjualan->details[0]; $sub=(float)$d->jumlah*(float)$d->harga_satuan; $disc=(float)($d->diskon_nominal??0); $pct=$sub>0?($disc/$sub*100):0; @endphp
-                                        {{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})
+                                        <div class="single-discount">
+                                            @php $d=$penjualan->details[0]; $sub=(float)$d->jumlah*(float)$d->harga_satuan; $disc=(float)($d->diskon_nominal??0); $pct=$sub>0?($disc/$sub*100):0; @endphp
+                                            {{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})
+                                        </div>
                                     @else
-                                        @php $pct=0; $disc=(float)($penjualan->diskon_nominal ?? 0); if(($penjualan->jumlah??0)>0){ $hdrHarga=$penjualan->harga_satuan; if(is_null($hdrHarga)){ $hdrHarga=((float)$penjualan->total + $disc)/(float)$penjualan->jumlah; } $subtotal=$penjualan->jumlah*$hdrHarga; $pct=$subtotal>0?($disc/$subtotal*100):0; } @endphp
-                                        {{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})
+                                        <div class="single-discount">
+                                            @php 
+                                                $disc = (float)($penjualan->diskon_nominal ?? 0);
+                                                $pct = 0;
+                                                if(($penjualan->jumlah ?? 0) > 0){
+                                                    $hdrHarga = $penjualan->harga_satuan;
+                                                    if(is_null($hdrHarga)){
+                                                        $hdrHarga = ((float)$penjualan->total + $disc) / (float)$penjualan->jumlah;
+                                                    }
+                                                    $subtotal = $penjualan->jumlah * $hdrHarga;
+                                                    $pct = $subtotal > 0 ? ($disc/$subtotal*100) : 0;
+                                                }
+                                            @endphp
+                                            {{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})
+                                        </div>
                                     @endif
                                 </td>
-                                <td class="text-end fw-semibold"><strong>Rp {{ number_format($penjualan->total, 0, ',', '.') }}</strong></td>
+                                <td class="text-end fw-semibold"><strong>Rp {{ number_format($penjualan->grand_total ?? $penjualan->total, 0, ',', '.') }}</strong></td>
                                 <td>
                                     @php
                                         $totalQtyRetur = $penjualan->total_qty_retur;
@@ -2285,12 +2397,12 @@ function savePaket() {
     closePaketModal();
     
     ajaxRequest(url, id ? 'PUT' : 'POST', payload, (response) => {
-        showSettingToast('success', response.message || 'Paket menu berhasil disimpan');
+        showSettingToast('success', (response && response.message) ? response.message : 'Paket menu berhasil disimpan');
         
         // Force reload data and ensure table refresh
         loadSettingData().then((data) => {
             // Force re-render the table with fresh data
-            if (data.paket_menus) {
+            if (data && data.paket_menus) {
                 renderPaketTable(data.paket_menus);
             }
         }).catch(error => {
@@ -2316,20 +2428,38 @@ function ajaxRequest(url, method, data, onSuccess) {
     })
     .then(r => {
         if (!r.ok) {
-            throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+            // Try to parse error response as JSON first
+            return r.text().then(text => {
+                let msg = 'HTTP ' + r.status + ': ' + r.statusText;
+                try {
+                    var json = JSON.parse(text);
+                    if (json.message) msg = json.message;
+                    else if (json.error) msg = json.error;
+                } catch(e) {
+                    // HTML error page — extract meaningful message
+                    if (text.includes('SQLSTATE') || text.includes('Column not found')) {
+                        msg = 'Error database: kolom tidak ditemukan. Jalankan php artisan migrate.';
+                    } else if (text.includes('does not exist')) {
+                        msg = 'Error: tabel atau kolom belum ada. Jalankan php artisan migrate.';
+                    }
+                }
+                throw new Error(msg);
+            });
         }
         return r.json();
     })
     .then(res => {
-        if (res.success) { 
-            showSettingToast('success', res.message); 
-            onSuccess(); 
+        if (res && res.success) { 
+            showSettingToast('success', res.message || 'Berhasil'); 
+            onSuccess(res); 
+        } else if (res) {
+            showSettingToast('danger', res.message || 'Terjadi kesalahan');
         }
-        else showSettingToast('danger', res.message || 'Terjadi kesalahan');
     })
     .catch(error => {
         console.error('Ajax error:', error);
-        showSettingToast('danger', 'Terjadi kesalahan jaringan: ' + (error?.message || 'Unknown error'));
+        var msg = (error && error.message) ? error.message : 'Terjadi kesalahan tidak diketahui';
+        showSettingToast('danger', 'Terjadi kesalahan: ' + msg);
     });
 }
 
