@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -315,7 +315,7 @@
         }
 
         .form-check-input:checked::after {
-            content: '✓';
+            content: 'âœ“';
             position: absolute;
             top: 50%;
             left: 50%;
@@ -883,7 +883,7 @@
                 font-size: 0.5rem;
                 font-style: italic;
             ">
-                © 2026 SIMACOST - Sistem Manufaktur Process Costing
+                © 2026 SIMCOST - Sistem Manufaktur Process Costing
             </div>
         </div>
     </div>
@@ -1074,3 +1074,4 @@
 
 </body>
 </html>
+

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -792,9 +792,10 @@
                 font-size: 0.8rem;
                 font-style: italic;
             ">
-                © 2026 SIMACOST - Sistem Manufaktur Process Costing
+                Â© 2026 SIMCOST - Sistem Manufaktur Process Costing
             </div>
         </div>
     </div>
 </body>
 </html>
+
