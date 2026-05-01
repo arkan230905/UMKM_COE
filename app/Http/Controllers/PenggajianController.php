@@ -298,7 +298,7 @@ class PenggajianController extends Controller
             $penggajian = Penggajian::with('pegawai.jabatanRelasi')->findOrFail($id);
             
             // Cek apakah sudah diposting ke jurnal
-            if ($penggajian->isPosted()) {
+            if ($penggajian->status_posting === 'posted') {
                 return back()->withErrors(['error' => 'Penggajian yang sudah diposting ke jurnal tidak dapat direcalculate.']);
             }
 
@@ -419,7 +419,7 @@ class PenggajianController extends Controller
     }
 
     /**
-     * Tandai penggajian sebagai sudah dibayar
+     * Tandai penggajian sebagai sudah dibayar (otomatis posting ke jurnal)
      */
     public function markAsPaid($id)
     {
@@ -434,25 +434,27 @@ class PenggajianController extends Controller
                 try {
                     $penggajian->status_pembayaran = 'lunas';
                     $penggajian->tanggal_dibayar = now()->format('Y-m-d');
-                    $penggajian->save(); // This will trigger the boot method to create journal entries
+                    $penggajian->status_posting = 'posted';
+                    $penggajian->tanggal_posting = now();
+                    $penggajian->save(); // Model event akan otomatis membuat jurnal entry
 
                     // Commit transaksi
                     DB::commit();
 
                     return redirect()->back()
-                        ->with('success', 'Penggajian berhasil ditandai sebagai sudah dibayar dan jurnal umum telah dibuat.');
+                        ->with('success', 'Penggajian berhasil ditandai sebagai sudah dibayar dan otomatis diposting ke jurnal umum.');
                         
                 } catch (\Exception $e) {
                     DB::rollBack();
-                    \Log::error('Error creating journal entry when marking as paid: ' . $e->getMessage());
+                    \Log::error('Error marking as paid and posting to journal: ' . $e->getMessage());
                     
                     return redirect()->back()
-                        ->withErrors(['error' => 'Gagal membuat jurnal umum: ' . $e->getMessage()]);
+                        ->withErrors(['error' => 'Gagal memproses pembayaran: ' . $e->getMessage()]);
                 }
             }
 
             return redirect()->back()
-                ->with('info', 'Penggajian sudah berstatus ' . $penggajian->status_pembayaran);
+                ->with('info', 'Penggajian sudah berstatus lunas dan sudah diposting ke jurnal.');
         } catch (\Exception $e) {
             \Log::error('Error marking penggajian as paid: ' . $e->getMessage());
 
@@ -802,7 +804,7 @@ class PenggajianController extends Controller
         $penggajian = Penggajian::with('pegawai.jabatanRelasi')->findOrFail($id);
         
         // Cek apakah sudah diposting ke jurnal
-        if ($penggajian->isPosted()) {
+        if ($penggajian->status_posting === 'posted') {
             return back()->withErrors(['error' => 'Penggajian yang sudah diposting ke jurnal tidak dapat diedit.']);
         }
         
@@ -823,7 +825,7 @@ class PenggajianController extends Controller
             $penggajian = Penggajian::with('pegawai.jabatanRelasi')->findOrFail($id);
             
             // Cek apakah sudah diposting ke jurnal
-            if ($penggajian->isPosted()) {
+            if ($penggajian->status_posting === 'posted') {
                 return back()->withErrors(['error' => 'Penggajian yang sudah diposting ke jurnal tidak dapat diedit.']);
             }
 
@@ -1043,7 +1045,7 @@ class PenggajianController extends Controller
         $penggajian = Penggajian::with('pegawai')->findOrFail($id);
 
         // Cegah double posting
-        if ($penggajian->isPosted()) {
+        if ($penggajian->status_posting === 'posted') {
             return back()->with('error', 'Penggajian ini sudah diposting ke jurnal');
         }
 

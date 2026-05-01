@@ -154,57 +154,23 @@
         </div>
     </div>
 
-    <!-- Posting Status & Buttons -->
+    <!-- Action Buttons -->
     <div class="card border-0 mb-4">
         <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                <!-- Posting Status Badge -->
-                <div>
-                    <span class="me-2 text-muted">Status Posting:</span>
-                    @if($penggajian->status_posting === 'posted')
-                        <span class="badge bg-success">
-                            <i class="bi bi-check-circle"></i> Sudah Diposting ke Jurnal
-                        </span>
-                        <small class="text-muted ms-2">
-                            ({{ \Carbon\Carbon::parse($penggajian->tanggal_posting)->format('d F Y H:i') }})
-                        </small>
-                    @else
-                        <span class="badge bg-warning text-dark">
-                            <i class="bi bi-clock"></i> Belum Diposting ke Jurnal
-                        </span>
-                    @endif
-                </div>
-
-                <!-- Action Buttons -->
-                <div class="d-flex gap-2">
-                    @if(in_array(auth()->user()->role, ['owner', 'admin']) && $penggajian->status_posting !== 'posted')
-                        <form action="{{ route('transaksi.penggajian.post-journal', $penggajian->id) }}" method="POST" class="d-inline">
-                            @csrf
-                            <button type="submit" class="btn btn-primary" onclick="return confirm('Apakah Anda yakin ingin memposting penggajian ini ke jurnal umum?')">
-                                <i class="bi bi-journal-check"></i> Posting ke Jurnal
-                            </button>
-                        </form>
-                        
-                        <form action="{{ route('transaksi.penggajian.recalculate', $penggajian->id) }}" method="POST" class="d-inline">
-                            @csrf
-                            <button type="submit" class="btn btn-warning" onclick="return confirm('Apakah Anda yakin ingin menghitung ulang penggajian ini berdasarkan master data terbaru?')">
-                                <i class="bi bi-calculator"></i> Hitung Ulang
-                            </button>
-                        </form>
-                        
-                        <a href="{{ route('transaksi.penggajian.edit', $penggajian->id) }}" class="btn btn-info">
-                            <i class="bi bi-pencil"></i> Edit
-                        </a>
-                    @endif
-
-                    <a href="{{ route('transaksi.penggajian.slip', $penggajian->id) }}" class="btn btn-success" target="_blank">
-                        <i class="bi bi-file-earmark-text"></i> Lihat Slip Gaji
+            <div class="d-flex justify-content-end gap-2 flex-wrap">
+                @if(in_array(auth()->user()->role, ['owner', 'admin']) && $penggajian->status_posting !== 'posted')
+                    <a href="{{ route('transaksi.penggajian.edit', $penggajian->id) }}" class="btn btn-info">
+                        <i class="bi bi-pencil"></i> Edit
                     </a>
+                @endif
 
-                    <a href="{{ route('transaksi.penggajian.index') }}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Kembali
-                    </a>
-                </div>
+                <a href="{{ route('transaksi.penggajian.slip', $penggajian->id) }}" class="btn btn-success" target="_blank">
+                    <i class="bi bi-file-earmark-text"></i> Lihat Slip Gaji
+                </a>
+
+                <a href="{{ route('transaksi.penggajian.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Kembali
+                </a>
             </div>
         </div>
     </div>
