@@ -360,73 +360,6 @@
                             @enderror
                         </div>
                     </div>
-
-                    <!-- Hasil Perhitungan Penyusutan -->
-                    <div class="card bg-light mt-4">
-                        <div class="card-body">
-                            <h6 class="text-dark mb-3" id="hasil_perhitungan_header"><i class="bi bi-calculator me-2"></i>Hasil Perhitungan Penyusutan</h6>
-                            <div class="table-responsive" id="hasil_perhitungan_container">
-                                <table class="table table-bordered mb-0 table-light">
-                                    <tbody>
-                                        <tr>
-                                            <td class="bg-light text-dark fw-bold" width="50%">Nilai yang Disusutkan</td>
-                                            <td class="text-end text-dark" id="nilai_disusutkan_display">Rp 0</td>
-                                        </tr>
-                                        <tr class="bg-success bg-opacity-25">
-                                            <td class="fw-bold text-dark">Penyusutan Per Tahun</td>
-                                            <td class="text-end fw-bold text-success" id="penyusutan_tahunan_display">Rp 0</td>
-                                        </tr>
-                                        <tr class="bg-info bg-opacity-25">
-                                            <td class="fw-bold text-dark">Penyusutan Per Bulan</td>
-                                            <td class="text-end fw-bold text-info" id="penyusutan_bulanan_display">Rp 0</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <!-- Tabel Perhitungan Per Tahun (hanya untuk saldo menurun) -->
-                            <div id="tabel_perhitungan_tahunan" class="mt-4" style="display: none;">
-                                <h6 class="text-dark mb-3"><i class="bi bi-table me-2"></i>Perhitungan Penyusutan Per Tahun</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-light table-sm">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th class="text-center">TAHUN</th>
-                                                <th class="text-end">PENYUSUTAN</th>
-                                                <th class="text-end">AKUMULASI PENY</th>
-                                                <th class="text-end">NILAI BUKU</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tabel_perhitungan_body">
-                                            <!-- Akan diisi oleh JavaScript -->
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            
-                            <!-- Perhitungan Jumlah Angka Tahun (hanya untuk metode jumlah angka tahun) -->
-                            <div id="perhitungan_jumlah_angka_tahun" class="mt-4" style="display: none;">
-                                <h6 class="text-dark mb-3"><i class="bi bi-calculator me-2"></i>Perhitungan Jumlah Angka Tahun</h6>
-                                <div class="card bg-white">
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <p class="text-dark mb-2"><strong>Umur Manfaat:</strong> <span id="umur_manfaat_display">-</span> tahun</p>
-                                                <p class="text-dark mb-2"><strong>Rumus:</strong> <span id="rumus_jumlah_angka">-</span></p>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <p class="text-dark mb-2"><strong>Hasil Perhitungan:</strong></p>
-                                                <h4 class="text-success" id="hasil_jumlah_angka">-</h4>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="alert alert-info mt-3 mb-0">
-                                <small><i class="bi bi-info-circle me-1"></i> Perhitungan ini adalah estimasi berdasarkan metode yang dipilih</small>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- Alert untuk aset yang tidak disusutkan -->
@@ -514,129 +447,32 @@ function hitungPenyusutan() {
     const residu = unformatRupiah(document.getElementById('nilai_residu').value);
     const umur = parseInt(document.getElementById('umur_manfaat').value) || 0;
     const metode = document.getElementById('metode_penyusutan').value;
-    
+
     const nilaiDisusutkan = Math.max(total - residu, 0);
-    
-    document.getElementById('nilai_disusutkan_display').textContent = 'Rp ' + formatRupiah(nilaiDisusutkan);
-    
+
     let penyusutanTahunan = 0;
-    
+
     if (umur > 0 && nilaiDisusutkan > 0) {
         switch (metode) {
             case 'garis_lurus':
                 penyusutanTahunan = nilaiDisusutkan / umur;
-                document.getElementById('tabel_perhitungan_tahunan').style.display = 'none';
-                document.getElementById('perhitungan_jumlah_angka_tahun').style.display = 'none';
                 break;
-                
+
             case 'saldo_menurun':
                 const rate = 2 / umur; // Double declining balance
                 penyusutanTahunan = total * rate;
-                hitungPerhitunganTahunan(total, residu, umur, rate * 100, 1);
-                document.getElementById('perhitungan_jumlah_angka_tahun').style.display = 'none';
                 break;
-                
+
             case 'sum_of_years_digits':
                 const sumOfYears = (umur * (umur + 1)) / 2;
                 penyusutanTahunan = (nilaiDisusutkan * umur) / sumOfYears; // Tahun pertama
-                hitungPerhitunganJumlahAngkaTahun(umur);
-                hitungPerhitunganTahunanSumOfYears(total, residu, umur);
-                document.getElementById('tabel_perhitungan_tahunan').style.display = 'block';
                 break;
-                
+
             default:
                 penyusutanTahunan = 0;
-                document.getElementById('tabel_perhitungan_tahunan').style.display = 'none';
-                document.getElementById('perhitungan_jumlah_angka_tahun').style.display = 'none';
         }
-    } else {
-        document.getElementById('tabel_perhitungan_tahunan').style.display = 'none';
-        document.getElementById('perhitungan_jumlah_angka_tahun').style.display = 'none';
     }
-    
-    const penyusutanBulanan = Math.round(penyusutanTahunan / 12);
-    
-    document.getElementById('penyusutan_tahunan_display').textContent = 'Rp ' + formatRupiah(penyusutanTahunan);
-    document.getElementById('penyusutan_bulanan_display').textContent = 'Rp ' + formatRupiah(penyusutanBulanan);
 }
-
-function hitungPerhitunganJumlahAngkaTahun(umur) {
-    const container = document.getElementById('perhitungan_jumlah_angka_tahun');
-    const umurDisplay = document.getElementById('umur_manfaat_display');
-    const rumusDisplay = document.getElementById('rumus_jumlah_angka');
-    const hasilDisplay = document.getElementById('hasil_jumlah_angka');
-    
-    if (!umur || umur <= 0) {
-        container.style.display = 'none';
-        return;
-    }
-    
-    const sumOfYears = (umur * (umur + 1)) / 2;
-    
-    let rumusString = '';
-    for (let i = umur; i >= 1; i--) {
-        rumusString += i;
-        if (i > 1) rumusString += ' + ';
-    }
-    rumusString += ' = ' + sumOfYears;
-    
-    umurDisplay.textContent = umur;
-    rumusDisplay.textContent = rumusString;
-    hasilDisplay.textContent = sumOfYears;
-    
-    container.style.display = 'block';
-}
-
-// Hitung penyusutan per tahun untuk metode jumlah angka tahun
-function hitungPerhitunganTahunanSumOfYears(total, residu, umur) {
-    const tabelContainer = document.getElementById('tabel_perhitungan_tahunan');
-    const tabelBody = document.getElementById('tabel_perhitungan_body');
-    
-    const ND = total - residu;  // Nilai Disusutkan
-    const JAT = (umur * (umur + 1)) / 2;  // Jumlah Angka Tahun
-    
-    let html = '';
-    
-    // Struktur periode sesuai Google Sheets
-    const rows = [
-        { label: '2022 (4)', angka: 5, bulan: 4 },
-        { label: '2023 (8)', angka: 5, bulan: 8 },
-        { label: '2023 (4)', angka: 4, bulan: 4 },
-        { label: '2024 (8)', angka: 4, bulan: 8 },
-        { label: '2024 (4)', angka: 3, bulan: 4 },
-        { label: '2025 (8)', angka: 3, bulan: 8 },
-        { label: '2025 (4)', angka: 2, bulan: 4 },
-        { label: '2026 (8)', angka: 2, bulan: 8 },
-        { label: '2026 (4)', angka: 1, bulan: 4 },
-        { label: '2027 (8)', angka: 1, bulan: 8 }
-    ];
-    
-    const result = [];
-    let akumulasi = 0;
-    
-    for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        const angka = row.angka;
-        const bulan = row.bulan;
-        
-        // Rumus penyusutan PERSIS seperti di sheet: ND * (angka/JAT) * (bulan/12)
-        let penyusutan = ND * (angka / JAT) * (bulan / 12.0);
-        penyusutan = Math.round(penyusutan);
-        
-        // Rumus akumulasi PERSIS seperti di sheet
-        if (i === 0) {
-            akumulasi = penyusutan;
-        } else {
-            akumulasi = akumulasi + penyusutan;
-        }
-        akumulasi = Math.round(akumulasi);
-        
-        // Rumus nilai buku PERSIS seperti di sheet: HP - akumulasi
-        let nilaiBuku = total - akumulasi;
-        nilaiBuku = Math.round(nilaiBuku);
-        
-        result.push({
-            tahun: row.label,
             penyusutan: penyusutan,
             akumulasi: akumulasi,
             nilai_buku: nilaiBuku
