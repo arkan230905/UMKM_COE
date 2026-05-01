@@ -630,20 +630,32 @@
                                         @if($detailCount > 1)
                                             @foreach($penjualan->details as $d)
                                                 @php 
-                                                    $sub = (float)$d->jumlah * (float)$d->harga_satuan; 
-                                                    $disc = (float)($d->diskon_nominal ?? 0); 
-                                                    $pct = $sub > 0 ? ($disc / $sub * 100) : 0; 
+                                                    $disc = (float)($d->diskon_nominal ?? 0);
+                                                    if ($disc == 0 && ($d->diskon_persen ?? 0) > 0) {
+                                                        $disc = round($d->harga_satuan * $d->jumlah * $d->diskon_persen / 100);
+                                                    }
+                                                    $pct = ($d->diskon_persen ?? 0) > 0 ? round($d->diskon_persen) : ($d->jumlah * $d->harga_satuan > 0 ? round($disc / ($d->jumlah * $d->harga_satuan) * 100) : 0);
                                                 @endphp
-                                                <div>{{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})</div>
+                                                @if($disc > 0)
+                                                <div>{{ $pct }}% (Rp {{ number_format($disc, 0, ',', '.') }})</div>
+                                                @else
+                                                <div>0%</div>
+                                                @endif
                                             @endforeach
                                         @elseif($detailCount === 1)
                                             @php 
-                                                $d = $penjualan->details[0]; 
-                                                $sub = (float)$d->jumlah * (float)$d->harga_satuan; 
-                                                $disc = (float)($d->diskon_nominal ?? 0); 
-                                                $pct = $sub > 0 ? ($disc / $sub * 100) : 0; 
+                                                $d = $penjualan->details[0];
+                                                $disc = (float)($d->diskon_nominal ?? 0);
+                                                if ($disc == 0 && ($d->diskon_persen ?? 0) > 0) {
+                                                    $disc = round($d->harga_satuan * $d->jumlah * $d->diskon_persen / 100);
+                                                }
+                                                $pct = ($d->diskon_persen ?? 0) > 0 ? round($d->diskon_persen) : ($d->jumlah * $d->harga_satuan > 0 ? round($disc / ($d->jumlah * $d->harga_satuan) * 100) : 0);
                                             @endphp
-                                            {{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})
+                                            @if($disc > 0)
+                                                {{ $pct }}% (Rp {{ number_format($disc, 0, ',', '.') }})
+                                            @else
+                                                0%
+                                            @endif
                                         @else
                                             @php 
                                                 $pct = 0; 
@@ -660,7 +672,7 @@
                                             {{ number_format($pct, 0) }}% (Rp {{ number_format($disc, 0, ',', '.') }})
                                         @endif
                                     </td>
-                                    <td class="text-end fw-semibold"><strong>Rp {{ number_format($penjualan->total, 0, ',', '.') }}</strong></td>
+                                    <td class="text-end fw-semibold"><strong>Rp {{ number_format($penjualan->grand_total ?: ($penjualan->total + ($penjualan->biaya_ppn ?? 0) + ($penjualan->biaya_ongkir ?? 0)), 0, ',', '.') }}</strong></td>
                                     <td>
                                         @php
                                             $totalQtyRetur = $penjualan->total_qty_retur ?? 0;
@@ -676,9 +688,10 @@
                                         @endif
                                     </td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="Detail">
+                                        <a href="{{ route('transaksi.penjualan.show', $penjualan->id) }}"
+                                           class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="Lihat Detail">
                                             <i class="fas fa-eye"></i>
-                                        </button>
+                                        </a>
                                     </td>
                                 </tr>
                                 @empty
@@ -930,9 +943,10 @@
                                         @endif
                                     </td>
                                     <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="Detail">
+                                        <a href="{{ route('transaksi.penjualan.show', $retur->penjualan_id) }}"
+                                           class="btn btn-sm btn-outline-primary" style="border-radius: 8px;" title="Lihat Detail Penjualan">
                                             <i class="fas fa-eye"></i>
-                                        </button>
+                                        </a>
                                     </td>
                                 </tr>
                                 @empty

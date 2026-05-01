@@ -62,10 +62,7 @@
             @endforeach
           </select>
         </div>
-        <div class="col-md-2">
-          <label class="form-label fw-semibold">ID Transaksi</label>
-          <input type="number" name="ref_id" value="{{ $refId ?? '' }}" class="form-control" placeholder="ID">
-        </div>
+
         <div class="col-md-2">
           <button type="submit" class="btn btn-primary w-100">
             <i class="bi bi-search me-1"></i> Filter

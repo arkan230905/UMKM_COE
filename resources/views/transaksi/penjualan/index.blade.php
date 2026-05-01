@@ -961,6 +961,26 @@
                 </div>
 
                 <h6 class="mb-3 mt-4"><i class="fas fa-box me-2"></i>Detail Produk</h6>
+                @php
+                    // Hitung total diskon dari details (fallback dari diskon_persen jika nominal 0)
+                    $totalDiskonModal = 0;
+                    $adaDiskonModal = false;
+                    if ($detailCount >= 1) {
+                        foreach ($penjualan->details as $d) {
+                            $dn = (float)($d->diskon_nominal ?? 0);
+                            if ($dn == 0 && ($d->diskon_persen ?? 0) > 0) {
+                                $dn = round($d->harga_satuan * $d->jumlah * $d->diskon_persen / 100);
+                            }
+                            if ($dn > 0 || ($d->diskon_persen ?? 0) > 0) $adaDiskonModal = true;
+                            $totalDiskonModal += $dn;
+                        }
+                    } else {
+                        $totalDiskonModal = (float)($penjualan->diskon_nominal ?? 0);
+                        if ($totalDiskonModal > 0) $adaDiskonModal = true;
+                    }
+                    // Pastikan hanya tampil jika benar-benar ada nilai diskon > 0
+                    if ($totalDiskonModal <= 0) $adaDiskonModal = false;
+                @endphp
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered mb-0">
                         <thead class="table-light">
@@ -970,6 +990,7 @@
                                 <th class="text-end">Harga</th>
                                 <th class="text-end">HPP</th>
                                 <th class="text-end">Profit</th>
+                                @if($adaDiskonModal)<th class="text-end">Diskon</th>@endif
                                 <th class="text-end">Subtotal</th>
                             </tr>
                         </thead>
@@ -978,17 +999,28 @@
                                 @foreach($penjualan->details as $d)
                                     @php 
                                     $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal); 
+                                    $diskonNom = (float)($d->diskon_nominal ?? 0);
+                                    if ($diskonNom == 0 && ($d->diskon_persen ?? 0) > 0) {
+                                        $diskonNom = round($d->harga_satuan * $d->jumlah * $d->diskon_persen / 100);
+                                    }
+                                    $subtotal = $d->subtotal ?? ($d->jumlah * $d->harga_satuan - $diskonNom);
                                     $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah;
-                                    $subtotal = $d->jumlah * $d->harga_satuan;
                                     @endphp
                                     <tr>
                                         <td>{{ $d->produk->nama_produk ?? '-' }}</td>
                                         <td class="text-end">{{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}</td>
                                         <td class="text-end">Rp {{ number_format($d->harga_satuan ?? 0, 0, ',', '.') }}</td>
                                         <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
-                                        <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">
-                                            Rp {{ number_format($margin, 0, ',', '.') }}
+                                        <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</td>
+                                        @if($adaDiskonModal)
+                                        <td class="text-end text-danger">
+                                            @if(($d->diskon_persen ?? 0) > 0)
+                                                {{ number_format($d->diskon_persen, 0) }}%<br>
+                                                <small>-Rp {{ number_format($diskonNom, 0, ',', '.') }}</small>
+                                            @else -
+                                            @endif
                                         </td>
+                                        @endif
                                         <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
                                     </tr>
                                 @endforeach
@@ -996,17 +1028,28 @@
                                 @php 
                                 $d = $penjualan->details[0];
                                 $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal); 
+                                $diskonNom = (float)($d->diskon_nominal ?? 0);
+                                if ($diskonNom == 0 && ($d->diskon_persen ?? 0) > 0) {
+                                    $diskonNom = round($d->harga_satuan * $d->jumlah * $d->diskon_persen / 100);
+                                }
+                                $subtotal = $d->subtotal ?? ($d->jumlah * $d->harga_satuan - $diskonNom);
                                 $margin = ($d->harga_satuan - $actualHPP) * $d->jumlah;
-                                $subtotal = $d->jumlah * $d->harga_satuan;
                                 @endphp
                                 <tr>
                                     <td>{{ $d->produk->nama_produk ?? '-' }}</td>
                                     <td class="text-end">{{ rtrim(rtrim(number_format($d->jumlah,4,',','.'),'0'),',') }}</td>
                                     <td class="text-end">Rp {{ number_format($d->harga_satuan ?? 0, 0, ',', '.') }}</td>
                                     <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
-                                    <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">
-                                        Rp {{ number_format($margin, 0, ',', '.') }}
+                                    <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</td>
+                                    @if($adaDiskonModal)
+                                    <td class="text-end text-danger">
+                                        @if(($d->diskon_persen ?? 0) > 0)
+                                            {{ number_format($d->diskon_persen, 0) }}%<br>
+                                            <small>-Rp {{ number_format($diskonNom, 0, ',', '.') }}</small>
+                                        @else -
+                                        @endif
                                     </td>
+                                    @endif
                                     <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
                                 </tr>
                             @else
@@ -1024,9 +1067,13 @@
                                     <td class="text-end">{{ rtrim(rtrim(number_format($penjualan->jumlah,4,',','.'),'0'),',') }}</td>
                                     <td class="text-end">Rp {{ number_format($hdrHarga ?? 0, 0, ',', '.') }}</td>
                                     <td class="text-end">Rp {{ number_format($actualHPP, 0, ',', '.') }}</td>
-                                    <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">
-                                        Rp {{ number_format($margin, 0, ',', '.') }}
+                                    <td class="text-end {{ $margin > 0 ? 'text-success' : 'text-danger' }}">Rp {{ number_format($margin, 0, ',', '.') }}</td>
+                                    @if($adaDiskonModal)
+                                    <td class="text-end text-danger">
+                                        @if($totalDiskonModal > 0) -Rp {{ number_format($totalDiskonModal, 0, ',', '.') }}
+                                        @else - @endif
                                     </td>
+                                    @endif
                                     <td class="text-end">Rp {{ number_format($subtotal, 0, ',', '.') }}</td>
                                 </tr>
                             @endif
@@ -1036,11 +1083,11 @@
                 
                 <h6 class="mb-3 mt-4"><i class="fas fa-receipt me-2"></i>Rincian Biaya</h6>
                 <div class="row g-2">
-                    <!-- Subtotal Produk -->
+                    <!-- Subtotal Produk (gross sebelum diskon) -->
                     <div class="col-md-6">
                         <div class="d-flex justify-content-between align-items-center py-1">
                             <span class="text-muted">Subtotal Produk:</span>
-                            <span class="fw-bold">Rp {{ number_format($totalSubtotal, 0, ',', '.') }}</span>
+                            <span class="fw-bold">Rp {{ number_format($totalSubtotal + $totalDiskonModal, 0, ',', '.') }}</span>
                         </div>
                     </div>
                     
@@ -1053,6 +1100,16 @@
                             </span>
                         </div>
                     </div>
+
+                    <!-- Diskon -->
+                    @if($totalDiskonModal > 0)
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-between align-items-center py-1">
+                            <span class="text-muted">Total Diskon:</span>
+                            <span class="fw-bold text-danger">-Rp {{ number_format($totalDiskonModal, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
+                    @endif
                     
                     <!-- Biaya PPN -->
                     <div class="col-md-6">
@@ -1070,18 +1127,6 @@
                             </span>
                         </div>
                     </div>
-                    
-                    <!-- Diskon -->
-                    @if(($penjualan->diskon_nominal ?? 0) > 0)
-                    <div class="col-md-6">
-                        <div class="d-flex justify-content-between align-items-center py-1">
-                            <span class="text-muted">Diskon:</span>
-                            <span class="fw-bold text-danger">
-                                -Rp {{ number_format($penjualan->diskon_nominal ?? 0, 0, ',', '.') }}
-                            </span>
-                        </div>
-                    </div>
-                    @endif
                 </div>
                 
                 <hr class="my-2">

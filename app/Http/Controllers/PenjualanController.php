@@ -363,6 +363,62 @@ class PenjualanController extends Controller
         return redirect()->route('transaksi.penjualan.index')
                          ->with('success', 'Data penjualan dan jurnal terkait berhasil dihapus.');
     }
+
+    /**
+     * Tampilkan detail jurnal untuk satu transaksi penjualan.
+     * Jika ada akun yang belum tersedia, tampilkan notifikasi.
+     */
+    public function showJurnal($id)
+    {
+        $penjualan = Penjualan::with('details.produk', 'produk')->findOrFail($id);
+
+        $validator  = new \App\Services\JournalValidationService();
+        $validation = $validator->validate($penjualan);
+
+        // Ambil jurnal yang sudah ada (jika ada)
+        $journalEntry = \App\Models\JournalEntry::with('linesWithAccount')
+            ->where('ref_type', 'sale')
+            ->where('ref_id', $penjualan->id)
+            ->first();
+
+        return view('transaksi.penjualan.jurnal', compact('penjualan', 'validation', 'journalEntry'));
+    }
+
+    /**
+     * Buat ulang jurnal penjualan (rebuild).
+     * Hanya bisa dilakukan jika semua akun sudah tersedia.
+     */
+    public function rebuildJurnal(Request $request, $id)
+    {
+        $penjualan = Penjualan::with('details.produk', 'produk')->findOrFail($id);
+
+        try {
+            \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+
+            return redirect()->route('transaksi.penjualan.jurnal', $penjualan->id)
+                ->with('success', 'Jurnal penjualan berhasil dibuat/diperbarui.');
+        } catch (\RuntimeException $e) {
+            return redirect()->route('transaksi.penjualan.jurnal', $penjualan->id)
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * API: Validasi akun jurnal secara real-time (digunakan di form penjualan).
+     */
+    public function validateJurnal(Request $request)
+    {
+        $userId    = auth()->id();
+        $hasPPN    = (bool)$request->input('has_ppn', false);
+        $hasOngkir = (bool)$request->input('has_ongkir', false);
+        $hasDiskon = (bool)$request->input('has_diskon', false);
+        $produkIds = (array)$request->input('produk_ids', []);
+
+        $validator  = new \App\Services\JournalValidationService();
+        $validation = $validator->validateQuick($userId, $hasPPN, $hasOngkir, $hasDiskon, $produkIds);
+
+        return response()->json($validation);
+    }
     
     /**
      * Find product by barcode (API endpoint for barcode scanner)
@@ -576,12 +632,12 @@ class PenjualanController extends Controller
                 $qty = (int) $item['jumlah'];
                 
                 \App\Models\PenjualanDetail::create([
-                    'penjualan_id' => $penjualan->id,
-                    'produk_id' => $item['produk_id'],
-                    'jumlah' => $qty,
-                    'harga_satuan' => (float) $item['harga_satuan'],
-                    'diskon_persen' => (float) ($item['diskon_persen'] ?? 0),
-                    'diskon_nominal' => 0,
+                    'penjualan_id'   => $penjualan->id,
+                    'produk_id'      => $item['produk_id'],
+                    'jumlah'         => $qty,
+                    'harga_satuan'   => (float) $item['harga_satuan'],
+                    'diskon_persen'  => round((float) ($item['diskon_persen'] ?? 0), 2),
+                    'diskon_nominal' => round((float) ($item['diskon_nominal'] ?? 0)),
                     'subtotal' => (float) $item['subtotal'],
                 ]);
                 
@@ -605,7 +661,19 @@ class PenjualanController extends Controller
             }
             
             // Create journal entries
-            \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+            try {
+                \App\Services\JournalService::createJournalFromPenjualan($penjualan);
+            } catch (\RuntimeException $e) {
+                // Jurnal gagal dibuat karena akun belum tersedia.
+                // Transaksi penjualan tetap tersimpan, tapi user diberitahu.
+                \Log::warning('Jurnal penjualan #' . $penjualan->nomor_penjualan . ' tidak dibuat: ' . $e->getMessage());
+
+                session()->forget('penjualan_payment_data');
+
+                return redirect()->route('transaksi.penjualan.show', $penjualan->id)
+                    ->with('warning_jurnal', $e->getMessage())
+                    ->with('success', 'Penjualan berhasil disimpan, namun jurnal akuntansi belum dapat dibuat.');
+            }
             
             // Clear session
             session()->forget('penjualan_payment_data');
