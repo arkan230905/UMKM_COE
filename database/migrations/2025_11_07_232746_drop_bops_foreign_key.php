@@ -6,28 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::table('bops', function (Blueprint $table) {
-            // Drop foreign key constraint
-            $table->dropForeign(['kode_akun']);
-        });
+        if (Schema::hasTable('bops')) {
+            try {
+                Schema::table('bops', function (Blueprint $table) {
+                    $table->dropForeign(['kode_akun']);
+                });
+            } catch (\Exception $e) {
+                // FK may not exist, continue
+            }
+        }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::table('bops', function (Blueprint $table) {
-            // Re-add foreign key constraint
-            $table->foreign('kode_akun')
-                  ->references('kode_akun')
-                  ->on('coas')
-                  ->onDelete('cascade');
-        });
+        // No-op: FK was already removed
     }
 };
