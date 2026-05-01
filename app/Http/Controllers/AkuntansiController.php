@@ -1039,7 +1039,7 @@ class AkuntansiController extends Controller
             ->whereBetween('p.tanggal', [$from, $to])
             ->selectRaw('pr.nama_produk,
                          SUM(pd.jumlah) as total_qty,
-                         SUM(pd.subtotal) as total_pendapatan')
+                         SUM(pd.jumlah * pd.harga_satuan) as total_pendapatan')
             ->groupBy('pr.id', 'pr.nama_produk')
             ->orderBy('total_pendapatan', 'desc')
             ->get();
@@ -1064,7 +1064,7 @@ class AkuntansiController extends Controller
             'diskonPenjualan', 'totalDiskonPenjualan',
             'totalPendapatan', 'totalPendapatanBersih', 'totalHpp', 'totalBeban',
             'labaKotor', 'labaBersih',
-            'getSaldo',
+            'getSaldo', 'mutasi',
             'detailPenjualan', 'detailHpp'
         ));
     }
