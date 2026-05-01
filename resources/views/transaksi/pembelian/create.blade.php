@@ -111,7 +111,7 @@
         </div>
     @endif
 
-    <form action="{{ route('transaksi.pembelian.store') }}" method="POST" onsubmit="debugFormData(this)">
+    <form action="{{ route('transaksi.pembelian.store') }}" method="POST" enctype="multipart/form-data" onsubmit="debugFormData(this)">
         @csrf
         
         <!-- Header Information -->
@@ -134,6 +134,15 @@
                 <div class="col-md-3">
                     <label class="form-label">Nomor Faktur Pembelian</label>
                     <input type="text" name="nomor_faktur" class="form-control" placeholder="0232000002" value="{{ old('nomor_faktur') }}">
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label">Bukti Faktur</label>
+                    <input type="file" name="bukti_faktur" class="form-control" accept="image/*,.pdf" onchange="previewBuktiFaktur(this)">
+                    <small class="text-muted">Upload gambar atau PDF (opsional)</small>
+                    <div id="bukti_faktur_preview" class="mt-2" style="display: none;">
+                        <img id="bukti_faktur_img" src="#" alt="Preview" style="max-width: 200px; max-height: 150px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
                 </div>
                 
                 <div class="col-md-3">
@@ -591,6 +600,32 @@ document.addEventListener('DOMContentLoaded', function() {
         this.value = this.value.replace(/[^0-9.]/g, '');
     });
 });
+
+// Preview bukti faktur function
+function previewBuktiFaktur(input) {
+    const preview = document.getElementById('bukti_faktur_preview');
+    const img = document.getElementById('bukti_faktur_img');
+    
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        
+        // Check if file is image
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                img.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        } else if (file.type === 'application/pdf') {
+            // For PDF files, show a placeholder or icon
+            img.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0xNCAySDZhMiAyIDAgMCAwLTIgMnYxNmEyIDIgMCAwIDAgMiAyaDhhMiAyIDAgMCAwIDItMnY4TTggMTguSDZ2LTZoMk0xNiAySDZ2LTJoMTB2MTBIMTZ2LTJ6Ii8+PC9zdmc+';
+            preview.style.display = 'block';
+        }
+    } else {
+        preview.style.display = 'none';
+    }
+}
 
 // Format input field on blur (for Biaya Kirim)
 function formatCurrencyInput(input) {

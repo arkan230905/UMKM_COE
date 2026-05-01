@@ -138,7 +138,7 @@
             <div class="sidebar-card-header">
                 <h3><i class="fas fa-tags" style="color:#8B7355;margin-right:6px;"></i>Kategori Produk</h3>
             </div>
-            <a href="{{ route('master-data.produk.index') }}"
+        <a href="{{ route('master-data.produk.index') }}"
                class="kat-all {{ !isset($kategoriFilter) || !$kategoriFilter ? 'active' : '' }}">
                 <span class="kat-icon"><i class="fas fa-th-large"></i></span>
                 <span class="kat-label">Semua Kategori</span>
@@ -164,9 +164,9 @@
                 @endforeach
             </ul>
         </div>
-        <a href="{{ route('master-data.kategori-produk.create') }}" class="btn-add-kat">
-            <i class="fas fa-plus"></i> Tambah Kategori
-        </a>
+        <button type="button" class="btn-add-kat" onclick="openModalAturKategori()">
+            <i class="fas fa-cog"></i> Atur Kategori Produk
+        </button>
     </div>
 
     {{-- CONTENT --}}
@@ -179,12 +179,6 @@
                 <input type="text" name="search" value="{{ $search ?? '' }}"
                        placeholder="Cari nama produk atau barcode..." class="search-input">
             </div>
-            <select name="kategori" class="f-select">
-                <option value="">Semua Kategori</option>
-                @foreach($kategoris ?? [] as $kat)
-                    <option value="{{ $kat->id }}" {{ isset($kategoriFilter) && $kategoriFilter == $kat->id ? 'selected' : '' }}>{{ $kat->nama }}</option>
-                @endforeach
-            </select>
             <select name="status" class="f-select">
                 <option value="">Semua Status</option>
                 <option value="aktif"  {{ isset($statusFilter) && $statusFilter == 'aktif'  ? 'selected' : '' }}>Aktif</option>
@@ -263,9 +257,17 @@
                             </td>
                             <td class="td-harga"><span class="hval">Rp {{ number_format($hpp,0,',','.') }}</span></td>
                             <td class="td-harga"><span class="hval">Rp {{ number_format($hjual,0,',','.') }}</span></td>
-                            <td class="td-stok"><span class="sval">{{ number_format($stok,0,',','.') }}</span></td>
+                            <td class="td-stok">
+                                @if($produk->is_unlimited_stok)
+                                    <span class="sval" style="font-size:18px;color:#8B7355;" title="Stok tidak terbatas (mengikuti stok produk dalam paket)">∞</span>
+                                @else
+                                    <span class="sval">{{ number_format($stok,0,',','.') }}</span>
+                                @endif
+                            </td>
                             <td class="td-status">
-                                @if($stok > 0)
+                                @if($produk->is_unlimited_stok)
+                                    <span class="sbadge s-aktif">Aktif</span>
+                                @elseif($stok > 0)
                                     <span class="sbadge s-aktif">Aktif</span>
                                 @else
                                     <span class="sbadge s-habis">Habis</span>
@@ -327,6 +329,131 @@
 </div>{{-- end produk-container --}}
 </div>{{-- end produk-page --}}
 
+{{-- ===== MODAL ATUR KATEGORI PRODUK ===== --}}
+<div id="modalAturKategori" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.45);align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:18px;width:100%;max-width:680px;margin:20px;box-shadow:0 24px 64px rgba(0,0,0,0.18);overflow:hidden;max-height:90vh;display:flex;flex-direction:column;">
+
+        {{-- Header --}}
+        <div style="padding:22px 24px 16px;border-bottom:1px solid #F0EAE2;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;">
+            <div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+                    <div style="width:36px;height:36px;background:#F5EFE8;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#8B7355;font-size:16px;">
+                        <i class="fas fa-cog"></i>
+                    </div>
+                    <span style="font-size:17px;font-weight:700;color:#2C1810;">Atur Kategori Produk</span>
+                </div>
+                <p style="margin:0 0 0 46px;font-size:12px;color:#A89080;">Kelola kategori produk (tambah, ubah, hapus).</p>
+            </div>
+            <button onclick="closeModalAturKategori()" style="width:34px;height:34px;background:#F5F5F5;border:none;border-radius:8px;cursor:pointer;font-size:18px;color:#666;display:flex;align-items:center;justify-content:center;flex-shrink:0;">&times;</button>
+        </div>
+
+        {{-- Alert --}}
+        <div id="atur-kat-alert" style="display:none;margin:12px 24px 0;padding:10px 14px;border-radius:8px;font-size:13px;"></div>
+
+        {{-- Table --}}
+        <div style="overflow-y:auto;flex:1;padding:16px 24px;">
+            <table style="width:100%;border-collapse:collapse;font-size:13px;">
+                <thead>
+                    <tr style="border-bottom:2px solid #F0EAE2;">
+                        <th style="padding:10px 12px;text-align:left;font-weight:600;color:#7A6349;width:44px;">No</th>
+                        <th style="padding:10px 12px;text-align:left;font-weight:600;color:#7A6349;">Nama Kategori</th>
+                        <th style="padding:10px 12px;text-align:center;font-weight:600;color:#7A6349;width:110px;">Jumlah Produk</th>
+                        <th style="padding:10px 12px;text-align:center;font-weight:600;color:#7A6349;width:80px;">Status</th>
+                        <th style="padding:10px 12px;text-align:center;font-weight:600;color:#7A6349;width:90px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="atur-kat-tbody">
+                    @foreach($kategoris ?? [] as $i => $kat)
+                    <tr id="kat-row-{{ $kat->id }}" style="border-bottom:1px solid #F5F0EB;">
+                        {{-- VIEW MODE --}}
+                        <td style="padding:13px 12px;color:#B0A090;font-size:12px;">{{ $i + 1 }}</td>
+                        <td style="padding:13px 12px;">
+                            <span id="kat-view-nama-{{ $kat->id }}" style="font-weight:500;color:#2C1810;">{{ $kat->nama }}</span>
+                            <input id="kat-edit-nama-{{ $kat->id }}" type="text" value="{{ $kat->nama }}"
+                                   style="display:none;width:100%;padding:7px 10px;border:1.5px solid #8B7355;border-radius:7px;font-size:13px;color:#2C1810;outline:none;box-sizing:border-box;">
+                        </td>
+                        <td style="padding:13px 12px;text-align:center;color:#4A3728;font-weight:600;">{{ $kat->produks_count }}</td>
+                        <td style="padding:13px 12px;text-align:center;">
+                            <span style="background:#DCFCE7;color:#15803D;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Aktif</span>
+                        </td>
+                        <td style="padding:13px 12px;text-align:center;">
+                            {{-- View buttons --}}
+                            <div id="kat-view-btns-{{ $kat->id }}" style="display:flex;gap:6px;justify-content:center;">
+                                <button onclick="startEditKat({{ $kat->id }})"
+                                        style="width:30px;height:30px;background:#FFF8E1;border:1.5px solid #FDE68A;border-radius:7px;cursor:pointer;color:#D97706;font-size:12px;display:flex;align-items:center;justify-content:center;"
+                                        title="Edit">
+                                    <i class="fas fa-pen"></i>
+                                </button>
+                                <button onclick="hapusKat({{ $kat->id }}, '{{ addslashes($kat->nama) }}')"
+                                        style="width:30px;height:30px;background:#FFF1F2;border:1.5px solid #FECDD3;border-radius:7px;cursor:pointer;color:#BE123C;font-size:12px;display:flex;align-items:center;justify-content:center;"
+                                        title="Hapus">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            {{-- Edit buttons --}}
+                            <div id="kat-edit-btns-{{ $kat->id }}" style="display:none;gap:6px;justify-content:center;">
+                                <button onclick="simpanEditKat({{ $kat->id }}, '{{ $kat->kode_kategori }}')"
+                                        style="width:30px;height:30px;background:#DCFCE7;border:1.5px solid #86EFAC;border-radius:7px;cursor:pointer;color:#15803D;font-size:12px;display:flex;align-items:center;justify-content:center;"
+                                        title="Simpan">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button onclick="cancelEditKat({{ $kat->id }})"
+                                        style="width:30px;height:30px;background:#F5F5F5;border:1.5px solid #E0E0E0;border-radius:7px;cursor:pointer;color:#666;font-size:14px;display:flex;align-items:center;justify-content:center;"
+                                        title="Batal">
+                                    &times;
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+
+                    {{-- Row Tambah Baru --}}
+                    <tr style="background:#FDFAF7;border-top:2px dashed #E8DDD0;">
+                        <td style="padding:13px 12px;text-align:center;color:#8B7355;font-size:18px;font-weight:700;">+</td>
+                        <td style="padding:13px 12px;">
+                            <input type="text" id="new-kat-nama" placeholder="Nama kategori baru..."
+                                   style="width:100%;padding:8px 12px;border:1.5px solid #E8DDD0;border-radius:8px;font-size:13px;color:#2C1810;background:white;outline:none;box-sizing:border-box;"
+                                   onfocus="this.style.borderColor='#8B7355'" onblur="this.style.borderColor='#E8DDD0'"
+                                   onkeydown="if(event.key==='Enter') simpanKatBaru()">
+                            <input type="text" id="new-kat-kode" placeholder="Kode (cth: MKN)" maxlength="20"
+                                   style="width:100%;padding:6px 12px;border:1.5px solid #E8DDD0;border-radius:8px;font-size:11px;color:#7A6349;background:white;outline:none;box-sizing:border-box;margin-top:5px;text-transform:uppercase;"
+                                   onfocus="this.style.borderColor='#8B7355'" onblur="this.style.borderColor='#E8DDD0'"
+                                   oninput="this.value=this.value.toUpperCase()">
+                        </td>
+                        <td style="padding:13px 12px;text-align:center;color:#C0B0A0;">—</td>
+                        <td style="padding:13px 12px;text-align:center;">
+                            <span style="background:#DCFCE7;color:#15803D;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;">Aktif</span>
+                        </td>
+                        <td style="padding:13px 12px;text-align:center;">
+                            <div style="display:flex;gap:6px;justify-content:center;">
+                                <button onclick="simpanKatBaru()" id="btn-simpan-baru"
+                                        style="width:30px;height:30px;background:#15803D;border:none;border-radius:7px;cursor:pointer;color:white;font-size:12px;display:flex;align-items:center;justify-content:center;"
+                                        title="Simpan">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button onclick="document.getElementById('new-kat-nama').value='';document.getElementById('new-kat-kode').value='';"
+                                        style="width:30px;height:30px;background:#F5F5F5;border:1.5px solid #E0E0E0;border-radius:7px;cursor:pointer;color:#666;font-size:14px;display:flex;align-items:center;justify-content:center;"
+                                        title="Batal">
+                                    &times;
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Footer --}}
+        <div style="padding:14px 24px;border-top:1px solid #F0EAE2;display:flex;justify-content:flex-end;flex-shrink:0;">
+            <button onclick="closeModalAturKategori()"
+                    style="padding:9px 22px;background:white;border:1.5px solid #E8DDD0;border-radius:8px;color:#7A6349;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;"
+                    onmouseover="this.style.background='#F5EFE8'" onmouseout="this.style.background='white'">
+                Tutup
+            </button>
+        </div>
+    </div>
+</div>
+
 {{-- Lightbox --}}
 <div id="imgLb" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:9999;cursor:pointer;" onclick="closeImg()">
     <div style="position:absolute;top:20px;right:28px;color:white;font-size:36px;font-weight:bold;cursor:pointer;" onclick="closeImg()">&times;</div>
@@ -356,5 +483,133 @@ window.showImg = function(url, name) {
 };
 window.closeImg = function() { document.getElementById('imgLb').style.display = 'none'; };
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeImg(); });
+
+// ===== MODAL ATUR KATEGORI =====
+window.openModalAturKategori = function() {
+    var m = document.getElementById('modalAturKategori');
+    m.style.display = 'flex';
+    document.getElementById('atur-kat-alert').style.display = 'none';
+    document.getElementById('new-kat-nama').value = '';
+    document.getElementById('new-kat-kode').value = '';
+};
+
+window.closeModalAturKategori = function() {
+    document.getElementById('modalAturKategori').style.display = 'none';
+};
+
+// Show alert inside modal
+function showAturAlert(msg, type) {
+    var el = document.getElementById('atur-kat-alert');
+    el.textContent = msg;
+    el.style.display = 'block';
+    if (type === 'success') {
+        el.style.background = '#DCFCE7'; el.style.color = '#15803D'; el.style.border = '1px solid #86EFAC';
+    } else {
+        el.style.background = '#FFEBEE'; el.style.color = '#C62828'; el.style.border = '1px solid #FFCDD2';
+    }
+    setTimeout(function(){ el.style.display = 'none'; }, 3000);
+}
+
+// ── TAMBAH KATEGORI BARU ──────────────────────────────────
+window.simpanKatBaru = function() {
+    var nama = document.getElementById('new-kat-nama').value.trim();
+    var kode = document.getElementById('new-kat-kode').value.trim();
+    if (!nama) { document.getElementById('new-kat-nama').focus(); showAturAlert('Nama kategori wajib diisi.', 'error'); return; }
+    if (!kode) { document.getElementById('new-kat-kode').focus(); showAturAlert('Kode kategori wajib diisi.', 'error'); return; }
+
+    var btn = document.getElementById('btn-simpan-baru');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    btn.disabled = true;
+
+    fetch('{{ route("master-data.kategori-produk.store") }}', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept':'application/json' },
+        body: JSON.stringify({ nama: nama, kode_kategori: kode })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        btn.disabled = false;
+        if (data.success || data.id) {
+            showAturAlert('Kategori "' + nama + '" berhasil ditambahkan!', 'success');
+            setTimeout(function(){ window.location.reload(); }, 800);
+        } else {
+            var msg = data.message || (data.errors ? Object.values(data.errors).flat().join(', ') : 'Gagal menyimpan.');
+            showAturAlert(msg, 'error');
+        }
+    })
+    .catch(function(){ btn.innerHTML = '<i class="fas fa-check"></i>'; btn.disabled = false; showAturAlert('Terjadi kesalahan.', 'error'); });
+};
+
+// ── EDIT KATEGORI ─────────────────────────────────────────
+window.startEditKat = function(id) {
+    document.getElementById('kat-view-nama-' + id).style.display = 'none';
+    document.getElementById('kat-edit-nama-' + id).style.display = 'block';
+    document.getElementById('kat-view-btns-' + id).style.display = 'none';
+    document.getElementById('kat-edit-btns-' + id).style.display = 'flex';
+    document.getElementById('kat-edit-nama-' + id).focus();
+};
+
+window.cancelEditKat = function(id) {
+    var orig = document.getElementById('kat-view-nama-' + id).textContent;
+    document.getElementById('kat-edit-nama-' + id).value = orig;
+    document.getElementById('kat-view-nama-' + id).style.display = '';
+    document.getElementById('kat-edit-nama-' + id).style.display = 'none';
+    document.getElementById('kat-view-btns-' + id).style.display = 'flex';
+    document.getElementById('kat-edit-btns-' + id).style.display = 'none';
+};
+
+window.simpanEditKat = function(id, kode) {
+    var nama = document.getElementById('kat-edit-nama-' + id).value.trim();
+    if (!nama) { showAturAlert('Nama kategori tidak boleh kosong.', 'error'); return; }
+
+    fetch('{{ url("master-data/kategori-produk") }}/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type':'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept':'application/json' },
+        body: JSON.stringify({ nama: nama, kode_kategori: kode })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            document.getElementById('kat-view-nama-' + id).textContent = nama;
+            cancelEditKat(id);
+            showAturAlert('Kategori berhasil diperbarui!', 'success');
+            setTimeout(function(){ window.location.reload(); }, 800);
+        } else {
+            showAturAlert(data.message || 'Gagal memperbarui.', 'error');
+        }
+    })
+    .catch(function(){ showAturAlert('Terjadi kesalahan.', 'error'); });
+};
+
+// ── HAPUS KATEGORI ────────────────────────────────────────
+window.hapusKat = function(id, nama) {
+    if (!confirm('Yakin ingin menghapus kategori "' + nama + '"?\nProduk yang terkait tidak akan terhapus.')) return;
+
+    fetch('{{ url("master-data/kategori-produk") }}/' + id, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept':'application/json' }
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            var row = document.getElementById('kat-row-' + id);
+            if (row) { row.style.opacity = '0'; row.style.transition = 'opacity 0.3s'; setTimeout(function(){ row.remove(); }, 300); }
+            showAturAlert('Kategori "' + nama + '" berhasil dihapus.', 'success');
+            setTimeout(function(){ window.location.reload(); }, 800);
+        } else {
+            showAturAlert(data.message || 'Gagal menghapus.', 'error');
+        }
+    })
+    .catch(function(){ showAturAlert('Terjadi kesalahan.', 'error'); });
+};
+
+// Close modal on backdrop click
+document.getElementById('modalAturKategori').addEventListener('click', function(e) {
+    if (e.target === this) closeModalAturKategori();
+});
+
+// Close on ESC
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') { closeModalAturKategori(); closeImg(); } });
 </script>
 @endsection

@@ -81,17 +81,20 @@ class AppServiceProvider extends ServiceProvider
         // Initialize master data untuk user baru
         User::observe(UserObserver::class);
 
-        // View composer global untuk semua tampilan
+        // View composer global untuk semua tampilan (kecuali dashboard)
         View::composer('*', function ($view) {
-            $view->with([
-                'totalPegawai'   => 0,
-                'totalPresensi'  => Presensi::count(),
-                'totalProduk'    => Produk::count(),
-                'totalVendor'    => Vendor::count(),
-                'totalBahanBaku' => BahanBaku::count(),
-                'totalSatuan'    => Satuan::count(),
-                'totalCOA'       => Coa::count(),
-            ]);
+            // Jangan override data yang sudah disediakan oleh controller khususnya dashboard
+            if (!$view->getName() || !str_contains($view->getName(), 'dashboard')) {
+                $view->with([
+                    'totalPegawai'   => Pegawai::count(),
+                    'totalPresensi'  => Presensi::count(),
+                    'totalProduk'    => Produk::count(),
+                    'totalVendor'    => Vendor::count(),
+                    'totalBahanBaku' => BahanBaku::count(),
+                    'totalSatuan'    => Satuan::count(),
+                    'totalCOA'       => Coa::count(),
+                ]);
+            }
         });
 
         // View composer untuk layout pelanggan (cart count)

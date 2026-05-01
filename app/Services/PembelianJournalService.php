@@ -57,6 +57,7 @@ class PembelianJournalService
             // 2. DEBIT: PPN Masukan (jika ada)
             $ppnNominal = (float) ($pembelian->ppn_nominal ?? 0);
             if ($ppnNominal > 0) {
+                // Use the new PPN Masukan COA (127)
                 $ppnCoa = $this->getCoaByCode('127'); // PPN Masukan
                 
                 $lines[] = [
@@ -68,25 +69,38 @@ class PembelianJournalService
                 
                 Log::info("Jurnal Pembelian - PPN Masukan", [
                     'persen' => $pembelian->ppn_persen,
-                    'nominal' => $ppnNominal
+                    'nominal' => $ppnNominal,
+                    'coa_used' => $ppnCoa->kode_akun
                 ]);
             }
             
             // 3. DEBIT: Biaya Kirim (jika ada)
             $biayaKirim = (float) ($pembelian->biaya_kirim ?? 0);
             if ($biayaKirim > 0) {
-                $biayaKirimCoa = $this->getCoaByCode('5111'); // Biaya Angkut Pembelian
+                // Try to find Biaya Kirim COA, or use a generic BOP account
+                $biayaKirimCoa = \App\Models\Coa::where('kode_akun', '5111')->first();
+                if (!$biayaKirimCoa) {
+                    // Fallback to BOP Lain account
+                    $biayaKirimCoa = \App\Models\Coa::where('kode_akun', '55')->first();
+                }
                 
-                $lines[] = [
-                    'coa_id' => $biayaKirimCoa->id,
-                    'debit' => $biayaKirim,
-                    'credit' => 0,
-                    'memo' => 'Biaya Kirim'
-                ];
-                
-                Log::info("Jurnal Pembelian - Biaya Kirim", [
-                    'amount' => $biayaKirim
-                ]);
+                if ($biayaKirimCoa) {
+                    $lines[] = [
+                        'coa_id' => $biayaKirimCoa->id,
+                        'debit' => $biayaKirim,
+                        'credit' => 0,
+                        'memo' => 'Biaya Kirim'
+                    ];
+                    
+                    Log::info("Jurnal Pembelian - Biaya Kirim", [
+                        'amount' => $biayaKirim,
+                        'coa_used' => $biayaKirimCoa->kode_akun
+                    ]);
+                } else {
+                    Log::warning("Biaya Kirim COA not found, skipping biaya kirim entry", [
+                        'biaya_kirim' => $biayaKirim
+                    ]);
+                }
             }
             
             // 4. CREDIT: Kas/Bank atau Utang berdasarkan metode pembayaran

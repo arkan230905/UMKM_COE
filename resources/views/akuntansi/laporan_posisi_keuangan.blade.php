@@ -11,23 +11,57 @@
         <div class="d-flex gap-2">
             <form method="get" class="d-flex gap-2 align-items-end">
                 <div>
-                    <label class="form-label">Periode</label>
-                    <input type="month" name="periode" class="form-select" value="{{ $periode }}" onchange="this.form.submit()">
+                    <label class="form-label">Bulan</label>
+                    <select name="bulan" class="form-select">
+                        @for($m = 1; $m <= 12; $m++)
+                            <option value="{{ str_pad($m, 2, '0', STR_PAD_LEFT) }}" 
+                                {{ (isset($bulan) && $bulan == str_pad($m, 2, '0', STR_PAD_LEFT)) ? 'selected' : '' }}>
+                                {{ \Carbon\Carbon::create()->month($m)->format('F') }}
+                            </option>
+                        @endfor
+                    </select>
                 </div>
+                <div>
+                    <label class="form-label">Tahun</label>
+                    <select name="tahun" class="form-select">
+                        @for($y = date('Y'); $y >= 2020; $y--)
+                            <option value="{{ $y }}" {{ (isset($tahun) && $tahun == $y) ? 'selected' : '' }}>
+                                {{ $y }}
+                            </option>
+                        @endfor
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Tampilkan
+                </button>
             </form>
             <div>
                 <label class="form-label">&nbsp;</label>
-                <a href="{{ route('akuntansi.laporan-posisi-keuangan.pdf', ['bulan' => substr($periode, 5, 2), 'tahun' => substr($periode, 0, 4)]) }}" class="btn btn-danger" target="_blank">
+                <a href="{{ route('akuntansi.laporan-posisi-keuangan.pdf', ['bulan' => $bulan ?? date('m'), 'tahun' => $tahun ?? date('Y')]) }}" class="btn btn-danger" target="_blank">
                     <i class="fas fa-file-pdf"></i> Cetak PDF
                 </a>
             </div>
         </div>
     </div>
 
+    <!-- Balance Status Alert -->
+    @if(!$neraca['neraca_seimbang'])
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Peringatan:</strong> Neraca tidak seimbang! 
+        Selisih: Rp {{ number_format(abs($neraca['selisih']), 0, ',', '.') }}
+    </div>
+    @else
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i>
+        <strong>Neraca Seimbang</strong>
+    </div>
+    @endif
+
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">
-                <i class="fas fa-balance-scale me-2"></i>Laporan Posisi Keuangan per {{ \Carbon\Carbon::parse($periode.'-01')->isoFormat('MMMM YYYY') }}
+                <i class="fas fa-balance-scale me-2"></i>Laporan Posisi Keuangan per {{ \Carbon\Carbon::create($tahun ?? date('Y'), $bulan ?? date('m'), 1)->isoFormat('MMMM YYYY') }}
             </h5>
         </div>
         <div class="card-body">
@@ -46,17 +80,20 @@
                                 <td colspan="2" class="fw-bold ps-4">ASET LANCAR</td>
                                 <td class="text-end"></td>
                             </tr>
-                            @foreach($asetLancar as $item)
-                                @php $saldo = $getFinalBalance($item); @endphp
+                            @forelse($neraca['aset']['lancar'] as $item)
                                 <tr>
-                                    <td class="ps-5">{{ $item->nama_akun }}</td>
-                                    <td class="text-muted small">{{ $item->kode_akun }}</td>
-                                    <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                                    <td class="ps-5">{{ $item['nama_akun'] }}</td>
+                                    <td class="text-muted small">{{ $item['kode_akun'] }}</td>
+                                    <td class="text-end">Rp {{ number_format($item['saldo'], 0, ',', '.') }}</td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="ps-5 text-muted">Tidak ada data</td>
+                                </tr>
+                            @endforelse
                             <tr class="border-bottom">
                                 <td colspan="2" class="fw-bold ps-4">Jumlah Aset Lancar</td>
-                                <td class="text-end fw-bold">Rp {{ number_format($totalAsetLancar, 0, ',', '.') }}</td>
+                                <td class="text-end fw-bold">Rp {{ number_format($neraca['aset']['total_lancar'], 0, ',', '.') }}</td>
                             </tr>
                             
                             <!-- ASET TIDAK LANCAR -->
@@ -64,23 +101,26 @@
                                 <td colspan="2" class="fw-bold ps-4">ASET TIDAK LANCAR</td>
                                 <td class="text-end"></td>
                             </tr>
-                            @foreach($asetTidakLancar as $item)
-                                @php $saldo = $getFinalBalance($item); @endphp
+                            @forelse($neraca['aset']['tidak_lancar'] as $item)
                                 <tr>
-                                    <td class="ps-5">{{ $item->nama_akun }}</td>
-                                    <td class="text-muted small">{{ $item->kode_akun }}</td>
-                                    <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                                    <td class="ps-5">{{ $item['nama_akun'] }}</td>
+                                    <td class="text-muted small">{{ $item['kode_akun'] }}</td>
+                                    <td class="text-end">Rp {{ number_format($item['saldo'], 0, ',', '.') }}</td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="ps-5 text-muted">Tidak ada data</td>
+                                </tr>
+                            @endforelse
                             <tr class="border-bottom">
                                 <td colspan="2" class="fw-bold ps-4">Jumlah Aset Tidak Lancar</td>
-                                <td class="text-end fw-bold">Rp {{ number_format($totalAsetTidakLancar, 0, ',', '.') }}</td>
+                                <td class="text-end fw-bold">Rp {{ number_format($neraca['aset']['total_tidak_lancar'], 0, ',', '.') }}</td>
                             </tr>
                             
                             <!-- TOTAL ASET -->
                             <tr class="table-primary fw-bold">
                                 <td colspan="2">JUMLAH ASET</td>
-                                <td class="text-end">Rp {{ number_format($totalAset, 0, ',', '.') }}</td>
+                                <td class="text-end">Rp {{ number_format($neraca['aset']['total_aset'], 0, ',', '.') }}</td>
                             </tr>
                             
                             <tr>
@@ -93,40 +133,25 @@
                                 <th class="text-end fw-bold"></th>
                             </tr>
                             
-                            <!-- KEWAJIBAN JANGKA PENDEK -->
+                            <!-- KEWAJIBAN -->
                             <tr>
-                                <td colspan="2" class="fw-bold ps-4">KEWAJIBAN JANGKA PENDEK</td>
+                                <td colspan="2" class="fw-bold ps-4">KEWAJIBAN</td>
                                 <td class="text-end"></td>
                             </tr>
-                            @foreach($kewajibanPendek as $item)
-                                @php $saldo = $getFinalBalance($item); @endphp
+                            @forelse($neraca['kewajiban']['detail'] as $item)
                                 <tr>
-                                    <td class="ps-5">{{ $item->nama_akun }}</td>
-                                    <td class="text-muted small">{{ $item->kode_akun }}</td>
-                                    <td class="text-end">Rp {{ number_format($saldo > 0 ? $saldo : 0, 0, ',', '.') }}</td>
+                                    <td class="ps-5">{{ $item['nama_akun'] }}</td>
+                                    <td class="text-muted small">{{ $item['kode_akun'] }}</td>
+                                    <td class="text-end">Rp {{ number_format($item['saldo'], 0, ',', '.') }}</td>
                                 </tr>
-                            @endforeach
-                            <tr class="border-bottom">
-                                <td colspan="2" class="fw-bold ps-4">Jumlah Kewajiban Jangka Pendek</td>
-                                <td class="text-end fw-bold">Rp {{ number_format($totalKewajibanPendek, 0, ',', '.') }}</td>
-                            </tr>
-                            
-                            <!-- KEWAJIBAN JANGKA PANJANG -->
-                            <tr>
-                                <td colspan="2" class="fw-bold ps-4">KEWAJIBAN JANGKA PANJANG</td>
-                                <td class="text-end"></td>
-                            </tr>
-                            @foreach($kewajibanPanjang as $item)
-                                @php $saldo = $getFinalBalance($item); @endphp
+                            @empty
                                 <tr>
-                                    <td class="ps-5">{{ $item->nama_akun }}</td>
-                                    <td class="text-muted small">{{ $item->kode_akun }}</td>
-                                    <td class="text-end">Rp {{ number_format($saldo > 0 ? $saldo : 0, 0, ',', '.') }}</td>
+                                    <td colspan="3" class="ps-5 text-muted">Tidak ada data</td>
                                 </tr>
-                            @endforeach
+                            @endforelse
                             <tr class="border-bottom">
-                                <td colspan="2" class="fw-bold ps-4">Jumlah Kewajiban Jangka Panjang</td>
-                                <td class="text-end fw-bold">Rp {{ number_format($totalKewajibanPanjang, 0, ',', '.') }}</td>
+                                <td colspan="2" class="fw-bold ps-4">Jumlah Kewajiban</td>
+                                <td class="text-end fw-bold">Rp {{ number_format($neraca['kewajiban']['total'], 0, ',', '.') }}</td>
                             </tr>
                             
                             <!-- EKUITAS -->
@@ -134,59 +159,29 @@
                                 <td colspan="2" class="fw-bold ps-4">EKUITAS / MODAL</td>
                                 <td class="text-end"></td>
                             </tr>
-                            @foreach($ekuitas as $item)
-                                @php $saldo = $getFinalBalance($item); @endphp
+                            @forelse($neraca['ekuitas']['detail'] as $item)
                                 <tr>
-                                    <td class="ps-5">{{ $item->nama_akun }}</td>
-                                    <td class="text-muted small">{{ $item->kode_akun }}</td>
-                                    <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
+                                    <td class="ps-5">{{ $item['nama_akun'] }}</td>
+                                    <td class="text-muted small">{{ $item['kode_akun'] }}</td>
+                                    <td class="text-end">Rp {{ number_format($item['saldo'], 0, ',', '.') }}</td>
                                 </tr>
-                            @endforeach
-                            @if($profitLoss != 0)
-                            <tr>
-                                <td class="ps-5">Laba/Rugi Periode Berjalan</td>
-                                <td class="text-muted small">-</td>
-                                <td class="text-end">Rp {{ number_format($profitLoss, 0, ',', '.') }}</td>
-                            </tr>
-                            @endif
+                            @empty
+                                <tr>
+                                    <td colspan="3" class="ps-5 text-muted">Tidak ada data</td>
+                                </tr>
+                            @endforelse
                             <tr class="border-bottom">
                                 <td colspan="2" class="fw-bold ps-4">Jumlah Ekuitas</td>
-                                <td class="text-end fw-bold">Rp {{ number_format($totalEkuitas, 0, ',', '.') }}</td>
+                                <td class="text-end fw-bold">Rp {{ number_format($neraca['ekuitas']['total'], 0, ',', '.') }}</td>
                             </tr>
                             
                             <!-- TOTAL KEWAJIBAN DAN EKUITAS -->
                             <tr class="table-success fw-bold">
                                 <td colspan="2">JUMLAH KEWAJIBAN DAN EKUITAS</td>
-                                <td class="text-end">Rp {{ number_format($totalKewajibanEkuitas, 0, ',', '.') }}</td>
+                                <td class="text-end">Rp {{ number_format($neraca['total_kewajiban_ekuitas'], 0, ',', '.') }}</td>
                             </tr>
                         </tbody>
                     </table>
-                    
-                    <!-- Balance Check -->
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <div class="alert {{ ($totalAset == $totalKewajibanEkuitas) ? 'alert-success' : 'alert-warning' }}">
-                                <strong>Cek Keseimbangan:</strong>
-                                Total Aset: Rp {{ number_format($totalAset, 0, ',', '.') }} |
-                                Total Kewajiban + Ekuitas: Rp {{ number_format($totalKewajibanEkuitas, 0, ',', '.') }}
-                                @if($totalAset == $totalKewajibanEkuitas)
-                                    <i class="fas fa-check-circle ms-2"></i> <strong>SEIMBANG</strong>
-                                @else
-                                    <i class="fas fa-exclamation-triangle ms-2"></i> <strong>TIDAK SEIMBANG</strong>
-                                    <br><small>Selisih: Rp {{ number_format($totalAset - $totalKewajibanEkuitas, 0, ',', '.') }}</small>
-                                @endif
-                            </div>
-                            
-                            @if($profitLoss != 0)
-                            <div class="alert alert-info">
-                                <strong>Informasi Laba/Rugi Periode Berjalan:</strong>
-                                Rp {{ number_format($profitLoss, 0, ',', '.') }}
-                                <br><small>Laba/rugi ini sudah termasuk dalam total ekuitas di atas</small>
-                                <br><small>Total Pendapatan: Rp {{ number_format($totalRevenue, 0, ',', '.') }} | Total Beban: Rp {{ number_format($totalExpense, 0, ',', '.') }}</small>
-                            </div>
-                            @endif
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
