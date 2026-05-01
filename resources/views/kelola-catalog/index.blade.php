@@ -238,17 +238,35 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group mb-3">
-                                            <label>Link Google Maps</label>
-                                            <input type="url" class="form-control" id="mapsLink" value="{{ $catalogSections['location']['maps_link'] ?? $company->maps_link ?? '' }}" placeholder="https://maps.google.com/...">
-                                            <small class="text-muted">Paste link embed Google Maps</small>
+                                            <label>Link Google Maps <span class="text-danger">*harus link embed</span></label>
+                                            <input type="text" class="form-control" id="mapsLink" value="{{ $catalogSections['location']['maps_link'] ?? $company->maps_link ?? '' }}" placeholder="https://www.google.com/maps/embed?pb=...">
+                                            <div id="mapsLinkHelp" class="mt-1">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-info-circle me-1"></i>
+                                                    Cara mendapatkan link embed: buka Google Maps → cari lokasi → klik <strong>Bagikan</strong> → tab <strong>Sematkan peta</strong> → salin URL dari atribut <code>src="..."</code>
+                                                </small>
+                                            </div>
+                                            <div id="mapsLinkError" class="alert alert-warning py-2 mt-2" style="display:none; font-size:0.85rem;">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                                Link ini bukan link embed. Peta tidak akan tampil. Gunakan link yang mengandung <code>maps/embed?pb=</code>
+                                            </div>
                                         </div>
                                         <div class="map-preview">
-                                            @if($company && $company->maps_link)
-                                            <iframe src="{{ $company->maps_link }}" width="100%" height="200" style="border:0; border-radius: 8px;" allowfullscreen="" loading="lazy"></iframe>
+                                            @php
+                                                $savedMapsLink = $catalogSections['location']['maps_link'] ?? $company->maps_link ?? '';
+                                                $isEmbedLink = $savedMapsLink && str_contains($savedMapsLink, 'maps/embed');
+                                            @endphp
+                                            @if($isEmbedLink)
+                                            <iframe src="{{ $savedMapsLink }}" width="100%" height="200" style="border:0; border-radius: 8px;" allowfullscreen="" loading="lazy"></iframe>
+                                            @elseif($savedMapsLink)
+                                            <div class="no-map">
+                                                <i class="fas fa-exclamation-triangle text-warning"></i>
+                                                <p class="text-warning">Link bukan format embed. Ganti dengan link embed dari Google Maps.</p>
+                                            </div>
                                             @else
                                             <div class="no-map">
                                                 <i class="fas fa-map"></i>
-                                                <p>Preview peta akan muncul setelah link diisi</p>
+                                                <p>Preview peta akan muncul setelah link embed diisi</p>
                                             </div>
                                             @endif
                                         </div>
@@ -624,13 +642,38 @@ $(document).ready(function() {
     // Maps link preview
     $('#mapsLink').on('input', function() {
         const link = $(this).val().trim();
-        if (link && (link.includes('google.com/maps') || link.includes('maps.google.com'))) {
+        const isEmbed = link.includes('maps/embed');
+        const isGoogleMaps = link.includes('google.com/maps') || link.includes('maps.google.com');
+
+        if (link && isEmbed) {
+            // Valid embed link — show preview
+            $('#mapsLinkError').hide();
             $('.map-preview').html(`<iframe src="${link}" width="100%" height="200" style="border:0; border-radius: 8px;" allowfullscreen="" loading="lazy"></iframe>`);
-        } else {
+        } else if (link && isGoogleMaps && !isEmbed) {
+            // Google Maps link but NOT embed — show warning
+            $('#mapsLinkError').show();
+            $('.map-preview').html(`
+                <div class="no-map">
+                    <i class="fas fa-exclamation-triangle text-warning"></i>
+                    <p class="text-warning">Link bukan format embed. Ganti dengan link embed dari Google Maps.</p>
+                </div>
+            `);
+        } else if (!link) {
+            // Empty
+            $('#mapsLinkError').hide();
             $('.map-preview').html(`
                 <div class="no-map">
                     <i class="fas fa-map"></i>
-                    <p>Preview peta akan muncul setelah link diisi</p>
+                    <p>Preview peta akan muncul setelah link embed diisi</p>
+                </div>
+            `);
+        } else {
+            // Unknown link
+            $('#mapsLinkError').show();
+            $('.map-preview').html(`
+                <div class="no-map">
+                    <i class="fas fa-exclamation-triangle text-warning"></i>
+                    <p class="text-warning">Link tidak dikenali. Gunakan link embed dari Google Maps.</p>
                 </div>
             `);
         }

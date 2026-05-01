@@ -15,17 +15,9 @@
     </div>
     <div class="col-md-6 text-end">
       <div class="d-flex gap-2 justify-content-end">
-        <a href="{{ route('akuntansi.jurnal-umum.export-pdf', request()->all()) }}" class="btn btn-danger btn-sm position-relative overflow-hidden group">
-          <span class="absolute inset-0 bg-gradient-to-r from-red-600 to-red-500 opacity-75 group-hover:opacity-100 transition-opacity duration-300"></span>
-          <span class="relative flex items-center">
-            <i class="bi bi-file-pdf me-2"></i>
-            <span class="font-semibold">Export PDF</span>
-          </span>
-          <div class="absolute inset-0 flex items-center justify-center">
-            <svg class="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3v6m3-6v-6m-6 18v6m6-6h6m-6 6v6M9 9h6m-6 0v6"></path>
-            </svg>
-          </div>
+        <a href="{{ route('akuntansi.jurnal-umum.export-pdf', request()->all()) }}" 
+           class="btn btn-danger btn-sm" target="_blank">
+            <i class="fas fa-file-pdf me-1"></i> Export PDF
         </a>
       </div>
     </div>

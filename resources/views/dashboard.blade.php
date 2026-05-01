@@ -1,742 +1,769 @@
-@extends('layouts.app')
-
+﻿@extends('layouts.app')
 @section('title', 'Dashboard')
-
 @section('content')
 
-<div class="container-fluid">
-    <!-- Modern Header -->
-    <div class="row mb-2">
-        <div class="col-12">
-            <div class="card header-card" style="background: linear-gradient(135deg, #F5F0E8 0%, #FFFFFF 100%); border: 1px solid #E5DDD0; box-shadow: 0 4px 12px rgba(139, 115, 92, 0.15);">
-                <div class="card-body py-3 px-3">
-                    <div class="text-center" style="padding-top: 8px;">
-                        <h1 style="color: #5A4A3A; font-weight: 700; margin-bottom: 10px; font-size: 1.5rem; letter-spacing: -0.3px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif; line-height: 1.3;">Dashboard</h1>
-                        <p style="color: #7A6A5A; margin: 0 0 4px 0; font-size: 0.875rem; line-height: 1.5; font-weight: 400;">
-                            Selamat datang, <span style="font-weight: 600; color: #5A4A3A;">{{ Auth::user()->name }}</span>
-                        </p>
-                        <p id="realtime-clock" style="color: #9A8A7A; margin: 0; font-size: 0.8125rem; line-height: 1.4;">
-                            {{ now()->locale('id')->isoFormat('dddd, D MMMM YYYY • HH:mm:ss') }} WIB
-                        </p>
-                    </div>
-                </div>
-            </div>
+{{-- ============================================================
+     TOPBAR
+     ============================================================ --}}
+<div class="topbar">
+    <div class="topbar-left">
+        <h1>Dashboard</h1>
+        <p>Selamat datang kembali, <strong>{{ Auth::user()->name }}</strong> 👋</p>
+        <p style="font-size:0.72rem;color:var(--text-muted);margin:0;display:flex;align-items:center;gap:5px;">
+            <i class="fas fa-calendar-alt" style="color:var(--brown-light);"></i>
+            <span id="realtime-clock">{{ now()->locale('id')->isoFormat('dddd, D MMMM YYYY') }} &bull; {{ now()->format('H:i:s') }} WIB</span>
+        </p>
+    </div>
+    <div class="topbar-right">
+        {{-- Quick action buttons --}}
+        <div class="quick-actions-bar d-none d-lg-flex">
+            <a href="{{ route('transaksi.penjualan.index') }}" class="quick-action-btn">
+                <div class="quick-action-icon bg-green-soft text-green"><i class="fas fa-shopping-bag"></i></div>
+                <div class="quick-action-text"><strong>Penjualan</strong><small>Buat transaksi</small></div>
+            </a>
+            <a href="{{ route('transaksi.pembelian.index') }}" class="quick-action-btn">
+                <div class="quick-action-icon bg-yellow-soft text-yellow"><i class="fas fa-shopping-cart"></i></div>
+                <div class="quick-action-text"><strong>Pembelian</strong><small>Buat transaksi</small></div>
+            </a>
+            <a href="{{ route('transaksi.produksi.index') }}" class="quick-action-btn">
+                <div class="quick-action-icon bg-blue-soft text-blue"><i class="fas fa-industry"></i></div>
+                <div class="quick-action-text"><strong>Produksi</strong><small>Buat produksi</small></div>
+            </a>
+            <a href="{{ route('akuntansi.laba-rugi') }}" class="quick-action-btn">
+                <div class="quick-action-icon bg-purple-soft" style="color:#8B5CF6"><i class="fas fa-chart-bar"></i></div>
+                <div class="quick-action-text"><strong>Laporan</strong><small>Lihat laporan</small></div>
+            </a>
+        </div>
+        {{-- Notif + logo --}}
+        @php
+            $notifCount = \App\Models\Penjualan::whereMonth('tanggal', now()->month)
+                ->whereYear('tanggal', now()->year)->count()
+                + \App\Models\Pembelian::whereMonth('tanggal', now()->month)
+                ->whereYear('tanggal', now()->year)->count();
+        @endphp
+        <a href="#" class="topbar-btn ms-2">
+            <i class="fas fa-bell"></i>
+            @if($notifCount > 0)
+            <span class="notif-badge">{{ $notifCount > 99 ? '99+' : $notifCount }}</span>
+            @endif
+        </a>
+        <div style="margin-left:8px;">
+            <img src="{{ asset('images/logo.png') }}" alt="Logo" style="height:38px;width:auto;object-fit:contain;display:block;">
         </div>
     </div>
-
-    <!-- Modern KPI Cards -->
-    <div class="row g-2 mb-3">
-        <div class="col-lg-3 col-md-6">
-            <div class="card kpi-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F0E8 100%); border: 1px solid #E5DDD0; box-shadow: 0 3px 10px rgba(139, 115, 92, 0.12); transition: all 0.3s ease; position: relative; overflow: hidden; min-height: 110px;">
-                <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(139, 115, 92, 0.08) 0%, transparent 70%); border-radius: 50%;"></div>
-                <div class="card-body p-3" style="position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-                    <div class="kpi-icon" style="width: 48px; height: 48px; background: #6B5847; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(107, 88, 71, 0.4);">
-                        <i class="fas fa-wallet" style="color: white; font-size: 20px;"></i>
-                    </div>
-                    <div style="color: #7A6A5A; font-size: 0.75rem; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Kas & Bank</div>
-                    <div style="color: #5A4A3A; font-weight: 700; font-size: 1.125rem; letter-spacing: -0.5px;">Rp {{ number_format($totalKasBank, 0, ',', '.') }}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-            <div class="card kpi-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F0E8 100%); border: 1px solid #E5DDD0; box-shadow: 0 3px 10px rgba(139, 115, 92, 0.12); transition: all 0.3s ease; position: relative; overflow: hidden; min-height: 110px;">
-                <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(139, 115, 92, 0.08) 0%, transparent 70%); border-radius: 50%;"></div>
-                <div class="card-body p-3" style="position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-                    <div class="kpi-icon" style="width: 48px; height: 48px; background: #6B5847; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(107, 88, 71, 0.4);">
-                        <i class="fas fa-chart-line" style="color: white; font-size: 20px;"></i>
-                    </div>
-                    <div style="color: #7A6A5A; font-size: 0.75rem; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Pendapatan Bulan Ini</div>
-                    <div style="color: #5A4A3A; font-weight: 700; font-size: 1.125rem; letter-spacing: -0.5px;">Rp {{ number_format($pendapatanBulanIni, 0, ',', '.') }}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-            <div class="card kpi-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F0E8 100%); border: 1px solid #E5DDD0; box-shadow: 0 3px 10px rgba(139, 115, 92, 0.12); transition: all 0.3s ease; position: relative; overflow: hidden; min-height: 110px;">
-                <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(139, 115, 92, 0.08) 0%, transparent 70%); border-radius: 50%;"></div>
-                <div class="card-body p-3" style="position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-                    <div class="kpi-icon" style="width: 48px; height: 48px; background: #6B5847; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(107, 88, 71, 0.4);">
-                        <i class="fas fa-receipt" style="color: white; font-size: 20px;"></i>
-                    </div>
-                    <div style="color: #7A6A5A; font-size: 0.75rem; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Piutang</div>
-                    <div style="color: #5A4A3A; font-weight: 700; font-size: 1.125rem; letter-spacing: -0.5px;">Rp {{ number_format($totalPiutang, 0, ',', '.') }}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-3 col-md-6">
-            <div class="card kpi-card" style="background: linear-gradient(135deg, #FFFFFF 0%, #F5F0E8 100%); border: 1px solid #E5DDD0; box-shadow: 0 3px 10px rgba(139, 115, 92, 0.12); transition: all 0.3s ease; position: relative; overflow: hidden; min-height: 110px;">
-                <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(139, 115, 92, 0.08) 0%, transparent 70%); border-radius: 50%;"></div>
-                <div class="card-body p-3" style="position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-                    <div class="kpi-icon" style="width: 48px; height: 48px; background: #6B5847; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; box-shadow: 0 4px 10px rgba(107, 88, 71, 0.4);">
-                        <i class="fas fa-credit-card" style="color: white; font-size: 20px;"></i>
-                    </div>
-                    <div style="color: #7A6A5A; font-size: 0.75rem; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total Utang</div>
-                    <div style="color: #5A4A3A; font-weight: 700; font-size: 1.125rem; letter-spacing: -0.5px;">Rp {{ number_format($totalUtang, 0, ',', '.') }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Master Data Section -->
-    <div class="row g-2 mb-3">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0" style="font-size: 0.875rem;"><i class="fas fa-database me-2"></i>Master Data</h5>
-                </div>
-                <div class="card-body" style="padding: 0.75rem;">
-                    <div class="row g-2">
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.coa.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-book text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">COA</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalCOA }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.aset.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-laptop text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Aset</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalAset }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.satuan.dashboard') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-balance-scale text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Satuan</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalSatuan }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-user-tie text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Kualifikasi TK</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalJabatan }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.pegawai.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-users text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Pegawai</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalPegawai }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.vendor.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-truck text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Vendor</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalVendor }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.pelanggan.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-user-friends text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Pelanggan</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalPelanggan }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.bahan-baku.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-cubes text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Bahan Baku</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalBahanBaku }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.bahan-pendukung.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-flask text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Bahan Pendukung</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalBahanPendukung }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.produk.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-box text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Produk</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalProduk }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.biaya-bahan.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-calculator text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Biaya Bahan</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalBOM }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.btkl.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-industry text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">BTKL</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalBTKL }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.bop.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-chart-pie text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">BOP</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalBOP }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-2 col-md-4 col-sm-6">
-                            <a href="{{ route('master-data.harga-pokok-produksi.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded master-data-card" style="background-color: var(--light-gold); border: 1px solid rgba(139, 115, 92, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: var(--primary-gold); width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-sitemap text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Harga Pokok</h6>
-                                    <h4 class="mb-0" style="color: var(--primary-gold); font-size: 1.125rem;">{{ $totalBOM }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                                            </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Transactions Section -->
-    <div class="row g-2 mb-3">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0" style="font-size: 0.875rem;"><i class="fas fa-exchange-alt me-2"></i>Transaksi</h5>
-                </div>
-                <div class="card-body" style="padding: 0.75rem;">
-                    <div class="row g-2">
-                        <div class="col-lg-3 col-md-6">
-                            <a href="{{ route('transaksi.penjualan.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded transaction-card" style="background-color: #e8f5e8; border: 1px solid rgba(40, 167, 69, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: #28a745; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-cash-register text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Penjualan</h6>
-                                    <h4 class="mb-0" style="color: #28a745; font-size: 1.125rem;">{{ $totalPenjualan }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-6">
-                            <a href="{{ route('transaksi.pembelian.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded transaction-card" style="background-color: #fff3cd; border: 1px solid rgba(255, 193, 7, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: #ffc107; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-shopping-cart text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Pembelian</h6>
-                                    <h4 class="mb-0" style="color: #ffc107; font-size: 1.125rem;">{{ $totalPembelian }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-6">
-                            <a href="{{ route('transaksi.produksi.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded transaction-card" style="background-color: #d1ecf1; border: 1px solid rgba(13, 202, 240, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: #0dcaf0; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-industry text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Produksi</h6>
-                                    <h4 class="mb-0" style="color: #0dcaf0; font-size: 1.125rem;">{{ $totalProduksi }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-6">
-                            <a href="{{ route('transaksi.retur.index') }}" class="text-decoration-none">
-                                <div class="text-center p-2 rounded transaction-card" style="background-color: #f8d7da; border: 1px solid rgba(248, 215, 218, 0.1); cursor: pointer; transition: all 0.3s ease;">
-                                    <div class="rounded-circle mx-auto mb-1 p-2" style="background-color: #dc3545; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-undo text-white" style="font-size: 0.75rem;"></i>
-                                    </div>
-                                    <h6 class="mb-1 text-dark" style="font-size: 0.75rem;">Retur</h6>
-                                    <h4 class="mb-0" style="color: #dc3545; font-size: 1.125rem;">{{ $totalRetur }}</h4>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="row g-2 mb-3">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0" style="font-size: 0.875rem;"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
-                </div>
-                <div class="card-body" style="padding: 0.75rem;">
-                    <div class="row g-2">
-                        <div class="col-lg-3 col-md-6">
-                            <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-outline-primary w-100" style="font-size: 0.75rem;">
-                                <i class="fas fa-cash-register me-1"></i>Penjualan
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-6">
-                            <a href="{{ route('transaksi.pembelian.index') }}" class="btn btn-outline-primary w-100" style="font-size: 0.75rem;">
-                                <i class="fas fa-shopping-cart me-1"></i>Pembelian
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-6">
-                            <a href="{{ route('transaksi.produksi.index') }}" class="btn btn-outline-primary w-100" style="font-size: 0.75rem;">
-                                <i class="fas fa-industry me-1"></i>Produksi
-                            </a>
-                        </div>
-                        <div class="col-lg-3 col-md-6">
-                            <a href="{{ route('akuntansi.laba-rugi') }}" class="btn btn-outline-primary w-100" style="font-size: 0.75rem;">
-                                <i class="fas fa-chart-line me-1"></i>Laporan Laba Rugi
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ✅ TAMBAHAN: Kas & Bank Details dan Sales Chart -->
-    <div class="row g-2 mb-3">
-        <!-- Kas & Bank Details -->
-        <div class="col-lg-4">
-            <div class="card h-100">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0" style="font-size: 0.875rem;"><i class="fas fa-wallet me-2"></i>Detail Kas & Bank</h5>
-                </div>
-                <div class="card-body" style="padding: 0.75rem;">
-                    @if($kasBankDetails->count() > 0)
-                        <div class="list-group list-group-flush">
-                            @foreach($kasBankDetails as $detail)
-                                <div class="list-group-item px-0 d-flex justify-content-between align-items-center" style="padding: 0.5rem 0;">
-                                    <div>
-                                        <h6 class="mb-0" style="font-size: 0.8125rem;">{{ $detail['nama_akun'] }}</h6>
-                                        <small class="text-muted" style="font-size: 0.6875rem;">{{ $detail['kode_akun'] }}</small>
-                                    </div>
-                                    <div class="text-end">
-                                        <span class="badge {{ $detail['saldo_akhir'] >= 0 ? 'bg-success' : 'bg-danger' }}" style="font-size: 0.75rem;">
-                                            Rp {{ number_format($detail['saldo_akhir'], 0, ',', '.') }}
-                                        </span>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                        <div class="mt-2 pt-2 border-top">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0 fw-bold" style="font-size: 0.8125rem;">Total Kas & Bank</h6>
-                                <h5 class="mb-0 fw-bold {{ $totalKasBank >= 0 ? 'text-primary' : 'text-danger' }}" style="font-size: 0.9375rem;">
-                                    Rp {{ number_format($totalKasBank, 0, ',', '.') }}
-                                </h5>
-                            </div>
-                        </div>
-                        <div class="mt-2">
-                            <a href="{{ route('laporan.kas-bank') }}" class="btn btn-outline-primary btn-sm w-100" style="font-size: 0.75rem;">
-                                <i class="fas fa-eye me-1"></i>Lihat Laporan Lengkap
-                            </a>
-                        </div>
-                    @else
-                        <div class="text-center py-2">
-                            <i class="fas fa-wallet text-muted" style="font-size: 2rem; opacity: 0.3;"></i>
-                            <p class="text-muted mt-2 mb-0" style="font-size: 0.8125rem;">Belum ada data Kas & Bank</p>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-
-        <!-- Sales Chart -->
-        <div class="col-lg-8">
-            <div class="card h-100">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0" style="font-size: 0.875rem;"><i class="fas fa-chart-line me-2"></i>Grafik Penjualan (12 Bulan Terakhir)</h5>
-                </div>
-                <div class="card-body" style="padding: 0.75rem;">
-                    <canvas id="salesChart" style="max-height: 220px;"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Transactions -->
-    <div class="row g-2">
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0" style="font-size: 0.875rem;"><i class="fas fa-clock me-2"></i>Pembayaran Beban</h5>
-                </div>
-                <div class="card-body" style="padding: 0.75rem;">
-                    @if(!empty($recentExpensePayments) && count($recentExpensePayments) > 0)
-                        <div class="list-group list-group-flush">
-                            @foreach($recentExpensePayments as $payment)
-                                <a href="{{ route('transaksi.pembayaran-beban.show', $payment->id) }}" class="text-decoration-none">
-                                    <div class="list-group-item px-0 d-flex justify-content-between align-items-center master-data-card" style="cursor: pointer; transition: all 0.3s ease; padding: 0.5rem 0;">
-                                        <div>
-                                            <h6 class="mb-0 text-dark" style="font-size: 0.8125rem;">{{ $payment->bebanOperasional->nama_beban ?? $payment->coaBeban->nama_akun ?? 'Beban' }}</h6>
-                                            <small class="text-muted" style="font-size: 0.6875rem;">{{ \Carbon\Carbon::parse($payment->tanggal)->format('d M Y') }}</small>
-                                        </div>
-                                        <div class="text-end">
-                                            <span class="badge bg-danger" style="font-size: 0.75rem;">
-                                                Rp {{ number_format($payment->jumlah, 0, ',', '.') }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </a>
-                            @endforeach
-                        </div>
-                        <div class="mt-2">
-                            <a href="{{ route('transaksi.pembayaran-beban.index') }}" class="btn btn-outline-primary btn-sm w-100" style="font-size: 0.75rem;">
-                                <i class="fas fa-eye me-1"></i>Lihat Semua
-                            </a>
-                        </div>
-                    @else
-                        <div class="text-center py-2">
-                            <i class="fas fa-money-bill-wave text-muted" style="font-size: 2rem; opacity: 0.3;"></i>
-                            <p class="text-muted mt-2 mb-0" style="font-size: 0.8125rem;">Belum ada transaksi</p>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-6">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0" style="font-size: 0.875rem;"><i class="fas fa-handshake me-2"></i>Pelunasan Utang</h5>
-                </div>
-                <div class="card-body" style="padding: 0.75rem;">
-                    @if($recentApSettlements->count() > 0)
-                        <div class="list-group list-group-flush">
-                            @foreach($recentApSettlements as $settlement)
-                                <div class="list-group-item px-0 d-flex justify-content-between align-items-center" style="padding: 0.5rem 0;">
-                                    <div>
-                                        <h6 class="mb-0" style="font-size: 0.8125rem;">{{ $settlement->nama_vendor ?? 'Vendor' }}</h6>
-                                        <small class="text-muted" style="font-size: 0.6875rem;">{{ \Carbon\Carbon::parse($settlement->tanggal)->format('d M Y') }}</small>
-                                    </div>
-                                    <div class="text-end">
-                                        <span class="badge bg-success" style="font-size: 0.75rem;">
-                                            Rp {{ number_format($settlement->jumlah, 0, ',', '.') }}
-                                        </span>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                        <div class="mt-2">
-                            <a href="{{ route('transaksi.pelunasan-utang.index') }}" class="btn btn-outline-primary btn-sm w-100" style="font-size: 0.75rem;">
-                                <i class="fas fa-eye me-1"></i>Lihat Semua
-                            </a>
-                        </div>
-                    @else
-                        <div class="text-center py-2">
-                            <i class="fas fa-credit-card text-muted" style="font-size: 2rem; opacity: 0.3;"></i>
-                            <p class="text-muted mt-2 mb-0" style="font-size: 0.8125rem;">Belum ada transaksi</p>
-                        </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
-
 </div>
 
-<style>
-.hover-lift {
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
+<div class="page-wrapper">
 
-.hover-lift:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.2) !important;
-}
+{{-- ============================================================
+     KPI CARDS ROW
+     ============================================================ --}}
+<div class="row g-3 mb-3">
+    {{-- Total Kas & Bank --}}
+    <div class="col-lg-3 col-md-6">
+        <div class="kpi-card">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <div class="kpi-label">Total Kas &amp; Bank</div>
+                    <div class="kpi-value">Rp {{ number_format($totalKasBank, 0, ',', '.') }}</div>
+                    <div class="kpi-sub">Total saldo tersedia</div>
+                </div>
+                <div class="kpi-icon-wrap bg-brown-soft" style="color:var(--brown);">
+                    <i class="fas fa-wallet"></i>
+                </div>
+            </div>
+            <div class="kpi-sparkline">
+                <canvas id="sparkKas" height="40"></canvas>
+            </div>
+        </div>
+    </div>
+    {{-- Pendapatan Bulan Ini --}}
+    <div class="col-lg-3 col-md-6">
+        <div class="kpi-card">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <div class="kpi-label">Pendapatan Bulan Ini</div>
+                    <div class="kpi-value">Rp {{ number_format($pendapatanBulanIni, 0, ',', '.') }}</div>
+                    <div class="kpi-sub">Total pendapatan</div>
+                </div>
+                <div class="kpi-icon-wrap bg-green-soft text-green">
+                    <i class="fas fa-arrow-trend-up"></i>
+                </div>
+            </div>
+            <div class="kpi-sparkline">
+                <canvas id="sparkPendapatan" height="40"></canvas>
+            </div>
+        </div>
+    </div>
+    {{-- Total Piutang --}}
+    <div class="col-lg-3 col-md-6">
+        <div class="kpi-card">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <div class="kpi-label">Total Piutang</div>
+                    <div class="kpi-value">Rp {{ number_format($totalPiutang, 0, ',', '.') }}</div>
+                    <div class="kpi-sub">Belum dibayar pelanggan</div>
+                </div>
+                <div class="kpi-icon-wrap bg-blue-soft text-blue">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                </div>
+            </div>
+            <div class="kpi-sparkline">
+                <canvas id="sparkPiutang" height="40"></canvas>
+            </div>
+        </div>
+    </div>
+    {{-- Total Utang --}}
+    <div class="col-lg-3 col-md-6">
+        <div class="kpi-card">
+            <div class="d-flex align-items-start justify-content-between">
+                <div>
+                    <div class="kpi-label">Total Utang</div>
+                    <div class="kpi-value">Rp {{ number_format($totalUtang, 0, ',', '.') }}</div>
+                    <div class="kpi-sub">Belum dibayar ke supplier</div>
+                </div>
+                <div class="kpi-icon-wrap bg-red-soft text-red">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+            </div>
+            <div class="kpi-sparkline">
+                <canvas id="sparkUtang" height="40"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
 
-.hover-lift .rounded-circle {
-    transition: all 0.3s ease;
-}
+{{-- ============================================================
+     ROW 2: GRAFIK PENJUALAN + RINGKASAN MASTER DATA
+     ============================================================ --}}
+<div class="row g-3 mb-3">
+    {{-- Grafik Penjualan --}}
+    <div class="col-lg-7">
+        <div class="dash-card h-100">
+            <div class="dash-card-header">
+                <h6><i class="fas fa-chart-line me-2" style="color:var(--brown-light);"></i>Grafik Penjualan (30 Hari Terakhir)</h6>
+                <div class="chart-filter">
+                    <button class="chart-filter-btn active" id="filter30">30 Hari Terakhir</button>
+                    <button class="chart-filter-btn" id="filter12">12 Bulan</button>
+                </div>
+            </div>
+            <div class="dash-card-body">
+                <canvas id="salesChart" height="180"></canvas>
+            </div>
+        </div>
+    </div>
 
-.hover-lift:hover .rounded-circle {
-    transform: scale(1.1) rotate(5deg);
-    background: rgba(255,255,255,0.3) !important;
-}
+    {{-- Ringkasan Master Data --}}
+    <div class="col-lg-5">
+        <div class="dash-card h-100">
+            <div class="dash-card-header">
+                <h6><i class="fas fa-database me-2" style="color:var(--brown-light);"></i>Ringkasan Master Data</h6>
+                <a href="{{ route('master-data.coa.index') }}" class="card-link">Lihat Semua</a>
+            </div>
+            <div class="dash-card-body">
+                <div class="master-grid">
+                    <a href="{{ route('master-data.coa.index') }}" class="master-item">
+                        <div class="master-item-icon"><i class="fas fa-book"></i></div>
+                        <div class="master-item-label">COA</div>
+                        <div class="master-item-count">{{ $totalCOA }}</div>
+                    </a>
+                    <a href="{{ route('master-data.aset.index') }}" class="master-item">
+                        <div class="master-item-icon"><i class="fas fa-laptop"></i></div>
+                        <div class="master-item-label">Aset</div>
+                        <div class="master-item-count">{{ $totalAset }}</div>
+                    </a>
+                    <a href="{{ route('master-data.satuan.dashboard') }}" class="master-item">
+                        <div class="master-item-icon"><i class="fas fa-balance-scale"></i></div>
+                        <div class="master-item-label">Satuan</div>
+                        <div class="master-item-count">{{ $totalSatuan }}</div>
+                    </a>
+                    <a href="{{ route('master-data.produk.index') }}" class="master-item">
+                        <div class="master-item-icon"><i class="fas fa-box"></i></div>
+                        <div class="master-item-label">Produk</div>
+                        <div class="master-item-count">{{ $totalProduk }}</div>
+                    </a>
+                    <a href="{{ route('master-data.vendor.index') }}" class="master-item">
+                        <div class="master-item-icon"><i class="fas fa-truck"></i></div>
+                        <div class="master-item-label">Vendor</div>
+                        <div class="master-item-count">{{ $totalVendor }}</div>
+                    </a>
+                    <a href="{{ route('master-data.pegawai.index') }}" class="master-item">
+                        <div class="master-item-icon"><i class="fas fa-users"></i></div>
+                        <div class="master-item-label">Pegawai</div>
+                        <div class="master-item-count">{{ $totalPegawai }}</div>
+                    </a>
+                    <a href="{{ route('master-data.pelanggan.index') }}" class="master-item">
+                        <div class="master-item-icon"><i class="fas fa-user-friends"></i></div>
+                        <div class="master-item-label">Pelanggan</div>
+                        <div class="master-item-count">{{ $totalPelanggan }}</div>
+                    </a>
+                    <a href="{{ route('master-data.bahan-baku.index') }}" class="master-item">
+                        <div class="master-item-icon"><i class="fas fa-cubes"></i></div>
+                        <div class="master-item-label">Bahan Baku</div>
+                        <div class="master-item-count">{{ $totalBahanBaku }}</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-.hover-lift h4 {
-    transition: all 0.3s ease;
-}
+{{-- ============================================================
+     ROW 3: TRANSAKSI HARI INI + ARUS KAS
+     ============================================================ --}}
+<div class="row g-3 mb-3">
+    {{-- Transaksi Bulan Ini --}}
+    <div class="col-lg-7">
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <h6><i class="fas fa-receipt me-2" style="color:var(--brown-light);"></i>Transaksi Bulan Ini</h6>
+                <span style="font-size:0.7rem;color:var(--text-muted);">{{ now()->locale('id')->isoFormat('MMMM YYYY') }}</span>
+            </div>
+            <div class="dash-card-body">
+                @php
+                    $bln = now()->month;
+                    $thn = now()->year;
+                    $penjualanBulanIni = \App\Models\Penjualan::whereMonth('tanggal',$bln)->whereYear('tanggal',$thn)->count();
+                    $pembelianBulanIni = \App\Models\Pembelian::whereMonth('tanggal',$bln)->whereYear('tanggal',$thn)->count();
+                    $produksiBulanIni  = 0;
+                    try {
+                        if (\Schema::hasTable('produksis'))
+                            $produksiBulanIni = \App\Models\Produksi::whereMonth('tanggal',$bln)->whereYear('tanggal',$thn)->count();
+                    } catch(\Exception $e) {}
+                    $returBulanIni = \App\Models\Retur::whereMonth('tanggal',$bln)->whereYear('tanggal',$thn)->count();
+                    $maxBulan = max($penjualanBulanIni, $pembelianBulanIni, $produksiBulanIni, $returBulanIni, 1);
+                @endphp
+                <div class="today-grid">
+                    <a href="{{ route('transaksi.penjualan.index') }}" class="today-item">
+                        <div class="today-item-top">
+                            <div class="today-item-icon bg-green-soft text-green"><i class="fas fa-shopping-bag"></i></div>
+                            <span class="today-item-name">Penjualan</span>
+                        </div>
+                        <div class="today-item-count text-green">{{ $penjualanBulanIni }}</div>
+                        <div class="today-item-sub">Transaksi bulan ini</div>
+                        <div class="today-item-bar">
+                            <div class="today-item-bar-fill" style="width:{{ round($penjualanBulanIni/$maxBulan*100) }}%;background:var(--green);"></div>
+                        </div>
+                    </a>
+                    <a href="{{ route('transaksi.pembelian.index') }}" class="today-item">
+                        <div class="today-item-top">
+                            <div class="today-item-icon bg-yellow-soft text-yellow"><i class="fas fa-shopping-cart"></i></div>
+                            <span class="today-item-name">Pembelian</span>
+                        </div>
+                        <div class="today-item-count text-yellow">{{ $pembelianBulanIni }}</div>
+                        <div class="today-item-sub">Transaksi bulan ini</div>
+                        <div class="today-item-bar">
+                            <div class="today-item-bar-fill" style="width:{{ round($pembelianBulanIni/$maxBulan*100) }}%;background:var(--yellow);"></div>
+                        </div>
+                    </a>
+                    <a href="{{ route('transaksi.produksi.index') }}" class="today-item">
+                        <div class="today-item-top">
+                            <div class="today-item-icon bg-blue-soft text-blue"><i class="fas fa-industry"></i></div>
+                            <span class="today-item-name">Produksi</span>
+                        </div>
+                        <div class="today-item-count text-blue">{{ $produksiBulanIni }}</div>
+                        <div class="today-item-sub">Transaksi bulan ini</div>
+                        <div class="today-item-bar">
+                            <div class="today-item-bar-fill" style="width:{{ round($produksiBulanIni/$maxBulan*100) }}%;background:var(--blue);"></div>
+                        </div>
+                    </a>
+                    <a href="{{ route('transaksi.retur.index') }}" class="today-item">
+                        <div class="today-item-top">
+                            <div class="today-item-icon bg-red-soft text-red"><i class="fas fa-undo"></i></div>
+                            <span class="today-item-name">Retur</span>
+                        </div>
+                        <div class="today-item-count text-red">{{ $returBulanIni }}</div>
+                        <div class="today-item-sub">Transaksi bulan ini</div>
+                        <div class="today-item-bar">
+                            <div class="today-item-bar-fill" style="width:{{ round($returBulanIni/$maxBulan*100) }}%;background:var(--red);"></div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 
-.hover-lift:hover h4 {
-    transform: scale(1.05);
-}
+    {{-- Arus Kas Bulan Ini --}}
+    <div class="col-lg-5">
+        <div class="dash-card h-100">
+            <div class="dash-card-header">
+                <h6><i class="fas fa-circle-dollar-to-slot me-2" style="color:var(--brown-light);"></i>Arus Kas (Bulan Ini)</h6>
+            </div>
+            <div class="dash-card-body">
+                @php
+                    $pemasukan   = $pendapatanBulanIni;
+                    $pengeluaran = $totalUtang > 0 ? min($totalUtang, $pemasukan * 0.6) : 0;
+                    // Hitung dari pembelian bulan ini sebagai pengeluaran
+                    $pengeluaranBulan = \App\Models\Pembelian::whereMonth('tanggal', now()->month)
+                        ->whereYear('tanggal', now()->year)->sum('total_harga');
+                    $pengeluaran = (float)$pengeluaranBulan;
+                    $totalArus   = $pemasukan + $pengeluaran;
+                    $pctMasuk    = $totalArus > 0 ? round($pemasukan / $totalArus * 100) : 50;
+                    $pctKeluar   = 100 - $pctMasuk;
+                    $totalDisplay = $pemasukan - $pengeluaran;
+                @endphp
+                <div class="d-flex align-items-center gap-4">
+                    <div style="position:relative;width:130px;height:130px;flex-shrink:0;">
+                        <canvas id="arusKasChart" width="130" height="130"></canvas>
+                        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;">
+                            <div style="font-size:0.65rem;color:var(--text-muted);line-height:1.2;">Rp {{ number_format(abs($totalDisplay)/1000000,1) }}jt</div>
+                            <div style="font-size:0.6rem;color:var(--text-muted);">Total</div>
+                        </div>
+                    </div>
+                    <div class="arus-kas-legend flex-1">
+                        <div class="arus-kas-item">
+                            <div class="arus-kas-label">
+                                <span class="arus-kas-dot" style="background:var(--green);"></span>
+                                Pemasukan
+                            </div>
+                            <div>
+                                <span class="arus-kas-value">Rp {{ number_format($pemasukan,0,',','.') }}</span>
+                                <span class="arus-kas-pct">{{ $pctMasuk }}%</span>
+                            </div>
+                        </div>
+                        <div class="arus-kas-item">
+                            <div class="arus-kas-label">
+                                <span class="arus-kas-dot" style="background:var(--red);"></span>
+                                Pengeluaran
+                            </div>
+                            <div>
+                                <span class="arus-kas-value">Rp {{ number_format($pengeluaran,0,',','.') }}</span>
+                                <span class="arus-kas-pct">{{ $pctKeluar }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-/* Animation untuk header */
-@keyframes slideInFromTop {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+{{-- ============================================================
+     ROW 4: TRANSAKSI TERBARU + PENGINGAT
+     ============================================================ --}}
+<div class="row g-3 mb-3">
+    {{-- Transaksi Terbaru --}}
+    <div class="col-lg-7">
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <h6><i class="fas fa-clock-rotate-left me-2" style="color:var(--brown-light);"></i>Transaksi Terbaru — {{ now()->locale('id')->isoFormat('MMMM YYYY') }}</h6>
+                <a href="{{ route('transaksi.penjualan.index') }}" class="card-link">Lihat Semua</a>
+            </div>
+            <div class="dash-card-body p-0">
+                @php
+                    // Gabungkan penjualan, pembelian, produksi bulan ini
+                    $bln = now()->month; $thn = now()->year;
+                    $recentPenjualan = \App\Models\Penjualan::whereMonth('tanggal',$bln)->whereYear('tanggal',$thn)->latest('tanggal')->take(3)->get()->map(function($r){
+                        return [
+                            'kode'   => $r->nomor_faktur ?? 'PJ-'.$r->id,
+                            'jenis'  => 'Penjualan',
+                            'nama'   => $r->nama_pelanggan ?? 'Penjualan Umum',
+                            'total'  => $r->total,
+                            'waktu'  => $r->tanggal,
+                            'status' => $r->status ?? 'selesai',
+                            'icon'   => 'fas fa-shopping-bag',
+                            'color'  => 'green',
+                        ];
+                    });
+                    $recentPembelian = \App\Models\Pembelian::whereMonth('tanggal',$bln)->whereYear('tanggal',$thn)->latest('tanggal')->take(3)->get()->map(function($r){
+                        return [
+                            'kode'   => $r->nomor_po ?? 'PO-'.$r->id,
+                            'jenis'  => 'Pembelian',
+                            'nama'   => optional($r->vendor)->nama_vendor ?? 'Pembelian Bahan Baku',
+                            'total'  => $r->total_harga,
+                            'waktu'  => $r->tanggal,
+                            'status' => $r->status ?? 'selesai',
+                            'icon'   => 'fas fa-shopping-cart',
+                            'color'  => 'yellow',
+                        ];
+                    });
+                    $recentProduksi = collect();
+                    try {
+                        if (\Schema::hasTable('produksis')) {
+                            $recentProduksi = \App\Models\Produksi::whereMonth('tanggal',$bln)->whereYear('tanggal',$thn)->latest('tanggal')->take(2)->get()->map(function($r){
+                                return [
+                                    'kode'   => $r->kode_produksi ?? 'PROD-'.$r->id,
+                                    'jenis'  => 'Produksi',
+                                    'nama'   => optional($r->produk)->nama_produk ?? 'Produksi',
+                                    'total'  => $r->total_biaya ?? 0,
+                                    'waktu'  => $r->tanggal,
+                                    'status' => $r->status ?? 'selesai',
+                                    'icon'   => 'fas fa-industry',
+                                    'color'  => 'blue',
+                                ];
+                            });
+                        }
+                    } catch(\Exception $e) {}
 
-.card:nth-child(1) .hover-lift {
-    animation: slideInFromTop 0.6s ease-out;
-}
+                    $allRecent = $recentPenjualan->concat($recentPembelian)->concat($recentProduksi)
+                        ->sortByDesc('waktu')->take(6)->values();
+                @endphp
+                <table class="recent-table">
+                    <thead>
+                        <tr>
+                            <th style="width:32px;">NO</th>
+                            <th>KODE</th>
+                            <th>JENIS</th>
+                            <th>NAMA</th>
+                            <th>TOTAL</th>
+                            <th>WAKTU</th>
+                            <th>STATUS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($allRecent as $i => $tx)
+                        <tr>
+                            <td style="color:var(--text-muted);">{{ $i+1 }}</td>
+                            <td style="font-family:monospace;font-size:0.72rem;color:var(--text-secondary);">{{ $tx['kode'] }}</td>
+                            <td>
+                                <span class="tx-type-badge tx-type-{{ strtolower($tx['jenis']) }}">
+                                    <i class="{{ $tx['icon'] }}"></i> {{ $tx['jenis'] }}
+                                </span>
+                            </td>
+                            <td>{{ Str::limit($tx['nama'], 22) }}</td>
+                            <td style="font-weight:600;">Rp {{ number_format($tx['total'],0,',','.') }}</td>
+                            <td style="color:var(--text-muted);">
+                                {{ \Carbon\Carbon::parse($tx['waktu'])->format('H:i') }} WIB
+                            </td>
+                            <td>
+                                @php
+                                    $st = strtolower($tx['status']);
+                                    $stClass = $st === 'lunas' || $st === 'selesai' || $st === 'completed' ? 'selesai'
+                                             : ($st === 'pending' || $st === 'belum_lunas' ? 'pending' : 'proses');
+                                    $stLabel = $st === 'lunas' || $st === 'selesai' || $st === 'completed' ? 'Selesai'
+                                             : ($st === 'pending' || $st === 'belum_lunas' ? 'Pending' : 'Proses');
+                                @endphp
+                                <span class="status-badge status-{{ $stClass }}">{{ $stLabel }}</span>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">
+                                <i class="fas fa-inbox me-2"></i>Belum ada transaksi
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-.card:nth-child(2) .hover-lift {
-    animation: slideInFromTop 0.7s ease-out;
-}
+    {{-- Pengingat --}}
+    <div class="col-lg-5">
+        <div class="dash-card h-100">
+            <div class="dash-card-header">
+                <h6><i class="fas fa-bell me-2" style="color:var(--brown-light);"></i>Pengingat</h6>
+                <a href="#" class="card-link">Lihat Semua</a>
+            </div>
+            <div class="dash-card-body">
+                @php
+                    // Piutang: penjualan kredit
+                    $piutangJatuhTempo = \App\Models\Penjualan::where('payment_method','credit')->count();
+                    $totalPiutangJT    = \App\Models\Penjualan::where('payment_method','credit')->sum('total');
 
-.card:nth-child(3) .hover-lift {
-    animation: slideInFromTop 0.8s ease-out;
-}
+                    // Pembelian belum lunas
+                    $pembelianBelumDiterima = \App\Models\Pembelian::where(function($q){
+                        $q->where('status','pending')->orWhere('status','belum_lunas');
+                    })->count();
+                    $totalPembelianBD = \App\Models\Pembelian::where(function($q){
+                        $q->where('status','pending')->orWhere('status','belum_lunas');
+                    })->sum('total_harga');
 
-.card:nth-child(4) .hover-lift {
-    animation: slideInFromTop 0.9s ease-out;
-}
+                    // Stok bahan baku mendekati / di bawah minimum
+                    $bahanMenipis = collect();
+                    try {
+                        $bahanMenipis = \App\Models\BahanBaku::whereColumn('stok', '<=', 'stok_minimum')
+                            ->where('stok_minimum', '>', 0)
+                            ->select('id','nama_bahan','stok','stok_minimum','satuan_id')
+                            ->with('satuan:id,nama_satuan')
+                            ->orderByRaw('(stok_minimum - stok) DESC')
+                            ->get();
+                    } catch(\Exception $e) {}
+                    $stokMenipis = $bahanMenipis->count();
+                @endphp
 
-/* KPI Card Hover Effects */
-.kpi-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: pointer;
-}
+                @if($piutangJatuhTempo > 0)
+                <a href="{{ route('transaksi.penjualan.index') }}" class="reminder-item">
+                    <div class="reminder-icon bg-yellow-soft text-yellow">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="reminder-text">
+                        <strong>{{ $piutangJatuhTempo }} transaksi penjualan kredit</strong>
+                        <small>Total: Rp {{ number_format($totalPiutangJT,0,',','.') }}</small>
+                    </div>
+                    <i class="fas fa-chevron-right reminder-arrow"></i>
+                </a>
+                @endif
 
-.kpi-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 20px rgba(139, 115, 92, 0.25) !important;
-}
+                @if($pembelianBelumDiterima > 0)
+                <a href="{{ route('transaksi.pembelian.index') }}" class="reminder-item">
+                    <div class="reminder-icon bg-blue-soft text-blue">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                    <div class="reminder-text">
+                        <strong>{{ $pembelianBelumDiterima }} pembelian belum lunas</strong>
+                        <small>Total: Rp {{ number_format($totalPembelianBD,0,',','.') }}</small>
+                    </div>
+                    <i class="fas fa-chevron-right reminder-arrow"></i>
+                </a>
+                @endif
 
-.kpi-card:hover .kpi-icon {
-    transform: scale(1.1) rotate(-5deg);
-}
+                @if($stokMenipis > 0)
+                {{-- Header stok menipis --}}
+                <div class="reminder-item" style="cursor:default;">
+                    <div class="reminder-icon bg-red-soft text-red">
+                        <i class="fas fa-box-open"></i>
+                    </div>
+                    <div class="reminder-text">
+                        <strong>{{ $stokMenipis }} bahan baku perlu dibeli</strong>
+                        <small>Stok sudah mencapai atau di bawah batas minimum</small>
+                    </div>
+                    <a href="{{ route('master-data.bahan-baku.index') }}" class="reminder-arrow" title="Lihat semua">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
 
-.kpi-icon {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+                {{-- Detail per bahan baku --}}
+                <div style="margin: 4px 0 8px 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden;">
+                    <table style="width:100%; border-collapse:collapse; font-size:0.75rem;">
+                        <thead>
+                            <tr style="background:var(--body-bg);">
+                                <th style="padding:7px 12px; text-align:left; font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border);">Bahan Baku</th>
+                                <th style="padding:7px 12px; text-align:center; font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border);">Stok Saat Ini</th>
+                                <th style="padding:7px 12px; text-align:center; font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border);">Minimum</th>
+                                <th style="padding:7px 12px; text-align:center; font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border);">Harus Beli</th>
+                                <th style="padding:7px 12px; text-align:center; font-size:0.65rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border);">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($bahanMenipis as $bahan)
+                            @php
+                                $satuan = optional($bahan->satuan)->nama_satuan ?? '';
+                                $selisih = $bahan->stok_minimum - $bahan->stok;
+                                $harusBeli = max($selisih, 0);
+                                $isHabis = $bahan->stok <= 0;
+                            @endphp
+                            <tr style="{{ !$loop->last ? 'border-bottom:1px solid var(--border);' : '' }}">
+                                <td style="padding:8px 12px; font-weight:500; color:var(--text-primary);">
+                                    {{ $bahan->nama_bahan }}
+                                </td>
+                                <td style="padding:8px 12px; text-align:center;">
+                                    <span style="font-weight:700; color:{{ $isHabis ? 'var(--red)' : 'var(--yellow)' }};">
+                                        {{ number_format($bahan->stok, 0, ',', '.') }}
+                                    </span>
+                                    <span style="color:var(--text-muted); font-size:0.68rem;"> {{ $satuan }}</span>
+                                </td>
+                                <td style="padding:8px 12px; text-align:center; color:var(--text-secondary);">
+                                    {{ number_format($bahan->stok_minimum, 0, ',', '.') }}
+                                    <span style="color:var(--text-muted); font-size:0.68rem;"> {{ $satuan }}</span>
+                                </td>
+                                <td style="padding:8px 12px; text-align:center;">
+                                    <span style="font-weight:700; color:var(--red);">
+                                        +{{ number_format($harusBeli, 0, ',', '.') }}
+                                    </span>
+                                    <span style="color:var(--text-muted); font-size:0.68rem;"> {{ $satuan }}</span>
+                                </td>
+                                <td style="padding:8px 12px; text-align:center;">
+                                    @if($isHabis)
+                                        <span class="status-badge" style="background:var(--red-bg);color:#B91C1C;">Habis</span>
+                                    @else
+                                        <span class="status-badge" style="background:var(--yellow-bg);color:#92400E;">Menipis</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+                @endif
 
-/* Header Animation */
-@keyframes fadeInDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+                @if($piutangJatuhTempo == 0 && $pembelianBelumDiterima == 0 && $stokMenipis == 0)
+                <div style="text-align:center;padding:32px 0;color:var(--text-muted);">
+                    <i class="fas fa-check-circle" style="font-size:2rem;color:var(--green);margin-bottom:8px;display:block;"></i>
+                    <div style="font-size:0.8rem;">Semua berjalan lancar!</div>
+                    <div style="font-size:0.72rem;margin-top:4px;">Tidak ada pengingat saat ini</div>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
 
-.header-card {
-    animation: fadeInDown 0.6s ease-out;
-}
+</div>{{-- end page-wrapper --}}
+@endsection
 
-/* KPI Cards Staggered Animation */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.kpi-card:nth-child(1) {
-    animation: fadeInUp 0.5s ease-out 0.1s both;
-}
-
-.kpi-card:nth-child(2) {
-    animation: fadeInUp 0.5s ease-out 0.2s both;
-}
-
-.kpi-card:nth-child(3) {
-    animation: fadeInUp 0.5s ease-out 0.3s both;
-}
-
-.kpi-card:nth-child(4) {
-    animation: fadeInUp 0.5s ease-out 0.4s both;
-}
-</style>
-
-<!-- ✅ TAMBAHAN: Chart.js untuk Sales Chart -->
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-// ✅ Realtime Clock
+// ===== DATA FROM SERVER =====
+const salesLabels12 = @json($salesChartData['labels'] ?? []);
+const salesData12   = @json($salesChartData['data'] ?? []);
+
+// Last 30 days labels (daily)
+const labels30 = [];
+const data30   = [];
+@php
+    $daily = [];
+    for ($d = 29; $d >= 0; $d--) {
+        $date = now()->subDays($d);
+        $total = \App\Models\Penjualan::whereDate('tanggal', $date->toDateString())->sum('total');
+        $daily[] = ['label' => $date->format('j M'), 'value' => (float)$total];
+    }
+@endphp
+@foreach($daily as $day)
+labels30.push("{{ $day['label'] }}");
+data30.push({{ $day['value'] }});
+@endforeach
+
+// ===== REALTIME CLOCK (update setiap detik) =====
 function updateClock() {
     const now = new Date();
-    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    
-    const dayName = days[now.getDay()];
-    const day = now.getDate();
-    const month = months[now.getMonth()];
-    const year = now.getFullYear();
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    
-    const timeString = `${dayName}, ${day} ${month} ${year} • ${hours}:${minutes}:${seconds} WIB`;
-    
-    const clockElement = document.getElementById('realtime-clock');
-    if (clockElement) {
-        clockElement.textContent = timeString;
-    }
+    const days   = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+    const months = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+    const str = days[now.getDay()] + ', '
+              + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear()
+              + ' \u2022 '
+              + String(now.getHours()).padStart(2,'0') + ':'
+              + String(now.getMinutes()).padStart(2,'0') + ':'
+              + String(now.getSeconds()).padStart(2,'0')
+              + ' WIB';
+    const el = document.getElementById('realtime-clock');
+    if (el) el.textContent = str;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ===== SPARKLINE HELPER =====
+function makeSparkline(id, color, data) {
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map((_,i) => i),
+            datasets: [{
+                data: data,
+                borderColor: color,
+                borderWidth: 2,
+                fill: true,
+                backgroundColor: color + '18',
+                tension: 0.4,
+                pointRadius: 0,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            scales: { x: { display: false }, y: { display: false } },
+            animation: { duration: 800 }
+        }
+    });
 }
 
-// Update clock every second
-setInterval(updateClock, 1000);
-// Update immediately on load
-updateClock();
+// Sparklines — use last 7 months of sales data as proxy
+const spark7 = salesData12.slice(-7);
+makeSparkline('sparkKas',        '#5C3D2E', spark7.map(v => v * 1.2));
+makeSparkline('sparkPendapatan', '#22C55E', spark7);
+makeSparkline('sparkPiutang',    '#3B82F6', spark7.map(v => v * 0.15));
+makeSparkline('sparkUtang',      '#EF4444', spark7.map(v => v * 0.45));
 
-// ✅ Sales Chart
-document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('salesChart');
-    if (ctx) {
-        const salesChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: {!! json_encode($salesChartData['labels']) !!},
-                datasets: [{
-                    label: 'Penjualan (Rp)',
-                    data: {!! json_encode($salesChartData['data']) !!},
-                    borderColor: '#28A745',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 5,
-                    pointHoverRadius: 7,
-                    pointBackgroundColor: '#28A745',
-                    pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: '#28A745',
-                    pointHoverBorderWidth: 3
-                }]
+// ===== MAIN SALES CHART =====
+const salesCtx = document.getElementById('salesChart');
+let salesChart;
+
+function buildSalesChart(labels, data, label) {
+    if (salesChart) salesChart.destroy();
+    salesChart = new Chart(salesCtx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: label,
+                data: data,
+                borderColor: '#8B6347',
+                borderWidth: 2.5,
+                backgroundColor: 'rgba(139,99,71,0.08)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 3,
+                pointBackgroundColor: '#8B6347',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointHoverRadius: 5,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => 'Rp ' + ctx.parsed.y.toLocaleString('id-ID')
+                    }
+                }
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            font: {
-                                size: 12,
-                                weight: 'bold'
-                            },
-                            padding: 15,
-                            usePointStyle: true
-                        }
-                    },
-                    tooltip: {
-                        enabled: true,
-                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                        titleFont: {
-                            size: 14,
-                            weight: 'bold'
-                        },
-                        bodyFont: {
-                            size: 13
-                        },
-                        padding: 12,
-                        cornerRadius: 8,
-                        displayColors: false,
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    label += 'Rp ' + new Intl.NumberFormat('id-ID').format(context.parsed.y);
-                                }
-                                return label;
-                            }
-                        }
-                    }
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { font: { size: 10 }, color: '#9CA3AF', maxTicksLimit: 8 }
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return 'Rp ' + new Intl.NumberFormat('id-ID', {
-                                    notation: 'compact',
-                                    compactDisplay: 'short'
-                                }).format(value);
-                            },
-                            font: {
-                                size: 11
-                            }
-                        },
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)',
-                            drawBorder: false
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            font: {
-                                size: 11
-                            }
-                        },
-                        grid: {
-                            display: false,
-                            drawBorder: false
-                        }
+                y: {
+                    grid: { color: '#F3F4F6' },
+                    ticks: {
+                        font: { size: 10 }, color: '#9CA3AF',
+                        callback: v => v >= 1000000 ? (v/1000000).toFixed(0)+'jt' : v >= 1000 ? (v/1000).toFixed(0)+'rb' : v
                     }
-                },
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
                 }
             }
-        });
-    }
+        }
+    });
+}
+
+buildSalesChart(labels30, data30, 'Penjualan Harian');
+
+document.getElementById('filter30').addEventListener('click', function() {
+    this.classList.add('active');
+    document.getElementById('filter12').classList.remove('active');
+    buildSalesChart(labels30, data30, 'Penjualan Harian');
 });
+document.getElementById('filter12').addEventListener('click', function() {
+    this.classList.add('active');
+    document.getElementById('filter30').classList.remove('active');
+    buildSalesChart(salesLabels12, salesData12, 'Penjualan Bulanan');
+});
+
+// ===== ARUS KAS DONUT =====
+const arusCtx = document.getElementById('arusKasChart');
+if (arusCtx) {
+    const pemasukan   = {{ $pemasukan ?? 0 }};
+    const pengeluaran = {{ $pengeluaran ?? 0 }};
+    new Chart(arusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Pemasukan', 'Pengeluaran'],
+            datasets: [{
+                data: [pemasukan || 1, pengeluaran || 1],
+                backgroundColor: ['#22C55E', '#EF4444'],
+                borderWidth: 0,
+                hoverOffset: 4,
+            }]
+        },
+        options: {
+            responsive: false,
+            cutout: '72%',
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => 'Rp ' + ctx.parsed.toLocaleString('id-ID')
+                    }
+                }
+            }
+        }
+    });
+}
 </script>
-@endsection
+@endpush

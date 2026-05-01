@@ -98,6 +98,26 @@
             </div>
             
             <div class="col-md-3">
+                <label class="form-label fw-bold">Bukti Faktur</label>
+                <div class="info-display">
+                    @if($pembelian->bukti_faktur)
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="{{ asset($pembelian->bukti_faktur) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-file-image me-1"></i>Lihat Bukti
+                            </a>
+                            @if(str_contains($pembelian->bukti_faktur, '.pdf'))
+                                <span class="badge bg-danger">PDF</span>
+                            @else
+                                <span class="badge bg-success">Gambar</span>
+                            @endif
+                        </div>
+                    @else
+                        <span class="text-muted">Tidak ada bukti faktur</span>
+                    @endif
+                </div>
+            </div>
+            
+            <div class="col-md-3">
                 <label class="form-label fw-bold">Metode Pembayaran</label>
                 <div class="info-display">
                     @if($pembelian->payment_method === 'credit')
@@ -169,6 +189,40 @@
             </div>
         </div>
     </div>
+
+    <!-- Bukti Faktur Section -->
+    @if($pembelian->bukti_faktur)
+    <div class="form-section">
+        <div class="section-header">
+            <h6 class="mb-0"><i class="fas fa-file-image me-2"></i>Bukti Faktur Pembelian</h6>
+        </div>
+        
+        <div class="text-center">
+            <div class="mb-3">
+                @if(str_contains($pembelian->bukti_faktur, '.pdf'))
+                    <div class="alert alert-info">
+                        <i class="fas fa-file-pdf fa-2x mb-2"></i>
+                        <h5>Dokumen PDF</h5>
+                        <p class="mb-3">Bukti faktur dalam format PDF</p>
+                        <a href="{{ asset($pembelian->bukti_faktur) }}" target="_blank" class="btn btn-primary">
+                            <i class="fas fa-external-link-alt me-2"></i>Buka PDF di Tab Baru
+                        </a>
+                    </div>
+                @else
+                    <div class="border rounded p-3 d-inline-block">
+                        <img src="{{ asset($pembelian->bukti_faktur) }}" alt="Bukti Faktur" 
+                             style="max-width: 600px; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+                        <div class="mt-3">
+                            <a href="{{ asset($pembelian->bukti_faktur) }}" target="_blank" class="btn btn-primary">
+                                <i class="fas fa-expand me-2"></i>Lihat Gambar Ukuran Penuh
+                            </a>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+    @endif
 
     <!-- Purchase Details -->
     <div class="form-section">

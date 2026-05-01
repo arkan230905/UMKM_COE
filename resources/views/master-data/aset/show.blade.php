@@ -172,6 +172,92 @@
         <a href="{{ route('master-data.aset.edit', $aset->id) }}" class="btn btn-primary">
             <i class="bi bi-pencil me-1"></i> Edit
         </a>
+        
+        @if($aset->status_posting !== 'posted')
+            <button type="button" class="btn btn-success" onclick="showPostingModal()">
+                <i class="bi bi-check-circle me-1"></i> Posting ke Jurnal
+            </button>
+        @else
+            <button type="button" class="btn btn-warning" onclick="unpostAsset()">
+                <i class="bi bi-x-circle me-1"></i> Batalkan Posting
+            </button>
+        @endif
+    </div>
+</div>
+
+<!-- Modal Posting Aset -->
+<div class="modal fade" id="postingModal" tabindex="-1" aria-labelledby="postingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="postingModalLabel">
+                    <i class="bi bi-check-circle me-2"></i>Posting Aset ke Jurnal
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Posting aset akan membuat jurnal dengan <strong>nominal penyusutan bulan ini</strong>:
+                    <ul class="mb-0 mt-2">
+                        <li><strong>Debit:</strong> COA Aset ({{ $aset->assetCoa->nama_akun ?? 'Belum diset' }})</li>
+                        <li><strong>Kredit:</strong> Kas/Bank atau Hutang (pilih di bawah)</li>
+                    </ul>
+                </div>
+                
+                @if(!$aset->asset_coa_id)
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        COA Aset belum diset. Silakan edit aset dan lengkapi COA Aset terlebih dahulu.
+                    </div>
+                @else
+                    <form id="postingForm">
+                        @csrf
+                        <div class="mb-3">
+                            <label for="coa_kredit_id" class="form-label">Pilih COA untuk Pembayaran <span class="text-danger">*</span></label>
+                            <select class="form-select" id="coa_kredit_id" name="coa_kredit_id" required>
+                                <option value="">-- Pilih COA --</option>
+                                <optgroup label="Kas & Bank">
+                                    @foreach(\App\Models\Coa::where('kode_akun', 'LIKE', '11%')->orderBy('kode_akun')->get() as $coa)
+                                        <option value="{{ $coa->id }}">{{ $coa->kode_akun }} - {{ $coa->nama_akun }}</option>
+                                    @endforeach
+                                </optgroup>
+                                <optgroup label="Hutang">
+                                    @foreach(\App\Models\Coa::where('kode_akun', 'LIKE', '2%')->orderBy('kode_akun')->get() as $coa)
+                                        <option value="{{ $coa->id }}">{{ $coa->kode_akun }} - {{ $coa->nama_akun }}</option>
+                                    @endforeach
+                                </optgroup>
+                            </select>
+                            <small class="text-muted">Pilih Kas/Bank jika dibayar tunai, atau Hutang jika dibeli kredit</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Nilai yang Akan Diposting</label>
+                            @php
+                                $penyusutanPerBulan = (float)($aset->penyusutan_per_bulan ?? 0);
+                                
+                                if ($penyusutanPerBulan <= 0) {
+                                    // Fallback calculation
+                                    $hargaPerolehan = (float)$aset->harga_perolehan;
+                                    $umurManfaat = (int)$aset->umur_manfaat;
+                                    $penyusutanPerBulan = $umurManfaat > 0 ? $hargaPerolehan / ($umurManfaat * 12) : 0;
+                                }
+                            @endphp
+                            <input type="text" class="form-control" value="Rp {{ number_format($penyusutanPerBulan, 0, ',', '.') }}" readonly>
+                            <small class="text-muted">Nominal penyusutan bulan ini dari data aset</small>
+                        </div>
+                    </form>
+                @endif
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                @if($aset->coa_aset_id)
+                    <button type="button" class="btn btn-success" onclick="postAsset()">
+                        <i class="bi bi-check-circle me-1"></i> Posting
+                    </button>
+                @endif
+            </div>
+        </div>
     </div>
 </div>
 
@@ -194,5 +280,92 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Menyembunyikan hasil perhitungan untuk metode:', metodePenyusutan);
     }
 });
+
+function showPostingModal() {
+    const modal = new bootstrap.Modal(document.getElementById('postingModal'));
+    modal.show();
+}
+
+function postAsset() {
+    const coaKreditId = document.getElementById('coa_kredit_id').value;
+    
+    if (!coaKreditId) {
+        alert('Silakan pilih COA untuk pembayaran');
+        return;
+    }
+    
+    if (!confirm('Apakah Anda yakin ingin memposting aset ini ke jurnal?')) {
+        return;
+    }
+    
+    // Disable button
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Memproses...';
+    
+    fetch('{{ route("master-data.aset.post-to-journal", $aset->id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            coa_kredit_id: coaKreditId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Berhasil: ' + data.message);
+            location.reload();
+        } else {
+            alert('Gagal: ' + data.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Posting';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat memposting aset');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Posting';
+    });
+}
+
+function unpostAsset() {
+    if (!confirm('Apakah Anda yakin ingin membatalkan posting aset ini? Jurnal terkait akan dihapus.')) {
+        return;
+    }
+    
+    // Disable button
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Memproses...';
+    
+    fetch('{{ route("master-data.aset.unpost-from-journal", $aset->id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Berhasil: ' + data.message);
+            location.reload();
+        } else {
+            alert('Gagal: ' + data.message);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-x-circle me-1"></i> Batalkan Posting';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat membatalkan posting');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-x-circle me-1"></i> Batalkan Posting';
+    });
+}
 </script>
 @endsection

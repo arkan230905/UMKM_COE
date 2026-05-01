@@ -396,6 +396,105 @@ body {
     color: #666;
 }
 
+/* LOCATION SECTION */
+.location-section {
+    background: #fff;
+    padding: 100px 0;
+}
+
+.location-header {
+    margin-bottom: 60px;
+}
+
+.location-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: start;
+}
+
+.location-info h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 25px;
+}
+
+.contact-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.contact-icon {
+    width: 40px;
+    height: 40px;
+    background: #333;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.9rem;
+}
+
+.contact-text {
+    flex: 1;
+}
+
+.contact-text strong {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #999;
+    margin-bottom: 3px;
+}
+
+.contact-text span,
+.contact-text a {
+    font-size: 1rem;
+    color: #333;
+    text-decoration: none;
+    line-height: 1.5;
+}
+
+.contact-text a:hover {
+    color: #555;
+    text-decoration: underline;
+}
+
+.location-map {
+    border-radius: 0;
+    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.location-map iframe {
+    display: block;
+    width: 100%;
+    height: 380px;
+    border: 0;
+}
+
+.no-map-placeholder {
+    width: 100%;
+    height: 380px;
+    background: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #aaa;
+}
+
+.no-map-placeholder i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
     .cover-content {
@@ -455,6 +554,16 @@ body {
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 20px;
     }
+
+    .location-content {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .location-map iframe,
+    .no-map-placeholder {
+        height: 260px;
+    }
 }
 </style>
 
@@ -465,6 +574,17 @@ body {
     $coverSection    = ($sections && $sections->isNotEmpty()) ? $sections->firstWhere('section_type', 'cover')    : null;
     $teamSection     = ($sections && $sections->isNotEmpty()) ? $sections->firstWhere('section_type', 'team')     : null;
     $productsSection = ($sections && $sections->isNotEmpty()) ? $sections->firstWhere('section_type', 'products') : null;
+    $locationSection = ($sections && $sections->isNotEmpty()) ? $sections->firstWhere('section_type', 'location') : null;
+
+    $locationData = [
+        'title'     => 'LOKASI KAMI.',
+        'name'      => $company->nama ?? '',
+        'address'   => $company->alamat ?? '',
+        'phone'     => $company->telepon ?? '',
+        'email'     => $company->email ?? '',
+        'maps_link' => $company->maps_link ?? '',
+    ];
+    if ($locationSection && $locationSection->content) $locationData = array_merge($locationData, $locationSection->content);
 
     $coverData = [
         'company_name'        => $company->nama ?? 'NAMA PERUSAHAAN',
@@ -519,19 +639,7 @@ body {
             <p class="team-description">{{ $teamData['description'] }}</p>
         </div>
         <div class="team-content">
-            <div class="team-left">
-                <div class="about-team">
-                    <h3>About Team</h3>
-                    <p>{{ $teamData['description'] }}</p>
-                    <div class="team-stats">
-                        <div class="stat-item">
-                            <h4>{{ count($teamData['members']) }}</h4>
-                            <p>Team Members</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="team-right">
+            <div class="team-right" style="grid-column: 1 / -1;">
                 @foreach($teamData['members'] as $index => $member)
                 <div class="team-member {{ $index % 2 == 0 ? 'member-left' : 'member-right' }}">
                     <div class="member-photo">
@@ -581,6 +689,81 @@ body {
         </div>
     </div>
 </section>
+
+<!-- LOCATION SECTION -->
+@if(!empty($locationData['name']) || !empty($locationData['address']) || !empty($locationData['phone']) || !empty($locationData['email']) || !empty($locationData['maps_link']))
+<section class="location-section">
+    <div class="container">
+        <div class="location-header">
+            <h2 class="section-title">{{ $locationData['title'] }}</h2>
+            <div class="section-line"></div>
+        </div>
+        <div class="location-content">
+            <div class="location-info">
+                @if(!empty($locationData['name']))
+                <h3>{{ $locationData['name'] }}</h3>
+                @endif
+
+                @if(!empty($locationData['address']))
+                <div class="contact-item">
+                    <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <div class="contact-text">
+                        <strong>Alamat</strong>
+                        <span>{{ $locationData['address'] }}</span>
+                    </div>
+                </div>
+                @endif
+
+                @if(!empty($locationData['phone']))
+                <div class="contact-item">
+                    <div class="contact-icon"><i class="fas fa-phone"></i></div>
+                    <div class="contact-text">
+                        <strong>Telepon</strong>
+                        <a href="tel:{{ $locationData['phone'] }}">{{ $locationData['phone'] }}</a>
+                    </div>
+                </div>
+                @endif
+
+                @if(!empty($locationData['email']))
+                <div class="contact-item">
+                    <div class="contact-icon"><i class="fas fa-envelope"></i></div>
+                    <div class="contact-text">
+                        <strong>Email</strong>
+                        <a href="mailto:{{ $locationData['email'] }}">{{ $locationData['email'] }}</a>
+                    </div>
+                </div>
+                @endif
+
+                @if(!empty($locationData['maps_link']))
+                <div class="contact-item">
+                    <div class="contact-icon"><i class="fas fa-map"></i></div>
+                    <div class="contact-text">
+                        <strong>Google Maps</strong>
+                        <a href="{{ $locationData['maps_link'] }}" target="_blank" rel="noopener noreferrer">Lihat di Google Maps</a>
+                    </div>
+                </div>
+                @endif
+            </div>
+
+            <div class="location-map">
+                @if(!empty($locationData['maps_link']) && str_contains($locationData['maps_link'], 'maps/embed'))
+                    <iframe
+                        src="{{ $locationData['maps_link'] }}"
+                        allowfullscreen=""
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade">
+                    </iframe>
+                @else
+                    <div class="no-map-placeholder">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <p>Peta belum tersedia</p>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</section>
+@endif
 
 <!-- TOMBOL BELI -->
 <section class="cta-section">

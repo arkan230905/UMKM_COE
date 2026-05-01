@@ -116,8 +116,122 @@
     </div>
 </div>
 
+<!-- Journal Modal -->
+<div class="modal fade" id="journalModal" tabindex="-1" aria-labelledby="journalModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="journalModalLabel">
+                    <i class="fas fa-book me-2"></i>Jurnal Pembelian
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Tanggal</th>
+                                <th>Akun</th>
+                                <th>Keterangan</th>
+                                <th class="text-end">Debet</th>
+                                <th class="text-end">Kredit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="journalTableBody">
+                            <!-- Journal entries will be loaded here -->
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <th colspan="3" class="text-end">Total:</th>
+                                <th class="text-end" id="totalDebit">Rp 0</th>
+                                <th class="text-end" id="totalCredit">Rp 0</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
+// Cache busting for journal modal
+const journalModalVersion = '2026-04-30-v2';
+    // Function to load journal data for a specific pembelian
+    function loadJournal(pembelianId, nomorPembelian) {
+        // Show loading state
+        const journalTableBody = document.getElementById('journalTableBody');
+        const totalDebit = document.getElementById('totalDebit');
+        const totalCredit = document.getElementById('totalCredit');
+        
+        journalTableBody.innerHTML = '<tr><td colspan="5" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+        totalDebit.textContent = 'Rp 0';
+        totalCredit.textContent = 'Rp 0';
+        
+        // Fetch journal data
+        fetch(`/api/pembelian/${pembelianId}/journal?v=${journalModalVersion}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.journals && data.journals.length > 0) {
+                    let totalDebitAmount = 0;
+                    let totalCreditAmount = 0;
+                    let rows = '';
+                    
+                    data.journals.forEach(entry => {
+                        totalDebitAmount += entry.debit;
+                        totalCreditAmount += entry.kredit;
+                        
+                        const tanggal = entry.tanggal ? new Date(entry.tanggal).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-') : '-';
+                        const coaInfo = entry.coa ? 
+                            `<span class="badge bg-primary">${entry.coa.nama_akun}</span><br><small class="text-muted">${entry.coa.kode_akun}</small>` : 
+                            '<span class="badge bg-secondary">COA tidak ditemukan</span>';
+                        const keterangan = entry.keterangan || '-';
+                        const debit = entry.debit > 0 ? 'Rp ' + entry.debit.toLocaleString('id-ID') : '-';
+                        const kredit = entry.kredit > 0 ? 'Rp ' + entry.kredit.toLocaleString('id-ID') : '-';
+                        
+                        rows += `
+                            <tr>
+                                <td>${tanggal}</td>
+                                <td>${coaInfo}</td>
+                                <td>${keterangan}</td>
+                                <td class="text-end">${debit}</td>
+                                <td class="text-end">${kredit}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    journalTableBody.innerHTML = rows;
+                    totalDebit.textContent = 'Rp ' + totalDebitAmount.toLocaleString('id-ID');
+                    totalCredit.textContent = 'Rp ' + totalCreditAmount.toLocaleString('id-ID');
+                } else {
+                    journalTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Jurnal belum dibuat untuk pembelian ini
+                            </td>
+                        </tr>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading journal:', error);
+                journalTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Gagal memuat data jurnal
+                        </td>
+                    </tr>
+                `;
+            });
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
         // Handle tab switching with URL update and dynamic actions
         const tabButtons = document.querySelectorAll('#pembelianTabs button[data-bs-toggle="tab"]');
@@ -222,6 +336,18 @@
 
 .table-success {
     background-color: #d1e7dd !important;
+}
+
+/* Fix journal modal table header text color */
+#journalModal .table-dark th {
+    color: #000 !important;
+    background-color: #343a40 !important;
+}
+
+/* Fix COA badges in journal modal */
+#journalModal .badge {
+    font-size: 0.8em;
+    margin-bottom: 2px;
 }
 </style>
 @endpush

@@ -30,6 +30,12 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
+        
+        // Handle unauthenticated users
+        if (!$user) {
+            return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
+        }
+        
         $userRole = $user->role;
         
         // Master Data - Filter berdasarkan user untuk multi-tenant (same query as PegawaiController)
@@ -464,8 +470,7 @@ class DashboardController extends Controller
         try {
             // Hitung dari penjualan kredit yang belum lunas
             $totalPiutang = Penjualan::where('payment_method', 'credit')
-                ->whereIn('status', ['pending', 'partial'])
-                ->sum('sisa_pembayaran');
+                ->sum('total');
             
             return (float)$totalPiutang;
         } catch (\Exception $e) {

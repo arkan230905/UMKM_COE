@@ -383,8 +383,11 @@ class BopController extends Controller
         try {
             $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
             
-            // Get matching BTKL data based on process name
-            $btkl = \App\Models\Btkl::where('nama_btkl', $bopProses->prosesProduksi->nama_proses)->first();
+            // Get matching BTKL data based on process name (only if prosesProduksi exists)
+            $btkl = null;
+            if ($bopProses->prosesProduksi) {
+                $btkl = \App\Models\Btkl::where('nama_btkl', $bopProses->prosesProduksi->nama_proses)->first();
+            }
             
             return view('master-data.bop.show-proses-modal', compact('bopProses', 'btkl'));
             
@@ -703,13 +706,17 @@ class BopController extends Controller
             $komponenNames = $request->input('komponen_name', []);
             $komponenRates = $request->input('komponen_rate', []);
             $komponenDescs = $request->input('komponen_desc', []);
+            $komponenCoaDebits = $request->input('komponen_coa_debit', []);
+            $komponenCoaKredits = $request->input('komponen_coa_kredit', []);
 
             foreach ($komponenNames as $index => $name) {
                 if (!empty(trim($name)) && isset($komponenRates[$index]) && floatval($komponenRates[$index]) > 0) {
                     $components[] = [
                         'component' => trim($name),
                         'rate_per_hour' => floatval($komponenRates[$index]),
-                        'description' => $komponenDescs[$index] ?? ''
+                        'description' => $komponenDescs[$index] ?? '',
+                        'coa_debit' => $komponenCoaDebits[$index] ?? '1173',
+                        'coa_kredit' => $komponenCoaKredits[$index] ?? '210',
                     ];
                 }
             }
@@ -817,6 +824,9 @@ class BopController extends Controller
             
             // Build components array from form data
             $components = [];
+            $komponenCoaDebits = $request->input('komponen_coa_debit', []);
+            $komponenCoaKredits = $request->input('komponen_coa_kredit', []);
+            
             foreach ($validated['komponen_name'] as $index => $name) {
                 $rate = floatval($validated['komponen_rate'][$index] ?? 0);
                 $desc = $validated['komponen_desc'][$index] ?? '';
@@ -826,6 +836,8 @@ class BopController extends Controller
                         'component' => trim($name),
                         'rate_per_hour' => $rate,
                         'description' => $desc,
+                        'coa_debit' => $komponenCoaDebits[$index] ?? '1173',
+                        'coa_kredit' => $komponenCoaKredits[$index] ?? '210',
                     ];
                 }
             }
