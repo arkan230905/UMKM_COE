@@ -34,13 +34,11 @@
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-search"></i> Tampilkan
                 </button>
-            </form>
-            <div>
-                <label class="form-label">&nbsp;</label>
-                <a href="{{ route('akuntansi.laporan-posisi-keuangan.pdf', ['bulan' => $bulan ?? date('m'), 'tahun' => $tahun ?? date('Y')]) }}" class="btn btn-danger" target="_blank">
-                    <i class="fas fa-file-pdf"></i> Cetak PDF
+                <a href="{{ route('akuntansi.laporan-posisi-keuangan.pdf', ['bulan' => $bulan ?? date('m'), 'tahun' => $tahun ?? date('Y')]) }}" 
+                   class="btn btn-danger" target="_blank">
+                    <i class="fas fa-file-pdf me-1"></i> Cetak PDF
                 </a>
-            </div>
+            </form>
         </div>
     </div>
 

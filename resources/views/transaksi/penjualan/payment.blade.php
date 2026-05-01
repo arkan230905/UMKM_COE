@@ -16,6 +16,11 @@
                     <!-- Ringkasan Pesanan -->
                     <div class="mb-4">
                         <h6 class="fw-bold mb-3">Ringkasan Pesanan</h6>
+                        @php
+                            $adaDiskon = collect($payment_data['items'])->contains(function($item) {
+                                return ($item['diskon_persen'] ?? 0) > 0 || ($item['diskon_nominal'] ?? 0) > 0;
+                            });
+                        @endphp
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered">
                                 <thead class="table-light">
@@ -23,20 +28,43 @@
                                         <th>Produk</th>
                                         <th class="text-end">Qty</th>
                                         <th class="text-end">Harga</th>
+                                        @if($adaDiskon)
+                                        <th class="text-end">Diskon</th>
+                                        @endif
                                         <th class="text-end">Subtotal</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($payment_data['items'] as $item)
+                                    @php
+                                        $diskonPersen  = $item['diskon_persen'] ?? 0;
+                                        $diskonNominal = $item['diskon_nominal'] ?? 0;
+                                        // Hitung nominal jika belum ada
+                                        if ($diskonNominal == 0 && $diskonPersen > 0) {
+                                            $diskonNominal = round(($item['harga_satuan'] * $item['jumlah']) * $diskonPersen / 100);
+                                        }
+                                    @endphp
                                     <tr>
                                         <td>
-                                            @php
-                                                $produk = \App\Models\Produk::find($item['produk_id']);
-                                            @endphp
+                                            @php $produk = \App\Models\Produk::find($item['produk_id']); @endphp
                                             {{ $produk->nama_produk ?? 'Produk Tidak Ditemukan' }}
                                         </td>
                                         <td class="text-end">{{ $item['jumlah'] }}</td>
                                         <td class="text-end">Rp {{ number_format($item['harga_satuan'], 0, ',', '.') }}</td>
+                                        @if($adaDiskon)
+                                        <td class="text-end">
+                                            @if($diskonPersen > 0 || $diskonNominal > 0)
+                                                <span class="text-danger fw-semibold">
+                                                    {{ $diskonPersen > 0 ? number_format($diskonPersen, 0).'%' : '' }}
+                                                    @if($diskonNominal > 0)
+                                                        <br><small>- Rp {{ number_format($diskonNominal, 0, ',', '.') }}</small>
+                                                    @endif
+                                                </span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                        @endif
                                         <td class="text-end">Rp {{ number_format($item['subtotal'], 0, ',', '.') }}</td>
                                     </tr>
                                     @endforeach
@@ -50,22 +78,54 @@
                     <!-- Detail Pembayaran -->
                     <div class="mb-4">
                         <h6 class="fw-bold mb-3">Detail Pembayaran</h6>
+                        @php
+                            // Hitung total diskon dari items (fallback jika total_diskon belum ada di session lama)
+                            $totalDiskonItems = collect($payment_data['items'])->sum(function($item) {
+                                if (isset($item['diskon_nominal']) && $item['diskon_nominal'] > 0) {
+                                    return $item['diskon_nominal'];
+                                }
+                                // Hitung dari diskon_persen jika diskon_nominal belum ada
+                                if (isset($item['diskon_persen']) && $item['diskon_persen'] > 0) {
+                                    return round(($item['harga_satuan'] * $item['jumlah']) * $item['diskon_persen'] / 100);
+                                }
+                                return 0;
+                            });
+                            $totalDiskonTampil = ($payment_data['total_diskon'] ?? 0) > 0
+                                ? $payment_data['total_diskon']
+                                : $totalDiskonItems;
+                            // Subtotal gross = subtotal_produk + total_diskon (karena subtotal_produk sudah net)
+                            $subtotalGross = $payment_data['subtotal_produk'] + $totalDiskonTampil;
+                        @endphp
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-2">
-                                    <small class="text-muted">Subtotal Produk</small>
-                                    <div class="fw-bold">Rp {{ number_format($payment_data['subtotal_produk'], 0, ',', '.') }}</div>
+                                    <small class="text-muted">Subtotal Produk (Gross)</small>
+                                    <div class="fw-bold">Rp {{ number_format($subtotalGross, 0, ',', '.') }}</div>
                                 </div>
+                                @if($totalDiskonTampil > 0)
+                                <div class="mb-2">
+                                    <small class="text-muted">Total Diskon</small>
+                                    <div class="fw-bold text-danger">- Rp {{ number_format($totalDiskonTampil, 0, ',', '.') }}</div>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">Subtotal Setelah Diskon</small>
+                                    <div class="fw-bold text-success">Rp {{ number_format($payment_data['subtotal_produk'], 0, ',', '.') }}</div>
+                                </div>
+                                @endif
+                                @if($payment_data['biaya_ongkir'] > 0)
                                 <div class="mb-2">
                                     <small class="text-muted">Biaya Ongkir</small>
                                     <div class="fw-bold">Rp {{ number_format($payment_data['biaya_ongkir'], 0, ',', '.') }}</div>
                                 </div>
+                                @endif
                             </div>
                             <div class="col-md-6">
+                                @if($payment_data['total_ppn'] > 0)
                                 <div class="mb-2">
                                     <small class="text-muted">PPN ({{ $payment_data['ppn_persen'] }}%)</small>
                                     <div class="fw-bold">Rp {{ number_format($payment_data['total_ppn'], 0, ',', '.') }}</div>
                                 </div>
+                                @endif
                             </div>
                         </div>
                     </div>

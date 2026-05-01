@@ -2932,11 +2932,14 @@ Route::middleware('auth')->group(function () {
         // Bukti Pembayaran routes
         Route::post('penjualan/{id}/bukti-pembayaran', [PenjualanController::class, 'uploadBuktiPembayaran'])->name('penjualan.upload-bukti');
         Route::delete('penjualan/{penjualanId}/bukti-pembayaran/{buktiId}', [PenjualanController::class, 'deleteBuktiPembayaran'])->name('penjualan.delete-bukti');
+
+        // Jurnal Penjualan routes
+        Route::get('penjualan/{id}/jurnal', [PenjualanController::class, 'showJurnal'])->name('penjualan.jurnal');
+        Route::post('penjualan/{id}/jurnal/rebuild', [PenjualanController::class, 'rebuildJurnal'])->name('penjualan.jurnal.rebuild');
         
         // API routes for real-time product search
         Route::get('api/products/search', [PenjualanController::class, 'searchProducts'])->name('api.products.search');
         Route::get('api/products/barcode', [PenjualanController::class, 'findByBarcode'])->name('api.products.barcode');
-
         // ============================================================
         // PENGATURAN PENJUALAN
         // ============================================================
@@ -3439,6 +3442,13 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
     });
 
     // ================================================================
+    // API INTERNAL (Auth required, semua role)
+    // ================================================================
+    Route::middleware('auth')->prefix('api-internal')->name('api-internal.')->group(function () {
+        Route::post('penjualan/validate-jurnal', [\App\Http\Controllers\PenjualanController::class, 'validateJurnal'])->name('penjualan.validate-jurnal');
+    });
+
+    // ================================================================
     // AKUNTANSI (Admin & Owner Only)
     // ================================================================
     Route::prefix('akuntansi')->name('akuntansi.')->middleware('role:admin,owner')->group(function () {
@@ -3482,6 +3492,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
     
     // Temporary Neraca Saldo route without middleware for testing
     Route::get('/akuntansi/neraca-saldo-temp', [\App\Http\Controllers\NeracaSaldoController::class, 'index'])->name('akuntansi.neraca-saldo-temp');
+    Route::post('/akuntansi/neraca-saldo-temp/posting', [\App\Http\Controllers\NeracaSaldoController::class, 'postingSaldo'])->name('akuntansi.neraca-saldo.posting');
     // REMOVED: Route jurnal penyeimbang dihapus sesuai permintaan user
     
     // Debug route to check if routes are working

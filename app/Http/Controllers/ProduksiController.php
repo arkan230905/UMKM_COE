@@ -256,6 +256,40 @@ class ProduksiController extends Controller
                         'coa_kredit_kode' => $kreditKode,
                         'coa_kredit_nama' => $kreditNama,
                     ]);
+
+                    // Stock movement pengurangan bahan pendukung (kredit ke akun 115x)
+                    if (str_starts_with((string)$kreditKode, '115')) {
+                        $bpList = \App\Models\BahanPendukung::where('coa_persediaan_id', $kreditKode)->get();
+                        $bp = null;
+                        foreach ($bpList as $candidate) {
+                            if (stripos($namaKomponen, $candidate->nama_bahan) !== false
+                                || stripos($candidate->nama_bahan, $namaKomponen) !== false) {
+                                $bp = $candidate; break;
+                            }
+                        }
+                        if (!$bp) $bp = $bpList->first();
+                        if ($bp) {
+                            $totalBopItem = $subtotal * $qtyProd;
+                            // Qty keluar dalam satuan utama = total rupiah / harga satuan master
+                            // Contoh: Rp 120.000 / Rp 25.000 per Bungkus = 4.8 Bungkus
+                            $hargaSatuanMaster = (float) $bp->harga_satuan;
+                            $qtyKeluar = $hargaSatuanMaster > 0
+                                ? round($totalBopItem / $hargaSatuanMaster, 4)
+                                : 0;
+                            \App\Models\StockMovement::create([
+                                'item_type'  => 'support',
+                                'item_id'    => $bp->id,
+                                'tanggal'    => $tanggal,
+                                'direction'  => 'out',
+                                'qty'        => $qtyKeluar,
+                                'satuan'     => optional($bp->satuanRelation)->nama_satuan,
+                                'unit_cost'  => $hargaSatuanMaster,
+                                'total_cost' => $totalBopItem,
+                                'ref_type'   => 'production',
+                                'ref_id'     => $produksi->id,
+                            ]);
+                        }
+                    }
                 }
             }
 
@@ -1817,22 +1851,31 @@ class ProduksiController extends Controller
         foreach ($produksi->proses as $proses) {
             $bopAmount = 0;
             
-            // Exact match dulu
-            if (isset($bopByProcess[$proses->nama_proses])) {
-                $bopAmount = $bopByProcess[$proses->nama_proses];
+            // Normalize process names by removing extra spaces for comparison
+            $normalizedProsesName = preg_replace('/\s+/', ' ', trim($proses->nama_proses));
+            
+            // Exact match dengan nama yang dinormalisasi
+            if (isset($bopByProcess[$normalizedProsesName])) {
+                $bopAmount = $bopByProcess[$normalizedProsesName];
             } else {
-                // Partial match sebagai fallback
-                foreach ($bopByProcess as $prosesName => $bopValue) {
-                    if ($prosesName !== 'Umum' &&
-                        (stripos($proses->nama_proses, $prosesName) !== false ||
-                         stripos($prosesName, $proses->nama_proses) !== false)) {
-                        $bopAmount = $bopValue;
-                        break;
+                // Coba match dengan nama asli (fallback)
+                if (isset($bopByProcess[$proses->nama_proses])) {
+                    $bopAmount = $bopByProcess[$proses->nama_proses];
+                } else {
+                    // Partial match sebagai fallback dengan normalisasi
+                    foreach ($bopByProcess as $prosesName => $bopValue) {
+                        $normalizedBopName = preg_replace('/\s+/', ' ', trim($prosesName));
+                        if ($prosesName !== 'Umum' && $normalizedBopName !== 'Umum' &&
+                            (stripos($normalizedProsesName, $normalizedBopName) !== false ||
+                             stripos($normalizedBopName, $normalizedProsesName) !== false)) {
+                            $bopAmount = $bopValue;
+                            break;
+                        }
                     }
-                }
-                // Jika masih 0, cek apakah ada bucket 'Umum'
-                if ($bopAmount == 0 && isset($bopByProcess['Umum'])) {
-                    $bopAmount = $bopByProcess['Umum'];
+                    // Jika masih 0, cek apakah ada bucket 'Umum'
+                    if ($bopAmount == 0 && isset($bopByProcess['Umum'])) {
+                        $bopAmount = $bopByProcess['Umum'];
+                    }
                 }
             }
             

@@ -978,12 +978,31 @@ class AkuntansiController extends Controller
             return $first === '4' ? ($kredit - $debit) : ($debit - $kredit);
         };
 
-        // ── PENDAPATAN: kode 4xxx ──────────────────────────────────
+        // ── PENDAPATAN: kode 4xxx, saldo normal kredit ────────────────
         $pendapatan = $coas->filter(function($coa) use ($getSaldo) {
             return substr($coa->kode_akun, 0, 1) === '4' && $getSaldo($coa) > 0;
         })->sortBy('kode_akun')->values();
 
         $totalPendapatan = $pendapatan->sum(fn($c) => $getSaldo($c));
+
+        // ── DISKON PENJUALAN: kode 4xxx, saldo normal debit (kontra-revenue) ──
+        // Akun seperti "Diskon Penjualan" punya saldo debit → pengurang pendapatan
+        $diskonPenjualan = $coas->filter(function($coa) use ($mutasi) {
+            if (substr($coa->kode_akun, 0, 1) !== '4') return false;
+            $m     = $mutasi[$coa->id] ?? null;
+            $debit = $m ? (float)$m->total_debit  : 0;
+            $kredit = $m ? (float)$m->total_kredit : 0;
+            // Kontra-revenue: debit > kredit (saldo debit)
+            return $debit > $kredit;
+        })->sortBy('kode_akun')->values();
+
+        $totalDiskonPenjualan = $diskonPenjualan->sum(function($coa) use ($mutasi) {
+            $m = $mutasi[$coa->id] ?? null;
+            return $m ? ((float)$m->total_debit - (float)$m->total_kredit) : 0;
+        });
+
+        // Pendapatan bersih = pendapatan bruto - diskon penjualan
+        $totalPendapatanBersih = $totalPendapatan - $totalDiskonPenjualan;
 
         // ── HPP: kode 5xxx DAN nama mengandung "HPP" atau "Harga Pokok" ──
         $hpp = $coas->filter(function($coa) use ($getSaldo) {
@@ -996,7 +1015,7 @@ class AkuntansiController extends Controller
         $totalHpp = $hpp->sum(fn($c) => $getSaldo($c));
 
         // ── LABA KOTOR ─────────────────────────────────────────────
-        $labaKotor = $totalPendapatan - $totalHpp;
+        $labaKotor = $totalPendapatanBersih - $totalHpp;
 
         // ── BEBAN OPERASIONAL: kode 5xxx tapi BUKAN HPP ───────────
         // (BBB, BTKL, BOP, dll — semua yang bukan HPP produk)
@@ -1042,7 +1061,8 @@ class AkuntansiController extends Controller
         return view('akuntansi.laba_rugi', compact(
             'periode', 'from', 'to',
             'pendapatan', 'hpp', 'beban',
-            'totalPendapatan', 'totalHpp', 'totalBeban',
+            'diskonPenjualan', 'totalDiskonPenjualan',
+            'totalPendapatan', 'totalPendapatanBersih', 'totalHpp', 'totalBeban',
             'labaKotor', 'labaBersih',
             'getSaldo',
             'detailPenjualan', 'detailHpp'

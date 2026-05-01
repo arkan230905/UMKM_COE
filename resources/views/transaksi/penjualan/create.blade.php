@@ -525,6 +525,23 @@ mark.bg-warning {
             </div>
         </div>
 
+        {{-- Notifikasi validasi jurnal real-time --}}
+        <div id="jurnal-validation-alert" class="alert alert-warning d-none mt-3" role="alert">
+            <div class="d-flex align-items-start gap-2">
+                <i class="fas fa-exclamation-triangle mt-1 flex-shrink-0"></i>
+                <div class="flex-grow-1">
+                    <strong>Perhatian: Beberapa akun jurnal belum tersedia</strong>
+                    <div id="jurnal-missing-list" class="mt-1 small"></div>
+                    <div class="mt-2">
+                        <a href="{{ route('master-data.coa.create') }}" target="_blank" class="btn btn-warning btn-sm">
+                            <i class="fas fa-plus me-1"></i>Tambah Akun COA
+                        </a>
+                        <small class="text-muted ms-2">Transaksi tetap bisa disimpan, jurnal akan dibuat setelah akun dilengkapi.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="text-end mt-4">
             <a href="{{ route('transaksi.penjualan.index') }}" class="btn btn-secondary">Batal</a>
             <button type="button" class="btn btn-primary" id="btn-bayar" onclick="submitForPayment()">Bayar</button>
@@ -589,11 +606,16 @@ mark.bg-warning {
                     ? parseFloat(hargaRaw)
                     : parseFloat(hargaEl.value.replace(/\./g, '').replace(',', '.')) || 0;
 
+                const diskonPersen = parseFloat(row.querySelector('.diskon').value) || 0;
+                const grossBaris   = hargaVal * (parseFloat(row.querySelector('.jumlah').value) || 0);
+                const diskonNominal = Math.round(grossBaris * diskonPersen / 100);
+
                 tableData.push({
                     produk_id: produkSelect.value,
                     jumlah: row.querySelector('.jumlah').value,
                     harga_satuan: hargaVal,
-                    diskon_persen: row.querySelector('.diskon').value,
+                    diskon_persen: diskonPersen,
+                    diskon_nominal: diskonNominal,
                     subtotal: subtotalVal
                 });
             }
@@ -603,12 +625,14 @@ mark.bg-warning {
         const biayaOngkir = parseFloat(document.getElementById('biaya_ongkir').value) || 0;
         const subtotalProdukVal = document.getElementById('subtotal_produk_hidden').value;
         const totalPPNVal = document.getElementById('total_ppn').value;
+        const totalDiskon = tableData.reduce(function(sum, item) { return sum + (item.diskon_nominal || 0); }, 0);
         const paymentData = {
             tanggal: document.querySelector('input[name="tanggal"]').value,
             waktu: document.querySelector('input[name="waktu"]').value,
             payment_method: paymentMethod,
             sumber_dana: document.getElementById('sumber_dana_jual').value,
             subtotal_produk: parseFloat(subtotalProdukVal) || 0,
+            total_diskon: totalDiskon,
             biaya_ongkir: biayaOngkir,
             ppn_persen: parseFloat(document.getElementById('ppn_persen').value) || 0,
             total_ppn: parseFloat(totalPPNVal) || 0,
@@ -1947,3 +1971,78 @@ function navigateSearchResults(direction) {
 </script>
 @endsection
 
+
+<script>
+// ── Validasi Jurnal Real-time ────────────────────────────────────────────────
+(function() {
+    var validationTimer = null;
+
+    function getSelectedProdukIds() {
+        var ids = [];
+        document.querySelectorAll('#detailTableJual tbody tr .produk-select').forEach(function(sel) {
+            if (sel.value) ids.push(parseInt(sel.value));
+        });
+        return ids.filter(function(v, i, a) { return a.indexOf(v) === i; });
+    }
+
+    function runJurnalValidation() {
+        var ppnEl    = document.getElementById('ppn_persen');
+        var ongkirEl = document.getElementById('biaya_ongkir');
+
+        var hasPPN    = ppnEl    ? (parseFloat(ppnEl.value) || 0) > 0    : false;
+        var hasOngkir = ongkirEl ? (parseFloat(ongkirEl.value) || 0) > 0 : false;
+        var produkIds = getSelectedProdukIds();
+
+        if (produkIds.length === 0) { hideJurnalAlert(); return; }
+
+        var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+        var csrfToken = csrfMeta ? csrfMeta.content : '';
+
+        fetch('{{ route("api-internal.penjualan.validate-jurnal") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+            body: JSON.stringify({ has_ppn: hasPPN, has_ongkir: hasOngkir, has_diskon: false, produk_ids: produkIds })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.valid && data.missing && data.missing.length > 0) {
+                showJurnalAlert(data.missing);
+            } else {
+                hideJurnalAlert();
+            }
+        })
+        .catch(function() {});
+    }
+
+    function showJurnalAlert(missing) {
+        var alertEl = document.getElementById('jurnal-validation-alert');
+        var listEl  = document.getElementById('jurnal-missing-list');
+        if (!alertEl || !listEl) return;
+
+        var names = missing.map(function(m) { return '<strong>' + m.nama + '</strong> (' + m.tipe + ')'; });
+        listEl.innerHTML = (names.length === 1)
+            ? 'Akun ' + names[0] + ' belum dibuat. Silakan tambahkan terlebih dahulu agar jurnal dapat dibuat dengan benar.'
+            : 'Akun berikut belum dibuat: ' + names.join(', ') + '.';
+
+        alertEl.classList.remove('d-none');
+    }
+
+    function hideJurnalAlert() {
+        var alertEl = document.getElementById('jurnal-validation-alert');
+        if (alertEl) alertEl.classList.add('d-none');
+    }
+
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('produk-select') ||
+            e.target.id === 'ppn_persen' ||
+            e.target.id === 'biaya_ongkir') {
+            clearTimeout(validationTimer);
+            validationTimer = setTimeout(runJurnalValidation, 700);
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(runJurnalValidation, 1500);
+    });
+})();
+</script>

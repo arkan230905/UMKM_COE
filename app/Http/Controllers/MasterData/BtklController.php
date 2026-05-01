@@ -37,12 +37,23 @@ class BtklController extends Controller
         // Get ALL Jabatan with category 'btkl' and their employees
         // This ensures we get all BTKL positions regardless of whether they have employees
         $jabatanBtkl = Jabatan::where('kategori', 'btkl')
-            ->with(['pegawais' => function($query) {
-                // Only get active employees (you can add more conditions here if needed)
-                $query->whereNotNull('jabatan_id');
-            }])
+            ->with('pegawais')
             ->orderBy('nama')
             ->get();
+
+        // Debug logging
+        \Log::info('BTKL Create - Jabatan BTKL loaded:', [
+            'total_jabatan' => $jabatanBtkl->count(),
+            'jabatan_details' => $jabatanBtkl->map(function($j) {
+                return [
+                    'id' => $j->id,
+                    'nama' => $j->nama,
+                    'pegawai_count' => $j->pegawais->count(),
+                    'pegawai_ids' => $j->pegawais->pluck('id')->toArray(),
+                    'tarif' => $j->tarif
+                ];
+            })->toArray()
+        ]);
 
         // Generate next process code
         $lastBtkl = Btkl::orderBy('kode_proses', 'desc')->first();
@@ -65,6 +76,13 @@ class BtklController extends Controller
                 'id' => $jabatan->id,
                 'nama' => $jabatan->nama,
                 'pegawai_count' => $pegawaiCount,
+                'pegawai_details' => $jabatan->pegawais->map(function($p) {
+                    return [
+                        'id' => $p->id,
+                        'nama' => $p->nama,
+                        'jabatan_id' => $p->jabatan_id
+                    ];
+                })->toArray(),
                 'tarif' => $jabatan->tarif ?? 0,
                 'kategori' => $jabatan->kategori
             ]);
@@ -76,6 +94,8 @@ class BtklController extends Controller
                 'tarif' => $jabatan->tarif ?? 0
             ];
         });
+
+        \Log::info('BTKL Create - Final employeeData:', $employeeData->toArray());
         
         return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satuanOptions', 'employeeData'));
     }
