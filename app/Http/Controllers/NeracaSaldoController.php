@@ -175,4 +175,92 @@ class NeracaSaldoController extends Controller
 
     // REMOVED: createOpeningBalanceJournal method dihapus sesuai permintaan user
     // User tidak ingin jurnal penyeimbang otomatis
+
+    /**
+     * Posting saldo akhir bulan ini sebagai saldo awal bulan berikutnya
+     * di tabel coa_period_balances
+     */
+    public function postingSaldo(Request $request)
+    {
+        $bulan = str_pad($request->get('bulan', date('m')), 2, '0', STR_PAD_LEFT);
+        $tahun = $request->get('tahun', date('Y'));
+
+        $startDate = Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
+        $endDate   = Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
+
+        // Bulan berikutnya
+        $nextMonth = Carbon::create($tahun, $bulan, 1)->addMonth();
+        $nextBulan = $nextMonth->format('m');
+        $nextTahun = $nextMonth->format('Y');
+        $nextPeriode = $nextTahun . '-' . $nextBulan;
+
+        try {
+            \DB::beginTransaction();
+
+            // Hitung neraca saldo bulan ini
+            $neracaSaldoData = $this->trialBalanceService->calculateTrialBalance($startDate, $endDate);
+
+            // Pastikan periode bulan berikutnya ada di coa_periods
+            $periode = \App\Models\CoaPeriod::firstOrCreate(
+                ['periode' => $nextPeriode],
+                [
+                    'tanggal_mulai'   => $nextMonth->copy()->startOfMonth()->format('Y-m-d'),
+                    'tanggal_selesai' => $nextMonth->copy()->endOfMonth()->format('Y-m-d'),
+                    'is_closed'       => false,
+                    'created_at'      => now(),
+                    'updated_at'      => now(),
+                ]
+            );
+
+            $posted = 0;
+            foreach ($neracaSaldoData['accounts'] as $account) {
+                if (empty($account['kode_akun'])) continue;
+
+                $saldoAkhir = $account['saldo_akhir'] ?? 0;
+
+                // Simpan/update sebagai saldo_awal bulan berikutnya di coa_period_balances
+                \App\Models\CoaPeriodBalance::updateOrCreate(
+                    [
+                        'period_id'  => $periode->id,
+                        'kode_akun'  => $account['kode_akun'],
+                    ],
+                    [
+                        'coa_id'     => $account['id'] ?? null,
+                        'saldo_awal' => $saldoAkhir,
+                        'saldo_akhir'=> $saldoAkhir,
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+
+                // Update saldo_awal di tabel coas agar tampil di halaman COA
+                // Gunakan kode_akun + user_id karena $account tidak punya field id
+                \App\Models\Coa::where('kode_akun', $account['kode_akun'])
+                    ->where('user_id', auth()->id())
+                    ->update(['saldo_awal' => $saldoAkhir]);
+
+                $posted++;
+            }
+
+            \DB::commit();
+
+            \Log::info('Posting saldo berhasil', [
+                'user_id'    => auth()->id(),
+                'dari_bulan' => "{$tahun}-{$bulan}",
+                'ke_bulan'   => $nextPeriode,
+                'total_akun' => $posted,
+            ]);
+
+            return redirect()
+                ->route('akuntansi.neraca-saldo-temp', ['bulan' => $bulan, 'tahun' => $tahun])
+                ->with('success', "✅ Posting berhasil! Saldo akhir {$bulan}/{$tahun} sudah menjadi saldo awal {$nextBulan}/{$nextTahun} untuk {$posted} akun.");
+
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Posting saldo gagal: ' . $e->getMessage());
+            return redirect()
+                ->route('akuntansi.neraca-saldo-temp', ['bulan' => $bulan, 'tahun' => $tahun])
+                ->with('error', 'Posting gagal: ' . $e->getMessage());
+        }
+    }
 }

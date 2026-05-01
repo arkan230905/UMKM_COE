@@ -23,8 +23,8 @@
                     </select>
                 </div>
             </form>
-            <a href="{{ route('master-data.coa.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Tambah COA
+            <a href="{{ route('master-data.coa.create') }}" class="btn btn-primary btn-sm" style="align-self:flex-end;display:inline-flex;align-items:center;gap:4px;">
+                <i class="fas fa-plus"></i> Tambah COA
             </a>
         </div>
     </div>

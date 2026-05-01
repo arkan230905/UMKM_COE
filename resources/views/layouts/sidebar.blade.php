@@ -1,428 +1,195 @@
 <div class="sidebar">
-    <!-- User Profile Card -->
-    <div class="user-profile-card">
-        <div class="user-avatar">
+
+    {{-- ===== USER PROFILE ===== --}}
+    <div class="sb-profile">
+        <div class="sb-avatar">
             @if(Auth::check() && Auth::user()->profile_photo)
-                <img src="{{ asset('storage/profile-photos/' . Auth::user()->profile_photo) }}" 
-                     alt="Profile Photo" 
-                     style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; position: absolute; top: 0; left: 0;"
-                     onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<i class=\"fas fa-user\"></i>';">
+                <img src="{{ asset('storage/profile-photos/'.Auth::user()->profile_photo) }}"
+                     alt="Profile"
+                     style="width:100%;height:100%;object-fit:cover;border-radius:50%;"
+                     onerror="this.style.display='none'">
             @else
                 <i class="fas fa-user"></i>
             @endif
         </div>
-        <div class="user-info">
-            <h4>{{ Auth::check() ? Auth::user()->name : 'Guest' }}</h4>
-            <small>{{ Auth::check() ? ucfirst(Auth::user()->role) : '' }}</small>
+        <div class="sb-name">{{ Auth::check() ? Auth::user()->name : 'Guest' }}</div>
+        <div class="sb-role">{{ Auth::check() ? ucfirst(Auth::user()->role) : '' }}</div>
+    </div>
+
+    {{-- ===== NAV ===== --}}
+    <div class="sb-nav">
+
+        @if(Auth::check() && Auth::user()->role === 'pegawai')
+        {{-- PEGAWAI --}}
+        <a href="{{ route('pegawai.dashboard') }}" class="sb-link {{ request()->is('pegawai/dashboard') ? 'active' : '' }}">
+            <i class="fas fa-home"></i><span>Dashboard</span>
+        </a>
+        <div class="sb-section">PRESENSI</div>
+        <a href="{{ route('pegawai.presensi.absen-wajah') }}" class="sb-link {{ request()->is('pegawai/presensi/absen-wajah') ? 'active' : '' }}">
+            <i class="fas fa-camera"></i><span>Absen Wajah</span>
+        </a>
+        <a href="{{ route('pegawai.riwayat-presensi') }}" class="sb-link {{ request()->is('pegawai/riwayat-presensi') ? 'active' : '' }}">
+            <i class="fas fa-history"></i><span>Riwayat Presensi</span>
+        </a>
+        <div class="sb-section">PENGGAJIAN</div>
+        <a href="{{ route('pegawai.slip-gaji.index') }}" class="sb-link {{ request()->is('pegawai/slip-gaji*') ? 'active' : '' }}">
+            <i class="fas fa-file-invoice-dollar"></i><span>Slip Gaji</span>
+        </a>
+
+        @else
+        {{-- OWNER / ADMIN --}}
+
+        {{-- Dashboard --}}
+        <a href="{{ route('dashboard') }}" class="sb-link {{ request()->is('dashboard') ? 'active' : '' }}">
+            <i class="fas fa-home"></i><span>Dashboard</span>
+        </a>
+
+        {{-- MENU UTAMA label --}}
+        <div class="sb-section">MENU UTAMA</div>
+
+        {{-- Master Data --}}
+        <button class="sb-collapse {{ request()->is('master-data*') ? 'open' : '' }}" data-target="menu-master">
+            <i class="fas fa-database"></i>
+            <span>Master Data</span>
+            <i class="fas fa-chevron-down sb-arrow"></i>
+        </button>
+        <div class="sb-submenu {{ request()->is('master-data*') ? 'show' : '' }}" id="menu-master">
+            <a href="{{ route('master-data.coa.index') }}"                          class="sb-sub {{ request()->is('master-data/coa*') ? 'active' : '' }}">COA</a>
+            <a href="{{ route('master-data.aset.index') }}"                         class="sb-sub {{ request()->is('master-data/aset*') ? 'active' : '' }}">Aset</a>
+            <a href="{{ route('master-data.satuan.dashboard') }}"                   class="sb-sub {{ request()->is('master-data/satuan*') ? 'active' : '' }}">Satuan</a>
+            <a href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}"     class="sb-sub {{ request()->is('master-data/kualifikasi*') ? 'active' : '' }}">Kualifikasi TK</a>
+            <a href="{{ route('master-data.pegawai.index') }}"                      class="sb-sub {{ request()->is('master-data/pegawai*') ? 'active' : '' }}">Pegawai</a>
+            <a href="{{ route('master-data.vendor.index') }}"                       class="sb-sub {{ request()->is('master-data/vendor*') ? 'active' : '' }}">Vendor</a>
+            <a href="{{ route('master-data.pelanggan.index') }}"                    class="sb-sub {{ request()->is('master-data/pelanggan*') ? 'active' : '' }}">Pelanggan</a>
+            <a href="{{ route('master-data.bahan-baku.index') }}"                   class="sb-sub {{ request()->is('master-data/bahan-baku*') ? 'active' : '' }}">Bahan Baku</a>
+            <a href="{{ route('master-data.bahan-pendukung.index') }}"              class="sb-sub {{ request()->is('master-data/bahan-pendukung*') ? 'active' : '' }}">Bahan Pendukung</a>
+            <a href="{{ route('master-data.produk.index') }}"                       class="sb-sub {{ request()->is('master-data/produk*') ? 'active' : '' }}">Produk</a>
+            <a href="{{ route('master-data.biaya-bahan.index') }}"                  class="sb-sub {{ request()->is('master-data/biaya-bahan*') ? 'active' : '' }}">Biaya Bahan Baku</a>
+            <a href="{{ route('master-data.btkl.index') }}"                         class="sb-sub {{ request()->is('master-data/btkl*') ? 'active' : '' }}">BTKL</a>
+            <a href="{{ route('master-data.bop.index') }}"                          class="sb-sub {{ request()->is('master-data/bop*') ? 'active' : '' }}">BOP</a>
+            <a href="{{ route('master-data.harga-pokok-produksi.index') }}"         class="sb-sub {{ request()->is('master-data/harga-pokok*') ? 'active' : '' }}">Harga Pokok Produksi</a>
         </div>
-    </div>
-    
-    <div class="sidebar-nav">
-        <ul class="nav">
-            @if(Auth::check() && Auth::user()->role === 'pegawai')
-                {{-- SIDEBAR KHUSUS PEGAWAI --}}
-                <!-- Dashboard Pegawai -->
-                <li class="nav-item">
-                    <a href="{{ route('pegawai.dashboard') }}" class="nav-link-rounded {{ request()->is('pegawai/dashboard') ? 'active' : '' }}">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Dashboard</span>
-                    </a>
-                </li>
-                
-                <!-- Presensi Section -->
-                <li class="nav-item">
-                    <div class="nav-section-header-rounded">
-                        <i class="fas fa-calendar-check"></i>
-                        <span>PRESENSI</span>
-                    </div>
-                </li>
-                
-                <li class="nav-item">
-                    <a class="nav-link-rounded {{ request()->is('pegawai/presensi/absen-wajah') ? 'active' : '' }}" href="{{ route('pegawai.presensi.absen-wajah') }}">
-                        <i class="fas fa-camera"></i>
-                        <span>Absen Wajah</span>
-                    </a>
-                </li>
-                
-                <li class="nav-item">
-                    <a class="nav-link-rounded {{ request()->is('pegawai/riwayat-presensi') ? 'active' : '' }}" href="{{ route('pegawai.riwayat-presensi') }}">
-                        <i class="fas fa-history"></i>
-                        <span>Riwayat Presensi</span>
-                    </a>
-                </li>
-                
-                <!-- Penggajian Section -->
-                <li class="nav-item">
-                    <div class="nav-section-header-rounded">
-                        <i class="fas fa-money-bill-wave"></i>
-                        <span>PENGAJIAN</span>
-                    </div>
-                </li>
 
-                <li class="nav-item">
-                    <a class="nav-link-rounded {{ request()->is('pegawai/slip-gaji*') ? 'active' : '' }}" href="{{ route('pegawai.slip-gaji.index') }}">
-                        <i class="fas fa-file-invoice-dollar"></i>
-                        <span>Slip Gaji</span>
-                    </a>
-                </li>
+        {{-- Transaksi --}}
+        <button class="sb-collapse {{ request()->is('transaksi*') ? 'open' : '' }}" data-target="menu-transaksi">
+            <i class="fas fa-exchange-alt"></i>
+            <span>Transaksi</span>
+            <i class="fas fa-chevron-down sb-arrow"></i>
+        </button>
+        <div class="sb-submenu {{ request()->is('transaksi*') ? 'show' : '' }}" id="menu-transaksi">
+            <a href="{{ route('transaksi.produksi.index') }}"        class="sb-sub {{ request()->is('transaksi/produksi*') ? 'active' : '' }}">Produksi</a>
+            <a href="{{ route('transaksi.pembelian.index') }}"       class="sb-sub {{ request()->is('transaksi/pembelian*') ? 'active' : '' }}">Pembelian</a>
+            <a href="{{ route('transaksi.penjualan.index') }}"       class="sb-sub {{ request()->is('transaksi/penjualan*') ? 'active' : '' }}">Penjualan</a>
+            <a href="{{ route('transaksi.presensi.index') }}"        class="sb-sub {{ request()->is('transaksi/presensi*') ? 'active' : '' }}">Presensi</a>
+            <a href="{{ route('transaksi.penggajian.index') }}"      class="sb-sub {{ request()->is('transaksi/penggajian*') ? 'active' : '' }}">Penggajian</a>
+            <a href="{{ route('transaksi.pembayaran-beban.index') }}" class="sb-sub {{ request()->is('transaksi/pembayaran-beban*') ? 'active' : '' }}">Pembayaran Beban</a>
+            <a href="{{ route('transaksi.pelunasan-utang.index') }}"  class="sb-sub {{ request()->is('transaksi/pelunasan-utang*') ? 'active' : '' }}">Pelunasan Utang</a>
+        </div>
 
-                <!-- Logout -->
-                <li class="nav-item mt-4">
-                    <div class="logout-separator"></div>
-                    <form method="POST" action="{{ route('logout') }}" style="margin: 0; padding: 0;">
-                        @csrf
-                        <button type="submit" class="nav-link-rounded" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important; color: white !important; margin: 2px 10px 16px 10px !important; padding: 8px 12px !important; border-radius: 12px !important; box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3) !important;">
-                            <i class="fas fa-sign-out-alt"></i>
-                            <span>Logout</span>
-                        </button>
-                    </form>
-                </li>
-            @else
-                {{-- SIDEBAR UNTUK OWNER/ADMIN --}}
-            <!-- Dashboard -->
-            <li class="nav-item">
-                <a href="{{ route('dashboard') }}" class="nav-link-rounded {{ request()->is('dashboard') ? 'active' : '' }}">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span>Dashboard</span>
-                </a>
-            </li>
-            
-            <!-- Master Data Section -->
-            <li class="nav-item">
-                <div class="nav-section-header-rounded collapsible-header" data-target="master-data-menu">
-                    <i class="fas fa-database"></i>
-                    <span>MASTER DATA</span>
-                    <i class="fas fa-chevron-down collapsible-icon"></i>
-                </div>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/coa*') ? 'active' : '' }}" href="{{ route('master-data.coa.index') }}">
-                    <i class="fas fa-book"></i>
-                    <span>COA</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/aset*') ? 'active' : '' }}" href="{{ route('master-data.aset.index') }}">
-                    <i class="fas fa-laptop"></i>
-                    <span>Aset</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/satuan*') ? 'active' : '' }}" href="{{ route('master-data.satuan.dashboard') }}">
-                    <i class="fas fa-balance-scale"></i>
-                    <span>Satuan</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/kualifikasi-tenaga-kerja*') ? 'active' : '' }}" href="{{ route('master-data.kualifikasi-tenaga-kerja.index') }}">
-                    <i class="fas fa-user-tie"></i>
-                    <span>Kualifikasi Tenaga Kerja</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/pegawai*') ? 'active' : '' }}" href="{{ route('master-data.pegawai.index') }}">
-                    <i class="fas fa-users"></i>
-                    <span>Pegawai</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/vendor*') ? 'active' : '' }}" href="{{ route('master-data.vendor.index') }}">
-                    <i class="fas fa-truck"></i>
-                    <span>Vendor</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/pelanggan*') ? 'active' : '' }}" href="{{ route('master-data.pelanggan.index') }}">
-                    <i class="fas fa-users"></i>
-                    <span>Pelanggan</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/bahan-baku*') ? 'active' : '' }}" href="{{ route('master-data.bahan-baku.index') }}">
-                    <i class="fas fa-cubes"></i>
-                    <span>Bahan Baku</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/bahan-pendukung*') ? 'active' : '' }}" href="{{ route('master-data.bahan-pendukung.index') }}">
-                    <i class="fas fa-flask"></i>
-                    <span>Bahan Pendukung</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/produk*') ? 'active' : '' }}" href="{{ route('master-data.produk.index') }}">
-                    <i class="fas fa-box"></i>
-                    <span>Produk</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/biaya-bahan*') ? 'active' : '' }}" href="{{ route('master-data.biaya-bahan.index') }}">
-                    <i class="fas fa-calculator"></i>
-                    <span>Perhitungan Biaya Bahan Baku</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/btkl*') ? 'active' : '' }}" href="{{ route('master-data.btkl.index') }}">
-                    <i class="fas fa-industry"></i>
-                    <span>BTKL (Proses Produksi)</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/bop*') ? 'active' : '' }}" href="{{ route('master-data.bop.index') }}">
-                    <i class="fas fa-chart-pie"></i>
-                    <span>BOP (Biaya Overhead Pabrik)</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="master-data-menu">
-                <a class="nav-link-rounded {{ request()->is('master-data/harga-pokok-produksi*') ? 'active' : '' }}" href="{{ route('master-data.harga-pokok-produksi.index') }}">
-                    <i class="fas fa-sitemap"></i>
-                    <span>Harga Pokok Produksi</span>
-                </a>
-            </li>
-            
-            <!-- Transaksi Section -->
-            <li class="nav-item">
-                <div class="nav-section-header-rounded collapsible-header" data-target="transaksi-menu">
-                    <i class="fas fa-exchange-alt"></i>
-                    <span>TRANSAKSI</span>
-                    <i class="fas fa-chevron-down collapsible-icon"></i>
-                </div>
-            </li>
-            <li class="nav-item collapsible-menu" id="transaksi-menu">
-                <a class="nav-link-rounded {{ request()->is('transaksi/produksi*') ? 'active' : '' }}" href="{{ route('transaksi.produksi.index') }}">
-                    <i class="fas fa-industry"></i>
-                    <span>Produksi</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="transaksi-menu">
-                <a class="nav-link-rounded {{ request()->is('transaksi/pembelian*') ? 'active' : '' }}" href="{{ route('transaksi.pembelian.index') }}">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>Pembelian</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="transaksi-menu">
-                <a class="nav-link-rounded {{ request()->is('transaksi/penjualan*') ? 'active' : '' }}" href="{{ route('transaksi.penjualan.index') }}">
-                    <i class="fas fa-store"></i>
-                    <span>Penjualan</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="transaksi-menu">
-                <a class="nav-link-rounded {{ request()->is('transaksi/presensi*') ? 'active' : '' }}" href="{{ route('transaksi.presensi.index') }}">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>Presensi</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="transaksi-menu">
-                <a class="nav-link-rounded {{ request()->is('transaksi/penggajian*') ? 'active' : '' }}" href="{{ route('transaksi.penggajian.index') }}">
-                    <i class="fas fa-money-bill"></i>
-                    <span>Penggajian</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="transaksi-menu">
-                <a class="nav-link-rounded {{ request()->is('transaksi/pembayaran-beban*') ? 'active' : '' }}" href="{{ route('transaksi.pembayaran-beban.index') }}">
-                    <i class="fas fa-money-check-alt"></i>
-                    <span>Pembayaran Beban</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="transaksi-menu">
-                <a class="nav-link-rounded {{ request()->is('transaksi/pelunasan-utang*') ? 'active' : '' }}" href="{{ route('transaksi.pelunasan-utang.index') }}">
-                    <i class="fas fa-credit-card"></i>
-                    <span>Pelunasan Utang</span>
-                </a>
-            </li>
-            
-            <!-- Laporan Section -->
-            <li class="nav-item">
-                <div class="nav-section-header-rounded collapsible-header" data-target="laporan-menu">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>LAPORAN</span>
-                    <i class="fas fa-chevron-down collapsible-icon"></i>
-                </div>
-            </li>
-            <li class="nav-item collapsible-menu" id="laporan-menu">
-                <a class="nav-link-rounded {{ request()->is('laporan/pembelian*') ? 'active' : '' }}" href="{{ route('laporan.pembelian.index') }}">
-                    <i class="fas fa-shopping-cart"></i>
-                    <span>Laporan Pembelian</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="laporan-menu">
-                <a class="nav-link-rounded {{ request()->is('laporan/stok*') ? 'active' : '' }}" href="{{ route('laporan.stok') }}">
-                    <i class="fas fa-boxes"></i>
-                    <span>Laporan Stok</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="laporan-menu">
-                <a class="nav-link-rounded {{ request()->is('laporan/penjualan*') ? 'active' : '' }}" href="{{ route('laporan.penjualan') }}">
-                    <i class="fas fa-shopping-bag"></i>
-                    <span>Laporan Penjualan</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="laporan-menu">
-                <a class="nav-link-rounded {{ request()->is('laporan/penggajian*') ? 'active' : '' }}" href="{{ route('laporan.penggajian') }}">
-                    <i class="fas fa-money-bill"></i>
-                    <span>Laporan Penggajian</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="laporan-menu">
-                <a class="nav-link-rounded {{ request()->is('laporan/pembayaran-beban*') ? 'active' : '' }}" href="{{ route('laporan.pembayaran-beban') }}">
-                    <i class="fas fa-money-check-alt"></i>
-                    <span>Laporan Pembayaran Beban</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="laporan-menu">
-                <a class="nav-link-rounded {{ request()->is('laporan/pelunasan-utang*') ? 'active' : '' }}" href="{{ route('laporan.pelunasan-utang') }}">
-                    <i class="fas fa-credit-card"></i>
-                    <span>Laporan Pelunasan Utang</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="laporan-menu">
-                <a class="nav-link-rounded {{ request()->is('laporan/kas-bank*') ? 'active' : '' }}" href="{{ route('laporan.kas-bank') }}">
-                    <i class="fas fa-university"></i>
-                    <span>Laporan Kas dan Bank</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="laporan-menu">
-                <a class="nav-link-rounded {{ request()->is('akuntansi/jurnal-umum*') ? 'active' : '' }}" href="{{ route('akuntansi.jurnal-umum') }}">
-                    <i class="fas fa-book-open"></i>
-                    <span>Jurnal Umum</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="laporan-menu">
-                <a class="nav-link-rounded {{ request()->is('akuntansi/buku-besar*') ? 'active' : '' }}" href="{{ route('akuntansi.buku-besar') }}">
-                    <i class="fas fa-book"></i>
-                    <span>Buku Besar</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="laporan-menu">
-                <a class="nav-link-rounded {{ request()->is('akuntansi/neraca-saldo*') ? 'active' : '' }}" href="{{ route('akuntansi.neraca-saldo-temp') }}">
-                    <i class="fas fa-balance-scale-right"></i>
-                    <span>Neraca Saldo</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="laporan-menu">
-                <a class="nav-link-rounded {{ request()->is('akuntansi/laporan-posisi-keuangan') ? 'active' : '' }}" href="{{ route('akuntansi.laporan-posisi-keuangan') }}">
-                    <i class="fas fa-balance-scale"></i>
-                    <span>Laporan Posisi Keuangan</span>
-                </a>
-            </li>
-            <li class="nav-item collapsible-menu" id="laporan-menu">
-                <a class="nav-link-rounded {{ request()->is('akuntansi/laba-rugi*') ? 'active' : '' }}" href="{{ route('akuntansi.laba-rugi') }}">
-                    <i class="fas fa-chart-line"></i>
-                    <span>Laba Rugi</span>
-                </a>
-            </li>
-            
-            <!-- Pengaturan Section -->
-            <li class="nav-item">
-                <div class="nav-section-header-rounded collapsible-header" data-target="pengaturan-menu">
-                    <i class="fas fa-cog"></i>
-                    <span>PENGATURAN</span>
-                    <i class="fas fa-chevron-down collapsible-icon"></i>
-                </div>
-            </li>
+        {{-- Laporan --}}
+        <button class="sb-collapse {{ request()->is('laporan*') || request()->is('akuntansi*') ? 'open' : '' }}" data-target="menu-laporan">
+            <i class="fas fa-chart-bar"></i>
+            <span>Laporan</span>
+            <i class="fas fa-chevron-down sb-arrow"></i>
+        </button>
+        <div class="sb-submenu {{ request()->is('laporan*') || request()->is('akuntansi*') ? 'show' : '' }}" id="menu-laporan">
+            <a href="{{ route('laporan.pembelian.index') }}"             class="sb-sub {{ request()->is('laporan/pembelian*') ? 'active' : '' }}">Laporan Pembelian</a>
+            <a href="{{ route('laporan.stok') }}"                        class="sb-sub {{ request()->is('laporan/stok*') ? 'active' : '' }}">Laporan Stok</a>
+            <a href="{{ route('laporan.penjualan') }}"                   class="sb-sub {{ request()->is('laporan/penjualan*') ? 'active' : '' }}">Laporan Penjualan</a>
+            <a href="{{ route('laporan.penggajian') }}"                  class="sb-sub {{ request()->is('laporan/penggajian*') ? 'active' : '' }}">Laporan Penggajian</a>
+            <a href="{{ route('laporan.pembayaran-beban') }}"            class="sb-sub {{ request()->is('laporan/pembayaran-beban*') ? 'active' : '' }}">Laporan Pembayaran Beban</a>
+            <a href="{{ route('laporan.pelunasan-utang') }}"             class="sb-sub {{ request()->is('laporan/pelunasan-utang*') ? 'active' : '' }}">Laporan Pelunasan Utang</a>
+            <a href="{{ route('laporan.kas-bank') }}"                    class="sb-sub {{ request()->is('laporan/kas-bank*') ? 'active' : '' }}">Laporan Kas &amp; Bank</a>
+            <a href="{{ route('akuntansi.jurnal-umum') }}"               class="sb-sub {{ request()->is('akuntansi/jurnal-umum*') ? 'active' : '' }}">Jurnal Umum</a>
+            <a href="{{ route('akuntansi.buku-besar') }}"                class="sb-sub {{ request()->is('akuntansi/buku-besar*') ? 'active' : '' }}">Buku Besar</a>
+            <a href="{{ route('akuntansi.neraca-saldo-temp') }}"         class="sb-sub {{ request()->is('akuntansi/neraca-saldo*') ? 'active' : '' }}">Neraca Saldo</a>
+            <a href="{{ route('akuntansi.laporan-posisi-keuangan') }}"   class="sb-sub {{ request()->is('akuntansi/laporan-posisi-keuangan') ? 'active' : '' }}">Posisi Keuangan</a>
+            <a href="{{ route('akuntansi.laba-rugi') }}"                 class="sb-sub {{ request()->is('akuntansi/laba-rugi*') ? 'active' : '' }}">Laba Rugi</a>
+        </div>
+
+        {{-- Pengaturan --}}
+        <button class="sb-collapse {{ request()->is('tentang-perusahaan*') || request()->is('profile*') ? 'open' : '' }}" data-target="menu-pengaturan">
+            <i class="fas fa-cog"></i>
+            <span>Pengaturan</span>
+            <i class="fas fa-chevron-down sb-arrow"></i>
+        </button>
+        <div class="sb-submenu {{ request()->is('tentang-perusahaan*') || request()->is('profile*') ? 'show' : '' }}" id="menu-pengaturan">
             @if(auth()->check() && auth()->user()->role === 'owner')
-            <li class="nav-item collapsible-menu" id="pengaturan-menu">
-                <a class="nav-link-rounded {{ request()->is('tentang-perusahaan/detail') ? 'active' : '' }}" href="/tentang-perusahaan/detail">
-                    <i class="fas fa-building"></i>
-                    <span>Tentang Perusahaan</span>
-                </a>
-            </li>
+            <a href="/tentang-perusahaan/detail" class="sb-sub {{ request()->is('tentang-perusahaan*') ? 'active' : '' }}">Tentang Perusahaan</a>
             @endif
-            <li class="nav-item collapsible-menu" id="pengaturan-menu">
-                <a class="nav-link-rounded {{ request()->is('profile*') ? 'active' : '' }}" href="{{ route('profil-admin') }}">
-                    <i class="fas fa-user"></i>
-                    <span>Profil</span>
-                </a>
-            </li>
-            
-            <!-- Kelola Catalog Section -->
-            <li class="nav-item">
-                <div class="nav-section-header-rounded collapsible-header" data-target="catalog-menu">
-                    <i class="fas fa-store"></i>
-                    <span>CATALOG</span>
-                    <i class="fas fa-chevron-down collapsible-icon"></i>
+            <a href="{{ route('profil-admin') }}" class="sb-sub {{ request()->is('profile*') ? 'active' : '' }}">Profil</a>
+        </div>
+
+        {{-- Catalog --}}
+        <button class="sb-collapse {{ request()->is('kelola-catalog*') ? 'open' : '' }}" data-target="menu-catalog">
+            <i class="fas fa-store"></i>
+            <span>Catalog</span>
+            <i class="fas fa-chevron-down sb-arrow"></i>
+        </button>
+        <div class="sb-submenu {{ request()->is('kelola-catalog*') ? 'show' : '' }}" id="menu-catalog">
+            <a href="{{ route('kelola-catalog.index') }}" class="sb-sub {{ request()->is('kelola-catalog*') ? 'active' : '' }}">Kelola Catalog</a>
+        </div>
+
+        @endif
+
+        {{-- Logout --}}
+        <div class="sb-logout-wrap">
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="sb-logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </button>
+            </form>
+        </div>
+
+    </div>{{-- end sb-nav --}}
+
+    {{-- ===== FOOTER ===== --}}
+    <div class="sb-footer">
+        <div class="sb-footer-title">Informasi Sistem</div>
+        <div class="sb-footer-row">
+            <i class="fas fa-circle-info"></i>
+            <div>
+                <div class="sb-footer-label">Versi Aplikasi</div>
+                <div class="sb-footer-val">v1.0.0</div>
+            </div>
+        </div>
+        <div class="sb-footer-row">
+            <i class="fas fa-database"></i>
+            <div>
+                <div class="sb-footer-label">Database</div>
+                <div class="sb-footer-db">
+                    <span class="sb-db-dot"></span> Terhubung
                 </div>
-            </li>
-            <li class="nav-item collapsible-menu" id="catalog-menu">
-                <a class="nav-link-rounded {{ request()->is('kelola-catalog*') ? 'active' : '' }}" href="{{ route('kelola-catalog.index') }}">
-                    <i class="fas fa-cog"></i>
-                    <span>Kelola Catalog</span>
-                </a>
-            </li>
-            
-            <li class="nav-item mt-4">
-                <div class="logout-separator"></div>
-                <form method="POST" action="{{ route('logout') }}" style="margin: 0; padding: 0;">
-                    @csrf
-                    <button type="submit" class="nav-link-rounded" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important; color: white !important; margin: 2px 10px 16px 10px !important; padding: 8px 12px !important; border-radius: 12px !important; box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3) !important;">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </button>
-                </form>
-            </li>
-            @endif
-        </ul>
+            </div>
+        </div>
+        <div class="sb-footer-copy">© 2026 SIMCOST<br>All rights reserved.</div>
     </div>
+
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Collapsible Menu Functionality
-    const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
-    
-    // Set initial state - all menus collapsed
-    collapsibleHeaders.forEach(header => {
-        const targetId = header.getAttribute('data-target');
-        const menuItems = document.querySelectorAll(`#${targetId}`);
-        
-        // Initially hide all menu items
-        menuItems.forEach(item => {
-            item.style.display = 'none';
-        });
-        
-        // Add click event listener
-        header.addEventListener('click', function() {
-            const isExpanded = header.classList.contains('expanded');
-            
-            // Toggle expanded class
-            header.classList.toggle('expanded');
-            
-            // Toggle menu visibility
-            menuItems.forEach(item => {
-                if (isExpanded) {
-                    // Collapse
-                    item.classList.remove('show');
-                    setTimeout(() => {
-                        item.style.display = 'none';
-                    }, 300);
-                } else {
-                    // Expand
-                    item.style.display = 'block';
-                    setTimeout(() => {
-                        item.classList.add('show');
-                    }, 10);
-                }
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.sb-collapse').forEach(function (btn) {
+        var targetId = btn.getAttribute('data-target');
+        var menu     = document.getElementById(targetId);
+
+        btn.addEventListener('click', function () {
+            var isOpen = btn.classList.contains('open');
+            // tutup semua
+            document.querySelectorAll('.sb-collapse').forEach(function(b){
+                b.classList.remove('open');
             });
-        });
-    });
-    
-    // Auto-expand menu if current page is in that section
-    const currentPath = window.location.pathname;
-    const allMenuItems = document.querySelectorAll('.collapsible-menu a');
-    
-    allMenuItems.forEach(link => {
-        if (link.getAttribute('href') && currentPath.includes(link.getAttribute('href').replace(/^\/+/, '').split('/')[0])) {
-            const menuItem = link.closest('.collapsible-menu');
-            if (menuItem) {
-                const menuId = menuItem.getAttribute('id');
-                const header = document.querySelector(`[data-target="${menuId}"]`);
-                
-                if (header && !header.classList.contains('expanded')) {
-                    // Auto-expand this menu
-                    header.click();
-                }
+            document.querySelectorAll('.sb-submenu').forEach(function(m){
+                m.classList.remove('show');
+            });
+            // buka yang diklik jika sebelumnya tertutup
+            if (!isOpen) {
+                btn.classList.add('open');
+                if (menu) menu.classList.add('show');
             }
-        }
+        });
     });
 });
 </script>

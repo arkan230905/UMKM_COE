@@ -3482,6 +3482,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
     
     // Temporary Neraca Saldo route without middleware for testing
     Route::get('/akuntansi/neraca-saldo-temp', [\App\Http\Controllers\NeracaSaldoController::class, 'index'])->name('akuntansi.neraca-saldo-temp');
+    Route::post('/akuntansi/neraca-saldo-temp/posting', [\App\Http\Controllers\NeracaSaldoController::class, 'postingSaldo'])->name('akuntansi.neraca-saldo.posting');
     // REMOVED: Route jurnal penyeimbang dihapus sesuai permintaan user
     
     // Debug route to check if routes are working

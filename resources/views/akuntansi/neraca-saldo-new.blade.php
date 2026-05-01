@@ -36,23 +36,23 @@
                     <input type="number" name="tahun" class="form-control" value="{{ $tahun }}" 
                            style="min-width: 100px;" min="2020" max="2030" id="tahunInput">
                 </div>
-                <div>
+                <div class="d-flex gap-2 align-items-end">
                     <button type="submit" class="btn btn-primary" id="loadBtn">
                         <i class="bi bi-search"></i> Tampilkan
                     </button>
-                </div>
-                <div>
                     <button type="button" class="btn btn-outline-secondary" id="refreshBtn">
                         <i class="bi bi-arrow-clockwise"></i> Refresh
                     </button>
+                    <a href="{{ route('akuntansi.neraca-saldo.pdf', ['bulan' => $bulan, 'tahun' => $tahun]) }}" 
+                       class="btn btn-danger" target="_blank" id="pdfBtn">
+                        <i class="fas fa-file-pdf me-1"></i> Export PDF
+                    </a>
+                    <button type="button" class="btn btn-success" id="postingBtn"
+                            onclick="konfirmasiPosting('{{ $bulan }}', '{{ $tahun }}')">
+                        <i class="fas fa-check-circle me-1"></i> Posting Saldo
+                    </button>
                 </div>
             </form>
-            <div>
-                <a href="{{ route('akuntansi.neraca-saldo.pdf', ['bulan' => $bulan, 'tahun' => $tahun]) }}" 
-                   class="btn btn-danger" target="_blank" id="pdfBtn">
-                    <i class="bi bi-file-pdf"></i> Cetak PDF
-                </a>
-            </div>
         </div>
     </div>
 
@@ -672,5 +672,38 @@ document.addEventListener('DOMContentLoaded', function() {
         window.history.pushState({}, '', newUrl);
     });
 });
+</script>
+
+{{-- Form hidden untuk posting saldo --}}
+<form id="formPosting" method="POST" action="{{ route('akuntansi.neraca-saldo.posting') }}" style="display:none;">
+    @csrf
+    <input type="hidden" name="bulan" id="postingBulan" value="{{ $bulan }}">
+    <input type="hidden" name="tahun" id="postingTahun" value="{{ $tahun }}">
+</form>
+
+<script>
+function konfirmasiPosting(bulan, tahun) {
+    const namaBulan = {
+        '01':'Januari','02':'Februari','03':'Maret','04':'April',
+        '05':'Mei','06':'Juni','07':'Juli','08':'Agustus',
+        '09':'September','10':'Oktober','11':'November','12':'Desember'
+    };
+    // Hitung bulan berikutnya
+    let b = parseInt(bulan), t = parseInt(tahun);
+    let nextB = b === 12 ? 1 : b + 1;
+    let nextT = b === 12 ? t + 1 : t;
+    let nextBStr = String(nextB).padStart(2,'0');
+
+    if (confirm(
+        `Posting saldo akhir ${namaBulan[bulan]} ${tahun} sebagai saldo awal ${namaBulan[nextBStr]} ${nextT}?\n\n` +
+        `Tindakan ini akan menyimpan saldo akhir semua akun bulan ini\n` +
+        `sebagai saldo awal bulan berikutnya.\n\n` +
+        `Lanjutkan?`
+    )) {
+        document.getElementById('postingBulan').value = bulan;
+        document.getElementById('postingTahun').value = tahun;
+        document.getElementById('formPosting').submit();
+    }
+}
 </script>
 @endsection
