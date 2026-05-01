@@ -864,10 +864,40 @@ if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         $labaKotor = $totalPendapatan - $hppAmount;
         $labaBersih = $labaKotor - $totalBeban;
         
+        // ── DETAIL PENJUALAN PER PRODUK ────────────────────────────
+        // Breakdown penjualan per produk untuk ditampilkan di bawah COA Penjualan
+        $detailPenjualan = \DB::table('penjualan_details as pd')
+            ->join('penjualans as p', 'p.id', '=', 'pd.penjualan_id')
+            ->join('produks as pr', 'pr.id', '=', 'pd.produk_id')
+            ->whereBetween('p.tanggal', [$from, $to])
+            ->selectRaw('pr.nama_produk,
+                         SUM(pd.jumlah) as total_qty,
+                         SUM(pd.jumlah * pd.harga_satuan) as total_pendapatan')
+            ->groupBy('pr.id', 'pr.nama_produk')
+            ->orderBy('total_pendapatan', 'desc')
+            ->get();
+
+        // ── DETAIL HPP PER PRODUK ──────────────────────────────────
+        // Breakdown HPP per produk untuk ditampilkan di bawah COA HPP
+        $detailHpp = \DB::table('penjualan_details as pd')
+            ->join('penjualans as p', 'p.id', '=', 'pd.penjualan_id')
+            ->join('produks as pr', 'pr.id', '=', 'pd.produk_id')
+            ->whereBetween('p.tanggal', [$from, $to])
+            ->selectRaw('pr.nama_produk,
+                         SUM(pd.jumlah) as total_qty,
+                         SUM(pd.jumlah * COALESCE(pr.hpp, pr.harga_bom, 0)) as total_hpp')
+            ->groupBy('pr.id', 'pr.nama_produk')
+            ->having('total_hpp', '>', 0)
+            ->orderBy('total_hpp', 'desc')
+            ->get();
+
         return view('akuntansi.laba_rugi', compact(
-            'periode', 'pendapatan', 'beban', 
-            'totalPendapatan', 'totalBeban', 'labaBersih',
-            'hppAmount', 'labaKotor', 'accountData', 'totalDiskonPenjualan'
+            'periode', 'from', 'to',
+            'pendapatan', 'beban',
+            'totalPendapatan', 'totalBeban',
+            'labaKotor', 'labaBersih',
+            'hppAmount', 'totalDiskonPenjualan',
+            'detailPenjualan', 'detailHpp'
         ));
     }
 }

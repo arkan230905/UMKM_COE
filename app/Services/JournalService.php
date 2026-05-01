@@ -237,6 +237,12 @@ class JournalService
                 $debitMemo = 'Penerimaan penjualan';
 }
 
+            \Log::warning('Journal penjualan #' . ($penjualan->nomor_penjualan ?? $penjualan->id)
+                . ' tidak dibuat – akun missing: ' . implode(', ', $namaAkunMissing));
+
+            throw new \RuntimeException($pesan);
+        }
+
         // ── HAPUS JURNAL LAMA ────────────────────────────────────────────────
         $service->deleteByRef('sale', $penjualan->id);
 
@@ -315,33 +321,6 @@ class JournalService
         $nilaiPenjualan = ($totalDiskon > 0 && isset($validation['accounts']['diskon_penjualan']))
             ? round($subtotalGross)
             : round($subtotalNet);
-        
-        // ── Credit lines: Penjualan, PPN Keluaran, Ongkir ────────────────────
-        $subtotalProduk = 0;
-        foreach ($penjualan->details as $d) {
-            $subtotalProduk += (float)($d->subtotal ?? ((float)$d->harga_satuan * (float)$d->jumlah));
-        }
-        if ($subtotalProduk <= 0) {
-            $subtotalProduk = (float)($penjualan->subtotal_produk ?? $penjualan->total ?? 0)
-                            - (float)($penjualan->biaya_ongkir ?? 0);
-            // Don't subtract PPN - total is already before PPN, grand_total includes PPN
-        }
-
-        $biayaOngkir = (float)($penjualan->biaya_ongkir ?? 0);
-        $biayaPPN    = (float)($penjualan->total_ppn ?? $penjualan->biaya_ppn ?? 0);
-        $diskonNominal = (float)($penjualan->diskon_nominal ?? 0);
-        $userId      = $penjualan->user_id ?? null;
-
-        // Helper: cari COA tanpa global scope, filter user_id jika ada
-        $findCoa = function(string $namaAkun, ?string $tipeAkun = null) use ($userId) {
-            $q = Coa::withoutGlobalScopes()->where('nama_akun', $namaAkun);
-            if ($tipeAkun) $q->where('tipe_akun', $tipeAkun);
-            if ($userId) {
-                $found = (clone $q)->where('user_id', $userId)->first();
-                if ($found) return $found;
-            }
-            return $q->orderBy('id', 'desc')->first();
-        };
 
         $lines[] = [
             'code'   => $penjualanCoa->kode_akun,
@@ -373,34 +352,31 @@ class JournalService
         }
 
         // ── HPP & PERSEDIAAN (per produk) ────────────────────────────────────
-        
-        // Dr. Diskon Penjualan (potongan pendapatan)
-        if ($diskonNominal > 0) {
-            $diskonCoa = $findCoa('Diskon Penjualan', 'Expense');
+
+        // Dr. Diskon Penjualan (potongan pendapatan) — hanya jika tidak ada akun diskon di validation
+        // (jika ada di validation, sudah dicatat di blok DEBIT di atas)
+        if ($totalDiskon > 0 && !isset($validation['accounts']['diskon_penjualan'])) {
+            $diskonCoa = Coa::withoutGlobalScopes()
+                ->where('nama_akun', 'like', '%Diskon%')
+                ->whereIn('tipe_akun', ['Expense', 'Beban'])
+                ->when($userId, fn($q) => $q->where('user_id', $userId))
+                ->orderBy('id', 'desc')
+                ->first();
             if (!$diskonCoa) {
-                $diskonCoa = Coa::withoutGlobalScopes()
-                    ->where('nama_akun', 'like', '%Diskon%')
-                    ->whereIn('tipe_akun', ['Expense', 'Beban'])
-                    ->when($userId, fn($q) => $q->where('user_id', $userId))
-                    ->orderBy('id', 'desc')
-                    ->first();
-            }
-            if (!$diskonCoa) {
-                // Buat COA Diskon Penjualan otomatis
                 $diskonCoa = Coa::create([
-                    'kode_akun' => '5112',
-                    'nama_akun' => 'Diskon Penjualan',
-                    'tipe_akun' => 'Expense',
+                    'kode_akun'     => '5112',
+                    'nama_akun'     => 'Diskon Penjualan',
+                    'tipe_akun'     => 'Expense',
                     'kategori_akun' => 'Diskon',
-                    'saldo_normal' => 'Debit',
-                    'user_id' => $userId ?? 1,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'saldo_normal'  => 'Debit',
+                    'user_id'       => $userId ?? 1,
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
                 ]);
             }
             $lines[] = [
                 'code'   => $diskonCoa->kode_akun,
-                'debit'  => $diskonNominal,
+                'debit'  => round($totalDiskon),
                 'credit' => 0,
                 'memo'   => 'Diskon penjualan',
             ];
@@ -641,7 +617,7 @@ if ($penjualan->details && $penjualan->details->count() > 0) {
     private function getOrCreateCoaHpp($produk, $userId): string
     {
         // Cari COA yang sudah ada
-        $existingCoa = $this->findCoaHpp($produk, $userId);
+        $existingCoa = $this->findOrCreateCoaHpp($produk, $userId);
         if ($existingCoa) {
             return $existingCoa;
         }
