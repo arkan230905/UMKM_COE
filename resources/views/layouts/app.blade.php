@@ -33,7 +33,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     {{-- Modern Dashboard CSS - HIGHEST PRIORITY --}}
-    <link href="{{ asset('css/modern-dashboard.css') }}?v={{ time() }}" rel="stylesheet">
+    <link href="{{ asset('css/modern-dashboard.css') }}?v=2" rel="stylesheet">
     
     {{-- Auto Reset System CSS --}}
     <style>

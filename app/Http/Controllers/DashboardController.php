@@ -470,8 +470,7 @@ class DashboardController extends Controller
         try {
             // Hitung dari penjualan kredit yang belum lunas
             $totalPiutang = Penjualan::where('payment_method', 'credit')
-                ->whereIn('status', ['pending', 'partial'])
-                ->sum('sisa_pembayaran');
+                ->sum('total');
             
             return (float)$totalPiutang;
         } catch (\Exception $e) {
