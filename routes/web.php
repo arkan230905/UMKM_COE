@@ -2928,11 +2928,14 @@ Route::middleware('auth')->group(function () {
         // Bukti Pembayaran routes
         Route::post('penjualan/{id}/bukti-pembayaran', [PenjualanController::class, 'uploadBuktiPembayaran'])->name('penjualan.upload-bukti');
         Route::delete('penjualan/{penjualanId}/bukti-pembayaran/{buktiId}', [PenjualanController::class, 'deleteBuktiPembayaran'])->name('penjualan.delete-bukti');
+
+        // Jurnal Penjualan routes
+        Route::get('penjualan/{id}/jurnal', [PenjualanController::class, 'showJurnal'])->name('penjualan.jurnal');
+        Route::post('penjualan/{id}/jurnal/rebuild', [PenjualanController::class, 'rebuildJurnal'])->name('penjualan.jurnal.rebuild');
         
         // API routes for real-time product search
         Route::get('api/products/search', [PenjualanController::class, 'searchProducts'])->name('api.products.search');
         Route::get('api/products/barcode', [PenjualanController::class, 'findByBarcode'])->name('api.products.barcode');
-
         // ============================================================
         // PENGATURAN PENJUALAN
         // ============================================================
@@ -3427,6 +3430,13 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
             $request->merge(['export' => 'pdf']);
             return app()->call('App\Http\Controllers\LaporanController@laporanPelunasanUtang');
         })->name('export.pelunasan-utang');
+    });
+
+    // ================================================================
+    // API INTERNAL (Auth required, semua role)
+    // ================================================================
+    Route::middleware('auth')->prefix('api-internal')->name('api-internal.')->group(function () {
+        Route::post('penjualan/validate-jurnal', [\App\Http\Controllers\PenjualanController::class, 'validateJurnal'])->name('penjualan.validate-jurnal');
     });
 
     // ================================================================

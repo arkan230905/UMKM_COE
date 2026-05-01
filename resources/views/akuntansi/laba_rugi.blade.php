@@ -141,6 +141,9 @@
     <div class="ls-box">
         <div class="ls-label">Total Pendapatan</div>
         <div class="ls-value green">Rp {{ number_format($totalPendapatan,0,',','.') }}</div>
+        @if($totalDiskonPenjualan > 0)
+        <div style="font-size:10px;color:#C05020;margin-top:3px;">Diskon: −Rp {{ number_format($totalDiskonPenjualan,0,',','.') }}</div>
+        @endif
     </div>
     <div class="ls-divider"></div>
     <div class="ls-box">
@@ -201,9 +204,30 @@
 
     {{-- Total Pendapatan --}}
     <div class="lr-total">
-        <div class="rname">Total Pendapatan</div>
+        <div class="rname">Total Pendapatan Bruto</div>
         <div class="ramt green">Rp {{ number_format($totalPendapatan,0,',','.') }}</div>
     </div>
+
+    {{-- Diskon Penjualan sebagai pengurang (kontra-revenue) --}}
+    @if($totalDiskonPenjualan > 0)
+    @foreach($diskonPenjualan as $coa)
+    @php
+        $m = $mutasi[$coa->id] ?? null;
+        $nilaiDiskon = $m ? ((float)$m->total_debit - (float)$m->total_kredit) : 0;
+    @endphp
+    <div class="lr-hpp" style="background:#FFF5F0;">
+        <div class="rname">
+            <div class="main" style="color:#C05020;">{{ $coa->nama_akun }}</div>
+            <div class="hint" style="color:#D4A898;">Potongan/diskon kepada pelanggan</div>
+        </div>
+        <div class="ramt" style="color:#C05020;">− Rp {{ number_format($nilaiDiskon,0,',','.') }}</div>
+    </div>
+    @endforeach
+    <div class="lr-total" style="background:#FFF8F5;">
+        <div class="rname" style="color:#C05020;">Total Pendapatan Bersih</div>
+        <div class="ramt" style="color:#C05020;">Rp {{ number_format($totalPendapatanBersih,0,',','.') }}</div>
+    </div>
+    @endif
 
     {{-- HPP sebagai pengurang --}}
     <div class="lr-hpp">
@@ -290,7 +314,10 @@
         </div>
     </div>
     <div class="lr-hasil-footer">
-        <span><i class="fas fa-circle" style="color:#1A7A3C;font-size:7px;"></i> Pendapatan: Rp {{ number_format($totalPendapatan,0,',','.') }}</span>
+        <span><i class="fas fa-circle" style="color:#1A7A3C;font-size:7px;"></i> Pendapatan Bruto: Rp {{ number_format($totalPendapatan,0,',','.') }}</span>
+        @if($totalDiskonPenjualan > 0)
+        <span><i class="fas fa-circle" style="color:#C05020;font-size:7px;"></i> Diskon Penjualan: −Rp {{ number_format($totalDiskonPenjualan,0,',','.') }}</span>
+        @endif
         <span><i class="fas fa-circle" style="color:#B05030;font-size:7px;"></i> HPP: Rp {{ number_format($totalHpp,0,',','.') }}</span>
         <span><i class="fas fa-circle" style="color:#C0392B;font-size:7px;"></i> Biaya: Rp {{ number_format($totalBeban,0,',','.') }}</span>
     </div>

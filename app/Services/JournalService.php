@@ -359,163 +359,194 @@ class JournalService
     }
 
     /**
-     * Create journal entries from Penjualan (Sales)
-     * Dr. Kas/Bank/Piutang | Cr. Pendapatan Penjualan
-     * Dr. HPP | Cr. Persediaan Barang Jadi
+     * Create journal entries from Penjualan (Sales).
+     *
+     * Jurnal Penjualan:
+     *   Dr. Kas / Bank / Piutang          (grand_total)
+     *   Cr. Penjualan                     (subtotal produk GROSS / sebelum diskon)
+     *   Cr. PPN Keluaran                  (biaya_ppn, jika ada)
+     *   Cr. Pendapatan Lain-lain          (biaya_ongkir, jika ada)
+     *   Dr. Diskon Penjualan              (total diskon, jika ada)
+     *
+     * Jurnal HPP (per produk):
+     *   Dr. HPP {nama produk}
+     *   Cr. Persediaan Barang Jadi {nama produk}
+     *
+     * VALIDASI: Jika ada akun yang belum tersedia, jurnal TIDAK dibuat dan
+     * exception dilempar dengan pesan yang informatif.
+     *
+     * @throws \RuntimeException jika ada akun yang belum tersedia
      */
     public static function createJournalFromPenjualan($penjualan): void
     {
         $service = new static();
-        
-        // Delete existing journal entries for this penjualan
+
+        // Pastikan relasi sudah di-load
+        if (!$penjualan->relationLoaded('details')) {
+            $penjualan->load('details.produk');
+        }
+        if (!$penjualan->relationLoaded('produk')) {
+            $penjualan->load('produk');
+        }
+
+        // ── VALIDASI AKUN ────────────────────────────────────────────────────
+        $validator = new \App\Services\JournalValidationService();
+        $validation = $validator->validate($penjualan);
+
+        if (!$validation['valid']) {
+            $namaAkunMissing = array_map(fn($m) => $m['nama'], $validation['missing']);
+            $pesanList = array_map(fn($m) => '• ' . $m['pesan'], $validation['missing']);
+
+            if (count($namaAkunMissing) === 1) {
+                $pesan = "Jurnal penjualan tidak dapat dibuat.\n" . $pesanList[0];
+            } else {
+                $pesan = "Jurnal penjualan tidak dapat dibuat. Akun berikut belum tersedia:\n"
+                       . implode("\n", $pesanList);
+            }
+
+            \Log::warning('Journal penjualan #' . ($penjualan->nomor_penjualan ?? $penjualan->id)
+                . ' tidak dibuat – akun missing: ' . implode(', ', $namaAkunMissing));
+
+            throw new \RuntimeException($pesan);
+        }
+
+        // ── HAPUS JURNAL LAMA ────────────────────────────────────────────────
         $service->deleteByRef('sale', $penjualan->id);
-        
-        $lines = [];
-        $totalAmount = $penjualan->total ?? 0;
-        
-        // Create debit entry based on payment method (Kas/Bank/Piutang)
-        $debitAccount = null;
-        $debitMemo = '';
-        
-        // ── Debit: gunakan coa_id yang dipilih user (Terima di) ─────────────
-        $debitAccount = null;
-        $debitMemo    = '';
-        $userId = $penjualan->user_id ?? null;
 
-        // Prioritas: coa_id dari record penjualan (akun "Terima di" yang dipilih user)
-        if ($penjualan->coa_id) {
-            $selectedCoa = Coa::withoutGlobalScopes()->find($penjualan->coa_id);
-            if ($selectedCoa) {
-                $debitAccount = $selectedCoa->kode_akun;
-                $debitMemo    = 'Penerimaan penjualan - ' . $selectedCoa->nama_akun;
-            }
-        }
+        // Pastikan userId tidak null — fallback ke auth user
+        $userId = $penjualan->user_id ?? auth()->id() ?? null;
+        $lines  = [];
 
-        // Fallback berdasarkan payment_method + user_id
-        if (!$debitAccount) {
-            $findDebitCoa = function(string $namaAkun, string $tipeAkun) use ($userId) {
-                $q = Coa::withoutGlobalScopes()->where('nama_akun', $namaAkun)->where('tipe_akun', $tipeAkun);
-                if ($userId) {
-                    $found = (clone $q)->where('user_id', $userId)->first();
-                    if ($found) return $found;
+        // ── Hitung nilai-nilai dasar ─────────────────────────────────────────
+        // subtotalGross = harga × qty (sebelum diskon), untuk kredit akun Penjualan
+        // subtotalNet   = subtotal setelah diskon, untuk cek balance
+        $subtotalGross = 0;
+        $subtotalNet   = 0;
+        $totalDiskon   = (float)($penjualan->diskon_nominal ?? 0);
+
+        if ($penjualan->details && $penjualan->details->count() > 0) {
+            foreach ($penjualan->details as $d) {
+                $diskonBaris = (float)($d->diskon_nominal ?? 0);
+                // Fallback: hitung dari diskon_persen jika nominal belum tersimpan
+                if ($diskonBaris == 0 && ($d->diskon_persen ?? 0) > 0) {
+                    $diskonBaris = round((float)$d->harga_satuan * (float)$d->jumlah * (float)$d->diskon_persen / 100);
                 }
-                return $q->orderBy('id', 'desc')->first();
-            };
+                $subtotalBaris  = (float)($d->subtotal ?? ((float)$d->harga_satuan * (float)$d->jumlah - $diskonBaris));
+                $grossBaris     = $subtotalBaris + $diskonBaris;
 
-            switch ($penjualan->payment_method) {
-                case 'cash':
-                    $coa = $findDebitCoa('Kas', 'Asset');
-                    $debitAccount = $coa ? $coa->kode_akun : '1111';
-                    $debitMemo    = 'Penerimaan tunai penjualan';
-                    break;
-                case 'transfer':
-                    $coa = Coa::withoutGlobalScopes()
-                               ->where('tipe_akun', 'Asset')
-                               ->where('nama_akun', 'like', '%bank%')
-                               ->when($userId, fn($q) => $q->where('user_id', $userId))
-                               ->first();
-                    $debitAccount = $coa ? $coa->kode_akun : '1111';
-                    $debitMemo    = 'Penerimaan transfer penjualan';
-                    break;
-                case 'credit':
-                    $coa = Coa::withoutGlobalScopes()
-                               ->where('tipe_akun', 'Asset')
-                               ->where('nama_akun', 'like', '%piutang%')
-                               ->when($userId, fn($q) => $q->where('user_id', $userId))
-                               ->first();
-                    $debitAccount = $coa ? $coa->kode_akun : '118';
-                    $debitMemo    = 'Penjualan kredit';
-                    break;
-                default:
-                    $coa = $findDebitCoa('Kas', 'Asset');
-                    $debitAccount = $coa ? $coa->kode_akun : '1111';
-                    $debitMemo    = 'Penerimaan penjualan';
+                $subtotalNet   += $subtotalBaris;
+                $subtotalGross += $grossBaris;
+                $totalDiskon   += $diskonBaris;
             }
-        }
-        
-        $lines[] = [
-            'code' => $debitAccount,
-            'debit' => $totalAmount,
-            'credit' => 0,
-            'memo' => $debitMemo
-        ];
-        
-        // ── Credit lines: Penjualan, PPN Keluaran, Ongkir ────────────────────
-        $subtotalProduk = 0;
-        foreach ($penjualan->details as $d) {
-            $subtotalProduk += (float)($d->subtotal ?? ((float)$d->harga_satuan * (float)$d->jumlah));
-        }
-        if ($subtotalProduk <= 0) {
-            $subtotalProduk = (float)($penjualan->total ?? 0)
-                            - (float)($penjualan->biaya_ongkir ?? 0)
-                            - (float)($penjualan->biaya_ppn ?? 0);
+        } else {
+            // Transaksi header-only (tanpa detail)
+            $subtotalNet   = (float)($penjualan->total ?? 0)
+                           - (float)($penjualan->biaya_ongkir ?? 0)
+                           - (float)($penjualan->biaya_ppn ?? 0);
+            $subtotalGross = $subtotalNet + $totalDiskon;
         }
 
         $biayaOngkir = (float)($penjualan->biaya_ongkir ?? 0);
         $biayaPPN    = (float)($penjualan->biaya_ppn    ?? 0);
-        $userId      = $penjualan->user_id ?? null;
 
-        // Helper: cari COA tanpa global scope, filter user_id jika ada
-        $findCoa = function(string $namaAkun, ?string $tipeAkun = null) use ($userId) {
-            $q = Coa::withoutGlobalScopes()->where('nama_akun', $namaAkun);
-            if ($tipeAkun) $q->where('tipe_akun', $tipeAkun);
-            if ($userId) {
-                $found = (clone $q)->where('user_id', $userId)->first();
-                if ($found) return $found;
-            }
-            return $q->orderBy('id', 'desc')->first();
+        // ── Hitung grand_total dari komponen (jangan ambil dari DB karena bisa tidak konsisten) ──
+        // grand_total = subtotalNet + biayaPPN + biayaOngkir
+        // (diskon sudah tercermin di subtotalNet)
+        $grandTotal = round($subtotalNet + $biayaPPN + $biayaOngkir);
+
+        // ── DEBIT: Kas / Bank / Piutang ──────────────────────────────────────
+        $debitCoa  = $validation['accounts']['debit'];
+        $debitMemo = match ($penjualan->payment_method ?? 'cash') {
+            'transfer' => 'Penerimaan transfer penjualan - ' . $debitCoa->nama_akun,
+            'credit'   => 'Penjualan kredit - ' . $debitCoa->nama_akun,
+            default    => 'Penerimaan tunai penjualan - ' . $debitCoa->nama_akun,
         };
 
-        // Cr. Penjualan (nama='Penjualan', tipe=Revenue)
-        $penjualanCoa = $findCoa('Penjualan', 'Revenue');
         $lines[] = [
-            'code'   => $penjualanCoa ? $penjualanCoa->kode_akun : '41',
+            'code'   => $debitCoa->kode_akun,
+            'debit'  => $grandTotal,
+            'credit' => 0,
+            'memo'   => $debitMemo,
+        ];
+
+        // ── DEBIT: Diskon Penjualan (jika ada) ───────────────────────────────
+        if ($totalDiskon > 0 && isset($validation['accounts']['diskon_penjualan'])) {
+            $diskonCoa = $validation['accounts']['diskon_penjualan'];
+            $lines[] = [
+                'code'   => $diskonCoa->kode_akun,
+                'debit'  => round($totalDiskon),
+                'credit' => 0,
+                'memo'   => 'Diskon penjualan',
+            ];
+        }
+
+        // ── KREDIT: Penjualan ────────────────────────────────────────────────
+        $penjualanCoa = $validation['accounts']['penjualan'];
+        // Jika ada akun Diskon Penjualan → kredit nilai GROSS (sebelum diskon),
+        // karena diskon sudah dicatat terpisah di sisi Debit.
+        // Jika tidak ada akun Diskon → kredit nilai NET (setelah diskon).
+        $nilaiPenjualan = ($totalDiskon > 0 && isset($validation['accounts']['diskon_penjualan']))
+            ? round($subtotalGross)
+            : round($subtotalNet);
+
+        $lines[] = [
+            'code'   => $penjualanCoa->kode_akun,
             'debit'  => 0,
-            'credit' => $subtotalProduk,
+            'credit' => $nilaiPenjualan,
             'memo'   => 'Pendapatan penjualan produk',
         ];
 
-        // Cr. PPN Keluaran (nama='PPN Keluaran', tipe=Liability)
-        if ($biayaPPN > 0) {
-            $ppnCoa = $findCoa('PPN Keluaran', 'Liability');
+        // ── KREDIT: PPN Keluaran ─────────────────────────────────────────────
+        if ($biayaPPN > 0 && isset($validation['accounts']['ppn_keluaran'])) {
+            $ppnCoa = $validation['accounts']['ppn_keluaran'];
             $lines[] = [
-                'code'   => $ppnCoa ? $ppnCoa->kode_akun : '212',
+                'code'   => $ppnCoa->kode_akun,
                 'debit'  => 0,
-                'credit' => $biayaPPN,
-                'memo'   => 'PPN Keluaran',
+                'credit' => round($biayaPPN),
+                'memo'   => 'PPN Keluaran 11%',
             ];
         }
 
-        // Cr. Pendapatan Lain-lain / ongkir (nama LIKE 'Pendapatan Lain%')
-        if ($biayaOngkir > 0) {
-            $ongkirCoa = null;
-            $qOngkir = Coa::withoutGlobalScopes()
-                ->where('nama_akun', 'like', 'Pendapatan Lain%')
-                ->whereIn('tipe_akun', ['Revenue', 'Pendapatan']);
-            if ($userId) {
-                $ongkirCoa = (clone $qOngkir)->where('user_id', $userId)->first();
-            }
-            if (!$ongkirCoa) {
-                $ongkirCoa = $qOngkir->orderBy('id', 'desc')->first();
-            }
+        // ── KREDIT: Pendapatan Lain-lain (Ongkir) ───────────────────────────
+        if ($biayaOngkir > 0 && isset($validation['accounts']['pendapatan_lain'])) {
+            $ongkirCoa = $validation['accounts']['pendapatan_lain'];
             $lines[] = [
-                'code'   => $ongkirCoa ? $ongkirCoa->kode_akun : '42',
+                'code'   => $ongkirCoa->kode_akun,
                 'debit'  => 0,
-                'credit' => $biayaOngkir,
-                'memo'   => 'Pendapatan ongkir',
+                'credit' => round($biayaOngkir),
+                'memo'   => 'Pendapatan ongkos kirim',
             ];
         }
-        
-        // Add HPP journal entries with detailed breakdown
+
+        // ── HPP & PERSEDIAAN (per produk) ────────────────────────────────────
         $hppLines = $service->createHPPLinesFromPenjualan($penjualan);
-        $lines = array_merge($lines, $hppLines);
-        
-        // Create journal entry
-        $memo = 'Penjualan #' . ($penjualan->nomor_penjualan ?? $penjualan->id);
-        $tanggal = $penjualan->tanggal instanceof \Carbon\Carbon ? 
-                   $penjualan->tanggal->format('Y-m-d') : 
-                   $penjualan->tanggal;
-        
+        $lines    = array_merge($lines, $hppLines);
+
+        // ── VERIFIKASI BALANCE sebelum post ──────────────────────────────────
+        // Jurnal penjualan harus balance terpisah dari HPP.
+        // HPP lines selalu berpasangan (Dr.HPP = Cr.Persediaan) sehingga tidak
+        // mempengaruhi balance jurnal penjualan.
+        // Jika ada selisih akibat rounding, koreksi ke akun Penjualan.
+        $totalDebitPenjualan  = $grandTotal + ($totalDiskon > 0 && isset($validation['accounts']['diskon_penjualan']) ? round($totalDiskon) : 0);
+        $totalKreditPenjualan = $nilaiPenjualan + round($biayaPPN) + round($biayaOngkir);
+
+        if ($totalDebitPenjualan !== $totalKreditPenjualan) {
+            // Koreksi selisih ke nilai Penjualan (cari index baris Penjualan)
+            foreach ($lines as &$line) {
+                if (isset($line['memo']) && $line['memo'] === 'Pendapatan penjualan produk') {
+                    $line['credit'] = $totalDebitPenjualan - round($biayaPPN) - round($biayaOngkir);
+                    break;
+                }
+            }
+            unset($line);
+        }
+
+        // ── POST JURNAL ──────────────────────────────────────────────────────
+        $memo    = 'Penjualan #' . ($penjualan->nomor_penjualan ?? $penjualan->id);
+        $tanggal = $penjualan->tanggal instanceof \Carbon\Carbon
+            ? $penjualan->tanggal->format('Y-m-d')
+            : $penjualan->tanggal;
+
         $service->post($tanggal, 'sale', $penjualan->id, $memo, $lines, $userId);
     }
 
@@ -632,14 +663,14 @@ class JournalService
 
     /**
      * Cari COA HPP untuk produk dari COA yang sudah ada.
-     * Prioritas: COA spesifik produk → COA HPP umum (kode 56).
+     * Prioritas: COA spesifik produk → COA HPP umum.
      * Return null jika tidak ditemukan.
      */
     private function findCoaHpp($produk, $userId): ?string
     {
         $namaProduk = $produk->nama_produk;
 
-        // 1. Cari COA spesifik: "HPP {nama_produk}" atau "Harga Pokok {nama_produk}"
+        // 1. Cari COA spesifik per produk (milik user atau global)
         $spesifik = Coa::withoutGlobalScopes()
             ->where(function($q) use ($namaProduk) {
                 $q->where('nama_akun', 'HPP ' . $namaProduk)
@@ -647,41 +678,56 @@ class JournalService
                   ->orWhere('nama_akun', 'like', '%HPP%' . $namaProduk . '%');
             })
             ->whereIn('tipe_akun', ['Beban', 'HPP', 'Expense', 'Cost'])
-            ->where(function($q) use ($userId) {
-                $q->where('user_id', $userId)->orWhereNull('user_id');
+            ->when($userId, function($q) use ($userId) {
+                // Prioritaskan milik user, tapi juga ambil yang null
+                $q->where(function($q2) use ($userId) {
+                    $q2->where('user_id', $userId)->orWhereNull('user_id');
+                });
             })
-            ->orderByRaw('CASE WHEN user_id = ? THEN 0 ELSE 1 END', [$userId ?? 0])
+            ->orderByRaw($userId ? 'CASE WHEN user_id = ? THEN 0 ELSE 1 END' : '1', $userId ? [$userId] : [])
             ->first();
 
         if ($spesifik) return (string)$spesifik->kode_akun;
 
-        // 2. Cari COA HPP umum: kode 56 "Harga Pokok Penjualan"
+        // 2. Cari COA HPP umum: nama "Harga Pokok Penjualan" atau "HPP"
         $umum = Coa::withoutGlobalScopes()
             ->where(function($q) {
-                $q->where('kode_akun', '56')
-                  ->orWhere('nama_akun', 'Harga Pokok Penjualan')
-                  ->orWhere('nama_akun', 'HPP');
+                $q->where('nama_akun', 'Harga Pokok Penjualan')
+                  ->orWhere('nama_akun', 'HPP')
+                  ->orWhere('kode_akun', '56');
             })
             ->whereIn('tipe_akun', ['Beban', 'HPP', 'Expense', 'Cost'])
-            ->where(function($q) use ($userId) {
-                $q->where('user_id', $userId)->orWhereNull('user_id');
+            ->when($userId, function($q) use ($userId) {
+                $q->where(function($q2) use ($userId) {
+                    $q2->where('user_id', $userId)->orWhereNull('user_id');
+                });
             })
-            ->orderByRaw('CASE WHEN user_id = ? THEN 0 ELSE 1 END', [$userId ?? 0])
+            ->orderByRaw($userId ? 'CASE WHEN user_id = ? THEN 0 ELSE 1 END' : '1', $userId ? [$userId] : [])
             ->first();
 
         if ($umum) return (string)$umum->kode_akun;
 
-        return null; // COA tidak ditemukan
+        // 3. Last resort: ambil akun Expense/Beban apapun milik user
+        if ($userId) {
+            $any = Coa::withoutGlobalScopes()
+                ->whereIn('tipe_akun', ['Beban', 'HPP', 'Expense', 'Cost'])
+                ->where('user_id', $userId)
+                ->orderBy('kode_akun')
+                ->first();
+            if ($any) return (string)$any->kode_akun;
+        }
+
+        return null;
     }
 
     /**
      * Cari COA Persediaan Barang Jadi untuk produk dari COA yang sudah ada.
-     * Prioritas: coa_persediaan_id produk → COA spesifik nama → COA umum 116.
+     * Prioritas: coa_persediaan_id produk → COA spesifik nama → COA umum.
      * Return null jika tidak ditemukan.
      */
     private function findCoaPersediaan($produk, $userId): ?string
     {
-        // 1. Gunakan coa_persediaan_id dari produk jika ada (bigint FK = id COA)
+        // 1. Gunakan coa_persediaan_id dari produk jika ada (langsung pakai ID COA)
         if (!empty($produk->coa_persediaan_id)) {
             $existing = Coa::withoutGlobalScopes()->find($produk->coa_persediaan_id);
             if ($existing) return (string)$existing->kode_akun;
@@ -689,7 +735,7 @@ class JournalService
 
         $namaProduk = $produk->nama_produk;
 
-        // 2. Cari COA spesifik: "Pers. Barang Jadi {nama_produk}" atau "Persediaan Barang Jadi {nama_produk}"
+        // 2. Cari COA spesifik per produk
         $spesifik = Coa::withoutGlobalScopes()
             ->where(function($q) use ($namaProduk) {
                 $q->where('nama_akun', 'Pers. Barang Jadi ' . $namaProduk)
@@ -697,36 +743,39 @@ class JournalService
                   ->orWhere('nama_akun', 'like', '%Barang Jadi%' . $namaProduk . '%');
             })
             ->whereIn('tipe_akun', ['Asset', 'Aset'])
-            ->where(function($q) use ($userId) {
-                $q->where('user_id', $userId)->orWhereNull('user_id');
+            ->when($userId, function($q) use ($userId) {
+                $q->where(function($q2) use ($userId) {
+                    $q2->where('user_id', $userId)->orWhereNull('user_id');
+                });
             })
-            ->orderByRaw('CASE WHEN user_id = ? THEN 0 ELSE 1 END', [$userId ?? 0])
+            ->orderByRaw($userId ? 'CASE WHEN user_id = ? THEN 0 ELSE 1 END' : '1', $userId ? [$userId] : [])
             ->first();
 
         if ($spesifik) {
-            // Simpan id COA ke produk agar tidak dicari ulang
             \DB::table('produks')->where('id', $produk->id)
                 ->update(['coa_persediaan_id' => $spesifik->id]);
             return (string)$spesifik->kode_akun;
         }
 
-        // 3. Cari COA Persediaan Barang Jadi umum: kode 116
+        // 3. Cari COA Persediaan Barang Jadi umum
         $umum = Coa::withoutGlobalScopes()
             ->where(function($q) {
-                $q->where('kode_akun', '116')
-                  ->orWhere('nama_akun', 'Pers. Barang Jadi')
-                  ->orWhere('nama_akun', 'Persediaan Barang Jadi');
+                $q->where('nama_akun', 'Pers. Barang Jadi')
+                  ->orWhere('nama_akun', 'Persediaan Barang Jadi')
+                  ->orWhere('kode_akun', '116');
             })
             ->whereIn('tipe_akun', ['Asset', 'Aset'])
-            ->where(function($q) use ($userId) {
-                $q->where('user_id', $userId)->orWhereNull('user_id');
+            ->when($userId, function($q) use ($userId) {
+                $q->where(function($q2) use ($userId) {
+                    $q2->where('user_id', $userId)->orWhereNull('user_id');
+                });
             })
-            ->orderByRaw('CASE WHEN user_id = ? THEN 0 ELSE 1 END', [$userId ?? 0])
+            ->orderByRaw($userId ? 'CASE WHEN user_id = ? THEN 0 ELSE 1 END' : '1', $userId ? [$userId] : [])
             ->first();
 
         if ($umum) return (string)$umum->kode_akun;
 
-        return null; // COA tidak ditemukan
+        return null;
     }
 
     /**
