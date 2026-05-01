@@ -8,13 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('returs', function (Blueprint $table) {
-            $table->id();
-            $table->date('tanggal');
-            $table->foreignId('pembelian_id')->constrained('pembelians')->onDelete('cascade');
-            $table->decimal('jumlah', 15, 2);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('returs')) {
+            Schema::create('returs', function (Blueprint $table) {
+                $table->id();
+                $table->date('tanggal');
+                $table->unsignedBigInteger('pembelian_id')->nullable();
+                $table->decimal('jumlah', 15, 2)->default(0);
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void

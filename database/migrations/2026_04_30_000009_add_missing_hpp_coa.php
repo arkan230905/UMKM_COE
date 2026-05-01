@@ -1,110 +1,56 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
+// FIXED: Migration ini insert data COA. Di fresh install, user belum ada.
+// Sekarang hanya insert jika ada user yang bisa dipakai.
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        // Add missing COA accounts for HPP functionality
-        
-        // COA 56 - Harga Pokok Penjualan
-        $this->createCoaIfNotExists([
-            'kode_akun' => '56',
-            'nama_akun' => 'Harga Pokok Penjualan',
-            'tipe_akun' => 'Biaya',
-            'kategori_akun' => 'Biaya',
-            'saldo_awal' => 0,
-            'saldo_normal' => 'Debit',
-            // 'is_akun_header' => false, // Removed - column doesn't exist
-            'user_id' => 1, // Will be updated for each company
-            'company_id' => 1,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        
-        // COA 552 - HPP (general)
-        $this->createCoaIfNotExists([
-            'kode_akun' => '552',
-            'nama_akun' => 'HPP',
-            'tipe_akun' => 'Biaya',
-            'kategori_akun' => 'Biaya',
-            'saldo_awal' => 0,
-            'saldo_normal' => 'Debit',
-            // 'is_akun_header' => false, // Removed - column doesn't exist
-            'user_id' => 1,
-            'company_id' => 1,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        
-        // Create for other companies too
-        $companies = DB::table('perusahaan')->get();
-        foreach ($companies as $company) {
-            if ($company->id != 1) { // Skip company 1 as it's already created
-                // COA 56 - Harga Pokok Penjualan
-                $this->createCoaIfNotExists([
-                    'kode_akun' => '56',
-                    'nama_akun' => 'Harga Pokok Penjualan',
-                    'tipe_akun' => 'Biaya',
-                    'kategori_akun' => 'Biaya',
-                    'saldo_awal' => 0,
-                    'saldo_normal' => 'Debit',
-                    // 'is_akun_header' => false, // Removed - column doesn't exist
-                    'user_id' => $company->id,
-                    'company_id' => $company->id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ], $company->id);
-                
-                // COA 552 - HPP (general)
-                $this->createCoaIfNotExists([
-                    'kode_akun' => '552',
-                    'nama_akun' => 'HPP',
-                    'tipe_akun' => 'Biaya',
-                    'kategori_akun' => 'Biaya',
-                    'saldo_awal' => 0,
-                    'saldo_normal' => 'Debit',
-                    // 'is_akun_header' => false, // Removed - column doesn't exist
-                    'user_id' => $company->id,
-                    'company_id' => $company->id,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ], $company->id);
-            }
+        // Ambil semua user yang ada (skip jika belum ada user)
+        $users = DB::table('users')->get();
+        if ($users->isEmpty()) {
+            return; // Fresh install tanpa user, skip
         }
-        
-        echo "Added missing HPP COA accounts for all companies\n";
-    }
-    
-    private function createCoaIfNotExists($coaData, $companyId = null)
-    {
-        $existing = DB::table('coas')
-            ->where('kode_akun', $coaData['kode_akun'])
-            ->where('company_id', $coaData['company_id'])
-            ->first();
-            
-        if (!$existing) {
-            DB::table('coas')->insert($coaData);
+
+        foreach ($users as $user) {
+            $companyId = $user->perusahaan_id ?? null;
+            if (!$companyId) continue;
+
+            $this->createCoaIfNotExists('56',  'Harga Pokok Penjualan', $user->id, $companyId);
+            $this->createCoaIfNotExists('552', 'HPP',                   $user->id, $companyId);
         }
     }
 
-    /**
-     * Reverse the migrations.
-     */
+    private function createCoaIfNotExists(string $kode, string $nama, int $userId, int $companyId): void
+    {
+        $exists = DB::table('coas')
+            ->where('kode_akun', $kode)
+            ->where('user_id', $userId)
+            ->exists();
+
+        if (!$exists) {
+            DB::table('coas')->insert([
+                'kode_akun'    => $kode,
+                'nama_akun'    => $nama,
+                'tipe_akun'    => 'Biaya',
+                'kategori_akun'=> 'Biaya',
+                'saldo_awal'   => 0,
+                'saldo_normal' => 'Debit',
+                'user_id'      => $userId,
+                'company_id'   => $companyId,
+                'created_at'   => now(),
+                'updated_at'   => now(),
+            ]);
+        }
+    }
+
     public function down(): void
     {
-        // Remove the created COA accounts
-        DB::table('coas')
-            ->whereIn('kode_akun', ['56', '552'])
-            ->where('nama_akun', 'Harga Pokok Penjualan')
-            ->orWhere('nama_akun', 'HPP')
+        DB::table('coas')->whereIn('kode_akun', ['56', '552'])
+            ->whereIn('nama_akun', ['Harga Pokok Penjualan', 'HPP'])
             ->delete();
     }
 };

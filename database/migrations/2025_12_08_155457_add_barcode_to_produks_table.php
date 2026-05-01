@@ -4,24 +4,17 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+// FIXED: Migration ini sebelumnya membuat tabel bernama 'false' (bug).
+// Sekarang dijadikan no-op karena barcode sudah ditangani migration lain.
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('false', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
+        // No-op: barcode column handled by 2025_12_08_155454 and 2025_12_08_160000
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('false');
+        // No-op
     }
 };
