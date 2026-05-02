@@ -10,9 +10,8 @@ class SatuanController extends Controller
 {
     public function index()
     {
-        $satuans = Satuan::where('user_id', auth()->id())
-            ->orderBy('kode', 'asc')
-            ->get();
+        // Global scope sudah handle filter user_id dan data master
+        $satuans = Satuan::orderBy('kode', 'asc')->get();
         return view('master-data.satuan.index', compact('satuans'));
     }
 
@@ -21,9 +20,8 @@ class SatuanController extends Controller
      */
     public function dashboard()
     {
-        $satuans = Satuan::where('user_id', auth()->id())
-            ->orderBy('kode', 'asc')
-            ->get();
+        // Global scope sudah handle filter user_id dan data master
+        $satuans = Satuan::orderBy('kode', 'asc')->get();
         return view('master-data.satuan.dashboard', compact('satuans'));
     }
 

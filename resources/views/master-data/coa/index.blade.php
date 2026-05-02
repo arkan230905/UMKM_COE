@@ -88,18 +88,24 @@
                                     @endphp
                                 </td>
                                 <td class="text-center">
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="{{ route('master-data.coa.edit', $coa->id) }}" class="btn btn-outline-primary">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form action="{{ route('master-data.coa.destroy', $coa->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus COA ini?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button class="btn btn-outline-danger">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
+                                    @if($coa->user_id === null)
+                                        <span class="text-muted small">
+                                            <i class="fas fa-lock"></i> Tidak dapat diubah
+                                        </span>
+                                    @else
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ route('master-data.coa.edit', $coa->id) }}" class="btn btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form action="{{ route('master-data.coa.destroy', $coa->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus COA ini?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="btn btn-outline-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @endif
                                 </td>
                             </tr>
                         @endforeach

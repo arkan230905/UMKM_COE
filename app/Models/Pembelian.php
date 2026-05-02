@@ -52,7 +52,23 @@ class Pembelian extends Model
      */
     protected static function booted()
     {
-        static::created(function ($pembelian) {
+        
+        // ===== MULTI-TENANT ISOLATION =====
+        // Auto-assign user_id saat creating
+        static::creating(function ($model) {
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+        
+        // Global scope untuk data isolation
+        static::addGlobalScope('user', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+        // ===== END MULTI-TENANT ISOLATION =====
+static::created(function ($pembelian) {
             // Create automatic journal entries
             \App\Services\JournalService::createJournalFromPembelian($pembelian);
         });

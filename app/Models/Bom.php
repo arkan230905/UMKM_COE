@@ -28,7 +28,23 @@ class Bom extends Model
 
     protected static function booted()
     {
-        static::deleting(function ($model) {
+        
+        // ===== MULTI-TENANT ISOLATION =====
+        // Auto-assign user_id saat creating
+        static::creating(function ($model) {
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+        
+        // Global scope untuk data isolation
+        static::addGlobalScope('user', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+        // ===== END MULTI-TENANT ISOLATION =====
+static::deleting(function ($model) {
             // Reset harga_bom di produk sebelum BOM dihapus
             if ($model->produk) {
                 $model->produk->update([
