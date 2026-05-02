@@ -8,13 +8,11 @@
  */
 
 $modelsToFix = [
-    'Produk', 'BahanBaku', 'BahanPendukung', 'Pelanggan', 'Vendor',
-    'Pegawai', 'Jabatan', 'Aset', 'ProsesProduksi',
-    'Penjualan', 'PenjualanDetail', 'Pembelian', 'PembelianDetail',
-    'Produksi', 'ProduksiDetail', 'JurnalUmum', 'StockMovement',
-    'Penggajian', 'BebanOperasional', 'PembayaranBeban',
-    'ReturPenjualan', 'PurchaseReturn', 'Bom', 'BomDetail',
-    'BopProses', 'Presensi', 'KartuStok', 'StockLayer',
+    // 13 Model yang baru ditambahkan user_id
+    'KategoriProduk', 'KategoriBahanPendukung', 'JournalEntry',
+    'ApSettlement', 'SalesReturn', 'BomJobCosting',
+    'BomJobBahanPendukung', 'BomJobBOP', 'BomJobBTKL',
+    'BomProses', 'Bop', 'BopLainnya', 'KomponenBop',
 ];
 
 $globalScopeCode = <<<'PHP'

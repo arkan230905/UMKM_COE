@@ -5,8 +5,8 @@
  */
 
 $modelsToFix = [
-    'ProsesProduksi', 'Pembelian', 'StockMovement',
-    'BebanOperasional', 'Bom', 'BomDetail', 'BopProses'
+    'BomJobBahanPendukung', 'BomJobBOP', 'BomJobBTKL',
+    'BomProses', 'BopLainnya', 'KomponenBop'
 ];
 
 $globalScopeCode = <<<'PHP'
