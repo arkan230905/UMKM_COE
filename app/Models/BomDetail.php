@@ -26,7 +26,23 @@ class BomDetail extends Model
 
     protected static function booted()
     {
-        // Remove automatic calculation since controller handles conversion correctly
+        
+        // ===== MULTI-TENANT ISOLATION =====
+        // Auto-assign user_id saat creating
+        static::creating(function ($model) {
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+        
+        // Global scope untuk data isolation
+        static::addGlobalScope('user', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+        // ===== END MULTI-TENANT ISOLATION =====
+// Remove automatic calculation since controller handles conversion correctly
         // static::saving(function ($model) {
         //     $model->total_harga = (float)($model->jumlah ?? 0) * (float)($model->harga_per_satuan ?? 0);
         // });

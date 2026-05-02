@@ -250,10 +250,28 @@ class Coa extends Model
             }
         });
         
+        // Proteksi data master dari update
+        static::updating(function ($coa) {
+            if ($coa->getOriginal('user_id') === null) {
+                throw new \Exception('Data master COA tidak dapat diubah.');
+            }
+        });
+        
+        // Proteksi data master dari delete
+        static::deleting(function ($coa) {
+            if ($coa->user_id === null) {
+                throw new \Exception('Data master COA tidak dapat dihapus.');
+            }
+        });
+        
         // Global scope untuk data isolation
+        // Tampilkan data master (user_id = NULL) DAN data milik user
         static::addGlobalScope('user', function ($builder) {
             if (auth()->check()) {
-                $builder->where('user_id', auth()->id());
+                $builder->where(function($query) {
+                    $query->where('user_id', auth()->id())
+                          ->orWhereNull('user_id');
+                });
             }
         });
         

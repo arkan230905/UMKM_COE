@@ -29,10 +29,9 @@ class CoaController extends Controller
         $periods = CoaPeriod::orderBy('periode', 'desc')->get();
 
         // Get semua COA dengan urutan hierarkis (parent diikuti children)
+        // Global scope sudah handle filter user_id dan data master
         $coas = Coa::whereNotNull('nama_akun')
             ->where('nama_akun', '!=', '')
-            ->where('user_id', auth()->id())
-            ->orderBy('kode_akun')
             ->get();
         
         // Get saldo untuk setiap COA berdasarkan periode
@@ -141,10 +140,9 @@ class CoaController extends Controller
 
     public function create()
     {
-        // Ambil COA milik user yang login sebagai pilihan akun induk
+        // Global scope sudah handle filter user_id dan data master
         $parentCoas = Coa::whereNotNull('nama_akun')
             ->where('nama_akun', '!=', '')
-            ->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)")
             ->get(['id', 'kode_akun', 'nama_akun', 'tipe_akun', 'kategori_akun', 'saldo_normal']);
 
         return view('master-data.coa.create', compact('parentCoas'));
@@ -233,11 +231,16 @@ class CoaController extends Controller
 
     public function edit(Coa $coa)
     {
-        // Ambil COA milik user yang login (kecuali dirinya sendiri)
+        // Cegah edit data master (user_id = NULL)
+        if ($coa->user_id === null) {
+            return redirect()->route('master-data.coa.index')
+                ->with('error', 'Data master COA tidak dapat diedit. Silakan buat COA baru jika diperlukan.');
+        }
+        
+        // Global scope sudah handle filter user_id dan data master
         $parentCoas = Coa::whereNotNull('nama_akun')
             ->where('nama_akun', '!=', '')
             ->where('id', '!=', $coa->id)
-            ->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)")
             ->get(['id', 'kode_akun', 'nama_akun', 'tipe_akun', 'kategori_akun', 'saldo_normal']);
 
         return view('master-data.coa.edit', compact('coa', 'parentCoas'));
@@ -245,6 +248,12 @@ class CoaController extends Controller
 
     public function update(Request $request, Coa $coa)
     {
+        // Cegah update data master (user_id = NULL)
+        if ($coa->user_id === null) {
+            return redirect()->route('master-data.coa.index')
+                ->with('error', 'Data master COA tidak dapat diubah.');
+        }
+        
         // Normalize tipe_akun: map uppercase/alias ke nilai enum DB
         $tipeAkunMap = [
             'ASET'       => 'Asset',
@@ -303,6 +312,12 @@ class CoaController extends Controller
 
     public function destroy(Coa $coa)
     {
+        // Cegah hapus data master (user_id = NULL)
+        if ($coa->user_id === null) {
+            return redirect()->route('master-data.coa.index')
+                ->with('error', 'Data master COA tidak dapat dihapus.');
+        }
+        
         $coaColumn = \Illuminate\Support\Facades\Schema::hasColumn('journal_lines', 'coa_id') ? 'coa_id' : 'account_id';
 
         // Cek apakah punya child accounts

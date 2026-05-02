@@ -259,12 +259,18 @@
                                                     <strong>{{ $satuan->nama }}</strong>
                                                 </td>
                                                 <td class="text-center">
-                                                    <button class="btn btn-sm btn-outline-primary" onclick="editSatuan({{ $satuan->id }})">
-                                                        <i class="fas fa-edit"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSatuan({{ $satuan->id }})">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
+                                                    @if($satuan->user_id === null)
+                                                        <span class="text-muted small">
+                                                            <i class="fas fa-lock"></i> Tidak dapat diubah
+                                                        </span>
+                                                    @else
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="editSatuan({{ $satuan->id }})">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteSatuan({{ $satuan->id }})">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    @endif
                                                 </td>
                                             </tr>
                                         @empty
