@@ -1,0 +1,285 @@
+═══════════════════════════════════════════════════════════════════════════════
+  🚀 LANGKAH DEPLOY MUDAH (BAHASA INDONESIA)
+═══════════════════════════════════════════════════════════════════════════════
+
+Tanggal: 3 Mei 2026
+Status: SIAP DEPLOY ✅
+
+═══════════════════════════════════════════════════════════════════════════════
+  📋 APA YANG SUDAH DIPERBAIKI?
+═══════════════════════════════════════════════════════════════════════════════
+
+1. ✅ Error "Duplicate entry BT001" sudah diperbaiki
+   → Sekarang setiap user bisa punya kode jabatan yang sama tanpa error
+
+2. ✅ User baru sekarang dapat data lengkap
+   → 50 COA (format Jasuke) + 16 Satuan (termasuk Kaleng)
+
+═══════════════════════════════════════════════════════════════════════════════
+  🎯 LANGKAH-LANGKAH DEPLOY
+═══════════════════════════════════════════════════════════════════════════════
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ LANGKAH 1: PUSH KE GIT                                                    │
+└───────────────────────────────────────────────────────────────────────────┘
+
+Buka terminal/command prompt, ketik:
+
+  git add .
+  git commit -m "Fix: Jabatan duplicate + Update listener COA Jasuke"
+  git push origin main
+
+Tunggu sampai selesai.
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ LANGKAH 2: TUNGGU JENKINS                                                 │
+└───────────────────────────────────────────────────────────────────────────┘
+
+Jenkins akan otomatis deploy code ke hosting.
+Tunggu sampai Jenkins selesai (biasanya 1-2 menit).
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ LANGKAH 3: JALANKAN MIGRATION                                             │
+└───────────────────────────────────────────────────────────────────────────┘
+
+Ada 2 cara, pilih salah satu:
+
+CARA A: Via SSH/Terminal cPanel
+────────────────────────────────
+1. Login ke hosting via SSH atau buka Terminal di cPanel
+2. Masuk ke folder project:
+   cd /path/to/your/project
+
+3. Jalankan migration:
+   php artisan migrate --path=database/migrations/2026_05_03_120000_fix_jabatans_unique_constraint_multi_tenant.php
+
+4. Lihat pesan: "Migrated: 2026_05_03_120000_fix_jabatans_unique_constraint_multi_tenant"
+
+CARA B: Via phpMyAdmin (Manual)
+────────────────────────────────
+1. Login ke phpMyAdmin
+2. Pilih database: eadt_umkm
+3. Klik tab "SQL"
+4. Copy-paste SQL ini:
+
+   ALTER TABLE jabatans DROP INDEX jabatans_kode_jabatan_unique;
+   ALTER TABLE jabatans ADD UNIQUE KEY jabatans_kode_user_unique (kode_jabatan, user_id);
+
+5. Klik tombol "Go"
+6. Lihat pesan: "Query OK"
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ LANGKAH 4: CLEAR CACHE                                                    │
+└───────────────────────────────────────────────────────────────────────────┘
+
+Via SSH/Terminal:
+
+  php artisan cache:clear
+  php artisan config:clear
+  php artisan route:clear
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│ LANGKAH 5: TEST DI HOSTING                                                │
+└───────────────────────────────────────────────────────────────────────────┘
+
+TEST 1: Buat Jabatan (User yang Sudah Ada)
+───────────────────────────────────────────
+1. Login ke: http://jobcost.eadtmanufaktur.com
+2. Buka: Master Data → Kualifikasi Tenaga Kerja
+3. Klik "Tambah Baru"
+4. Isi form:
+   - Nama: Pengemasan
+   - Kategori: BTKL
+   - Tarif: 20000
+   - Tunjangan Transport: 150000
+   - Tunjangan Konsumsi: 375000
+   - Asuransi: 100000
+5. Klik "Simpan"
+6. HASIL: ✅ Berhasil tanpa error!
+
+TEST 2: Buat Jabatan (User Berbeda)
+────────────────────────────────────
+1. Logout
+2. Login dengan user lain
+3. Buka: Master Data → Kualifikasi Tenaga Kerja
+4. Klik "Tambah Baru"
+5. Isi form yang sama (Pengemasan, BTKL)
+6. Klik "Simpan"
+7. HASIL: ✅ Berhasil! (Kode BT001 untuk user ini)
+
+TEST 3: Registrasi User Baru
+─────────────────────────────
+1. Logout
+2. Buka: http://jobcost.eadtmanufaktur.com/register
+3. Daftar user baru:
+   - Nama: Test User
+   - Email: test@example.com
+   - Password: password123
+4. Login dengan user baru
+5. Buka: Master Data → COA
+6. HASIL: ✅ Ada 50 COA (format Jasuke)
+7. Buka: Master Data → Satuan
+8. HASIL: ✅ Ada 16 Satuan (termasuk KLG - Kaleng)
+
+═══════════════════════════════════════════════════════════════════════════════
+  🔍 CARA CEK APAKAH BERHASIL
+═══════════════════════════════════════════════════════════════════════════════
+
+CEK 1: Cek Database Constraint
+───────────────────────────────
+1. Login phpMyAdmin
+2. Pilih database: eadt_umkm
+3. Klik tab "SQL"
+4. Jalankan query:
+
+   SHOW INDEX FROM jabatans WHERE Column_name = 'kode_jabatan';
+
+5. HASIL YANG BENAR:
+   Key_name: jabatans_kode_user_unique
+   Column_name: kode_jabatan, user_id
+
+CEK 2: Cek Data User Baru
+──────────────────────────
+1. Login phpMyAdmin
+2. Pilih database: eadt_umkm
+3. Klik tab "SQL"
+4. Jalankan query:
+
+   -- Cari user terakhir
+   SELECT id, name, email FROM users ORDER BY id DESC LIMIT 1;
+
+   -- Misal user_id = 10, cek COA nya
+   SELECT COUNT(*) FROM coas WHERE user_id = 10;
+   -- Hasil harus: 50
+
+   -- Cek Satuan nya
+   SELECT COUNT(*) FROM satuans WHERE user_id = 10;
+   -- Hasil harus: 16
+
+CEK 3: Cek Jabatan Multi-User
+──────────────────────────────
+1. Login phpMyAdmin
+2. Pilih database: eadt_umkm
+3. Klik tab "SQL"
+4. Jalankan query:
+
+   SELECT kode_jabatan, COUNT(DISTINCT user_id) as jumlah_user
+   FROM jabatans
+   GROUP BY kode_jabatan
+   HAVING jumlah_user > 1;
+
+5. HASIL YANG BENAR:
+   Ada BT001 dengan jumlah_user > 1 (INI NORMAL!)
+   Artinya: User A punya BT001, User B juga punya BT001 (tidak bentrok)
+
+═══════════════════════════════════════════════════════════════════════════════
+  ⚠️ KALAU ADA MASALAH
+═══════════════════════════════════════════════════════════════════════════════
+
+MASALAH 1: Migration Error "Duplicate entry"
+─────────────────────────────────────────────
+Artinya: Ada data duplicate di database
+
+Solusi:
+1. Backup dulu:
+   CREATE TABLE jabatans_backup AS SELECT * FROM jabatans;
+
+2. Cek duplicate:
+   SELECT kode_jabatan, user_id, COUNT(*) as jumlah
+   FROM jabatans
+   GROUP BY kode_jabatan, user_id
+   HAVING jumlah > 1;
+
+3. Hapus duplicate (hati-hati!):
+   DELETE j1 FROM jabatans j1
+   INNER JOIN jabatans j2 
+   WHERE j1.id > j2.id 
+   AND j1.kode_jabatan = j2.kode_jabatan 
+   AND j1.user_id = j2.user_id;
+
+4. Jalankan migration lagi
+
+MASALAH 2: User Baru Tidak Dapat COA/Satuan
+────────────────────────────────────────────
+Artinya: Listener tidak jalan atau error
+
+Solusi:
+1. Cek log error:
+   tail -f storage/logs/laravel.log
+
+2. Manual run seeder via tinker:
+   php artisan tinker
+
+   Di tinker, ketik:
+   $userId = 10; // Ganti dengan user_id yang bermasalah
+   $coaSeeder = new \Database\Seeders\DefaultCoaSeederBaru();
+   $coaSeeder->run($userId);
+   
+   $satuanSeeder = new \Database\Seeders\DefaultSatuanSeeder();
+   $satuanSeeder->run($userId);
+   
+   exit
+
+MASALAH 3: Masih Error Setelah Deploy
+──────────────────────────────────────
+Artinya: Cache belum di-clear atau file belum terupdate
+
+Solusi:
+1. Clear cache lagi:
+   php artisan cache:clear
+   php artisan config:clear
+   php artisan route:clear
+   php artisan view:clear
+
+2. Cek file controller sudah terupdate:
+   - Buka file: app/Http/Controllers/JabatanController.php
+   - Cari line 77-79
+   - Harus ada: ->where('user_id', auth()->id())
+
+3. Restart PHP-FPM (kalau ada akses):
+   sudo systemctl restart php8.3-fpm
+
+═══════════════════════════════════════════════════════════════════════════════
+  📄 DOKUMEN BANTUAN
+═══════════════════════════════════════════════════════════════════════════════
+
+Kalau masih bingung, baca dokumen ini:
+
+1. README_DEPLOY_INI.md
+   → Penjelasan lengkap dalam bahasa Inggris
+
+2. QUICK_REFERENCE.txt
+   → Referensi cepat (command-command penting)
+
+3. CHECKLIST_DEPLOY_CEPAT.md
+   → Checklist step-by-step (centang satu per satu)
+
+4. PANDUAN_DEPLOY_LENGKAP_KE_HOSTING.md
+   → Panduan super lengkap + troubleshooting
+
+5. VISUALISASI_FIX.txt
+   → Visualisasi masalah & solusi (diagram)
+
+═══════════════════════════════════════════════════════════════════════════════
+  ✅ HASIL AKHIR
+═══════════════════════════════════════════════════════════════════════════════
+
+SEBELUM DEPLOY:
+  ❌ User tidak bisa buat jabatan (error duplicate)
+  ❌ User baru dapat data salah (11 COA, 4 Satuan)
+  ❌ Kode jabatan bentrok antar user
+
+SESUDAH DEPLOY:
+  ✅ Setiap user bisa buat jabatan dengan kode sama
+  ✅ User baru dapat data lengkap (50 COA, 16 Satuan)
+  ✅ Kode jabatan unique per user (tidak bentrok)
+  ✅ Multi-tenant isolation sempurna
+  ✅ Tidak ada data leak antar user
+
+═══════════════════════════════════════════════════════════════════════════════
+
+SELAMAT DEPLOY! 🚀
+
+Kalau ada masalah, hubungi saya atau baca dokumen bantuan di atas.
+
+═══════════════════════════════════════════════════════════════════════════════

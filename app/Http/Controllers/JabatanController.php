@@ -71,6 +71,7 @@ class JabatanController extends Controller
         
         $prefix = strtoupper(substr($data['kategori'], 0, 2));
         $lastJabatan = Jabatan::where('kode_jabatan', 'like', $prefix . '%')
+            ->where('user_id', auth()->id()) // PENTING: Filter per user!
             ->orderBy('kode_jabatan', 'desc')
             ->first();
             

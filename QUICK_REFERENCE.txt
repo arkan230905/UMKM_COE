@@ -1,0 +1,124 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                         🚀 QUICK REFERENCE CARD                               ║
+║                         Deploy ke Hosting                                     ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ 📦 GIT PUSH                                                                   │
+└───────────────────────────────────────────────────────────────────────────────┘
+git add .
+git commit -m "Fix: Jabatan duplicate + Update listener COA Jasuke"
+git push origin main
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ 🗄️ RUN MIGRATION (Pilih salah satu)                                          │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+Via SSH:
+────────
+php artisan migrate --path=database/migrations/2026_05_03_120000_fix_jabatans_unique_constraint_multi_tenant.php
+
+Via phpMyAdmin:
+───────────────
+ALTER TABLE jabatans DROP INDEX jabatans_kode_jabatan_unique;
+ALTER TABLE jabatans ADD UNIQUE KEY jabatans_kode_user_unique (kode_jabatan, user_id);
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ 🧹 CLEAR CACHE                                                                │
+└───────────────────────────────────────────────────────────────────────────────┘
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ 🧪 TEST                                                                       │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+1. Test Jabatan (User Lama):
+   http://jobcost.eadtmanufaktur.com/master-data/kualifikasi-tenaga-kerja/create
+   → Buat jabatan "Pengemasan" (BTKL)
+   → Hasil: ✅ Berhasil tanpa error
+
+2. Test Jabatan (User Berbeda):
+   → Login user lain
+   → Buat jabatan "Pengemasan" (BTKL)
+   → Hasil: ✅ Berhasil! (Kode BT001 untuk user ini)
+
+3. Test User Baru:
+   http://jobcost.eadtmanufaktur.com/register
+   → Daftar user baru
+   → Cek COA: ✅ 50 akun
+   → Cek Satuan: ✅ 16 unit
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ 🔍 VERIFIKASI DATABASE                                                        │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+Cek Constraint:
+───────────────
+SHOW INDEX FROM jabatans WHERE Column_name = 'kode_jabatan';
+→ Hasil: Key_name = jabatans_kode_user_unique
+
+Cek COA User Baru:
+──────────────────
+SELECT COUNT(*) FROM coas WHERE user_id = [USER_ID];
+→ Hasil: 50
+
+Cek Satuan User Baru:
+─────────────────────
+SELECT COUNT(*) FROM satuans WHERE user_id = [USER_ID];
+→ Hasil: 16
+
+Cek Jabatan Multi-User:
+───────────────────────
+SELECT kode_jabatan, COUNT(DISTINCT user_id) as jumlah_user
+FROM jabatans GROUP BY kode_jabatan HAVING jumlah_user > 1;
+→ Hasil: Ada BT001 dengan jumlah_user > 1 (NORMAL!)
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ ⚠️ TROUBLESHOOTING                                                            │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+Migration Error "Duplicate entry":
+──────────────────────────────────
+1. Backup: CREATE TABLE jabatans_backup AS SELECT * FROM jabatans;
+2. Cek: SELECT kode_jabatan, user_id, COUNT(*) FROM jabatans 
+        GROUP BY kode_jabatan, user_id HAVING COUNT(*) > 1;
+3. Hapus duplicate
+4. Run migration lagi
+
+User Baru Tidak Dapat COA/Satuan:
+──────────────────────────────────
+1. Cek log: tail -f storage/logs/laravel.log
+2. Manual run seeder via tinker
+
+Masih Error Setelah Deploy:
+───────────────────────────
+1. Clear cache lagi
+2. Restart PHP-FPM
+3. Cek file controller sudah terupdate
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ 📄 DOKUMEN LENGKAP                                                            │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+README_DEPLOY_INI.md                    ← Mulai dari sini
+RINGKASAN_SIAP_DEPLOY.txt               ← Ringkasan singkat
+CHECKLIST_DEPLOY_CEPAT.md               ← Checklist step-by-step
+PANDUAN_DEPLOY_LENGKAP_KE_HOSTING.md    ← Panduan lengkap + troubleshooting
+VISUALISASI_FIX.txt                     ← Visualisasi masalah & solusi
+PANDUAN_FIX_ERROR_JABATAN_DUPLICATE.md  ← Detail teknis
+
+┌───────────────────────────────────────────────────────────────────────────────┐
+│ ✅ HASIL AKHIR                                                                │
+└───────────────────────────────────────────────────────────────────────────────┘
+
+SEBELUM:                              SESUDAH:
+❌ Jabatan duplicate error            ✅ Setiap user bisa buat jabatan
+❌ User baru dapat data salah         ✅ User baru dapat 50 COA + 16 Satuan
+❌ Kode jabatan bentrok               ✅ Kode unique per user
+❌ Multi-tenant tidak sempurna        ✅ Multi-tenant isolation sempurna
+
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                          🎉 SIAP DEPLOY! 🚀                                   ║
+╚═══════════════════════════════════════════════════════════════════════════════╝

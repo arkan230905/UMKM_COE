@@ -143,4 +143,20 @@ class User extends Authenticatable
     {
         return $this->hasMany(Review::class);
     }
+
+    /**
+     * Get COAs for this user
+     */
+    public function coas(): HasMany
+    {
+        return $this->hasMany(Coa::class);
+    }
+
+    /**
+     * Get Satuans for this user
+     */
+    public function satuans(): HasMany
+    {
+        return $this->hasMany(Satuan::class);
+    }
 }
