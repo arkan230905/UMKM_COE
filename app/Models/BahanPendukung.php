@@ -11,18 +11,6 @@ class BahanPendukung extends Model
 
     protected $table = 'bahan_pendukungs';
     
-    protected static function boot()
-    {
-        parent::boot();
-        
-        // Global scope for multi-tenant isolation
-        static::addGlobalScope('user_id', function ($builder) {
-            if (auth()->check()) {
-                $builder->where('user_id', auth()->id());
-            }
-        });
-    }
-
     protected $fillable = [
         'kode_bahan',
         'nama_bahan',
@@ -71,11 +59,28 @@ class BahanPendukung extends Model
      */
     protected static function booted()
     {
+        parent::booted();
+        
+        // ===== MULTI-TENANT ISOLATION =====
+        // Auto-assign user_id saat creating
         static::creating(function ($model) {
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+            
+            // Auto-generate kode
             if (empty($model->kode_bahan)) {
                 $model->kode_bahan = self::generateKode();
             }
         });
+        
+        // Global scope untuk data isolation
+        static::addGlobalScope('user', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+        // ===== END MULTI-TENANT ISOLATION =====
         
         // NOTE: Initial stock movement is handled by BahanPendukungObserver::created()
         // Do not create stock movement here to avoid duplication

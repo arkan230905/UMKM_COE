@@ -15,7 +15,23 @@ class BomJobBahanPendukung extends Model
 
     protected static function booted()
     {
-        // DISABLED: Subtotal sudah dihitung dengan benar di BiayaBahanConversionService
+        
+        // ===== MULTI-TENANT ISOLATION =====
+        // Auto-assign user_id saat creating
+        static::creating(function ($model) {
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+        
+        // Global scope untuk data isolation
+        static::addGlobalScope('user', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+        // ===== END MULTI-TENANT ISOLATION =====
+// DISABLED: Subtotal sudah dihitung dengan benar di BiayaBahanConversionService
         // Event saving ini malah menghitung ulang dengan salah karena harga_satuan yang disimpan
         // sudah harga konversi, bukan harga base
         /*
