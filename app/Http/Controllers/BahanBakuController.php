@@ -142,6 +142,19 @@ class BahanBakuController extends Controller
                 'ref_id' => 0,
                 'keterangan' => 'Stok awal ' . $request->nama_bahan,
             ]);
+            
+            // Update COA Persediaan saldo_awal
+            if ($request->coa_persediaan_id) {
+                $coa = \App\Models\Coa::where('kode_akun', $request->coa_persediaan_id)
+                    ->where('user_id', auth()->id())
+                    ->first();
+                    
+                if ($coa) {
+                    $nilaiSaldoAwal = ($request->stok ?? 0) * ($request->harga_satuan ?? 0);
+                    $coa->saldo_awal = ($coa->saldo_awal ?? 0) + $nilaiSaldoAwal;
+                    $coa->save();
+                }
+            }
         }
 
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
