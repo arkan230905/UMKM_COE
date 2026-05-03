@@ -440,7 +440,7 @@
                     <div class="product-item">
                         <div class="product-image">
                             @if($produk->foto_path)
-                                <img src="{{ asset('storage/' . $produk->foto_path) }}" alt="{{ $produk->nama_produk }}">
+                                <img src="{{ asset('storage/' . $produk->foto_path) }}" alt="{{ $produk->nama_produk }}" onerror="this.src='{{ asset('images/default-avatar.png') }}'">
                             @else
                                 <img src="{{ asset('images/default-avatar.png') }}" alt="{{ $produk->nama_produk }}">
                             @endif
