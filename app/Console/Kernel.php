@@ -32,6 +32,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\DebugExactJurnalQuery::class,
         \App\Console\Commands\DebugJurnalFilter::class,
         \App\Console\Commands\FindSaleUser::class,
+        \App\Console\Commands\CreateTestSale::class,
     ];
 
     /**
