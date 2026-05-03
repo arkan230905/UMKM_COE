@@ -74,7 +74,7 @@ class CreateTestPurchase extends Command
             $pembelian->ppn_persen = 0;
             $pembelian->ppn_nominal = 0;
             $pembelian->biaya_kirim = 0;
-            $pembelian->catatan = 'Test purchase for journal verification';
+            $pembelian->keterangan = 'Test purchase for journal verification';
             $pembelian->save();
             
             // Create pembelian detail
