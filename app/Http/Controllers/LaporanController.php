@@ -257,12 +257,17 @@ class LaporanController extends Controller
         $itemId = $request->get('item_id'); // Remove default to item_id=2
         $satuanId = $request->get('satuan_id');
 
-        // Daftar item untuk dropdown - pastikan data sesuai database
+        // Daftar item untuk dropdown - CRITICAL: Filter by user_id untuk multi-tenant
         $materials = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+            ->where('user_id', auth()->id())
             ->orderBy('nama_bahan', 'asc')
             ->get();
-        $products = Produk::with('satuan')->orderBy('nama_produk', 'asc')->get();
+        $products = Produk::with('satuan')
+            ->where('user_id', auth()->id())
+            ->orderBy('nama_produk', 'asc')
+            ->get();
         $bahanPendukungs = \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+            ->where('user_id', auth()->id())
             ->orderBy('nama_bahan', 'asc')
             ->get();
 
@@ -357,7 +362,23 @@ class LaporanController extends Controller
             }
             $movQ = StockMovement::query()->where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe);
             
+            // CRITICAL MULTI-TENANT: Filter item_ids yang hanya milik user yang login
+            if ($tipe == 'material') {
+                $allowedItemIds = BahanBaku::where('user_id', auth()->id())->pluck('id');
+            } elseif ($tipe == 'product') {
+                $allowedItemIds = Produk::where('user_id', auth()->id())->pluck('id');
+            } elseif ($tipe == 'bahan_pendukung') {
+                $allowedItemIds = \App\Models\BahanPendukung::where('user_id', auth()->id())->pluck('id');
+            } else {
+                $allowedItemIds = collect();
+            }
+            $movQ->whereIn('item_id', $allowedItemIds);
+            
             if ($itemId) { 
+                // Pastikan item_id yang dipilih memang milik user yang login
+                if (!$allowedItemIds->contains($itemId)) {
+                    throw new \Exception('Item tidak ditemukan atau bukan milik Anda.');
+                }
                 $movQ->where('item_id', $itemId); 
                 
                 // Get item data and conversion ratios

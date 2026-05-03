@@ -113,10 +113,14 @@ class AkuntansiController extends Controller
             ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->whereBetween('ju.tanggal', [$from, $to])
             ->whereNotIn('ju.tipe_referensi', [
-                'purchase', 'sale', 'retur_pembelian', 'retur_penjualan',
+                // Hanya exclude yang SUDAH ADA di journal_entries untuk menghindari duplikasi
+                'sale', 'penjualan',     // Penjualan ada di journal_entries
+                'retur_pembelian', 'retur_penjualan',
                 'production_material', 'production_labor_overhead', 'production_finished',
+                'production_finish', 'production_labor', 'production_bop',
                 'produksi',
-                'expense_payment' // Exclude expense_payment karena sudah ada di journal_entries
+                'expense_payment'
+                // NOTE: 'pembelian' TIDAK di-exclude karena pembelian hanya ada di jurnal_umum
             ])
             ->select(
                 'coas.kode_akun',
