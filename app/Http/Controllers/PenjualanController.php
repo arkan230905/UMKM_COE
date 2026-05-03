@@ -15,7 +15,9 @@ class PenjualanController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Penjualan::with(['produk','details']);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $query = Penjualan::with(['produk','details'])
+            ->where('user_id', auth()->id());
         
         // Filter by nomor transaksi
         if ($request->filled('nomor_transaksi')) {
@@ -39,7 +41,10 @@ class PenjualanController extends Controller
         
         // Hitung ringkasan penjualan HARI INI saja
         $today = now()->format('Y-m-d');
-        $penjualansHariIni = Penjualan::whereDate('tanggal', $today)->get();
+        // CRITICAL: Filter by user_id
+        $penjualansHariIni = Penjualan::where('user_id', auth()->id())
+            ->whereDate('tanggal', $today)
+            ->get();
         
         $totalPenjualan = 0;
         $totalProdukTerjual = 0;
@@ -87,11 +92,14 @@ class PenjualanController extends Controller
     public function create()
     {
         // Ambil produk dengan stok dari kolom stok di tabel produks
-        $produks = Produk::all()->map(function($p) {
-            // Gunakan stok dari tabel produks, bukan actual_stok dari StockLayer
-            $p->stok_tersedia = (float)($p->stok ?? 0);
-            return $p;
-        });
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $produks = Produk::where('user_id', auth()->id())
+            ->get()
+            ->map(function($p) {
+                // Gunakan stok dari tabel produks, bukan actual_stok dari StockLayer
+                $p->stok_tersedia = (float)($p->stok ?? 0);
+                return $p;
+            });
         
         // Ambil akun kas/bank untuk dropdown
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();

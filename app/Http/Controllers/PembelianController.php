@@ -21,7 +21,9 @@ class PembelianController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Pembelian::with(['vendor', 'details.bahanBaku.satuan', 'details.bahanPendukung.satuan', 'details.satuanRelation']);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $query = Pembelian::with(['vendor', 'details.bahanBaku.satuan', 'details.bahanPendukung.satuan', 'details.satuanRelation'])
+            ->where('user_id', auth()->id());
         
         // Filter by nomor transaksi
         if ($request->filled('nomor_transaksi')) {
@@ -65,7 +67,11 @@ class PembelianController extends Controller
         }
         
         $pembelians = $query->oldest()->get();
-        $vendors = Vendor::orderBy('nama_vendor')->get();
+        
+        // CRITICAL: Filter vendors by user_id
+        $vendors = Vendor::where('user_id', auth()->id())
+            ->orderBy('nama_vendor')
+            ->get();
         
         // Add purchase return data for the Retur tab
         // Gunakan helper method dari ReturController untuk konsistensi

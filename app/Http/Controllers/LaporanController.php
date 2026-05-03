@@ -47,7 +47,9 @@ class LaporanController extends Controller
         $totalPembelianFiltered = $totalPembelian;
         
         // Total pembelian tunai (cash) - sesuai filter tanggal dengan logic yang sama
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $pembelianTunaiQuery = Pembelian::with(['details'])
+            ->where('user_id', auth()->id())
             ->where('payment_method', 'cash')
             ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
                 return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
@@ -74,7 +76,9 @@ class LaporanController extends Controller
         });
         
         // Total pembelian yang belum lunas (credit dan status != lunas) - sesuai filter tanggal
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $pembelianBelumLunasQuery = Pembelian::with(['details'])
+            ->where('user_id', auth()->id())
             ->where('payment_method', 'credit')
             ->where('status', '!=', 'lunas')
             ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
@@ -1184,7 +1188,9 @@ class LaporanController extends Controller
     // Helper method untuk query pembelian
     private function getPembelianQuery(Request $request)
     {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $query = Pembelian::with(['vendor', 'details.bahanBaku.satuan', 'details.bahanPendukung.satuanRelation'])
+            ->where('user_id', auth()->id())
             ->orderBy('tanggal', 'desc');
             
         // Filter berdasarkan tanggal
@@ -1304,7 +1310,9 @@ class LaporanController extends Controller
     // Helper method untuk query penjualan
     private function getPenjualanQuery(Request $request)
     {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $query = Penjualan::with(['produk','details','returs'])
+            ->where('user_id', auth()->id())
             ->orderBy('tanggal', 'desc')->orderBy('id', 'desc');
             
         // Filter berdasarkan tanggal
@@ -1327,7 +1335,9 @@ class LaporanController extends Controller
     public function laporanRetur(Request $request)
     {
         // Filter untuk Retur Pembelian saja (sales returns sudah dipindah ke laporan penjualan)
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $purchaseReturnQuery = \App\Models\Retur::with(['pembelian.vendor', 'details.produk'])
+            ->where('user_id', auth()->id())
             ->where('type', 'purchase')
             ->when($request->purchase_start_date && $request->purchase_end_date, function($q) use ($request) {
                 return $q->whereBetween('return_date', [$request->purchase_start_date, $request->purchase_end_date]);
