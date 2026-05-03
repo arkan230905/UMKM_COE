@@ -11,9 +11,10 @@ class PelangganController extends Controller
 {
     public function index()
     {
-        // 🔒 SECURITY: Add user_id filter for multi-tenant isolation
+        // 🔒 SECURITY: Get pelanggan users belonging to current user
+        // Pelanggan users now have user_id pointing to their owner
         $pelanggans = User::where('role', 'pelanggan')
-            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Prevent cross-user data access
+            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Get pelanggan of current owner
             ->withCount('orders')
             ->latest()
             ->paginate(15);
