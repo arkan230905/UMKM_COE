@@ -14,8 +14,10 @@ class BahanBakuController extends Controller
     // Menampilkan semua data bahan baku
     public function index()
     {
+        // MULTI-TENANT: Filter by user_id to prevent data leakage
         // Sort by created_at ascending (oldest to newest)
         $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])
+            ->where('user_id', auth()->id())
             ->orderBy('created_at', 'asc')
             ->get();
         

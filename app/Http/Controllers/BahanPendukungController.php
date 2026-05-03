@@ -21,7 +21,9 @@ class BahanPendukungController extends Controller
         // Simple debug
         \Log::info('Bahan Pendukung Index Called');
         
-        $query = BahanPendukung::with(['satuan', 'kategoriBahanPendukung', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp']);
+        // MULTI-TENANT: Filter by user_id to prevent data leakage
+        $query = BahanPendukung::with(['satuan', 'kategoriBahanPendukung', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])
+            ->where('user_id', auth()->id());
         
         // Filter kategori
         if ($request->filled('kategori')) {
