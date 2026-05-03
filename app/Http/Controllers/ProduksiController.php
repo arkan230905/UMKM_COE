@@ -891,36 +891,41 @@ class ProduksiController extends Controller
                     }
                     $bopByProcess[$namaProses] += $bomJobBOP->subtotal ?? 0;
                     
-                    // Determine COA for this BOP component
-                    // Check if it's a bahan pendukung type (from keterangan or nama_bop)
-                    $coaKode = '210'; // Default: Hutang Usaha
-                    $coaNama = 'Hutang Usaha';
-                    $isBahanPendukung = false;
-                    
-                    if ($bomJobBOP->bop && $bomJobBOP->bop->coa) {
-                        $coaKode = $bomJobBOP->bop->coa->kode_akun ?? '210';
-                        $coaNama = $bomJobBOP->bop->coa->nama_akun ?? 'Hutang Usaha';
-                    } elseif ($bomJobBOP->bop && $bomJobBOP->bop->kode_akun) {
-                        $coaKode = $bomJobBOP->bop->kode_akun;
-                        $coaNama = $bomJobBOP->bop->nama_akun ?? 'Hutang Usaha';
+                    // Parse nama_bop to determine COA
+                    // Format: "Nama Proses - Nama Komponen"
+                    $namaKomponen = $bomJobBOP->nama_bop ?? '';
+                    if (strpos($namaKomponen, ' - ') !== false) {
+                        $parts = explode(' - ', $namaKomponen, 2);
+                        $namaKomponen = trim($parts[1] ?? $namaKomponen);
                     }
                     
-                    // Check if this BOP component is related to bahan pendukung
-                    $keterangan = strtolower($bomJobBOP->keterangan ?? '');
-                    $namaBopLower = strtolower($bomJobBOP->nama_bop ?? '');
-                    if (stripos($keterangan, 'bahan pendukung') !== false || 
-                        stripos($namaBopLower, 'bahan pendukung') !== false ||
-                        stripos($namaBopLower, 'persediaan') !== false) {
-                        $isBahanPendukung = true;
+                    // Determine COA based on component name
+                    $coaKode = '210'; // Default: Hutang Usaha
+                    $coaNama = 'Hutang Usaha';
+                    
+                    // Check if it's a bahan pendukung by matching with bahan_pendukungs table
+                    $bahanPendukungMatch = \App\Models\BahanPendukung::where('user_id', auth()->id())
+                        ->where(function($q) use ($namaKomponen) {
+                            $q->where('nama_bahan', 'like', '%' . $namaKomponen . '%')
+                              ->orWhereRaw('? like CONCAT("%", nama_bahan, "%")', [$namaKomponen]);
+                        })
+                        ->first();
+                    
+                    if ($bahanPendukungMatch && $bahanPendukungMatch->coa_persediaan_id) {
+                        $coaBahan = \App\Models\Coa::where('kode_akun', $bahanPendukungMatch->coa_persediaan_id)->first();
+                        if ($coaBahan) {
+                            $coaKode = $coaBahan->kode_akun;
+                            $coaNama = $coaBahan->nama_akun;
+                        }
                     }
                     
                     $bopKomponen[] = [
                         'nama_bop' => $bomJobBOP->nama_bop ?? 'BOP',
+                        'nama_komponen' => $namaKomponen,
                         'keterangan' => $bomJobBOP->keterangan ?? '',
                         'subtotal' => $bomJobBOP->subtotal ?? 0,
                         'coa_kode' => $coaKode,
                         'coa_nama' => $coaNama,
-                        'is_bahan_pendukung' => $isBahanPendukung,
                     ];
                 }
                 
