@@ -4,6 +4,11 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\WelcomeController;
 
+// TEST BLADE RENDERING
+Route::get('/test-blade', function() {
+    return view('test-blade');
+});
+
 // IMPORT ALL STOCK FROM DATABASE TO STOCK MOVEMENTS
 Route::get('import-all-stock-from-database', function() {
     try {

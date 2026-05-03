@@ -23,8 +23,8 @@
         </div>
     @endif
 
-    <div class="card bg-dark text-white border-0">
-        <div class="card-body">
+    <div class="card" style="background-color: #f5f5dc; border: 1px solid #e0e0d0;">
+        <div class="card-body text-dark">
             <form action="{{ route('transaksi.penggajian.store') }}" method="POST" id="formPenggajian">
                 @csrf
 
@@ -194,7 +194,7 @@
                 <div class="card border-0 mb-4" style="background-color: #f8f9fa;">
                     <div class="card-body text-center py-4">
                         <h5 class="mb-2 text-dark fw-bold">Total Gaji</h5>
-                        <h2 class="mb-0 fw-bold" id="display_total" style="color: #333; font-size: 2rem;">Rp 0,00</h2>
+                        <h2 class="mb-0 fw-bold" id="display_total" style="color: #8b7355; font-size: 2rem;">Rp 0,00</h2>
                     </div>
                 </div>
 

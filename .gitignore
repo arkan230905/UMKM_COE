@@ -17,7 +17,7 @@
 /node_modules
 /public/build
 /public/hot
-/public/storage
+# /public/storage - JANGAN diabaikan agar symlink tidak hilang saat deploy
 
 /storage/*.key
 /storage/pail
