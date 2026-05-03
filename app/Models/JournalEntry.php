@@ -9,7 +9,26 @@ class JournalEntry extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['tanggal','ref_type','ref_id','memo'];
+    protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation
+        'tanggal',
+        'ref_type',
+        'ref_id',
+        'memo',
+    ];
+
+    /**
+     * Boot method - auto-fill user_id untuk multi-tenant isolation
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($model) {
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
 
     public function lines()
     {

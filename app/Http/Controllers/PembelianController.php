@@ -173,19 +173,20 @@ class PembelianController extends Controller
 
     public function create()
     {
-        $vendors = Vendor::all();
+        // CRITICAL MULTI-TENANT: Filter semua data by user_id
+        $vendors = Vendor::where('user_id', auth()->id())->get();
         $bahanBakus = BahanBaku::with([
             'satuan', 
             'subSatuan1', 
             'subSatuan2', 
             'subSatuan3'
-        ])->get();
+        ])->where('user_id', auth()->id())->get();
         $bahanPendukungs = \App\Models\BahanPendukung::with([
             'satuanRelation', 
             'subSatuan1', 
             'subSatuan2', 
             'subSatuan3'
-        ])->get();
+        ])->where('user_id', auth()->id())->get();
         $satuans = \App\Models\Satuan::all();
         
         // Ambil data COA untuk metode pembayaran yang spesifik saja
@@ -1131,11 +1132,12 @@ class PembelianController extends Controller
     {
         $pembelian = Pembelian::with(['vendor', 'details.bahanBaku.satuan', 'details.bahanPendukung.satuan'])->findOrFail($id);
         
-        $vendors = Vendor::orderBy('nama_vendor')->get();
-        $produks = Produk::orderBy('nama_produk')->get();
-        $bahanBakus = BahanBaku::with('satuan')->orderBy('nama_bahan')->get();
-        $bahanPendukungs = BahanPendukung::with('satuan')->orderBy('nama_bahan')->get();
-        $coas = Coa::all();
+        // CRITICAL MULTI-TENANT: Filter semua data by user_id
+        $vendors = Vendor::where('user_id', auth()->id())->orderBy('nama_vendor')->get();
+        $produks = Produk::where('user_id', auth()->id())->orderBy('nama_produk')->get();
+        $bahanBakus = BahanBaku::with('satuan')->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
+        $bahanPendukungs = BahanPendukung::with('satuan')->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
+        $coas = Coa::where('user_id', auth()->id())->get();
         
         // Filter COA untuk metode pembayaran yang spesifik saja
         $kasbank = Coa::whereIn('kode_akun', ['111', '112', '113'])
