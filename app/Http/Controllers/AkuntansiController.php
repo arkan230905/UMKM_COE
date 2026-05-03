@@ -977,20 +977,16 @@ class AkuntansiController extends Controller
         
         // Filter akun pendapatan dan beban
         $pendapatan = $coas->filter(function($coa) use ($accountData) {
-            if (!in_array($coa->tipe_akun, ['Revenue', 'revenue', 'Pendapatan'])) {
-                // Include HPP in pendapatan section
-                if ($coa->kode_akun == '560') {
-                    $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
-                    return $saldo != 0;
-                }
-                return false;
-            }
+            if (!in_array($coa->tipe_akun, ['Revenue', 'revenue', 'Pendapatan'])) return false;
             $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
             return $saldo != 0;
         })->sortBy('kode_akun');
         
+        $hppCoa = $coas->where('kode_akun', '560')->first();
+        $hppAmount = $hppCoa ? ($accountData['560']['saldo_akhir'] ?? 0) : 0;
+        
         $beban = $coas->filter(function($coa) use ($accountData) {
-            // Exclude HPP from beban section (move to pendapatan)
+            // Exclude HPP from beban section
             if ($coa->kode_akun == '560') return false;
             if (!in_array($coa->tipe_akun, ['Expense', 'expense', 'Beban', 'Biaya'])) return false;
             $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
@@ -1006,14 +1002,14 @@ class AkuntansiController extends Controller
             return $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
         });
         
-        // HPP should still be subtracted from total pendapatan for correct calculation
-        $hppAmount = $accountData['560']['saldo_akhir'] ?? 0;
-        $labaRugi = $totalPendapatan - $totalBeban - $hppAmount;
+        // Calculate laba kotor dan laba bersih
+        $labaKotor = $totalPendapatan - $hppAmount;
+        $labaBersih = $labaKotor - $totalBeban;
         
         return view('akuntansi.laba_rugi', compact(
             'periode', 'pendapatan', 'beban', 
-            'totalPendapatan', 'totalBeban', 'labaRugi',
-            'accountData'
+            'totalPendapatan', 'totalBeban', 'labaBersih',
+            'hppAmount', 'labaKotor', 'accountData'
         ));
     }
 }

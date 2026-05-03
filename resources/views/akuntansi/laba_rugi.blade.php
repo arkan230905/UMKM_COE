@@ -52,12 +52,7 @@
               @endphp
               <tr>
                 <td><strong>{{ $coa->kode_akun }}</strong></td>
-                <td>
-                  {{ $coa->nama_akun }}
-                  @if($coa->kode_akun == '560')
-                    <small class="badge bg-warning text-dark ms-2">HPP</small>
-                  @endif
-                </td>
+                <td>{{ $coa->nama_akun }}</td>
                 <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
               </tr>
             @empty
@@ -71,14 +66,14 @@
               <th colspan="2" class="text-end">TOTAL PENDAPATAN</th>
               <th class="text-end">Rp {{ number_format($totalPendapatan, 0, ',', '.') }}</th>
             </tr>
-            @if(isset($accountData['560']['saldo_akhir']) && $accountData['560']['saldo_akhir'] != 0)
+            @if($hppAmount != 0)
             <tr class="table-warning">
-              <th colspan="2" class="text-end">Dikurangi HPP</th>
-              <th class="text-end">-Rp {{ number_format($accountData['560']['saldo_akhir'], 0, ',', '.') }}</th>
+              <th colspan="2" class="text-end">Harga Pokok Penjualan (HPP)</th>
+              <th class="text-end">-Rp {{ number_format($hppAmount, 0, ',', '.') }}</th>
             </tr>
             <tr class="table-success">
-              <th colspan="2" class="text-end">PENDAPATAN BERSIH</th>
-              <th class="text-end">Rp {{ number_format($totalPendapatan - ($accountData['560']['saldo_akhir'] ?? 0), 0, ',', '.') }}</th>
+              <th colspan="2" class="text-end"><strong>LABA KOTOR</strong></th>
+              <th class="text-end"><strong>Rp {{ number_format($labaKotor, 0, ',', '.') }}</strong></th>
             </tr>
             @endif
           </tfoot>
@@ -124,18 +119,18 @@
             </tr>
           </tfoot>
 
-          <!-- LABA/RUGI -->
+          <!-- LABA/RUGI BERSIH -->
           <tfoot class="table-dark">
             <tr>
               <th colspan="2" class="text-end">
-                @if($labaRugi >= 0)
+                @if($labaBersih >= 0)
                   <i class="bi bi-emoji-smile me-2"></i>LABA BERSIH
                 @else
                   <i class="bi bi-emoji-frown me-2"></i>RUGI BERSIH
                 @endif
               </th>
-              <th class="text-end {{ $labaRugi >= 0 ? 'text-success' : 'text-danger' }}">
-                Rp {{ number_format(abs($labaRugi), 0, ',', '.') }}
+              <th class="text-end {{ $labaBersih >= 0 ? 'text-success' : 'text-danger' }}">
+                Rp {{ number_format(abs($labaBersih), 0, ',', '.') }}
               </th>
             </tr>
           </tfoot>
@@ -157,12 +152,16 @@
         </div>
       </div>
       <div class="col-md-6">
-        <div class="alert {{ $labaRugi >= 0 ? 'alert-success' : 'alert-warning' }}">
+        <div class="alert {{ $labaBersih >= 0 ? 'alert-success' : 'alert-warning' }}">
           <strong><i class="bi bi-calculator"></i> Ringkasan:</strong>
           <ul class="mb-0 mt-2">
             <li><strong>Total Pendapatan:</strong> Rp {{ number_format($totalPendapatan, 0, ',', '.') }}</li>
+            @if($hppAmount != 0)
+            <li><strong>HPP:</strong> Rp {{ number_format($hppAmount, 0, ',', '.') }}</li>
+            <li><strong>Laba Kotor:</strong> Rp {{ number_format($labaKotor, 0, ',', '.') }}</li>
+            @endif
             <li><strong>Total Beban:</strong> Rp {{ number_format($totalBeban, 0, ',', '.') }}</li>
-            <li><strong>{{ $labaRugi >= 0 ? 'Laba' : 'Rugi' }} Bersih:</strong> Rp {{ number_format(abs($labaRugi), 0, ',', '.') }}</li>
+            <li><strong>{{ $labaBersih >= 0 ? 'Laba' : 'Rugi' }} Bersih:</strong> Rp {{ number_format(abs($labaBersih), 0, ',', '.') }}</li>
           </ul>
         </div>
       </div>
