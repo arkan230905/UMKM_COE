@@ -20,7 +20,9 @@ class PenggajianController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Penggajian::with('pegawai');
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $query = Penggajian::with('pegawai')
+            ->where('user_id', auth()->id());
 
         // Filter nama pegawai
         if ($request->nama_pegawai) {
@@ -61,7 +63,10 @@ class PenggajianController extends Controller
         // Clear any old validation errors from session
         session()->forget('errors');
 
-        $pegawais = Pegawai::with('jabatanRelasi')->get();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $pegawais = Pegawai::with('jabatanRelasi')
+            ->where('user_id', auth()->id())
+            ->get();
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
         return view('transaksi.penggajian.create', compact('pegawais', 'kasbank'));
     }

@@ -14,7 +14,9 @@ class PelunasanUtangController extends Controller
      */
     public function index(Request $request)
     {
-        $query = PelunasanUtang::with(['pembelian.vendor', 'pembelian.details.bahanBaku', 'pembelian.details.bahanPendukung', 'akunKas', 'coaPelunasan']);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $query = PelunasanUtang::with(['pembelian.vendor', 'pembelian.details.bahanBaku', 'pembelian.details.bahanPendukung', 'akunKas', 'coaPelunasan'])
+            ->where('user_id', auth()->id());
         
         // Filter by kode transaksi
         if ($request->filled('kode_transaksi')) {
@@ -43,8 +45,10 @@ class PelunasanUtangController extends Controller
         
         $pelunasanUtang = $query->orderBy('tanggal', 'desc')->paginate(15);
         
-        // Get vendors for dropdown
-        $vendors = \App\Models\Vendor::orderBy('nama_vendor')->get();
+        // Get vendors for dropdown - CRITICAL: Filter by user_id
+        $vendors = \App\Models\Vendor::where('user_id', auth()->id())
+            ->orderBy('nama_vendor')
+            ->get();
 
         return view('transaksi.pelunasan-utang.index', compact('pelunasanUtang', 'vendors'));
     }
@@ -55,19 +59,23 @@ class PelunasanUtangController extends Controller
     public function create()
     {
         // Get unpaid purchases - include both credit and partially paid purchases
-        $pembayarans = Pembelian::where(function($q) {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $pembayarans = Pembelian::where('user_id', auth()->id())
+            ->where(function($q) {
                 // Credit purchases that are not fully paid
                 $q->where('payment_method', 'credit')
                   ->where('status', 'belum_lunas');
             })
             ->orWhere(function($q) {
                 // Any purchase where terbayar < total_harga (partially paid)
-                $q->whereRaw('terbayar < total_harga')
+                $q->where('user_id', auth()->id())
+                  ->whereRaw('terbayar < total_harga')
                   ->where('status', '!=', 'lunas');
             })
             ->orWhere(function($q) {
                 // Any purchase with sisa_pembayaran > 0
-                $q->where('sisa_pembayaran', '>', 0);
+                $q->where('user_id', auth()->id())
+                  ->where('sisa_pembayaran', '>', 0);
             })
             ->with('vendor')
             ->orderBy('tanggal', 'desc')
@@ -82,7 +90,9 @@ class PelunasanUtangController extends Controller
         $akunKas = \App\Helpers\AccountHelper::getKasBankAccounts();
         
         // Get COA hutang/kewajiban yang relevan untuk pelunasan
-        $coaPelunasan = \App\Models\Coa::where(function($q) {
+        // CRITICAL: Filter by user_id
+        $coaPelunasan = \App\Models\Coa::where('user_id', auth()->id())
+            ->where(function($q) {
                 $q->where('tipe_akun', 'Liability')
                   ->orWhere('tipe_akun', 'Kewajiban')
                   ->orWhere('tipe_akun', 'KEWAJIBAN');

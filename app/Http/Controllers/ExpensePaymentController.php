@@ -60,6 +60,7 @@ class ExpensePaymentController extends Controller
 
     public function index(Request $request)
     {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $query = ExpensePayment::with([
             'bebanOperasional.coa',
             'coaBeban' => function($q) {
@@ -68,7 +69,7 @@ class ExpensePaymentController extends Controller
             'coaKasBank' => function($q) {
                 $q->select('kode_akun', 'nama_akun');
             }
-        ]);
+        ])->where('user_id', auth()->id());
         
         // Filter by tanggal
         if ($request->filled('tanggal_mulai')) {

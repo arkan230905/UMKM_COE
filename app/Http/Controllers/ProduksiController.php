@@ -19,12 +19,13 @@ class ProduksiController extends Controller
 {
     public function index(Request $request)
     {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $query = Produksi::with([
             'produk', 
             'details.bahanBaku.satuan',
             'details.bahanPendukung.satuan',
             'proses'
-        ]);
+        ])->where('user_id', auth()->id());
         
         // Filter by tanggal
         if ($request->filled('tanggal_mulai')) {
@@ -46,10 +47,11 @@ class ProduksiController extends Controller
         
         $produksis = $query->orderBy('tanggal','desc')->paginate(10);
         
-        // Get products for dropdown
-        $produks = Produk::whereHas('boms', function($query) {
-            $query->has('details');
-        })->orderBy('nama_produk')->get();
+        // Get products for dropdown - CRITICAL: Filter by user_id
+        $produks = Produk::where('user_id', auth()->id())
+            ->whereHas('boms', function($query) {
+                $query->has('details');
+            })->orderBy('nama_produk')->get();
         
         // Prepare detailed cost breakdown for each production
         foreach ($produksis as $produksi) {
@@ -62,9 +64,11 @@ class ProduksiController extends Controller
     public function create()
     {
         // Hanya ambil produk yang sudah memiliki BOM dengan detail
-        $produks = Produk::whereHas('boms', function($query) {
-            $query->has('details');
-        })->get();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $produks = Produk::where('user_id', auth()->id())
+            ->whereHas('boms', function($query) {
+                $query->has('details');
+            })->get();
         
         return view('transaksi.produksi.create', compact('produks'));
     }

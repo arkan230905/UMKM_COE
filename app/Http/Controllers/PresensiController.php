@@ -19,7 +19,11 @@ class PresensiController extends Controller
         $dateFilter = $request->get('date_filter');
         
         // Build query
-        $query = Presensi::with('pegawai')->orderBy('tgl_presensi', 'desc')->orderBy('jam_masuk', 'desc');
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $query = Presensi::with('pegawai')
+            ->where('user_id', auth()->id())
+            ->orderBy('tgl_presensi', 'desc')
+            ->orderBy('jam_masuk', 'desc');
         
         // Apply date filter
         if ($dateFilter) {
@@ -78,7 +82,8 @@ class PresensiController extends Controller
 
     public function create()
     {
-        $pegawais = Pegawai::all();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $pegawais = Pegawai::where('user_id', auth()->id())->get();
         return view('transaksi.presensi.create', compact('pegawais'));
     }
     
