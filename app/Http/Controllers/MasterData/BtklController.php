@@ -34,12 +34,12 @@ class BtklController extends Controller
      */
     public function create()
     {
-        // Get ALL Jabatan with category 'btkl' and their employees
-        // This ensures we get all BTKL positions regardless of whether they have employees
+        // CRITICAL MULTI-TENANT: Filter jabatan by user_id
         $jabatanBtkl = Jabatan::where('kategori', 'btkl')
+            ->where('user_id', auth()->id())
             ->with(['pegawais' => function($query) {
-                // Only get active employees (you can add more conditions here if needed)
-                $query->whereNotNull('jabatan_id');
+                // Filter pegawai by user_id untuk multi-tenant
+                $query->where('user_id', auth()->id());
             }])
             ->orderBy('nama')
             ->get();
@@ -47,7 +47,6 @@ class BtklController extends Controller
         // Generate next process code
         $lastBtkl = Btkl::orderBy('kode_proses', 'desc')->first();
         if ($lastBtkl) {
-            // Extract number from last code (e.g., PROC-001 -> 001)
             $lastNumber = (int) substr($lastBtkl->kode_proses, -3);
             $nextNumber = $lastNumber + 1;
         } else {
@@ -57,23 +56,27 @@ class BtklController extends Controller
 
         $satuanOptions = ['Jam', 'Unit', 'Batch'];
 
-        // Map employee data dengan pegawai_count yang akurat
+        // Map employee data - hitung dari jabatan_id DAN nama jabatan (fallback)
         $employeeData = $jabatanBtkl->map(function($jabatan) {
-            $pegawaiCount = $jabatan->pegawais->count();
+            // Hitung pegawai via relasi jabatan_id
+            $pegawaiViaId = $jabatan->pegawais->count();
             
-            \Log::info('BTKL Create - Jabatan Data:', [
-                'id' => $jabatan->id,
-                'nama' => $jabatan->nama,
-                'pegawai_count' => $pegawaiCount,
-                'tarif' => $jabatan->tarif ?? 0,
-                'kategori' => $jabatan->kategori
-            ]);
+            // Fallback: hitung juga via nama jabatan jika jabatan_id belum diset
+            $pegawaiViaNama = \App\Models\Pegawai::where('user_id', auth()->id())
+                ->where(function($q) use ($jabatan) {
+                    $q->where('jabatan_id', $jabatan->id)
+                      ->orWhere('jabatan', $jabatan->nama);
+                })
+                ->count();
+            
+            // Gunakan yang lebih besar (untuk handle data lama yang belum punya jabatan_id)
+            $pegawaiCount = max($pegawaiViaId, $pegawaiViaNama);
             
             return [
                 'id' => $jabatan->id,
                 'nama' => $jabatan->nama,
                 'pegawai_count' => $pegawaiCount,
-                'tarif' => $jabatan->tarif ?? 0
+                'tarif' => $jabatan->tarif_per_jam ?? $jabatan->tarif ?? 0
             ];
         });
         
@@ -100,9 +103,14 @@ class BtklController extends Controller
             // Get jabatan data for automatic calculation
             $jabatan = Jabatan::find($validated['jabatan_id']);
             
-            // Calculate automatic BTKL rate
-            $jumlahPegawai = $jabatan->pegawais()->count();
-            $tarifPerJam = $jabatan->tarif ?? 0;
+            // Calculate automatic BTKL rate - hitung via jabatan_id DAN nama jabatan (fallback)
+            $jumlahPegawai = \App\Models\Pegawai::where('user_id', auth()->id())
+                ->where(function($q) use ($jabatan) {
+                    $q->where('jabatan_id', $jabatan->id)
+                      ->orWhere('jabatan', $jabatan->nama);
+                })
+                ->count();
+            $tarifPerJam = $jabatan->tarif_per_jam ?? $jabatan->tarif ?? 0;
             $tarifBtkl = $tarifPerJam * $jumlahPegawai;
 
             // If kode_proses is empty, generate it
@@ -158,26 +166,31 @@ class BtklController extends Controller
         try {
             $btkl = Btkl::with('jabatan')->findOrFail($id);
             
-            // Get ALL Jabatan with category 'btkl' and their employees
+            // CRITICAL MULTI-TENANT: Filter jabatan by user_id
             $jabatanBtkl = Jabatan::where('kategori', 'btkl')
+                ->where('user_id', auth()->id())
                 ->with(['pegawais' => function($query) {
-                    // Only get active employees
-                    $query->whereNotNull('jabatan_id');
+                    $query->where('user_id', auth()->id());
                 }])
                 ->orderBy('nama')
                 ->get();
                 
             $satuanOptions = ['Jam', 'Unit', 'Batch'];
             
-            // Map employee data dengan pegawai_count yang akurat
+            // Map employee data - hitung dari jabatan_id DAN nama jabatan (fallback)
             $employeeData = $jabatanBtkl->map(function($jabatan) {
-                $pegawaiCount = $jabatan->pegawais->count();
+                $pegawaiViaNama = \App\Models\Pegawai::where('user_id', auth()->id())
+                    ->where(function($q) use ($jabatan) {
+                        $q->where('jabatan_id', $jabatan->id)
+                          ->orWhere('jabatan', $jabatan->nama);
+                    })
+                    ->count();
                 
                 return [
                     'id' => $jabatan->id,
                     'nama' => $jabatan->nama,
-                    'pegawai_count' => $pegawaiCount,
-                    'tarif' => $jabatan->tarif ?? 0
+                    'pegawai_count' => $pegawaiViaNama,
+                    'tarif' => $jabatan->tarif_per_jam ?? $jabatan->tarif ?? 0
                 ];
             });
                 
@@ -210,9 +223,14 @@ class BtklController extends Controller
             // Get jabatan data for automatic calculation
             $jabatan = Jabatan::find($validated['jabatan_id']);
             
-            // Calculate automatic BTKL rate
-            $jumlahPegawai = $jabatan->pegawais()->count();
-            $tarifPerJam = $jabatan->tarif ?? 0;
+            // Calculate automatic BTKL rate - hitung via jabatan_id DAN nama jabatan (fallback)
+            $jumlahPegawai = \App\Models\Pegawai::where('user_id', auth()->id())
+                ->where(function($q) use ($jabatan) {
+                    $q->where('jabatan_id', $jabatan->id)
+                      ->orWhere('jabatan', $jabatan->nama);
+                })
+                ->count();
+            $tarifPerJam = $jabatan->tarif_per_jam ?? $jabatan->tarif ?? 0;
             $tarifBtkl = $tarifPerJam * $jumlahPegawai;
 
             // Add calculated tarif_per_jam to validated data
