@@ -27,6 +27,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\DebugPembayaranDetail::class,
         \App\Console\Commands\DebugDirectQuery::class,
         \App\Console\Commands\DebugPenjualanJournal::class,
+        \App\Console\Commands\CheckDatabase::class,
     ];
 
     /**
