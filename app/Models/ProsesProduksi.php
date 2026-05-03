@@ -12,6 +12,7 @@ class ProsesProduksi extends Model
     protected $table = 'proses_produksis';
 
     protected $fillable = [
+        'user_id',
         'kode_proses',
         'nama_proses',
         'deskripsi',
@@ -32,6 +33,11 @@ class ProsesProduksi extends Model
     protected static function booted()
     {
         static::creating(function ($model) {
+            // CRITICAL: Auto-fill user_id for multi-tenant isolation
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+            
             if (empty($model->kode_proses)) {
                 $model->kode_proses = self::generateKode();
             }

@@ -20,8 +20,10 @@ class ProsesProduksiController extends Controller
      */
     public function index()
     {
+        // MULTI-TENANT: Filter by user_id
         // Load with essential relationships only to avoid errors
         $prosesProduksis = ProsesProduksi::with(['jabatan.pegawais'])
+            ->where('user_id', auth()->id())
             ->orderBy('kode_proses')
             ->paginate(10);
         
@@ -121,6 +123,11 @@ class ProsesProduksiController extends Controller
      */
     public function show(ProsesProduksi $prosesProduksi)
     {
+        // MULTI-TENANT: Check ownership
+        if ($prosesProduksi->user_id != auth()->id()) {
+            abort(404);
+        }
+        
         $prosesProduksi->load('bomProses.bom.produk');
         return view('master-data.proses-produksi.show', compact('prosesProduksi'));
     }
@@ -130,6 +137,11 @@ class ProsesProduksiController extends Controller
      */
     public function edit(ProsesProduksi $prosesProduksi)
     {
+        // MULTI-TENANT: Check ownership
+        if ($prosesProduksi->user_id != auth()->id()) {
+            abort(404);
+        }
+        
         $prosesProduksi->load('prosesBops.komponenBop');
         $komponenBops = KomponenBop::active()->orderBy('nama_komponen')->get();
         return view('master-data.proses-produksi.edit', compact('prosesProduksi', 'komponenBops'));
@@ -219,6 +231,11 @@ class ProsesProduksiController extends Controller
      */
     public function destroy(ProsesProduksi $prosesProduksi)
     {
+        // MULTI-TENANT: Check ownership
+        if ($prosesProduksi->user_id != auth()->id()) {
+            abort(404);
+        }
+        
         try {
             $prosesProduksi->delete();
             return redirect()->route('master-data.btkl.index')
