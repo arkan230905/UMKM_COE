@@ -1185,8 +1185,12 @@ class BomController extends Controller
                 ->toArray();
             
             // Get all BTKL processes with their BOP
+            // CRITICAL MULTI-TENANT: Filter by user_id via jabatan
             $prosesBtkl = ProsesProduksi::where('kapasitas_per_jam', '>', 0)
                 ->with(['jabatan', 'bopProses'])
+                ->whereHas('jabatan', function($q) {
+                    $q->where('user_id', auth()->id());
+                })
                 ->get()
                 ->map(function($proses) use ($selectedProsesIds) {
                     // Calculate tarif BTKL: Jumlah Pegawai × Tarif per Jam Jabatan
