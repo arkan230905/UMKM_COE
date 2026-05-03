@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers;
 
@@ -241,8 +241,9 @@ class BiayaBahanController extends Controller
                 ->get() : [];
         
         // Get available bahan baku and bahan pendukung for selection with sub satuan
-        $bahanBakus = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->orderBy('nama_bahan')->get();
-        $bahanPendukungs = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->orderBy('nama_bahan')->get();
+        // CRITICAL MULTI-TENANT: Only show bahan baku milik user yang login
+        $bahanBakus = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
+        $bahanPendukungs = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
         
         // Get all satuan for dropdown
         $satuans = \App\Models\Satuan::orderBy('nama')->get();
@@ -456,7 +457,8 @@ class BiayaBahanController extends Controller
             if (count($validBahanBaku) > 0) {
                 foreach ($validBahanBaku as $item) {
                     
-                    $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($item['id']);
+                    // CRITICAL MULTI-TENANT: Verify bahan baku belongs to current user
+                    $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->find($item['id']);
                     if (!$bahanBaku) continue;
                     
                     $jumlah = (float)$item['jumlah'];
@@ -501,7 +503,8 @@ class BiayaBahanController extends Controller
             if (count($validBahanPendukung) > 0) {
                 foreach ($validBahanPendukung as $item) {
                     
-                    $bahanPendukung = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($item['id']);
+                    // CRITICAL MULTI-TENANT: Verify bahan pendukung belongs to current user
+                    $bahanPendukung = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->find($item['id']);
                     if (!$bahanPendukung) continue;
                     
                     $jumlah = (float)$item['jumlah'];
@@ -600,8 +603,9 @@ class BiayaBahanController extends Controller
                 ->get() : [];
         
         // Get available bahan baku and bahan pendukung for selection with sub satuan
-        $bahanBakus = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->orderBy('nama_bahan')->get();
-        $bahanPendukungs = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->orderBy('nama_bahan')->get();
+        // CRITICAL MULTI-TENANT: Only show bahan baku milik user yang login
+        $bahanBakus = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
+        $bahanPendukungs = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->orderBy('nama_bahan')->get();
         
         // Get all satuan for dropdown
         $satuans = \App\Models\Satuan::orderBy('nama')->get();
@@ -685,7 +689,8 @@ class BiayaBahanController extends Controller
             if (count($validBahanBaku) > 0) {
                 foreach ($validBahanBaku as $item) {
                     
-                    $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($item['id']);
+                    // CRITICAL MULTI-TENANT: Verify bahan baku belongs to current user
+                    $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->find($item['id']);
                     if (!$bahanBaku) continue;
                     
                     $jumlah = (float)$item['jumlah'];
@@ -730,7 +735,8 @@ class BiayaBahanController extends Controller
             if (count($validBahanPendukung) > 0) {
                 foreach ($validBahanPendukung as $item) {
                     
-                    $bahanPendukung = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->find($item['id']);
+                    // CRITICAL MULTI-TENANT: Verify bahan pendukung belongs to current user
+                    $bahanPendukung = BahanPendukung::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])->where('user_id', auth()->id())->find($item['id']);
                     if (!$bahanPendukung) continue;
                     
                     $jumlah = (float)$item['jumlah'];
