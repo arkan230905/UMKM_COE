@@ -11,6 +11,7 @@ class Produk extends Model
 
     protected $table = 'produks';
     protected $fillable = [
+        'user_id',
         'kode_produk',
         'barcode',
         'nama_produk',
@@ -41,6 +42,11 @@ class Produk extends Model
         parent::boot();
         
         static::creating(function ($produk) {
+            // CRITICAL: Auto-fill user_id for multi-tenant isolation
+            if (empty($produk->user_id) && auth()->check()) {
+                $produk->user_id = auth()->id();
+            }
+            
             if (empty($produk->barcode)) {
                 // Generate barcode format EAN-13: 8992XXXXXXXXX
                 $lastId = static::max('id') ?? 0;

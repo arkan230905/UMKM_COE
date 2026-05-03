@@ -6,12 +6,27 @@ use Illuminate\Database\Eloquent\Model;
 class Vendor extends Model
 {
     protected $fillable = [
+        'user_id',
         'nama_vendor',
         'kategori',
         'alamat',
         'no_telp',
         'email'
     ];
+    
+    /**
+     * Boot method to auto-fill user_id for multi-tenant isolation
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($model) {
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
     
     protected $appends = ['nama'];
 
