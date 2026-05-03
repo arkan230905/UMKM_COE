@@ -103,7 +103,9 @@ class BahanBakuController extends Controller
             $kodeBahan = 'BB' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
         }
         
+        // CRITICAL: Add user_id for multi-tenant isolation
         $bahanBaku = BahanBaku::create([
+            'user_id' => auth()->id(),
             'nama_bahan' => $request->nama_bahan,
             'kode_bahan' => $kodeBahan,
             'satuan_id' => $request->satuan_id,

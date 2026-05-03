@@ -153,6 +153,9 @@ class BahanPendukungController extends Controller
         
         // Map stok to saldo_awal
         $validated['saldo_awal'] = $request->stok ?? 0;
+        
+        // CRITICAL: Add user_id for multi-tenant isolation
+        $validated['user_id'] = auth()->id();
 
         // Create bahan pendukung
         // Stock movement will be created automatically by the model's setStokAttribute setter
