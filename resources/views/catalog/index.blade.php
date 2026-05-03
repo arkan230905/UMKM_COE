@@ -6,7 +6,7 @@
     <title>E-Catalog {{ $company->nama ?? 'UMKM' }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* BE112D0 EXACT DESIGN */
+        /* BE112D0 EXACT DESIGN - WORKING VERSION */
         * {
             margin: 0;
             padding: 0;
@@ -440,9 +440,8 @@
                     <div class="product-item">
                         <div class="product-image">
                             @if($produk->foto_path)
-                                <img src="{{ asset('storage/' . $produk->foto_path) }}" alt="{{ $produk->nama_produk }}" onerror="this.src='{{ asset('images/default-avatar.png') }}'">
+                                <img src="{{ asset('storage/' . $produk->foto_path) }}" alt="{{ $produk->nama_produk }}" onerror="this.src='{{ asset('storage/produk/fZcjKCtsSac3dfL09qaGsOt2qHxfiSiO0I9s8Cyb.jpg') }}'">
                             @else
-                                <!-- Use available product photos from storage -->
                                 <img src="{{ asset('storage/produk/fZcjKCtsSac3dfL09qaGsOt2qHxfiSiO0I9s8Cyb.jpg') }}" alt="{{ $produk->nama_produk }}" onerror="this.src='{{ asset('images/default-avatar.png') }}'">
                             @endif
                         </div>
