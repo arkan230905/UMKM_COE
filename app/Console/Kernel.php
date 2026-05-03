@@ -23,6 +23,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\DebugPembayaranBeban::class,
         \App\Console\Commands\DebugPembayaranBebanDetail::class,
         \App\Console\Commands\DebugBebanOperasional::class,
+        \App\Console\Commands\DebugLaporanBudget::class,
     ];
 
     /**
