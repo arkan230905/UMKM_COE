@@ -51,6 +51,8 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\CheckHPPCoaType::class,
         \App\Console\Commands\DebugLabaRugiData::class,
         \App\Console\Commands\DebugRealLabaRugi::class,
+        \App\Console\Commands\CheckPendapatanData::class,
+        \App\Console\Commands\DebugMinusBeban::class,
     ];
 
     /**
