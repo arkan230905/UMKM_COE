@@ -776,7 +776,7 @@ class JournalService
             foreach ($penjualans as $penjualan) {
                 try {
                     // Check if this sale already has HPP entries
-                    $hasHppEntries = \App\Models\JournalLine::whereHas('journalEntry', function($q) use ($penjualan) {
+                    $hasHppEntries = \App\Models\JournalLine::whereHas('entry', function($q) use ($penjualan) {
                         $q->where('ref_type', 'sale')->where('ref_id', $penjualan->id);
                     })->whereHas('coa', function($q) {
                         $q->where('kode_akun', '51'); // HPP account
