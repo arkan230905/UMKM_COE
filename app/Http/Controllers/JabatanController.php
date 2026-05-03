@@ -207,7 +207,8 @@ class JabatanController extends Controller
 
         $jabatans = $query->select(
             'id','nama','kategori','kategori_id',
-            'gaji_pokok','tarif_per_jam as tarif','tunjangan','asuransi'
+            'gaji_pokok','tarif_per_jam as tarif',
+            'tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi'
         )->orderBy('nama')->get();
 
         return response()->json([

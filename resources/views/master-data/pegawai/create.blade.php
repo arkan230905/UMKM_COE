@@ -94,11 +94,13 @@
                 <div class="alert alert-secondary small" id="preview-box" style="display:none">
                     <h6>Detail Kualifikasi Jabatan:</h6>
                     <div class="row">
-                        <div class="col-md-6"><strong>Kategori:</strong> <span id="pv-kategori">-</span></div>
-                        <div class="col-md-6"><strong>Tunjangan:</strong> Rp <span id="pv-tunjangan">0</span></div>
-                        <div class="col-md-6"><strong>Asuransi:</strong> Rp <span id="pv-asuransi">0</span></div>
-                        <div class="col-md-6"><strong>Gaji Pokok (BTKTL):</strong> Rp <span id="pv-gaji-pokok">0</span></div>
-                        <div class="col-md-6"><strong>Tarif / Jam (BTKL):</strong> Rp <span id="pv-tarif-per-jam">0</span></div>
+                        <div class="col-md-4"><strong>Kategori:</strong> <span id="pv-kategori">-</span></div>
+                        <div class="col-md-4"><strong>Tunj. Jabatan:</strong> Rp <span id="pv-tunjangan">0</span></div>
+                        <div class="col-md-4"><strong>Tunj. Transport:</strong> Rp <span id="pv-tunjangan-transport">0</span></div>
+                        <div class="col-md-4"><strong>Tunj. Konsumsi:</strong> Rp <span id="pv-tunjangan-konsumsi">0</span></div>
+                        <div class="col-md-4"><strong>Asuransi:</strong> Rp <span id="pv-asuransi">0</span></div>
+                        <div class="col-md-4"><strong>Gaji Pokok (BTKTL):</strong> Rp <span id="pv-gaji-pokok">0</span></div>
+                        <div class="col-md-4"><strong>Tarif / Jam (BTKL):</strong> Rp <span id="pv-tarif-per-jam">0</span></div>
                     </div>
                 </div>
             </div>
@@ -169,6 +171,8 @@ function loadJabatanByKategori() {
                         option.setAttribute('data-nama', jabatan.nama);
                         option.setAttribute('data-kategori', jabatan.kategori);
                         option.setAttribute('data-tunjangan', jabatan.tunjangan);
+                        option.setAttribute('data-tunjangan-transport', jabatan.tunjangan_transport);
+                        option.setAttribute('data-tunjangan-konsumsi', jabatan.tunjangan_konsumsi);
                         option.setAttribute('data-asuransi', jabatan.asuransi);
                         option.setAttribute('data-gaji', jabatan.gaji_pokok);
                         option.setAttribute('data-tarif', jabatan.tarif);
@@ -193,6 +197,8 @@ function loadJabatanDetail() {
             nama: selectedOption.getAttribute('data-nama'),
             kategori: selectedOption.getAttribute('data-kategori'),
             tunjangan: parseFloat(selectedOption.getAttribute('data-tunjangan')) || 0,
+            tunjangan_transport: parseFloat(selectedOption.getAttribute('data-tunjangan-transport')) || 0,
+            tunjangan_konsumsi: parseFloat(selectedOption.getAttribute('data-tunjangan-konsumsi')) || 0,
             asuransi: parseFloat(selectedOption.getAttribute('data-asuransi')) || 0,
             gaji_pokok: parseFloat(selectedOption.getAttribute('data-gaji')) || 0,
             tarif: parseFloat(selectedOption.getAttribute('data-tarif')) || 0
@@ -209,6 +215,8 @@ function updatePreview() {
     if (jabatanData.nama) {
         document.getElementById('pv-kategori').textContent = jabatanData.kategori ? jabatanData.kategori.toUpperCase() : '-';
         document.getElementById('pv-tunjangan').textContent = formatNumber(jabatanData.tunjangan);
+        document.getElementById('pv-tunjangan-transport').textContent = formatNumber(jabatanData.tunjangan_transport);
+        document.getElementById('pv-tunjangan-konsumsi').textContent = formatNumber(jabatanData.tunjangan_konsumsi);
         document.getElementById('pv-asuransi').textContent = formatNumber(jabatanData.asuransi);
         document.getElementById('pv-gaji-pokok').textContent = formatNumber(jabatanData.gaji_pokok);
         document.getElementById('pv-tarif-per-jam').textContent = formatNumber(jabatanData.tarif);
