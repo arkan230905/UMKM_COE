@@ -165,31 +165,37 @@ class JabatanController extends Controller
 
     public function getByKategori(Request $request)
     {
-        $kategoriId = $request->get('kategori_id');
+        // Support both 'kategori' and 'kategori_id' parameters
+        $kategori = $request->get('kategori') ?? $request->get('kategori_id');
 
-        if (!$kategoriId) {
-            return response()->json(['success' => false], 400);
+        if (!$kategori) {
+            return response()->json(['success' => false, 'message' => 'Parameter kategori required'], 400);
         }
 
-        if (is_numeric($kategoriId)) {
-            $kategoriPegawai = \App\Models\KategoriPegawai::find($kategoriId);
+        // MULTI-TENANT: Filter by user_id
+        $query = Jabatan::where('user_id', auth()->id());
+
+        // If kategori is numeric, it's a kategori_id
+        if (is_numeric($kategori)) {
+            $kategoriPegawai = \App\Models\KategoriPegawai::find($kategori);
             if (!$kategoriPegawai) {
                 return response()->json(['success' => true, 'data' => []]);
             }
 
             $kategoriName = strtolower($kategoriPegawai->nama);
 
-            $jabatans = Jabatan::where(function($q) use ($kategoriName, $kategoriId) {
+            $query->where(function($q) use ($kategoriName, $kategori) {
                 $q->where('kategori', $kategoriName)
-                      ->orWhere('kategori_id', $kategoriId);
+                  ->orWhere('kategori_id', $kategori);
             });
         } else {
-            $jabatans = Jabatan::where('kategori', strtolower($kategoriId));
+            // If kategori is string (btkl/btktl), filter by kategori
+            $query->where('kategori', strtolower($kategori));
         }
 
-        $jabatans = $jabatans->select(
+        $jabatans = $query->select(
             'id','nama','kategori','kategori_id',
-            'gaji_pokok','tarif_per_jam','tunjangan','asuransi'
+            'gaji_pokok','tarif_per_jam as tarif','tunjangan','asuransi'
         )->orderBy('nama')->get();
 
         return response()->json([
