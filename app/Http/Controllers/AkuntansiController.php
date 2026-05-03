@@ -90,6 +90,7 @@ class AkuntansiController extends Controller
         $queryJournalLines = DB::table('journal_lines as jl')
             ->join('journal_entries as je', 'jl.journal_entry_id', '=', 'je.id')
             ->join('coas', 'coas.id', '=', 'jl.coa_id')
+            ->where('je.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->whereBetween('je.tanggal', [$from, $to])
             ->select(
                 'coas.kode_akun',
@@ -109,6 +110,7 @@ class AkuntansiController extends Controller
         // PERBAIKAN: Exclude tipe yang sudah ada di journal_entries untuk menghindari duplikasi
         $queryJurnalUmum = DB::table('jurnal_umum as ju')
             ->join('coas', 'coas.id', '=', 'ju.coa_id')
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->whereBetween('ju.tanggal', [$from, $to])
             ->whereNotIn('ju.tipe_referensi', [
                 'purchase', 'sale', 'retur_pembelian', 'retur_penjualan',
@@ -259,6 +261,7 @@ class AkuntansiController extends Controller
         // Hanya ambil yang tidak ada di journal_entries untuk menghindari duplikasi
         $jurnalUmumQuery = \DB::table('jurnal_umum as ju')
             ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->select([
                 'ju.id',
                 'ju.tanggal',
@@ -431,6 +434,7 @@ class AkuntansiController extends Controller
         $query = \DB::table('journal_entries as je')
             ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
             ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
+            ->where('je.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->select([
                 'je.*',
                 'jl.id as line_id',
