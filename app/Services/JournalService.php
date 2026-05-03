@@ -473,7 +473,7 @@ class JournalService
         if ($totalHPP > 0) {
             // Debit HPP account
             $lines[] = [
-                'code' => '51', // HARGA POKOK PENJUALAN (HPP)
+                'code' => '560', // HARGA POKOK PENJUALAN (HPP)
                 'debit' => $totalHPP,
                 'credit' => 0,
                 'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
@@ -512,7 +512,7 @@ class JournalService
         if ($totalHPP > 0) {
             // Debit HPP account
             $lines[] = [
-                'code' => '51', // HARGA POKOK PENJUALAN (HPP)
+                'code' => '560', // HARGA POKOK PENJUALAN (HPP)
                 'debit' => $totalHPP,
                 'credit' => 0,
                 'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
@@ -783,7 +783,7 @@ class JournalService
                     $hasHppEntries = \App\Models\JournalLine::whereHas('entry', function($q) use ($penjualan) {
                         $q->where('ref_type', 'sale')->where('ref_id', $penjualan->id);
                     })->whereHas('coa', function($q) {
-                        $q->where('kode_akun', '51'); // HPP account
+                        $q->where('kode_akun', '560'); // HPP account
                     })->exists();
                     
                     if (!$hasHppEntries) {
