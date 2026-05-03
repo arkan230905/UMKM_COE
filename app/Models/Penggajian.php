@@ -15,6 +15,11 @@ class Penggajian extends Model
         parent::boot();
 
         static::creating(function ($penggajian) {
+            // CRITICAL: Auto-set user_id untuk multi-tenant isolation
+            if (empty($penggajian->user_id) && auth()->check()) {
+                $penggajian->user_id = auth()->id();
+            }
+            
             if (empty($penggajian->status_pembayaran)) {
                 $penggajian->status_pembayaran = 'belum_lunas';
             }
@@ -108,6 +113,7 @@ class Penggajian extends Model
     }
 
     protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation
         'pegawai_id',
         'tanggal_penggajian',
         'coa_kasbank',

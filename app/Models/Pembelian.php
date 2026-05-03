@@ -13,6 +13,7 @@ class Pembelian extends Model
     protected $table = 'pembelians';
 
     protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation
         'nomor_pembelian',
         'nomor_faktur',
         'vendor_id',
@@ -237,6 +238,11 @@ class Pembelian extends Model
         
         // Auto-generate nomor pembelian saat creating
         static::creating(function ($pembelian) {
+            // CRITICAL: Auto-set user_id untuk multi-tenant isolation
+            if (empty($pembelian->user_id) && auth()->check()) {
+                $pembelian->user_id = auth()->id();
+            }
+            
             if (empty($pembelian->nomor_pembelian)) {
                 $tanggal = $pembelian->tanggal ?? now();
                 $date = is_string($tanggal) ? $tanggal : $tanggal->format('Ymd');
