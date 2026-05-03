@@ -52,7 +52,12 @@
               @endphp
               <tr>
                 <td><strong>{{ $coa->kode_akun }}</strong></td>
-                <td>{{ $coa->nama_akun }}</td>
+                <td>
+                  {{ $coa->nama_akun }}
+                  @if($coa->kode_akun == '560')
+                    <small class="badge bg-warning text-dark ms-2">HPP</small>
+                  @endif
+                </td>
                 <td class="text-end">Rp {{ number_format($saldo, 0, ',', '.') }}</td>
               </tr>
             @empty
@@ -66,6 +71,16 @@
               <th colspan="2" class="text-end">TOTAL PENDAPATAN</th>
               <th class="text-end">Rp {{ number_format($totalPendapatan, 0, ',', '.') }}</th>
             </tr>
+            @if(isset($accountData['560']['saldo_akhir']) && $accountData['560']['saldo_akhir'] != 0)
+            <tr class="table-warning">
+              <th colspan="2" class="text-end">Dikurangi HPP</th>
+              <th class="text-end">-Rp {{ number_format($accountData['560']['saldo_akhir'], 0, ',', '.') }}</th>
+            </tr>
+            <tr class="table-success">
+              <th colspan="2" class="text-end">PENDAPATAN BERSIH</th>
+              <th class="text-end">Rp {{ number_format($totalPendapatan - ($accountData['560']['saldo_akhir'] ?? 0), 0, ',', '.') }}</th>
+            </tr>
+            @endif
           </tfoot>
 
           <!-- BEBAN -->
