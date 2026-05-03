@@ -37,6 +37,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\FixSaleUserIds::class,
         \App\Console\Commands\CheckHPPCoa::class,
         \App\Console\Commands\CreateHPPCoa::class,
+        \App\Console\Commands\CheckCoaStructure::class,
     ];
 
     /**
