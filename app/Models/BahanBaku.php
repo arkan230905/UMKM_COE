@@ -9,12 +9,26 @@ class BahanBaku extends Model
 {
     use HasFactory;
 
-    protected $table = 'bahan_bakus'; // <--- PENTING: samakan dengan nama tabel di migration
-    // Nonaktifkan sementara mass assignment protection untuk testing
+    protected $table = 'bahan_bakus';
     protected $guarded = [];
     
+    /**
+     * Boot method - auto-fill user_id untuk multi-tenant isolation
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($model) {
+            // CRITICAL: Auto-set user_id untuk multi-tenant isolation
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
+    
     protected $fillable = [
-        'nama_bahan',
+        'user_id',  // CRITICAL: multi-tenant isolation
         'kode_bahan',
         'satuan',
         'satuan_dasar',

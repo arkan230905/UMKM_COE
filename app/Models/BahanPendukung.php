@@ -12,6 +12,7 @@ class BahanPendukung extends Model
     protected $table = 'bahan_pendukungs';
 
     protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation
         'kode_bahan',
         'nama_bahan',
         'deskripsi',
@@ -54,11 +55,16 @@ class BahanPendukung extends Model
     protected $appends = ['stok_aman', 'status_stok', 'stok'];
 
     /**
-     * Boot method untuk auto-generate kode
+     * Boot method untuk auto-generate kode dan auto-set user_id
      */
     protected static function booted()
     {
         static::creating(function ($model) {
+            // CRITICAL: Auto-set user_id untuk multi-tenant isolation
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+            
             if (empty($model->kode_bahan)) {
                 $model->kode_bahan = self::generateKode();
             }
