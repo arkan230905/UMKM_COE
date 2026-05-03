@@ -20,6 +20,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\UpdateApril2026JournalValues::class,
         \App\Console\Commands\ValidateKasBankConsistency::class,
         \App\Console\Commands\SyncHPP::class,
+        \App\Console\Commands\DebugPembayaranBeban::class,
     ];
 
     /**
