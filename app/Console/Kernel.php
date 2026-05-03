@@ -21,6 +21,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\ValidateKasBankConsistency::class,
         \App\Console\Commands\SyncHPP::class,
         \App\Console\Commands\DebugPembayaranBeban::class,
+        \App\Console\Commands\DebugPembayaranBebanDetail::class,
     ];
 
     /**
