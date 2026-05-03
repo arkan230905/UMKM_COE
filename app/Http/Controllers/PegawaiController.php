@@ -68,7 +68,8 @@ class PegawaiController extends Controller
     {
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            'email' => 'required|email|unique:pegawais,email',
+            // CRITICAL: Add user_id to unique validation for multi-tenant isolation
+            'email' => 'required|email|unique:pegawais,email,NULL,id,user_id,' . auth()->id(),
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
@@ -165,7 +166,8 @@ class PegawaiController extends Controller
         $oldEmail = $pegawai->email;
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            'email' => 'required|email|unique:pegawais,email,'.$pegawai->id,
+            // CRITICAL: Add user_id to unique validation for multi-tenant isolation
+            'email' => 'required|email|unique:pegawais,email,'.$pegawai->id.',id,user_id,' . auth()->id(),
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',

@@ -124,7 +124,8 @@ class BahanPendukungController extends Controller
         $this->convertCommaToDecimal($request);
         
         $validated = $request->validate([
-            'nama_bahan' => 'required|string|max:255|unique:bahan_pendukungs,nama_bahan',
+            // CRITICAL: Add user_id to unique validation for multi-tenant isolation
+            'nama_bahan' => 'required|string|max:255|unique:bahan_pendukungs,nama_bahan,NULL,id,user_id,' . auth()->id(),
             'deskripsi' => 'nullable|string',
             'satuan_id' => 'required|exists:satuans,id',
             'harga_satuan' => 'required|numeric|min:0',
@@ -215,7 +216,8 @@ class BahanPendukungController extends Controller
             
             // Proper validation rules
             $validated = $request->validate([
-                'nama_bahan' => 'required|string|max:255|unique:bahan_pendukungs,nama_bahan,' . $bahanPendukung->id,
+                // CRITICAL: Add user_id to unique validation for multi-tenant isolation
+                'nama_bahan' => 'required|string|max:255|unique:bahan_pendukungs,nama_bahan,' . $bahanPendukung->id . ',id,user_id,' . auth()->id(),
                 'deskripsi' => 'nullable|string',
                 'satuan_id' => 'required|exists:satuans,id',
                 'harga_satuan' => 'required|numeric|min:0',

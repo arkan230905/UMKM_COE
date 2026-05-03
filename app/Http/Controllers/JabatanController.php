@@ -45,7 +45,8 @@ class JabatanController extends Controller
         ]);
 
         $data = $request->validate([
-            'nama' => 'required|string|max:255|unique:jabatans,nama',
+            // CRITICAL: Add user_id to unique validation for multi-tenant isolation
+            'nama' => 'required|string|max:255|unique:jabatans,nama,NULL,id,user_id,' . auth()->id(),
             'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
@@ -98,7 +99,8 @@ class JabatanController extends Controller
         ]);
 
         $data = $request->validate([
-            'nama' => 'required|string|max:255|unique:jabatans,nama,' . $jabatan->id,
+            // CRITICAL: Add user_id to unique validation for multi-tenant isolation
+            'nama' => 'required|string|max:255|unique:jabatans,nama,' . $jabatan->id . ',id,user_id,' . auth()->id(),
             'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
