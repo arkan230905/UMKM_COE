@@ -750,29 +750,6 @@ class JournalService
                 } catch (\Exception $e) {
                     $stats['errors']++;
                     \Log::error('Error syncing pembelian journal: ' . $e->getMessage(), ['pembelian_id' => $pembelian->id]);
-                }
-            }
-            
-            // Sync all ReturPenjualan transactions
-            $returPenjualans = \App\Models\ReturPenjualan::all();
-            foreach ($returPenjualans as $retur) {
-                try {
-                    static::createJournalFromReturPenjualan($retur);
-                    $stats['synced']++;
-                } catch (\Exception $e) {
-                    $stats['errors']++;
-                    \Log::error('Error syncing retur penjualan journal: ' . $e->getMessage(), ['retur_id' => $retur->id]);
-                }
-            }
-            
-            // Sync all PelunasanUtang transactions
-            $pelunasanUtangs = \App\Models\PelunasanUtang::all();
-            foreach ($pelunasanUtangs as $pelunasan) {
-                try {
-                    static::createJournalFromPelunasanUtang($pelunasan);
-                    $stats['synced']++;
-                } catch (\Exception $e) {
-                    $stats['errors']++;
                     \Log::error('Error syncing pelunasan utang journal: ' . $e->getMessage(), ['pelunasan_id' => $pelunasan->id]);
                 }
             }
@@ -780,6 +757,48 @@ class JournalService
         } catch (\Exception $e) {
             \Log::error('Error in syncAllTransactionsToJurnalUmum: ' . $e->getMessage());
             $stats['errors']++;
+        }
+        
+        return $stats;
+    }
+    
+    /**
+     * Sync HPP for existing sales that don't have HPP entries
+     */
+    public static function syncHPPForExistingSales(): array
+    {
+        $stats = ['synced' => 0, 'errors' => 0, 'skipped' => 0];
+        
+        try {
+            // Get all sales transactions
+            $penjualans = \App\Models\Penjualan::with(['details.produk', 'produk'])->get();
+            
+            foreach ($penjualans as $penjualan) {
+                try {
+                    // Check if this sale already has HPP entries
+                    $hasHppEntries = \App\Models\JournalLine::whereHas('journalEntry', function($q) use ($penjualan) {
+                        $q->where('ref_type', 'sale')->where('ref_id', $penjualan->id);
+                    })->whereHas('coa', function($q) {
+                        $q->where('kode_akun', '51'); // HPP account
+                    })->exists();
+                    
+                    if (!$hasHppEntries) {
+                        // Create journal entries including HPP
+                        static::createJournalFromPenjualan($penjualan);
+                        $stats['synced']++;
+                        \Log::info('HPP synced for penjualan', ['penjualan_id' => $penjualan->id]);
+                    } else {
+                        $stats['skipped']++;
+                    }
+                    
+                } catch (\Exception $e) {
+                    $stats['errors']++;
+                    \Log::error('Error syncing HPP for penjualan: ' . $e->getMessage(), ['penjualan_id' => $penjualan->id]);
+                }
+            }
+            
+        } catch (\Exception $e) {
+            \Log::error('Error in syncHPPForExistingSales: ' . $e->getMessage());
         }
         
         return $stats;
