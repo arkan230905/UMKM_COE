@@ -51,14 +51,9 @@ class PegawaiController extends Controller
             ->where('user_id', auth()->id())
             ->orderBy('nama')
             ->get();
-        // Get distinct kategori values from jabatans table
-        $kategoris = \App\Models\Jabatan::select('kategori')
-            ->where('user_id', auth()->id())
-            ->whereNotNull('kategori')
-            ->where('kategori', '!=', '')
-            ->distinct()
-            ->orderBy('kategori')
-            ->pluck('kategori');
+        
+        // Hardcode kategori BTKL dan BTKTL (always available)
+        $kategoris = collect(['btkl', 'btktl']);
         
         return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
     }
