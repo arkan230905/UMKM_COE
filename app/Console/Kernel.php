@@ -31,6 +31,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\DebugJurnalUmum::class,
         \App\Console\Commands\DebugExactJurnalQuery::class,
         \App\Console\Commands\DebugJurnalFilter::class,
+        \App\Console\Commands\FindSaleUser::class,
     ];
 
     /**
