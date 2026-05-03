@@ -53,6 +53,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\DebugRealLabaRugi::class,
         \App\Console\Commands\CheckPendapatanData::class,
         \App\Console\Commands\DebugMinusBeban::class,
+        \App\Console\Commands\FixMinusBeban::class,
     ];
 
     /**
