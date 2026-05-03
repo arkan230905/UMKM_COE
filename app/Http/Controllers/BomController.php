@@ -331,7 +331,14 @@ class BomController extends Controller
                 $btklDataForDisplay = $btklDataRaw->map(function($item) {
                     $jumlahPegawai = 0;
                     if ($item->nama_jabatan) {
-                        $jumlahPegawai = Pegawai::where('jabatan', $item->nama_jabatan)->count();
+                        // CRITICAL MULTI-TENANT: Filter by user_id
+                        $jumlahPegawai = Pegawai::where('user_id', auth()->id())
+                            ->where(function($q) use ($item) {
+                                $q->where('jabatan', $item->nama_jabatan)
+                                  ->orWhereHas('jabatanRelasi', function($jq) use ($item) {
+                                      $jq->where('nama', $item->nama_jabatan);
+                                  });
+                            })->count();
                     }
                     
                     return [
@@ -503,7 +510,14 @@ class BomController extends Controller
                     if ($item->keterangan && preg_match('/(\d+)\s*pegawai/', $item->keterangan, $matches)) {
                         $jumlahPegawai = intval($matches[1]);
                     } elseif ($item->nama_jabatan) {
-                        $jumlahPegawai = Pegawai::where('jabatan', $item->nama_jabatan)->count();
+                        // CRITICAL MULTI-TENANT: Filter by user_id
+                        $jumlahPegawai = Pegawai::where('user_id', auth()->id())
+                            ->where(function($q) use ($item) {
+                                $q->where('jabatan', $item->nama_jabatan)
+                                  ->orWhereHas('jabatanRelasi', function($jq) use ($item) {
+                                      $jq->where('nama', $item->nama_jabatan);
+                                  });
+                            })->count();
                     }
                     
                     // Use tarif from jabatan if available, otherwise from bom_job_btkl
@@ -947,8 +961,12 @@ class BomController extends Controller
             }
             
             // Get all BTKL processes with their BOP
+            // CRITICAL MULTI-TENANT: Filter by user_id
             $prosesBtkl = ProsesProduksi::where('kapasitas_per_jam', '>', 0)
                 ->with(['jabatan', 'bopProses'])
+                ->whereHas('jabatan', function($q) {
+                    $q->where('user_id', auth()->id());
+                })
                 ->get()
                 ->map(function($proses) {
                     // Calculate tarif BTKL: Jumlah Pegawai × Tarif per Jam Jabatan
@@ -956,8 +974,15 @@ class BomController extends Controller
                     $tarifPerJamJabatan = 0;
                     
                     if ($proses->jabatan) {
-                        $jumlahPegawai = Pegawai::where('jabatan', $proses->jabatan->nama)->count();
-                        $tarifPerJamJabatan = $proses->jabatan->tarif ?? 0;
+                        // CRITICAL MULTI-TENANT: Filter pegawai by user_id AND jabatan
+                        $jumlahPegawai = Pegawai::where('user_id', auth()->id())
+                            ->where(function($q) use ($proses) {
+                                $q->where('jabatan_id', $proses->jabatan->id)
+                                  ->orWhere('jabatan', $proses->jabatan->nama);
+                            })
+                            ->count();
+                        // Use tarif_per_jam (correct field) not tarif
+                        $tarifPerJamJabatan = $proses->jabatan->tarif_per_jam ?? $proses->jabatan->tarif ?? 0;
                     }
                     
                     $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
@@ -1049,8 +1074,13 @@ class BomController extends Controller
                 $tarifPerJamJabatan = 0;
                 
                 if ($proses->jabatan) {
-                    $jumlahPegawai = Pegawai::where('jabatan', $proses->jabatan->nama)->count();
-                    $tarifPerJamJabatan = $proses->jabatan->tarif ?? 0;
+                    // CRITICAL MULTI-TENANT: Filter by user_id
+                    $jumlahPegawai = Pegawai::where('user_id', auth()->id())
+                        ->where(function($q) use ($proses) {
+                            $q->where('jabatan_id', $proses->jabatan->id)
+                              ->orWhere('jabatan', $proses->jabatan->nama);
+                        })->count();
+                    $tarifPerJamJabatan = $proses->jabatan->tarif_per_jam ?? $proses->jabatan->tarif ?? 0;
                 }
                 
                 $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
@@ -1164,8 +1194,13 @@ class BomController extends Controller
                     $tarifPerJamJabatan = 0;
                     
                     if ($proses->jabatan) {
-                        $jumlahPegawai = Pegawai::where('jabatan', $proses->jabatan->nama)->count();
-                        $tarifPerJamJabatan = $proses->jabatan->tarif ?? 0;
+                        // CRITICAL MULTI-TENANT: Filter by user_id
+                        $jumlahPegawai = Pegawai::where('user_id', auth()->id())
+                            ->where(function($q) use ($proses) {
+                                $q->where('jabatan_id', $proses->jabatan->id)
+                                  ->orWhere('jabatan', $proses->jabatan->nama);
+                            })->count();
+                        $tarifPerJamJabatan = $proses->jabatan->tarif_per_jam ?? $proses->jabatan->tarif ?? 0;
                     }
                     
                     $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
@@ -1265,8 +1300,13 @@ class BomController extends Controller
                 $tarifPerJamJabatan = 0;
                 
                 if ($proses->jabatan) {
-                    $jumlahPegawai = Pegawai::where('jabatan', $proses->jabatan->nama)->count();
-                    $tarifPerJamJabatan = $proses->jabatan->tarif ?? 0;
+                    // CRITICAL MULTI-TENANT: Filter by user_id
+                    $jumlahPegawai = Pegawai::where('user_id', auth()->id())
+                        ->where(function($q) use ($proses) {
+                            $q->where('jabatan_id', $proses->jabatan->id)
+                              ->orWhere('jabatan', $proses->jabatan->nama);
+                        })->count();
+                    $tarifPerJamJabatan = $proses->jabatan->tarif_per_jam ?? $proses->jabatan->tarif ?? 0;
                 }
                 
                 $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
