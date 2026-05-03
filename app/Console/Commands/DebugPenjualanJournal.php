@@ -45,7 +45,7 @@ class DebugPenjualanJournal extends Command
             $this->info("  Payment Method: {$penjualan->payment_method}");
             
             // Check journal entries for this penjualan
-            $journalEntries = JournalEntry::where('ref_type', 'sale')
+            $journalEntries = \App\Models\JournalEntry::where('ref_type', 'sale')
                 ->where('ref_id', $penjualan->id)
                 ->get();
                 
@@ -55,7 +55,7 @@ class DebugPenjualanJournal extends Command
                 foreach ($journalEntries as $entry) {
                     $this->info("    Entry ID: {$entry->id}, Date: {$entry->tanggal}");
                     
-                    $journalLines = JournalLine::where('journal_entry_id', $entry->id)->get();
+                    $journalLines = \App\Models\JournalLine::where('journal_entry_id', $entry->id)->get();
                     $this->info("    Journal Lines: {$journalLines->count()}");
                     
                     foreach ($journalLines as $line) {
@@ -72,7 +72,7 @@ class DebugPenjualanJournal extends Command
                     $this->info("    ✅ Journal entries created successfully");
                     
                     // Check again
-                    $newEntries = JournalEntry::where('ref_type', 'sale')
+                    $newEntries = \App\Models\JournalEntry::where('ref_type', 'sale')
                         ->where('ref_id', $penjualan->id)
                         ->get();
                     $this->info("    New Journal Entries: {$newEntries->count()}");
@@ -85,9 +85,9 @@ class DebugPenjualanJournal extends Command
         
         // Summary
         $totalPenjualan = Penjualan::where('user_id', $userId)->count();
-        $totalJournalEntries = JournalEntry::where('ref_type', 'sale')
+        $totalJournalEntries = \App\Models\JournalEntry::where('ref_type', 'sale')
             ->whereIn('ref_id', function($query) use ($userId) {
-                $query->select('id')->from('penjualan')->where('user_id', $userId);
+                $query->select('id')->from('penjualans')->where('user_id', $userId);
             })
             ->count();
             
