@@ -3363,6 +3363,7 @@ Route::post('/{id}/proses', [ReturController::class, 'proses'])->name('proses');
         Route::get('/', [KelolaCatalogController::class, 'index'])->name('index');
         Route::get('/preview', [KelolaCatalogController::class, 'preview'])->name('preview');
         Route::get('/settings', [KelolaCatalogController::class, 'settings'])->name('settings');
+        Route::post('/builder/save', [KelolaCatalogController::class, 'updateCatalogSettings'])->name('builder.save');
         Route::post('/settings/update', [KelolaCatalogController::class, 'updateSettings'])->name('settings.update');
         Route::post('/settings/catalog', [KelolaCatalogController::class, 'updateCatalogSettings'])->name('settings.catalog.update');
         Route::post('/settings/company-info', [KelolaCatalogController::class, 'updateCompanyInfo'])->name('settings.company.update');
