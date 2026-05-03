@@ -526,33 +526,65 @@ function generateJurnalPreview(totalBBB, totalBTKL, totalBOP, totalHPP, qty) {
         </tr>`;
         totalDebit += totalBOP;
         
-        // KREDIT: Bahan Pendukung (per item)
-        currentBomData.biaya_bahan.bahan_pendukung.forEach(bahan => {
-            const totalBahan = bahan.harga_per_unit * qty;
-            if (totalBahan > 0) {
+        // KREDIT: Per komponen BOP (dari bop_komponen)
+        if (currentBomData.bop_komponen && currentBomData.bop_komponen.length > 0) {
+            let totalKreditBOP = 0;
+            currentBomData.bop_komponen.forEach(komponen => {
+                const totalKomponen = komponen.subtotal * qty;
+                if (totalKomponen > 0) {
+                    rows += `<tr>
+                        <td></td>
+                        <td class="ps-4 text-muted">${komponen.coa_nama}</td>
+                        <td class="text-muted">${komponen.coa_kode}</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end text-danger">${formatRupiah(totalKomponen)}</td>
+                    </tr>`;
+                    totalKredit += totalKomponen;
+                    totalKreditBOP += totalKomponen;
+                }
+            });
+            
+            // Jika ada selisih (pembulatan), tambahkan ke Hutang Usaha
+            const selisih = totalBOP - totalKreditBOP;
+            if (Math.abs(selisih) > 1) {
                 rows += `<tr>
                     <td></td>
-                    <td class="ps-4 text-muted">${bahan.coa_persediaan_nama ?? bahan.nama}</td>
-                    <td class="text-muted">${bahan.coa_persediaan_kode ?? '1151'}</td>
+                    <td class="ps-4 text-muted">Hutang Usaha</td>
+                    <td class="text-muted">210</td>
                     <td class="text-end">-</td>
-                    <td class="text-end text-danger">${formatRupiah(totalBahan)}</td>
+                    <td class="text-end text-danger">${formatRupiah(selisih)}</td>
                 </tr>`;
-                totalKredit += totalBahan;
+                totalKredit += selisih;
             }
-        });
-        
-        // KREDIT: BOP overhead (Hutang Usaha untuk sisa BOP)
-        const totalBahanPendukung = currentBomData.biaya_bahan.bahan_pendukung.reduce((sum, b) => sum + (b.harga_per_unit * qty), 0);
-        const sisaBOP = totalBOP - totalBahanPendukung;
-        if (sisaBOP > 0) {
-            rows += `<tr>
-                <td></td>
-                <td class="ps-4 text-muted">Hutang Usaha (BOP Overhead)</td>
-                <td class="text-muted">210</td>
-                <td class="text-end">-</td>
-                <td class="text-end text-danger">${formatRupiah(sisaBOP)}</td>
-            </tr>`;
-            totalKredit += sisaBOP;
+        } else {
+            // Fallback: Bahan Pendukung + Hutang Usaha
+            const totalBahanPendukung = currentBomData.biaya_bahan.bahan_pendukung.reduce((sum, b) => sum + (b.harga_per_unit * qty), 0);
+            
+            currentBomData.biaya_bahan.bahan_pendukung.forEach(bahan => {
+                const totalBahan = bahan.harga_per_unit * qty;
+                if (totalBahan > 0) {
+                    rows += `<tr>
+                        <td></td>
+                        <td class="ps-4 text-muted">${bahan.coa_persediaan_nama ?? bahan.nama}</td>
+                        <td class="text-muted">${bahan.coa_persediaan_kode ?? '1151'}</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end text-danger">${formatRupiah(totalBahan)}</td>
+                    </tr>`;
+                    totalKredit += totalBahan;
+                }
+            });
+            
+            const sisaBOP = totalBOP - totalBahanPendukung;
+            if (sisaBOP > 0) {
+                rows += `<tr>
+                    <td></td>
+                    <td class="ps-4 text-muted">Hutang Usaha (BOP Overhead)</td>
+                    <td class="text-muted">210</td>
+                    <td class="text-end">-</td>
+                    <td class="text-end text-danger">${formatRupiah(sisaBOP)}</td>
+                </tr>`;
+                totalKredit += sisaBOP;
+            }
         }
     }
     

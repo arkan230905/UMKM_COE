@@ -864,12 +864,16 @@ class ProduksiController extends Controller
                     ];
                 }
 
-                // Get BOP from BomJobBOP - Group by process like in detail page
+                // Get BOP from BomJobBOP - Return individual components for jurnal detail
+                $bomJobBOPs = \App\Models\BomJobBOP::where('bom_job_costing_id', $bomJobCosting->id)
+                    ->with(['bop.coa'])
+                    ->get();
+                
+                // Group by process for display (existing behavior)
                 $bopByProcess = [];
+                // Also collect individual components for jurnal
+                $bopKomponen = [];
                 
-                $bomJobBOPs = \App\Models\BomJobBOP::where('bom_job_costing_id', $bomJobCosting->id)->get();
-                
-                // Group BOP components by process
                 foreach ($bomJobBOPs as $bomJobBOP) {
                     $namaProses = 'Umum';
                     $namaBiaya = strtolower($bomJobBOP->nama_bop ?? '');
@@ -885,17 +889,51 @@ class ProduksiController extends Controller
                     if (!isset($bopByProcess[$namaProses])) {
                         $bopByProcess[$namaProses] = 0;
                     }
-                    
                     $bopByProcess[$namaProses] += $bomJobBOP->subtotal ?? 0;
+                    
+                    // Determine COA for this BOP component
+                    // Check if it's a bahan pendukung type (from keterangan or nama_bop)
+                    $coaKode = '210'; // Default: Hutang Usaha
+                    $coaNama = 'Hutang Usaha';
+                    $isBahanPendukung = false;
+                    
+                    if ($bomJobBOP->bop && $bomJobBOP->bop->coa) {
+                        $coaKode = $bomJobBOP->bop->coa->kode_akun ?? '210';
+                        $coaNama = $bomJobBOP->bop->coa->nama_akun ?? 'Hutang Usaha';
+                    } elseif ($bomJobBOP->bop && $bomJobBOP->bop->kode_akun) {
+                        $coaKode = $bomJobBOP->bop->kode_akun;
+                        $coaNama = $bomJobBOP->bop->nama_akun ?? 'Hutang Usaha';
+                    }
+                    
+                    // Check if this BOP component is related to bahan pendukung
+                    $keterangan = strtolower($bomJobBOP->keterangan ?? '');
+                    $namaBopLower = strtolower($bomJobBOP->nama_bop ?? '');
+                    if (stripos($keterangan, 'bahan pendukung') !== false || 
+                        stripos($namaBopLower, 'bahan pendukung') !== false ||
+                        stripos($namaBopLower, 'persediaan') !== false) {
+                        $isBahanPendukung = true;
+                    }
+                    
+                    $bopKomponen[] = [
+                        'nama_bop' => $bomJobBOP->nama_bop ?? 'BOP',
+                        'keterangan' => $bomJobBOP->keterangan ?? '',
+                        'subtotal' => $bomJobBOP->subtotal ?? 0,
+                        'coa_kode' => $coaKode,
+                        'coa_nama' => $coaNama,
+                        'is_bahan_pendukung' => $isBahanPendukung,
+                    ];
                 }
                 
-                // Convert to array format expected by frontend
+                // Convert to array format expected by frontend (grouped for display)
                 foreach ($bopByProcess as $processName => $totalCost) {
                     $breakdown['bop'][] = [
                         'nama' => $processName,
                         'harga_per_unit' => $totalCost
                     ];
                 }
+                
+                // Add individual BOP components for jurnal
+                $breakdown['bop_komponen'] = $bopKomponen;
 
                 return response()->json([
                     'success' => true,
