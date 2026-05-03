@@ -114,6 +114,9 @@ class PresensiController extends Controller
         }
         $data['jumlah_jam'] = 0;
         
+        // CRITICAL: Set user_id untuk multi-tenant isolation
+        $data['user_id'] = auth()->id();
+        
         // Calculate working hours if both times are provided
         if ($request->filled('jam_masuk') && $request->filled('jam_keluar')) {
             $jamMasuk = Carbon::createFromFormat('H:i', $request->jam_masuk);
@@ -152,7 +155,8 @@ class PresensiController extends Controller
     public function edit($id)
     {
         $presensi = Presensi::findOrFail($id);
-        $pegawais = Pegawai::all();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $pegawais = Pegawai::where('user_id', auth()->id())->get();
         return view('transaksi.presensi.edit', compact('presensi', 'pegawais'));
     }
     

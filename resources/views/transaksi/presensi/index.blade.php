@@ -2,6 +2,17 @@
 
 @section('content')
 <style>
+/* Definisi variabel warna tema cokelat */
+:root {
+    --primary-gold: #8B5E3C;
+    --secondary-gold: #A0714F;
+    --light-gold: #C49A6C;
+    --accent-gold: #B07D4F;
+    --dark: #3E2723;
+    --white: #ffffff;
+    --shadow: rgba(139, 94, 60, 0.25);
+}
+
 /* CSS Reset untuk menghilangkan underline - HIGHEST PRIORITY */
 * {
     text-decoration: none !important;
