@@ -326,6 +326,112 @@ class JournalService
     }
 
     /**
+     * Create journal entries from Penjualan with HPP
+     * Dr. Kas/Bank/Piutang | Cr. Pendapatan Penjualan
+     * Dr. HPP | Cr. Persediaan Barang Jadi
+     */
+    public static function createJournalFromPenjualan($penjualan, $userId = null): void
+    {
+        $service = new static();
+        
+        // Delete existing journal entries for this penjualan
+        $service->deleteByRef('sale', $penjualan->id);
+        
+        $lines = [];
+        $totalAmount = $penjualan->total ?? 0;
+        
+        // Create debit entry based on payment method (Kas/Bank/Piutang)
+        $debitAccount = null;
+        $debitMemo = '';
+        
+        switch ($penjualan->payment_method) {
+            case 'cash':
+                // Cari COA Kas yang ada di database
+                $kasCoa = Coa::where('tipe_akun', 'Asset')
+                    ->where(function($query) {
+                        $query->where('nama_akun', 'like', '%kas%')
+                              ->where('nama_akun', 'not like', '%bank%');
+                    })
+                    ->orWhere('kode_akun', '112') // Kas
+                    ->orWhere('kode_akun', '101')
+                    ->first();
+                
+                $debitAccount = $kasCoa ? $kasCoa->kode_akun : '112';
+                $debitMemo = 'Penerimaan tunai penjualan';
+                break;
+                
+            case 'transfer':
+                // Cari COA Bank yang ada di database
+                $bankCoa = Coa::where('tipe_akun', 'Asset')
+                    ->where(function($query) {
+                        $query->where('nama_akun', 'like', '%bank%')
+                              ->orWhere('nama_akun', 'like', '%kas%bank%');
+                    })
+                    ->orWhere('kode_akun', '1102')
+                    ->orWhere('kode_akun', '102')
+                    ->first();
+                
+                $debitAccount = $bankCoa ? $bankCoa->kode_akun : '111'; // Kas Bank
+                $debitMemo = 'Penerimaan transfer penjualan';
+                break;
+                
+            case 'credit':
+                // Cari COA Piutang yang ada di database
+                $piutangCoa = Coa::where('tipe_akun', 'Asset')
+                    ->where(function($query) {
+                        $query->where('nama_akun', 'like', '%piutang%')
+                              ->orWhere('nama_akun', 'like', '%piutang%usaha%');
+                    })
+                    ->orWhere('kode_akun', '113') // Piutang Usaha
+                    ->orWhere('kode_akun', '103')
+                    ->first();
+                
+                $debitAccount = $piutangCoa ? $piutangCoa->kode_akun : '113';
+                $debitMemo = 'Penerimaan kredit penjualan';
+                break;
+                
+            default:
+                // Default to Kas
+                $debitAccount = '112';
+                $debitMemo = 'Penerimaan penjualan';
+        }
+        
+        $lines[] = [
+            'code' => $debitAccount,
+            'debit' => $totalAmount,
+            'credit' => 0,
+            'memo' => $debitMemo
+        ];
+        
+        // Create credit entry for sales revenue - gunakan COA 41 (PENDAPATAN)
+        $penjualanCoa = Coa::where('kode_akun', '41')->first();
+        
+        $creditAccount = $penjualanCoa ? $penjualanCoa->kode_akun : '41';
+        
+        $lines[] = [
+            'code' => $creditAccount,
+            'debit' => 0,
+            'credit' => $totalAmount,
+            'memo' => 'Pendapatan penjualan produk'
+        ];
+        
+        // Add HPP journal entries with detailed breakdown
+        $hppLines = $service->createHPPLinesFromPenjualan($penjualan);
+        $lines = array_merge($lines, $hppLines);
+        
+        // Create journal entry
+        $memo = 'Penjualan #' . ($penjualan->nomor_penjualan ?? $penjualan->id);
+        $tanggal = $penjualan->tanggal instanceof \Carbon\Carbon ? 
+                   $penjualan->tanggal->format('Y-m-d') : 
+                   $penjualan->tanggal;
+        
+        // Use provided userId or fallback to penjualan's user_id
+        $finalUserId = $userId ?? $penjualan->user_id ?? auth()->id();
+        
+        $service->postWithUser($tanggal, 'sale', $penjualan->id, $memo, $lines, $finalUserId);
+    }
+
+    /**
      * Create HPP journal lines from Penjualan with simplified calculation
      * Dr. HPP | Cr. Persediaan Barang Jadi
      */
