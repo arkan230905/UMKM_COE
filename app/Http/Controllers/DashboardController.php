@@ -423,8 +423,10 @@ class DashboardController extends Controller
             // Hitung dari penjualan tunai bulan ini
             $startOfMonth = now()->startOfMonth();
             $endOfMonth = now()->endOfMonth();
+            $user = auth()->user();
 
             $totalPenjualan = Penjualan::whereBetween('tanggal', [$startOfMonth, $endOfMonth])
+                ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
                 ->sum('total');
             
             return (float)$totalPenjualan;
@@ -441,7 +443,9 @@ class DashboardController extends Controller
     {
         try {
             // Hitung dari penjualan kredit yang belum lunas
+            $user = auth()->user();
             $totalPiutang = Penjualan::where('payment_method', 'credit')
+                ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
                 ->whereIn('status', ['pending', 'partial'])
                 ->sum('sisa_pembayaran');
             
@@ -459,7 +463,9 @@ class DashboardController extends Controller
     {
         try {
             // Hitung dari pembelian kredit yang belum lunas
+            $user = auth()->user();
             $totalUtang = Pembelian::where('payment_method', 'credit')
+                ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
                 ->where('status', '!=', 'lunas')
                 ->sum('sisa_pembayaran');
             
@@ -479,6 +485,7 @@ class DashboardController extends Controller
         $currentYear = now()->year;
         $lastMonth = $currentMonth - 1;
         $lastMonthYear = $currentYear;
+        $user = auth()->user();
         
         if ($lastMonth === 0) {
             $lastMonth = 12;
@@ -492,18 +499,22 @@ class DashboardController extends Controller
             case 'penjualan':
                 $currentCount = Penjualan::whereMonth('tanggal', $currentMonth)
                     ->whereYear('tanggal', $currentYear)
+                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
                     ->count();
                 $lastCount = Penjualan::whereMonth('tanggal', $lastMonth)
                     ->whereYear('tanggal', $lastMonthYear)
+                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
                     ->count();
                 break;
                 
             case 'pembelian':
                 $currentCount = Pembelian::whereMonth('tanggal', $currentMonth)
                     ->whereYear('tanggal', $currentYear)
+                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
                     ->count();
                 $lastCount = Pembelian::whereMonth('tanggal', $lastMonth)
                     ->whereYear('tanggal', $lastMonthYear)
+                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
                     ->count();
                 break;
                 
@@ -511,9 +522,11 @@ class DashboardController extends Controller
                 if (\Schema::hasTable('produksis')) {
                     $currentCount = \App\Models\Produksi::whereMonth('tanggal', $currentMonth)
                         ->whereYear('tanggal', $currentYear)
+                        ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
                         ->count();
                     $lastCount = \App\Models\Produksi::whereMonth('tanggal', $lastMonth)
                         ->whereYear('tanggal', $lastMonthYear)
+                        ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
                         ->count();
                 } else {
                     $currentCount = 0;
@@ -524,9 +537,11 @@ class DashboardController extends Controller
             case 'retur':
                 $currentCount = Retur::whereMonth('tanggal', $currentMonth)
                     ->whereYear('tanggal', $currentYear)
+                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
                     ->count();
                 $lastCount = Retur::whereMonth('tanggal', $lastMonth)
                     ->whereYear('tanggal', $lastMonthYear)
+                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
                     ->count();
                 break;
         }
@@ -606,6 +621,7 @@ class DashboardController extends Controller
         try {
             $data = [];
             $labels = [];
+            $user = auth()->user();
             
             // Get last 12 months
             for ($i = 11; $i >= 0; $i--) {
@@ -616,6 +632,7 @@ class DashboardController extends Controller
                 // Get total sales for this month
                 $total = Penjualan::whereMonth('tanggal', $month)
                     ->whereYear('tanggal', $year)
+                    ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
                     ->sum('total');
                 
                 $labels[] = $date->format('M Y');

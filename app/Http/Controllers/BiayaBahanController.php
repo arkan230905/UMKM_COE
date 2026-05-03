@@ -31,7 +31,8 @@ class BiayaBahanController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Produk::query();
+        $user = auth()->user();
+        $query = Produk::query()->where('user_id', $user->id); // 🔒 SECURITY: Add user_id filter
         
         // Filter by nama produk
         if ($request->filled('nama_produk')) {

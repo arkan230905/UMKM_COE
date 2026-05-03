@@ -29,7 +29,7 @@ class BebanController extends Controller
             'tanggal' => 'required|date',
         ]);
 
-        Beban::create($request->all());
+        Beban::create(array_merge($request->all(), ['user_id' => auth()->id()])); // 🔒 SECURITY: Add user_id
 
         return redirect()->route('master-data.beban.index')
             ->with('success', 'Data beban berhasil ditambahkan.');

@@ -110,6 +110,7 @@ class ProduksiController extends Controller
                 'hari_produksi_bulanan' => $request->hari_produksi_bulanan,
                 'qty_produksi' => $qtyProd,
                 'status' => 'draft', // Use draft status for production plan
+                'user_id' => auth()->id(), // 🔒 SECURITY: Add user_id
             ]);
 
             // Calculate total costs from BOM data (without consuming materials)

@@ -144,6 +144,7 @@ class ProdukController extends Controller
             'bopb_rate' => $request->input('bopb_rate'),
             'labor_hours_per_unit' => $request->input('labor_hours_per_unit'),
             'btkl_per_unit' => $request->input('btkl_per_unit'),
+            'user_id' => auth()->id(), // 🔒 SECURITY: Add user_id
         ]);
 
         return redirect()->route('master-data.produk.index')

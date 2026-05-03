@@ -28,12 +28,13 @@ class AsetController extends Controller
      */
     public function index(Request $request)
     {
+        $user = auth()->user();
         $query = Aset::with([
             'kategori.jenisAset',
             'assetCoa',
             'accumDepreciationCoa', 
             'expenseCoa'
-        ]);
+        ])->where('user_id', $user->id); // 🔒 SECURITY: Add user_id filter
 
         // Filter by search term
         if ($request->has('search') && !empty($request->search)) {
@@ -89,10 +90,12 @@ class AsetController extends Controller
                 ->exists();
         }
         
-        // Get filter options
-        $jenisAsets = JenisAset::with('kategories')->get();
+        // Get filter options - Add user_id filters
+        $jenisAsets = JenisAset::with(['kategories' => function($query) use ($user) {
+            $query->where('user_id', $user->id);
+        }])->get();
         $kategoriAsets = $request->has('jenis_aset') 
-            ? KategoriAset::where('jenis_aset_id', $request->jenis_aset)->get() 
+            ? KategoriAset::where('jenis_aset_id', $request->jenis_aset)->where('user_id', $user->id)->get() 
             : collect();
 
         return view('master-data.aset.index', compact('asets', 'jenisAsets', 'kategoriAsets'));

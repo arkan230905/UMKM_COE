@@ -86,7 +86,7 @@ class BopController extends Controller
 
         // Hanya kumpulkan gaji BTKTL (tenaga kerja tidak langsung) untuk BOP
         $perkiraan = 0.0;
-        foreach (Pegawai::all() as $p) {
+        foreach (Pegawai::where('user_id', auth()->id())->get() as $p) { // 🔒 SECURITY: Add user_id filter
             $jenis = strtolower($p->jenis_pegawai ?? '');
             if ($jenis !== 'btktl') { // selain BTKTL tidak masuk BOP
                 continue;

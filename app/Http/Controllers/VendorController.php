@@ -34,7 +34,7 @@ class VendorController extends Controller
             'email' => 'required|email',
         ]);
 
-        $vendor = Vendor::create($request->all());
+        $vendor = Vendor::create(array_merge($request->all(), ['user_id' => auth()->id()])); // 🔒 SECURITY: Add user_id
         
         // Log for debugging
         \Log::info('Vendor created successfully', [
