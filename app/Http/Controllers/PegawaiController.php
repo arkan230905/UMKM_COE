@@ -77,8 +77,13 @@ class PegawaiController extends Controller
     {
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            // CRITICAL: Add user_id to unique validation for multi-tenant isolation
-            'email' => 'required|email|unique:pegawais,email,NULL,id,user_id,' . auth()->id(),
+            // MULTI-TENANT: email unique hanya dalam scope user yang sama
+            'email' => [
+                'required',
+                'email',
+                \Illuminate\Validation\Rule::unique('pegawais', 'email')
+                    ->where('user_id', auth()->id()),
+            ],
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
@@ -178,8 +183,14 @@ class PegawaiController extends Controller
         $oldEmail = $pegawai->email;
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            // CRITICAL: Add user_id to unique validation for multi-tenant isolation
-            'email' => 'required|email|unique:pegawais,email,'.$pegawai->id.',id,user_id,' . auth()->id(),
+            // MULTI-TENANT: email unique hanya dalam scope user yang sama, kecuali record ini sendiri
+            'email' => [
+                'required',
+                'email',
+                \Illuminate\Validation\Rule::unique('pegawais', 'email')
+                    ->where('user_id', auth()->id())
+                    ->ignore($pegawai->id),
+            ],
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
@@ -208,10 +219,10 @@ class PegawaiController extends Controller
             'kategori' => $validated['kategori'],
             'jabatan' => $jabatan->nama,
             'jenis_pegawai' => strtolower($validated['kategori']),
-            'gaji_pokok' => $jabatan->gaji,
-            'tarif_per_jam' => $jabatan->tarif,
-            'tunjangan' => $jabatan->tunjangan,
-            'asuransi' => $jabatan->asuransi,
+            'gaji_pokok' => $jabatan->gaji_pokok ?? 0,
+            'tarif_per_jam' => $jabatan->tarif_per_jam ?? 0,
+            'tunjangan' => $jabatan->tunjangan ?? 0,
+            'asuransi' => $jabatan->asuransi ?? 0,
         ];
         
         // Add bank info if provided
