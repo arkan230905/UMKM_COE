@@ -99,6 +99,7 @@ class PegawaiController extends Controller
 
         // Prepare data for creation
         $pegawaiData = [
+            'user_id' => auth()->id(), // CRITICAL: multi-tenant isolation
             'nama' => $validated['nama'],
             'email' => $validated['email'],
             $phoneColumn => $validated['no_telepon'],
@@ -107,10 +108,10 @@ class PegawaiController extends Controller
             'kategori' => $validated['kategori'],
             'jabatan' => $jabatan->nama,
             'jenis_pegawai' => strtolower($validated['kategori']),
-            'gaji_pokok' => $jabatan->gaji,
-            'tarif_per_jam' => $jabatan->tarif,
-            'tunjangan' => $jabatan->tunjangan,
-            'asuransi' => $jabatan->asuransi,
+            'gaji_pokok' => $jabatan->gaji_pokok ?? 0,
+            'tarif_per_jam' => $jabatan->tarif_per_jam ?? 0,
+            'tunjangan' => $jabatan->tunjangan ?? 0,
+            'asuransi' => $jabatan->asuransi ?? 0,
             'bank' => $validated['bank'],
             'nomor_rekening' => $validated['nomor_rekening'],
             'nama_rekening' => $validated['nama_rekening'],
