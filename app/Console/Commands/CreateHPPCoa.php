@@ -44,12 +44,20 @@ class CreateHPPCoa extends Command
         try {
             // Create new COA
             $hppCoa = new Coa();
+            $hppCoa->user_id = 4; // Default to user 4 (Muhammad Arkan Abiyyu)
             $hppCoa->kode_akun = '560';
             $hppCoa->nama_akun = 'Harga Pokok Penjualan';
             $hppCoa->tipe_akun = 'Expense';
-            $hppCoa->saldo_normal = 'Debit';
-            $hppCoa->level = 2;
-            $hppCoa->parent_id = null; // Will be set later if needed
+            $hppCoa->saldo_normal = 'debit';
+            $hppCoa->is_akun_header = 0;
+            $hppCoa->kode_induk = null;
+            $hppCoa->saldo_awal = 0;
+            $hppCoa->tanggal_saldo_awal = null;
+            $hppCoa->posted_saldo_awal = 0;
+            $hppCoa->keterangan = 'COA untuk Harga Pokok Penjualan';
+            $hppCoa->nomor_rekening = null;
+            $hppCoa->atas_nama = null;
+            $hppCoa->company_id = null;
             $hppCoa->created_at = now();
             $hppCoa->updated_at = now();
             $hppCoa->save();
