@@ -165,136 +165,13 @@
             </div>
         </div>
 
-        <!-- Bahan Pendukung Card -->
-        <div class="card shadow-sm mb-3">
-            <div class="card-header text-white" style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);">
-                <h6 class="mb-0">
-                    <i class="fas fa-flask me-2"></i>2. Bahan Pendukung/Penolong
-                </h6>
-            </div>
-            <div class="card-body" style="background-color: #ecfeff;">
-                <div class="table-responsive">
-                    <table class="table table-sm" id="bahanPendukungTable">
-                        <thead style="background-color: #22d3ee; color: white;">
-                            <tr>
-                                <th>BAHAN PENOLONG</th>
-                                <th class="text-center">JUMLAH</th>
-                                <th class="text-center">SATUAN</th>
-                                <th class="text-end">HARGA SATUAN</th>
-                                <th class="text-end">SUB TOTAL</th>
-                                <th class="text-center">AKSI</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr id="newBahanPendukungRow" class="d-none">
-                                <td>
-                                    <select name="bahan_pendukung[new][id]" class="form-select form-select-sm bahan-pendukung-select">
-                                        <option value="">-- Pilih Bahan Pendukung --</option>
-                                        @foreach($bahanPendukungs as $bahanPendukung)
-                                            @php
-                                                $satuanBP = is_object($bahanPendukung->satuan) ? $bahanPendukung->satuan->nama : $bahanPendukung->satuan;
-                                                
-                                                // Prepare sub satuan data
-                                                $subSatuanData = [];
-                                                if ($bahanPendukung->subSatuan1) {
-                                                    $subSatuanData[] = [
-                                                        'id' => $bahanPendukung->sub_satuan_1_id,
-                                                        'nama' => $bahanPendukung->subSatuan1->nama,
-                                                        'konversi' => $bahanPendukung->sub_satuan_1_konversi,
-                                                        'nilai' => $bahanPendukung->sub_satuan_1_nilai
-                                                    ];
-                                                }
-                                                if ($bahanPendukung->subSatuan2) {
-                                                    $subSatuanData[] = [
-                                                        'id' => $bahanPendukung->sub_satuan_2_id,
-                                                        'nama' => $bahanPendukung->subSatuan2->nama,
-                                                        'konversi' => $bahanPendukung->sub_satuan_2_konversi,
-                                                        'nilai' => $bahanPendukung->sub_satuan_2_nilai
-                                                    ];
-                                                }
-                                                if ($bahanPendukung->subSatuan3) {
-                                                    $subSatuanData[] = [
-                                                        'id' => $bahanPendukung->sub_satuan_3_id,
-                                                        'nama' => $bahanPendukung->subSatuan3->nama,
-                                                        'konversi' => $bahanPendukung->sub_satuan_3_konversi,
-                                                        'nilai' => $bahanPendukung->sub_satuan_3_nilai
-                                                    ];
-                                                }
-                                            @endphp
-                                            <option value="{{ $bahanPendukung->id }}" 
-                                                    data-harga="{{ $bahanPendukung->harga_rata_rata ?? $bahanPendukung->harga_satuan }}"
-                                                    data-satuan="{{ $satuanBP }}"
-                                                    data-sub-satuan="{{ json_encode($subSatuanData) }}">
-                                                {{ $bahanPendukung->nama_bahan }} - Rp {{ number_format($bahanPendukung->harga_rata_rata ?? $bahanPendukung->harga_satuan, 0, ',', '.') }}/{{ $satuanBP }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td style="width: 120px;">
-                                    <input type="number" name="bahan_pendukung[new][jumlah]" 
-                                           class="form-control form-control-sm qty-input text-center" 
-                                           step="0.01" min="0" placeholder="0">
-                                </td>
-                                <td style="width: 120px;">
-                                    <select name="bahan_pendukung[new][satuan]" class="form-select form-select-sm satuan-select">
-                                        <option value="">-- Satuan --</option>
-                                        @foreach($satuans as $satuan)
-                                            <option value="{{ $satuan->nama }}">{{ $satuan->nama }}</option>
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td class="text-end harga-display" style="width: 200px;">
-                                    <div class="harga-utama">-</div>
-                                    <div class="harga-konversi mt-1" style="font-size: 0.75rem; color: #666;"></div>
-                                </td>
-                                <td class="text-end subtotal-display" style="width: 150px;">-</td>
-                                <td class="text-center" style="width: 80px;">
-                                    <button type="button" class="btn btn-sm btn-danger remove-item">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                        <tfoot style="background-color: #cffafe;">
-                            <tr>
-                                <th colspan="4" class="text-end">Total Bahan Pendukung</th>
-                                <th class="text-end" id="totalBahanPendukung">Rp 0</th>
-                                <th></th>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-                <button type="button" class="btn btn-sm btn-info mt-2" id="addBahanPendukung">
-                    <i class="fas fa-plus"></i> Tambah Bahan Pendukung
-                </button>
-            </div>
-        </div>
-
         <!-- Summary & Action Buttons -->
         <div class="card shadow-sm">
             <div class="card-body">
-                <!-- DEBUG TEST BUTTON -->
-                <div class="mb-3 p-2 bg-light border rounded">
-                    <small class="text-muted">Debug Test:</small>
-                    <button type="button" class="btn btn-sm btn-warning ms-2" onclick="testConversionFunction()">
-                        🧪 Test Conversion Function
-                    </button>
-                    <button type="button" class="btn btn-sm btn-info ms-2" onclick="testSubtotalCalculation()">
-                        🧮 Test Subtotal Calculation
-                    </button>
-                    <button type="button" class="btn btn-sm btn-danger ms-2" onclick="emergencyDebug()">
-                        🚨 Emergency Debug
-                    </button>
-                    <div id="testResult" class="mt-1 text-small"></div>
-                </div>
-                
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h5 class="mb-0">Total Biaya Bahan: <span id="summaryTotalBiaya" class="text-success">Rp 0</span></h5>
-                        <small class="text-muted">
-                            BBB: <span id="summaryBahanBaku">Rp 0</span> | 
-                            Bahan Pendukung: <span id="summaryBahanPendukung">Rp 0</span>
-                        </small>
+                        <h5 class="mb-0">Total Biaya Bahan Baku: <span id="summaryTotalBiaya" class="text-success">Rp 0</span></h5>
+                        <small class="text-muted">BBB: <span id="summaryBahanBaku">Rp 0</span></small>
                     </div>
                     <div>
                         <button type="submit" class="btn btn-success">
