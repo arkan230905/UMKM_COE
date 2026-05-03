@@ -28,9 +28,11 @@ class BomController extends Controller
 
     public function index(Request $request)
     {
+        // MULTI-TENANT: Filter by user_id
         // Only show products that have COMPLETE HPP calculation
         // Complete means: has biaya bahan AND has BTKL AND has BOP
-        $query = Produk::with(['bomJobCosting', 'satuan']);
+        $query = Produk::with(['bomJobCosting', 'satuan'])
+            ->where('user_id', auth()->id());
         
         // Only show products that have BOM Job Costing with complete data
         $query->whereHas('bomJobCosting', function($q) {

@@ -1364,7 +1364,9 @@ class LaporanController extends Controller
     // === LAPORAN PENGAJIAN ===
     public function laporanPenggajian(Request $request)
     {
+        // MULTI-TENANT: Filter by user_id
         $query = \App\Models\Penggajian::with(['pegawai'])
+            ->where('user_id', auth()->id())
             ->when($request->bulan, function($q) use ($request) {
                 $bulan = \Carbon\Carbon::parse($request->bulan);
                 return $q->whereYear('tanggal_penggajian', $bulan->year)
@@ -1389,8 +1391,10 @@ class LaporanController extends Controller
     // === LAPORAN PEMBAYARAN BEBAN ===
     public function laporanPembayaranBeban(Request $request)
     {
+        // MULTI-TENANT: Filter by user_id
         // Get all active Beban Operasional master data
         $bebanOperasionalQuery = \App\Models\BebanOperasional::where('status', 'aktif')
+            ->where('user_id', auth()->id())
             ->orderBy('kategori')
             ->orderBy('nama_beban');
 
@@ -1407,8 +1411,9 @@ class LaporanController extends Controller
         $totalSelisih = 0;
         
         foreach ($bebanOperasional as $beban) {
-            // Get actual payments for this beban in the selected period
+            // MULTI-TENANT: Get actual payments for this beban in the selected period (filtered by user_id)
             $aktual = \App\Models\PembayaranBeban::where('beban_operasional_id', $beban->id)
+                ->where('user_id', auth()->id())
                 ->whereYear('tanggal', $selectedMonth->year)
                 ->whereMonth('tanggal', $selectedMonth->month)
                 ->sum('jumlah');
@@ -1462,8 +1467,9 @@ class LaporanController extends Controller
     // === LAPORAN PELUNASAN UTANG ===
     public function laporanPelunasanUtang(Request $request)
     {
-        // Query untuk daftar pembelian kredit yang belum lunas
+        // MULTI-TENANT: Query untuk daftar pembelian kredit yang belum lunas
         $pembelianBelumLunas = \App\Models\Pembelian::with(['vendor', 'details.bahanBaku'])
+            ->where('user_id', auth()->id())
             ->where('payment_method', 'credit')
             ->where('status', '!=', 'lunas')
             ->orderBy('tanggal', 'desc')
@@ -1521,8 +1527,9 @@ class LaporanController extends Controller
                 return $pembelian->sisa_utang_numerik > 0;
             });
 
-        // Query untuk riwayat pelunasan - FIXED query
+        // MULTI-TENANT: Query untuk riwayat pelunasan - FIXED query
         $query = \App\Models\PelunasanUtang::with(['pembelian.vendor', 'pembelian.details.bahanBaku'])
+            ->where('user_id', auth()->id())
             ->when($request->bulan, function($q) use ($request) {
                 $bulan = \Carbon\Carbon::parse($request->bulan);
                 return $q->whereYear('tanggal', $bulan->year)
@@ -1569,9 +1576,13 @@ class LaporanController extends Controller
     // === LAPORAN ALIRAN KAS DAN BANK ===
     public function laporanAliranKas(Request $request)
     {
-        // Ambil saldo awal kas dan bank dari COA
-        $kas = \App\Models\Coa::where('kode_akun', '112')->first(); // Kas
-        $bank = \App\Models\Coa::where('kode_akun', '111')->first(); // Kas Bank
+        // MULTI-TENANT: Ambil saldo awal kas dan bank dari COA (filtered by user_id)
+        $kas = \App\Models\Coa::where('kode_akun', '112')
+                ->where('user_id', auth()->id())
+                ->first(); // Kas
+        $bank = \App\Models\Coa::where('kode_akun', '111')
+                ->where('user_id', auth()->id())
+                ->first(); // Kas Bank
         
         $saldoAwalKas = $kas->saldo_awal ?? 0;
         $saldoAwalBank = $bank->saldo_awal ?? 0;
