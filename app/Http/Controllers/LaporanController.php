@@ -1415,8 +1415,8 @@ class LaporanController extends Controller
         // Get the selected period or default to current month
         $selectedMonth = $request->bulan ? \Carbon\Carbon::parse($request->bulan) : now();
         
-        // MULTI-TENANT: Get all pembayaran beban for logged-in user in selected period
-        $pembayaranQuery = \App\Models\PembayaranBeban::with(['coaBeban', 'coaKas', 'bebanOperasional'])
+        // MULTI-TENANT: Get all pembayaran beban for logged-in user in selected period using direct query
+        $pembayaranQuery = \App\Models\PembayaranBeban::with(['coaBeban', 'coaKas'])
             ->where('user_id', auth()->id())
             ->whereYear('tanggal', $selectedMonth->year)
             ->whereMonth('tanggal', $selectedMonth->month);
@@ -1442,14 +1442,16 @@ class LaporanController extends Controller
             $kategori = 'Uncategorized';
             $budget = 0;
             
-            if ($firstItem->beban_operasional) {
-                // If linked to beban operasional - use created_by field for ownership check
-                if ($firstItem->beban_operasional->created_by == auth()->id()) {
-                    $namaBeban = $firstItem->beban_operasional->nama_beban;
-                    $kategori = $firstItem->beban_operasional->kategori;
-                    $budget = $firstItem->beban_operasional->budget_bulanan ?? 0;
+            if ($firstItem->beban_operasional_id) {
+                // Use direct query to get beban operasional data (avoid Eloquent relationship issues)
+                $bebanOperasional = \App\Models\BebanOperasional::find($firstItem->beban_operasional_id);
+                
+                if ($bebanOperasional && $bebanOperasional->created_by == auth()->id()) {
+                    $namaBeban = $bebanOperasional->nama_beban;
+                    $kategori = $bebanOperasional->kategori;
+                    $budget = $bebanOperasional->budget_bulanan ?? 0;
                 } else {
-                    // If beban operasional belongs to different user, treat as direct expense
+                    // If beban operasional belongs to different user or not found, treat as direct expense
                     $namaBeban = $firstItem->coaBeban ? $firstItem->coaBeban->nama_akun : 'Unknown';
                     $kategori = 'Direct Expense (Cross-User)';
                     $budget = 0;
