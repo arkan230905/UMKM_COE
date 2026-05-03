@@ -26,6 +26,7 @@
                         <tr>
                             <th>Nama Bahan</th>
                             <th>Satuan Utama</th>
+                            <th class="text-end">Saldo Awal</th>
                             <th class="text-end">Harga Satuan Utama</th>
                             <th>COA Pembelian</th>
                             <th>COA Persediaan</th>
@@ -52,6 +53,9 @@
                                     @else
                                         -
                                     @endif
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-info">{{ number_format($bahan->saldo_awal ?? 0, 2, ',', '.') }}</span>
                                 </td>
                                 <td class="text-end fw-semibold">
                                     Rp {{ number_format($bahan->harga_satuan_display ?? $bahan->harga_satuan ?? 0, 0, ',', '.') }}
