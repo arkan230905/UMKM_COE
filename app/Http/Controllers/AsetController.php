@@ -114,23 +114,36 @@ class AsetController extends Controller
             'sum_of_years_digits' => 'Jumlah Angka Tahun (Sum of Years Digits)',
         ];
         
-        // COA data for dropdowns - with fallback to prevent undefined variables
-        $coaAsets = Coa::where('tipe_akun', 'LIKE', '%Aset%')
-            ->orWhere('tipe_akun', 'LIKE', '%ASET%')
+        // COA data for dropdowns - 🔒 SECURITY: Filter by user_id and use proper asset account codes
+        $coaAsets = Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('kode_akun', 'like', '1%')  // Asset accounts start with 1
+                      ->orWhere('tipe_akun', 'LIKE', '%Aset%')
+                      ->orWhere('tipe_akun', 'LIKE', '%ASET%');
+            })
+            ->orderBy('kode_akun')
             ->get();
             
-        // If no asset accounts found, get all COA as fallback
+        // If no asset accounts found, get all user's COA as fallback
         if ($coaAsets->isEmpty()) {
-            $coaAsets = Coa::all();
+            $coaAsets = Coa::where('user_id', auth()->id())->orderBy('kode_akun')->get();
         }
             
-        $coaAkumulasi = Coa::where('nama_akun', 'LIKE', '%akumulasi%')
-            ->orWhere('nama_akun', 'LIKE', '%Akumulasi%')
+        $coaAkumulasi = Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('nama_akun', 'LIKE', '%akumulasi%')
+                      ->orWhere('nama_akun', 'LIKE', '%Akumulasi%');
+            })
+            ->orderBy('kode_akun')
             ->get();
             
-        $coaBeban = Coa::where('nama_akun', 'LIKE', '%penyusutan%')
-            ->orWhere('nama_akun', 'LIKE', '%Penyusutan%')
-            ->orWhere('nama_akun', 'LIKE', '%Beban%')
+        $coaBeban = Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('nama_akun', 'LIKE', '%penyusutan%')
+                      ->orWhere('nama_akun', 'LIKE', '%Penyusutan%')
+                      ->orWhere('nama_akun', 'LIKE', '%Beban%');
+            })
+            ->orderBy('kode_akun')
             ->get();
         
         return view('master-data.aset.create', compact(
@@ -464,23 +477,36 @@ class AsetController extends Controller
             'sum_of_years_digits' => 'Jumlah Angka Tahun (Sum of Years Digits)',
         ];
         
-        // COA data for dropdowns - with fallback to prevent undefined variables
-        $coaAsets = Coa::where('tipe_akun', 'LIKE', '%Aset%')
-            ->orWhere('tipe_akun', 'LIKE', '%ASET%')
+        // COA data for dropdowns - 🔒 SECURITY: Filter by user_id and use proper asset account codes
+        $coaAsets = Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('kode_akun', 'like', '1%')  // Asset accounts start with 1
+                      ->orWhere('tipe_akun', 'LIKE', '%Aset%')
+                      ->orWhere('tipe_akun', 'LIKE', '%ASET%');
+            })
+            ->orderBy('kode_akun')
             ->get();
             
-        // If no asset accounts found, get all COA as fallback
+        // If no asset accounts found, get all user's COA as fallback
         if ($coaAsets->isEmpty()) {
-            $coaAsets = Coa::all();
+            $coaAsets = Coa::where('user_id', auth()->id())->orderBy('kode_akun')->get();
         }
             
-        $coaAkumulasi = Coa::where('nama_akun', 'LIKE', '%akumulasi%')
-            ->orWhere('nama_akun', 'LIKE', '%Akumulasi%')
+        $coaAkumulasi = Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('nama_akun', 'LIKE', '%akumulasi%')
+                      ->orWhere('nama_akun', 'LIKE', '%Akumulasi%');
+            })
+            ->orderBy('kode_akun')
             ->get();
             
-        $coaBeban = Coa::where('nama_akun', 'LIKE', '%penyusutan%')
-            ->orWhere('nama_akun', 'LIKE', '%Penyusutan%')
-            ->orWhere('nama_akun', 'LIKE', '%Beban%')
+        $coaBeban = Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('nama_akun', 'LIKE', '%penyusutan%')
+                      ->orWhere('nama_akun', 'LIKE', '%Penyusutan%')
+                      ->orWhere('nama_akun', 'LIKE', '%Beban%');
+            })
+            ->orderBy('kode_akun')
             ->get();
         
         // Load relasi untuk aset yang akan diedit
