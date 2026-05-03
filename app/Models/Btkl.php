@@ -14,6 +14,7 @@ class Btkl extends Model
     public $incrementing = true;
 
     protected $fillable = [
+        'user_id',
         'kode_proses',
         'nama_btkl',
         'jabatan_id',
@@ -23,6 +24,20 @@ class Btkl extends Model
         'deskripsi_proses',
         'is_active'
     ];
+    
+    /**
+     * Boot method to auto-fill user_id for multi-tenant isolation
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($model) {
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
 
     protected $casts = [
         'tarif_per_jam' => 'decimal:2',

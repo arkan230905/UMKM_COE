@@ -15,6 +15,7 @@ class Aset extends Model
     protected $table = 'asets';
     
     protected $fillable = [
+        'user_id',
         'kode_aset',
         'nama_aset',
         'kategori_aset_id',
@@ -137,6 +138,11 @@ class Aset extends Model
         parent::boot();
 
         static::creating(function ($model) {
+            // CRITICAL: Auto-fill user_id for multi-tenant isolation
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+            
             if (!$model->kode_aset) {
                 $model->kode_aset = self::generateKodeAset();
             }

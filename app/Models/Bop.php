@@ -15,6 +15,7 @@ class Bop extends Model
     public $incrementing = true;
 
     protected $fillable = [
+        'user_id',
         'coa_id',
         'kode_akun',
         'nama_akun',
@@ -23,6 +24,20 @@ class Bop extends Model
         'aktual',
         'is_active'
     ];
+    
+    /**
+     * Boot method to auto-fill user_id for multi-tenant isolation
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($model) {
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
 
     protected $casts = [
         'budget' => 'decimal:2',
