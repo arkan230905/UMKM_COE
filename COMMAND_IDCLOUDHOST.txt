@@ -1,0 +1,100 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║  📋 COMMAND UNTUK IDCLOUDHOST                                ║
+║  Copy-paste command ini di SSH/Terminal hosting              ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════
+STEP 1: LOGIN SSH
+═══════════════════════════════════════════════════════════════
+
+ssh username@your-domain.com
+
+(Ganti 'username' dan 'your-domain.com' dengan milik Anda)
+(Masukkan password IDCloudHost saat diminta)
+
+═══════════════════════════════════════════════════════════════
+STEP 2: NAVIGATE KE FOLDER PROJECT
+═══════════════════════════════════════════════════════════════
+
+cd public_html
+
+Atau jika project di subfolder:
+
+cd public_html/nama-project
+
+═══════════════════════════════════════════════════════════════
+STEP 3: PULL PERUBAHAN (COPY-PASTE INI) ⭐
+═══════════════════════════════════════════════════════════════
+
+git pull origin main
+
+Jika ada local changes, jalankan ini dulu:
+
+git stash
+git pull origin main
+
+═══════════════════════════════════════════════════════════════
+STEP 4: CLEAR CACHE (COPY-PASTE INI) ⭐
+═══════════════════════════════════════════════════════════════
+
+php artisan cache:clear && php artisan config:clear && php artisan route:clear && php artisan view:clear && php artisan optimize:clear
+
+═══════════════════════════════════════════════════════════════
+STEP 5: FIX PERMISSION (JIKA PERLU)
+═══════════════════════════════════════════════════════════════
+
+chmod -R 755 storage bootstrap/cache && chmod 644 public/css/modern-dashboard.css
+
+═══════════════════════════════════════════════════════════════
+ATAU GUNAKAN SCRIPT OTOMATIS (LEBIH MUDAH) ⭐⭐⭐
+═══════════════════════════════════════════════════════════════
+
+Jalankan script otomatis yang sudah saya buat:
+
+bash deploy-idcloudhost.sh
+
+Script ini akan otomatis:
+✅ Pull dari GitHub
+✅ Clear semua cache
+✅ Fix permission
+✅ Verify files
+
+═══════════════════════════════════════════════════════════════
+VERIFIKASI
+═══════════════════════════════════════════════════════════════
+
+1. Akses: https://your-domain.com/dashboard
+2. Clear browser cache: Ctrl + Shift + Delete
+3. Hard refresh: Ctrl + F5
+
+═══════════════════════════════════════════════════════════════
+JIKA TIDAK ADA SSH - GUNAKAN CPANEL TERMINAL
+═══════════════════════════════════════════════════════════════
+
+1. Login cPanel: https://your-domain.com:2083
+2. Cari menu "Terminal"
+3. Klik untuk membuka
+4. Jalankan command di atas
+
+═══════════════════════════════════════════════════════════════
+ATAU GUNAKAN CLEAR-CACHE.PHP (JIKA TIDAK ADA TERMINAL)
+═══════════════════════════════════════════════════════════════
+
+1. Akses: https://your-domain.com/clear-cache.php
+2. Tunggu sampai "Success!"
+3. HAPUS file clear-cache.php via cPanel File Manager
+
+═══════════════════════════════════════════════════════════════
+
+✅ SELESAI!
+
+Jika semua command berhasil, dashboard Anda sekarang tampil
+dengan desain modern (sidebar coklat, KPI cards berwarna, dll)
+
+═══════════════════════════════════════════════════════════════
+
+📚 Dokumentasi lengkap: DEPLOY_IDCLOUDHOST.txt
+
+🚀 Repository: https://github.com/arkan230905/UMKM_COE.git
