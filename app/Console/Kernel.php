@@ -50,6 +50,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\VerifyPurchaseFix::class,
         \App\Console\Commands\CheckHPPCoaType::class,
         \App\Console\Commands\DebugLabaRugiData::class,
+        \App\Console\Commands\DebugRealLabaRugi::class,
     ];
 
     /**
