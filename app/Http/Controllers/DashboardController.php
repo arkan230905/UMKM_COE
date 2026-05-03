@@ -28,41 +28,43 @@ class DashboardController extends Controller
         $userRole = $user->role;
         
         // Master Data - Filter berdasarkan user untuk multi-tenant
-        $totalPegawai     = \Schema::hasTable('pegawais') ? Pegawai::count() : 0;
+        $totalPegawai     = \Schema::hasTable('pegawais') ? Pegawai::where('user_id', $user->id)->count() : 0;
         $totalPresensi    = Presensi::count();
-        $totalProduk      = Produk::count();
-        $totalVendor      = Vendor::count();
-        $totalBahanBaku   = BahanBaku::count();
-        $totalSatuan      = \App\Models\Satuan::count();
+        $totalProduk      = Produk::where('user_id', $user->id)->count();
+        $totalVendor      = Vendor::where('user_id', $user->id)->count();
+        $totalBahanBaku   = BahanBaku::where('user_id', $user->id)->count();
+        $totalSatuan      = \App\Models\Satuan::where('user_id', $user->id)->count();
+        $totalAset        = \App\Models\Aset::where('user_id', $user->id)->count();
+        $totalPelanggan   = \App\Models\Pelanggan::where('user_id', $user->id)->count();
         
         // Handle case when bops table doesn't exist yet
         $totalBOP = 0;
         try {
             if (\Schema::hasTable('bops')) {
-                $totalBOP = Bop::count();
+                $totalBOP = Bop::where('user_id', $user->id)->count();
             }
         } catch (\Exception $e) {
             // Table doesn't exist or other error, default to 0
         }
         
-        $totalBOM         = Bom::count();
-        $totalCOA         = Coa::count();
+        $totalBOM         = Bom::where('user_id', $user->id)->count();
+        $totalCOA         = Coa::where('user_id', $user->id)->count();
         
         // Handle case when produksis table doesn't exist
         $totalProduksi = 0;
         try {
             if (\Schema::hasTable('produksis')) {
-                $totalProduksi = \App\Models\Produksi::count();
+                $totalProduksi = \App\Models\Produksi::where('user_id', $user->id)->count();
             }
         } catch (\Exception $e) {
             // Table doesn't exist or other error, default to 0
         }
 
         // Transaksi
-        $totalPembelian   = Pembelian::count();
-        $totalPenjualan   = Penjualan::count();
-        $totalRetur       = Retur::sum('jumlah');
-        $totalPenggajian  = Penggajian::count();
+        $totalPembelian   = Pembelian::where('user_id', $user->id)->count();
+        $totalPenjualan   = Penjualan::where('user_id', $user->id)->count();
+        $totalRetur       = Retur::where('user_id', $user->id)->sum('jumlah');
+        $totalPenggajian  = Penggajian::where('user_id', $user->id)->count();
 
         // Financial Data
         $totalKasBank = $this->getTotalKasBank();
@@ -140,6 +142,8 @@ class DashboardController extends Controller
                 'totalVendor',
                 'totalBahanBaku',
                 'totalSatuan',
+                'totalAset',
+                'totalPelanggan',
                 'totalBOP',
                 'totalBOM',
                 'totalCOA',
