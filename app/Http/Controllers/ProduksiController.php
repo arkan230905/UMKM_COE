@@ -803,7 +803,9 @@ class ProduksiController extends Controller
                             'qty' => $bomJobBBB->jumlah,
                             'satuan' => $bomJobBBB->satuan ?: ($bahan->satuan->nama ?? $bahan->satuan),
                             'satuan_bahan' => $bahan->satuan->nama ?? $bahan->satuan,
-                            'harga_per_unit' => $bomJobBBB->subtotal, // This is the total cost for the recipe
+                            'harga_per_unit' => $bomJobBBB->subtotal,
+                            'coa_persediaan_kode' => $bahan->coa_persediaan_id ?? '1141',
+                            'coa_persediaan_nama' => optional(\App\Models\Coa::where('kode_akun', $bahan->coa_persediaan_id)->first())->nama_akun ?? 'Pers. Bahan Baku',
                             'konversi_info' => $this->getKonversiInfo($bahan, $bomJobBBB->satuan ?: ($bahan->satuan->nama ?? $bahan->satuan))
                         ];
                     }
@@ -818,10 +820,19 @@ class ProduksiController extends Controller
                             'nama' => $bahan->nama_bahan,
                             'qty' => $bomJobBahanPendukung->jumlah,
                             'satuan' => $bomJobBahanPendukung->satuan ?: ($bahan->satuan->nama ?? $bahan->satuan),
-                            'harga_per_unit' => $bomJobBahanPendukung->subtotal // This is the total cost for the recipe
+                            'harga_per_unit' => $bomJobBahanPendukung->subtotal,
+                            'coa_persediaan_kode' => $bahan->coa_persediaan_id ?? '1151',
+                            'coa_persediaan_nama' => optional(\App\Models\Coa::where('kode_akun', $bahan->coa_persediaan_id)->first())->nama_akun ?? 'Pers. Bahan Pendukung',
                         ];
                     }
                 }
+
+                // Add produk COA info
+                $breakdown['produk'] = [
+                    'nama' => $produk->nama_produk,
+                    'coa_persediaan_kode' => $produk->coa_persediaan_id ?? '1161',
+                    'coa_persediaan_nama' => optional(\App\Models\Coa::where('kode_akun', $produk->coa_persediaan_id)->first())->nama_akun ?? 'Pers. Barang Jadi ' . $produk->nama_produk,
+                ];
 
                 // Get BTKL from BomJobBTKL
                 $bomJobBTKLs = \App\Models\BomJobBTKL::where('bom_job_costing_id', $bomJobCosting->id)->get();
