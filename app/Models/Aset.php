@@ -114,11 +114,13 @@ class Aset extends Model
     /**
      * Generate kode aset otomatis
      * Format: AST-YYYYMM-XXXX
+     * MULTI-TENANT: Filter by user_id to prevent duplicate kode across different users
      */
     public static function generateKodeAset()
     {
         $prefix = 'AST-' . date('Ym') . '-';
         $lastAsset = self::where('kode_aset', 'like', $prefix . '%')
+            ->where('user_id', auth()->id())
             ->orderBy('kode_aset', 'desc')
             ->first();
 
