@@ -184,7 +184,7 @@ class AkuntansiController extends Controller
             $this->ensurePurchaseJournalExists($refId);
         }
 
-        // Gunakan query dengan leftJoin untuk memastikan nama akun selalu diambil
+        // MULTI-TENANT: Gunakan query dengan leftJoin untuk memastikan nama akun selalu diambil
         $query = \DB::table('journal_entries as je')
             ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
             ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id') // Perbaikan: join berdasarkan coa_id
@@ -198,6 +198,7 @@ class AkuntansiController extends Controller
                 'coas.nama_akun',
                 'coas.tipe_akun'
             ])
+            ->where('je.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->where(function($q) {
                 $q->where('jl.debit', '!=', 0)
                   ->orWhere('jl.credit', '!=', 0);
@@ -507,7 +508,9 @@ class AkuntansiController extends Controller
         $year = $request->get('year');
         $accountCode = $request->get('account_code');
 
+        // MULTI-TENANT: Filter COA by user_id
         $coas = \App\Models\Coa::select('kode_akun', 'nama_akun', 'tipe_akun')
+            ->where('user_id', auth()->id())
             ->groupBy('kode_akun', 'nama_akun', 'tipe_akun')
             ->orderBy('kode_akun')
             ->get();
@@ -521,7 +524,10 @@ class AkuntansiController extends Controller
         $saldoAkhir = 0;
 
         if ($accountCode) {
-            $coa = \App\Models\Coa::where('kode_akun', $accountCode)->first();
+            // MULTI-TENANT: Filter COA by user_id
+            $coa = \App\Models\Coa::where('kode_akun', $accountCode)
+                    ->where('user_id', auth()->id())
+                    ->first();
 
             if (!$coa) {
                 return view('akuntansi.buku-besar', compact('coas','accountCode','lines','from','to','saldoAwal','month','year','totalDebit','totalKredit','saldoAkhir'));
@@ -537,10 +543,11 @@ class AkuntansiController extends Controller
                 $saldoAwal = (float)($coa->saldo_awal ?? 0);
             }
 
-            // Simple query for journal entries
+            // MULTI-TENANT: Simple query for journal entries (filtered by user_id)
             $query = \DB::table('journal_entries as je')
                 ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
                 ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
+                ->where('je.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
                 ->select([
                     'je.*',
                     'jl.id as line_id',
@@ -654,6 +661,7 @@ class AkuntansiController extends Controller
 
         // Ambil semua COA distinct by kode_akun — sama seperti buku besar
         $coas = \App\Models\Coa::select('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
+            ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->groupBy('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
             ->orderBy('kode_akun')
             ->get();
@@ -750,6 +758,7 @@ class AkuntansiController extends Controller
 
         // Ambil semua COA
         $coas = \App\Models\Coa::select('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
+            ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->groupBy('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
             ->orderBy('kode_akun')
             ->get();
@@ -928,6 +937,7 @@ class AkuntansiController extends Controller
 
         // Ambil semua COA
         $coas = \App\Models\Coa::select('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
+            ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->groupBy('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
             ->orderBy('kode_akun')
             ->get();
