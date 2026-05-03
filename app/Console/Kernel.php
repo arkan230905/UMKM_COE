@@ -43,6 +43,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\CreateTestPurchase::class,
         \App\Console\Commands\CheckPembelianStructure::class,
         \App\Console\Commands\CheckPembelianDetailStructure::class,
+        \App\Console\Commands\DebugPurchaseJournal::class,
     ];
 
     /**
