@@ -33,6 +33,7 @@ class JournalService
                 'ref_type' => $refType,
                 'ref_id' => $refId,
                 'memo' => $memo,
+                'user_id' => auth()->id(), // CRITICAL: multi-tenant isolation
             ]);
 
             $totalDebit = 0.0; $totalCredit = 0.0;
@@ -63,6 +64,7 @@ class JournalService
                 
                 if (!$existingJurnalUmum) {
                     \App\Models\JurnalUmum::create([
+                        'user_id' => auth()->id(), // CRITICAL: multi-tenant isolation
                         'coa_id' => $aid,
                         'tanggal' => $tanggal,
                         'keterangan' => $lineMemo ?? $memo,
