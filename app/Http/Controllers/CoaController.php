@@ -143,7 +143,9 @@ class CoaController extends Controller
     public function create()
     {
         // Ambil semua COA sebagai pilihan akun induk, urut hierarkis
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $parentCoas = Coa::withoutGlobalScopes()
+            ->where('user_id', auth()->id())
             ->whereNotNull('nama_akun')
             ->where('nama_akun', '!=', '')
             ->orderByRaw("RPAD(kode_akun, 10, '0'), LENGTH(kode_akun)")
@@ -156,7 +158,11 @@ class CoaController extends Controller
     {
         // Jika user memilih akun induk dan mode auto-generate
         if ($request->filled('parent_coa_id') && $request->boolean('auto_generate_kode')) {
-            $parentCoa = Coa::withoutGlobalScopes()->find($request->parent_coa_id);
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $parentCoa = Coa::withoutGlobalScopes()
+                ->where('user_id', auth()->id())
+                ->find($request->parent_coa_id);
+                
             if ($parentCoa) {
                 $generatedKode = Coa::generateChildCode($parentCoa->kode_akun);
                 $request->merge(['kode_akun' => $generatedKode]);
@@ -225,7 +231,9 @@ class CoaController extends Controller
 
     public function edit(Coa $coa)
     {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $parentCoas = Coa::withoutGlobalScopes()
+            ->where('user_id', auth()->id())
             ->whereNotNull('nama_akun')
             ->where('nama_akun', '!=', '')
             ->where('id', '!=', $coa->id)
@@ -371,7 +379,11 @@ class CoaController extends Controller
             return response()->json(['error' => 'Parent COA ID diperlukan'], 400);
         }
 
-        $parent = Coa::withoutGlobalScopes()->find($parentId);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $parent = Coa::withoutGlobalScopes()
+            ->where('user_id', auth()->id())
+            ->find($parentId);
+            
         if (!$parent) {
             return response()->json(['error' => 'Akun induk tidak ditemukan'], 404);
         }

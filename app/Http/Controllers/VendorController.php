@@ -10,7 +10,10 @@ class VendorController extends Controller
     // Tampilkan semua vendor
     public function index()
     {
-        $vendors = Vendor::orderBy('id', 'asc')->get(); // urut ID kecil ke besar
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $vendors = Vendor::where('user_id', auth()->id())
+            ->orderBy('id', 'asc')
+            ->get();
         return view('master-data.vendor.index', compact('vendors'));
     }
 

@@ -19,7 +19,8 @@ class PegawaiController extends Controller
         $search = request('search');
         $jenis = request('jenis');
         
-        $query = Pegawai::query();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $query = Pegawai::where('user_id', auth()->id());
         
         // Filter berdasarkan jenis pegawai (opsional)
         if ($jenis && in_array(strtolower((string)$jenis), ['btkl','btktl'])) {
@@ -45,11 +46,14 @@ class PegawaiController extends Controller
     // Tampilkan form create
     public function create()
     {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif')
+            ->where('user_id', auth()->id())
             ->orderBy('nama')
             ->get();
         // Get distinct kategori values from jabatans table
         $kategoris = \App\Models\Jabatan::select('kategori')
+            ->where('user_id', auth()->id())
             ->whereNotNull('kategori')
             ->where('kategori', '!=', '')
             ->distinct()

@@ -18,7 +18,10 @@ class ProdukController extends Controller
     public function index()
     {
         // Get all products
-        $produks = Produk::with(['bomJobCosting'])->get();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $produks = Produk::with(['bomJobCosting'])
+            ->where('user_id', auth()->id())
+            ->get();
         
         // Calculate HPP using ONLY data from BomJobCosting (same as harga-pokok-produksi page)
         $hargaBom = [];
@@ -67,6 +70,7 @@ class ProdukController extends Controller
 
     public function katalogPelanggan()
     {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $produks = Produk::select([
             'id',
             'nama_produk',
@@ -74,7 +78,9 @@ class ProdukController extends Controller
             'deskripsi',
             'harga_jual',
             'stok',
-        ])->whereNotNull('harga_jual')->get();
+        ])->where('user_id', auth()->id())
+          ->whereNotNull('harga_jual')
+          ->get();
 
         return view('pelanggan.produk.index', compact('produks'));
     }
