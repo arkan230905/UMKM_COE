@@ -1443,10 +1443,17 @@ class LaporanController extends Controller
             $budget = 0;
             
             if ($firstItem->beban_operasional) {
-                // If linked to beban operasional
-                $namaBeban = $firstItem->beban_operasional->nama_beban;
-                $kategori = $firstItem->beban_operasional->kategori;
-                $budget = $firstItem->beban_operasional->budget_bulanan ?? 0;
+                // If linked to beban operasional - use created_by field for ownership check
+                if ($firstItem->beban_operasional->created_by == auth()->id()) {
+                    $namaBeban = $firstItem->beban_operasional->nama_beban;
+                    $kategori = $firstItem->beban_operasional->kategori;
+                    $budget = $firstItem->beban_operasional->budget_bulanan ?? 0;
+                } else {
+                    // If beban operasional belongs to different user, treat as direct expense
+                    $namaBeban = $firstItem->coaBeban ? $firstItem->coaBeban->nama_akun : 'Unknown';
+                    $kategori = 'Direct Expense (Cross-User)';
+                    $budget = 0;
+                }
             } elseif ($firstItem->coaBeban) {
                 // If only linked to COA
                 $namaBeban = $firstItem->coaBeban->nama_akun;
