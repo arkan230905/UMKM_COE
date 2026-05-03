@@ -181,10 +181,11 @@ class CoaController extends Controller
             'BOP Tidak Langsung Lainnya'
         ];
 
+        // CRITICAL: Add user_id to unique validation for multi-tenant isolation
         $validated = $request->validate([
             'kode_akun' => [
                 'required',
-                'unique:coas,kode_akun',
+                'unique:coas,kode_akun,NULL,id,user_id,' . auth()->id(),
                 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
@@ -257,10 +258,11 @@ class CoaController extends Controller
             'BOP Tidak Langsung Lainnya'
         ];
 
+        // CRITICAL: Add user_id to unique validation for multi-tenant isolation
         $validated = $request->validate([
             'kode_akun' => [
                 'required',
-                'unique:coas,kode_akun,' . $coa->id,
+                'unique:coas,kode_akun,' . $coa->id . ',id,user_id,' . auth()->id(),
                 'max:50'
             ],
             'nama_akun' => 'required|string|max:255',
