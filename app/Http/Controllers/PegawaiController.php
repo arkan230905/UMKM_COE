@@ -156,10 +156,12 @@ class PegawaiController extends Controller
     // Form edit pegawai
     public function edit(Pegawai $pegawai)
     {
-        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif')
+        // MULTI-TENANT: Filter by user_id
+        $jabatans = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_per_jam')
+            ->where('user_id', auth()->id())
             ->orderBy('nama')
             ->get();
-        $kategoris = \App\Models\Jabatan::select('kategori')
+        $kategoris = \App\Models\Jabatan::where('user_id', auth()->id())
             ->whereNotNull('kategori')
             ->where('kategori', '!=', '')
             ->distinct()
