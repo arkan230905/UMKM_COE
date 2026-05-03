@@ -13,11 +13,26 @@ class PelangganController extends Controller
     {
         // 🔒 SECURITY: Get pelanggan users belonging to current user
         // Pelanggan users now have user_id pointing to their owner
+        $currentUserId = auth()->id();
+        
+        // DEBUG: Log untuk debugging
+        \Log::info('Pelanggan Index Debug', [
+            'current_user_id' => $currentUserId,
+            'query' => 'User::where("role", "pelanggan")->where("user_id", ' . $currentUserId . ')'
+        ]);
+        
         $pelanggans = User::where('role', 'pelanggan')
-            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Get pelanggan of current owner
+            ->where('user_id', $currentUserId) // 🔒 CRITICAL: Get pelanggan of current owner
             ->withCount('orders')
             ->latest()
             ->paginate(15);
+
+        // DEBUG: Log hasil query
+        \Log::info('Pelanggan Index Results', [
+            'count' => $pelanggans->count(),
+            'first_item' => $pelanggans->first(),
+            'current_user_id' => $currentUserId
+        ]);
 
         return view('master-data.pelanggan.index', compact('pelanggans'));
     }
