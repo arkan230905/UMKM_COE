@@ -33,6 +33,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\DebugJurnalFilter::class,
         \App\Console\Commands\FindSaleUser::class,
         \App\Console\Commands\CreateTestSale::class,
+        \App\Console\Commands\CheckNewSale::class,
     ];
 
     /**
