@@ -40,6 +40,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\CheckCoaStructure::class,
         \App\Console\Commands\UpdateExistingHPP::class,
         \App\Console\Commands\CheckPurchaseJournal::class,
+        \App\Console\Commands\CreateTestPurchase::class,
     ];
 
     /**

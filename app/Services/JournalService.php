@@ -179,7 +179,7 @@ class JournalService
      * Create journal entries from Pembelian (Purchase)
      * Dr. Persediaan Bahan Baku/Pendukung | Cr. Kas/Bank/Utang Usaha
      */
-    public static function createJournalFromPembelian($pembelian): void
+    public static function createJournalFromPembelian($pembelian, $userId = null): void
     {
         $service = new static();
         
@@ -322,7 +322,10 @@ class JournalService
                    $pembelian->tanggal->format('Y-m-d') : 
                    $pembelian->tanggal;
         
-        $service->post($tanggal, 'purchase', $pembelian->id, $memo, $lines);
+        // Use provided userId or fallback to pembelian's user_id
+        $finalUserId = $userId ?? $pembelian->user_id ?? auth()->id();
+        
+        $service->postWithUser($tanggal, 'purchase', $pembelian->id, $memo, $lines, $finalUserId);
     }
 
     /**
