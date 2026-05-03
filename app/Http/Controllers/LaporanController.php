@@ -1412,18 +1412,16 @@ class LaporanController extends Controller
     // === LAPORAN PEMBAYARAN BEBAN ===
     public function laporanPembayaranBeban(Request $request)
     {
-        // MULTI-TENANT: Filter by user_id
-        // Get all active Beban Operasional master data
-        $bebanOperasionalQuery = \App\Models\BebanOperasional::where('status', 'aktif')
-            ->where('user_id', auth()->id())
-            ->orderBy('kategori')
-            ->orderBy('nama_beban');
-
         // Get the selected period or default to current month
         $selectedMonth = $request->bulan ? \Carbon\Carbon::parse($request->bulan) : now();
         
-        // Get all beban operasional
-        $bebanOperasional = $bebanOperasionalQuery->get();
+        // MULTI-TENANT: Get all pembayaran beban for logged-in user in selected period
+        $pembayaranQuery = \App\Models\PembayaranBeban::with(['coaBeban', 'coaKas', 'bebanOperasional'])
+            ->where('user_id', auth()->id())
+            ->whereYear('tanggal', $selectedMonth->year)
+            ->whereMonth('tanggal', $selectedMonth->month);
+        
+        $pembayaranBeban = $pembayaranQuery->get();
         
         // Build the Budget vs Actual data
         $laporanData = collect([]);
@@ -1431,34 +1429,53 @@ class LaporanController extends Controller
         $totalAktual = 0;
         $totalSelisih = 0;
         
-        foreach ($bebanOperasional as $beban) {
-            // MULTI-TENANT: Get actual payments for this beban in the selected period (filtered by user_id)
-            $aktual = \App\Models\PembayaranBeban::where('beban_operasional_id', $beban->id)
-                ->where('user_id', auth()->id())
-                ->whereYear('tanggal', $selectedMonth->year)
-                ->whereMonth('tanggal', $selectedMonth->month)
-                ->sum('jumlah');
+        // Group by beban operasional or COA for reporting
+        $groupedPembayaran = $pembayaranBeban->groupBy(function($item) {
+            return $item->beban_operasional_id ? 'beban_' . $item->beban_operasional_id : 'coa_' . $item->akun_beban_id;
+        });
+        
+        foreach ($groupedPembayaran as $groupKey => $pembayaranGroup) {
+            $totalAmount = $pembayaranGroup->sum('jumlah');
+            $firstItem = $pembayaranGroup->first();
             
-            $budget = $beban->budget_bulanan ?? 0;
-            $selisih = $budget - $aktual;
-            $status = $aktual > $budget ? 'Over Budget' : 'Aman';
+            $namaBeban = 'Unknown';
+            $kategori = 'Uncategorized';
+            $budget = 0;
+            
+            if ($firstItem->beban_operasional) {
+                // If linked to beban operasional
+                $namaBeban = $firstItem->beban_operasional->nama_beban;
+                $kategori = $firstItem->beban_operasional->kategori;
+                $budget = $firstItem->beban_operasional->budget_bulanan ?? 0;
+            } elseif ($firstItem->coaBeban) {
+                // If only linked to COA
+                $namaBeban = $firstItem->coaBeban->nama_akun;
+                $kategori = 'Direct Expense';
+                $budget = 0; // No budget if not linked to beban operasional
+            }
+            
+            $selisih = $budget - $totalAmount;
+            $status = $totalAmount > $budget ? 'Over Budget' : 'Aman';
             
             $laporanData->push((object) [
-                'id' => $beban->id,
-                'kategori' => $beban->kategori,
-                'nama_beban' => $beban->nama_beban,
+                'id' => $firstItem->id,
+                'kategori' => $kategori,
+                'nama_beban' => $namaBeban,
                 'budget_bulanan' => $budget,
-                'aktual_bulan_ini' => $aktual,
+                'aktual_bulan_ini' => $totalAmount,
                 'selisih' => $selisih,
                 'status' => $status,
-                'status_color' => $aktual > $budget ? 'danger' : 'success',
-                'keterangan' => $beban->keterangan,
+                'status_color' => $totalAmount > $budget ? 'danger' : 'success',
+                'keterangan' => $firstItem->keterangan,
             ]);
             
             $totalBudget += $budget;
-            $totalAktual += $aktual;
+            $totalAktual += $totalAmount;
             $totalSelisih += $selisih;
         }
+        
+        // Sort by kategori then nama_beban
+        $laporanData = $laporanData->sortBy(['kategori', 'nama_beban'])->values();
         
         // Summary data
         $summary = (object) [
