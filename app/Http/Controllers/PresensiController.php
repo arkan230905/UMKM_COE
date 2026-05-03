@@ -56,7 +56,9 @@ class PresensiController extends Controller
         $dateFilter = $request->get('date_filter');
 
         // Build query (same logic as index)
-        $query = Presensi::with('pegawai')->orderBy('tgl_presensi', 'desc')->orderBy('jam_masuk', 'desc');
+        $query = Presensi::with('pegawai')
+            ->where('user_id', auth()->id()) // 🔒 SECURITY: Add user_id filter
+            ->orderBy('tgl_presensi', 'desc')->orderBy('jam_masuk', 'desc');
 
         // Apply date filter
         if ($dateFilter) {

@@ -17,6 +17,7 @@ class PelunasanUtangController extends Controller
     public function index(Request $request)
     {
         $query = PelunasanUtang::with(['pembelian.vendor', 'akunKas'])
+            ->where('user_id', auth()->id()) // 🔒 SECURITY: Add user_id filter
             ->latest();
 
         // Filter berdasarkan tanggal
@@ -35,7 +36,7 @@ class PelunasanUtangController extends Controller
         }
 
         $pelunasanUtang = $query->paginate(15);
-        $vendors = \App\Models\Vendor::all();
+        $vendors = \App\Models\Vendor::where('user_id', auth()->id())->get(); // 🔒 SECURITY: Add user_id filter
         
         return view('transaksi.pelunasan-utang.index', compact('pelunasanUtang', 'vendors'));
     }
@@ -43,6 +44,7 @@ class PelunasanUtangController extends Controller
     public function create()
     {
         $pembayarans = Pembelian::where('payment_method', 'credit')
+            ->where('user_id', auth()->id()) // 🔒 SECURITY: Add user_id filter
             ->where(function($q) {
                 $q->where('status', 'belum_lunas')
                   ->orWhereRaw('sisa_pembayaran > 0')
@@ -98,7 +100,7 @@ class PelunasanUtangController extends Controller
                 'akun_kas_id' => $request->akun_kas_id,
                 'jumlah' => $request->jumlah,
                 'keterangan' => $request->keterangan,
-                'user_id' => auth()->id(),
+                'user_id' => auth()->id(), // 🔒 SECURITY: Add user_id
                 'status' => 'lunas'
             ]);
 
