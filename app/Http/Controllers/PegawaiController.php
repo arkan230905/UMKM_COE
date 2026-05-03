@@ -52,8 +52,22 @@ class PegawaiController extends Controller
             ->orderBy('nama')
             ->get();
         
-        // Hardcode kategori BTKL dan BTKTL (always available)
-        $kategoris = collect(['btkl', 'btktl']);
+        // Get unique kategori values from Jabatan table (linked to kualifikasi-tenaga-kerja)
+        $kategoris = \App\Models\Jabatan::where('user_id', auth()->id())
+            ->whereNotNull('kategori')
+            ->where('kategori', '!=', '')
+            ->distinct()
+            ->pluck('kategori')
+            ->map(function($k) {
+                return strtolower($k);
+            })
+            ->unique()
+            ->values();
+        
+        // If no kategori found in database, use default BTKL/BTKTL
+        if ($kategoris->isEmpty()) {
+            $kategoris = collect(['btkl', 'btktl']);
+        }
         
         return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
     }
