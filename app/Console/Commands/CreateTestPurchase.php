@@ -81,10 +81,13 @@ class CreateTestPurchase extends Command
             $detail = new \App\Models\PembelianDetail();
             $detail->pembelian_id = $pembelian->id;
             $detail->bahan_baku_id = $bahanBaku->id;
+            $detail->tipe_item = 'bahan_baku';
             $detail->jumlah = 5;
+            $detail->satuan = $bahanBaku->satuan_id ?? 1;
             $detail->harga_satuan = 2000;
             $detail->subtotal = 10000;
-            $detail->nama_bahan = $bahanBaku->nama_bahan;
+            $detail->faktor_konversi = 1;
+            $detail->jumlah_satuan_utama = 5;
             $detail->save();
             
             $this->info("✅ Test purchase created: ID {$pembelian->id}, Total: Rp {$pembelian->total}");
