@@ -70,7 +70,7 @@ class CreateTestSale extends Command
             
             // Create journal entries
             $this->info("🔄 Creating journal entries...");
-            JournalService::createJournalFromPenjualan($penjualan);
+            JournalService::createJournalFromPenjualan($penjualan, $userId);
             $this->info("✅ Journal entries created");
             
             // Verify the journal entries
