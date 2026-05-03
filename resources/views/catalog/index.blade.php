@@ -1,10 +1,12 @@
-﻿@extends('layouts.catalog')
-
-@section('title', 'E-Catalog ' . ($company->nama ?? 'UMKM'))
-
-@push('styles')
-<style>
-/* RESET & BASE */
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Catalog {{ $company->nama ?? 'UMKM' }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+/* RESET & BASE - From commit be112d0 */
 * {
     margin: 0;
     padding: 0;
@@ -23,7 +25,7 @@ body {
     padding: 0 20px;
 }
 
-/* COVER SECTION */
+/* COVER SECTION - From commit be112d0 */
 .cover-section {
     height: 100vh;
     min-height: 600px;
@@ -139,6 +141,7 @@ body {
     transition: all 0.3s;
     border: none;
     font-size: 0.9rem;
+    text-decoration: none;
 }
 
 .explore-button:hover {
@@ -147,110 +150,42 @@ body {
 }
 
 .dorth-text {
-    position: absolute;
-    right: 40px;
-    top: 50%;
-    transform: translateY(-50%) rotate(90deg);
-    font-size: 2rem;
-    font-weight: 300;
-    letter-spacing: 8px;
-    color: rgba(255, 255, 255, 0.8);
-    z-index: 3;
+    display: none; /* Removed as per commit be112d0 */
 }
 
-/* TEAM SECTION */
+/* TEAM SECTION - From commit be112d0 */
 .team-section {
-    background: #fff;
     padding: 100px 0;
-}
-
-.team-header {
-    margin-bottom: 80px;
+    background: #fff;
 }
 
 .section-title {
     font-size: 3rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 2px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 60px;
     color: #333;
-    margin-bottom: 20px;
 }
 
-.section-line {
-    width: 100px;
-    height: 3px;
-    background: #333;
-    margin-bottom: 30px;
-}
-
-.team-description {
-    font-size: 1.1rem;
-    color: #666;
-    max-width: 600px;
-    line-height: 1.6;
-}
-
-.team-content {
+.team-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-    align-items: start;
-}
-
-.about-team h3 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 20px;
-    color: #333;
-}
-
-.about-team p {
-    font-size: 1rem;
-    line-height: 1.6;
-    color: #666;
-    margin-bottom: 40px;
-}
-
-.team-stats {
-    display: flex;
-    gap: 30px;
-}
-
-.stat-item h4 {
-    font-size: 2.5rem;
-    font-weight: 900;
-    color: #333;
-    margin-bottom: 5px;
-}
-
-.stat-item p {
-    font-size: 0.9rem;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
 }
 
 .team-member {
-    display: flex;
-    gap: 20px;
-    margin-bottom: 40px;
-    align-items: flex-start;
-}
-
-.member-left {
-    flex-direction: row;
-}
-
-.member-right {
-    flex-direction: row-reverse;
-    text-align: right;
+    text-align: center;
 }
 
 .member-photo {
-    width: 120px;
-    height: 120px;
-    flex-shrink: 0;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    overflow: hidden;
 }
 
 .member-photo img {
@@ -262,58 +197,53 @@ body {
 }
 
 .team-member:hover .member-photo img {
-    filter: none;
+    filter: none; /* Changed from grayscale(0%) to none as per commit be112d0 */
 }
 
 .member-info {
-    flex: 1;
+    padding: 20px;
 }
 
-.member-info h4 {
-    font-size: 1.3rem;
-    font-weight: 700;
+.member-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 10px;
     color: #333;
-    margin-bottom: 5px;
 }
 
-.member-info h5 {
+.member-position {
     font-size: 1rem;
-    font-weight: 500;
     color: #666;
     margin-bottom: 15px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
 }
 
-.member-info p {
+.member-description {
     font-size: 0.9rem;
-    line-height: 1.5;
-    color: #666;
+    line-height: 1.6;
+    color: #777;
 }
 
-/* PRODUCTS SECTION */
+/* PRODUCTS SECTION - From commit be112d0 */
 .products-section {
-    background: #f8f9fa;
     padding: 100px 0;
-}
-
-.products-header {
-    text-align: center;
-    margin-bottom: 80px;
+    background: #f8f9fa;
 }
 
 .products-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
 }
 
 .product-item {
     background: white;
     border-radius: 0;
     overflow: hidden;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
     transition: transform 0.3s;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .product-item:hover {
@@ -322,10 +252,6 @@ body {
 
 .product-image {
     height: 200px;
-    background: #f5f5f5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     overflow: hidden;
 }
 
@@ -333,264 +259,238 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s;
+    border-radius: 0;
+    transition: transform 0.3s; /* Changed from filter 0.3s to transform 0.3s as per commit be112d0 */
 }
 
 .product-item:hover .product-image img {
-    transform: scale(1.05);
+    transform: scale(1.05); /* Changed from filter grayscale(0%) to scale(1.05) as per commit be112d0 */
 }
 
 .product-image .no-image {
-    color: #ccc;
-    font-size: 2rem;
+    width: 100%;
+    height: 100%;
+    background: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #999;
+    font-size: 1.2rem;
 }
 
 .product-info {
     padding: 25px;
 }
 
-.product-info h4 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #333;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.product-info p {
-    font-size: 0.9rem;
-    line-height: 1.5;
-    color: #666;
-    margin: 0;
-}
-
-/* CTA SECTION */
-.cta-section {
-    background: #333;
-    padding: 60px 0;
-}
-
-.btn-beli {
-    background: #fff;
-    color: #333;
-    border: none;
-    padding: 15px 40px;
-    font-size: 1.1rem;
+.product-name {
+    font-size: 1.3rem;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    cursor: pointer;
-    transition: all 0.3s;
+    margin-bottom: 10px;
+    color: #333;
 }
 
-.btn-beli:hover {
-    background: #f0f0f0;
+.product-price {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #007bff;
+}
+
+/* LOCATION SECTION - From commit be112d0 */
+.location-section {
+    padding: 100px 0;
+    background: #fff;
+}
+
+.location-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+    text-align: center;
+}
+
+.location-info {
+    margin-bottom: 40px;
+}
+
+.location-name {
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.location-address {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.location-contact {
+    font-size: 1rem;
+    color: #666;
+}
+
+.maps-link {
+    display: inline-block;
+    padding: 12px 30px;
+    background: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 0;
+    font-weight: 500;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.maps-link:hover {
+    background: #0056b3;
     transform: translateY(-2px);
 }
 
-.no-products {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 60px 20px;
-    color: #666;
-}
-
-/* RESPONSIVE */
 @media (max-width: 768px) {
     .cover-content {
-        flex-direction: column;
-        padding: 40px 20px;
-        text-align: center;
-    }
-    
-    .cover-left, .cover-right {
-        max-width: 100%;
-        margin: 0;
-        padding: 0;
-    }
-    
-    .cover-right {
-        margin-top: 40px;
-    }
-    
-    .cover-image {
-        width: 100%;
-        opacity: 0.3;
+        padding: 30px;
     }
     
     .company-name {
-        font-size: 2.5rem;
+        font-size: 3rem;
     }
     
     .company-tagline {
-        font-size: 1.8rem;
-    }
-    
-    .dorth-text {
-        display: none;
-    }
-    
-    .team-content {
-        grid-template-columns: 1fr;
-        gap: 40px;
-    }
-    
-    .team-member {
-        flex-direction: column !important;
-        text-align: center !important;
-    }
-    
-    .member-photo {
-        width: 100px;
-        height: 100px;
-        margin: 0 auto;
+        font-size: 2rem;
     }
     
     .section-title {
         font-size: 2rem;
     }
     
+    .team-grid,
     .products-grid {
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
+        grid-template-columns: 1fr;
+        gap: 30px;
     }
 }
-</style>
-
-@endpush
-
-@section('content')
-@php
-    $coverSection    = ($sections && $sections->isNotEmpty()) ? $sections->firstWhere('section_type', 'cover')    : null;
-    $teamSection     = ($sections && $sections->isNotEmpty()) ? $sections->firstWhere('section_type', 'team')     : null;
-    $productsSection = ($sections && $sections->isNotEmpty()) ? $sections->firstWhere('section_type', 'products') : null;
-
-    $coverData = [
-        'company_name'        => $company->nama ?? 'NAMA PERUSAHAAN',
-        'company_tagline'     => 'BRANDING PRODUCT.',
-        'company_description' => 'Perusahaan manufaktur COE yang berfokus pada efisiensi biaya produksi, pengelolaan sumber daya yang optimal, serta pengendalian proses yang terintegrasi untuk menghasilkan produk berkualitas tinggi secara konsisten.',
-        'explore_text'        => 'Explore',
-    ];
-    $teamData = [
-        'title'       => 'THE TEAM.',
-        'description' => 'Didukung oleh fullstack developer yang kompeten dan pembimbing berpengalaman, tim ini menghadirkan solusi digital terintegrasi dengan pendekatan strategis, presisi teknis, dan standar kualitas tinggi.',
-        'members'     => [
-            ['name'=>'Joko Susilo',    'position'=>'Direktur Utama',   'description'=>'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', 'photo'=>''],
-            ['name'=>'Sari Wulandari', 'position'=>'Manajer Produksi', 'description'=>'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', 'photo'=>''],
-        ],
-    ];
-    if ($coverSection && $coverSection->content) $coverData = array_merge($coverData, $coverSection->content);
-    if ($teamSection  && $teamSection->content)  $teamData  = array_merge($teamData,  $teamSection->content);
-@endphp
-
-<!-- COVER SECTION -->
-<section class="cover-section">
-    <div class="cover-container">
-        <div class="cover-image">
-            @if($company && $company->foto)
-                <img src="{{ asset('storage/'.$company->foto) }}" alt="{{ $company->nama }}">
-            @else
-                <div class="default-cover"><div class="city-silhouette"></div></div>
-            @endif
-        </div>
-        <div class="cover-content">
-            <div class="cover-left">
-                <h1 class="company-name">{{ $coverData['company_name'] }}</h1>
-                <h2 class="company-tagline">{{ $coverData['company_tagline'] }}</h2>
-            </div>
-            <div class="cover-right">
-                <div class="company-info">
-                    <p class="company-description">{{ $coverData['company_description'] }}</p>
-                    <div class="explore-button">{{ $coverData['explore_text'] }}</div>
-                </div>
-            </div>
-            <div class="dorth-text"></div>
-        </div>
-    </div>
-</section>
-
-<!-- TEAM SECTION -->
-<section class="team-section">
-    <div class="container">
-        <div class="team-header">
-            <h2 class="section-title">{{ $teamData['title'] }}</h2>
-            <div class="section-line"></div>
-            <p class="team-description">{{ $teamData['description'] }}</p>
-        </div>
-        <div class="team-content">
-            <div class="team-left">
-                <div class="about-team">
-                    <h3>About Team</h3>
-                    <p>{{ $teamData['description'] }}</p>
-                    <div class="team-stats">
-                        <div class="stat-item">
-                            <h4>{{ count($teamData['members']) }}</h4>
-                            <p>Team Members</p>
+    </style>
+</head>
+<body>
+    <!-- COVER SECTION - From commit be112d0 -->
+    <section class="cover-section">
+        <div class="cover-container">
+            <div class="cover-image">
+                @if(!empty($catalogPhotos) && $catalogPhotos->count() > 0)
+                    @php $firstPhoto = $catalogPhotos->first(); @endphp
+                    @if($firstPhoto->foto_path)
+                        <img src="{{ asset('storage/' . $firstPhoto->foto_path) }}" alt="Cover">
+                    @else
+                        <div class="default-cover">
+                            <div class="city-silhouette"></div>
                         </div>
+                    @endif
+                @else
+                    <div class="default-cover">
+                        <div class="city-silhouette"></div>
+                    </div>
+                @endif
+            </div>
+            
+            <div class="cover-content">
+                <div class="cover-left">
+                    <h1 class="company-name">{{ $company->nama ?? 'UMKM' }}</h1>
+                    <p class="company-tagline">BRANDING PRODUCT.</p>
+                </div>
+                <div class="cover-right">
+                    <div class="company-info">
+                        <p class="company-description">
+                            {{ $company->catalog_description ?? 'Perusahaan manufaktur COE yang berfokus pada efisiensi biaya produksi, pengelolaan sumber daya yang optimal, serta pengendalian proses yang terintegrasi untuk menghasilkan produk berkualitas tinggi secara konsisten.' }}
+                        </p>
+                        <a href="#products" class="explore-button">{{ $coverData['explore_text'] ?? 'Explore' }}</a>
                     </div>
                 </div>
             </div>
-            <div class="team-right">
-                @foreach($teamData['members'] as $index => $member)
-                <div class="team-member {{ $index % 2 == 0 ? 'member-left' : 'member-right' }}">
+            <div class="dorth-text"></div> <!-- Empty as per commit be112d0 -->
+        </div>
+    </section>
+
+    <!-- TEAM SECTION - From commit be112d0 -->
+    <section class="team-section">
+        <div class="container">
+            <h2 class="section-title">THE TEAM.</h2>
+            <div class="team-grid">
+                <div class="team-member">
                     <div class="member-photo">
-                        @if(!empty($member['photo']))
-                            <img src="{{ $member['photo'] }}" alt="{{ $member['name'] }}">
-                        @else
-                            <img src="https://via.placeholder.com/150x150/333333/ffffff?text={{ urlencode(substr($member['name'],0,3)) }}" alt="{{ $member['name'] }}">
-                        @endif
+                        <img src="{{ asset('images/default-avatar.png') }}" alt="Team Member">
                     </div>
                     <div class="member-info">
-                        <h4>{{ $member['name'] }}</h4>
-                        <h5>{{ $member['position'] }}</h5>
-                        <p>{{ $member['description'] }}</p>
+                        <h3 class="member-name">Joko Susilo</h3>
+                        <p class="member-position">Direktur Utama</p>
+                        <p class="member-description">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
                     </div>
                 </div>
-                @endforeach
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- PRODUCTS SECTION -->
-<section class="products-section">
-    <div class="container">
-        <div class="products-header">
-            <h2 class="section-title">{{ $productsSection->title ?? 'PRODUCT MATERIAL.' }}</h2>
-            <div class="section-line"></div>
-        </div>
-        <div class="products-grid">
-            @forelse($produks->take(8) as $produk)
-            <div class="product-item">
-                <div class="product-image">
-                    @if($produk->foto)
-                        <img src="{{ asset('storage/'.$produk->foto) }}" alt="{{ $produk->nama_produk }}">
-                    @else
-                        <div class="no-image"><i class="fas fa-image"></i></div>
-                    @endif
-                </div>
-                <div class="product-info">
-                    <h4>{{ $produk->nama_produk }}</h4>
-                    <p>{{ Str::limit($produk->deskripsi ?: '', 80) }}</p>
+                <div class="team-member">
+                    <div class="member-photo">
+                        <img src="{{ asset('images/default-avatar.png') }}" alt="Team Member">
+                    </div>
+                    <div class="member-info">
+                        <h3 class="member-name">Sari Wulandari</h3>
+                        <p class="member-position">Manajer Produksi</p>
+                        <p class="member-description">Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+                    </div>
                 </div>
             </div>
-            @empty
-            <div class="no-products"><p>Belum ada produk tersedia</p></div>
-            @endforelse
         </div>
-    </div>
-</section>
+    </section>
 
-<!-- TOMBOL BELI -->
-<section class="cta-section">
-    <div class="container">
-        <div class="text-center">
-            <button class="btn-beli" onclick="window.location.href='/pelanggan/login'">
-                klik disini untuk membeli
-            </button>
+    <!-- PRODUCTS SECTION - From commit be112d0 -->
+    <section class="products-section" id="products">
+        <div class="container">
+            <h2 class="section-title">PRODUCT MATERIAL.</h2>
+            <div class="products-grid">
+                @forelse($produks as $produk)
+                    <div class="product-item">
+                        <div class="product-image">
+                            @if($produk->foto_path)
+                                <img src="{{ asset('storage/' . $produk->foto_path) }}" alt="{{ $produk->nama_produk }}">
+                            @else
+                                <div class="no-image">No Image</div>
+                            @endif
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">{{ $produk->nama_produk }}</h3>
+                            <p class="product-price">Rp {{ number_format($produk->harga_jual ?? 0, 0, ',', '.') }}</p>
+                        </div>
+                    </div>
+                @empty
+                    <div class="col-12 text-center">
+                        <p>No products available at the moment.</p>
+                    </div>
+                @endforelse
+            </div>
         </div>
-    </div>
-</section>
+    </section>
 
-@endsection
+    <!-- LOCATION SECTION - From commit be112d0 -->
+    <section class="location-section">
+        <div class="container">
+            <div class="location-content">
+                <div class="location-info">
+                    <h3 class="location-name">{{ $company->nama ?? 'UMKM' }}</h3>
+                    <p class="location-address">{{ $company->alamat ?? 'Alamat tidak tersedia' }}</p>
+                    <p class="location-contact">
+                        {{ $company->telepon ?? 'Telepon tidak tersedia' }}<br>
+                        {{ $company->email ?? 'Email tidak tersedia' }}
+                    </p>
+                </div>
+                @if($company->maps_link)
+                    <a href="{{ $company->maps_link }}" target="_blank" class="maps-link">
+                        Lihat di Peta
+                    </a>
+                @endif
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
