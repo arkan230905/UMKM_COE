@@ -15,8 +15,9 @@ class PembayaranBebanController extends Controller
 {
     public function index(Request $request)
     {
-        // Load data with relationships
-        $query = PembayaranBeban::with(['coaBeban', 'coaKas', 'bebanOperasional']);
+        // Load data with relationships - CRITICAL: Filter by user_id for multi-tenant isolation
+        $query = PembayaranBeban::with(['coaBeban', 'coaKas', 'bebanOperasional'])
+            ->where('user_id', auth()->id());
         
         // Apply filters
         if ($request->tanggal_mulai) {
@@ -41,8 +42,8 @@ class PembayaranBebanController extends Controller
         
         $pembayaranBeban = $query->latest()->paginate(15);
         
-        // Load data for filters
-        $bebanOperasional = \App\Models\BebanOperasional::all();
+        // Load data for filters - CRITICAL: Filter by user_id
+        $bebanOperasional = \App\Models\BebanOperasional::where('user_id', auth()->id())->get();
         $coaBebans = Coa::where('kode_akun', 'like', '5%')->orderBy('kode_akun')->get();
         $coaKas = \App\Helpers\AccountHelper::getKasBankAccounts();
         
@@ -52,8 +53,8 @@ class PembayaranBebanController extends Controller
     public function create()
     {
         try {
-            // Load beban operasional data
-            $bebanOperasional = \App\Models\BebanOperasional::with('coa')->get();
+            // Load beban operasional data - CRITICAL: Filter by user_id for multi-tenant isolation
+            $bebanOperasional = \App\Models\BebanOperasional::where('user_id', auth()->id())->with('coa')->get();
             
             // Ambil akun beban langsung dari tabel COA (kode diawali angka 5)
             $coaBebans = Coa::where('kode_akun', 'like', '5%')
@@ -191,7 +192,9 @@ class PembayaranBebanController extends Controller
 
     public function show($id)
     {
+        // CRITICAL: Filter by user_id for multi-tenant isolation
         $pembayaran = PembayaranBeban::with(['coaBeban', 'coaKas', 'user', 'bebanOperasional'])
+            ->where('user_id', auth()->id())
             ->findOrFail($id);
             
         $jurnals = \App\Models\JurnalUmum::where('referensi', $pembayaran->id)
@@ -204,7 +207,9 @@ class PembayaranBebanController extends Controller
     
     public function print($id)
     {
+        // CRITICAL: Filter by user_id for multi-tenant isolation
         $pembayaran = PembayaranBeban::with(['coaBeban', 'coaKas', 'user', 'bebanOperasional'])
+            ->where('user_id', auth()->id())
             ->findOrFail($id);
             
         return view('transaksi.pembayaran-beban.print', compact('pembayaran'));
@@ -212,8 +217,9 @@ class PembayaranBebanController extends Controller
 
     public function edit($id)
     {
-        $pembayaran = PembayaranBeban::findOrFail($id);
-        $bebanOperasional = \App\Models\BebanOperasional::with('coa')->get();
+        $pembayaran = PembayaranBeban::where('user_id', auth()->id())->findOrFail($id);
+        // CRITICAL: Filter by user_id for multi-tenant isolation
+        $bebanOperasional = \App\Models\BebanOperasional::where('user_id', auth()->id())->with('coa')->get();
         $coaBebans = Coa::where('kode_akun', 'like', '5%')->orderBy('kode_akun')->get();
         $akunKas = \App\Helpers\AccountHelper::getKasBankAccounts();
         
@@ -231,7 +237,8 @@ class PembayaranBebanController extends Controller
         try {
             DB::beginTransaction();
             
-            $pembayaran = PembayaranBeban::findOrFail($id);
+            // CRITICAL: Filter by user_id for multi-tenant isolation
+            $pembayaran = PembayaranBeban::where('user_id', auth()->id())->findOrFail($id);
             
             // Reverse journal entries dari jurnal_umum
             \App\Models\JurnalUmum::where('referensi', $pembayaran->id)
