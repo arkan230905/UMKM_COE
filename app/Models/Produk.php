@@ -129,11 +129,11 @@ class Produk extends Model
     }
     
     /**
-     * Get actual HPP based on production costs
+     * Get actual HPP based on production costs with improved fallback
      */
     public function getActualHPP($tanggalPenjualan = null)
     {
-        // Ambil biaya produksi dari tabel produksi untuk produk ini
+        // Try to get from production costs first
         $query = \App\Models\Produksi::where('produk_id', $this->id)
             ->where('status', 'completed')
             ->orderBy('id', 'desc')
@@ -146,51 +146,61 @@ class Produk extends Model
         
         $productionCosts = $query->get();
         
-        if ($productionCosts->isEmpty()) {
-            // Jika tidak ada data produksi, gunakan harga_bom sebagai fallback
-            return $this->harga_bom ?? 0;
-        }
-        
-        // Prioritaskan produksi yang memiliki total_biaya dan qty_produksi
-        foreach ($productionCosts as $production) {
-            // Gunakan total_biaya dan qty_produksi dari produksi jika ada
-            if ($production->total_biaya > 0 && $production->qty_produksi > 0) {
-                return $production->total_biaya / $production->qty_produksi;
-            }
-        }
-        
-        // Fallback ke perhitungan dari detail produksi
-        $totalCost = 0;
-        $totalQuantity = 0;
-        $hasValidData = false;
-        
-        foreach ($productionCosts as $production) {
-            // Ambil detail produksi
-            $productionDetails = \App\Models\ProduksiDetail::where('produksi_id', $production->id)->get();
-            
-            foreach($productionDetails as $detail) {
-                // Skip jika data tidak valid
-                if (empty($detail->qty_konversi) || empty($detail->harga_satuan)) {
-                    continue;
+        if ($productionCosts->isNotEmpty()) {
+            // Prioritaskan produksi yang memiliki total_biaya dan qty_produksi
+            foreach ($productionCosts as $production) {
+                // Gunakan total_biaya dan qty_produksi dari produksi jika ada
+                if ($production->total_biaya > 0 && $production->qty_produksi > 0) {
+                    return $production->total_biaya / $production->qty_produksi;
                 }
+            }
+            
+            // Fallback ke perhitungan dari detail produksi
+            $totalCost = 0;
+            $totalQuantity = 0;
+            $hasValidData = false;
+            
+            foreach ($productionCosts as $production) {
+                // Ambil detail produksi
+                $productionDetails = \App\Models\ProduksiDetail::where('produksi_id', $production->id)->get();
                 
-                $hasValidData = true;
-                
-                // Gunakan subtotal dari detail produksi
-                $totalCost += $detail->subtotal;
-                $totalQuantity += $detail->qty_konversi;
+                foreach($productionDetails as $detail) {
+                    // Skip jika data tidak valid
+                    if (empty($detail->qty_konversi) || empty($detail->harga_satuan)) {
+                        continue;
+                    }
+                    
+                    $hasValidData = true;
+                    
+                    // Gunakan subtotal dari detail produksi
+                    $totalCost += $detail->subtotal ?? 0;
+                    $totalQuantity += $detail->qty_konversi ?? 0;
+                }
+            }
+            
+            if ($hasValidData && $totalQuantity > 0) {
+                return $totalCost / $totalQuantity;
             }
         }
         
-        // Jika tidak ada data valid, gunakan harga_bom sebagai fallback
-        if (!$hasValidData || $totalQuantity == 0) {
-            return $this->harga_bom ?? 0;
+        // Fallback priorities:
+        // 1. Use harga_bom if available
+        if (!empty($this->harga_bom) && $this->harga_bom > 0) {
+            return $this->harga_bom;
         }
         
-        // Hitung HPP per unit
-        $hppPerUnit = $totalCost / $totalQuantity;
+        // 2. Use hpp field if available
+        if (!empty($this->hpp) && $this->hpp > 0) {
+            return $this->hpp;
+        }
         
-        return $hppPerUnit;
+        // 3. Use harga_beli as last resort
+        if (!empty($this->harga_beli) && $this->harga_beli > 0) {
+            return $this->harga_beli;
+        }
+        
+        // 4. Default to 0 if no cost data available
+        return 0;
     }
     
     /**

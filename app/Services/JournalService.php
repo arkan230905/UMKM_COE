@@ -428,8 +428,8 @@ class JournalService
     }
 
     /**
-     * Create HPP journal lines from Penjualan with detailed breakdown
-     * Dr. HPP (Material, BTKL, BOP) | Cr. Persediaan Barang Jadi
+     * Create HPP journal lines from Penjualan with simplified calculation
+     * Dr. HPP | Cr. Persediaan Barang Jadi
      */
     private function createHPPLinesFromPenjualan($penjualan): array
     {
@@ -450,7 +450,7 @@ class JournalService
     }
     
     /**
-     * Create HPP lines for penjualan detail
+     * Create HPP lines for penjualan detail (simplified version)
      */
     private function createHPPLinesForDetail($detail, $penjualan): array
     {
@@ -462,81 +462,26 @@ class JournalService
             return $lines;
         }
         
-        // Get BOM components for this product
-        $bomComponents = \App\Models\Bom::with(['details.bahanBaku', 'details.bahanPendukung'])
-            ->where('produk_id', $product->id)
-            ->get();
+        // Get HPP using product's built-in method
+        $hppPerUnit = $product->getActualHPP($penjualan->tanggal);
+        $totalHPP = $hppPerUnit * $qty;
         
-        $totalMaterialCost = 0;
-        $totalBTKLCost = 0;
-        $totalBOPCost = 0;
-        
-        // Material costs
-        foreach ($bomComponents as $bom) {
-            foreach ($bom->details as $detail) {
-                if ($detail->bahanBaku) {
-                    $materialCost = $detail->total_biaya * $qty;
-                    $totalMaterialCost += $materialCost;
-                    
-                    $lines[] = [
-                        'code' => $detail->bahanBaku->coa_persediaan_id ?? '1141',
-                        'debit' => $materialCost,
-                        'credit' => 0,
-                        'memo' => "HPP Material - {$detail->bahanBaku->nama_bahan} untuk {$product->nama_produk} ({$qty} pcs)"
-                    ];
-                }
-                
-                if ($detail->bahanPendukung) {
-                    $materialCost = $detail->total_biaya * $qty;
-                    $totalMaterialCost += $materialCost;
-                    
-                    $lines[] = [
-                        'code' => $detail->bahanPendukung->coa_persediaan_id ?? '1152',
-                        'debit' => $materialCost,
-                        'credit' => 0,
-                        'memo' => "HPP Material - {$detail->bahanPendukung->nama_bahan} untuk {$product->nama_produk} ({$qty} pcs)"
-                    ];
-                }
-            }
-        }
-        
-        // BTKL costs
-        $btklCost = ($product->btkl_default ?? 0) * $qty;
-        $totalBTKLCost += $btklCost;
-        
-        if ($btklCost > 0) {
-            $lines[] = [
-                'code' => '52', // BIAYA TENAGA KERJA LANGSUNG (BTKL)
-                'debit' => $btklCost,
-                'credit' => 0,
-                'memo' => "HPP BTKL untuk {$product->nama_produk} ({$qty} pcs)"
-            ];
-        }
-        
-        // BOP costs
-        $bopCost = ($product->bop_default ?? 0) * $qty;
-        $totalBOPCost += $bopCost;
-        
-        if ($bopCost > 0) {
-            $lines[] = [
-                'code' => '53', // BIAYA OVERHEAD PABRIK (BOP)
-                'debit' => $bopCost,
-                'credit' => 0,
-                'memo' => "HPP BOP untuk {$product->nama_produk} ({$qty} pcs)"
-            ];
-        }
-        
-        // Credit persediaan barang jadi
-        $totalHPP = $totalMaterialCost + $totalBTKLCost + $totalBOPCost;
         if ($totalHPP > 0) {
-            // Find the appropriate persediaan barang jadi COA
-            $persediaanCOA = $this->getPersediaanBarangJadiCOA($product);
+            // Debit HPP account
+            $lines[] = [
+                'code' => '51', // HARGA POKOK PENJUALAN (HPP)
+                'debit' => $totalHPP,
+                'credit' => 0,
+                'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
+            ];
             
+            // Credit persediaan barang jadi
+            $persediaanCOA = $this->getPersediaanBarangJadiCOA($product);
             $lines[] = [
                 'code' => $persediaanCOA,
                 'debit' => 0,
                 'credit' => $totalHPP,
-                'memo' => "HPP Total - {$product->nama_produk} ({$qty} pcs)"
+                'memo' => "Keluar persediaan - {$product->nama_produk} ({$qty} pcs)"
             ];
         }
         
@@ -544,7 +489,7 @@ class JournalService
     }
     
     /**
-     * Create HPP lines for single item penjualan
+     * Create HPP lines for single item penjualan (simplified version)
      */
     private function createHPPLinesForSingleItem($penjualan): array
     {
@@ -556,53 +501,26 @@ class JournalService
             return $lines;
         }
         
-        // Similar logic as above but for single item
-        $totalMaterialCost = 0;
-        $totalBTKLCost = ($product->btkl_default ?? 0) * $qty;
-        $totalBOPCost = ($product->bop_default ?? 0) * $qty;
+        // Get HPP using product's built-in method
+        $hppPerUnit = $product->getActualHPP($penjualan->tanggal);
+        $totalHPP = $hppPerUnit * $qty;
         
-        // Get BOM cost
-        $bomCost = \App\Models\Bom::where('produk_id', $product->id)->sum('total_biaya');
-        $totalMaterialCost = $bomCost * $qty;
-        
-        // Create material lines (simplified for single item)
-        if ($totalMaterialCost > 0) {
-            $lines[] = [
-                'code' => '117', // Barang Dalam Proses (WIP) - temporary
-                'debit' => $totalMaterialCost,
-                'credit' => 0,
-                'memo' => "HPP Material untuk {$product->nama_produk} ({$qty} pcs)"
-            ];
-        }
-        
-        if ($totalBTKLCost > 0) {
-            $lines[] = [
-                'code' => '52', // BIAYA TENAGA KERJA LANGSUNG (BTKL)
-                'debit' => $totalBTKLCost,
-                'credit' => 0,
-                'memo' => "HPP BTKL untuk {$product->nama_produk} ({$qty} pcs)"
-            ];
-        }
-        
-        if ($totalBOPCost > 0) {
-            $lines[] = [
-                'code' => '53', // BIAYA OVERHEAD PABRIK (BOP)
-                'debit' => $totalBOPCost,
-                'credit' => 0,
-                'memo' => "HPP BOP untuk {$product->nama_produk} ({$qty} pcs)"
-            ];
-        }
-        
-        // Credit persediaan barang jadi
-        $totalHPP = $totalMaterialCost + $totalBTKLCost + $totalBOPCost;
         if ($totalHPP > 0) {
-            $persediaanCOA = $this->getPersediaanBarangJadiCOA($product);
+            // Debit HPP account
+            $lines[] = [
+                'code' => '51', // HARGA POKOK PENJUALAN (HPP)
+                'debit' => $totalHPP,
+                'credit' => 0,
+                'memo' => "HPP untuk {$product->nama_produk} ({$qty} pcs @ Rp " . number_format($hppPerUnit, 2) . ")"
+            ];
             
+            // Credit persediaan barang jadi
+            $persediaanCOA = $this->getPersediaanBarangJadiCOA($product);
             $lines[] = [
                 'code' => $persediaanCOA,
                 'debit' => 0,
                 'credit' => $totalHPP,
-                'memo' => "HPP Total - {$product->nama_produk} ({$qty} pcs)"
+                'memo' => "Keluar persediaan - {$product->nama_produk} ({$qty} pcs)"
             ];
         }
         
