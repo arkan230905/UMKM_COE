@@ -15,6 +15,7 @@ class Pegawai extends Model
     protected $primaryKey = 'id';
 
     protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation
         'kode_pegawai',
         'nama',
         'email',
@@ -24,6 +25,7 @@ class Pegawai extends Model
         'jabatan',
         'jabatan_id',
         'kategori_id',
+        'kategori',
         'gaji',
         'gaji_pokok',
         'tarif_per_jam',
@@ -40,6 +42,10 @@ class Pegawai extends Model
         parent::boot();
 
         static::creating(function ($model) {
+            // Auto-fill user_id for multi-tenant isolation
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
             if (empty($model->kode_pegawai)) {
                 $lastId = static::max('id') ?? 0;
                 $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
