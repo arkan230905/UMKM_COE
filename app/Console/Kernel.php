@@ -46,6 +46,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\DebugPurchaseJournal::class,
         \App\Console\Commands\CreateMissingPurchaseJournals::class,
         \App\Console\Commands\ComparePurchaseData::class,
+        \App\Console\Commands\FixPurchaseTotals::class,
     ];
 
     /**
