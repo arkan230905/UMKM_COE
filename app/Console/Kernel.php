@@ -35,6 +35,7 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\CreateTestSale::class,
         \App\Console\Commands\CheckNewSale::class,
         \App\Console\Commands\FixSaleUserIds::class,
+        \App\Console\Commands\CheckHPPCoa::class,
     ];
 
     /**
