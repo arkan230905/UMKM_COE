@@ -154,24 +154,17 @@ class BiayaBahanController extends Controller
                     })->filter()->toArray() ?? []; // Filter out null values
                 }
                 
-                // Total biaya bahan - HANYA HITUNG YANG HARGANYA > 0
+                // Total biaya bahan - HANYA HITUNG BAHAN BAKU SAJA
                 $totalBiayaBahan = 0;
                 
-                // Hitung dari BBB yang tidak dihapus (harga > 0)
+                // Hitung dari BBB yang tidak dihapus (harga > 0) - BAHAN BAKU SAJA
                 if ($bomJobCosting && $bomJobCosting->detailBBB) {
                     $totalBiayaBahan += $bomJobCosting->detailBBB
                         ->where('harga_satuan', '>', 0)
                         ->sum('subtotal') ?? 0;
                 }
                 
-                // Hitung dari Bahan Pendukung yang tidak dihapus (harga > 0)
-                if ($bomJobCosting && $bomJobCosting->detailBahanPendukung) {
-                    $totalBiayaBahan += $bomJobCosting->detailBahanPendukung
-                        ->where('harga_satuan', '>', 0)
-                        ->sum('subtotal') ?? 0;
-                }
-                
-                // Fallback ke BOM lama jika perlu
+                // Fallback ke BOM lama jika perlu (bahan baku saja)
                 if ($totalBiayaBahan == 0 && $bom && $bom->details) {
                     $totalBiayaBahan = $bom->details
                         ->where('harga_per_satuan', '>', 0)

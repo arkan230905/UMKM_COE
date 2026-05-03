@@ -91,11 +91,10 @@
                         <tr>
                             <th style="width: 3%;" class="text-center">No</th>
                             <th style="width: 25%;">Produk</th>
-                            <th style="width: 15%;" class="text-center">Bahan Baku</th>
-                            <th style="width: 15%;" class="text-center">Bahan Pendukung</th>
-                            <th style="width: 17%;" class="text-end">Total Biaya</th>
+                            <th style="width: 20%;" class="text-center">Bahan Baku</th>
+                            <th style="width: 22%;" class="text-end">Total Biaya Bahan Baku</th>
                             <th style="width: 10%;" class="text-center">Status</th>
-                            <th style="width: 15%;" class="text-center">Aksi</th>
+                            <th style="width: 20%;" class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -153,26 +152,14 @@
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
-                                <td class="text-center">
-                                    @if($jumlahBahanPendukung > 0)
-                                        <div class="mb-1">
-                                            <span class="text-info fw-semibold">{{ $jumlahBahanPendukung }} item</span>
-                                        </div>
-                                        <small class="text-muted d-block">
-                                            Rp {{ number_format($totalBiayaBahanPendukung, 0, ',', '.') }}
-                                        </small>
-                                    @else
-                                        <span class="text-muted">-</span>
-                                    @endif
-                                </td>
                                 <td class="text-end">
-                                    @if($totalBiaya > 0)
+                                    @if($totalBiayaBahanBaku > 0)
                                         <div class="fw-bold text-success fs-5">
-                                            Rp {{ number_format($totalBiaya, 0, ',', '.') }}
+                                            Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}
                                         </div>
                                         @if($produk->harga_jual)
                                             @php
-                                                $margin = $produk->harga_jual > 0 ? (($produk->harga_jual - $totalBiaya) / $produk->harga_jual * 100) : 0;
+                                                $margin = $produk->harga_jual > 0 ? (($produk->harga_jual - $totalBiayaBahanBaku) / $produk->harga_jual * 100) : 0;
                                             @endphp
                                             <small class="text-muted">
                                                 Margin: 
@@ -186,7 +173,7 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @if($totalBiaya > 0)
+                                    @if($totalBiayaBahanBaku > 0)
                                         <span class="badge bg-success">
                                             <i class="fas fa-check-circle"></i> Lengkap
                                         </span>
@@ -237,7 +224,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="text-center py-5">
+                                <td colspan="6" class="text-center py-5">
                                     <i class="fas fa-calculator fa-3x text-muted mb-3 d-block"></i>
                                     <p class="text-muted mb-0">Belum ada data perhitungan biaya bahan</p>
                                 </td>
@@ -256,17 +243,9 @@
                                     Rp {{ number_format(collect($produkBiaya)->sum('total_biaya_bahan_baku'), 0, ',', '.') }}
                                 </div>
                             </th>
-                            <th class="text-center">
-                                <div class="badge bg-warning text-dark">
-                                    {{ collect($produkBiaya)->sum(fn($item) => count($item['detail_bahan_pendukung'] ?? [])) }} item
-                                </div>
-                                <div class="small text-muted mt-1">
-                                    Rp {{ number_format(collect($produkBiaya)->sum('total_biaya_bahan_pendukung'), 0, ',', '.') }}
-                                </div>
-                            </th>
                             <th class="text-end">
                                 <div class="fw-bold text-success fs-5">
-                                    Rp {{ number_format(collect($produkBiaya)->sum('total_biaya'), 0, ',', '.') }}
+                                    Rp {{ number_format(collect($produkBiaya)->sum('total_biaya_bahan_baku'), 0, ',', '.') }}
                                 </div>
                             </th>
                             <th colspan="2"></th>
