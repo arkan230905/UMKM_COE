@@ -394,61 +394,8 @@ function parseFormattedNumber(value) {
     return value.replace(/\./g, '').replace(',', '.');
 }
 
-// Auto-fill COA fields based on account type and parent
-function autoFillCOA() {
-    // Get all COA options
-    const coaOptions = document.querySelectorAll('#coa_pembelian_id option[data-tipe]');
-    
-    // Group COA by type and parent
-    const coaByType = {};
-    coaOptions.forEach(option => {
-        const type = option.dataset.tipe;
-        const parent = option.dataset.induk;
-        
-        if (!coaByType[type]) {
-            coaByType[type] = {};
-        }
-        
-        if (!coaByType[type][parent]) {
-            coaByType[type][parent] = [];
-        }
-        
-        coaByType[type][parent].push(option.value);
-    });
-    
-    // Auto-fill logic
-    ['coa_pembelian_id', 'coa_persediaan_id', 'coa_hpp_id'].forEach(fieldId => {
-        const field = document.getElementById(fieldId);
-        if (!field) return;
-        
-        // Add change event listener
-        field.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const selectedType = selectedOption.dataset.tipe;
-            const selectedParent = selectedOption.dataset.induk;
-            
-            // Auto-fill other fields with same type and parent
-            ['coa_pembelian_id', 'coa_persediaan_id', 'coa_hpp_id'].forEach(otherFieldId => {
-                if (otherFieldId !== fieldId) {
-                    const otherField = document.getElementById(otherFieldId);
-                    if (otherField) {
-                        // Clear current selection
-                        otherField.value = '';
-                        
-                        // Find matching COA
-                        const matchingOptions = Array.from(otherField.options).filter(opt => 
-                            opt.dataset.tipe === selectedType && opt.dataset.induk === selectedParent
-                        );
-                        
-                        if (matchingOptions.length > 0) {
-                            otherField.value = matchingOptions[0].value;
-                        }
-                    }
-                }
-            });
-        });
-    });
-}
+// COA Manual Selection - Auto-fill disabled to allow manual selection
+// Users can now select COA accounts independently for each field
 
 // Main initialization
 document.addEventListener('DOMContentLoaded', function() {
@@ -556,8 +503,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Form not found!');
     }
     
-    // Initialize auto-fill COA
-    autoFillCOA();
+    // COA Manual Selection - Auto-fill disabled
 });
 </script>
 @endpush
