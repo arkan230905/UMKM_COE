@@ -34,31 +34,20 @@ class BtklController extends Controller
      */
     public function create()
     {
-        // Get ALL Jabatan with category 'btkl' and their employees
-        // This ensures we get all BTKL positions regardless of whether they have employees
+        $userId = auth()->id();
+
+        // Get jabatan BTKL milik user yang login saja, dengan pegawai yang juga milik user yang sama
         $jabatanBtkl = Jabatan::where('kategori', 'btkl')
-            ->with('pegawais')
+            ->where('user_id', $userId)
+            ->with(['pegawais' => function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            }])
             ->orderBy('nama')
             ->get();
-
-        // Debug logging
-        \Log::info('BTKL Create - Jabatan BTKL loaded:', [
-            'total_jabatan' => $jabatanBtkl->count(),
-            'jabatan_details' => $jabatanBtkl->map(function($j) {
-                return [
-                    'id' => $j->id,
-                    'nama' => $j->nama,
-                    'pegawai_count' => $j->pegawais->count(),
-                    'pegawai_ids' => $j->pegawais->pluck('id')->toArray(),
-                    'tarif' => $j->tarif
-                ];
-            })->toArray()
-        ]);
 
         // Generate next process code
         $lastBtkl = Btkl::orderBy('kode_proses', 'desc')->first();
         if ($lastBtkl) {
-            // Extract number from last code (e.g., PROC-001 -> 001)
             $lastNumber = (int) substr($lastBtkl->kode_proses, -3);
             $nextNumber = $lastNumber + 1;
         } else {
@@ -68,35 +57,16 @@ class BtklController extends Controller
 
         $satuanOptions = ['Jam', 'Unit', 'Batch'];
 
-        // Map employee data dengan pegawai_count yang akurat
-        $employeeData = $jabatanBtkl->map(function($jabatan) {
-            $pegawaiCount = $jabatan->pegawais->count();
-            
-            \Log::info('BTKL Create - Jabatan Data:', [
-                'id' => $jabatan->id,
-                'nama' => $jabatan->nama,
-                'pegawai_count' => $pegawaiCount,
-                'pegawai_details' => $jabatan->pegawais->map(function($p) {
-                    return [
-                        'id' => $p->id,
-                        'nama' => $p->nama,
-                        'jabatan_id' => $p->jabatan_id
-                    ];
-                })->toArray(),
-                'tarif' => $jabatan->tarif ?? 0,
-                'kategori' => $jabatan->kategori
-            ]);
-            
+        // Map employee data dengan pegawai_count yang akurat per user
+        $employeeData = $jabatanBtkl->map(function ($jabatan) {
             return [
-                'id' => $jabatan->id,
-                'nama' => $jabatan->nama,
-                'pegawai_count' => $pegawaiCount,
-                'tarif' => $jabatan->tarif ?? 0
+                'id'           => $jabatan->id,
+                'nama'         => $jabatan->nama,
+                'pegawai_count' => $jabatan->pegawais->count(),
+                'tarif'        => $jabatan->tarif ?? 0,
             ];
         });
 
-        \Log::info('BTKL Create - Final employeeData:', $employeeData->toArray());
-        
         return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satuanOptions', 'employeeData'));
     }
 
@@ -120,8 +90,8 @@ class BtklController extends Controller
             // Get jabatan data for automatic calculation
             $jabatan = Jabatan::find($validated['jabatan_id']);
             
-            // Calculate automatic BTKL rate
-            $jumlahPegawai = $jabatan->pegawais()->count();
+            // Calculate automatic BTKL rate - hanya pegawai milik user yang login
+            $jumlahPegawai = $jabatan->pegawais()->where('user_id', auth()->id())->count();
             $tarifPerJam = $jabatan->tarif ?? 0;
             $tarifBtkl = $tarifPerJam * $jumlahPegawai;
 
@@ -177,30 +147,28 @@ class BtklController extends Controller
     {
         try {
             $btkl = Btkl::with('jabatan')->findOrFail($id);
-            
-            // Get ALL Jabatan with category 'btkl' and their employees
+            $userId = auth()->id();
+
+            // Get jabatan BTKL milik user yang login saja
             $jabatanBtkl = Jabatan::where('kategori', 'btkl')
-                ->with(['pegawais' => function($query) {
-                    // Only get active employees
-                    $query->whereNotNull('jabatan_id');
+                ->where('user_id', $userId)
+                ->with(['pegawais' => function ($query) use ($userId) {
+                    $query->where('user_id', $userId);
                 }])
                 ->orderBy('nama')
                 ->get();
-                
+
             $satuanOptions = ['Jam', 'Unit', 'Batch'];
-            
-            // Map employee data dengan pegawai_count yang akurat
-            $employeeData = $jabatanBtkl->map(function($jabatan) {
-                $pegawaiCount = $jabatan->pegawais->count();
-                
+
+            $employeeData = $jabatanBtkl->map(function ($jabatan) {
                 return [
-                    'id' => $jabatan->id,
-                    'nama' => $jabatan->nama,
-                    'pegawai_count' => $pegawaiCount,
-                    'tarif' => $jabatan->tarif ?? 0
+                    'id'            => $jabatan->id,
+                    'nama'          => $jabatan->nama,
+                    'pegawai_count' => $jabatan->pegawais->count(),
+                    'tarif'         => $jabatan->tarif ?? 0,
                 ];
             });
-                
+
             return view('master-data.btkl.edit', compact('btkl', 'jabatanBtkl', 'satuanOptions', 'employeeData'));
             
         } catch (\Exception $e) {
@@ -230,8 +198,8 @@ class BtklController extends Controller
             // Get jabatan data for automatic calculation
             $jabatan = Jabatan::find($validated['jabatan_id']);
             
-            // Calculate automatic BTKL rate
-            $jumlahPegawai = $jabatan->pegawais()->count();
+            // Calculate automatic BTKL rate - hanya pegawai milik user yang login
+            $jumlahPegawai = $jabatan->pegawais()->where('user_id', auth()->id())->count();
             $tarifPerJam = $jabatan->tarif ?? 0;
             $tarifBtkl = $tarifPerJam * $jumlahPegawai;
 

@@ -71,10 +71,14 @@
                                 id="jabatan_id" 
                                 class="form-select @error('jabatan_id') is-invalid @enderror" 
                                 required>
-                            <option value="">-- Pilih Jabatan --</option>
+                            <option value="">-- Pilih Jabatan BTKL --</option>
                             @foreach($jabatanBtkl as $jabatan)
+                                @php
+                                    $jumlahPegawai = $jabatan->pegawais->count();
+                                    $tarifJam = $jabatan->tarif ?? 0;
+                                @endphp
                                 <option value="{{ $jabatan->id }}" {{ old('jabatan_id') == $jabatan->id ? 'selected' : '' }}>
-                                    {{ $jabatan->nama }}
+                                    {{ $jabatan->nama }} ({{ $jumlahPegawai }} pegawai @ Rp {{ number_format($tarifJam, 0, ',', '.') }}/jam)
                                 </option>
                             @endforeach
                         </select>
