@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Daftar Bahan Baku')
+@section('title', 'SIMCOST - Daftar Bahan Baku')
 
 @section('content')
 <div class="container-fluid">
