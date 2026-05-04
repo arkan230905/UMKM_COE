@@ -34,18 +34,16 @@ class BtklController extends Controller
      */
     public function create()
     {
-        // CRITICAL MULTI-TENANT: Filter jabatan by user_id
+        // CRITICAL MULTI-TENANT: Only get BTKL jabatan for current user
+        $currentUserId = auth()->id();
+        
         $jabatanBtkl = Jabatan::where('kategori', 'btkl')
-            ->where('user_id', auth()->id())
-            ->with(['pegawais' => function($query) {
-                // Filter pegawai by user_id untuk multi-tenant
-                $query->where('user_id', auth()->id());
-            }])
+            ->where('user_id', $currentUserId) // CRITICAL: Only current user's jabatan
             ->orderBy('nama')
             ->get();
 
-        // Generate next process code
-        $lastBtkl = Btkl::orderBy('kode_proses', 'desc')->first();
+        // Generate next process code - also filtered by user_id for security
+        $lastBtkl = Btkl::where('user_id', $currentUserId)->orderBy('kode_proses', 'desc')->first();
         if ($lastBtkl) {
             $lastNumber = (int) substr($lastBtkl->kode_proses, -3);
             $nextNumber = $lastNumber + 1;
@@ -56,46 +54,23 @@ class BtklController extends Controller
 
         $satuanOptions = ['Jam', 'Unit', 'Batch'];
 
-        // Map employee data - hitung pegawai dengan multiple fallback methods (multi-tenant)
-        $employeeData = $jabatanBtkl->map(function($jabatan) {
-            // Get all pegawai for this user first
-            $allPegawais = \App\Models\Pegawai::where('user_id', auth()->id())
-                ->select('id', 'nama', 'jabatan', 'jabatan_id', 'jenis_pegawai')
-                ->get();
-            
-            $pegawaiCount = 0;
-            
-            // Method 1: Exact match on jabatan name
-            $pegawaiCount = $allPegawais->where('jabatan', $jabatan->nama)->count();
-            
-            // Method 2: Case-insensitive match
-            if ($pegawaiCount == 0) {
-                $pegawaiCount = $allPegawais->filter(function($pegawai) use ($jabatan) {
-                    return strtolower(trim($pegawai->jabatan)) == strtolower(trim($jabatan->nama));
-                })->count();
-            }
-            
-            // Method 3: Like match (contains)
-            if ($pegawaiCount == 0) {
-                $pegawaiCount = $allPegawais->filter(function($pegawai) use ($jabatan) {
-                    return strpos(strtolower($pegawai->jabatan), strtolower($jabatan->nama)) !== false;
-                })->count();
-            }
-            
-            // Method 4: Match by jabatan_id if available
-            if ($pegawaiCount == 0) {
-                $pegawaiCount = $allPegawais->where('jabatan_id', $jabatan->id)->count();
-            }
-            
-            // Method 5: Match by jenis_pegawai = 'BTKL' as fallback
-            if ($pegawaiCount == 0 && strtolower($jabatan->kategori) == 'btkl') {
-                $pegawaiCount = $allPegawais->where('jenis_pegawai', 'BTKL')->count();
-            }
+        // CRITICAL: Only count employees belonging to current user
+        $employeeData = $jabatanBtkl->map(function($jabatan) use ($currentUserId) {
+            // Get ONLY current user's pegawai for this jabatan
+            $pegawaiCount = \App\Models\Pegawai::where('user_id', $currentUserId)
+                ->where(function($query) use ($jabatan) {
+                    // Multiple matching methods for current user's data only
+                    $query->where('jabatan', $jabatan->nama) // Exact match
+                          ->orWhere('jabatan_id', $jabatan->id) // By ID
+                          ->orWhereRaw('LOWER(jabatan) = ?', [strtolower($jabatan->nama)]) // Case-insensitive
+                          ->orWhere('jabatan', 'like', '%' . $jabatan->nama . '%'); // Contains
+                })
+                ->count();
             
             return [
                 'id' => $jabatan->id,
                 'nama' => $jabatan->nama,
-                'pegawai_count' => $pegawaiCount,
+                'pegawai_count' => $pegawaiCount, // Only current user's employees
                 'tarif' => $jabatan->tarif_per_jam ?? $jabatan->tarif ?? 0
             ];
         });
