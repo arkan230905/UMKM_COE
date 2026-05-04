@@ -16,14 +16,15 @@ return new class extends Migration
             });
         }
 
-        // Backfill user_id dari relasi pegawai -> user
-        // Cari user_id berdasarkan pegawai yang terhubung ke user
-        DB::statement("
-            UPDATE presensis p
-            JOIN pegawais pg ON pg.id = p.pegawai_id
-            SET p.user_id = pg.user_id
-            WHERE p.user_id IS NULL AND pg.user_id IS NOT NULL
-        ");
+        // Backfill user_id dari relasi pegawai -> user (skip jika kolom belum ada)
+        if (Schema::hasColumn('pegawais', 'user_id')) {
+            DB::statement("
+                UPDATE presensis p
+                JOIN pegawais pg ON pg.id = p.pegawai_id
+                SET p.user_id = pg.user_id
+                WHERE p.user_id IS NULL AND pg.user_id IS NOT NULL
+            ");
+        }
     }
 
     public function down(): void

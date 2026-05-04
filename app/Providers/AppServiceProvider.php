@@ -83,15 +83,27 @@ class AppServiceProvider extends ServiceProvider
 
         // View composer global untuk semua tampilan
         View::composer('*', function ($view) {
-            $view->with([
-                'totalPegawai'   => 0,
-                'totalPresensi'  => Presensi::count(),
-                'totalProduk'    => Produk::count(),
-                'totalVendor'    => Vendor::count(),
-                'totalBahanBaku' => BahanBaku::count(),
-                'totalSatuan'    => Satuan::count(),
-                'totalCOA'       => Coa::count(),
-            ]);
+            try {
+                $view->with([
+                    'totalPegawai'   => 0,
+                    'totalPresensi'  => Presensi::count(),
+                    'totalProduk'    => Produk::count(),
+                    'totalVendor'    => Vendor::count(),
+                    'totalBahanBaku' => BahanBaku::count(),
+                    'totalSatuan'    => Satuan::count(),
+                    'totalCOA'       => Coa::count(),
+                ]);
+            } catch (\Exception $e) {
+                $view->with([
+                    'totalPegawai'   => 0,
+                    'totalPresensi'  => 0,
+                    'totalProduk'    => 0,
+                    'totalVendor'    => 0,
+                    'totalBahanBaku' => 0,
+                    'totalSatuan'    => 0,
+                    'totalCOA'       => 0,
+                ]);
+            }
         });
 
         // View composer untuk layout pelanggan (cart count)

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\MasterData;
 
 use App\Http\Controllers\Controller;
 use App\Models\Btkl;
-use App\Models\Jabatan;
 use App\Models\ProsesProduksi;
 use App\Services\BomSyncService;
 use Illuminate\Http\Request;
@@ -13,17 +12,72 @@ use Illuminate\Support\Facades\DB;
 class BtklController extends Controller
 {
     /**
+     * Ambil jabatan BTKL + jumlah pegawai milik user yang sedang login.
+     * Menggunakan DB::table (query builder mentah) agar tidak terpengaruh
+     * global scope Eloquent yang kadang tidak aktif di server.
+     */
+    private function getJabatanBtklForUser(int $userId): array
+    {
+        // 1. Ambil jabatan BTKL milik user ini saja
+        $jabatans = DB::table('jabatans')
+            ->where('kategori', 'btkl')
+            ->where('user_id', $userId)
+            ->orderBy('nama')
+            ->get();
+
+        // 2. Hitung pegawai per jabatan — hanya pegawai milik user yang sama
+        //    Relasi: pegawais.jabatan_id = jabatans.id DAN pegawais.user_id = user ini
+        $pegawaiCount = DB::table('pegawais')
+            ->select('jabatan_id', DB::raw('COUNT(*) as jumlah'))
+            ->where('user_id', $userId)
+            ->whereNotNull('jabatan_id')
+            ->groupBy('jabatan_id')
+            ->pluck('jumlah', 'jabatan_id');
+
+        // 3. Gabungkan
+        $jabatanBtkl   = collect();
+        $employeeData  = collect();
+
+        foreach ($jabatans as $j) {
+            $count = (int) ($pegawaiCount[$j->id] ?? 0);
+            $tarif = (float) ($j->tarif ?? 0);
+
+            // Untuk view blade (object)
+            $jabatanBtkl->push((object)[
+                'id'    => $j->id,
+                'nama'  => $j->nama,
+                'tarif' => $tarif,
+                'pegawai_count' => $count,
+            ]);
+
+            // Untuk JavaScript kalkulasi tarif otomatis
+            $employeeData->push([
+                'id'            => $j->id,
+                'nama'          => $j->nama,
+                'pegawai_count' => $count,
+                'tarif'         => $tarif,
+            ]);
+        }
+
+        return [$jabatanBtkl, $employeeData];
+    }
+
+    /**
      * Display a listing of the resource.
      */
     public function index()
     {
         try {
-            $btkls = Btkl::with('jabatan.pegawais')
-                ->orderBy('kode_proses')
+            $userId = auth()->id();
+            $btkls  = DB::table('btkls')
+                ->leftJoin('jabatans', 'btkls.jabatan_id', '=', 'jabatans.id')
+                ->where('btkls.user_id', $userId)
+                ->select('btkls.*', 'jabatans.nama as jabatan_nama', 'jabatans.tarif as jabatan_tarif')
+                ->orderBy('btkls.kode_proses')
                 ->get();
 
             return view('master-data.btkl.index', compact('btkls'));
-            
+
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
@@ -34,47 +88,17 @@ class BtklController extends Controller
      */
     public function create()
     {
-        // CRITICAL MULTI-TENANT: Only get BTKL jabatan for current user
-        $currentUserId = auth()->id();
-        
-        $jabatanBtkl = Jabatan::where('kategori', 'btkl')
-            ->where('user_id', $currentUserId) // CRITICAL: Only current user's jabatan
-            ->orderBy('nama')
-            ->get();
+        $userId = auth()->id();
 
-        // Generate next process code - also filtered by user_id for security
-        $lastBtkl = Btkl::where('user_id', $currentUserId)->orderBy('kode_proses', 'desc')->first();
-        if ($lastBtkl) {
-            $lastNumber = (int) substr($lastBtkl->kode_proses, -3);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-        $nextKode = 'PROC-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        [$jabatanBtkl, $employeeData] = $this->getJabatanBtklForUser($userId);
+
+        // Generate kode proses berikutnya untuk user ini
+        $lastBtkl   = DB::table('btkls')->where('user_id', $userId)->orderBy('kode_proses', 'desc')->first();
+        $nextNumber = $lastBtkl ? ((int) substr($lastBtkl->kode_proses, -3)) + 1 : 1;
+        $nextKode   = 'PROC-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
 
         $satuanOptions = ['Jam', 'Unit', 'Batch'];
 
-        // CRITICAL: Only count employees belonging to current user
-        $employeeData = $jabatanBtkl->map(function($jabatan) use ($currentUserId) {
-            // Get ONLY current user's pegawai for this jabatan
-            $pegawaiCount = \App\Models\Pegawai::where('user_id', $currentUserId)
-                ->where(function($query) use ($jabatan) {
-                    // Multiple matching methods for current user's data only
-                    $query->where('jabatan', $jabatan->nama) // Exact match
-                          ->orWhere('jabatan_id', $jabatan->id) // By ID
-                          ->orWhereRaw('LOWER(jabatan) = ?', [strtolower($jabatan->nama)]) // Case-insensitive
-                          ->orWhere('jabatan', 'like', '%' . $jabatan->nama . '%'); // Contains
-                })
-                ->count();
-            
-            return [
-                'id' => $jabatan->id,
-                'nama' => $jabatan->nama,
-                'pegawai_count' => $pegawaiCount, // Only current user's employees
-                'tarif' => $jabatan->tarif_per_jam ?? $jabatan->tarif ?? 0
-            ];
-        });
-        
         return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satuanOptions', 'employeeData'));
     }
 
@@ -84,72 +108,56 @@ class BtklController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'kode_proses' => 'required|string|max:20|unique:btkls,kode_proses',
-            'nama_btkl' => 'required|string|max:255',
-            'jabatan_id' => 'required|exists:jabatans,id',
-            'satuan' => 'required|in:Jam,Unit,Batch',
-            'kapasitas_per_jam' => 'required|integer|min:0',
+            'kode_proses'      => 'required|string|max:20|unique:btkls,kode_proses',
+            'nama_btkl'        => 'required|string|max:255',
+            'jabatan_id'       => 'required|exists:jabatans,id',
+            'satuan'           => 'required|in:Jam,Unit,Batch',
+            'kapasitas_per_jam'=> 'required|integer|min:0',
             'deskripsi_proses' => 'nullable|string',
         ]);
 
         try {
             DB::beginTransaction();
 
-            // Get jabatan data for automatic calculation
-            $jabatan = Jabatan::find($validated['jabatan_id']);
-            
-            // Calculate automatic BTKL rate - hitung via jabatan_id DAN nama jabatan (fallback)
-            $jumlahPegawai = \App\Models\Pegawai::where('user_id', auth()->id())
-                ->where(function($q) use ($jabatan) {
-                    $q->where('jabatan_id', $jabatan->id)
-                      ->orWhere('jabatan', $jabatan->nama);
-                })
+            $userId  = auth()->id();
+            $jabatan = DB::table('jabatans')->where('id', $validated['jabatan_id'])->first();
+
+            // Hitung pegawai user ini yang terdaftar di jabatan tersebut
+            $jumlahPegawai = DB::table('pegawais')
+                ->where('user_id', $userId)
+                ->where('jabatan_id', $jabatan->id)
                 ->count();
-            $tarifPerJam = $jabatan->tarif_per_jam ?? $jabatan->tarif ?? 0;
-            $tarifBtkl = $tarifPerJam * $jumlahPegawai;
 
-            // If kode_proses is empty, generate it
-            if (empty($validated['kode_proses'])) {
-                $lastBtkl = Btkl::orderBy('kode_proses', 'desc')->first();
-                if ($lastBtkl) {
-                    $lastNumber = (int) substr($lastBtkl->kode_proses, -3);
-                    $nextNumber = $lastNumber + 1;
-                } else {
-                    $nextNumber = 1;
-                }
-                $validated['kode_proses'] = 'PROC-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
-            }
+            $tarifPerJam = (float) ($jabatan->tarif ?? 0);
+            $tarifBtkl   = $tarifPerJam * $jumlahPegawai;
 
-            // Add calculated tarif_per_jam to validated data
             $validated['tarif_per_jam'] = $tarifBtkl;
+            $validated['user_id']       = $userId;
 
             $btkl = Btkl::create($validated);
 
-            // Create corresponding ProsesProduksi for BOP display
             ProsesProduksi::create([
-                'kode_proses' => $btkl->kode_proses,
-                'nama_proses' => $btkl->nama_btkl,
-                'deskripsi' => $btkl->deskripsi_proses,
-                'tarif_btkl' => $tarifBtkl,
-                'satuan_btkl' => $btkl->satuan,
-                'kapasitas_per_jam' => $btkl->kapasitas_per_jam,
-                'btkl_id' => $btkl->id,
+                'kode_proses'     => $btkl->kode_proses,
+                'nama_proses'     => $btkl->nama_btkl,
+                'deskripsi'       => $btkl->deskripsi_proses,
+                'tarif_btkl'      => $tarifBtkl,
+                'satuan_btkl'     => $btkl->satuan,
+                'kapasitas_per_jam'=> $btkl->kapasitas_per_jam,
+                'btkl_id'         => $btkl->id,
             ]);
 
-            // Sync BOM when BTKL data changes
             BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);
 
             DB::commit();
 
             return redirect()
                 ->route('master-data.btkl.index')
-                ->with('success', 'Data BTKL berhasil ditambahkan. Tarif BTKL: Rp ' . number_format($tarifBtkl) . ' (Tarif Jabatan: Rp ' . number_format($tarifPerJam) . ' × ' . $jumlahPegawai . ' pegawai)');
+                ->with('success', 'Data BTKL berhasil ditambahkan. Tarif BTKL: Rp ' . number_format($tarifBtkl) .
+                    ' (Tarif Jabatan: Rp ' . number_format($tarifPerJam) . ' × ' . $jumlahPegawai . ' pegawai)');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()
-                ->withInput()
-                ->with('error', 'Gagal menyimpan data BTKL: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Gagal menyimpan data BTKL: ' . $e->getMessage());
         }
     }
 
@@ -159,41 +167,17 @@ class BtklController extends Controller
     public function edit($id)
     {
         try {
-            $btkl = Btkl::with('jabatan')->findOrFail($id);
-            
-            // CRITICAL MULTI-TENANT: Filter jabatan by user_id
-            $jabatanBtkl = Jabatan::where('kategori', 'btkl')
-                ->where('user_id', auth()->id())
-                ->with(['pegawais' => function($query) {
-                    $query->where('user_id', auth()->id());
-                }])
-                ->orderBy('nama')
-                ->get();
-                
+            $userId = auth()->id();
+            $btkl   = Btkl::with('jabatan')->findOrFail($id);
+
+            [$jabatanBtkl, $employeeData] = $this->getJabatanBtklForUser($userId);
+
             $satuanOptions = ['Jam', 'Unit', 'Batch'];
-            
-            // Map employee data - hitung dari jabatan_id DAN nama jabatan (fallback)
-            $employeeData = $jabatanBtkl->map(function($jabatan) {
-                $pegawaiViaNama = \App\Models\Pegawai::where('user_id', auth()->id())
-                    ->where(function($q) use ($jabatan) {
-                        $q->where('jabatan_id', $jabatan->id)
-                          ->orWhere('jabatan', $jabatan->nama);
-                    })
-                    ->count();
-                
-                return [
-                    'id' => $jabatan->id,
-                    'nama' => $jabatan->nama,
-                    'pegawai_count' => $pegawaiViaNama,
-                    'tarif' => $jabatan->tarif_per_jam ?? $jabatan->tarif ?? 0
-                ];
-            });
-                
+
             return view('master-data.btkl.edit', compact('btkl', 'jabatanBtkl', 'satuanOptions', 'employeeData'));
-            
+
         } catch (\Exception $e) {
-            return redirect()
-                ->route('master-data.btkl.index')
+            return redirect()->route('master-data.btkl.index')
                 ->with('error', 'Data BTKL tidak ditemukan: ' . $e->getMessage());
         }
     }
@@ -204,64 +188,57 @@ class BtklController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'kode_proses' => 'required|string|max:20|unique:btkls,kode_proses,' . $id,
-            'nama_btkl' => 'required|string|max:255',
-            'jabatan_id' => 'required|exists:jabatans,id',
-            'satuan' => 'required|in:Jam,Unit,Batch',
-            'kapasitas_per_jam' => 'required|integer|min:0',
+            'kode_proses'      => 'required|string|max:20|unique:btkls,kode_proses,' . $id,
+            'nama_btkl'        => 'required|string|max:255',
+            'jabatan_id'       => 'required|exists:jabatans,id',
+            'satuan'           => 'required|in:Jam,Unit,Batch',
+            'kapasitas_per_jam'=> 'required|integer|min:0',
             'deskripsi_proses' => 'nullable|string',
         ]);
 
         DB::beginTransaction();
-        
-        try {
-            // Get jabatan data for automatic calculation
-            $jabatan = Jabatan::find($validated['jabatan_id']);
-            
-            // Calculate automatic BTKL rate - hitung via jabatan_id DAN nama jabatan (fallback)
-            $jumlahPegawai = \App\Models\Pegawai::where('user_id', auth()->id())
-                ->where(function($q) use ($jabatan) {
-                    $q->where('jabatan_id', $jabatan->id)
-                      ->orWhere('jabatan', $jabatan->nama);
-                })
-                ->count();
-            $tarifPerJam = $jabatan->tarif_per_jam ?? $jabatan->tarif ?? 0;
-            $tarifBtkl = $tarifPerJam * $jumlahPegawai;
 
-            // Add calculated tarif_per_jam to validated data
+        try {
+            $userId  = auth()->id();
+            $jabatan = DB::table('jabatans')->where('id', $validated['jabatan_id'])->first();
+
+            $jumlahPegawai = DB::table('pegawais')
+                ->where('user_id', $userId)
+                ->where('jabatan_id', $jabatan->id)
+                ->count();
+
+            $tarifPerJam = (float) ($jabatan->tarif ?? 0);
+            $tarifBtkl   = $tarifPerJam * $jumlahPegawai;
+
             $validated['tarif_per_jam'] = $tarifBtkl;
 
             $btkl = Btkl::findOrFail($id);
             $btkl->update($validated);
 
-            // Update corresponding ProsesProduksi if exists
             $prosesProduksi = ProsesProduksi::where('btkl_id', $btkl->id)->first();
             if ($prosesProduksi) {
                 $prosesProduksi->update([
-                    'kode_proses' => $btkl->kode_proses,
-                    'nama_proses' => $btkl->nama_btkl,
-                    'deskripsi' => $btkl->deskripsi_proses,
-                    'tarif_btkl' => $tarifBtkl,
-                    'satuan_btkl' => $btkl->satuan,
-                    'kapasitas_per_jam' => $btkl->kapasitas_per_jam,
+                    'kode_proses'      => $btkl->kode_proses,
+                    'nama_proses'      => $btkl->nama_btkl,
+                    'deskripsi'        => $btkl->deskripsi_proses,
+                    'tarif_btkl'       => $tarifBtkl,
+                    'satuan_btkl'      => $btkl->satuan,
+                    'kapasitas_per_jam'=> $btkl->kapasitas_per_jam,
                 ]);
             }
 
-            // Sync BOM when BTKL data changes
             BomSyncService::syncBomFromMaterialChange('btkl', $btkl->id);
 
             DB::commit();
 
             return redirect()
                 ->route('master-data.btkl.index')
-                ->with('success', 'Data BTKL berhasil diperbarui. Tarif BTKL: Rp ' . number_format($tarifBtkl) . ' (Tarif Jabatan: Rp ' . number_format($tarifPerJam) . ' × ' . $jumlahPegawai . ' pegawai)');
+                ->with('success', 'Data BTKL berhasil diperbarui. Tarif BTKL: Rp ' . number_format($tarifBtkl) .
+                    ' (Tarif Jabatan: Rp ' . number_format($tarifPerJam) . ' × ' . $jumlahPegawai . ' pegawai)');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
-            return back()
-                ->withInput()
-                ->with('error', 'Gagal memperbarui data BTKL: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Gagal memperbarui data BTKL: ' . $e->getMessage());
         }
     }
 
@@ -271,22 +248,18 @@ class BtklController extends Controller
     public function destroy($id)
     {
         DB::beginTransaction();
-        
+
         try {
             $btkl = Btkl::findOrFail($id);
             $btkl->delete();
-
             DB::commit();
 
-            return redirect()
-                ->route('master-data.btkl.index')
+            return redirect()->route('master-data.btkl.index')
                 ->with('success', 'Data BTKL berhasil dihapus');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
-            return back()
-                ->with('error', 'Gagal menghapus data BTKL: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghapus data BTKL: ' . $e->getMessage());
         }
     }
 }

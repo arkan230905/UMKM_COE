@@ -13,14 +13,24 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Tambah user_id ke asets jika belum ada
+        if (!Schema::hasColumn('asets', 'user_id')) {
+            Schema::table('asets', function (Blueprint $table) {
+                $table->unsignedBigInteger('user_id')->nullable()->after('id');
+            });
+        }
+
         // Drop old unique constraint if exists
         $indexes = DB::select("SHOW INDEX FROM asets WHERE Key_name = 'asets_kode_aset_unique'");
         if (!empty($indexes)) {
             DB::statement("ALTER TABLE asets DROP INDEX asets_kode_aset_unique");
         }
-        
-        // Add new unique constraint with user_id
-        DB::statement("ALTER TABLE asets ADD UNIQUE KEY asets_kode_user_unique (kode_aset, user_id)");
+
+        // Add new unique constraint with user_id (skip if already exists)
+        $existing = DB::select("SHOW INDEX FROM asets WHERE Key_name = 'asets_kode_user_unique'");
+        if (empty($existing)) {
+            DB::statement("ALTER TABLE asets ADD UNIQUE KEY asets_kode_user_unique (kode_aset, user_id)");
+        }
     }
 
     /**
