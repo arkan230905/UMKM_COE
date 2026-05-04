@@ -39,6 +39,32 @@ class BtklController extends Controller
         
         $jabatanBtkl = Jabatan::where('kategori', 'btkl')
             ->where('user_id', $currentUserId) // CRITICAL: Only current user's jabatan
+            ->where(function($query) {
+                // Exclude process-specific names that sound like production processes
+                // Include only proper job positions
+                $query->whereNotIn('nama', [
+                    'Penggorengan',
+                    'Pencampuran', 
+                    'Pengadukan',
+                    'Pengemasan',
+                    'Pengeringan',
+                    'Pemotongan',
+                    'Penimbangan',
+                    'Pengolahan',
+                    'Produksi',
+                    'Proses'
+                ])
+                ->orWhere(function($subQuery) {
+                    // Include names that typically indicate job positions
+                    $positionKeywords = [
+                        'Operator', 'Teknisi', 'Supervisor', 'Manager', 'Staff',
+                        'Pekerja', 'Karyawan', 'Ahli', 'Asisten', 'Helper'
+                    ];
+                    foreach ($positionKeywords as $keyword) {
+                        $subQuery->orWhere('nama', 'like', '%' . $keyword . '%');
+                    }
+                });
+            })
             ->orderBy('nama')
             ->get();
 
@@ -164,6 +190,32 @@ class BtklController extends Controller
             // CRITICAL MULTI-TENANT: Filter jabatan by user_id
             $jabatanBtkl = Jabatan::where('kategori', 'btkl')
                 ->where('user_id', auth()->id())
+                ->where(function($query) {
+                    // Exclude process-specific names that sound like production processes
+                    // Include only proper job positions
+                    $query->whereNotIn('nama', [
+                        'Penggorengan',
+                        'Pencampuran', 
+                        'Pengadukan',
+                        'Pengemasan',
+                        'Pengeringan',
+                        'Pemotongan',
+                        'Penimbangan',
+                        'Pengolahan',
+                        'Produksi',
+                        'Proses'
+                    ])
+                    ->orWhere(function($subQuery) {
+                        // Include names that typically indicate job positions
+                        $positionKeywords = [
+                            'Operator', 'Teknisi', 'Supervisor', 'Manager', 'Staff',
+                            'Pekerja', 'Karyawan', 'Ahli', 'Asisten', 'Helper'
+                        ];
+                        foreach ($positionKeywords as $keyword) {
+                            $subQuery->orWhere('nama', 'like', '%' . $keyword . '%');
+                        }
+                    });
+                })
                 ->with(['pegawais' => function($query) {
                     $query->where('user_id', auth()->id());
                 }])
