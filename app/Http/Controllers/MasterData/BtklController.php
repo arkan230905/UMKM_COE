@@ -58,10 +58,39 @@ class BtklController extends Controller
 
         // Map employee data - hitung pegawai berdasarkan nama jabatan (multi-tenant)
         $employeeData = $jabatanBtkl->map(function($jabatan) {
-            // Hitung pegawai berdasarkan nama jabatan (field 'jabatan' di table pegawais)
+            // Debug: Log jabatan name
+            \Log::info('BTKL DEBUG - Jabatan: ' . $jabatan->nama);
+            
+            // Get all pegawai for this user to debug
+            $allPegawais = \App\Models\Pegawai::where('user_id', auth()->id())
+                ->select('id', 'nama', 'jabatan', 'jabatan_id')
+                ->get();
+            
+            \Log::info('BTKL DEBUG - All Pegawais: ' . $allPegawais->toJson());
+            
+            // Try multiple matching approaches
+            $pegawaiCount = 0;
+            
+            // Method 1: Exact match on jabatan name
             $pegawaiCount = \App\Models\Pegawai::where('user_id', auth()->id())
                 ->where('jabatan', $jabatan->nama)
                 ->count();
+            
+            // Method 2: Case-insensitive match if method 1 returns 0
+            if ($pegawaiCount == 0) {
+                $pegawaiCount = \App\Models\Pegawai::where('user_id', auth()->id())
+                    ->whereRaw('LOWER(jabatan) = ?', [strtolower($jabatan->nama)])
+                    ->count();
+            }
+            
+            // Method 3: Like match if still 0
+            if ($pegawaiCount == 0) {
+                $pegawaiCount = \App\Models\Pegawai::where('user_id', auth()->id())
+                    ->where('jabatan', 'like', '%' . $jabatan->nama . '%')
+                    ->count();
+            }
+            
+            \Log::info('BTKL DEBUG - Final pegawai count for "' . $jabatan->nama . '": ' . $pegawaiCount);
             
             return [
                 'id' => $jabatan->id,
