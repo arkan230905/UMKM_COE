@@ -106,7 +106,6 @@ class BahanBakuController extends Controller
         // CRITICAL: Add user_id for multi-tenant isolation
         $bahanBaku = BahanBaku::create([
             'user_id' => auth()->id(),
-            'nama_bahan' => $request->nama_bahan,
             'kode_bahan' => $kodeBahan,
             'satuan_id' => $request->satuan_id,
             'saldo_awal' => $request->stok ?? 0,
