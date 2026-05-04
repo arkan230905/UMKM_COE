@@ -41,29 +41,21 @@ class BtklController extends Controller
             ->where('user_id', $currentUserId) // CRITICAL: Only current user's jabatan
             ->where(function($query) {
                 // Exclude process-specific names that sound like production processes
-                // Include only proper job positions
-                $query->whereNotIn('nama', [
-                    'Penggorengan',
-                    'Pencampuran', 
-                    'Pengadukan',
-                    'Pengemasan',
-                    'Pengeringan',
-                    'Pemotongan',
-                    'Penimbangan',
-                    'Pengolahan',
-                    'Produksi',
-                    'Proses'
-                ])
-                ->orWhere(function($subQuery) {
-                    // Include names that typically indicate job positions
-                    $positionKeywords = [
-                        'Operator', 'Teknisi', 'Supervisor', 'Manager', 'Staff',
-                        'Pekerja', 'Karyawan', 'Ahli', 'Asisten', 'Helper'
-                    ];
-                    foreach ($positionKeywords as $keyword) {
-                        $subQuery->orWhere('nama', 'like', '%' . $keyword . '%');
-                    }
-                });
+                $processNames = [
+                    'Penggorengan', 'Pencampuran', 'Pengadukan', 'Pengemasan',
+                    'Pengeringan', 'Pemotongan', 'Penimbangan', 'Pengolahan',
+                    'Produksi', 'Proses'
+                ];
+                
+                // Include names that typically indicate job positions
+                $positionKeywords = ['Operator', 'Teknisi', 'Supervisor', 'Manager', 'Staff', 'Pekerja', 'Karyawan', 'Ahli', 'Asisten', 'Helper'];
+                
+                // Build the where clause: exclude process names OR include position keywords
+                $query->whereNotIn('nama', $processNames);
+                
+                foreach ($positionKeywords as $keyword) {
+                    $query->orWhere('nama', 'like', '%' . $keyword . '%');
+                }
             })
             ->orderBy('nama')
             ->get();
@@ -192,29 +184,21 @@ class BtklController extends Controller
                 ->where('user_id', auth()->id())
                 ->where(function($query) {
                     // Exclude process-specific names that sound like production processes
-                    // Include only proper job positions
-                    $query->whereNotIn('nama', [
-                        'Penggorengan',
-                        'Pencampuran', 
-                        'Pengadukan',
-                        'Pengemasan',
-                        'Pengeringan',
-                        'Pemotongan',
-                        'Penimbangan',
-                        'Pengolahan',
-                        'Produksi',
-                        'Proses'
-                    ])
-                    ->orWhere(function($subQuery) {
-                        // Include names that typically indicate job positions
-                        $positionKeywords = [
-                            'Operator', 'Teknisi', 'Supervisor', 'Manager', 'Staff',
-                            'Pekerja', 'Karyawan', 'Ahli', 'Asisten', 'Helper'
-                        ];
-                        foreach ($positionKeywords as $keyword) {
-                            $subQuery->orWhere('nama', 'like', '%' . $keyword . '%');
-                        }
-                    });
+                    $processNames = [
+                        'Penggorengan', 'Pencampuran', 'Pengadukan', 'Pengemasan',
+                        'Pengeringan', 'Pemotongan', 'Penimbangan', 'Pengolahan',
+                        'Produksi', 'Proses'
+                    ];
+                    
+                    // Include names that typically indicate job positions
+                    $positionKeywords = ['Operator', 'Teknisi', 'Supervisor', 'Manager', 'Staff', 'Pekerja', 'Karyawan', 'Ahli', 'Asisten', 'Helper'];
+                    
+                    // Build the where clause: exclude process names OR include position keywords
+                    $query->whereNotIn('nama', $processNames);
+                    
+                    foreach ($positionKeywords as $keyword) {
+                        $query->orWhere('nama', 'like', '%' . $keyword . '%');
+                    }
                 })
                 ->with(['pegawais' => function($query) {
                     $query->where('user_id', auth()->id());
