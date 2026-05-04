@@ -56,11 +56,12 @@ class Jabatan extends Model
     }
 
     /**
-     * Relasi ke pegawai
+     * Relasi ke pegawai dengan multi-tenant isolation
      */
     public function pegawais(): HasMany
     {
-        return $this->hasMany(Pegawai::class, 'jabatan_id');
+        return $this->hasMany(Pegawai::class, 'jabatan_id')
+                    ->where('user_id', auth()->id());
     }
 
     /**

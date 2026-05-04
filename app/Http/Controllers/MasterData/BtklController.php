@@ -56,22 +56,10 @@ class BtklController extends Controller
 
         $satuanOptions = ['Jam', 'Unit', 'Batch'];
 
-        // Map employee data - hitung dari jabatan_id DAN nama jabatan (fallback)
+        // Map employee data - hitung dari jabatan_id (relasi sudah aman dengan multi-tenant)
         $employeeData = $jabatanBtkl->map(function($jabatan) {
-            // Hitung pegawai via relasi jabatan_id
-            $pegawaiViaId = $jabatan->pegawais->count();
-            
-            // Fallback: hitung juga via nama jabatan jika jabatan_id belum diset
-            $pegawaiViaNama = \App\Models\Pegawai::where('user_id', auth()->id())
-                ->where(function($q) use ($jabatan) {
-                    $q->where('jabatan_id', $jabatan->id)
-                      ->orWhere('jabatan', $jabatan->nama);
-                })
-                ->where('user_id', auth()->id()) // CRITICAL: Double filter untuk multi-tenant isolation
-                ->count();
-            
-            // Gunakan yang lebih besar (untuk handle data lama yang belum punya jabatan_id)
-            $pegawaiCount = max($pegawaiViaId, $pegawaiViaNama);
+            // Hitung pegawai via relasi jabatan_id (sudah aman dengan multi-tenant)
+            $pegawaiCount = $jabatan->pegawais->count();
             
             return [
                 'id' => $jabatan->id,
