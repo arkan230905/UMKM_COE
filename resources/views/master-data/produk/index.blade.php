@@ -112,13 +112,13 @@
                                 <td class="text-center">
                                     @if($produk->foto)
                                         <div class="product-image-wrapper" 
-                                             onclick="showImageModal('{{ Storage::url($produk->foto) }}', '{{ addslashes($produk->nama_produk) }}')"
+                                             onclick="showImageModal('{{ asset('storage/' . $produk->foto) }}', '{{ addslashes($produk->nama_produk) }}')"
                                              style="width: 35px !important; height: 35px !important; cursor: pointer; position: relative; display: inline-block;">
-                                            <img src="{{ Storage::url($produk->foto) }}" 
+                                            <img src="{{ asset('storage/' . $produk->foto) }}" 
                                                  alt="{{ $produk->nama_produk }}" 
                                                  class="product-thumbnail"
                                                  style="width: 35px !important; height: 35px !important; object-fit: cover; border-radius: 4px;"
-                                                 onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22100%22 height=%22100%22/%3E%3Ctext fill=%22%23999%22 x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3ENo Image%3C/text%3E%3C/svg%3E';">
+                                                 onerror="this.src='{{ asset('images/no-image.png') }}'; this.onerror='';">
                                             <div class="image-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; border-radius: 4px;">
                                                 <i class="fas fa-search-plus" style="color: white; font-size: 14px;"></i>
                                             </div>
