@@ -34,70 +34,73 @@ class BtklController extends Controller
      */
     public function create()
     {
-        // Get ALL Jabatan with category 'btkl' and their employees
-        // This ensures we get all BTKL positions regardless of whether they have employees
-        $jabatanBtkl = Jabatan::where('kategori', 'btkl')
-            ->with('pegawais')
-            ->orderBy('nama')
-            ->get();
+        try {
+            // Generate kode proses otomatis
+            $lastBtkl = Btkl::orderBy('kode_proses', 'desc')->first();
+            $nextNumber = $lastBtkl ? (int)substr($lastBtkl->kode_proses, 2) + 1 : 1;
+            $nextKode = 'BT' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
 
-        // Debug logging
-        \Log::info('BTKL Create - Jabatan BTKL loaded:', [
-            'total_jabatan' => $jabatanBtkl->count(),
-            'jabatan_details' => $jabatanBtkl->map(function($j) {
-                return [
-                    'id' => $j->id,
-                    'nama' => $j->nama,
-                    'pegawai_count' => $j->pegawais->count(),
-                    'pegawai_ids' => $j->pegawais->pluck('id')->toArray(),
-                    'tarif' => $j->tarif
-                ];
-            })->toArray()
-        ]);
+            // PERBAIKAN MULTI-TENANT: Ambil jabatan BTKL dengan filter user_id yang benar
+            $jabatanBtkl = Jabatan::where('kategori_tenaga_kerja', 'BTKL')
+                ->where('user_id', auth()->id()) // Filter berdasarkan user yang login
+                ->with(['pegawais' => function($query) {
+                    $query->where('user_id', auth()->id()); // Filter pegawai juga berdasarkan user_id
+                }])
+                ->orderBy('nama')
+                ->get();
 
-        // Generate next process code
-        $lastBtkl = Btkl::orderBy('kode_proses', 'desc')->first();
-        if ($lastBtkl) {
-            // Extract number from last code (e.g., PROC-001 -> 001)
-            $lastNumber = (int) substr($lastBtkl->kode_proses, -3);
-            $nextNumber = $lastNumber + 1;
-        } else {
-            $nextNumber = 1;
-        }
-        $nextKode = 'PROC-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
-
-        $satuanOptions = ['Jam', 'Unit', 'Batch'];
-
-        // Map employee data dengan pegawai_count yang akurat
-        $employeeData = $jabatanBtkl->map(function($jabatan) {
-            $pegawaiCount = $jabatan->pegawais->count();
-            
-            \Log::info('BTKL Create - Jabatan Data:', [
-                'id' => $jabatan->id,
-                'nama' => $jabatan->nama,
-                'pegawai_count' => $pegawaiCount,
-                'pegawai_details' => $jabatan->pegawais->map(function($p) {
+            // Debug logging untuk memastikan filter bekerja
+            \Log::info('BTKL Create - Multi-tenant filter:', [
+                'user_id' => auth()->id(),
+                'user_name' => auth()->user()->name ?? 'Unknown',
+                'total_jabatan' => $jabatanBtkl->count(),
+                'jabatan_details' => $jabatanBtkl->map(function($j) {
                     return [
-                        'id' => $p->id,
-                        'nama' => $p->nama,
-                        'jabatan_id' => $p->jabatan_id
+                        'id' => $j->id,
+                        'nama' => $j->nama,
+                        'user_id' => $j->user_id,
+                        'pegawai_count' => $j->pegawais->count(),
+                        'pegawai_user_ids' => $j->pegawais->pluck('user_id')->unique()->toArray(),
+                        'tarif' => $j->tarif
                     ];
-                })->toArray(),
-                'tarif' => $jabatan->tarif ?? 0,
-                'kategori' => $jabatan->kategori
+                })->toArray()
+            ]);
+
+            // Hitung jumlah pegawai per jabatan dengan filter user_id yang benar
+            $employeeData = $jabatanBtkl->map(function($jabatan) {
+                $pegawaiCount = $jabatan->pegawais->count(); // Sudah difilter di query
+                
+                return [
+                    'id' => $jabatan->id,
+                    'nama' => $jabatan->nama,
+                    'tarif' => $jabatan->tarif ?? 0,
+                    'pegawai_count' => $pegawaiCount
+                ];
+            });
+
+            $satuanOptions = ['pcs', 'kg', 'liter', 'meter', 'unit', 'jam', 'batch'];
+
+            \Log::info('BTKL Create - Final employeeData with user filter:', [
+                'user_id' => auth()->id(),
+                'employee_data' => $employeeData->toArray()
+            ]);
+
+            return view('master-data.btkl.create', compact(
+                'nextKode', 
+                'jabatanBtkl', 
+                'employeeData', 
+                'satuanOptions'
+            ));
+            
+        } catch (\Exception $e) {
+            \Log::error('BTKL Create Error:', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
-            return [
-                'id' => $jabatan->id,
-                'nama' => $jabatan->nama,
-                'pegawai_count' => $pegawaiCount,
-                'tarif' => $jabatan->tarif ?? 0
-            ];
-        });
-
-        \Log::info('BTKL Create - Final employeeData:', $employeeData->toArray());
-        
-        return view('master-data.btkl.create', compact('jabatanBtkl', 'nextKode', 'satuanOptions', 'employeeData'));
+            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -178,20 +181,20 @@ class BtklController extends Controller
         try {
             $btkl = Btkl::with('jabatan')->findOrFail($id);
             
-            // Get ALL Jabatan with category 'btkl' and their employees
-            $jabatanBtkl = Jabatan::where('kategori', 'btkl')
+            // PERBAIKAN MULTI-TENANT: Get jabatan BTKL with proper user_id filter
+            $jabatanBtkl = Jabatan::where('kategori_tenaga_kerja', 'BTKL')
+                ->where('user_id', auth()->id()) // Filter berdasarkan user yang login
                 ->with(['pegawais' => function($query) {
-                    // Only get active employees
-                    $query->whereNotNull('jabatan_id');
+                    $query->where('user_id', auth()->id()); // Filter pegawai juga berdasarkan user_id
                 }])
                 ->orderBy('nama')
                 ->get();
                 
             $satuanOptions = ['Jam', 'Unit', 'Batch'];
             
-            // Map employee data dengan pegawai_count yang akurat
+            // Map employee data dengan pegawai_count yang akurat dan filter user_id
             $employeeData = $jabatanBtkl->map(function($jabatan) {
-                $pegawaiCount = $jabatan->pegawais->count();
+                $pegawaiCount = $jabatan->pegawais->count(); // Sudah difilter di query
                 
                 return [
                     'id' => $jabatan->id,
@@ -200,6 +203,13 @@ class BtklController extends Controller
                     'tarif' => $jabatan->tarif ?? 0
                 ];
             });
+
+            \Log::info('BTKL Edit - Multi-tenant filter:', [
+                'user_id' => auth()->id(),
+                'user_name' => auth()->user()->name ?? 'Unknown',
+                'total_jabatan' => $jabatanBtkl->count(),
+                'employee_data' => $employeeData->toArray()
+            ]);
                 
             return view('master-data.btkl.edit', compact('btkl', 'jabatanBtkl', 'satuanOptions', 'employeeData'));
             

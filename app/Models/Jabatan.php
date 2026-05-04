@@ -7,17 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Jabatan extends Model
 {
-    protected static function boot()
-    {
-        parent::boot();
-        
-        // Global scope for multi-tenant isolation
-        static::addGlobalScope('user_id', function ($builder) {
-            if (auth()->check()) {
-                $builder->where('user_id', auth()->id());
-            }
-        });
-    }
+    // Removed duplicate boot() method - using booted() instead
     
     protected $fillable = [
         'kode_jabatan', 

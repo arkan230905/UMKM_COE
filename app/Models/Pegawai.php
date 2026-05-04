@@ -36,25 +36,7 @@ class Pegawai extends Model
         'user_id',
     ];
     
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($model) {
-            if (empty($model->kode_pegawai)) {
-                $userId = auth()->id();
-                $lastId = static::where('user_id', $userId)->max('id') ?? 0;
-                $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
-            }
-        });
-        
-        // Global scope for multi-tenant isolation
-        static::addGlobalScope('user_id', function ($builder) {
-            if (auth()->check()) {
-                $builder->where('user_id', auth()->id());
-            }
-        });
-    }
+    // Removed duplicate boot() method - using booted() instead
     
     protected $casts = [
         'gaji' => 'decimal:2',
@@ -238,8 +220,15 @@ class Pegawai extends Model
     {
         parent::booted();
         
-        // Auto-assign user_id saat creating
+        // Auto-generate kode_pegawai saat creating
         static::creating(function ($model) {
+            if (empty($model->kode_pegawai)) {
+                $userId = auth()->id();
+                $lastId = static::where('user_id', $userId)->max('id') ?? 0;
+                $model->kode_pegawai = 'PGW' . str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+            }
+            
+            // Auto-assign user_id saat creating
             if (empty($model->user_id) && auth()->check()) {
                 $model->user_id = auth()->id();
             }
