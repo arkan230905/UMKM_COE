@@ -39,26 +39,14 @@ class BtklController extends Controller
         
         $jabatanBtkl = Jabatan::where('kategori', 'btkl')
             ->where('user_id', $currentUserId) // CRITICAL: Only current user's jabatan
-            ->where(function($query) {
-                // Exclude process-specific names that sound like production processes
-                $processNames = [
-                    'Penggorengan', 'Pencampuran', 'Pengadukan', 'Pengemasan',
-                    'Pengeringan', 'Pemotongan', 'Penimbangan', 'Pengolahan',
-                    'Produksi', 'Proses'
-                ];
-                
-                // Include names that typically indicate job positions
-                $positionKeywords = ['Operator', 'Teknisi', 'Supervisor', 'Manager', 'Staff', 'Pekerja', 'Karyawan', 'Ahli', 'Asisten', 'Helper'];
-                
-                // Build the where clause: exclude process names OR include position keywords
-                $query->whereNotIn('nama', $processNames);
-                
-                foreach ($positionKeywords as $keyword) {
-                    $query->orWhere('nama', 'like', '%' . $keyword . '%');
-                }
-            })
             ->orderBy('nama')
             ->get();
+
+        // Filter out process-specific names that shouldn't be job positions
+        $jabatanBtkl = $jabatanBtkl->filter(function($jabatan) {
+            $excludeNames = ['Penggorengan', 'Pencampuran', 'Pengadukan', 'Pengemasan', 'Pengeringan', 'Pemotongan', 'Penimbangan', 'Pengolahan', 'Produksi', 'Proses'];
+            return !in_array($jabatan->nama, $excludeNames);
+        });
 
         // Generate next process code - also filtered by user_id for security
         $lastBtkl = Btkl::where('user_id', $currentUserId)->orderBy('kode_proses', 'desc')->first();
@@ -182,29 +170,17 @@ class BtklController extends Controller
             // CRITICAL MULTI-TENANT: Filter jabatan by user_id
             $jabatanBtkl = Jabatan::where('kategori', 'btkl')
                 ->where('user_id', auth()->id())
-                ->where(function($query) {
-                    // Exclude process-specific names that sound like production processes
-                    $processNames = [
-                        'Penggorengan', 'Pencampuran', 'Pengadukan', 'Pengemasan',
-                        'Pengeringan', 'Pemotongan', 'Penimbangan', 'Pengolahan',
-                        'Produksi', 'Proses'
-                    ];
-                    
-                    // Include names that typically indicate job positions
-                    $positionKeywords = ['Operator', 'Teknisi', 'Supervisor', 'Manager', 'Staff', 'Pekerja', 'Karyawan', 'Ahli', 'Asisten', 'Helper'];
-                    
-                    // Build the where clause: exclude process names OR include position keywords
-                    $query->whereNotIn('nama', $processNames);
-                    
-                    foreach ($positionKeywords as $keyword) {
-                        $query->orWhere('nama', 'like', '%' . $keyword . '%');
-                    }
-                })
                 ->with(['pegawais' => function($query) {
                     $query->where('user_id', auth()->id());
                 }])
                 ->orderBy('nama')
                 ->get();
+
+        // Filter out process-specific names that shouldn't be job positions
+        $jabatanBtkl = $jabatanBtkl->filter(function($jabatan) {
+            $excludeNames = ['Penggorengan', 'Pencampuran', 'Pengadukan', 'Pengemasan', 'Pengeringan', 'Pemotongan', 'Penimbangan', 'Pengolahan', 'Produksi', 'Proses'];
+            return !in_array($jabatan->nama, $excludeNames);
+        });
                 
             $satuanOptions = ['Jam', 'Unit', 'Batch'];
             
