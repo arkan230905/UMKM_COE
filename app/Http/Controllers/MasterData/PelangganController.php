@@ -12,9 +12,10 @@ class PelangganController extends Controller
     public function index()
     {
         // 🔒 SECURITY: Get pelanggan users belonging to current user
-        // Pelanggan users now have user_id pointing to their owner
+        // For multi-tenant: pelanggan users have user_id pointing to their owner
         $currentUserId = auth()->id();
         
+        // EMERGENCY FIX: Direct query without complex logic
         $pelanggans = User::where('role', 'pelanggan')
             ->where('user_id', $currentUserId) // 🔒 CRITICAL: Get pelanggan of current owner
             ->withCount('orders')
