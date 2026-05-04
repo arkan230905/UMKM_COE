@@ -29,6 +29,7 @@ class BahanBaku extends Model
     
     protected $fillable = [
         'user_id',  // CRITICAL: multi-tenant isolation
+        'nama_bahan',
         'kode_bahan',
         'satuan',
         'satuan_dasar',
