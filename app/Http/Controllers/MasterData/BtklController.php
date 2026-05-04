@@ -67,6 +67,7 @@ class BtklController extends Controller
                     $q->where('jabatan_id', $jabatan->id)
                       ->orWhere('jabatan', $jabatan->nama);
                 })
+                ->where('user_id', auth()->id()) // CRITICAL: Double filter untuk multi-tenant isolation
                 ->count();
             
             // Gunakan yang lebih besar (untuk handle data lama yang belum punya jabatan_id)
