@@ -947,13 +947,10 @@ class BomController extends Controller
     {
         try {
             // Get products that have biaya bahan (can recalculate HPP)
-            // Allow recalculation for any product that has material costs
-            $produks = Produk::whereHas('bomJobCosting', function($query) {
-                $query->where(function($q) {
-                    $q->where('total_bbb', '>', 0)
-                      ->orWhere('total_bahan_pendukung', '>', 0);
-                });
-            })->with('bomJobCosting')->get();
+            // Allow recalculation for any product that has BomJobCosting data
+            $produks = Produk::whereHas('bomJobCosting')
+                ->with('bomJobCosting')
+                ->get();
             
             if ($produks->isEmpty()) {
                 return redirect()->route('master-data.harga-pokok-produksi.index')
