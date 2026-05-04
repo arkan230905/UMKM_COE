@@ -42,12 +42,6 @@ class BtklController extends Controller
             ->orderBy('nama')
             ->get();
 
-        // Filter out process-specific names that shouldn't be job positions
-        $jabatanBtkl = $jabatanBtkl->filter(function($jabatan) {
-            $excludeNames = ['Penggorengan', 'Pencampuran', 'Pengadukan', 'Pengemasan', 'Pengeringan', 'Pemotongan', 'Penimbangan', 'Pengolahan', 'Produksi', 'Proses'];
-            return !in_array($jabatan->nama, $excludeNames);
-        });
-
         // Generate next process code - also filtered by user_id for security
         $lastBtkl = Btkl::where('user_id', $currentUserId)->orderBy('kode_proses', 'desc')->first();
         if ($lastBtkl) {
@@ -175,12 +169,6 @@ class BtklController extends Controller
                 }])
                 ->orderBy('nama')
                 ->get();
-
-        // Filter out process-specific names that shouldn't be job positions
-        $jabatanBtkl = $jabatanBtkl->filter(function($jabatan) {
-            $excludeNames = ['Penggorengan', 'Pencampuran', 'Pengadukan', 'Pengemasan', 'Pengeringan', 'Pemotongan', 'Penimbangan', 'Pengolahan', 'Produksi', 'Proses'];
-            return !in_array($jabatan->nama, $excludeNames);
-        });
                 
             $satuanOptions = ['Jam', 'Unit', 'Batch'];
             
