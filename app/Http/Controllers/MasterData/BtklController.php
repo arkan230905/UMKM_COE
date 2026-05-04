@@ -56,41 +56,41 @@ class BtklController extends Controller
 
         $satuanOptions = ['Jam', 'Unit', 'Batch'];
 
-        // Map employee data - hitung pegawai berdasarkan nama jabatan (multi-tenant)
+        // Map employee data - hitung pegawai dengan multiple fallback methods (multi-tenant)
         $employeeData = $jabatanBtkl->map(function($jabatan) {
-            // Debug: Log jabatan name
-            \Log::info('BTKL DEBUG - Jabatan: ' . $jabatan->nama);
-            
-            // Get all pegawai for this user to debug
+            // Get all pegawai for this user first
             $allPegawais = \App\Models\Pegawai::where('user_id', auth()->id())
-                ->select('id', 'nama', 'jabatan', 'jabatan_id')
+                ->select('id', 'nama', 'jabatan', 'jabatan_id', 'jenis_pegawai')
                 ->get();
             
-            \Log::info('BTKL DEBUG - All Pegawais: ' . $allPegawais->toJson());
-            
-            // Try multiple matching approaches
             $pegawaiCount = 0;
             
             // Method 1: Exact match on jabatan name
-            $pegawaiCount = \App\Models\Pegawai::where('user_id', auth()->id())
-                ->where('jabatan', $jabatan->nama)
-                ->count();
+            $pegawaiCount = $allPegawais->where('jabatan', $jabatan->nama)->count();
             
-            // Method 2: Case-insensitive match if method 1 returns 0
+            // Method 2: Case-insensitive match
             if ($pegawaiCount == 0) {
-                $pegawaiCount = \App\Models\Pegawai::where('user_id', auth()->id())
-                    ->whereRaw('LOWER(jabatan) = ?', [strtolower($jabatan->nama)])
-                    ->count();
+                $pegawaiCount = $allPegawais->filter(function($pegawai) use ($jabatan) {
+                    return strtolower(trim($pegawai->jabatan)) == strtolower(trim($jabatan->nama));
+                })->count();
             }
             
-            // Method 3: Like match if still 0
+            // Method 3: Like match (contains)
             if ($pegawaiCount == 0) {
-                $pegawaiCount = \App\Models\Pegawai::where('user_id', auth()->id())
-                    ->where('jabatan', 'like', '%' . $jabatan->nama . '%')
-                    ->count();
+                $pegawaiCount = $allPegawais->filter(function($pegawai) use ($jabatan) {
+                    return strpos(strtolower($pegawai->jabatan), strtolower($jabatan->nama)) !== false;
+                })->count();
             }
             
-            \Log::info('BTKL DEBUG - Final pegawai count for "' . $jabatan->nama . '": ' . $pegawaiCount);
+            // Method 4: Match by jabatan_id if available
+            if ($pegawaiCount == 0) {
+                $pegawaiCount = $allPegawais->where('jabatan_id', $jabatan->id)->count();
+            }
+            
+            // Method 5: Match by jenis_pegawai = 'BTKL' as fallback
+            if ($pegawaiCount == 0 && strtolower($jabatan->kategori) == 'btkl') {
+                $pegawaiCount = $allPegawais->where('jenis_pegawai', 'BTKL')->count();
+            }
             
             return [
                 'id' => $jabatan->id,
