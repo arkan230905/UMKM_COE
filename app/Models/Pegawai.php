@@ -78,6 +78,14 @@ class Pegawai extends Model
     }
 
     /**
+     * Relasi ke user (akun login pegawai)
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
      * Relasi ke kategori pegawai
      */
     public function kategori(): BelongsTo

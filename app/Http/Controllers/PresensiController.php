@@ -256,22 +256,37 @@ class PresensiController extends Controller
      */
     public function pegawaiAbsenWajah()
     {
-        // Get pegawai data from logged in user
-        $user = auth()->user();
-        $pegawai = Pegawai::where('user_id', $user->id)->first();
+        try {
+            // Debug: Log that method is called
+            \Log::info('pegawaiAbsenWajah called');
 
-        if (!$pegawai) {
-            return redirect()->route('pegawai.dashboard')
-                ->with('error', 'Data pegawai tidak ditemukan');
+            // Get pegawai data from logged in user
+            $user = auth()->user();
+            \Log::info('User ID: ' . ($user ? $user->id : 'null'));
+
+            $pegawai = Pegawai::withoutGlobalScopes()->where('user_id', $user->id)->first();
+            \Log::info('Pegawai: ' . ($pegawai ? $pegawai->nama : 'null'));
+
+            if (!$pegawai) {
+                \Log::info('Pegawai not found, redirecting to dashboard');
+                return redirect()->route('pegawai.dashboard')
+                    ->with('error', 'Data pegawai tidak ditemukan');
+            }
+
+            // Get today's attendance
+            $today = Carbon::today();
+            $attendances = Presensi::withoutGlobalScopes()
+                ->where('pegawai_id', $pegawai->id)
+                ->whereDate('tgl_presensi', $today)
+                ->get();
+
+            \Log::info('Attendances count: ' . $attendances->count());
+
+            return view('pegawai.presensi.absen-wajah', compact('pegawai', 'attendances'));
+        } catch (\Exception $e) {
+            \Log::error('Error in pegawaiAbsenWajah: ' . $e->getMessage());
+            return redirect()->route('pegawai.dashboard')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
-
-        // Get today's attendance
-        $today = Carbon::today();
-        $attendances = Presensi::where('pegawai_id', $pegawai->id)
-            ->whereDate('tgl_presensi', $today)
-            ->get();
-
-        return view('pegawai.presensi.absen-wajah', compact('pegawai', 'attendances'));
     }
 
     /**

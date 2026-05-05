@@ -95,12 +95,15 @@
         </div>
     </div>
 
-    <!-- Today's Status & Quick Actions -->
+    <!-- Today's Status -->
     <div class="row mb-4">
-        <div class="col-md-6">
+        <div class="col-md-12">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h6 class="mb-0">Status Presensi Hari Ini</h6>
+                    <a href="{{ route('pegawai.riwayat-presensi') }}" class="btn btn-sm btn-info">
+                        <i class="bi bi-clock-history me-1"></i> Riwayat Presensi
+                    </a>
                 </div>
                 <div class="card-body">
                     @if($stats['today_status'])
@@ -108,14 +111,14 @@
                             <div class="col-6">
                                 <small class="text-primary">Jam Masuk</small>
                                 <div class="fw-bold text-success">
-                                    <i class="bi bi-clock-fill me-1"></i> 
+                                    <i class="bi bi-clock-fill me-1"></i>
                                     {{ $stats['today_status']['jam_masuk'] }}
                                 </div>
                             </div>
                             <div class="col-6">
                                 <small class="text-primary">Jam Keluar</small>
                                 <div class="fw-bold text-{{ $stats['today_status']['jam_keluar'] ? 'danger' : 'primary' }}">
-                                    <i class="bi bi-clock-fill me-1"></i> 
+                                    <i class="bi bi-clock-fill me-1"></i>
                                     {{ $stats['today_status']['jam_keluar'] ?: 'Belum' }}
                                 </div>
                             </div>
@@ -129,31 +132,13 @@
                         <div class="text-center py-3">
                             <i class="bi bi-calendar-x fs-1 text-info"></i>
                             <p class="text-primary mt-2">Belum ada presensi hari ini</p>
-                            <a href="{{ route('pegawai.presensi.absen-wajah') }}" class="btn btn-primary">
-                                <i class="bi bi-camera-video me-1"></i> Absen Sekarang
-                            </a>
+                            <form action="{{ route('pegawai.presensi.absen-wajah') }}" method="GET" style="display: inline;">
+                                <button type="submit" class="btn btn-primary" style="pointer-events: auto !important; cursor: pointer !important; z-index: 9999 !important;">
+                                    <i class="bi bi-camera-video me-1"></i> Absen Sekarang
+                                </button>
+                            </form>
                         </div>
                     @endif
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">Aksi Cepat</h6>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="{{ route('pegawai.presensi.absen-wajah') }}" class="btn btn-success">
-                            <i class="bi bi-camera-video me-1"></i> Absen Wajah
-                        </a>
-                        <a href="{{ route('pegawai.riwayat-presensi') }}" class="btn btn-info">
-                            <i class="bi bi-clock-history me-1"></i> Riwayat Presensi
-                        </a>
-                        <a href="#" class="btn btn-secondary" onclick="alert('Fitur profil pegawai dalam pengembangan')">
-                            <i class="bi bi-person me-1"></i> Profil Saya
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>

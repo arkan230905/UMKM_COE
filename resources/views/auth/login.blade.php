@@ -784,6 +784,24 @@
                         <span style="color: #3e2723; font-size: 0.65rem;">Belum punya akun?</span>
                         <a href="{{ route('register') }}" style="color: #3e2723; font-weight: bold; font-size: 0.65rem;">Daftar sekarang</a>
                     </div>
+
+                    <!-- Link Login Pegawai -->
+                    <div class="text-center mt-3 pt-3" style="border-top: 1px solid rgba(62, 39, 35, 0.1);">
+                        <div class="d-flex align-items-center justify-content-center gap-2 mb-2">
+                            <i class="bi bi-person-badge" style="color: #3e2723; font-size: 1.2rem;"></i>
+                            <span style="color: #3e2723; font-size: 0.7rem; font-weight: 600;">Login sebagai Pegawai?</span>
+                        </div>
+                        <a href="{{ route('pegawai.login') }}" class="btn btn-outline-secondary btn-sm" style="font-size: 0.7rem; padding: 0.4rem 1.5rem; border-radius: 20px;">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>
+                            Login Pegawai (Tanpa Password)
+                        </a>
+                        <div class="mt-2">
+                            <small style="color: #666; font-size: 0.6rem;">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Gunakan kode perusahaan + email
+                            </small>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>

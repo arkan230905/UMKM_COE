@@ -1917,6 +1917,11 @@ Route::prefix('pelanggan')->name('pelanggan.')->group(function () {
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 
+// Pegawai Login Routes (Tanpa Password - Pakai Kode Perusahaan + Email)
+Route::get('/pegawai/login', [\App\Http\Controllers\Auth\PegawaiLoginController::class, 'showLoginForm'])->name('pegawai.login')->middleware('guest');
+Route::post('/pegawai/login', [\App\Http\Controllers\Auth\PegawaiLoginController::class, 'login'])->name('pegawai.login.submit');
+Route::post('/pegawai/logout', [\App\Http\Controllers\Auth\PegawaiLoginController::class, 'logout'])->name('pegawai.logout');
+
 // Clear session untuk debugging
 Route::get('/clear-session', function() {
     session()->flush();
@@ -3673,7 +3678,7 @@ Route::middleware(['auth'])->prefix('auto-reset')->name('auto-reset.')->group(fu
 // ================================================================
 // ROUTE PEGAWAI (Khusus untuk pegawai login)
 // ================================================================
-Route::middleware(['auth', 'role:pegawai'])->prefix('pegawai')->name('pegawai.')->group(function () {
+Route::middleware(['auth'])->prefix('pegawai')->name('pegawai.')->group(function () {
     // Dashboard sederhana pegawai (optional)
     Route::get('/dashboard', [PegawaiDashboardController::class, 'index'])->name('dashboard');
 

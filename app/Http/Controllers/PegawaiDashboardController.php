@@ -73,24 +73,34 @@ class PegawaiDashboardController extends Controller
      */
     public function riwayatPresensi(Request $request)
     {
-        $user = Auth::user();
-        $pegawai = $user->pegawai;
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
+                return redirect()->route('login')->with('error', 'Silakan login terlebih dahulu.');
+            }
 
-        if (!$pegawai) {
-            return redirect()->route('login')->with('error', 'Akun Anda belum terhubung dengan data pegawai.');
-        }
+            $pegawai = Pegawai::withoutGlobalScopes()->where('user_id', $user->id)->first();
 
-        $query = Presensi::where('pegawai_id', $pegawai->id);
-        
-        // Filter by month/year if provided
-        if ($request->has('month') && $request->has('year')) {
-            $query->whereMonth('tgl_presensi', $request->month)
-                  ->whereYear('tgl_presensi', $request->year);
+            if (!$pegawai) {
+                return redirect()->route('pegawai.dashboard')->with('error', 'Akun Anda belum terhubung dengan data pegawai.');
+            }
+
+            $query = Presensi::withoutGlobalScopes()->where('pegawai_id', $pegawai->id);
+
+            // Filter by month/year if provided
+            if ($request->has('month') && $request->has('year')) {
+                $query->whereMonth('tgl_presensi', $request->month)
+                      ->whereYear('tgl_presensi', $request->year);
+            }
+
+            $attendances = $query->orderBy('tgl_presensi', 'desc')->paginate(20);
+
+            return view('pegawai.riwayat-presensi', compact('pegawai', 'attendances'));
+        } catch (\Exception $e) {
+            \Log::error('Error in riwayatPresensi: ' . $e->getMessage());
+            return redirect()->route('pegawai.dashboard')->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
-        
-        $attendances = $query->orderBy('tgl_presensi', 'desc')->paginate(20);
-        
-        return view('pegawai.riwayat-presensi', compact('pegawai', 'attendances'));
     }
 
     /**
