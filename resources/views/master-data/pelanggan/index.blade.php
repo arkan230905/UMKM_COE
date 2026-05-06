@@ -71,38 +71,41 @@
                                             <i class="fas fa-user text-primary"></i>
                                         </div>
                                         <div>
-                                            <div class="fw-semibold">{{ $pelanggan->name }}</div>
+                                            <div class="fw-semibold">{{ $pelanggan->nama_pelanggan }}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td>{{ $pelanggan->email ?? '-' }}</td>
+<<<<<<< HEAD
                                 <td>{{ $pelanggan->phone ?? '-' }}</td>
                                 <td>{{ $pelanggan->address ? \Illuminate\Support\Str::limit($pelanggan->address, 40) : '-' }}</td>
+=======
+                                <td>{{ $pelanggan->telepon ?? '-' }}</td>
+                                <td>{{ $pelanggan->alamat ?? '-' }}</td>
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                 <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span class="password-text" data-password="{{ $pelanggan->plain_password ?? $pelanggan->password }}">••••••••</span>
-                                        <button type="button" 
-                                                class="btn btn-sm btn-outline-secondary toggle-password" 
-                                                onclick="togglePassword(this)"
-                                                title="Lihat/sembunyikan password">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button type="button" 
-                                                class="btn btn-sm btn-outline-info" 
-                                                onclick="copyPassword('{{ $pelanggan->plain_password ?? $pelanggan->password }}')"
-                                                title="Copy password">
-                                            <i class="fas fa-copy"></i>
-                                        </button>
-                                        <button type="button" 
-                                                class="btn btn-sm btn-outline-warning" 
-                                                onclick="resetPassword({{ $pelanggan->id }}, '{{ $pelanggan->name }}')"
-                                                title="Reset Password">
-                                            <i class="fas fa-key"></i>
-                                        </button>
-                                    </div>
+                                    @if($pelanggan->password)
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="password-text" data-password="{{ $pelanggan->password }}">{{ $pelanggan->password }}</span>
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-secondary toggle-password" 
+                                                    onclick="togglePassword(this)"
+                                                    title="Sembunyikan password">
+                                                <i class="fas fa-eye-slash"></i>
+                                            </button>
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-info" 
+                                                    onclick="copyPassword('{{ $pelanggan->password }}')"
+                                                    title="Copy password">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
                                 </td>
                                 <td>
-                                    <span class="badge bg-primary">{{ $pelanggan->orders_count ?? 0 }}</span>
+                                    <span class="badge bg-primary">0</span>
                                 </td>
                                 <td>{{ $pelanggan->created_at->format('d/m/Y') }}</td>
                                 <td class="text-center">
@@ -285,5 +288,46 @@ document.getElementById('resetPasswordForm').addEventListener('submit', function
         submitBtn.innerHTML = originalText;
     });
 });
+
+// Toggle password visibility
+function togglePassword(button) {
+    const passwordSpan = button.parentElement.querySelector('.password-text');
+    const icon = button.querySelector('i');
+    
+    if (passwordSpan.textContent !== '••••••••') {
+        // Currently visible, hide it
+        passwordSpan.textContent = '••••••••';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+        button.setAttribute('title', 'Lihat password');
+    } else {
+        // Currently hidden, show it
+        passwordSpan.textContent = passwordSpan.getAttribute('data-password');
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+        button.setAttribute('title', 'Sembunyikan password');
+    }
+}
+
+// Copy password to clipboard
+function copyPassword(password) {
+    navigator.clipboard.writeText(password).then(() => {
+        // Show success feedback
+        const button = event.target.closest('button');
+        const originalIcon = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i>';
+        button.classList.remove('btn-outline-info');
+        button.classList.add('btn-success');
+        
+        setTimeout(() => {
+            button.innerHTML = originalIcon;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-outline-info');
+        }, 2000);
+    }).catch(err => {
+        console.error('Gagal copy password:', err);
+        alert('Gagal copy password');
+    });
+}
 </script>
 @endsection

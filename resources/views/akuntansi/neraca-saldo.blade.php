@@ -290,10 +290,35 @@
               <th class="text-end">Rp {{ number_format($totalKredit, 0, ',', '.') }}</th>
               <th class="text-end">Rp {{ number_format($totalSaldoAkhir, 0, ',', '.') }}</th>
             </tr>
+            @php
+              // Hitung total saldo debit dan kredit untuk balance check
+              $totalSaldoDebit = 0;
+              $totalSaldoKredit = 0;
+              
+              foreach($coas as $coa) {
+                $data = $totals[$coa->kode_akun] ?? ['saldo_debit' => 0, 'saldo_kredit' => 0];
+                $totalSaldoDebit += $data['saldo_debit'];
+                $totalSaldoKredit += $data['saldo_kredit'];
+              }
+              
+              $balanceDiff = abs($totalSaldoDebit - $totalSaldoKredit);
+              $isBalanced = $balanceDiff < 0.01;
+            @endphp
             <tr>
-              <th colspan="5" class="text-end">BALANCE CHECK:</th>
-              <th class="text-end {{ abs(round($totalDebit - $totalKredit, 2)) < 0.01 ? 'text-success' : 'text-danger' }}">
-                {{ abs(round($totalDebit - $totalKredit, 2)) < 0.01 ? 'BALANCED ✓' : 'Rp ' . number_format(round($totalDebit - $totalKredit, 2), 2, ',', '.') }}
+              <th colspan="3" class="text-end">BALANCE CHECK (Saldo Debit vs Kredit):</th>
+              <th class="text-end">Total Saldo Debit:</th>
+              <th class="text-end">Rp {{ number_format($totalSaldoDebit, 2, ',', '.') }}</th>
+              <th class="text-end">Total Saldo Kredit:</th>
+              <th class="text-end">Rp {{ number_format($totalSaldoKredit, 2, ',', '.') }}</th>
+            </tr>
+            <tr>
+              <th colspan="6" class="text-end">STATUS:</th>
+              <th class="text-end {{ $isBalanced ? 'text-success' : 'text-danger' }}">
+                @if($isBalanced)
+                  <i class="bi bi-check-circle-fill"></i> BALANCED ✓
+                @else
+                  <i class="bi bi-exclamation-triangle-fill"></i> SELISIH: Rp {{ number_format($balanceDiff, 2, ',', '.') }}
+                @endif
               </th>
             </tr>
           </tfoot>

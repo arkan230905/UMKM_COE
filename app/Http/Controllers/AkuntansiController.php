@@ -42,10 +42,15 @@ class AkuntansiController extends Controller
      */
     private function posisiNeracaSaldo($saldo, $tipeAkun)
     {
-        // Gunakan tipe_akun Indonesian values langsung
-        // ASET, BEBAN have normal DEBIT balance
-        // KEWAJIBAN, MODAL, PENDAPATAN have normal KREDIT balance
-        $isDebitNormal = in_array($tipeAkun, ['ASET', 'BEBAN']);
+        // Normalize tipe_akun to uppercase for comparison
+        $tipeAkunUpper = strtoupper(trim($tipeAkun));
+        
+        // ASET, BEBAN, BIAYA have normal DEBIT balance
+        // KEWAJIBAN, MODAL, EKUITAS, PENDAPATAN have normal KREDIT balance
+        $isDebitNormal = in_array($tipeAkunUpper, [
+            'ASET', 'ASSET', 'AKTIVA',                    // Asset variations
+            'BEBAN', 'EXPENSE', 'BIAYA', 'COST'           // Expense variations
+        ]);
 
         $debit  = 0;
         $kredit = 0;
@@ -79,6 +84,7 @@ class AkuntansiController extends Controller
 
     /**
      * Helper function untuk mendapatkan ringkasan akun (sama untuk Buku Besar & Neraca Saldo)
+     * HANYA DARI jurnal_umum - konsisten dengan Buku Besar
      * @param string $from Tanggal awal periode (Y-m-d)
      * @param string $to Tanggal akhir periode (Y-m-d)
      * @param string|null $kodeAkun Filter by kode_akun (optional, untuk Buku Besar)
@@ -86,36 +92,11 @@ class AkuntansiController extends Controller
      */
     private function getAccountSummary($from, $to, $kodeAkun = null)
     {
-        // Dari journal_lines - join dengan coas untuk dapat kode_akun yang benar
-        $queryJournalLines = DB::table('journal_lines as jl')
-            ->join('journal_entries as je', 'jl.journal_entry_id', '=', 'je.id')
-            ->join('coas', 'coas.id', '=', 'jl.coa_id')
-            ->whereBetween('je.tanggal', [$from, $to])
-            ->select(
-                'coas.kode_akun',
-                DB::raw('COALESCE(SUM(jl.debit),0) as total_debit'),
-                DB::raw('COALESCE(SUM(jl.credit),0) as total_kredit')
-            )
-            ->groupBy('coas.kode_akun');
-
-        // Filter by kode_akun jika diberikan
-        if ($kodeAkun) {
-            $queryJournalLines->where('coas.kode_akun', $kodeAkun);
-        }
-
-        $mutasiJournalLines = $queryJournalLines->get();
-
-        // Dari jurnal_umum - join dengan coas untuk dapat kode_akun yang benar
-        // PERBAIKAN: Exclude tipe yang sudah ada di journal_entries untuk menghindari duplikasi
+        // Hanya dari jurnal_umum - SAMA DENGAN LOGIKA BUKU BESAR
         $queryJurnalUmum = DB::table('jurnal_umum as ju')
             ->join('coas', 'coas.id', '=', 'ju.coa_id')
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->whereBetween('ju.tanggal', [$from, $to])
-            ->whereNotIn('ju.tipe_referensi', [
-                'purchase', 'sale', 'retur_pembelian', 'retur_penjualan',
-                'production_material', 'production_labor_overhead', 'production_finished',
-                'produksi',
-                'expense_payment' // Exclude expense_payment karena sudah ada di journal_entries
-            ])
             ->select(
                 'coas.kode_akun',
                 DB::raw('COALESCE(SUM(ju.debit),0) as total_debit'),
@@ -130,24 +111,13 @@ class AkuntansiController extends Controller
 
         $mutasiJurnalUmum = $queryJurnalUmum->get();
 
-        // Gabungkan mutasi dari kedua sumber - gunakan kode_akun sebagai key
+        // Buat array dengan kode_akun sebagai key
         $summaryByKodeAkun = [];
-        foreach ($mutasiJournalLines as $line) {
+        foreach ($mutasiJurnalUmum as $line) {
             $summaryByKodeAkun[$line->kode_akun] = [
                 'total_debit' => $line->total_debit,
                 'total_kredit' => $line->total_kredit
             ];
-        }
-        foreach ($mutasiJurnalUmum as $line) {
-            if (isset($summaryByKodeAkun[$line->kode_akun])) {
-                $summaryByKodeAkun[$line->kode_akun]['total_debit'] += $line->total_debit;
-                $summaryByKodeAkun[$line->kode_akun]['total_kredit'] += $line->total_kredit;
-            } else {
-                $summaryByKodeAkun[$line->kode_akun] = [
-                    'total_debit' => $line->total_debit,
-                    'total_kredit' => $line->total_kredit
-                ];
-            }
         }
 
         return $summaryByKodeAkun;
@@ -161,47 +131,46 @@ class AkuntansiController extends Controller
         $refId   = $request->get('ref_id');
         $accountCode = $request->get('account_code');
 
-        // Auto-set date filter for purchase transactions
-        if ($refType === 'purchase' && $refId && !$from && !$to) {
-            $pembelian = \App\Models\Pembelian::find($refId);
-            if ($pembelian) {
-                // Set filter tanggal berdasarkan tanggal pembelian
-                $tanggalPembelian = \Carbon\Carbon::parse($pembelian->tanggal);
-                $from = $tanggalPembelian->format('Y-m-d');
-                $to = $tanggalPembelian->format('Y-m-d');
-                
-                \Log::info('Auto-set date filter for purchase journal', [
-                    'purchase_id' => $refId,
-                    'purchase_date' => $tanggalPembelian->format('Y-m-d'),
-                    'from' => $from,
-                    'to' => $to
-                ]);
+        // Map ref_type to tipe_referensi for backward compatibility
+        $mappedRefType = $refType;
+        if ($refType === 'purchase') {
+            $mappedRefType = 'pembelian';
+        } elseif ($refType === 'sale') {
+            $mappedRefType = 'penjualan';
+        }
+
+        // Convert ref_id to referensi format if needed
+        $mappedRefId = $refId;
+        if ($refId && is_numeric($refId)) {
+            // If ref_id is numeric, try to find the actual reference number
+            if ($refType === 'purchase') {
+                $pembelian = \App\Models\Pembelian::find($refId);
+                if ($pembelian) {
+                    $mappedRefId = $pembelian->nomor_pembelian;
+                }
+            } elseif ($refType === 'sale') {
+                $penjualan = \App\Models\Penjualan::find($refId);
+                if ($penjualan) {
+                    $mappedRefId = $penjualan->nomor_penjualan;
+                }
             }
         }
 
-        // Auto-generate journal jika belum ada untuk purchase
-        if ($refType === 'purchase' && $refId) {
-            $this->ensurePurchaseJournalExists($refId);
-        }
-
-        // Gunakan query dengan leftJoin untuk memastikan nama akun selalu diambil
-        $query = \DB::table('journal_entries as je')
-            ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
-            ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id') // Perbaikan: join berdasarkan coa_id
+        // MULTI-TENANT: Query jurnal_umum (flat structure)
+        $query = \DB::table('jurnal_umum as ju')
+            ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
             ->select([
-                'je.*',
-                'jl.id as line_id',
-                'jl.debit',
-                'jl.credit',
-                'jl.memo as line_memo',
+                'ju.*',
                 'coas.kode_akun',
                 'coas.nama_akun',
                 'coas.tipe_akun'
             ])
+            ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->where(function($q) {
-                $q->where('jl.debit', '!=', 0)
-                  ->orWhere('jl.credit', '!=', 0);
+                $q->where('ju.debit', '!=', 0)
+                  ->orWhere('ju.kredit', '!=', 0);
             })
+<<<<<<< HEAD
 ->where(function($q) {
                 $q->where('coas.user_id', auth()->id())
                   ->orWhereNull('coas.user_id');
@@ -210,40 +179,47 @@ class AkuntansiController extends Controller
             ->orderBy('je.created_at','asc')
             ->orderBy('je.id','asc')
             ->orderBy('jl.id','asc');
+=======
+            ->orderBy('ju.tanggal','asc')
+            ->orderBy('ju.created_at','asc')
+            ->orderBy('ju.id','asc');
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             
-        if ($from) { $query->whereDate('je.tanggal','>=',$from); }
-        if ($to)   { $query->whereDate('je.tanggal','<=',$to); }
-        if ($refType) { $query->where('je.ref_type', $refType); }
-        if ($refId)   { $query->where('je.ref_id', $refId); }
+        if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
+        if ($to)   { $query->whereDate('ju.tanggal','<=',$to); }
+        if ($mappedRefType) { $query->where('ju.tipe_referensi', $mappedRefType); }
+        if ($mappedRefId)   { $query->where('ju.referensi', $mappedRefId); }
         if ($accountCode) { 
             $query->where('coas.kode_akun', $accountCode);
         }
         
         $results = $query->get();
         
-        // Group results by journal entry untuk tampilan per transaksi
+        // Group results by date and reference for display
         $entries = collect();
-        $groupedResults = $results->groupBy('id');
+        $groupedResults = $results->groupBy(function($item) {
+            return $item->tanggal . '_' . ($item->tipe_referensi ?? 'manual') . '_' . ($item->referensi ?? $item->id);
+        });
         
-        foreach ($groupedResults as $entryId => $lines) {
+        foreach ($groupedResults as $groupKey => $lines) {
             $firstLine = $lines->first();
             
-            // Skip jika tidak ada lines yang valid
+            // Skip if no valid lines
             if ($lines->isEmpty()) continue;
             
             $entry = (object) [
                 'id' => $firstLine->id,
                 'tanggal' => $firstLine->tanggal,
                 'created_at' => $firstLine->created_at,
-                'ref_type' => $firstLine->ref_type,
-                'ref_id' => $firstLine->ref_id,
-                'memo' => $firstLine->memo,
+                'ref_type' => $firstLine->tipe_referensi,
+                'ref_id' => $firstLine->referensi,
+                'memo' => $firstLine->keterangan,
                 'lines' => $lines->map(function($line) {
                     return (object) [
-                        'id' => $line->line_id,
+                        'id' => $line->id,
                         'debit' => $line->debit,
-                        'credit' => $line->credit,
-                        'memo' => $line->line_memo,
+                        'credit' => $line->kredit,
+                        'memo' => $line->keterangan,
                         'account_code' => $line->kode_akun,
                         'account_name' => $line->nama_akun,
                         'account_type' => $line->tipe_akun,
@@ -258,6 +234,7 @@ class AkuntansiController extends Controller
             $entries->push($entry);
         }
         
+<<<<<<< HEAD
         // TAMBAHAN: Ambil data dari tabel jurnal_umum (untuk penyusutan dan transaksi lain)
         // Hanya ambil yang tidak ada di journal_entries untuk menghindari duplikasi
         $jurnalUmumQuery = \DB::table('jurnal_umum as ju')
@@ -363,77 +340,14 @@ class AkuntansiController extends Controller
             $entries->push($entry);
         }
         
+=======
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         // Sort all entries by date and created_at
         $entries = $entries->sortBy(function($entry) {
             return $entry->tanggal . ' ' . $entry->created_at;
         });
         
         return view('akuntansi.jurnal-umum', compact('entries','from','to','refType','refId','accountCode'));
-    }
-
-    /**
-     * Ensure purchase journal exists, create if not
-     */
-    private function ensurePurchaseJournalExists($purchaseId)
-    {
-        try {
-            \Log::info('Ensuring purchase journal exists', ['purchase_id' => $purchaseId]);
-            
-            // Get purchase data
-            $pembelian = \App\Models\Pembelian::with([
-                'vendor',
-                'details.bahanBaku',
-                'details.bahanPendukung'
-            ])->find($purchaseId);
-
-            if (!$pembelian) {
-                \Log::warning('Purchase not found for journal generation', ['id' => $purchaseId]);
-                return;
-            }
-
-            // Check if journal already exists in jurnal_umum table
-            $existingJournal = \App\Models\JurnalUmum::where('tipe_referensi', 'pembelian')
-                ->where('referensi', $pembelian->nomor_pembelian)
-                ->first();
-
-            if ($existingJournal) {
-                \Log::info('Journal already exists for purchase', [
-                    'purchase_id' => $purchaseId, 
-                    'nomor_pembelian' => $pembelian->nomor_pembelian
-                ]);
-                return; // Journal already exists, no need to recreate
-            }
-
-            \Log::info('Creating journal for purchase', [
-                'purchase_id' => $purchaseId,
-                'nomor_pembelian' => $pembelian->nomor_pembelian,
-                'total_harga' => $pembelian->total_harga,
-                'details_count' => $pembelian->details->count()
-            ]);
-
-            // Create journal using PembelianJournalService
-            $journalService = new \App\Services\PembelianJournalService();
-            $result = $journalService->createJournalFromPembelian($pembelian);
-
-            if ($result) {
-                \Log::info('Auto-generated journal for purchase', [
-                    'purchase_id' => $purchaseId,
-                    'nomor_pembelian' => $pembelian->nomor_pembelian
-                ]);
-            } else {
-                \Log::warning('Failed to generate journal for purchase', [
-                    'purchase_id' => $purchaseId,
-                    'nomor_pembelian' => $pembelian->nomor_pembelian
-                ]);
-            }
-
-        } catch (\Exception $e) {
-            \Log::error('Failed to auto-generate purchase journal', [
-                'purchase_id' => $purchaseId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-        }
     }
 
     public function jurnalUmumExportPdf(Request $request)
@@ -447,6 +361,7 @@ class AkuntansiController extends Controller
         $query = \DB::table('journal_entries as je')
             ->leftJoin('journal_lines as jl', 'jl.journal_entry_id', '=', 'je.id')
             ->leftJoin('coas', 'coas.id', '=', 'jl.coa_id')
+            ->where('je.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->select([
                 'je.*',
                 'jl.id as line_id',
@@ -524,7 +439,9 @@ class AkuntansiController extends Controller
         $year = $request->get('year');
         $accountCode = $request->get('account_code');
 
+        // MULTI-TENANT: Filter COA by user_id
         $coas = \App\Models\Coa::select('kode_akun', 'nama_akun', 'tipe_akun')
+            ->where('user_id', auth()->id())
             ->groupBy('kode_akun', 'nama_akun', 'tipe_akun')
             ->orderBy('kode_akun')
             ->get();
@@ -538,7 +455,10 @@ class AkuntansiController extends Controller
         $saldoAkhir = 0;
 
         if ($accountCode) {
-            $coa = \App\Models\Coa::where('kode_akun', $accountCode)->first();
+            // MULTI-TENANT: Filter COA by user_id
+            $coa = \App\Models\Coa::where('kode_akun', $accountCode)
+                    ->where('user_id', auth()->id())
+                    ->first();
 
             if (!$coa) {
                 return view('akuntansi.buku-besar', compact('coas','accountCode','lines','from','to','saldoAwal','month','year','totalDebit','totalKredit','saldoAkhir'));
@@ -554,9 +474,17 @@ class AkuntansiController extends Controller
                 $saldoAwal = (float)($coa->saldo_awal ?? 0);
             }
 
+<<<<<<< HEAD
             // Query jurnal umum data for buku besar
             $query = \DB::table('jurnal_umum as ju')
                 ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
+=======
+            // MULTI-TENANT: Query jurnal_umum untuk konsistensi dengan sistem lain
+            $query = \DB::table('jurnal_umum as ju')
+                ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
+                ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+                ->where('coas.kode_akun', $accountCode) // Filter akun yang dipilih
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 ->select([
                     'ju.*',
                     'coas.kode_akun',
@@ -567,7 +495,10 @@ class AkuntansiController extends Controller
                     $q->where('ju.debit', '>', 0)
                       ->orWhere('ju.kredit', '>', 0);
                 })
+<<<<<<< HEAD
                 ->where('coas.kode_akun', $accountCode)
+=======
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 ->orderBy('ju.tanggal','asc')
                 ->orderBy('ju.id','asc');
             
@@ -578,6 +509,7 @@ class AkuntansiController extends Controller
 
             $journalLines = $query->get();
 
+<<<<<<< HEAD
             // Group by referensi untuk struktur yang sesuai dengan view
             $groupedLines = $journalLines->groupBy('referensi');
             
@@ -601,6 +533,27 @@ class AkuntansiController extends Controller
                             ]
                         ];
                     })
+=======
+            // DEBUG: Log query results untuk verifikasi multi-tenant
+            \Log::info('Buku Besar Query Results', [
+                'user_id' => auth()->id(),
+                'account_code' => $accountCode,
+                'total_lines' => $journalLines->count(),
+                'sample_data' => $journalLines->take(3)->toArray()
+            ]);
+
+            // Create lines structure untuk view buku besar
+            foreach ($journalLines as $line) {
+                $lines->push((object) [
+                    'id' => $line->id,
+                    'tanggal' => $line->tanggal,
+                    'keterangan' => $line->keterangan,
+                    'debit' => $line->debit,
+                    'kredit' => $line->kredit,
+                    'kode_akun' => $line->kode_akun,
+                    'nama_akun' => $line->nama_akun,
+                    'tipe_akun' => $line->tipe_akun
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 ]);
             }
 
@@ -665,6 +618,7 @@ class AkuntansiController extends Controller
 
         // Ambil semua COA distinct by kode_akun — sama seperti buku besar
         $coas = \App\Models\Coa::select('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
+            ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->groupBy('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
             ->orderBy('kode_akun')
             ->get();
@@ -772,6 +726,7 @@ class AkuntansiController extends Controller
 
         // Ambil semua COA
         $coas = \App\Models\Coa::select('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
+            ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
             ->groupBy('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
             ->orderBy('kode_akun')
             ->get();
@@ -945,6 +900,7 @@ class AkuntansiController extends Controller
         $from  = \Carbon\Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
         $to    = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
 
+<<<<<<< HEAD
         $userId = auth()->id();
 
         // Ambil mutasi periode dari journal_lines (debit & kredit per coa_id)
@@ -964,6 +920,12 @@ class AkuntansiController extends Controller
         $coaIds = $mutasi->keys()->toArray();
         $coas = \App\Models\Coa::withoutGlobalScopes()
             ->whereIn('id', $coaIds)
+=======
+        // Ambil semua COA
+        $coas = \App\Models\Coa::select('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
+            ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+            ->groupBy('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             ->orderBy('kode_akun')
             ->get();
 
@@ -985,6 +947,7 @@ class AkuntansiController extends Controller
 
         $totalPendapatan = $pendapatan->sum(fn($c) => $getSaldo($c));
 
+<<<<<<< HEAD
         // ── DISKON PENJUALAN: kode 4xxx, saldo normal debit (kontra-revenue) ──
         // Akun seperti "Diskon Penjualan" punya saldo debit → pengurang pendapatan
         $diskonPenjualan = $coas->filter(function($coa) use ($mutasi) {
@@ -1066,6 +1029,49 @@ class AkuntansiController extends Controller
             'labaKotor', 'labaBersih',
             'getSaldo',
             'detailPenjualan', 'detailHpp'
+=======
+            $accountData[$coa->kode_akun] = [
+                'coa' => $coa,
+                'saldo_akhir' => $saldoAkhir
+            ];
+        }
+        
+        // Filter akun pendapatan dan beban
+        $pendapatan = $coas->filter(function($coa) use ($accountData) {
+            if (!in_array($coa->tipe_akun, ['Revenue', 'revenue', 'Pendapatan'])) return false;
+            $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+            return $saldo != 0;
+        })->sortBy('kode_akun');
+        
+        $hppCoa = $coas->where('kode_akun', '560')->first();
+        $hppAmount = $hppCoa ? ($accountData['560']['saldo_akhir'] ?? 0) : 0;
+        
+        $beban = $coas->filter(function($coa) use ($accountData) {
+            // Exclude HPP from beban section
+            if ($coa->kode_akun == '560') return false;
+            if (!in_array($coa->tipe_akun, ['Expense', 'expense', 'Beban', 'Biaya'])) return false;
+            $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+            return $saldo != 0;
+        })->sortBy('kode_akun');
+        
+        // Hitung total
+        $totalPendapatan = $pendapatan->sum(function($coa) use ($accountData) {
+            return $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+        });
+        
+        $totalBeban = $beban->sum(function($coa) use ($accountData) {
+            return $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
+        });
+        
+        // Calculate laba kotor dan laba bersih
+        $labaKotor = $totalPendapatan - $hppAmount;
+        $labaBersih = $labaKotor - $totalBeban;
+        
+        return view('akuntansi.laba_rugi', compact(
+            'periode', 'pendapatan', 'beban', 
+            'totalPendapatan', 'totalBeban', 'labaBersih',
+            'hppAmount', 'labaKotor', 'accountData'
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         ));
     }
 }

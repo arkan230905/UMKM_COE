@@ -59,7 +59,17 @@
                             <select name="jabatan_id" id="jabatanSelect" class="form-select @error('jabatan_id') is-invalid @enderror" required onchange="calculateBTKL()">
                                 <option value="">-- Pilih Jabatan BTKL --</option>
                                 @php
+<<<<<<< HEAD
                                     $jabatanBtkl = \App\Models\Jabatan::where('kategori', 'btkl')->get();
+=======
+                                    $jabatanBtkl = \App\Models\Jabatan::where('kategori', 'btkl')
+                                        ->where('user_id', auth()->id())
+                                        ->with(['pegawais' => function($q) {
+                                            $q->where('user_id', auth()->id());
+                                        }])
+                                        ->orderBy('nama')
+                                        ->get();
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                 @endphp
                                 @foreach($jabatanBtkl as $jabatan)
                                     @php

@@ -12,7 +12,9 @@ class ProduksiProses extends Model
     protected $table = 'produksi_proses';
 
     protected $fillable = [
+        'user_id',
         'produksi_id',
+        'proses_produksi_id',
         'nama_proses',
         'urutan',
         'status',
@@ -36,10 +38,20 @@ class ProduksiProses extends Model
         'pegawai_ids' => 'array',
     ];
 
+    protected $appends = ['total_biaya_proses_calculated'];
+
     // Relationships
     public function produksi()
     {
         return $this->belongsTo(Produksi::class);
+    }
+
+    /**
+     * Get total biaya proses (BTKL + BOP)
+     */
+    public function getTotalBiayaProsesCalculatedAttribute()
+    {
+        return $this->biaya_btkl + $this->biaya_bop;
     }
 
     // Helper methods

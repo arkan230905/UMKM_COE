@@ -70,3 +70,38 @@ if (!function_exists('tanggal_indonesia')) {
         return $text;
     }
 }
+
+if (!function_exists('storage_url')) {
+    /**
+     * Get storage URL untuk file
+     * Shortcut untuk StorageHelper::url()
+     * 
+     * @param string|null $path Path relatif dari storage/app/public/
+     * @return string URL lengkap atau empty string jika path null
+     * 
+     * @example
+     * storage_url('bukti_faktur/1/file.png')
+     * // Returns: http://localhost:8000/storage/bukti_faktur/1/file.png
+     * 
+     * Usage in Blade:
+     * <img src="{{ storage_url($pembelian->bukti_faktur) }}">
+     * <a href="{{ storage_url($bukti->file_path) }}" target="_blank">Lihat</a>
+     */
+    function storage_url(?string $path): string
+    {
+        return \App\Helpers\StorageHelper::url($path);
+    }
+}
+
+if (!function_exists('storage_exists')) {
+    /**
+     * Check apakah file exists di storage
+     * 
+     * @param string|null $path Path relatif dari storage/app/public/
+     * @return bool
+     */
+    function storage_exists(?string $path): bool
+    {
+        return \App\Helpers\StorageHelper::exists($path);
+    }
+}

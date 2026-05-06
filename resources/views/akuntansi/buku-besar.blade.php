@@ -161,45 +161,41 @@
               $selectedAccountCode = $accountCode; // Gunakan accountCode dari controller
             @endphp
             @foreach($lines as $e)
-              @foreach($e->lines as $i => $l)
-                @php 
-                  $isAccountSelected = ($l->coa->kode_akun == $selectedAccountCode);
-                  if ($isAccountSelected) {
-                    $saldo += ((float)$l->debit - (float)$l->credit);
-                  }
-                @endphp
-                <tr class="{{ $i % 2 === 0 ? 'bg-light' : '' }}">
-                  @if($i===0)
-                    <td rowspan="{{ $e->lines->count() }}" class="align-middle">
-                      {{ \Carbon\Carbon::parse($e->tanggal)->format('d/m/Y') }}
-                    </td>
-                    <td rowspan="{{ $e->lines->count() }}" class="align-middle">
-                      <strong>{{ $e->memo }}</strong>
-                    </td>
-                  @endif
-                  <td class="text-end">
-                    @if($isAccountSelected && $l->debit > 0)
-                      Rp {{ number_format($l->debit,0,',','.') }}
-                    @else
-                      -
-                    @endif
-                  </td>
-                  <td class="text-end">
-                    @if($isAccountSelected && $l->credit > 0)
-                      Rp {{ number_format($l->credit,0,',','.') }}
-                    @else
-                      -
-                    @endif
-                  </td>
-                  @if($isAccountSelected)
-                    <td class="text-end {{ $saldo >= 0 ? 'text-primary' : 'text-danger' }}">
-                      Rp {{ number_format($saldo,0,',','.') }}
-                    </td>
+              @php
+                $isAccountSelected = (($e->kode_akun ?? '') == $selectedAccountCode);
+                if ($isAccountSelected) {
+                  $saldo += ((float)($e->debit ?? 0) - (float)($e->kredit ?? 0));
+                }
+              @endphp
+              <tr class="bg-light">
+                <td class="align-middle">
+                  {{ \Carbon\Carbon::parse($e->tanggal ?? date('Y-m-d'))->format('d/m/Y') }}
+                </td>
+                <td class="align-middle">
+                  <strong>{{ $e->keterangan ?? 'Tanpa keterangan' }}</strong>
+                </td>
+                <td class="text-end">
+                  @if($isAccountSelected && ($e->debit ?? 0) > 0)
+                    Rp {{ number_format($e->debit,0,',','.') }}
                   @else
-                    <td></td>
+                    -
                   @endif
-                </tr>
-              @endforeach
+                </td>
+                <td class="text-end">
+                  @if($isAccountSelected && ($e->kredit ?? 0) > 0)
+                    Rp {{ number_format($e->kredit,0,',','.') }}
+                  @else
+                    -
+                  @endif
+                </td>
+                @if($isAccountSelected)
+                  <td class="text-end {{ $saldo >= 0 ? 'text-primary' : 'text-danger' }}">
+                    Rp {{ number_format($saldo,0,',','.') }}
+                  </td>
+                @else
+                  <td></td>
+                @endif
+              </tr>
             @endforeach
           </tbody>
         </table>

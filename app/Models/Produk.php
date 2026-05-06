@@ -11,6 +11,7 @@ class Produk extends Model
 
     protected $table = 'produks';
     protected $fillable = [
+        'user_id',
         'kode_produk',
         'barcode',
         'nama_produk',
@@ -19,19 +20,12 @@ class Produk extends Model
         'kategori_id',
         'satuan_id',
         'harga_jual',
-        'harga_bom',
-        'harga_beli',
-        'hpp',
         'stok',
         'is_unlimited_stok',
         'stok_minimum',
-        'btkl_default',
-        'bop_default',
-        'bopb_method',
-        'bopb_rate',
-        'labor_hours_per_unit',
         'btkl_per_unit',
         'coa_persediaan_id',
+        'harga_pokok',
     ];
     
     /**
@@ -42,10 +36,26 @@ class Produk extends Model
         parent::boot();
         
         static::creating(function ($produk) {
+            // CRITICAL: Auto-fill user_id for multi-tenant isolation
+            if (empty($produk->user_id) && auth()->check()) {
+                $produk->user_id = auth()->id();
+            }
+            
             if (empty($produk->barcode)) {
                 // Generate barcode format EAN-13: 8992XXXXXXXXX
                 $lastId = static::max('id') ?? 0;
                 $produk->barcode = '8992' . str_pad($lastId + 1, 9, '0', STR_PAD_LEFT);
+            }
+            
+            // 🔒 SECURITY: Generate kode_produk otomatis untuk multi-tenant
+            if (empty($produk->kode_produk)) {
+                $userId = auth()->id();
+                $lastProduct = static::where('user_id', $userId)
+                    ->orderBy('id', 'desc')
+                    ->first();
+                
+                $sequence = $lastProduct ? ((int)str_replace(['PRD-', $userId . '-'], '', $lastProduct->kode_produk) + 1) : 1;
+                $produk->kode_produk = 'PRD-' . $userId . '-' . str_pad($sequence, 4, '0', STR_PAD_LEFT);
             }
             
             // Auto-calculate harga_jual if not set
@@ -106,10 +116,32 @@ class Produk extends Model
     
     /**
      * Get the BomJobCosting for the Produk
+     * DEPRECATED: BomJobCosting table has been removed
      */
-    public function bomJobCosting()
+    // public function bomJobCosting()
+    // {
+    //     return $this->hasOne(BomJobCosting::class);
+    // }
+    
+    /**
+     * Get biaya bahan baku for this product
+     */
+    public function biayaBahanBaku()
     {
-        return $this->hasOne(BomJobCosting::class);
+        return $this->hasMany(BiayaBahanBaku::class);
+    }
+    
+    /**
+     * Check if product has HPP data
+     */
+    public function hasHppData()
+    {
+        // Check if product has BBB that is selected in HPP
+        return $this->biayaBahanBaku()
+            ->whereHas('hargaPokokProduksiBiayaBahanBaku', function($query) {
+                $query->where('user_id', auth()->id());
+            })
+            ->exists();
     }
     
     /**
@@ -124,11 +156,18 @@ class Produk extends Model
     }
     
     /**
-     * Get actual HPP based on production costs
+     * Get actual HPP based on Harga Pokok Produksi calculation
+     * Priority: HPP from master-data/harga-pokok-produksi > production costs > fallback values
      */
     public function getActualHPP($tanggalPenjualan = null)
     {
-        // Ambil biaya produksi dari tabel produksi untuk produk ini
+        // PRIORITY 1: Get from Harga Pokok Produksi (BBB + BTKL + BOP)
+        $hppFromCalculation = $this->getHPPFromHargaPokokProduksi();
+        if ($hppFromCalculation > 0) {
+            return $hppFromCalculation;
+        }
+        
+        // PRIORITY 2: Try to get from production costs
         $query = \App\Models\Produksi::where('produk_id', $this->id)
             ->where('status', 'completed')
             ->orderBy('id', 'desc')
@@ -141,51 +180,114 @@ class Produk extends Model
         
         $productionCosts = $query->get();
         
-        if ($productionCosts->isEmpty()) {
-            // Jika tidak ada data produksi, gunakan harga_bom sebagai fallback
-            return $this->harga_bom ?? 0;
-        }
-        
-        // Prioritaskan produksi yang memiliki total_biaya dan qty_produksi
-        foreach ($productionCosts as $production) {
-            // Gunakan total_biaya dan qty_produksi dari produksi jika ada
-            if ($production->total_biaya > 0 && $production->qty_produksi > 0) {
-                return $production->total_biaya / $production->qty_produksi;
-            }
-        }
-        
-        // Fallback ke perhitungan dari detail produksi
-        $totalCost = 0;
-        $totalQuantity = 0;
-        $hasValidData = false;
-        
-        foreach ($productionCosts as $production) {
-            // Ambil detail produksi
-            $productionDetails = \App\Models\ProduksiDetail::where('produksi_id', $production->id)->get();
-            
-            foreach($productionDetails as $detail) {
-                // Skip jika data tidak valid
-                if (empty($detail->qty_konversi) || empty($detail->harga_satuan)) {
-                    continue;
+        if ($productionCosts->isNotEmpty()) {
+            // Prioritaskan produksi yang memiliki total_biaya dan qty_produksi
+            foreach ($productionCosts as $production) {
+                // Gunakan total_biaya dan qty_produksi dari produksi jika ada
+                if ($production->total_biaya > 0 && $production->qty_produksi > 0) {
+                    return $production->total_biaya / $production->qty_produksi;
                 }
+            }
+            
+            // Fallback ke perhitungan dari detail produksi
+            $totalCost = 0;
+            $totalQuantity = 0;
+            $hasValidData = false;
+            
+            foreach ($productionCosts as $production) {
+                // Ambil detail produksi
+                $productionDetails = \App\Models\ProduksiDetail::where('produksi_id', $production->id)->get();
                 
-                $hasValidData = true;
-                
-                // Gunakan subtotal dari detail produksi
-                $totalCost += $detail->subtotal;
-                $totalQuantity += $detail->qty_konversi;
+                foreach($productionDetails as $detail) {
+                    // Skip jika data tidak valid
+                    if (empty($detail->qty_konversi) || empty($detail->harga_satuan)) {
+                        continue;
+                    }
+                    
+                    $hasValidData = true;
+                    
+                    // Gunakan subtotal dari detail produksi
+                    $totalCost += $detail->subtotal ?? 0;
+                    $totalQuantity += $detail->qty_konversi ?? 0;
+                }
+            }
+            
+            if ($hasValidData && $totalQuantity > 0) {
+                return $totalCost / $totalQuantity;
             }
         }
         
-        // Jika tidak ada data valid, gunakan harga_bom sebagai fallback
-        if (!$hasValidData || $totalQuantity == 0) {
-            return $this->harga_bom ?? 0;
+        // PRIORITY 3: Fallback priorities
+        // 1. Use harga_bom if available
+        if (!empty($this->harga_bom) && $this->harga_bom > 0) {
+            return $this->harga_bom;
         }
         
-        // Hitung HPP per unit
-        $hppPerUnit = $totalCost / $totalQuantity;
+        // 2. Use hpp field if available
+        if (!empty($this->hpp) && $this->hpp > 0) {
+            return $this->hpp;
+        }
         
-        return $hppPerUnit;
+        // 3. Use harga_beli as last resort
+        if (!empty($this->harga_beli) && $this->harga_beli > 0) {
+            return $this->harga_beli;
+        }
+        
+        // 4. Default to 0 if no cost data available
+        return 0;
+    }
+    
+    /**
+     * Get HPP from Harga Pokok Produksi calculation (BBB + BTKL + BOP)
+     * This is the MAIN source for HPP calculation
+     */
+    private function getHPPFromHargaPokokProduksi()
+    {
+        $userId = $this->user_id ?? auth()->id();
+        
+        // Get BBB (Biaya Bahan Baku) for this product
+        $selectedBbb = \App\Models\HargaPokokProduksiBiayaBahanBaku::where('user_id', $userId)
+            ->with('biayaBahanBaku')
+            ->get();
+        
+        $totalBbb = 0;
+        foreach ($selectedBbb as $bbb) {
+            if ($bbb->biayaBahanBaku && $bbb->biayaBahanBaku->produk_id == $this->id) {
+                $totalBbb += $bbb->biayaBahanBaku->subtotal ?? 0;
+            }
+        }
+        
+        // Get BTKL (Biaya Tenaga Kerja Langsung)
+        $selectedBtkl = \App\Models\HargaPokokProduksiBtkl::where('user_id', $userId)
+            ->with('prosesProduksi')
+            ->get();
+        
+        $totalBtkl = 0;
+        foreach ($selectedBtkl as $btkl) {
+            if ($btkl->prosesProduksi) {
+                $tarif = $btkl->prosesProduksi->tarif_btkl ?? 0;
+                $kapasitas = $btkl->prosesProduksi->kapasitas_per_jam ?? 1;
+                $biayaPerProduk = $kapasitas > 0 ? $tarif / $kapasitas : 0;
+                $totalBtkl += $biayaPerProduk;
+            }
+        }
+        
+        // Get BOP (Biaya Overhead Pabrik)
+        $selectedBop = \App\Models\HargaPokokProduksiBop::where('user_id', $userId)
+            ->with('bopProses')
+            ->get();
+        
+        $totalBop = 0;
+        foreach ($selectedBop as $bop) {
+            if ($bop->bopProses) {
+                $totalBop += $bop->bopProses->total_bop_per_produk ?? 0;
+            }
+        }
+        
+        // Total HPP = BBB + BTKL + BOP
+        $totalHpp = $totalBbb + $totalBtkl + $totalBop;
+        
+        return $totalHpp;
     }
     
     /**
@@ -197,11 +299,11 @@ class Produk extends Model
     }
     
     /**
-     * Get harga pokok attribute (alias for HPP)
+     * Get harga pokok attribute
      */
     public function getHargaPokokAttribute()
     {
-        return $this->hpp;
+        return $this->attributes['harga_pokok'] ?? 0;
     }
     
     /**

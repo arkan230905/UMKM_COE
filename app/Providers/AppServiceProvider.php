@@ -83,10 +83,16 @@ class AppServiceProvider extends ServiceProvider
 
         // View composer global untuk semua tampilan (kecuali dashboard)
         View::composer('*', function ($view) {
+<<<<<<< HEAD
             // Jangan override data yang sudah disediakan oleh controller khususnya dashboard
             if (!$view->getName() || !str_contains($view->getName(), 'dashboard')) {
                 $view->with([
                     'totalPegawai'   => Pegawai::count(),
+=======
+            try {
+                $view->with([
+                    'totalPegawai'   => 0,
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                     'totalPresensi'  => Presensi::count(),
                     'totalProduk'    => Produk::count(),
                     'totalVendor'    => Vendor::count(),
@@ -94,6 +100,19 @@ class AppServiceProvider extends ServiceProvider
                     'totalSatuan'    => Satuan::count(),
                     'totalCOA'       => Coa::count(),
                 ]);
+<<<<<<< HEAD
+=======
+            } catch (\Exception $e) {
+                $view->with([
+                    'totalPegawai'   => 0,
+                    'totalPresensi'  => 0,
+                    'totalProduk'    => 0,
+                    'totalVendor'    => 0,
+                    'totalBahanBaku' => 0,
+                    'totalSatuan'    => 0,
+                    'totalCOA'       => 0,
+                ]);
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             }
         });
 

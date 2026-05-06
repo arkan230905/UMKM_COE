@@ -1,6 +1,206 @@
 @extends('layouts.app')
 @section('title', 'Daftar Produk')
 
+<<<<<<< HEAD
+=======
+@section('content')
+<style>
+    /* Horizontal Scroll Table - Force scroll */
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .table-scroll-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar {
+        height: 10px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-thumb {
+        background: #007bff;
+        border-radius: 4px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #0056b3;
+    }
+    
+    #dataTable {
+        min-width: 1400px !important;
+        width: 100%;
+        margin-bottom: 0;
+    }
+    
+    #dataTable th, #dataTable td {
+        white-space: nowrap;
+        vertical-align: middle;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .scroll-hint {
+        text-align: center;
+        padding: 5px;
+        background: #e9ecef;
+        color: #666;
+        font-size: 12px;
+        border-radius: 0 0 4px 4px;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Daftar Produk</h1>
+        <div class="btn-group">
+            <a href="{{ route('master-data.produk.print-barcode-all') }}" class="btn btn-info" target="_blank">
+                <i class="fas fa-barcode"></i> Cetak Semua Barcode
+            </a>
+            <a href="{{ route('master-data.produk.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Tambah Produk
+            </a>
+        </div>
+    </div>
+
+    
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="scroll-hint">← Geser tabel ke kiri/kanan untuk melihat semua kolom →</div>
+            <div class="table-scroll-wrapper">
+                <table class="table table-bordered table-hover" id="dataTable" cellspacing="0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th width="5%">No</th>
+                            <th>Foto</th>
+                            <th>Barcode</th>
+                            <th>Nama Produk</th>
+                            <th>Deskripsi</th>
+                            <th class="text-right">Harga Pokok Produksi</th>
+                            <th class="text-right">Harga Jual</th>
+                            <th class="text-center">Stok</th>
+                            <th width="12%" class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($produks as $produk)
+                            @php
+                                // Get HPP from calculated array
+                                $hargaBomProduk = $hargaBom[$produk->id] ?? 0;
+                                
+                                // Use stored harga_jual from database, not recalculate
+                                $hargaJual = $produk->harga_jual ?? 0;
+                                
+                                // Debug: log values
+                                error_log("DASHBOARD DEBUG - Produk: {$produk->nama_produk}, ID: {$produk->id}");
+                                error_log("DASHBOARD DEBUG - Harga Jual from DB: " . ($produk->harga_jual ?? 'NULL'));
+                                error_log("DASHBOARD DEBUG - Harga Jual variable: {$hargaJual}");
+                                error_log("DASHBOARD DEBUG - HPP: {$hargaBomProduk}");
+                                
+                                $stok = (float) $produk->stok;
+                            @endphp
+                            <tr>
+                                <td>{{ $loop->iteration }}</td>
+                                <td class="text-center">
+                                    @php
+                                        $fotoPath = null;
+                                        $fotoExists = false;
+                                        $fotoUrl = '';
+                                        if ($produk->foto) {
+                                            // Use storage_url helper for proper URL generation
+                                            $fotoUrl = storage_url($produk->foto);
+                                            // Check if file exists in storage
+                                            $fotoExists = storage_exists($produk->foto);
+                                        }
+                                    @endphp
+                                    @if($produk->foto && $fotoExists)
+                                        <div class="product-image-wrapper" 
+                                             onclick="showImageModal('{{ $fotoUrl }}', '{{ addslashes($produk->nama_produk) }}')"
+                                             style="width: 35px !important; height: 35px !important; cursor: pointer; position: relative; display: inline-block;">
+                                            <img src="{{ $fotoUrl }}" 
+                                                 alt="{{ $produk->nama_produk }}" 
+                                                 class="product-thumbnail"
+                                                 style="width: 35px !important; height: 35px !important; object-fit: cover; border-radius: 4px;"
+                                                 onerror="this.src='{{ asset('images/no-image.png') }}'; this.onerror='';">
+                                            <div class="image-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s; border-radius: 4px;">
+                                                <i class="fas fa-search-plus" style="color: white; font-size: 14px;"></i>
+                                            </div>
+                                        </div>
+                                    @else
+                                        <div class="no-image-placeholder" style="width: 35px !important; height: 35px !important; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-image text-muted" style="font-size: 12px;"></i>
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="barcode-cell text-center">
+                                    @if($produk->barcode)
+                                        <div class="barcode-wrapper">
+                                            <svg class="barcode-svg" data-barcode="{{ $produk->barcode }}"></svg>
+                                            <div class="barcode-number">{{ $produk->barcode }}</div>
+                                        </div>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                                <td>{{ $produk->nama_produk }}</td>
+                                <td>{{ $produk->deskripsi ? \Illuminate\Support\Str::limit($produk->deskripsi, 50) : '-' }}</td>
+                                <td class="text-right">Rp {{ number_format($hargaBomProduk, 0, ',', '.') }}</td>
+                                <td class="text-right font-weight-bold">Rp {{ number_format($hargaJual, 0, ',', '.') }}</td>
+                                <td class="text-center {{ $stok <= 0 ? 'text-danger font-weight-bold' : '' }}">
+                                    {{ number_format($stok, 0, ',', '.') }}
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        @if($produk->barcode)
+                                        <a href="{{ route('master-data.produk.print-barcode', $produk->id) }}" 
+                                           class="btn btn-sm btn-info" 
+                                           data-bs-toggle="tooltip" 
+                                           title="Cetak Label Barcode"
+                                           target="_blank">
+                                            <i class="fas fa-barcode"></i>
+                                        </a>
+                                        @endif
+                                        <a href="{{ route('master-data.produk.edit', $produk->id) }}" 
+                                           class="btn btn-sm btn-warning" 
+                                           data-bs-toggle="tooltip" 
+                                           title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form action="{{ route('master-data.produk.destroy', $produk->id) }}" 
+                                              method="POST" 
+                                              class="d-inline" 
+                                              onsubmit="return confirm('Yakin ingin menghapus produk ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger" data-bs-toggle="tooltip" title="Hapus">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="9" class="text-center">Tidak ada data produk</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 @push('styles')
 <style>
 .produk-page { background:#F7F4F0; min-height:100vh; padding:28px 24px; font-family:'Poppins',sans-serif; }

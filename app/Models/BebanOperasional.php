@@ -12,6 +12,7 @@ class BebanOperasional extends Model
     protected $table = 'beban_operasional';
 
     protected $fillable = [
+        'user_id',
         'kode',
         'kategori',
         'nama_beban',
@@ -28,6 +29,29 @@ class BebanOperasional extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * Boot method untuk auto-fill user_id dan generate kode
+     */
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            // CRITICAL: Auto-fill user_id for multi-tenant isolation
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+            
+            // Keep created_by for backward compatibility
+            if (empty($model->created_by) && auth()->check()) {
+                $model->created_by = auth()->id();
+            }
+            
+            // Generate kode if empty
+            if (empty($model->kode)) {
+                $model->kode = self::generateKode();
+            }
+        });
+    }
 
     /**
      * Relasi ke user yang membuat data
@@ -109,15 +133,4 @@ class BebanOperasional extends Model
         ];
     }
 
-    /**
-     * Boot method untuk auto-generate kode
-     */
-    protected static function booted()
-    {
-        static::creating(function ($bebanOperasional) {
-            if (empty($bebanOperasional->kode)) {
-                $bebanOperasional->kode = self::generateKode();
-            }
-        });
     }
-}

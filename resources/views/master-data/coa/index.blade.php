@@ -29,6 +29,24 @@
         </div>
     </div>
 
+<<<<<<< HEAD
+=======
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    
+    @if(session('warning'))
+        <div class="alert alert-warning alert-dismissible fade show">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {{ session('warning') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">

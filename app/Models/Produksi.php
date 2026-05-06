@@ -10,6 +10,7 @@ class Produksi extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation
         'produk_id',
         'coa_persediaan_barang_jadi_id',
         'tanggal',
@@ -28,6 +29,19 @@ class Produksi extends Model
         'waktu_mulai_produksi',
         'waktu_selesai_produksi'
     ];
+
+    /**
+     * Boot method - auto-fill user_id untuk multi-tenant isolation
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($model) {
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
 
     protected $casts = [
         'tanggal' => 'date',

@@ -11,10 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('purchase_return_items', function (Blueprint $table) {
-            // Make bahan_baku_id nullable since items can be either bahan_baku or bahan_pendukung
-            $table->unsignedBigInteger('bahan_baku_id')->nullable()->change();
-        });
+        if (Schema::hasTable('purchase_return_items')) {
+            Schema::table('purchase_return_items', function (Blueprint $table) {
+                $table->unsignedBigInteger('bahan_baku_id')->nullable()->change();
+            });
+        }
     }
 
     /**

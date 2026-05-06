@@ -11,7 +11,7 @@ class KategoriBahanPendukung extends Model
 
     protected $table = 'kategori_bahan_pendukung';
 
-    protected $fillable = ['nama', 'keterangan', 'is_active'];
+    protected $fillable = ['user_id', 'nama', 'keterangan', 'is_active'];
 
     protected $casts = [
         'is_active' => 'boolean',

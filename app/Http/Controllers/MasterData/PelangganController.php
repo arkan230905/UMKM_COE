@@ -11,7 +11,13 @@ class PelangganController extends Controller
 {
     public function index()
     {
+        // 🔒 SECURITY: Get pelanggan users belonging to current user
+        // For multi-tenant: pelanggan users have user_id pointing to their owner
+        $currentUserId = auth()->id();
+        
+        // EMERGENCY FIX: Direct query without complex logic
         $pelanggans = User::where('role', 'pelanggan')
+            ->where('user_id', $currentUserId) // 🔒 CRITICAL: Get pelanggan of current owner
             ->withCount('orders')
             ->latest()
             ->paginate(15);
@@ -27,14 +33,22 @@ class PelangganController extends Controller
     public function store(Request $request)
     {
         $request->validate([
+<<<<<<< HEAD
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
             'phone'    => 'required|string|max:20',
             'address'  => 'nullable|string',
+=======
+            'name' => 'required|string|max:255',
+            // 🔒 SECURITY: Add user_id to unique validation for multi-tenant isolation
+            'email' => 'required|email|unique:users,email,NULL,id,user_id,' . auth()->id(),
+            'phone' => 'required|string|max:20',
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             'password' => 'required|min:6|confirmed',
         ]);
 
         $user = User::create([
+<<<<<<< HEAD
             'name'               => $request->name,
             'email'              => $request->email,
             'phone'              => $request->phone,
@@ -42,6 +56,15 @@ class PelangganController extends Controller
             'password'           => Hash::make($request->password),
             'role'               => 'pelanggan',
             'email_verified_at'  => now(),
+=======
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'password' => Hash::make($request->password),
+            'role' => 'pelanggan',
+            'email_verified_at' => now(),
+            'user_id' => auth()->id(), // 🔒 SECURITY: Add user_id for multi-tenant isolation
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         ]);
 
         $user->plain_password = $request->password;
@@ -53,7 +76,10 @@ class PelangganController extends Controller
 
     public function show($id)
     {
-        $pelanggan = User::where('role', 'pelanggan')->findOrFail($id);
+        // 🔒 SECURITY: Add user_id filter for multi-tenant isolation
+        $pelanggan = User::where('role', 'pelanggan')
+            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Prevent cross-user data access
+            ->findOrFail($id);
         
         // Load orders jika ada
         $pelanggan->load(['orders' => function($query) {
@@ -65,7 +91,10 @@ class PelangganController extends Controller
 
     public function getPassword($id)
     {
-        $pelanggan = User::where('role', 'pelanggan')->findOrFail($id);
+        // 🔒 SECURITY: Add user_id filter for multi-tenant isolation
+        $pelanggan = User::where('role', 'pelanggan')
+            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Prevent cross-user data access
+            ->findOrFail($id);
         
         return response()->json([
             'password' => $pelanggan->password // Hashed password
@@ -74,7 +103,10 @@ class PelangganController extends Controller
 
     public function resetPassword(Request $request, $id)
     {
-        $pelanggan = User::where('role', 'pelanggan')->findOrFail($id);
+        // 🔒 SECURITY: Add user_id filter for multi-tenant isolation
+        $pelanggan = User::where('role', 'pelanggan')
+            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Prevent cross-user data access
+            ->findOrFail($id);
 
         $request->validate([
             'password' => 'required|min:6|confirmed',
@@ -93,13 +125,19 @@ class PelangganController extends Controller
 
     public function edit($id)
     {
-        $pelanggan = User::where('role', 'pelanggan')->findOrFail($id);
+        // 🔒 SECURITY: Add user_id filter for multi-tenant isolation
+        $pelanggan = User::where('role', 'pelanggan')
+            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Prevent cross-user data access
+            ->findOrFail($id);
         return view('master-data.pelanggan.edit', compact('pelanggan'));
     }
 
     public function update(Request $request, $id)
     {
-        $pelanggan = User::where('role', 'pelanggan')->findOrFail($id);
+        // 🔒 SECURITY: Add user_id filter for multi-tenant isolation
+        $pelanggan = User::where('role', 'pelanggan')
+            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Prevent cross-user data access
+            ->findOrFail($id);
 
         $request->validate([
             'name'    => 'required|string|max:255',
@@ -130,7 +168,10 @@ class PelangganController extends Controller
 
     public function destroy($id)
     {
-        $pelanggan = User::where('role', 'pelanggan')->findOrFail($id);
+        // 🔒 SECURITY: Add user_id filter for multi-tenant isolation
+        $pelanggan = User::where('role', 'pelanggan')
+            ->where('user_id', auth()->id()) // 🔒 CRITICAL: Prevent cross-user deletion
+            ->findOrFail($id);
         
         // Cek apakah pelanggan punya order
         if ($pelanggan->orders()->count() > 0) {

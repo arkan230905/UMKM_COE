@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Scopes\UserScope;
 
 class PembelianDetail extends Model
 {
@@ -12,6 +13,7 @@ class PembelianDetail extends Model
     protected $table = 'pembelian_details';
 
     protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation
         'pembelian_id',
         'tipe_item',
         'bahan_baku_id',
@@ -28,6 +30,31 @@ class PembelianDetail extends Model
         'jumlah_sub_satuan',
         'manual_conversion_data',
     ];
+
+    /**
+     * Boot method - auto-fill user_id untuk multi-tenant isolation
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+        
+        static::creating(function ($model) {
+            // Auto-fill user_id dari pembelian atau auth
+            if (empty($model->user_id)) {
+                if ($model->pembelian_id) {
+                    $pembelian = Pembelian::find($model->pembelian_id);
+                    if ($pembelian) {
+                        $model->user_id = $pembelian->user_id;
+                    }
+                } elseif (auth()->check()) {
+                    $model->user_id = auth()->id();
+                }
+            }
+        });
+    }
 
     protected $casts = [
         'jumlah' => 'float',

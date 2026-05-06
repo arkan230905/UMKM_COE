@@ -208,47 +208,27 @@
                                     
                                     @if($p->status === 'draft')
                                         @php
-                                            // Check stock availability
-                                            $bomJobCosting = \App\Models\BomJobCosting::where('produk_id', $p->produk_id)->first();
+                                            // Check stock availability from produksi_details
                                             $stockSufficient = true;
                                             $shortageMessages = [];
                                             
-                                            if ($bomJobCosting) {
-                                                // Check bahan baku
-                                                $bomJobBBBs = \App\Models\BomJobBBB::where('bom_job_costing_id', $bomJobCosting->id)->get();
-                                                foreach ($bomJobBBBs as $bomJobBBB) {
-                                                    $bahan = $bomJobBBB->bahanBaku;
-                                                    if ($bahan) {
-                                                        $qtyResepTotal = $bomJobBBB->jumlah * $p->qty_produksi;
-                                                        $satuanResep = $bomJobBBB->satuan ?? $bahan->satuan->nama ?? $bahan->satuan;
-                                                        $satuanBahan = $bahan->satuan->nama ?? $bahan->satuan;
-                                                        
-                                                        $qtyBase = $bahan->konversiBerdasarkanProduksi($qtyResepTotal, $satuanResep, $satuanBahan);
-                                                        $available = (float)($bahan->stok ?? 0);
-                                                        
-                                                        if ($available < $qtyBase) {
-                                                            $stockSufficient = false;
-                                                            $shortageMessages[] = "{$bahan->nama_bahan}: butuh " . number_format($qtyBase, 2) . " {$satuanBahan}, tersedia " . number_format($available, 2);
-                                                        }
+                                            foreach ($p->details as $detail) {
+                                                if ($detail->bahanBaku) {
+                                                    $bahan = $detail->bahanBaku;
+                                                    $qtyNeeded = $detail->qty_resep;
+                                                    $available = (float)($bahan->stok ?? 0);
+                                                    
+                                                    // Convert if needed
+                                                    $satuanResep = $detail->satuan_resep;
+                                                    $satuanBahan = $bahan->satuan->nama ?? $bahan->satuan;
+                                                    
+                                                    if ($satuanResep !== $satuanBahan) {
+                                                        $qtyNeeded = $bahan->konversiBerdasarkanProduksi($qtyNeeded, $satuanResep, $satuanBahan);
                                                     }
-                                                }
-                                                
-                                                // Check bahan pendukung
-                                                $bomJobBahanPendukungs = \App\Models\BomJobBahanPendukung::where('bom_job_costing_id', $bomJobCosting->id)->get();
-                                                foreach ($bomJobBahanPendukungs as $bomJobBahanPendukung) {
-                                                    $bahan = $bomJobBahanPendukung->bahanPendukung;
-                                                    if ($bahan) {
-                                                        $qtyResepTotal = $bomJobBahanPendukung->jumlah * $p->qty_produksi;
-                                                        $satuanResep = $bomJobBahanPendukung->satuan ?? $bahan->satuan->nama ?? $bahan->satuan;
-                                                        $satuanBahan = $bahan->satuan->nama ?? $bahan->satuan;
-                                                        
-                                                        $qtyBase = $bahan->konversiBerdasarkanProduksi($qtyResepTotal, $satuanResep, $satuanBahan);
-                                                        $available = 200; // Fixed stock for bahan pendukung
-                                                        
-                                                        if ($available < $qtyBase) {
-                                                            $stockSufficient = false;
-                                                            $shortageMessages[] = "{$bahan->nama_bahan}: butuh " . number_format($qtyBase, 2) . " {$satuanBahan}, tersedia " . number_format($available, 2);
-                                                        }
+                                                    
+                                                    if ($available < $qtyNeeded) {
+                                                        $stockSufficient = false;
+                                                        $shortageMessages[] = "{$bahan->nama_bahan}: butuh " . number_format($qtyNeeded, 2) . " {$satuanBahan}, tersedia " . number_format($available, 2);
                                                     }
                                                 }
                                             }

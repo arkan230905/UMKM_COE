@@ -19,7 +19,17 @@ class PegawaiController extends Controller
         $search = request('search');
         $jenis = request('jenis');
         
+<<<<<<< HEAD
         $query = Pegawai::where('user_id', auth()->id());
+=======
+        // Use safety check for multi-tenant filtering
+        $query = Pegawai::query();
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
+        
+        // Check if user_id column exists and filter by it
+        if (Schema::hasColumn('pegawais', 'user_id')) {
+            $query->where('user_id', auth()->id());
+        }
         
         // Filter berdasarkan jenis pegawai (opsional)
         if ($jenis && in_array(strtolower((string)$jenis), ['btkl','btktl'])) {
@@ -45,6 +55,7 @@ class PegawaiController extends Controller
     // Tampilkan form create
     public function create()
     {
+<<<<<<< HEAD
         $jabatans = \App\Models\Jabatan::where('user_id', auth()->id())
             ->select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif')
             ->orderBy('nama')
@@ -57,6 +68,42 @@ class PegawaiController extends Controller
             ->distinct()
             ->orderBy('kategori')
             ->pluck('kategori');
+=======
+        // 🔒 SECURITY: Filter jabatans by user_id with safety check
+        $jabatanQuery = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','asuransi','gaji_pokok','tarif');
+        
+        // CRITICAL: Always filter by user_id if column exists
+        if (Schema::hasColumn('jabatans', 'user_id')) {
+            $jabatanQuery->where('user_id', auth()->id());
+        } else {
+            // If no user_id column, return empty collection to prevent global data access
+            $jabatans = collect();
+            $kategoris = collect();
+            return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
+        }
+        
+        $jabatans = $jabatanQuery->orderBy('nama')->get();
+        
+        // 🔒 SECURITY: Get unique kategori values from Jabatan table with safety check
+        $kategoriQuery = \App\Models\Jabatan::whereNotNull('kategori')
+            ->where('kategori', '!=', '');
+        
+        // CRITICAL: Always filter by user_id if column exists
+        if (Schema::hasColumn('jabatans', 'user_id')) {
+            $kategoriQuery->where('user_id', auth()->id());
+        }
+        
+        $kategoris = $kategoriQuery->distinct()
+            ->pluck('kategori')
+            ->map(function($k) {
+                return strtolower($k);
+            })
+            ->unique()
+            ->values();
+        
+        // IMPORTANT: Do NOT provide default categories if user has no data
+        // This prevents mixing user data with global data
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         
         return view('master-data.pegawai.create', compact('jabatans', 'kategoris'));
     }
@@ -66,7 +113,16 @@ class PegawaiController extends Controller
     {
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
+<<<<<<< HEAD
             'email' => 'required|email',
+=======
+            // MULTI-TENANT: email unique dengan safety check
+            'email' => [
+                'required',
+                'email',
+                'unique:pegawais,email'
+            ],
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
@@ -135,15 +191,27 @@ class PegawaiController extends Controller
             'kategori' => $validated['kategori'],
             'jabatan' => $jabatan->nama,
             'jenis_pegawai' => strtolower($validated['kategori']),
+<<<<<<< HEAD
             'gaji_pokok' => $jabatan->gaji_pokok ?? $jabatan->gaji,
             'tarif_per_jam' => $jabatan->tarif,
             'tunjangan' => $jabatan->tunjangan,
             'asuransi' => $jabatan->asuransi,
+=======
+            'gaji_pokok' => $jabatan->gaji_pokok ?? 0,
+            'tarif_per_jam' => $jabatan->tarif_per_jam ?? 0,
+            'tunjangan' => $jabatan->tunjangan ?? 0,
+            'asuransi' => $jabatan->asuransi ?? 0,
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             'bank' => $validated['bank'],
             'nomor_rekening' => $validated['nomor_rekening'],
             'nama_rekening' => $validated['nama_rekening'],
             'user_id' => auth()->id(),
         ];
+        
+        // Add user_id only if column exists
+        if (Schema::hasColumn('pegawais', 'user_id')) {
+            $pegawaiData['user_id'] = auth()->id(); // CRITICAL: multi-tenant isolation
+        }
         
         // Log data being saved for debugging
         \Log::info('Creating new Pegawai:', $pegawaiData);
@@ -185,6 +253,7 @@ class PegawaiController extends Controller
     // Form edit pegawai
     public function edit(Pegawai $pegawai)
     {
+<<<<<<< HEAD
         // Ensure user can only edit their own pegawai
         if ($pegawai->user_id !== auth()->id()) {
             abort(403, 'Unauthorized');
@@ -199,6 +268,33 @@ class PegawaiController extends Controller
             ->whereNotNull('kategori')
             ->where('kategori', '!=', '')
             ->distinct()
+=======
+        // 🔒 SECURITY: Filter jabatans by user_id with safety check
+        $jabatanQuery = \App\Models\Jabatan::select('id','nama','kategori','tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi','gaji_pokok','tarif_per_jam');
+        
+        // CRITICAL: Always filter by user_id if column exists
+        if (Schema::hasColumn('jabatans', 'user_id')) {
+            $jabatanQuery->where('user_id', auth()->id());
+        } else {
+            // If no user_id column, return empty collection to prevent global data access
+            $jabatans = collect();
+            $kategoris = collect();
+            return view('master-data.pegawai.edit', compact('pegawai','jabatans', 'kategoris'));
+        }
+        
+        $jabatans = $jabatanQuery->orderBy('nama')->get();
+        
+        // 🔒 SECURITY: Get unique kategori values from Jabatan table with safety check
+        $kategoriQuery = \App\Models\Jabatan::whereNotNull('kategori')
+            ->where('kategori', '!=', '');
+        
+        // CRITICAL: Always filter by user_id if column exists
+        if (Schema::hasColumn('jabatans', 'user_id')) {
+            $kategoriQuery->where('user_id', auth()->id());
+        }
+        
+        $kategoris = $kategoriQuery->distinct()
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             ->orderBy('kategori')
             ->pluck('kategori');
         
@@ -215,8 +311,20 @@ class PegawaiController extends Controller
         
         $oldEmail = $pegawai->email;
         $validated = $request->validate([
+<<<<<<< HEAD
             'nama' => 'required|string|max:255|unique:pegawais,nama,'.$pegawai->id.',id,user_id,'.auth()->id(),
             'email' => 'required|email|unique:pegawais,email,'.$pegawai->id.',id,user_id,'.auth()->id(),
+=======
+            'nama' => 'required|string|max:255',
+            // MULTI-TENANT: email unique hanya dalam scope user yang sama, kecuali record ini sendiri
+            'email' => [
+                'required',
+                'email',
+                \Illuminate\Validation\Rule::unique('pegawais', 'email')
+                    ->where('user_id', auth()->id())
+                    ->ignore($pegawai->id),
+            ],
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             'no_telepon' => 'required|string|max:20',
             'alamat' => 'required|string',
             'jabatan_id' => 'required|exists:jabatans,id',
@@ -245,10 +353,17 @@ class PegawaiController extends Controller
             'kategori' => $validated['kategori'],
             'jabatan' => $jabatan->nama,
             'jenis_pegawai' => strtolower($validated['kategori']),
+<<<<<<< HEAD
             'gaji_pokok' => $jabatan->gaji_pokok ?? $jabatan->gaji,
             'tarif_per_jam' => $jabatan->tarif,
             'tunjangan' => $jabatan->tunjangan,
             'asuransi' => $jabatan->asuransi,
+=======
+            'gaji_pokok' => $jabatan->gaji_pokok ?? 0,
+            'tarif_per_jam' => $jabatan->tarif_per_jam ?? 0,
+            'tunjangan' => $jabatan->tunjangan ?? 0,
+            'asuransi' => $jabatan->asuransi ?? 0,
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         ];
         
         // Add bank info if provided

@@ -16,7 +16,9 @@ class PelangganController extends Controller
         $user = Auth::user();
         
         // Ambil SEMUA produk dari master data (tanpa filter stok)
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $produks = Produk::with('satuan')
+            ->where('user_id', auth()->id())
             ->orderBy('nama_produk')
             ->get();
         

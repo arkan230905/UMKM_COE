@@ -168,27 +168,16 @@
         <!-- Summary & Action Buttons -->
         <div class="card shadow-sm">
             <div class="card-body">
-                <!-- DEBUG TEST BUTTON -->
-                <div class="mb-3 p-2 bg-light border rounded">
-                    <small class="text-muted">Debug Test:</small>
-                    <button type="button" class="btn btn-sm btn-warning ms-2" onclick="testConversionFunction()">
-                        🧪 Test Conversion Function
-                    </button>
-                    <button type="button" class="btn btn-sm btn-info ms-2" onclick="testSubtotalCalculation()">
-                        🧮 Test Subtotal Calculation
-                    </button>
-                    <button type="button" class="btn btn-sm btn-danger ms-2" onclick="emergencyDebug()">
-                        🚨 Emergency Debug
-                    </button>
-                    <div id="testResult" class="mt-1 text-small"></div>
-                </div>
-                
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="mb-0">Total Biaya Bahan Baku: <span id="summaryTotalBiaya" class="text-success">Rp 0</span></h5>
+<<<<<<< HEAD
                         <small class="text-muted">
                             BBB: <span id="summaryBahanBaku">Rp 0</span>
                         </small>
+=======
+                        <small class="text-muted">BBB: <span id="summaryBahanBaku">Rp 0</span></small>
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                     </div>
                     <div>
                         <button type="submit" class="btn btn-success">

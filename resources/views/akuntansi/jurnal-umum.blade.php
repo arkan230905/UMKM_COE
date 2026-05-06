@@ -104,9 +104,9 @@
   <!-- Journal Table -->
   <div class="card shadow-sm">
     <div class="card-body p-0">
-      <div class="table-responsive">
+      <div class="table-responsive" style="overflow-x: auto;">
         <table class="table table-hover mb-0" style="border: 2px solid #dee2e6; min-width: 1400px;">
-          <thead class="table-light sticky-top">
+          <thead class="table-light" style="position: sticky; top: 0; z-index: 2; background-color: #f8f9fa;">
             <tr>
               <th class="border-end" style="width:10%; border-bottom: 2px solid #dee2e6;">Tanggal</th>
               <th class="border-end" style="width:25%; border-bottom: 2px solid #dee2e6;">Deskripsi</th>

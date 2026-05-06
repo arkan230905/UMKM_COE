@@ -1187,10 +1187,10 @@
                                     <div class="card bukti-card">
                                         <div class="card-body text-center p-3">
                                             @if(in_array(strtolower(pathinfo($bukti->file_path, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif']))
-                                                <img src="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                <img src="{{ url('/storage/' . $bukti->file_path) }}" 
                                                      class="img-fluid rounded mb-2 bukti-image" 
                                                      style="max-height: 120px; cursor: pointer;"
-                                                     onclick="showImageModalPreview('{{ asset('storage/' . $bukti->file_path) }}', '{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}')">
+                                                     onclick="showImageModalPreview('{{ url('/storage/' . $bukti->file_path) }}', '{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}')">
                                             @else
                                                 <div class="text-center py-3">
                                                     <i class="fas fa-file-alt fa-2x text-muted mb-2"></i>
@@ -1202,13 +1202,13 @@
                                             <small class="text-muted d-block mb-2">{{ $bukti->created_at->format('d/m/Y H:i') }}</small>
                                             
                                             <div class="bukti-actions">
-                                                <a href="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                <a href="{{ url('/storage/' . $bukti->file_path) }}" 
                                                    target="_blank" 
                                                    class="btn btn-sm btn-outline-primary me-1"
                                                    title="Lihat">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <a href="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                <a href="{{ url('/storage/' . $bukti->file_path) }}" 
                                                    download 
                                                    class="btn btn-sm btn-outline-success me-1"
                                                    title="Download">

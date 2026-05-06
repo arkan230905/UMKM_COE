@@ -99,10 +99,10 @@ class RegisterController extends Controller
             'perusahaan_id' => $perusahaanId,
         ]);
 
-        // Trigger event untuk setup data awal (COA, dll)
-        if ($perusahaanId) {
-            event(new UserRegistered($user, $perusahaanId));
-        }
+        // CRITICAL: Trigger event untuk setup data awal (COA, Satuan, dll)
+        // Event HARUS di-dispatch untuk SETIAP user baru (multi-tenant)
+        // Setiap user perlu COA default, tidak peduli apakah punya perusahaan atau tidak
+        event(new UserRegistered($user, $perusahaanId));
 
         return $user;
     }

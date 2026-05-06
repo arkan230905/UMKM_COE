@@ -1,0 +1,265 @@
+╔═══════════════════════════════════════════════════════════════╗
+║  📦 CHECKLIST FILE UNTUK UPLOAD KE HOSTING                   ║
+╚═══════════════════════════════════════════════════════════════╝
+
+PRIORITAS TINGGI (WAJIB UPLOAD):
+═══════════════════════════════════════════════════════════════
+
+1. ✅ public/css/modern-dashboard.css
+   📏 Size: 48,868 bytes (~48 KB)
+   🔐 Permission: 644
+   📍 Path di hosting: /public_html/public/css/modern-dashboard.css
+   
+2. ✅ resources/views/layouts/app.blade.php
+   🔐 Permission: 644
+   📍 Path di hosting: /public_html/resources/views/layouts/app.blade.php
+   
+3. ✅ resources/views/layouts/sidebar.blade.php
+   🔐 Permission: 644
+   📍 Path di hosting: /public_html/resources/views/layouts/sidebar.blade.php
+   
+4. ✅ resources/views/dashboard.blade.php
+   🔐 Permission: 644
+   📍 Path di hosting: /public_html/resources/views/dashboard.blade.php
+   
+5. ✅ app/Http/Controllers/DashboardController.php
+   🔐 Permission: 644
+   📍 Path di hosting: /public_html/app/Http/Controllers/DashboardController.php
+
+═══════════════════════════════════════════════════════════════
+
+PRIORITAS SEDANG (UNTUK TESTING):
+═══════════════════════════════════════════════════════════════
+
+6. ⭕ public/test-css.html
+   📍 Path di hosting: /public_html/public/test-css.html
+   🎯 Untuk test CSS loading
+   
+7. ⭕ public/test-simple.html
+   📍 Path di hosting: /public_html/public/test-simple.html
+   🎯 Untuk test CSS variables
+   
+8. ⭕ resources/views/test-blade.blade.php
+   📍 Path di hosting: /public_html/resources/views/test-blade.blade.php
+   🎯 Untuk test Blade rendering
+
+═══════════════════════════════════════════════════════════════
+
+CARA UPLOAD VIA cPANEL FILE MANAGER:
+═══════════════════════════════════════════════════════════════
+
+LANGKAH 1: BACKUP FILE LAMA
+───────────────────────────────────────────────────────────────
+1. Login ke cPanel
+2. Buka "File Manager"
+3. Navigate ke folder yang sesuai
+4. Klik kanan file lama → Rename
+5. Tambahkan ".backup" di akhir nama
+   Contoh: modern-dashboard.css → modern-dashboard.css.backup
+
+LANGKAH 2: UPLOAD FILE BARU
+───────────────────────────────────────────────────────────────
+1. Navigate ke folder tujuan
+2. Klik "Upload" di toolbar
+3. Pilih file dari komputer
+4. Tunggu sampai upload selesai (100%)
+5. Refresh File Manager
+
+LANGKAH 3: SET PERMISSION
+───────────────────────────────────────────────────────────────
+1. Klik kanan file yang baru di-upload
+2. Pilih "Change Permissions"
+3. Set ke 644:
+   ✅ Owner: Read + Write
+   ✅ Group: Read
+   ✅ Public: Read
+4. Klik "Change Permissions"
+
+LANGKAH 4: VERIFY UPLOAD
+───────────────────────────────────────────────────────────────
+1. Klik kanan file → "View"
+2. Pastikan isi file benar
+3. Cek file size sesuai
+
+═══════════════════════════════════════════════════════════════
+
+CARA UPLOAD VIA FTP (FileZilla):
+═══════════════════════════════════════════════════════════════
+
+LANGKAH 1: CONNECT
+───────────────────────────────────────────────────────────────
+1. Buka FileZilla
+2. Host: ftp.your-domain.com
+3. Username: your-ftp-username
+4. Password: your-ftp-password
+5. Port: 21
+6. Klik "Quickconnect"
+
+LANGKAH 2: NAVIGATE
+───────────────────────────────────────────────────────────────
+1. Remote site (kanan): Navigate ke /public_html/
+2. Local site (kiri): Navigate ke folder project
+
+LANGKAH 3: BACKUP
+───────────────────────────────────────────────────────────────
+1. Klik kanan file lama di remote
+2. Rename → tambahkan ".backup"
+
+LANGKAH 4: UPLOAD
+───────────────────────────────────────────────────────────────
+1. Drag file dari local (kiri) ke remote (kanan)
+2. Tunggu transfer selesai
+3. Verify file size sama
+
+═══════════════════════════════════════════════════════════════
+
+SETELAH UPLOAD - CLEAR CACHE:
+═══════════════════════════════════════════════════════════════
+
+VIA SSH/TERMINAL:
+───────────────────────────────────────────────────────────────
+ssh your-username@your-domain.com
+cd /path/to/public_html
+php artisan cache:clear
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+php artisan optimize:clear
+
+VIA cPANEL TERMINAL:
+───────────────────────────────────────────────────────────────
+1. Login cPanel
+2. Buka "Terminal"
+3. Jalankan command di atas
+
+VIA PHP SCRIPT (jika tidak ada SSH):
+───────────────────────────────────────────────────────────────
+Buat file: public/clear-cache.php
+
+<?php
+require __DIR__.'/../vendor/autoload.php';
+$app = require_once __DIR__.'/../bootstrap/app.php';
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel->call('cache:clear');
+$kernel->call('config:clear');
+$kernel->call('route:clear');
+$kernel->call('view:clear');
+$kernel->call('optimize:clear');
+echo "✅ Cache cleared!";
+?>
+
+Akses: https://your-domain.com/clear-cache.php
+Setelah selesai, HAPUS file ini!
+
+═══════════════════════════════════════════════════════════════
+
+VERIFIKASI DI BROWSER:
+═══════════════════════════════════════════════════════════════
+
+TEST 1: CSS File
+───────────────────────────────────────────────────────────────
+URL: https://your-domain.com/css/modern-dashboard.css
+✅ Harus muncul: Kode CSS
+❌ Jika 404: File tidak ter-upload
+
+TEST 2: Test Simple
+───────────────────────────────────────────────────────────────
+URL: https://your-domain.com/test-simple.html
+✅ Harus muncul: Alert "CSS is loaded"
+❌ Jika alert "NOT loaded": CSS tidak ter-load
+
+TEST 3: Test Blade
+───────────────────────────────────────────────────────────────
+URL: https://your-domain.com/test-blade
+✅ Harus muncul: "Test Blade Rendering" + user + time
+❌ Jika kode mentah: View cache corrupt
+
+TEST 4: Dashboard
+───────────────────────────────────────────────────────────────
+URL: https://your-domain.com/dashboard
+✅ Harus muncul:
+   - Sidebar coklat (#8A6B48)
+   - Background abu-abu (#F4F6F9)
+   - Topbar dengan quick actions
+   - KPI cards berwarna
+   - Grafik penjualan
+   - Master data grid
+   - TIDAK ADA kode @extends atau {{ }}
+
+═══════════════════════════════════════════════════════════════
+
+TROUBLESHOOTING:
+═══════════════════════════════════════════════════════════════
+
+PROBLEM: CSS tidak ter-load
+SOLUSI:
+1. Cek file ada: /public/css/modern-dashboard.css
+2. Cek permission: 644
+3. Cek file size: ~48 KB
+4. Clear browser cache: Ctrl + Shift + Delete
+5. Hard refresh: Ctrl + F5
+
+PROBLEM: Tampilan masih lama
+SOLUSI:
+1. Clear Laravel cache (via SSH/Terminal)
+2. Clear browser cache
+3. Clear CDN cache (jika pakai Cloudflare)
+4. Test di Incognito mode
+
+PROBLEM: Error 500
+SOLUSI:
+1. Cek error log: storage/logs/laravel.log
+2. Cek permission: chmod -R 755 storage bootstrap/cache
+3. Clear cache
+4. Cek syntax error di file
+
+PROBLEM: Sidebar kode mentah
+SOLUSI:
+1. Clear view cache: php artisan view:clear
+2. Cek file sidebar.blade.php ter-upload
+3. Cek permission: 644
+4. Upload ulang jika perlu
+
+═══════════════════════════════════════════════════════════════
+
+FINAL CHECKLIST:
+═══════════════════════════════════════════════════════════════
+
+SEBELUM DECLARE "DONE":
+───────────────────────────────────────────────────────────────
+[ ] File CSS ter-upload (48KB)
+[ ] File views ter-upload (4 files)
+[ ] File controller ter-upload
+[ ] Permission benar (644)
+[ ] Cache di-clear
+[ ] Browser cache di-clear
+[ ] Test CSS loading (test-simple.html) ✅
+[ ] Test Blade rendering (test-blade) ✅
+[ ] Dashboard tampil benar ✅
+[ ] Sidebar coklat muncul ✅
+[ ] KPI cards berwarna ✅
+[ ] Grafik muncul ✅
+[ ] Menu collapsible bekerja ✅
+[ ] Logout button merah ✅
+[ ] Footer sidebar muncul ✅
+[ ] Responsive di mobile ✅
+[ ] CDN cache di-purge (jika ada)
+
+═══════════════════════════════════════════════════════════════
+
+CONTACT SUPPORT:
+═══════════════════════════════════════════════════════════════
+
+Jika masih ada masalah:
+1. Screenshot tampilan error
+2. Screenshot browser console (F12 → Console)
+3. Screenshot network tab (F12 → Network)
+4. Copy error dari storage/logs/laravel.log
+5. Kirim ke developer
+
+═══════════════════════════════════════════════════════════════
+
+🎉 SELAMAT! DESAIN BARU SIAP DI HOSTING!
+
+Dibuat: 2026-05-03
+Commit: d419314

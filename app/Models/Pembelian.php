@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Scopes\UserScope;
 
 class Pembelian extends Model
 {
@@ -13,9 +14,14 @@ class Pembelian extends Model
     protected $table = 'pembelians';
 
     protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation
         'nomor_pembelian',
         'nomor_faktur',
+<<<<<<< HEAD
         'bukti_faktur',
+=======
+        'bukti_faktur',  // File path untuk bukti faktur
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         'vendor_id',
         'kode_pembelian',
         'tanggal',
@@ -52,14 +58,17 @@ class Pembelian extends Model
      */
     protected static function booted()
     {
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+        
         static::created(function ($pembelian) {
-            // Create automatic journal entries
-            \App\Services\JournalService::createJournalFromPembelian($pembelian);
+            // Journal akan dibuat manual di controller setelah semua detail tersimpan
+            // Tidak perlu auto-create di sini untuk menghindari jurnal dobel
         });
         
         static::updated(function ($pembelian) {
-            // Recreate journal entries if transaction is updated
-            \App\Services\JournalService::createJournalFromPembelian($pembelian);
+            // Journal akan diupdate manual di controller jika diperlukan
+            // Tidak perlu auto-update di sini
         });
         
         static::deleting(function ($pembelian) {
@@ -67,7 +76,28 @@ class Pembelian extends Model
             $journalService = new \App\Services\JournalService();
             $journalService->deleteByRef('purchase', $pembelian->id);
             
+<<<<<<< HEAD
             // Update stock layers - reverse the stock movements (before details are deleted)
+=======
+            // Delete related AP settlements
+            $pembelian->apSettlements()->delete();
+            
+            // Delete related pelunasan
+            $pembelian->pelunasan()->delete();
+            
+            // Delete journal entries menggunakan PembelianJournalService
+            try {
+                $journalService = new \App\Services\PembelianJournalService();
+                $journalService->deleteExistingJournal($pembelian->id);
+            } catch (\Exception $e) {
+                \Log::error('Failed to delete journal for pembelian', [
+                    'pembelian_id' => $pembelian->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+            
+            // Update stock layers - reverse the stock movements
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             foreach ($pembelian->pembelianDetails as $detail) {
                 // Create reverse stock movement
                 \App\Models\StockMovement::create([
@@ -239,6 +269,11 @@ class Pembelian extends Model
         
         // Auto-generate nomor pembelian saat creating
         static::creating(function ($pembelian) {
+            // CRITICAL: Auto-set user_id untuk multi-tenant isolation
+            if (empty($pembelian->user_id) && auth()->check()) {
+                $pembelian->user_id = auth()->id();
+            }
+            
             if (empty($pembelian->nomor_pembelian)) {
                 $tanggal = $pembelian->tanggal ?? now();
                 $date = is_string($tanggal) ? $tanggal : $tanggal->format('Ymd');

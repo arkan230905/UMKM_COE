@@ -32,74 +32,107 @@
     {{-- Custom Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+<<<<<<< HEAD
     {{-- Modern Dashboard CSS - HIGHEST PRIORITY --}}
     <link href="{{ asset('css/modern-dashboard.css') }}?v=2" rel="stylesheet">
+=======
+    {{-- Modern Dashboard CSS - MULTIPLE ATTEMPTS --}}
+    <link href="{{ asset('css/modern-dashboard.css') }}" rel="stylesheet">
+    <link href="{{ url('css/modern-dashboard.css') }}" rel="stylesheet">
+    <link href="/css/modern-dashboard.css" rel="stylesheet">
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     
-    {{-- Auto Reset System CSS --}}
+    {{-- CRITICAL: Inline CSS Fallback --}}
     <style>
-        .position-fixed {
+        /* Critical CSS - Always loaded */
+        :root {
+            --body-bg: #F4F6F9;
+            --sidebar-bg: #8A6B48;
+            --card-bg: #FFFFFF;
+            --border: #E8ECF0;
+            --text-primary: #1A1A2E;
+            --text-secondary: #6B7280;
+            --text-muted: #9CA3AF;
+            --brown: #5C3D2E;
+            --brown-light: #8B6347;
+            --green: #22C55E;
+            --green-bg: #DCFCE7;
+            --yellow: #F59E0B;
+            --yellow-bg: #FEF3C7;
+            --blue: #3B82F6;
+            --blue-bg: #DBEAFE;
+            --red: #EF4444;
+            --red-bg: #FEE2E2;
+            --purple: #8B5CF6;
+            --purple-bg: #EDE9FE;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif !important;
+            background: var(--body-bg) !important;
+            color: var(--text-primary) !important;
+            font-size: 0.8125rem !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        .layout {
+            display: flex !important;
+            min-height: 100vh !important;
+        }
+        
+        .sidebar {
+            width: 220px !important;
+            min-height: 100vh !important;
             position: fixed !important;
-            z-index: 9999;
+            left: 0 !important;
+            top: 0 !important;
+            bottom: 0 !important;
+            z-index: 1000 !important;
+            overflow-y: auto !important;
+            background: #8A6B48 !important;
+            box-shadow: 3px 0 16px rgba(0,0,0,0.10) !important;
         }
-        .alert-success {
-            background-color: #28a745;
-            border-color: #28a745;
-            color: white;
+        
+        .content {
+            margin-left: 220px !important;
+            flex: 1 !important;
+            min-height: 100vh !important;
+            background: var(--body-bg) !important;
+            padding-top: 90px !important;
         }
-        .btn-close {
-            background: none;
-            border: none;
-            color: white;
-            opacity: 0.8;
+        
+        .topbar {
+            background: var(--body-bg) !important;
+            border-bottom: 1px solid var(--border) !important;
+            padding: 16px 24px !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 220px !important;
+            right: 0 !important;
+            z-index: 999 !important;
         }
-        .btn-close:hover {
-            opacity: 1;
+        
+        .page-wrapper {
+            padding: 20px 24px !important;
+        }
+        
+        .kpi-card {
+            background: var(--card-bg) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 12px !important;
+            padding: 16px 18px !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+        }
+        
+        .dash-card {
+            background: var(--card-bg) !important;
+            border: 1px solid var(--border) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
         }
     </style>
-
-    {{-- Custom Alert Styles --}}
-    <style>
-        .alert {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            font-weight: 500;
-        }
-        
-        .alert-success {
-            background: linear-gradient(135deg, #28a745, #20c997);
-            color: white;
-            border-left: 5px solid #155724;
-        }
-        
-        .alert-danger {
-            background: linear-gradient(135deg, #dc3545, #e74c3c);
-            color: white;
-            border-left: 5px solid #721c24;
-        }
-        
-        .alert-warning {
-            background: linear-gradient(135deg, #ffc107, #f39c12);
-            color: #212529;
-            border-left: 5px solid #856404;
-        }
-        
-        .alert-info {
-            background: linear-gradient(135deg, #17a2b8, #3498db);
-            color: white;
-            border-left: 5px solid #0c5460;
-        }
-        
-        .alert .btn-close {
-            filter: brightness(0) invert(1);
-        }
-        
-        .alert-warning .btn-close {
-            filter: brightness(0);
-        }
-    </style>
-
+    
     @yield('head')
     @stack('styles')
 </head>

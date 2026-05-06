@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class PurchaseReturn extends Model
 {
     protected $fillable = [
+        'user_id',
         'return_number',
         'pembelian_id',
         'return_date',
@@ -268,6 +269,11 @@ class PurchaseReturn extends Model
         parent::boot();
 
         static::creating(function ($return) {
+            // Auto-fill user_id if not set
+            if (empty($return->user_id)) {
+                $return->user_id = auth()->id();
+            }
+            
             if (empty($return->return_number)) {
                 $date = now()->format('Ymd');
                 

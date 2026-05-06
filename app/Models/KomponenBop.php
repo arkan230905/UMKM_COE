@@ -12,6 +12,7 @@ class KomponenBop extends Model
     protected $table = 'komponen_bops';
 
     protected $fillable = [
+        'user_id',
         'kode_komponen',
         'nama_komponen',
         'satuan',
@@ -30,6 +31,11 @@ class KomponenBop extends Model
     protected static function booted()
     {
         static::creating(function ($model) {
+            // CRITICAL: Auto-fill user_id for multi-tenant isolation
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+            
             if (empty($model->kode_komponen)) {
                 $model->kode_komponen = self::generateKode();
             }
@@ -48,7 +54,8 @@ class KomponenBop extends Model
      */
     public static function generateKode(): string
     {
-        $lastKomponen = self::orderBy('id', 'desc')->first();
+        // 🔒 MULTI-TENANT: Only get from logged-in user
+        $lastKomponen = self::where('user_id', auth()->id())->orderBy('id', 'desc')->first();
         $nextNumber = $lastKomponen ? ((int) substr($lastKomponen->kode_komponen, 4)) + 1 : 1;
         return 'BOP-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
     }

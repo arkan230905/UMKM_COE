@@ -15,6 +15,11 @@ class Penggajian extends Model
         parent::boot();
 
         static::creating(function ($penggajian) {
+            // CRITICAL: Auto-set user_id untuk multi-tenant isolation
+            if (empty($penggajian->user_id) && auth()->check()) {
+                $penggajian->user_id = auth()->id();
+            }
+            
             if (empty($penggajian->status_pembayaran)) {
                 $penggajian->status_pembayaran = 'belum_lunas';
             }
@@ -39,6 +44,7 @@ class Penggajian extends Model
                 // Check if journal entries already exist
                 $existingJournal = \App\Models\JurnalUmum::where('tipe_referensi', 'penggajian')
                     ->where('referensi', $penggajian->id)
+                    ->where('user_id', auth()->id())
                     ->exists();
 
                 if (!$existingJournal) {
@@ -118,6 +124,7 @@ class Penggajian extends Model
     }
 
     protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation
         'pegawai_id',
         'periode_bulan',
         'periode_tahun',
@@ -189,7 +196,19 @@ class Penggajian extends Model
      */
     public static function generateFromPresensi($bulan, $tahun, $targetHariKerja = null)
     {
+<<<<<<< HEAD
         $createdPayrolls = [];
+=======
+        $prefix = config('penggajian_journal.prefix_no_bukti', 'PGJ');
+        $date = now()->format('Ymd');
+        
+        // Cari nomor urut terakhir hari ini
+        $lastJournal = JurnalUmum::where('tipe_referensi', 'penggajian')
+            ->where('keterangan', 'like', $prefix . '-' . $date . '%')
+            ->where('user_id', auth()->id())
+            ->orderBy('id', 'desc')
+            ->first();
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 
         // Get all presensi for the specified period using MONTH() and YEAR() functions
         $presensis = Presensi::whereMonth('tgl_presensi', $bulan)

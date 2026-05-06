@@ -13,6 +13,7 @@ class BopController extends Controller
     // Tampilkan semua data BOP
     public function index()
     {
+        // MULTI-TENANT: Filter by user_id
         // Arahkan ke halaman BOP Budget (tampilan tabel sesuai yang diinginkan)
         $periode = request('periode', now()->format('Y-m'));
         return redirect()->route('master-data.bop-budget.index', ['periode' => $periode]);
@@ -21,8 +22,10 @@ class BopController extends Controller
     // Form tambah BOP
     public function create()
     {
+        // MULTI-TENANT: Filter COA by user_id
         // Ambil semua akun beban
-        $akunBeban = Coa::where(function($q){
+        $akunBeban = Coa::where('user_id', auth()->id())
+                ->where(function($q){
                     $q->whereIn('tipe_akun', ['Beban', 'Biaya'])
                       ->orWhere('kode_akun', 'like', '5%');
                 })
@@ -41,8 +44,10 @@ class BopController extends Controller
             'keterangan' => 'nullable|string',
         ]);
 
-        // Cari COA berdasarkan kode_akun
-        $coa = Coa::where('kode_akun', $validated['kode_akun'])->first();
+        // MULTI-TENANT: Cari COA berdasarkan kode_akun dan user_id
+        $coa = Coa::where('kode_akun', $validated['kode_akun'])
+                ->where('user_id', auth()->id())
+                ->first();
         
         if (!$coa) {
             return redirect()->back()
@@ -50,8 +55,10 @@ class BopController extends Controller
                 ->with('error', 'Akun dengan kode ' . $validated['kode_akun'] . ' tidak ditemukan');
         }
 
-        // Cek apakah sudah ada budget untuk akun ini
-        $existing = Bop::where('kode_akun', $validated['kode_akun'])->first();
+        // MULTI-TENANT: Cek apakah sudah ada budget untuk akun ini (dalam user yang sama)
+        $existing = Bop::where('kode_akun', $validated['kode_akun'])
+                ->where('user_id', auth()->id())
+                ->first();
         
         if ($existing) {
             return redirect()->back()
@@ -79,7 +86,7 @@ class BopController extends Controller
 
         // Hanya kumpulkan gaji BTKTL (tenaga kerja tidak langsung) untuk BOP
         $perkiraan = 0.0;
-        foreach (Pegawai::all() as $p) {
+        foreach (Pegawai::where('user_id', auth()->id())->get() as $p) { // 🔒 SECURITY: Add user_id filter
             $jenis = strtolower($p->jenis_pegawai ?? '');
             if ($jenis !== 'btktl') { // selain BTKTL tidak masuk BOP
                 continue;
@@ -117,6 +124,7 @@ class BopController extends Controller
     // Edit data BOP
     public function edit(Bop $bop)
     {
+<<<<<<< HEAD
         // Ambil semua akun beban (sama seperti create)
         $akunBeban = Coa::where(function($q){
                     $q->whereIn('tipe_akun', ['Beban', 'Biaya'])
@@ -126,15 +134,38 @@ class BopController extends Controller
                 ->get(['id','kode_akun','nama_akun']);
 
         return view('master-data.bop.edit', compact('bop', 'akunBeban'));
+=======
+        // MULTI-TENANT: Check ownership
+        if ($bop->user_id != auth()->id()) {
+            abort(404);
+        }
+        
+        // MULTI-TENANT: Filter COA by user_id
+        $coa = Coa::where('user_id', auth()->id())
+                ->whereIn('tipe_akun', ['Beban', 'Biaya'])
+                ->get();
+        return view('master-data.bop.edit', compact('bop', 'coa'));
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     }
 
     // Update data BOP
     public function update(Request $request, Bop $bop)
     {
+<<<<<<< HEAD
         $validated = $request->validate([
             'kode_akun' => 'required|string',
             'budget' => 'required|numeric|min:0',
             'keterangan' => 'nullable|string',
+=======
+        // MULTI-TENANT: Check ownership
+        if ($bop->user_id != auth()->id()) {
+            abort(404);
+        }
+        
+        $request->validate([
+            'nominal' => 'nullable|numeric',
+            'tanggal' => 'nullable|date',
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         ]);
 
         // Cari COA berdasarkan kode_akun
@@ -173,6 +204,11 @@ class BopController extends Controller
     // Hapus data BOP
     public function destroy(Bop $bop)
     {
+        // MULTI-TENANT: Check ownership
+        if ($bop->user_id != auth()->id()) {
+            abort(404);
+        }
+        
         $bop->delete();
 
         return redirect()->route('master-data.bop.index')

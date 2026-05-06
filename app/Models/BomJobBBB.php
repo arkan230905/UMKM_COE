@@ -9,7 +9,7 @@ class BomJobBBB extends Model
 {
     use HasFactory;
     protected $table = 'bom_job_bbb';
-    protected $fillable = ['bom_job_costing_id', 'bahan_baku_id', 'jumlah', 'satuan', 'harga_satuan', 'subtotal', 'keterangan'];
+    protected $fillable = ['user_id', 'produk_id', 'bahan_baku_id', 'jumlah', 'satuan', 'harga_satuan', 'subtotal', 'keterangan'];
     protected $casts = ['jumlah' => 'decimal:4', 'harga_satuan' => 'decimal:2', 'subtotal' => 'decimal:2'];
 
     protected static function booted()
@@ -19,10 +19,16 @@ class BomJobBBB extends Model
         // sudah harga konversi, bukan harga base
         // static::saving(function ($m) { $m->subtotal = $m->jumlah * $m->harga_satuan; });
         
-        static::saved(function ($m) { $m->bomJobCosting?->recalculate(); });
-        static::deleted(function ($m) { $m->bomJobCosting?->recalculate(); });
+        // Remove bomJobCosting references since we no longer have bom_job_costing_id
+        // static::saved(function ($m) { $m->bomJobCosting?->recalculate(); });
+        // static::deleted(function ($m) { $m->bomJobCosting?->recalculate(); });
     }
-
-    public function bomJobCosting() { return $this->belongsTo(BomJobCosting::class, 'bom_job_costing_id'); }
-    public function bahanBaku() { return $this->belongsTo(BahanBaku::class, 'bahan_baku_id'); }
+    
+    public function bahanBaku() { 
+        return $this->belongsTo(BahanBaku::class, 'bahan_baku_id'); 
+    }
+    
+    public function produk() { 
+        return $this->belongsTo(Produk::class, 'produk_id'); 
+    }
 }

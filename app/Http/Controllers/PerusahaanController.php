@@ -17,7 +17,7 @@ class PerusahaanController extends Controller
         \Log::info('Request URL: ' . request()->fullUrl());
         
         // Ambil data perusahaan dari database, tabel 'perusahaan'
-        $dataPerusahaan = Perusahaan::first();
+        $dataPerusahaan = Perusahaan::where('user_id', auth()->id())->first();
 
         // Jika belum ada data, buat default dummy
         if (!$dataPerusahaan) {
@@ -43,13 +43,13 @@ class PerusahaanController extends Controller
         }
         
         // Cek apakah ada data perusahaan, jika tidak ada redirect ke index
-        $dataPerusahaan = Perusahaan::first();
+        $dataPerusahaan = Perusahaan::where('user_id', auth()->id())->first();
         if (!$dataPerusahaan) {
             return redirect('/tentang-perusahaan')->with('info', 'Silakan buat data perusahaan terlebih dahulu.');
         }
         
         // Ambil data perusahaan dari database, tabel 'perusahaan'
-        $dataPerusahaan = Perusahaan::first();
+        $dataPerusahaan = Perusahaan::where('user_id', auth()->id())->first();
 
         // Jika belum ada data, buat default dummy
         if (!$dataPerusahaan) {
@@ -81,7 +81,7 @@ class PerusahaanController extends Controller
         ]);
 
         // Update data ke database
-        $perusahaan = Perusahaan::first();
+        $perusahaan = Perusahaan::where('user_id', auth()->id())->first();
         
         if ($perusahaan) {
             $perusahaan->update([
@@ -98,6 +98,7 @@ class PerusahaanController extends Controller
                 'email' => $request->email,
                 'telepon' => $request->telepon,
                 'kode' => Perusahaan::generateKode(),
+                'user_id' => auth()->id(), // MULTI-TENANT: Add user_id
             ]);
         }
 
@@ -118,7 +119,9 @@ class PerusahaanController extends Controller
                 
                 foreach ($banks as $bankData) {
                     if (isset($bankData['coa_id'])) {
-                        $coa = \App\Models\Coa::find($bankData['coa_id']);
+                        $coa = \App\Models\Coa::where('id', $bankData['coa_id'])
+                            ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+                            ->first();
                         if ($coa) {
                             $coa->update([
                                 'nomor_rekening' => $bankData['nomor_rekening'] ?? null,
@@ -151,7 +154,9 @@ class PerusahaanController extends Controller
         ]);
 
         try {
-            $coa = \App\Models\Coa::find($request->coa_id);
+            $coa = \App\Models\Coa::where('id', $request->coa_id)
+                ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
+                ->first();
             if ($coa) {
                 $coa->update([
                     $request->field => $request->value

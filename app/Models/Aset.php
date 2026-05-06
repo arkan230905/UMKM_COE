@@ -15,6 +15,7 @@ class Aset extends Model
     protected $table = 'asets';
     
     protected $fillable = [
+        'user_id',
         'kode_aset',
         'nama_aset',
         'kategori_aset_id',
@@ -114,11 +115,13 @@ class Aset extends Model
     /**
      * Generate kode aset otomatis
      * Format: AST-YYYYMM-XXXX
+     * MULTI-TENANT: Filter by user_id to prevent duplicate kode across different users
      */
     public static function generateKodeAset()
     {
         $prefix = 'AST-' . date('Ym') . '-';
         $lastAsset = self::where('kode_aset', 'like', $prefix . '%')
+            ->where('user_id', auth()->id())
             ->orderBy('kode_aset', 'desc')
             ->first();
 
@@ -135,6 +138,11 @@ class Aset extends Model
         parent::boot();
 
         static::creating(function ($model) {
+            // CRITICAL: Auto-fill user_id for multi-tenant isolation
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+            
             if (!$model->kode_aset) {
                 $model->kode_aset = self::generateKodeAset();
             }

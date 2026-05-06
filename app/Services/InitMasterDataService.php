@@ -32,15 +32,19 @@ class InitMasterDataService
             // Initialize bahan pendukung
             $bahanPendukungCount = $this->initializeBahanPendukung($userId);
             
+            // Initialize kategori pegawai (BTKL & BTKTL)
+            $kategoriCount = $this->initializeKategoriPegawai($userId);
+            
             // Commit transaction
             DB::commit();
             
-            Log::info("Master data initialized successfully for user {$userId}: {$bahanBakuCount} bahan baku, {$bahanPendukungCount} bahan pendukung");
+            Log::info("Master data initialized successfully for user {$userId}: {$bahanBakuCount} bahan baku, {$bahanPendukungCount} bahan pendukung, {$kategoriCount} kategori");
             
             return [
                 'success' => true,
                 'bahan_baku_count' => $bahanBakuCount,
-                'bahan_pendukung_count' => $bahanPendukungCount
+                'bahan_pendukung_count' => $bahanPendukungCount,
+                'kategori_count' => $kategoriCount
             ];
             
         } catch (\Exception $e) {
@@ -286,19 +290,74 @@ class InitMasterDataService
             foreach ($bahan['konversi'] as $konversi) {
                 $konversiSatuanId = $this->getSatuanId($konversi['satuan']);
 
-                // Gunakan updateOrInsert untuk menghindari duplikasi
-                DB::table('bahan_konversi')->updateOrInsert(
-                    [
-                        'bahan_id' => $bahanId,
-                        'satuan_id' => $konversiSatuanId
-                    ],
-                    [
-                        'nilai' => $konversi['nilai'],
-                        'updated_at' => now(),
-                        'created_at' => now()
-                    ]
-                );
+                // 🔒 SECURITY: Gunakan updateOrInsert dengan user_id untuk multi-tenant
+                $konversiData = [
+                    'bahan_id' => $bahanId,
+                    'satuan_id' => $konversiSatuanId
+                ];
+                
+                // Add user_id if column exists
+                if (\Illuminate\Support\Facades\Schema::hasColumn('bahan_konversi', 'user_id')) {
+                    $konversiData['user_id'] = $this->currentUserId ?? 1;
+                }
+                
+                $updateData = [
+                    'nilai' => $konversi['nilai'],
+                    'updated_at' => now(),
+                    'created_at' => now()
+                ];
+                
+                // Add user_id to update data if column exists
+                if (\Illuminate\Support\Facades\Schema::hasColumn('bahan_konversi', 'user_id')) {
+                    $updateData['user_id'] = $this->currentUserId ?? 1;
+                }
+                
+                DB::table('bahan_konversi')->updateOrInsert($konversiData, $updateData);
             }
+            
+            $insertCount++;
+        }
+        
+        return $insertCount;
+    }
+    
+    /**
+     * Initialize kategori pegawai default untuk user (BTKL & BTKTL)
+     */
+    private function initializeKategoriPegawai($userId)
+    {
+        $kategoriData = [
+            [
+                'nama' => 'BTKL',
+                'deskripsi' => 'Tenaga Kerja Langsung'
+            ],
+            [
+                'nama' => 'BTKTL',
+                'deskripsi' => 'Bukan Tenaga Kerja Langsung'
+            ]
+        ];
+        
+        $insertCount = 0;
+        
+        foreach ($kategoriData as $kategori) {
+            // Cek apakah kategori sudah ada untuk user ini
+            $exists = DB::table('kategori_pegawai')
+                ->where('user_id', $userId)
+                ->where('nama', $kategori['nama'])
+                ->exists();
+                
+            if ($exists) {
+                continue; // Skip jika sudah ada
+            }
+            
+            // Insert kategori pegawai
+            DB::table('kategori_pegawai')->insert([
+                'user_id' => $userId,
+                'nama' => $kategori['nama'],
+                'deskripsi' => $kategori['deskripsi'],
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
             
             $insertCount++;
         }

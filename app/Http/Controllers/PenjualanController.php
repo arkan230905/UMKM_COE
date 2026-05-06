@@ -17,9 +17,17 @@ class PenjualanController extends Controller
 {
     public function index(Request $request)
     {
+<<<<<<< HEAD
         // ── 1. Main list query (single eager-load, no duplicate) ──────────────
         $query = Penjualan::with(['details.produk', 'returs']);
 
+=======
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $query = Penjualan::with(['produk','details'])
+            ->where('user_id', auth()->id());
+        
+        // Filter by nomor transaksi
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         if ($request->filled('nomor_transaksi')) {
             $query->where('nomor_penjualan', 'like', '%' . $request->nomor_transaksi . '%');
         }
@@ -32,6 +40,7 @@ class PenjualanController extends Controller
         if ($request->filled('payment_method')) {
             $query->where('payment_method', $request->payment_method);
         }
+<<<<<<< HEAD
 
         $penjualans = $query->orderBy('tanggal', 'desc')->get();
 
@@ -114,6 +123,57 @@ class PenjualanController extends Controller
 
         // ── 4. Returns ────────────────────────────────────────────────────────
         $salesReturns = \App\Models\ReturPenjualan::with(['penjualan', 'detailReturPenjualans.produk'])
+=======
+        
+        $penjualans = $query->with(['produk','details','returs'])->orderBy('tanggal','desc')->get();
+        
+        // Hitung ringkasan penjualan HARI INI saja
+        $today = now()->format('Y-m-d');
+        // CRITICAL: Filter by user_id
+        $penjualansHariIni = Penjualan::where('user_id', auth()->id())
+            ->whereDate('tanggal', $today)
+            ->get();
+        
+        $totalPenjualan = 0;
+        $totalProdukTerjual = 0;
+        $totalProfit = 0;
+        
+        foreach ($penjualansHariIni as $penjualan) {
+            $totalPenjualan += (float)($penjualan->total ?? 0);
+            
+            $detailCount = $penjualan->details->count();
+            if ($detailCount > 1) {
+                foreach ($penjualan->details as $d) {
+                    $totalProdukTerjual += (float)($d->jumlah ?? 0);
+                    $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal);
+                    $margin = ((float)($d->harga_satuan ?? 0) - $actualHPP) * (float)($d->jumlah ?? 0);
+                    $totalProfit += $margin;
+                }
+            } elseif ($detailCount === 1) {
+                $d = $penjualan->details[0];
+                $totalProdukTerjual += (float)($d->jumlah ?? 0);
+                $actualHPP = $d->produk->getHPPForSaleDate($penjualan->tanggal);
+                $margin = ((float)($d->harga_satuan ?? 0) - $actualHPP) * (float)($d->jumlah ?? 0);
+                $totalProfit += $margin;
+            } else {
+                $totalProdukTerjual += (float)($penjualan->jumlah ?? 0);
+                $actualHPP = $penjualan->produk?->getHPPForSaleDate($penjualan->tanggal) ?? 0;
+                $hdrHarga = $penjualan->harga_satuan;
+                if (is_null($hdrHarga) && ($penjualan->jumlah ?? 0) > 0) {
+                    $hdrHarga = ((float)$penjualan->total + (float)($penjualan->diskon_nominal ?? 0)) / (float)$penjualan->jumlah;
+                }
+                $margin = ($hdrHarga - $actualHPP) * ($penjualan->jumlah ?? 0);
+                $totalProfit += $margin;
+            }
+        }
+        
+        $jumlahTransaksiHariIni = $penjualansHariIni->count();
+        
+        // Get return data for the return tab
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $salesReturns = \App\Models\ReturPenjualan::where('user_id', auth()->id())
+            ->with(['penjualan', 'detailReturPenjualans.produk'])
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -138,11 +198,14 @@ class PenjualanController extends Controller
     public function create()
     {
         // Ambil produk dengan stok dari kolom stok di tabel produks
-        $produks = Produk::all()->map(function($p) {
-            // Gunakan stok dari tabel produks, bukan actual_stok dari StockLayer
-            $p->stok_tersedia = (float)($p->stok ?? 0);
-            return $p;
-        });
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $produks = Produk::where('user_id', auth()->id())
+            ->get()
+            ->map(function($p) {
+                // Gunakan stok dari tabel produks, bukan actual_stok dari StockLayer
+                $p->stok_tersedia = (float)($p->stok ?? 0);
+                return $p;
+            });
         
         // Ambil akun kas/bank + piutang untuk dropdown "Terima di"
         // 111=Bank, 112/113=Kas, 118=Piutang Usaha
@@ -172,31 +235,43 @@ class PenjualanController extends Controller
 
     public function show($id)
     {
-        $penjualan = Penjualan::with('details.produk', 'produk', 'returPenjualans.detailReturPenjualans.produk')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penjualan = Penjualan::where('user_id', auth()->id())
+            ->with('details.produk', 'produk', 'returPenjualans.detailReturPenjualans.produk')
+            ->findOrFail($id);
         
         return view('transaksi.penjualan.show', compact('penjualan'));
     }
 
     public function struk($id)
     {
-        $penjualan = Penjualan::with('details.produk', 'produk')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penjualan = Penjualan::where('user_id', auth()->id())
+            ->with('details.produk', 'produk')
+            ->findOrFail($id);
         
-        // Ambil data perusahaan
-        $dataPerusahaan = \App\Models\Perusahaan::first();
+        // Ambil data perusahaan - CRITICAL: Filter by user_id
+        $dataPerusahaan = \App\Models\Perusahaan::where('user_id', auth()->id())->first();
         
         return view('transaksi.penjualan.struk', compact('penjualan', 'dataPerusahaan'));
     }
 
     public function edit($id)
     {
-        $penjualan = Penjualan::with('details.produk')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penjualan = Penjualan::where('user_id', auth()->id())
+            ->with('details.produk')
+            ->findOrFail($id);
         
         // Ambil produk dengan stok dari kolom stok di tabel produks
-        $produks = Produk::all()->map(function($p) {
-            // Gunakan stok dari tabel produks, bukan actual_stok dari StockLayer
-            $p->stok_tersedia = (float)($p->stok ?? 0);
-            return $p;
-        });
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $produks = Produk::where('user_id', auth()->id())
+            ->get()
+            ->map(function($p) {
+                // Gunakan stok dari tabel produks, bukan actual_stok dari StockLayer
+                $p->stok_tersedia = (float)($p->stok ?? 0);
+                return $p;
+            });
         
         // Ambil akun kas/bank untuk dropdown
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
@@ -353,10 +428,13 @@ class PenjualanController extends Controller
 
     public function destroy($id, JournalService $journal)
     {
-        $penjualan = Penjualan::findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penjualan = Penjualan::where('user_id', auth()->id())->findOrFail($id);
+        
         // Hapus jurnal terkait penjualan
         $journal->deleteByRef('sale', (int)$penjualan->id);
         $journal->deleteByRef('sale_cogs', (int)$penjualan->id);
+        
         // Hapus data penjualan
         $penjualan->delete();
 
@@ -436,7 +514,10 @@ class PenjualanController extends Controller
             ]);
         }
 
-        $produk = Produk::where('barcode', $barcode)->first();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $produk = Produk::where('user_id', auth()->id())
+            ->where('barcode', $barcode)
+            ->first();
         
         if (!$produk) {
             return response()->json([
@@ -476,7 +557,9 @@ class PenjualanController extends Controller
             ]);
         }
 
-        $products = Produk::where(function($query) use ($search) {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $products = Produk::where('user_id', auth()->id())
+            ->where(function($query) use ($search) {
                 $query->where('barcode', 'LIKE', "%{$search}%")
                       ->orWhere('nama_produk', 'LIKE', "%{$search}%")
                       ->orWhere('nama', 'LIKE', "%{$search}%");
@@ -595,7 +678,8 @@ class PenjualanController extends Controller
             
             // Validate stock for all items
             foreach ($items as $item) {
-                $produk = Produk::findOrFail($item['produk_id']);
+                // CRITICAL: Filter by user_id untuk multi-tenant isolation
+                $produk = Produk::where('user_id', auth()->id())->findOrFail($item['produk_id']);
                 $qty = (int) $item['jumlah'];
                 
                 if ((float)($produk->stok ?? 0) < $qty) {
@@ -613,7 +697,12 @@ class PenjualanController extends Controller
 
             // Create penjualan header
             $penjualan = Penjualan::create([
+<<<<<<< HEAD
                 'tanggal'        => $tanggal,
+=======
+                'user_id' => auth()->id(), // CRITICAL: Set user_id
+                'tanggal' => $tanggal,
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 'payment_method' => $request->input('payment_method'),
                 'coa_id'         => $coaId,
                 'user_id'        => auth()->id(),
@@ -628,7 +717,8 @@ class PenjualanController extends Controller
             
             // Create detail items
             foreach ($items as $item) {
-                $produk = Produk::findOrFail($item['produk_id']);
+                // CRITICAL: Filter by user_id untuk multi-tenant isolation
+                $produk = Produk::where('user_id', auth()->id())->findOrFail($item['produk_id']);
                 $qty = (int) $item['jumlah'];
                 
                 \App\Models\PenjualanDetail::create([
@@ -642,7 +732,7 @@ class PenjualanController extends Controller
                 ]);
                 
                 // Consume stock
-                $stock->consume('product', $item['produk_id'], $qty, 'pcs', 'sale', $penjualan->id, $tanggal);
+                $stock->consume('product', $item['produk_id'], $qty, 'pcs', 'sale', $penjualan->id, $tanggal, auth()->id());
                 
                 // Update stok
                 $produk->stok = (float)($produk->stok ?? 0) - $qty;
@@ -693,7 +783,8 @@ class PenjualanController extends Controller
                 'keterangan' => 'nullable|string|max:255'
             ]);
 
-            $penjualan = Penjualan::findOrFail($id);
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $penjualan = Penjualan::where('user_id', auth()->id())->findOrFail($id);
             
             if ($request->hasFile('bukti_file')) {
                 $file = $request->file('bukti_file');
@@ -732,7 +823,10 @@ class PenjualanController extends Controller
     public function deleteBuktiPembayaran($penjualanId, $buktiId)
     {
         try {
-            $bukti = \App\Models\BuktiPembayaran::where('penjualan_id', $penjualanId)
+            // CRITICAL: Verify penjualan belongs to user first
+            $penjualan = Penjualan::where('user_id', auth()->id())->findOrFail($penjualanId);
+            
+            $bukti = \App\Models\BuktiPembayaran::where('penjualan_id', $penjualan->id)
                                                 ->where('id', $buktiId)
                                                 ->firstOrFail();
 

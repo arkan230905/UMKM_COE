@@ -372,8 +372,8 @@
                                 </div>
                                 <div class="card-body">
                                     @php
-                                        // Ambil bukti pembayaran dari database
-                                        $buktiPembayaranInline = $penjualan->buktiPembayaran ?? collect();
+                                        // Ambil bukti pembayaran dari field penjualan
+                                        $buktiPembayaranPath = $penjualan->bukti_pembayaran;
                                     @endphp
                                     
                                     {{-- Upload Form --}}
@@ -408,57 +408,58 @@
                                     
                                     {{-- Daftar Bukti Pembayaran --}}
                                     <div class="mb-3">
-                                        <h6 class="fw-bold mb-3">Daftar Bukti Pembayaran</h6>
-                                        @if($buktiPembayaranInline->count() > 0)
-                                            <div class="row">
-                                                @foreach($buktiPembayaranInline as $bukti)
+                                        <h6 class="fw-bold mb-3">Bukti Pembayaran</h6>
+                                        @if($penjualan->payment_method === 'transfer')
+                                            @if($buktiPembayaranPath)
+                                                <div class="row">
                                                     <div class="col-md-4 mb-3">
                                                         <div class="card bukti-card">
                                                             <div class="card-body text-center p-3">
-                                                                @if(in_array(strtolower(pathinfo($bukti->file_path, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif']))
-                                                                    <img src="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                                @if(in_array(strtolower(pathinfo($buktiPembayaranPath, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif']))
+                                                                    <img src="{{ url('/storage/' . $buktiPembayaranPath) }}" 
                                                                          class="img-fluid rounded mb-2 bukti-image" 
-                                                                         onclick="showImageModal('{{ asset('storage/' . $bukti->file_path) }}', '{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}')">
+                                                                         onclick="showImageModal('{{ url('/storage/' . $buktiPembayaranPath) }}', 'Bukti Pembayaran')">
                                                                 @else
                                                                     <div class="text-center py-4">
                                                                         <i class="fas fa-file-alt fa-3x text-muted mb-2"></i>
-                                                                        <p class="mb-0 small">{{ basename($bukti->file_path) }}</p>
+                                                                        <p class="mb-0 small">{{ basename($buktiPembayaranPath) }}</p>
                                                                     </div>
                                                                 @endif
                                                                 
-                                                                <small class="text-muted d-block mb-1">{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}</small>
-                                                                <small class="text-muted d-block mb-2">{{ $bukti->created_at->format('d/m/Y H:i') }}</small>
+                                                                <small class="text-muted d-block mb-1">Bukti Pembayaran</small>
+                                                                @if($penjualan->catatan_pembayaran)
+                                                                    <small class="text-muted d-block mb-2">{{ $penjualan->catatan_pembayaran }}</small>
+                                                                @endif
                                                                 
                                                                 <div class="bukti-actions">
-                                                                    <a href="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                                    <a href="{{ url('/storage/' . $buktiPembayaranPath) }}" 
                                                                        target="_blank" 
                                                                        class="btn btn-sm btn-outline-primary me-1"
                                                                        title="Lihat">
                                                                         <i class="fas fa-eye"></i>
                                                                     </a>
-                                                                    <a href="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                                    <a href="{{ url('/storage/' . $buktiPembayaranPath) }}" 
                                                                        download 
                                                                        class="btn btn-sm btn-outline-success me-1"
                                                                        title="Download">
                                                                         <i class="fas fa-download"></i>
                                                                     </a>
-                                                                    <button type="button" 
-                                                                            class="btn btn-sm btn-outline-danger"
-                                                                            onclick="deleteBukti({{ $bukti->id }})"
-                                                                            title="Hapus">
-                                                                        <i class="fas fa-trash"></i>
-                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                @endforeach
-                                            </div>
+                                                </div>
+                                            @else
+                                                <div class="empty-bukti">
+                                                    <i class="fas fa-file-image fa-3x text-muted mb-3"></i>
+                                                    <h6 class="text-muted">Belum ada bukti pembayaran</h6>
+                                                    <p class="text-muted">Upload bukti pembayaran untuk melengkapi transaksi</p>
+                                                </div>
+                                            @endif
                                         @else
-                                            <div class="empty-bukti">
-                                                <i class="fas fa-file-image fa-3x text-muted mb-3"></i>
-                                                <h6 class="text-muted">Belum ada bukti pembayaran</h6>
-                                                <p class="text-muted">Upload bukti pembayaran untuk melengkapi transaksi</p>
+                                            <div class="alert alert-info">
+                                                <i class="fas fa-info-circle me-2"></i>
+                                                Pembayaran tunai tidak memerlukan bukti pembayaran.
                                             </div>
                                         @endif
                                     </div>
@@ -652,9 +653,9 @@
                                             <div class="card bukti-card">
                                                 <div class="card-body text-center p-3">
                                                     @if(in_array(strtolower(pathinfo($bukti->file_path, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif']))
-                                                        <img src="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                        <img src="{{ url('/storage/' . $bukti->file_path) }}" 
                                                              class="img-fluid rounded mb-2 bukti-image" 
-                                                             onclick="showImageModal('{{ asset('storage/' . $bukti->file_path) }}', '{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}')">
+                                                             onclick="showImageModal('{{ url('/storage/' . $bukti->file_path) }}', '{{ $bukti->keterangan ?? 'Bukti Pembayaran' }}')">
                                                     @else
                                                         <div class="text-center py-4">
                                                             <i class="fas fa-file-alt fa-3x text-muted mb-2"></i>
@@ -666,13 +667,13 @@
                                                     <small class="text-muted d-block mb-2">{{ $bukti->created_at->format('d/m/Y H:i') }}</small>
                                                     
                                                     <div class="bukti-actions">
-                                                        <a href="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                        <a href="{{ url('/storage/' . $bukti->file_path) }}" 
                                                            target="_blank" 
                                                            class="btn btn-sm btn-outline-primary me-1"
                                                            title="Lihat">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
-                                                        <a href="{{ asset('storage/' . $bukti->file_path) }}" 
+                                                        <a href="{{ url('/storage/' . $bukti->file_path) }}" 
                                                            download 
                                                            class="btn btn-sm btn-outline-success me-1"
                                                            title="Download">

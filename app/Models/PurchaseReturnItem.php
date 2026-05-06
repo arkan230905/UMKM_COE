@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PurchaseReturnItem extends Model
 {
     protected $fillable = [
+        'user_id',
         'purchase_return_id',
         'pembelian_detail_id',
         'bahan_baku_id',
@@ -17,6 +18,20 @@ class PurchaseReturnItem extends Model
         'unit_price',
         'subtotal',
     ];
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (auth()->check() && !$model->user_id) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
 
     protected $casts = [
         'quantity' => 'decimal:4',

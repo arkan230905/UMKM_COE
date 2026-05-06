@@ -10,11 +10,28 @@ class StockMovement extends Model
     use HasFactory;
 
     protected $fillable = [
-        'item_type','item_id','tanggal','direction','qty','satuan','unit_cost','total_cost','ref_type','ref_id','keterangan','manual_conversion_data'
+        'user_id','item_type','item_id','tanggal','direction','qty','satuan','unit_cost','total_cost','ref_type','ref_id','keterangan','manual_conversion_data'
     ];
     
     /**
      * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+
+        static::creating(function ($model) {
+            if (auth()->check() && !$model->user_id) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
+
+    /**
+     * Additional booted method for other events
      */
     protected static function booted()
     {
@@ -61,6 +78,7 @@ class StockMovement extends Model
                         ['code' => '1101', 'debit' => 0, 'credit' => $adjustmentAmount], // Cr Persediaan
                     ];
                     
+<<<<<<< HEAD
                     $journalService->post(
                         now(), 
                         'stock_adjustment', 
@@ -68,6 +86,9 @@ class StockMovement extends Model
                         'Stock Adjustment for Purchase #' . $pembelian->id, 
                         $journalEntries
                     );
+=======
+                    $journalService->post(now(), 'stock_adjustment', $pembelian->id, 'Stock Adjustment for Purchase #' . $pembelian->id, $journalEntries);
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 }
             }
         });

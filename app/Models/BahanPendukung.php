@@ -24,6 +24,7 @@ class BahanPendukung extends Model
     }
 
     protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation
         'kode_bahan',
         'nama_bahan',
         'deskripsi',
@@ -67,11 +68,27 @@ class BahanPendukung extends Model
     protected $appends = ['stok_aman', 'status_stok', 'stok'];
 
     /**
-     * Boot method untuk auto-generate kode
+     * Boot method untuk auto-generate kode dan auto-set user_id
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+    }
+    
+    /**
+     * Booted method untuk event handlers
      */
     protected static function booted()
     {
         static::creating(function ($model) {
+            // CRITICAL: Auto-set user_id untuk multi-tenant isolation
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+            
             if (empty($model->kode_bahan)) {
                 $model->kode_bahan = self::generateKode();
             }
@@ -243,6 +260,7 @@ class BahanPendukung extends Model
      */
     public function getStokRealTimeAttribute()
     {
+        // Global scope sudah menangani filter user_id otomatis
         $stockIn = \App\Models\StockMovement::where('item_type', 'support')
             ->where('item_id', $this->id)
             ->where('direction', 'in')
@@ -253,14 +271,12 @@ class BahanPendukung extends Model
             ->where('direction', 'out')
             ->sum('qty');
 
-        $netStock = $stockIn - $stockOut;
+        $netStockFromMovements = $stockIn - $stockOut;
         
-        // If no stock movements exist, use saldo_awal from master data
-        if ($stockIn == 0 && $stockOut == 0 && $this->saldo_awal > 0) {
-            return (float)$this->saldo_awal;
-        }
-
-        return $netStock;
+        // CRITICAL: Tambahkan saldo_awal ke perhitungan
+        $totalStock = ($this->saldo_awal ?? 0) + $netStockFromMovements;
+        
+        return $totalStock;
     }
 
     /**

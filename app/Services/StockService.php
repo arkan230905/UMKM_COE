@@ -147,6 +147,7 @@ class StockService
             
             // Create stock_movement entry
             $stockMovement = \App\Models\StockMovement::create([
+                'user_id' => auth()->id() ?? 1, // CRITICAL: multi-tenant isolation
                 'item_type' => $stockMovementItemType,
                 'item_id' => $itemId,
                 'tanggal' => $tanggal ?? now()->format('Y-m-d'),
@@ -198,6 +199,8 @@ class StockService
      */
     public function getCurrentStock($itemId, $itemType)
     {
+        // Global scope sudah menangani filter user_id otomatis
+        
         // Convert item type to match StockMovement conventions
         $stockMovementType = $itemType;
         if ($itemType === 'bahan_baku') {
@@ -593,6 +596,7 @@ class StockService
             $totalCost = $qty * $unitCost;
             
             \App\Models\StockMovement::create([
+                'user_id' => auth()->id() ?? 1,
                 'item_type' => $stockMovementItemType,
                 'item_id' => $itemId,
                 'tanggal' => $tanggal ?? now()->format('Y-m-d'),
@@ -757,7 +761,7 @@ class StockService
     /**
      * Consume stock (for sales/production)
      */
-    public function consume($itemType, $itemId, $qty, $satuan = 'pcs', $refType = null, $refId = null, $tanggal = null)
+    public function consume($itemType, $itemId, $qty, $satuan = 'pcs', $refType = null, $refId = null, $tanggal = null, $userId = null)
     {
         try {
             if ($itemType === 'product') {
@@ -809,6 +813,7 @@ class StockService
 
                 // Create stock movement record
                 \DB::table('stock_movements')->insert([
+                    'user_id' => $userId ?? auth()->id(),
                     'item_type' => $itemType,
                     'item_id' => $itemId,
                     'direction' => 'out',

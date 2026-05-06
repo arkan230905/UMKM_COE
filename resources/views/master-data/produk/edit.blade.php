@@ -19,11 +19,6 @@
                 $calculatedHPP = $bomJobCosting->total_hpp ?? 0;
             }
             
-            // Fallback to harga_bom if BomJobCosting is not available
-            if ($calculatedHPP == 0) {
-                $calculatedHPP = $produk->harga_bom ?? 0;
-            }
-            
             // Auto-populate harga_jual with HPP if harga_jual is empty or 0
             $autoHargaJual = $produk->harga_jual;
             if (empty($autoHargaJual) || $autoHargaJual == 0) {
@@ -31,7 +26,6 @@
             }
         @endphp
         
-        <input type="hidden" name="hpp" id="hpp" value="{{ $produk->hpp ?? $calculatedHPP ?? 0 }}">
         <input type="hidden" name="hpp_calculated" id="hpp_calculated" value="{{ $calculatedHPP ?? 0 }}">
         <div class="mb-3">
             <label for="nama_produk" class="form-label">Nama Produk</label>
@@ -73,7 +67,7 @@
                 <div class="mb-3">
                     <p class="small mb-2 text-muted">Foto saat ini:</p>
                     <div class="current-image-wrapper">
-                        <img src="{{ Storage::url($produk->foto) }}" alt="Foto Produk" class="current-img">
+                        <img src="{{ storage_url($produk->foto) }}" alt="Foto Produk" class="current-img">
                     </div>
                 </div>
             @endif

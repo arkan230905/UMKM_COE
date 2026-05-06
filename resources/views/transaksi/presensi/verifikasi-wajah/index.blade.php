@@ -75,11 +75,11 @@
                                 @if($verifikasi->foto_wajah)
                                     <div class="position-relative d-inline-block">
                                         @if(\Storage::disk('public')->exists($verifikasi->foto_wajah))
-                                            <img src="{{ Storage::url($verifikasi->foto_wajah) }}?v={{ uniqid() }}" 
+                                            <img src="{{ storage_url($verifikasi->foto_wajah) }}?v={{ uniqid() }}" 
                                                  alt="Foto {{ optional($verifikasi->pegawai)->nama }}" 
                                                  class="img-thumbnail rounded-circle shadow-sm" 
                                                  style="width: 50px; height: 50px; object-fit: cover; border: 2px solid #e9ecef; cursor: pointer;"
-                                                 onclick="viewPhoto('{{ Storage::url($verifikasi->foto_wajah) }}', '{{ optional($verifikasi->pegawai)->nama }}')"
+                                                 onclick="viewPhoto('{{ storage_url($verifikasi->foto_wajah) }}', '{{ optional($verifikasi->pegawai)->nama }}')"
                                                  onerror="this.onerror=null; this.src='{{ asset('images/default-avatar.png') }}';">
                                             <div class="position-absolute bottom-0 end-0 bg-success rounded-circle" 
                                                  style="width: 10px; height: 10px; border: 2px solid white;"></div>
@@ -127,7 +127,7 @@
                                     </a>
                                     <button type="button" 
                                             class="btn btn-info btn-sm d-flex align-items-center gap-1"
-                                            onclick="viewPhoto('{{ asset('storage/' . $verifikasi->foto_wajah) }}?v={{ uniqid() }}', '{{ optional($verifikasi->pegawai)->nama }}')"
+                                            onclick="viewPhoto('{{ storage_url($verifikasi->foto_wajah) }}?v={{ uniqid() }}', '{{ optional($verifikasi->pegawai)->nama }}')"
                                             title="Lihat Foto">
                                         <i class="bi bi-eye"></i>
                                         <span class="d-none d-md-inline">Lihat</span>

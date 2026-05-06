@@ -3,8 +3,15 @@
 @section('title', 'Tambah Penggajian')
 
 @section('content')
-<div class="container py-4">
-    <h3 class="mb-4"><i class="bi bi-plus-circle"></i> Tambah Penggajian</h3>
+<div class="container py-4" style="background-color: #faf8f3; min-height: 100vh;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0 text-dark">
+            <i class="bi bi-plus-circle me-2"></i>Tambah Penggajian
+        </h3>
+        <a href="{{ route('transaksi.penggajian.index') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Kembali
+        </a>
+    </div>
 
     @if($errors->any())
         <div class="alert alert-danger">
@@ -23,7 +30,7 @@
         </div>
     @endif
 
-    <div class="card bg-dark text-white border-0">
+    <div class="card border-0 shadow-sm" style="background-color: #f5f2e8; border: 1px solid #e8dcc0 !important;">
         <div class="card-body">
             <form action="{{ route('transaksi.penggajian.store') }}" method="POST" id="formPenggajian">
                 @csrf
@@ -113,9 +120,11 @@
                 </div>
 
                 <!-- Komponen Gaji (Otomatis dari Kualifikasi dan Presensi) -->
-                <div class="card bg-secondary mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-cash-stack"></i> Komponen Gaji</h5>
+                <div class="card border-0 mb-4" style="background-color: #f9f7f2;">
+                    <div class="card-header" style="background-color: #f0ebe0; border-bottom: 1px solid #e8dcc0;">
+                        <h5 class="mb-0 text-dark">
+                            <i class="bi bi-cash-stack me-2"></i>Komponen Gaji
+                        </h5>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
@@ -199,9 +208,11 @@
                 </div>
 
                 <!-- Input Manual (Bonus & Potongan) -->
-                <div class="card bg-secondary mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-pencil-square"></i> Input Manual</h5>
+                <div class="card border-0 mb-4" style="background-color: #f9f7f2;">
+                    <div class="card-header" style="background-color: #f0ebe0; border-bottom: 1px solid #e8dcc0;">
+                        <h5 class="mb-0 text-dark">
+                            <i class="bi bi-pencil-square me-2"></i>Input Manual
+                        </h5>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
@@ -235,26 +246,93 @@
                 </div>
 
                 <!-- Total Gaji -->
-                <div class="card border-0 mb-4" style="background-color: #f8f9fa;">
+                <div class="card border-0 mb-4" style="background: linear-gradient(135deg, #f5f2e8 0%, #e8dcc0 100%);">
                     <div class="card-body text-center py-4">
                         <h5 class="mb-2 text-dark fw-bold">Total Gaji</h5>
-                        <h2 class="mb-0 fw-bold" id="display_total" style="color: #333; font-size: 2rem;">Rp 0,00</h2>
+                        <h2 class="mb-0 fw-bold" id="display_total" style="color: #8b6f47; font-size: 2rem;">Rp 0,00</h2>
                     </div>
                 </div>
 
                 <!-- Buttons -->
-                <div class="d-flex justify-content-between">
-                    <a href="{{ route('transaksi.penggajian.index') }}" class="btn btn-secondary btn-lg">
-                        <i class="bi bi-arrow-left"></i> Kembali
+                <div class="d-flex justify-content-between gap-2">
+                    <a href="{{ route('transaksi.penggajian.index') }}" class="btn btn-outline-secondary btn-lg">
+                        <i class="bi bi-arrow-left me-1"></i> Kembali
                     </a>
-                    <button type="submit" class="btn btn-success btn-lg" id="submitBtn" onclick="return debugFormSubmission()">
-                        <i class="bi bi-save"></i> Simpan Penggajian
+                    <button type="submit" class="btn btn-lg" style="background-color: #8b6f47; border-color: #8b6f47; color: white;" id="submitBtn" onclick="return debugFormSubmission()">
+                        <i class="bi bi-save me-1"></i> Simpan Penggajian
                     </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<style>
+/* Cream Theme Custom Styles */
+body {
+    background-color: #faf8f3 !important;
+}
+
+.form-control, .form-select {
+    background-color: #ffffff !important;
+    border: 1px solid #e8dcc0 !important;
+    color: #495057 !important;
+}
+
+.form-control:focus, .form-select:focus {
+    background-color: #ffffff !important;
+    border-color: #8b6f47 !important;
+    box-shadow: 0 0 0 0.2rem rgba(139, 111, 71, 0.25) !important;
+    color: #495057 !important;
+}
+
+.form-label {
+    color: #495057 !important;
+    font-weight: 500 !important;
+}
+
+.input-group-text {
+    background-color: #f0ebe0 !important;
+    border: 1px solid #e8dcc0 !important;
+    color: #495057 !important;
+}
+
+.btn-outline-secondary {
+    border-color: #8b6f47 !important;
+    color: #8b6f47 !important;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #8b6f47 !important;
+    border-color: #8b6f47 !important;
+    color: #ffffff !important;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(139, 111, 71, 0.075) !important;
+}
+
+.text-success {
+    color: #6c757d !important;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+/* Alert styling */
+.alert-success {
+    background-color: #d1e7dd !important;
+    border-color: #badbcc !important;
+    color: #0f5132 !important;
+}
+
+.alert-danger {
+    background-color: #f8d7da !important;
+    border-color: #f5c6cb !important;
+    color: #842029 !important;
+}
+</style>
 
 <script>
 // Debug form submission
@@ -724,10 +802,10 @@ function hitungTotal() {
         total = pegawaiData.gajiPokok + pegawaiData.totalTunjangan + pegawaiData.asuransi + bonus - potongan;
     }
 
-    // Format dengan 2 desimal dan separator Indonesia
+    // Format tanpa desimal untuk estetika lebih baik
     const formattedTotal = new Intl.NumberFormat('id-ID', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
     }).format(total);
 
     document.getElementById('display_total').textContent = 'Rp ' + formattedTotal;

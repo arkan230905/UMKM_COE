@@ -12,6 +12,7 @@ class PembelianDetailKonversi extends Model
     protected $table = 'pembelian_detail_konversi';
 
     protected $fillable = [
+        'user_id',
         'pembelian_detail_id',
         'satuan_id',
         'satuan_nama',
@@ -24,6 +25,20 @@ class PembelianDetailKonversi extends Model
         'jumlah_konversi' => 'decimal:4',
         'faktor_konversi_manual' => 'decimal:4'
     ];
+
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($model) {
+            if (auth()->check() && !$model->user_id) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
 
     /**
      * Relasi ke PembelianDetail

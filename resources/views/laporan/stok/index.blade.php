@@ -467,7 +467,7 @@
                                             // Generate transaction description based on ref_type
                                             $keterangan = '';
                                             if (isset($row['is_opening_balance']) && $row['is_opening_balance']) {
-                                                $keterangan = 'Stok Awal';
+                                                $keterangan = 'Saldo Awal Bulan';
                                             } elseif (isset($row['ref_type'])) {
                                                 switch($row['ref_type']) {
                                                     case 'initial_stock':
@@ -487,26 +487,13 @@
                                                         }
                                                         break;
                                                     case 'adjustment':
-                                                        $keterangan = 'Retur Barang Keluar';
+                                                        $keterangan = 'Penyesuaian Stok';
                                                         break;
                                                     case 'retur':
-                                                    case 'return':
                                                         $keterangan = 'Retur';
                                                         break;
-                                                    case 'retur_tukar_kirim':
-                                                        $keterangan = 'Retur Barang Keluar';
-                                                        break;
-                                                    case 'retur_tukar_terima':
-                                                        $keterangan = 'Retur Barang Masuk';
-                                                        break;
-                                                    case 'replacement':
-                                                        $keterangan = 'Barang Retur Masuk';
-                                                        break;
-                                                    case 'tukar_barang':
-                                                        $keterangan = 'Tukar Barang';
-                                                        break;
                                                     case 'opening_balance':
-                                                        $keterangan = 'Stok Awal';
+                                                        $keterangan = 'Saldo Awal Bulan';
                                                         break;
                                                     default:
                                                         $keterangan = ucfirst(str_replace('_', ' ', $row['ref_type']));
@@ -528,6 +515,7 @@
                                                 <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ isset($row['penjualan_total']) && $row['penjualan_total'] > 0 ? formatCurrency($row['penjualan_total'], 0) : '' }}</td>
                                             @else
                                                 <!-- For materials and bahan pendukung, show purchase data -->
+<<<<<<< HEAD
                                                 <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">
                                                     @if(isset($row['pembelian_qty']) && $row['pembelian_qty'] != 0)
                                                         @php
@@ -542,6 +530,9 @@
                                                         @endif
                                                     @endif
                                                 </td>
+=======
+                                                <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ isset($row['pembelian_qty']) && $row['pembelian_qty'] != 0 ? formatQuantity($row['pembelian_qty'], $unit['name']) : '' }}</td>
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                                 <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['pembelian_harga'] > 0 ? formatCurrency($row['pembelian_harga']) : '' }}</td>
                                                 <td class="text-end" style="border: 1px solid #000; background-color: #f5f0e8;">{{ $row['pembelian_total'] != 0 ? formatCurrency($row['pembelian_total'], 0) : '' }}</td>
                                             @endif

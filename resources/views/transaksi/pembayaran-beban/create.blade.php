@@ -100,6 +100,19 @@
     </div>
     
     <div class="mb-3">
+      <label class="form-label">Metode Pembayaran <span class="text-danger">*</span></label>
+      <select name="metode_pembayaran" id="metodePembayaran" class="form-select" required>
+        <option value="">Pilih Metode Pembayaran</option>
+        <option value="kas" {{ old('metode_pembayaran') == 'kas' ? 'selected' : '' }}>Kas</option>
+        <option value="transfer" {{ old('metode_pembayaran') == 'transfer' ? 'selected' : '' }}>Transfer (Kas Bank)</option>
+      </select>
+      <small class="form-text text-muted">Pilih metode pembayaran yang digunakan</small>
+      @error('metode_pembayaran')
+        <div class="text-danger small">{{ $message }}</div>
+      @enderror
+    </div>
+    
+    <div class="mb-3">
       <label class="form-label">Catatan</label>
       <textarea name="catatan" class="form-control" rows="2" placeholder="Masukkan catatan pembayaran (opsional)">{{ old('catatan') }}</textarea>
       @error('catatan')
@@ -161,12 +174,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const tanggal = document.querySelector('input[name="tanggal"]').value;
         const bebanOperasionalId = bebanOperasionalSelect.value;
         const kodeAkunBeban = document.querySelector('select[name="kode_akun_beban"]').value;
+        const metodePembayaran = document.querySelector('select[name="metode_pembayaran"]').value;
         const nominalPembayaran = nominalPembayaranHidden.value;
         
         const errors = [];
         if (!tanggal) errors.push('Tanggal harus diisi');
         if (!bebanOperasionalId) errors.push('Beban Operasional harus dipilih');
         if (!kodeAkunBeban) errors.push('Akun Beban harus dipilih');
+        if (!metodePembayaran) errors.push('Metode Pembayaran harus dipilih');
         if (!nominalPembayaran || nominalPembayaran == 0) errors.push('Nominal Pembayaran harus diisi');
         
         if (errors.length > 0) {

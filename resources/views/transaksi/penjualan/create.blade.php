@@ -550,12 +550,18 @@ mark.bg-warning {
 
     <script>
     function submitForPayment() {
+        console.log('=== submitForPayment() called ===');
+        
         // Validate form
         const form = document.getElementById('form-penjualan');
+        console.log('Form element:', form);
         
         // Check if there are items in the table
         const tableRows = document.querySelectorAll('#detailTableJual tbody tr');
+        console.log('Table rows count:', tableRows.length);
+        
         if (tableRows.length === 0) {
+            console.error('No table rows found');
             alert('Tambahkan minimal satu produk');
             return;
         }
@@ -564,24 +570,37 @@ mark.bg-warning {
         let hasValidItem = false;
         tableRows.forEach(row => {
             const produkSelect = row.querySelector('.produk-select');
+            console.log('Product select value:', produkSelect ? produkSelect.value : 'null');
             if (produkSelect && produkSelect.value) {
                 hasValidItem = true;
             }
         });
         
+        console.log('Has valid item:', hasValidItem);
+        
         if (!hasValidItem) {
+            console.error('No valid items found');
             alert('Tambahkan minimal satu produk');
             return;
         }
         
         // Get payment method
         const paymentMethod = document.getElementById('payment_method_jual').value;
+        console.log('Payment method:', paymentMethod);
         
         // Get total
         const totalInput = document.getElementById('total_final');
+<<<<<<< HEAD
         const total = parseFloat(totalInput.value) || 0;
+=======
+        console.log('Total input value:', totalInput ? totalInput.value : 'null');
+        
+        const total = parseCurrency(totalInput.value);
+        console.log('Parsed total:', total);
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         
         if (total <= 0) {
+            console.error('Total is zero or negative');
             alert('Total pembayaran harus lebih dari 0');
             return;
         }
@@ -594,6 +613,7 @@ mark.bg-warning {
         tableRows.forEach(row => {
             const produkSelect = row.querySelector('.produk-select');
             if (produkSelect && produkSelect.value) {
+<<<<<<< HEAD
                 const subtotalEl = row.querySelector('.subtotal');
                 const subtotalRaw = subtotalEl.getAttribute('data-raw');
                 const subtotalVal = subtotalRaw
@@ -618,8 +638,21 @@ mark.bg-warning {
                     diskon_nominal: diskonNominal,
                     subtotal: subtotalVal
                 });
+=======
+                const itemData = {
+                    produk_id: produkSelect.value,
+                    jumlah: row.querySelector('.jumlah').value,
+                    harga_satuan: parseCurrency(row.querySelector('.harga').value),
+                    diskon_persen: row.querySelector('.diskon').value,
+                    subtotal: parseCurrency(row.querySelector('.subtotal').value)
+                };
+                console.log('Adding item:', itemData);
+                tableData.push(itemData);
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             }
         });
+        
+        console.log('Total items:', tableData.length);
         
         // Prepare data for payment
         const biayaOngkir = parseFloat(document.getElementById('biaya_ongkir').value) || 0;
@@ -640,26 +673,48 @@ mark.bg-warning {
             items: tableData
         };
         
+        console.log('Payment data:', paymentData);
+        
+        // Check CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]');
+        console.log('CSRF token element:', csrfToken);
+        console.log('CSRF token value:', csrfToken ? csrfToken.content : 'null');
+        
+        if (!csrfToken || !csrfToken.content) {
+            console.error('CSRF token not found!');
+            alert('Error: CSRF token tidak ditemukan. Silakan refresh halaman.');
+            return;
+        }
+        
+        console.log('Sending AJAX request to:', '{{ route("transaksi.penjualan.prepare-payment") }}');
+        
         // Store in session and redirect to payment page
         fetch('{{ route("transaksi.penjualan.prepare-payment") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                'X-CSRF-TOKEN': csrfToken.content
             },
             body: JSON.stringify(paymentData)
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+            return response.json();
+        })
         .then(data => {
+            console.log('Response data:', data);
             if (data.success) {
+                console.log('Redirecting to:', data.redirect_url);
                 // Redirect to payment page
                 window.location.href = data.redirect_url;
             } else {
+                console.error('Server returned error:', data.message);
                 alert('Error: ' + (data.message || 'Terjadi kesalahan'));
             }
         })
         .catch(error => {
-            console.error('Error:', error);
+            console.error('Fetch error:', error);
             alert('Terjadi kesalahan: ' + error.message);
         });
     }

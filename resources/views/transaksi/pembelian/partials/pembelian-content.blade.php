@@ -93,6 +93,7 @@
             <table class="table table-hover align-middle mb-0" style="min-width: 1200px;">
                 <thead class="table-light">
                     <tr>
+<<<<<<< HEAD
                         <th class="text-center nowrap" style="width: 50px">No</th>
                         <th class="text-center nowrap">No. Transaksi</th>
                         <th class="text-center nowrap">No. Faktur</th>
@@ -105,6 +106,21 @@
                         <th class="text-center nowrap">Total Harga</th>
                         <th class="text-center nowrap">Status Retur</th>
                         <th class="text-center nowrap" style="width: 180px">Aksi</th>
+=======
+                        <th class="text-center" style="width: 50px">No</th>
+                        <th class="nowrap">No. Transaksi</th>
+                        <th class="nowrap">No. Faktur</th>
+                        <th class="nowrap">Bukti Faktur</th>
+                        <th class="nowrap">Tanggal</th>
+                        <th class="nowrap">Vendor</th>
+                        <th class="nowrap">Item</th>
+                        <th class="nowrap">Satuan Pembelian</th>
+                        <th class="nowrap">Pembayaran</th>
+                        <th class="nowrap">Status Pembayaran</th>
+                        <th class="nowrap">Total Harga</th>
+                        <th class="nowrap">Status Retur</th>
+                        <th class="text-center" style="width: 180px">Aksi</th>
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                     </tr>
                 </thead>
                 <tbody>
@@ -119,9 +135,31 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
+<<<<<<< HEAD
                             <td class="text-center nowrap">{{ $pembelian->tanggal->format('d-m-Y') }}</td>
                             <td class="text-center nowrap">
                                 <div class="d-flex align-items-center justify-content-center">
+=======
+                            <td class="nowrap text-center">
+                                @if($pembelian->bukti_faktur)
+                                    @php
+                                        // Extract ID and filename from bukti_faktur path
+                                        // Format: bukti_faktur/{id}/{filename}
+                                        $parts = explode('/', $pembelian->bukti_faktur);
+                                        $userId = $parts[1] ?? '';
+                                        $filename = $parts[2] ?? '';
+                                    @endphp
+                                    <a href="{{ url('/storage/' . $pembelian->bukti_faktur) }}" target="_blank" class="btn btn-sm btn-outline-primary" title="Lihat Bukti Faktur">
+                                        <i class="bi bi-file-earmark-text"></i>
+                                    </a>
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
+                            <td class="nowrap">{{ $pembelian->tanggal->format('d-m-Y') }}</td>
+                            <td class="nowrap">
+                                <div class="d-flex align-items-center">
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                     <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
                                         <i class="fas fa-store text-primary"></i>
                                     </div>
@@ -238,7 +276,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="12" class="text-center py-4">
+                            <td colspan="13" class="text-center py-4">
                                 <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">Belum ada data pembelian</p>
                             </td>

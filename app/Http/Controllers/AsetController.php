@@ -6,7 +6,7 @@ use App\Models\JenisAset;
 use App\Models\KategoriAset;
 use App\Models\Aset;
 use App\Models\Coa;
-use App\Models\JournalEntry;
+use App\Models\JurnalUmum;
 use App\Services\DepreciationCalculationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,12 +28,13 @@ class AsetController extends Controller
      */
     public function index(Request $request)
     {
+        $user = auth()->user();
         $query = Aset::with([
             'kategori.jenisAset',
             'assetCoa',
             'accumDepreciationCoa', 
             'expenseCoa'
-        ]);
+        ])->where('user_id', $user->id); // 🔒 SECURITY: Add user_id filter
 
         // Filter by search term
         if ($request->has('search') && !empty($request->search)) {
@@ -111,10 +112,12 @@ class AsetController extends Controller
                 ->exists();
         }
         
-        // Get filter options
-        $jenisAsets = JenisAset::with('kategories')->get();
+        // Get filter options - Add user_id filters
+        $jenisAsets = JenisAset::with(['kategories' => function($query) use ($user) {
+            $query->where('user_id', $user->id);
+        }])->get();
         $kategoriAsets = $request->has('jenis_aset') 
-            ? KategoriAset::where('jenis_aset_id', $request->jenis_aset)->get() 
+            ? KategoriAset::where('jenis_aset_id', $request->jenis_aset)->where('user_id', $user->id)->get() 
             : collect();
 
         return view('master-data.aset.index', compact('asets', 'jenisAsets', 'kategoriAsets'));
@@ -133,23 +136,36 @@ class AsetController extends Controller
             'sum_of_years_digits' => 'Jumlah Angka Tahun (Sum of Years Digits)',
         ];
         
-        // COA data for dropdowns - with fallback to prevent undefined variables
-        $coaAsets = Coa::where('tipe_akun', 'LIKE', '%Aset%')
-            ->orWhere('tipe_akun', 'LIKE', '%ASET%')
+        // COA data for dropdowns - 🔒 SECURITY: Filter by user_id and use proper asset account codes
+        $coaAsets = Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('kode_akun', 'like', '1%')  // Asset accounts start with 1
+                      ->orWhere('tipe_akun', 'LIKE', '%Aset%')
+                      ->orWhere('tipe_akun', 'LIKE', '%ASET%');
+            })
+            ->orderBy('kode_akun')
             ->get();
             
-        // If no asset accounts found, get all COA as fallback
+        // If no asset accounts found, get all user's COA as fallback
         if ($coaAsets->isEmpty()) {
-            $coaAsets = Coa::all();
+            $coaAsets = Coa::where('user_id', auth()->id())->orderBy('kode_akun')->get();
         }
             
-        $coaAkumulasi = Coa::where('nama_akun', 'LIKE', '%akumulasi%')
-            ->orWhere('nama_akun', 'LIKE', '%Akumulasi%')
+        $coaAkumulasi = Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('nama_akun', 'LIKE', '%akumulasi%')
+                      ->orWhere('nama_akun', 'LIKE', '%Akumulasi%');
+            })
+            ->orderBy('kode_akun')
             ->get();
             
-        $coaBeban = Coa::where('nama_akun', 'LIKE', '%penyusutan%')
-            ->orWhere('nama_akun', 'LIKE', '%Penyusutan%')
-            ->orWhere('nama_akun', 'LIKE', '%Beban%')
+        $coaBeban = Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('nama_akun', 'LIKE', '%penyusutan%')
+                      ->orWhere('nama_akun', 'LIKE', '%Penyusutan%')
+                      ->orWhere('nama_akun', 'LIKE', '%Beban%');
+            })
+            ->orderBy('kode_akun')
             ->get();
         
         return view('master-data.aset.create', compact(
@@ -277,6 +293,7 @@ class AsetController extends Controller
             $aset->tanggal_akuisisi = $request->tanggal_akuisisi ?: $request->tanggal_beli;
             $aset->status = 'aktif';
             $aset->keterangan = $request->keterangan;
+            $aset->user_id = auth()->id(); // 🔒 SECURITY: CRITICAL - Set user_id for multi-tenant
             $aset->updated_by = auth()->id();
             
             // Save COA fields
@@ -315,6 +332,12 @@ class AsetController extends Controller
      */
     public function show(Aset $aset)
     {
+        // 🔒 SECURITY: Check if user owns this asset (multi-tenant)
+        if ($aset->user_id !== auth()->id()) {
+            return redirect()->route('master-data.aset.index')
+                ->with('error', 'Aset tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         // Load relasi kategori dan jenis aset
         $aset->load('kategori.jenisAset', 'assetCoa', 'accumDepreciationCoa', 'expenseCoa');
         
@@ -377,8 +400,13 @@ class AsetController extends Controller
         \Log::info("  Nilai buku saat ini: Rp " . number_format($aset->nilai_buku, 2, ',', '.'));
         
         // Cek apakah aset sudah pernah diposting penyusutannya
+<<<<<<< HEAD
         $sudahDiposting = JournalEntry::where('ref_type', 'depreciation')
             ->where('ref_id', $aset->id)
+=======
+        $sudahDiposting = JurnalUmum::where('tipe_referensi', 'depr')
+            ->where('referensi', $aset->id)
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             ->exists();
         
         // Data summary untuk view
@@ -489,6 +517,12 @@ class AsetController extends Controller
      */
     public function edit(Aset $aset)
     {
+        // 🔒 SECURITY: Check if user owns this asset (multi-tenant)
+        if ($aset->user_id !== auth()->id()) {
+            return redirect()->route('master-data.aset.index')
+                ->with('error', 'Aset tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         // Cek apakah aset terkunci
         if ($aset->locked) {
             return redirect()->route('master-data.aset.index')
@@ -502,31 +536,49 @@ class AsetController extends Controller
             'sum_of_years_digits' => 'Jumlah Angka Tahun (Sum of Years Digits)',
         ];
         
-        // COA data for dropdowns - with fallback to prevent undefined variables
-        $coaAsets = Coa::where('tipe_akun', 'LIKE', '%Aset%')
-            ->orWhere('tipe_akun', 'LIKE', '%ASET%')
+        // COA data for dropdowns - 🔒 SECURITY: Filter by user_id and use proper asset account codes
+        $coaAsets = Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('kode_akun', 'like', '1%')  // Asset accounts start with 1
+                      ->orWhere('tipe_akun', 'LIKE', '%Aset%')
+                      ->orWhere('tipe_akun', 'LIKE', '%ASET%');
+            })
+            ->orderBy('kode_akun')
             ->get();
             
-        // If no asset accounts found, get all COA as fallback
+        // If no asset accounts found, get all user's COA as fallback
         if ($coaAsets->isEmpty()) {
-            $coaAsets = Coa::all();
+            $coaAsets = Coa::where('user_id', auth()->id())->orderBy('kode_akun')->get();
         }
             
-        $coaAkumulasi = Coa::where('nama_akun', 'LIKE', '%akumulasi%')
-            ->orWhere('nama_akun', 'LIKE', '%Akumulasi%')
+        $coaAkumulasi = Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('nama_akun', 'LIKE', '%akumulasi%')
+                      ->orWhere('nama_akun', 'LIKE', '%Akumulasi%');
+            })
+            ->orderBy('kode_akun')
             ->get();
             
-        $coaBeban = Coa::where('nama_akun', 'LIKE', '%penyusutan%')
-            ->orWhere('nama_akun', 'LIKE', '%Penyusutan%')
-            ->orWhere('nama_akun', 'LIKE', '%Beban%')
+        $coaBeban = Coa::where('user_id', auth()->id())
+            ->where(function($query) {
+                $query->where('nama_akun', 'LIKE', '%penyusutan%')
+                      ->orWhere('nama_akun', 'LIKE', '%Penyusutan%')
+                      ->orWhere('nama_akun', 'LIKE', '%Beban%');
+            })
+            ->orderBy('kode_akun')
             ->get();
         
         // Load relasi untuk aset yang akan diedit
         $aset->load('kategori.jenisAset', 'assetCoa', 'accumDepreciationCoa', 'expenseCoa');
         
         // Cek apakah aset sudah pernah diposting penyusutannya
+<<<<<<< HEAD
         $sudahDiposting = JournalEntry::where('ref_type', 'depreciation')
             ->where('ref_id', $aset->id)
+=======
+        $sudahDiposting = JurnalUmum::where('tipe_referensi', 'depr')
+            ->where('referensi', $aset->id)
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             ->exists();
         
         // Hitung data lengkap aset
@@ -645,6 +697,12 @@ class AsetController extends Controller
      */
     public function update(Request $request, Aset $aset)
     {
+        // 🔒 SECURITY: Check if user owns this asset (multi-tenant)
+        if ($aset->user_id !== auth()->id()) {
+            return redirect()->route('master-data.aset.index')
+                ->with('error', 'Aset tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         // Cek apakah aset terkunci
         if ($aset->locked) {
             return redirect()->route('master-data.aset.index')
@@ -789,6 +847,12 @@ class AsetController extends Controller
 
     public function destroy(Aset $aset)
     {
+        // 🔒 SECURITY: Check if user owns this asset (multi-tenant)
+        if ($aset->user_id !== auth()->id()) {
+            return redirect()->route('master-data.aset.index')
+                ->with('error', 'Aset tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         // Cek apakah aset terkunci
         if ($aset->locked) {
             return redirect()->route('master-data.aset.index')

@@ -112,6 +112,7 @@
                 <tfoot class="table-light"><tr><td colspan="4" class="text-end fw-bold">Total</td><td class="text-end fw-bold">Rp {{ number_format($totalBahanPendukung,0,',','.') }}</td></tr></tfoot>
             </table>
         </div>
+<<<<<<< HEAD
     </div>
     @endif
 
@@ -163,11 +164,165 @@
                 </tbody>
                 <tfoot class="table-light"><tr><td colspan="4" class="text-end fw-bold">Total</td><td class="text-end fw-bold">Rp {{ number_format($produksi->total_bop,0,',','.') }}</td><td colspan="2"></td></tr></tfoot>
             </table>
+=======
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-light">
+                        <tr>
+                            <th>No</th>
+                            <th>Nama Bahan</th>
+                            <th>Resep (Total)</th>
+                            <th>Konversi ke Satuan Bahan</th>
+                            <th>Harga Satuan</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if($produksi->status === 'draft' && isset($produksi->detail_breakdown))
+                            {{-- Show breakdown from saved details --}}
+                            @php $counter = 1; @endphp
+                            @foreach($produksi->detail_breakdown['biaya_bahan']['bahan_baku'] as $bahan)
+                                <tr>
+                                    <td>{{ $counter++ }}</td>
+                                    <td>
+                                        {{ $bahan['nama'] }}
+                                        <small class="text-muted">(Bahan Baku)</small>
+                                    </td>
+                                    <td>{{ rtrim(rtrim(number_format($bahan['qty_resep'],4,',','.'),'0'),',') }} {{ $bahan['satuan_resep'] }}</td>
+                                    <td>-</td>
+                                    <td>Rp {{ number_format($bahan['harga_satuan'],0,',','.') }} / {{ $bahan['satuan_resep'] }}</td>
+                                    <td>Rp {{ number_format($bahan['subtotal'],0,',','.') }}</td>
+                                </tr>
+                            @endforeach
+                        @else
+                            {{-- Show actual consumed materials from produksi_details --}}
+                            @foreach($produksi->details as $d)
+                                <tr>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td>
+                                        @if($d->bahan_baku_id && $d->bahanBaku)
+                                            {{ $d->bahanBaku->nama_bahan }}
+                                            <small class="text-muted">(Bahan Baku)</small>
+                                        @else
+                                            <span class="text-muted">Unknown</span>
+                                        @endif
+                                    </td>
+                                    <td>{{ rtrim(rtrim(number_format($d->qty_resep,4,',','.'),'0'),',') }} {{ $d->satuan_resep }}</td>
+                                    <td>-</td>
+                                    <td>Rp {{ number_format($d->harga_satuan,0,',','.') }} / {{ $d->satuan_resep }}</td>
+                                    <td>Rp {{ number_format($d->subtotal,0,',','.') }}</td>
+                                </tr>
+                            @endforeach
+                        @endif
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="5" class="text-end fw-bold">Total Biaya Bahan:</td>
+                            <td class="fw-bold">Rp {{ number_format($produksi->total_bahan,0,',','.') }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- BTKL Detail -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">
+                @if($produksi->status === 'draft')
+                    Rencana Biaya Tenaga Kerja Langsung (BTKL)
+                @else
+                    Biaya Tenaga Kerja Langsung (BTKL)
+                @endif
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>No</th>
+                            <th>Nama Proses</th>
+                            @if($produksi->status === 'draft')
+                                <th>Biaya per Unit</th>
+                                <th>Total Biaya</th>
+                            @else
+                                <th>Status</th>
+                                <th>Biaya BTKL</th>
+                                <th>Waktu Mulai</th>
+                                <th>Waktu Selesai</th>
+                                <th>Durasi</th>
+                            @endif
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if($produksi->status === 'draft' && isset($produksi->detail_breakdown))
+                            {{-- Show planned BTKL for draft status --}}
+                            @foreach($produksi->detail_breakdown['btkl'] as $btkl)
+                                <tr>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td>{{ $btkl['nama'] }}</td>
+                                    <td>Rp {{ number_format($btkl['biaya_per_unit'],0,',','.') }}</td>
+                                    <td>Rp {{ number_format($btkl['total_biaya'],0,',','.') }}</td>
+                                </tr>
+                            @endforeach
+                        @else
+                            {{-- Show actual BTKL process for completed production --}}
+                            @foreach($produksi->proses->sortBy('urutan') as $proses)
+                                <tr>
+                                    <td>{{ $proses->urutan }}</td>
+                                    <td>{{ $proses->nama_proses }}</td>
+                                    <td>{!! $proses->status_badge !!}</td>
+                                    <td>Rp {{ number_format($proses->biaya_btkl,0,',','.') }}</td>
+                                    <td>
+                                        @if($proses->waktu_mulai)
+                                            {{ $proses->waktu_mulai->format('d/m/Y H:i') }}
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($proses->waktu_selesai)
+                                            {{ $proses->waktu_selesai->format('d/m/Y H:i') }}
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($proses->durasi_menit)
+                                            {{ $proses->formatted_duration }}
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @endif
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            @if($produksi->status === 'draft')
+                                <td colspan="3" class="text-end fw-bold">Total BTKL:</td>
+                            @else
+                                <td colspan="3" class="text-end fw-bold">Total BTKL:</td>
+                            @endif
+                            <td class="fw-bold">Rp {{ number_format($produksi->total_btkl,0,',','.') }}</td>
+                            @if($produksi->status !== 'draft')
+                                <td colspan="3"></td>
+                            @endif
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         </div>
     </div>
 
     {{-- Preview Jurnal --}}
     <div class="card mb-4">
+<<<<<<< HEAD
         <div class="card-header bg-dark text-white"><h6 class="mb-0"><i class="fas fa-book me-2"></i>Preview Jurnal Akuntansi</h6></div>
         <div class="card-body p-0">
             <table class="table table-sm table-bordered mb-0" style="table-layout:fixed;width:100%;font-size:12px;">
@@ -278,6 +433,87 @@
                     @endif
                 </tbody>
             </table>
+=======
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                @if($produksi->status === 'draft')
+                    Rencana Biaya Overhead Pabrik (BOP)
+                @else
+                    Biaya Overhead Pabrik (BOP)
+                @endif
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>No</th>
+                            <th>Nama Proses</th>
+                            @if($produksi->status === 'draft')
+                                <th>Biaya per Unit</th>
+                                <th>Total Biaya</th>
+                            @else
+                                <th>Status</th>
+                                <th>Biaya BOP</th>
+                                <th>Total Biaya Proses</th>
+                            @endif
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if($produksi->status === 'draft' && isset($produksi->detail_breakdown))
+                            {{-- Show planned BOP for draft status with components --}}
+                            @php
+                                $groupedBop = [];
+                                foreach($produksi->detail_breakdown['bop'] as $bop) {
+                                    $proses = $bop['nama_proses'];
+                                    if (!isset($groupedBop[$proses])) {
+                                        $groupedBop[$proses] = [];
+                                    }
+                                    $groupedBop[$proses][] = $bop;
+                                }
+                            @endphp
+                            @foreach($groupedBop as $namaProses => $komponenList)
+                                <tr class="table-secondary">
+                                    <td colspan="4" class="fw-bold">{{ $namaProses }}</td>
+                                </tr>
+                                @foreach($komponenList as $komponen)
+                                    <tr>
+                                        <td>{{ $loop->parent->iteration }}.{{ $loop->iteration }}</td>
+                                        <td class="ps-4">{{ $komponen['nama_komponen'] }}</td>
+                                        <td>Rp {{ number_format($komponen['biaya_per_unit'],0,',','.') }}</td>
+                                        <td>Rp {{ number_format($komponen['total_biaya'],0,',','.') }}</td>
+                                    </tr>
+                                @endforeach
+                            @endforeach
+                        @else
+                            {{-- Show actual BOP process for completed production --}}
+                            @foreach($produksi->proses->sortBy('urutan') as $proses)
+                                <tr>
+                                    <td>{{ $proses->urutan }}</td>
+                                    <td>{{ $proses->nama_proses }}</td>
+                                    <td>{!! $proses->status_badge !!}</td>
+                                    <td>Rp {{ number_format($proses->biaya_bop,0,',','.') }}</td>
+                                    <td>Rp {{ number_format($proses->total_biaya_proses,0,',','.') }}</td>
+                                </tr>
+                            @endforeach
+                        @endif
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            @if($produksi->status === 'draft')
+                                <td colspan="3" class="text-end fw-bold">Total BOP:</td>
+                                <td class="fw-bold">Rp {{ number_format($produksi->total_bop,0,',','.') }}</td>
+                            @else
+                                <td colspan="3" class="text-end fw-bold">Total BOP:</td>
+                                <td class="fw-bold">Rp {{ number_format($produksi->total_bop,0,',','.') }}</td>
+                                <td class="fw-bold">Rp {{ number_format($produksi->total_btkl + $produksi->total_bop,0,',','.') }}</td>
+                            @endif
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         </div>
     </div>
 

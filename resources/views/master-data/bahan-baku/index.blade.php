@@ -24,11 +24,10 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th class="text-center">Nama Bahan</th>
-                            <th class="text-center">Satuan Utama</th>
-                            <th class="text-center">Harga Satuan Utama</th>
-                            <th class="text-center">Stok Saat Ini</th>
-                            <th class="text-center">Stok Minimum</th>
+                            <th>Nama Bahan</th>
+                            <th>Satuan Utama</th>
+                            <th class="text-end">Stok Saat Ini</th>
+                            <th class="text-end">Harga Satuan Utama</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -45,39 +44,32 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="text-center">
+                                <td>
                                     @if($bahan->satuan)
                                         {{ $bahan->satuan->nama }}
                                     @else
                                         -
                                     @endif
                                 </td>
-                                <td class="text-center fw-semibold">
+                                <td class="text-end">
+                                    @php
+                                        $stokSaatIni = $bahan->stok_real_time ?? 0;
+                                        $stokMinimum = $bahan->stok_minimum ?? 0;
+                                    @endphp
+                                    
+                                    @if($stokSaatIni <= 0)
+                                        <span class="badge bg-danger">{{ number_format($stokSaatIni, 2, ',', '.') }}</span>
+                                        <small class="text-danger d-block">Habis</small>
+                                    @elseif($stokSaatIni <= $stokMinimum)
+                                        <span class="badge bg-warning">{{ number_format($stokSaatIni, 2, ',', '.') }}</span>
+                                        <small class="text-warning d-block">Hampir Habis</small>
+                                    @else
+                                        <span class="badge bg-success">{{ number_format($stokSaatIni, 2, ',', '.') }}</span>
+                                        <small class="text-success d-block">Aman</small>
+                                    @endif
+                                </td>
+                                <td class="text-end fw-semibold">
                                     Rp {{ number_format($bahan->harga_satuan_display ?? $bahan->harga_satuan ?? 0, 0, ',', '.') }}
-                                </td>
-                                <td class="text-center">
-                                    <div class="fw-semibold text-primary">
-                                        {{ rtrim(rtrim(number_format($bahan->stok_real_time ?? 0, 2, ',', '.'), '0'), ',') }}
-                                    </div>
-                                    <small class="text-muted">
-                                        @if($bahan->satuan)
-                                            {{ $bahan->satuan->nama }}
-                                        @else
-                                            Unit
-                                        @endif
-                                    </small>
-                                </td>
-                                <td class="text-center">
-                                    <div class="fw-semibold {{ ($bahan->stok_real_time ?? 0) <= ($bahan->stok_minimum ?? 0) ? 'text-danger' : 'text-success' }}">
-                                        {{ rtrim(rtrim(number_format($bahan->stok_minimum ?? 0, 2, ',', '.'), '0'), ',') }}
-                                    </div>
-                                    <small class="text-muted">
-                                        @if($bahan->satuan)
-                                            {{ $bahan->satuan->nama }}
-                                        @else
-                                            Unit
-                                        @endif
-                                    </small>
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
@@ -96,7 +88,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-4">
+                                <td colspan="4" class="text-center py-4">
                                     <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
                                     <p class="text-muted">Belum ada data bahan baku</p>
                                 </td>

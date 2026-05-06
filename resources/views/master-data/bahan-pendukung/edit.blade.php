@@ -368,6 +368,7 @@ function clearSubSatuan(index) {
 function setupNumberInputs() {
     const numberInputs = document.querySelectorAll('.number-input');
     
+<<<<<<< HEAD
     numberInputs.forEach(input => {
         input.addEventListener('input', function(e) {
             let value = e.target.value;
@@ -401,6 +402,46 @@ function setupNumberInputs() {
         });
     });
 }
+=======
+    if (value === '') return;
+    
+    // Handle comma as decimal separator
+    if (value.includes(',')) {
+        let parts = value.split(',');
+        if (parts.length === 2) {
+            // Format: integer part + comma + decimal part
+            let integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            let decimalPart = parts[1];
+            input.value = integerPart + ',' + decimalPart;
+        } else {
+            // Only integer part
+            input.value = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+    } else {
+        // Only integer, add thousand separators
+        input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+}
+
+function formatDecimal(input) {
+    let value = input.value.replace(/[^\d,]/g, '');
+    
+    if (value === '') return;
+    
+    // Handle comma as decimal separator - keep it simple for decimal inputs
+    input.value = value;
+}
+
+function parseFormattedNumber(value) {
+    if (!value) return '';
+    
+    // Remove thousand separators (dots) and convert comma to dot for server
+    return value.replace(/\./g, '').replace(',', '.');
+}
+
+// COA Manual Selection - Auto-fill disabled to allow manual selection
+// Users can now select COA accounts independently for each field
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 
 // Convert commas to dots before form submission
 function convertCommasToDots() {
@@ -520,6 +561,11 @@ document.addEventListener('DOMContentLoaded', function() {
             convertCommasToDots();
         });
     }
+<<<<<<< HEAD
+=======
+    
+    // COA Manual Selection - Auto-fill disabled
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 });
 </script>
 @endpush

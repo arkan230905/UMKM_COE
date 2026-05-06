@@ -30,6 +30,7 @@ class DefaultSatuanSeeder extends Seeder
             ['kode' => 'GL', 'nama' => 'Galon'],
             ['kode' => 'TBG', 'nama' => 'Tabung'],
             ['kode' => 'SNG', 'nama' => 'Siung'],
+            ['kode' => 'KLG', 'nama' => 'Kaleng'],
         ];
 
         foreach ($defaultSatuans as $satuanData) {
@@ -66,7 +67,7 @@ class DefaultSatuanSeeder extends Seeder
     private function getTipeSatuan($kode): string
     {
         $weightUnits = ['ONS', 'KG', 'G'];
-        $volumeUnits = ['ML', 'LTR', 'CUP', 'GL'];
+        $volumeUnits = ['ML', 'LTR', 'CUP', 'GL', 'KLG'];
         $unitUnits = ['PTG', 'EKOR', 'PCS', 'BNGKS', 'TBG', 'SNG'];
         $spoonUnits = ['SDT', 'SDM'];
 
@@ -84,7 +85,7 @@ class DefaultSatuanSeeder extends Seeder
     private function getKategoriSatuan($kode): string
     {
         $weightUnits = ['ONS', 'KG', 'G'];
-        $volumeUnits = ['ML', 'LTR', 'CUP', 'GL', 'SDT', 'SDM'];
+        $volumeUnits = ['ML', 'LTR', 'CUP', 'GL', 'SDT', 'SDM', 'KLG'];
         $countUnits = ['PTG', 'EKOR', 'PCS', 'BNGKS', 'TBG', 'SNG'];
 
         if (in_array($kode, $weightUnits)) return 'berat';
@@ -118,6 +119,7 @@ class DefaultSatuanSeeder extends Seeder
             'GL' => 3.785,       // 1 galon = 3.785 liter
             'SDT' => 0.005,      // 1 sendok teh = 5 ml = 0.005 liter
             'SDM' => 0.015,      // 1 sendok makan = 15 ml = 0.015 liter
+            'KLG' => 1.0,        // 1 kaleng = 1.0 (unit)
         ];
 
         return $konversi[$kode] ?? 1.0;

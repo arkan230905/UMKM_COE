@@ -13,8 +13,10 @@ class LaporanPembelianController extends Controller
 {
     public function index(Request $request)
     {
+        $user = auth()->user();
         // Handle pembelian data
-        $query = Pembelian::with(['vendor', 'details.bahanBaku.satuan', 'details.bahanPendukung.satuanRelation']);
+        $query = Pembelian::with(['vendor', 'details.bahanBaku.satuan', 'details.bahanPendukung.satuanRelation'])
+            ->where('user_id', $user->id); // 🔒 SECURITY: Add user_id filter
         
         // Filter pembelian
         if ($request->filled('start_date')) {
@@ -30,7 +32,7 @@ class LaporanPembelianController extends Controller
         $pembelian = $query->oldest()->paginate(10, ['*'], 'pembelian_page');
         
         // Calculate totals for pembelian
-        $totalQuery = Pembelian::query();
+        $totalQuery = Pembelian::query()->where('user_id', $user->id); // 🔒 SECURITY: Add user_id filter
         if ($request->filled('start_date')) {
             $totalQuery->whereDate('tanggal', '>=', $request->start_date);
         }
@@ -53,6 +55,7 @@ class LaporanPembelianController extends Controller
         });
         
         $totalPembelianTunai = Pembelian::where('payment_method', 'cash')
+            ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
             ->when($request->filled('start_date'), function($q) use ($request) {
                 return $q->whereDate('tanggal', '>=', $request->start_date);
             })
@@ -76,6 +79,7 @@ class LaporanPembelianController extends Controller
             });
         
         $totalPembelianKredit = Pembelian::where('payment_method', 'credit')
+            ->where('user_id', $user->id) // 🔒 SECURITY: Add user_id filter
             ->when($request->filled('start_date'), function($q) use ($request) {
                 return $q->whereDate('tanggal', '>=', $request->start_date);
             })

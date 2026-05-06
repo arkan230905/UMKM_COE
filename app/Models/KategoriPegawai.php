@@ -11,12 +11,29 @@ class KategoriPegawai extends Model
     use HasFactory;
 
     protected $table = 'kategori_pegawai';
-    protected $fillable = ['nama', 'deskripsi'];
+    protected $fillable = [
+        'user_id',
+        'nama', 
+        'deskripsi'
+    ];
 
     protected $casts = [
         'nama' => 'string',
         'deskripsi' => 'string',
     ];
+
+    /**
+     * Boot method untuk auto-fill user_id untuk multi-tenant isolation
+     */
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            // CRITICAL: Auto-fill user_id for multi-tenant isolation
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
 
     /**
      * Relasi ke jabatan

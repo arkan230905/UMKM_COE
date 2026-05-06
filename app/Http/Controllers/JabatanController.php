@@ -12,8 +12,11 @@ class JabatanController extends Controller
     {
         $search = request('search');
         $kategori = request('kategori');
+
+        // MULTI-TENANT: Auto-fix NULL user_id records to current user
+        Jabatan::whereNull('user_id')->update(['user_id' => auth()->id()]);
         
-        $q = Jabatan::query();
+        $q = Jabatan::where('user_id', auth()->id());
         
         if ($search) {
             $q->where('nama', 'like', "%{$search}%");
@@ -45,11 +48,16 @@ class JabatanController extends Controller
         ]);
 
         $data = $request->validate([
+<<<<<<< HEAD
             'nama' => [
                 'required', 'string', 'max:255',
                 \Illuminate\Validation\Rule::unique('jabatans', 'nama')
                     ->where('user_id', auth()->id()),
             ],
+=======
+            // CRITICAL: Add user_id to unique validation for multi-tenant isolation
+            'nama' => 'required|string|max:255|unique:jabatans,nama,NULL,id,user_id,' . auth()->id(),
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
@@ -79,6 +87,9 @@ class JabatanController extends Controller
         $data['kode_jabatan'] = $prefix . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
         $data['user_id'] = auth()->id();
 
+        // CRITICAL: Always set user_id for multi-tenant isolation
+        $data['user_id'] = auth()->id();
+
         Jabatan::create($data);
 
         return redirect()->route('master-data.kualifikasi-tenaga-kerja.index', ['notify' => 'Kualifikasi berhasil ditambahkan.']);
@@ -86,11 +97,23 @@ class JabatanController extends Controller
 
     public function edit(Jabatan $kualifikasi_tenaga_kerja)
     {
+        // 🔒 SECURITY: Check if user owns this jabatan (multi-tenant)
+        if ($kualifikasi_tenaga_kerja->user_id !== auth()->id()) {
+            return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')
+                ->with('error', 'Kualifikasi tenaga kerja tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         return view('master-data.jabatan.edit', ['jabatan' => $kualifikasi_tenaga_kerja]);
     }
 
     public function update(Request $request, Jabatan $kualifikasi_tenaga_kerja)
     {
+        // 🔒 SECURITY: Check if user owns this jabatan (multi-tenant)
+        if ($kualifikasi_tenaga_kerja->user_id !== auth()->id()) {
+            return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')
+                ->with('error', 'Kualifikasi tenaga kerja tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         $jabatan = $kualifikasi_tenaga_kerja;
 
         $request->merge([
@@ -103,12 +126,17 @@ class JabatanController extends Controller
         ]);
 
         $data = $request->validate([
+<<<<<<< HEAD
             'nama' => [
                 'required', 'string', 'max:255',
                 \Illuminate\Validation\Rule::unique('jabatans', 'nama')
                     ->where('user_id', auth()->id())
                     ->ignore($jabatan->id),
             ],
+=======
+            // CRITICAL: Add user_id to unique validation for multi-tenant isolation
+            'nama' => 'required|string|max:255|unique:jabatans,nama,' . $jabatan->id . ',id,user_id,' . auth()->id(),
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             'kategori' => 'required|in:btkl,btktl',
             'tunjangan' => 'nullable|numeric|min:0|max:999999999',
             'tunjangan_transport' => 'nullable|numeric|min:0|max:999999999',
@@ -150,12 +178,26 @@ class JabatanController extends Controller
 
     public function destroy(Jabatan $kualifikasi_tenaga_kerja)
     {
+        // 🔒 SECURITY: Check if user owns this jabatan (multi-tenant)
+        if ($kualifikasi_tenaga_kerja->user_id !== auth()->id()) {
+            return redirect()->route('master-data.kualifikasi-tenaga-kerja.index')
+                ->with('error', 'Kualifikasi tenaga kerja tidak ditemukan atau Anda tidak memiliki akses.');
+        }
+        
         try {
-            $pegawaiCount = \App\Models\Pegawai::where('jabatan', $kualifikasi_tenaga_kerja->nama)->count();
+            // 🔒 SECURITY: Check pegawai count with safety check for user_id column
+            $pegawaiQuery = \App\Models\Pegawai::where('jabatan', $kualifikasi_tenaga_kerja->nama);
+            if (\Illuminate\Support\Facades\Schema::hasColumn('pegawais', 'user_id')) {
+                $pegawaiQuery->where('user_id', auth()->id());
+            }
+            $pegawaiCount = $pegawaiQuery->count();
 
             if ($pegawaiCount > 0) {
-                $pegawaiNames = \App\Models\Pegawai::where('jabatan', $kualifikasi_tenaga_kerja->nama)
-                    ->pluck('nama')->implode(', ');
+                $pegawaiNameQuery = \App\Models\Pegawai::where('jabatan', $kualifikasi_tenaga_kerja->nama);
+                if (\Illuminate\Support\Facades\Schema::hasColumn('pegawais', 'user_id')) {
+                    $pegawaiNameQuery->where('user_id', auth()->id());
+                }
+                $pegawaiNames = $pegawaiNameQuery->pluck('nama')->implode(', ');
 
                 return redirect()->route('master-data.kualifikasi-tenaga-kerja.index', [
                     'notify_error' => "Jabatan '{$kualifikasi_tenaga_kerja->nama}' tidak dapat dihapus karena digunakan oleh {$pegawaiCount} pegawai: {$pegawaiNames}"
@@ -173,31 +215,45 @@ class JabatanController extends Controller
 
     public function getByKategori(Request $request)
     {
-        $kategoriId = $request->get('kategori_id');
+        // Support both 'kategori' and 'kategori_id' parameters
+        $kategori = $request->get('kategori') ?? $request->get('kategori_id');
 
-        if (!$kategoriId) {
-            return response()->json(['success' => false], 400);
+        if (!$kategori) {
+            return response()->json(['success' => false, 'message' => 'Parameter kategori required'], 400);
         }
 
-        if (is_numeric($kategoriId)) {
-            $kategoriPegawai = \App\Models\KategoriPegawai::find($kategoriId);
+        // MULTI-TENANT: Filter by user_id, also include NULL user_id records (legacy data)
+        // Fix NULL user_id records to belong to current user automatically
+        $userId = auth()->id();
+
+        // Auto-fix: assign user_id to NULL records that match current user's data
+        Jabatan::whereNull('user_id')->update(['user_id' => $userId]);
+
+        $query = Jabatan::where('user_id', $userId);
+
+        // If kategori is numeric, it's a kategori_id
+        if (is_numeric($kategori)) {
+            // 🔒 MULTI-TENANT: Only get kategori from logged-in user
+            $kategoriPegawai = \App\Models\KategoriPegawai::where('user_id', auth()->id())->find($kategori);
             if (!$kategoriPegawai) {
                 return response()->json(['success' => true, 'data' => []]);
             }
 
             $kategoriName = strtolower($kategoriPegawai->nama);
 
-            $jabatans = Jabatan::where(function($q) use ($kategoriName, $kategoriId) {
+            $query->where(function($q) use ($kategoriName, $kategori) {
                 $q->where('kategori', $kategoriName)
-                      ->orWhere('kategori_id', $kategoriId);
+                  ->orWhere('kategori_id', $kategori);
             });
         } else {
-            $jabatans = Jabatan::where('kategori', strtolower($kategoriId));
+            // If kategori is string (btkl/btktl), filter by kategori
+            $query->where('kategori', strtolower($kategori));
         }
 
-        $jabatans = $jabatans->select(
+        $jabatans = $query->select(
             'id','nama','kategori','kategori_id',
-            'gaji_pokok','tarif_per_jam','tunjangan','asuransi'
+            'gaji_pokok','tarif_per_jam as tarif',
+            'tunjangan','tunjangan_transport','tunjangan_konsumsi','asuransi'
         )->orderBy('nama')->get();
 
         return response()->json([

@@ -10,11 +10,13 @@ class Pelanggan extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'kode_pelanggan',
         'nama_pelanggan',
         'alamat',
         'telepon',
         'email',
+        'password',
         'keterangan'
     ];
 
@@ -23,6 +25,11 @@ class Pelanggan extends Model
         parent::boot();
 
         static::creating(function ($pelanggan) {
+            // CRITICAL: Auto-fill user_id for multi-tenant isolation
+            if (empty($pelanggan->user_id) && auth()->check()) {
+                $pelanggan->user_id = auth()->id();
+            }
+            
             if (empty($pelanggan->kode_pelanggan)) {
                 $pelanggan->kode_pelanggan = $pelanggan->generateKodePelanggan();
             }

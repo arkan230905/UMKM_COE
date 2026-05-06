@@ -47,7 +47,9 @@ class LaporanController extends Controller
         $totalPembelianFiltered = $totalPembelian;
         
         // Total pembelian tunai (cash) - sesuai filter tanggal dengan logic yang sama
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $pembelianTunaiQuery = Pembelian::with(['details'])
+            ->where('user_id', auth()->id())
             ->where('payment_method', 'cash')
             ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
                 return $q->whereBetween('tanggal', [$request->start_date, $request->end_date]);
@@ -74,7 +76,9 @@ class LaporanController extends Controller
         });
         
         // Total pembelian yang belum lunas (credit dan status != lunas) - sesuai filter tanggal
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $pembelianBelumLunasQuery = Pembelian::with(['details'])
+            ->where('user_id', auth()->id())
             ->where('payment_method', 'credit')
             ->where('status', '!=', 'lunas')
             ->when($request->has('start_date') && $request->has('end_date') && $request->start_date && $request->end_date, function($q) use ($request) {
@@ -253,12 +257,17 @@ class LaporanController extends Controller
         $itemId = $request->get('item_id'); // Remove default to item_id=2
         $satuanId = $request->get('satuan_id');
 
-        // Daftar item untuk dropdown - pastikan data sesuai database
+        // Daftar item untuk dropdown - CRITICAL: Filter by user_id untuk multi-tenant
         $materials = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+            ->where('user_id', auth()->id())
             ->orderBy('nama_bahan', 'asc')
             ->get();
-        $products = Produk::with('satuan')->orderBy('nama_produk', 'asc')->get();
+        $products = Produk::with('satuan')
+            ->where('user_id', auth()->id())
+            ->orderBy('nama_produk', 'asc')
+            ->get();
         $bahanPendukungs = \App\Models\BahanPendukung::with(['satuanRelation', 'subSatuan1', 'subSatuan2', 'subSatuan3'])
+            ->where('user_id', auth()->id())
             ->orderBy('nama_bahan', 'asc')
             ->get();
 
@@ -353,7 +362,23 @@ class LaporanController extends Controller
             }
             $movQ = StockMovement::query()->where('item_type', $tipe == 'bahan_pendukung' ? 'support' : $tipe);
             
+            // CRITICAL MULTI-TENANT: Filter item_ids yang hanya milik user yang login
+            if ($tipe == 'material') {
+                $allowedItemIds = BahanBaku::where('user_id', auth()->id())->pluck('id');
+            } elseif ($tipe == 'product') {
+                $allowedItemIds = Produk::where('user_id', auth()->id())->pluck('id');
+            } elseif ($tipe == 'bahan_pendukung') {
+                $allowedItemIds = \App\Models\BahanPendukung::where('user_id', auth()->id())->pluck('id');
+            } else {
+                $allowedItemIds = collect();
+            }
+            $movQ->whereIn('item_id', $allowedItemIds);
+            
             if ($itemId) { 
+                // Pastikan item_id yang dipilih memang milik user yang login
+                if (!$allowedItemIds->contains($itemId)) {
+                    throw new \Exception('Item tidak ditemukan atau bukan milik Anda.');
+                }
                 $movQ->where('item_id', $itemId); 
                 
                 // Get item data and conversion ratios
@@ -1229,7 +1254,9 @@ class LaporanController extends Controller
     // Helper method untuk query pembelian
     private function getPembelianQuery(Request $request)
     {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $query = Pembelian::with(['vendor', 'details.bahanBaku.satuan', 'details.bahanPendukung.satuanRelation'])
+            ->where('user_id', auth()->id())
             ->orderBy('tanggal', 'desc');
             
         // Filter berdasarkan tanggal
@@ -1349,7 +1376,9 @@ class LaporanController extends Controller
     // Helper method untuk query penjualan
     private function getPenjualanQuery(Request $request)
     {
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $query = Penjualan::with(['produk','details','returs'])
+            ->where('user_id', auth()->id())
             ->orderBy('tanggal', 'desc')->orderBy('id', 'desc');
             
         // Filter berdasarkan tanggal
@@ -1372,7 +1401,9 @@ class LaporanController extends Controller
     public function laporanRetur(Request $request)
     {
         // Filter untuk Retur Pembelian saja (sales returns sudah dipindah ke laporan penjualan)
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
         $purchaseReturnQuery = \App\Models\Retur::with(['pembelian.vendor', 'details.produk'])
+            ->where('user_id', auth()->id())
             ->where('type', 'purchase')
             ->when($request->purchase_start_date && $request->purchase_end_date, function($q) use ($request) {
                 return $q->whereBetween('return_date', [$request->purchase_start_date, $request->purchase_end_date]);
@@ -1399,7 +1430,9 @@ class LaporanController extends Controller
     // === LAPORAN PENGAJIAN ===
     public function laporanPenggajian(Request $request)
     {
+        // MULTI-TENANT: Filter by user_id
         $query = \App\Models\Penggajian::with(['pegawai'])
+            ->where('user_id', auth()->id())
             ->when($request->bulan, function($q) use ($request) {
                 $bulan = \Carbon\Carbon::parse($request->bulan);
                 return $q->whereYear('tanggal_penggajian', $bulan->year)
@@ -1424,16 +1457,16 @@ class LaporanController extends Controller
     // === LAPORAN PEMBAYARAN BEBAN ===
     public function laporanPembayaranBeban(Request $request)
     {
-        // Get all active Beban Operasional master data
-        $bebanOperasionalQuery = \App\Models\BebanOperasional::where('status', 'aktif')
-            ->orderBy('kategori')
-            ->orderBy('nama_beban');
-
         // Get the selected period or default to current month
         $selectedMonth = $request->bulan ? \Carbon\Carbon::parse($request->bulan) : now();
         
-        // Get all beban operasional
-        $bebanOperasional = $bebanOperasionalQuery->get();
+        // MULTI-TENANT: Get all pembayaran beban for logged-in user in selected period using direct query
+        $pembayaranQuery = \App\Models\PembayaranBeban::with(['coaBeban', 'coaKas'])
+            ->where('user_id', auth()->id())
+            ->whereYear('tanggal', $selectedMonth->year)
+            ->whereMonth('tanggal', $selectedMonth->month);
+        
+        $pembayaranBeban = $pembayaranQuery->get();
         
         // Build the Budget vs Actual data
         $laporanData = collect([]);
@@ -1441,33 +1474,62 @@ class LaporanController extends Controller
         $totalAktual = 0;
         $totalSelisih = 0;
         
-        foreach ($bebanOperasional as $beban) {
-            // Get actual payments for this beban in the selected period
-            $aktual = \App\Models\PembayaranBeban::where('beban_operasional_id', $beban->id)
-                ->whereYear('tanggal', $selectedMonth->year)
-                ->whereMonth('tanggal', $selectedMonth->month)
-                ->sum('jumlah');
+        // Group by beban operasional or COA for reporting
+        $groupedPembayaran = $pembayaranBeban->groupBy(function($item) {
+            return $item->beban_operasional_id ? 'beban_' . $item->beban_operasional_id : 'coa_' . $item->akun_beban_id;
+        });
+        
+        foreach ($groupedPembayaran as $groupKey => $pembayaranGroup) {
+            $totalAmount = $pembayaranGroup->sum('jumlah');
+            $firstItem = $pembayaranGroup->first();
             
-            $budget = $beban->budget_bulanan ?? 0;
-            $selisih = $budget - $aktual;
-            $status = $aktual > $budget ? 'Over Budget' : 'Aman';
+            $namaBeban = 'Unknown';
+            $kategori = 'Uncategorized';
+            $budget = 0;
+            
+            if ($firstItem->beban_operasional_id) {
+                // Use direct query to get beban operasional data (avoid Eloquent relationship issues)
+                $bebanOperasional = \App\Models\BebanOperasional::find($firstItem->beban_operasional_id);
+                
+                if ($bebanOperasional && $bebanOperasional->created_by == auth()->id()) {
+                    $namaBeban = $bebanOperasional->nama_beban;
+                    $kategori = $bebanOperasional->kategori;
+                    $budget = $bebanOperasional->budget_bulanan ?? 0;
+                } else {
+                    // If beban operasional belongs to different user or not found, treat as direct expense
+                    $namaBeban = $firstItem->coaBeban ? $firstItem->coaBeban->nama_akun : 'Unknown';
+                    $kategori = 'Direct Expense (Cross-User)';
+                    $budget = 0;
+                }
+            } elseif ($firstItem->coaBeban) {
+                // If only linked to COA
+                $namaBeban = $firstItem->coaBeban->nama_akun;
+                $kategori = 'Direct Expense';
+                $budget = 0; // No budget if not linked to beban operasional
+            }
+            
+            $selisih = $budget - $totalAmount;
+            $status = $totalAmount > $budget ? 'Over Budget' : 'Aman';
             
             $laporanData->push((object) [
-                'id' => $beban->id,
-                'kategori' => $beban->kategori,
-                'nama_beban' => $beban->nama_beban,
+                'id' => $firstItem->id,
+                'kategori' => $kategori,
+                'nama_beban' => $namaBeban,
                 'budget_bulanan' => $budget,
-                'aktual_bulan_ini' => $aktual,
+                'aktual_bulan_ini' => $totalAmount,
                 'selisih' => $selisih,
                 'status' => $status,
-                'status_color' => $aktual > $budget ? 'danger' : 'success',
-                'keterangan' => $beban->keterangan,
+                'status_color' => $totalAmount > $budget ? 'danger' : 'success',
+                'keterangan' => $firstItem->keterangan,
             ]);
             
             $totalBudget += $budget;
-            $totalAktual += $aktual;
+            $totalAktual += $totalAmount;
             $totalSelisih += $selisih;
         }
+        
+        // Sort by kategori then nama_beban
+        $laporanData = $laporanData->sortBy(['kategori', 'nama_beban'])->values();
         
         // Summary data
         $summary = (object) [
@@ -1497,8 +1559,9 @@ class LaporanController extends Controller
     // === LAPORAN PELUNASAN UTANG ===
     public function laporanPelunasanUtang(Request $request)
     {
-        // Query untuk daftar pembelian kredit yang belum lunas
+        // MULTI-TENANT: Query untuk daftar pembelian kredit yang belum lunas
         $pembelianBelumLunas = \App\Models\Pembelian::with(['vendor', 'details.bahanBaku'])
+            ->where('user_id', auth()->id())
             ->where('payment_method', 'credit')
             ->where('status', '!=', 'lunas')
             ->orderBy('tanggal', 'desc')
@@ -1556,8 +1619,9 @@ class LaporanController extends Controller
                 return $pembelian->sisa_utang_numerik > 0;
             });
 
-        // Query untuk riwayat pelunasan - FIXED query
+        // MULTI-TENANT: Query untuk riwayat pelunasan - FIXED query
         $query = \App\Models\PelunasanUtang::with(['pembelian.vendor', 'pembelian.details.bahanBaku'])
+            ->where('user_id', auth()->id())
             ->when($request->bulan, function($q) use ($request) {
                 $bulan = \Carbon\Carbon::parse($request->bulan);
                 return $q->whereYear('tanggal', $bulan->year)
@@ -1604,9 +1668,13 @@ class LaporanController extends Controller
     // === LAPORAN ALIRAN KAS DAN BANK ===
     public function laporanAliranKas(Request $request)
     {
-        // Ambil saldo awal kas dan bank dari COA
-        $kas = \App\Models\Coa::where('kode_akun', '112')->first(); // Kas
-        $bank = \App\Models\Coa::where('kode_akun', '111')->first(); // Kas Bank
+        // MULTI-TENANT: Ambil saldo awal kas dan bank dari COA (filtered by user_id)
+        $kas = \App\Models\Coa::where('kode_akun', '112')
+                ->where('user_id', auth()->id())
+                ->first(); // Kas
+        $bank = \App\Models\Coa::where('kode_akun', '111')
+                ->where('user_id', auth()->id())
+                ->first(); // Kas Bank
         
         $saldoAwalKas = $kas->saldo_awal ?? 0;
         $saldoAwalBank = $bank->saldo_awal ?? 0;

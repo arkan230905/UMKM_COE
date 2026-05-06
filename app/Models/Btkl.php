@@ -14,6 +14,7 @@ class Btkl extends Model
     public $incrementing = true;
 
     protected $fillable = [
+        'user_id',
         'kode_proses',
         'nama_btkl',
         'jabatan_id',
@@ -23,6 +24,28 @@ class Btkl extends Model
         'deskripsi_proses',
         'is_active'
     ];
+    
+    /**
+     * Boot method - auto-fill user_id + global scope multi-tenant
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Auto-set user_id saat create
+        static::creating(function ($model) {
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+
+        // Global scope: setiap query hanya ambil data milik user yang login
+        static::addGlobalScope('user_id', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('btkls.user_id', auth()->id());
+            }
+        });
+    }
 
     protected $casts = [
         'tarif_per_jam' => 'decimal:2',

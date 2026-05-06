@@ -20,7 +20,9 @@ class PenggajianController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Penggajian::with('pegawai');
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $query = Penggajian::with('pegawai')
+            ->where('user_id', auth()->id());
 
         // Filter nama pegawai
         if ($request->nama_pegawai) {
@@ -61,7 +63,10 @@ class PenggajianController extends Controller
         // Clear any old validation errors from session
         session()->forget('errors');
 
-        $pegawais = Pegawai::with('jabatanRelasi')->get();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $pegawais = Pegawai::with('jabatanRelasi')
+            ->where('user_id', auth()->id())
+            ->get();
         $kasbank = \App\Helpers\AccountHelper::getKasBankAccounts();
         return view('transaksi.penggajian.create', compact('pegawais', 'kasbank'));
     }
@@ -265,9 +270,8 @@ class PenggajianController extends Controller
                 'total_gaji' => $totalGaji,
             ]);
 
-            // STEP 5: Buat journal entry ke KEDUA sistem (journal_entries dan jurnal_umum)
+            // STEP 5: Buat journal entry ke sistem jurnal_umum
             $this->createJournalEntry($penggajian, $pegawai);
-            $this->createJournalEntryModern($penggajian, $pegawai);
 
             // Commit transaksi
             DB::commit();
@@ -382,7 +386,9 @@ class PenggajianController extends Controller
         try {
             DB::beginTransaction();
             
-            $penggajian = Penggajian::findOrFail($id);
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $penggajian = Penggajian::where('user_id', auth()->id())
+                ->findOrFail($id);
 
             // Cegah hapus jika sudah dibayar
             if ($penggajian->status_pembayaran === 'lunas') {
@@ -391,13 +397,13 @@ class PenggajianController extends Controller
             }
 
             // Hapus journal entries terkait terlebih dahulu
-            $journalEntries = \App\Models\JournalEntry::where('ref_type', 'penggajian')
+            $journalEntries = \App\Models\JurnalUmum::where('ref_type', 'penggajian')
                 ->where('ref_id', $penggajian->id)
                 ->get();
 
             foreach ($journalEntries as $entry) {
                 // Hapus journal lines terlebih dahulu
-                \App\Models\JournalLine::where('journal_entry_id', $entry->id)->delete();
+                \App\Models\JurnalUmum::where('journal_entry_id', $entry->id)->delete();
                 // Kemudian hapus journal entry
                 $entry->delete();
             }
@@ -424,7 +430,9 @@ class PenggajianController extends Controller
     public function markAsPaid($id)
     {
         try {
-            $penggajian = Penggajian::findOrFail($id);
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $penggajian = Penggajian::where('user_id', auth()->id())
+                ->findOrFail($id);
 
             // Hanya update jika status masih belum_lunas
             if ($penggajian->status_pembayaran === 'belum_lunas') {
@@ -684,9 +692,11 @@ class PenggajianController extends Controller
     /**
      * Buat journal entry di sistem modern (journal_entries + journal_lines)
      * Ini memastikan penggajian muncul di halaman jurnal umum
+     * METHOD DINONAKTIKAN - Menggunakan createJournalEntry() yang sudah bekerja dengan baik
      */
     private function createJournalEntryModern($penggajian, $pegawai)
     {
+<<<<<<< HEAD
         try {
             $jenisPegawai = strtolower($pegawai->kategori ?? $pegawai->jenis_pegawai ?? 'btktl');
 
@@ -745,6 +755,11 @@ class PenggajianController extends Controller
             \Log::error('Failed to create modern journal entry for penggajian: ' . $e->getMessage());
             throw $e;
         }
+=======
+        // Method ini dinonaktifkan karena createJournalEntry() sudah bekerja dengan baik
+        // dan tidak menyebabkan error field coa_id
+        return true;
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
     }
     
     /**
@@ -801,14 +816,20 @@ class PenggajianController extends Controller
      */
     public function edit($id)
     {
-        $penggajian = Penggajian::with('pegawai.jabatanRelasi')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penggajian = Penggajian::with('pegawai.jabatanRelasi')
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         
         // Cek apakah sudah diposting ke jurnal
         if ($penggajian->status_posting === 'posted') {
             return back()->withErrors(['error' => 'Penggajian yang sudah diposting ke jurnal tidak dapat diedit.']);
         }
         
-        $pegawais = Pegawai::with('jabatanRelasi')->get();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $pegawais = Pegawai::with('jabatanRelasi')
+            ->where('user_id', auth()->id())
+            ->get();
         $coaKasBank = \App\Models\Coa::whereIn('kode_akun', ['111', '112'])->get();
         
         return view('transaksi.penggajian.edit', compact('penggajian', 'pegawais', 'coaKasBank'));
@@ -822,7 +843,10 @@ class PenggajianController extends Controller
         DB::beginTransaction();
 
         try {
-            $penggajian = Penggajian::with('pegawai.jabatanRelasi')->findOrFail($id);
+            // CRITICAL: Filter by user_id untuk multi-tenant isolation
+            $penggajian = Penggajian::with('pegawai.jabatanRelasi')
+                ->where('user_id', auth()->id())
+                ->findOrFail($id);
             
             // Cek apakah sudah diposting ke jurnal
             if ($penggajian->status_posting === 'posted') {
@@ -946,7 +970,10 @@ class PenggajianController extends Controller
 
     public function show($id)
     {
-        $penggajian = Penggajian::with('pegawai')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penggajian = Penggajian::with('pegawai')
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         return view('transaksi.penggajian.show', compact('penggajian'));
     }
 
@@ -965,7 +992,10 @@ class PenggajianController extends Controller
      */
     public function generateSlip($id)
     {
-        $penggajian = Penggajian::with('pegawai')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penggajian = Penggajian::with('pegawai')
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         
         // Check permission: admin, owner, atau pegawai yang bersangkutan
         if (!in_array(auth()->user()->role, ['admin', 'owner']) && auth()->user()->pegawai_id !== $penggajian->pegawai_id) {
@@ -980,7 +1010,10 @@ class PenggajianController extends Controller
      */
     public function downloadSlip($id)
     {
-        $penggajian = Penggajian::with('pegawai')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penggajian = Penggajian::with('pegawai')
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         
         // Check permission: admin, owner, atau pegawai yang bersangkutan
         if (!in_array(auth()->user()->role, ['admin', 'owner']) && auth()->user()->pegawai_id !== $penggajian->pegawai_id) {
@@ -1000,7 +1033,9 @@ class PenggajianController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
-        $penggajian = Penggajian::findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penggajian = Penggajian::where('user_id', auth()->id())
+            ->findOrFail($id);
         
         $request->validate([
             'action' => 'required|in:pay,cancel',
@@ -1042,7 +1077,10 @@ class PenggajianController extends Controller
             abort(403, 'Anda tidak memiliki akses untuk posting ke jurnal');
         }
 
-        $penggajian = Penggajian::with('pegawai')->findOrFail($id);
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $penggajian = Penggajian::with('pegawai')
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
 
         // Cegah double posting
         if ($penggajian->status_posting === 'posted') {

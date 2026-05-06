@@ -10,7 +10,10 @@ class VendorController extends Controller
     // Tampilkan semua vendor
     public function index()
     {
-        $vendors = Vendor::orderBy('id', 'asc')->get(); // urut ID kecil ke besar
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $vendors = Vendor::where('user_id', auth()->id())
+            ->orderBy('id', 'asc')
+            ->get();
         return view('master-data.vendor.index', compact('vendors'));
     }
 
@@ -31,7 +34,7 @@ class VendorController extends Controller
             'email' => 'required|email',
         ]);
 
-        $vendor = Vendor::create($request->all());
+        $vendor = Vendor::create(array_merge($request->all(), ['user_id' => auth()->id()])); // 🔒 SECURITY: Add user_id
         
         // Log for debugging
         \Log::info('Vendor created successfully', [

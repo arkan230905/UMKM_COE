@@ -41,16 +41,20 @@ class AdminAuthController extends Controller
                     ->withInput();
             }
 
-            // Cari pegawai dengan email dan jabatan admin
+            // 🔒 SECURITY: Cari pegawai dengan email dan jabatan admin (multi-tenant)
             // Pegawai harus ada di tabel pegawais dengan jabatan yang mengandung kata 'admin'
-            $pegawai = Pegawai::where('email', $validated['email'])
+            $pegawaiQuery = Pegawai::where('email', $validated['email'])
                 ->where(function($q) {
                     $q->where('jabatan', 'like', '%admin%')
-                      ->orWhere('jabatan', 'like', '%Admin%')
-                      ->orWhere('jabatan', '=', 'admin')
-                      ->orWhere('jabatan', '=', 'Admin');
-                })
-                ->first();
+                      ->orWhere('jabatan', 'like', '%Admin%');
+                });
+            
+            // Filter by user_id if column exists
+            if (\Illuminate\Support\Facades\Schema::hasColumn('pegawais', 'user_id')) {
+                $pegawaiQuery->where('user_id', auth()->id());
+            }
+            
+            $pegawai = $pegawaiQuery->first();
 
             if (!$pegawai) {
                 Log::warning('Admin login attempt failed - email not found or not admin role', [

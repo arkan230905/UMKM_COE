@@ -19,17 +19,31 @@ class BopController extends Controller
     public function index()
     {
         try {
+<<<<<<< HEAD
             // Auto-fix database if nama_bop_proses column doesn't exist
             $this->ensureDatabaseStructure();
 
             // Get all BOP Proses with their production process data
             $bopProses = BopProses::with('prosesProduksi')
+=======
+            // 🔒 MULTI-TENANT: Get BOP Proses for logged-in user only
+            $bopProses = BopProses::with(['prosesProduksi' => function($query) {
+                $query->where('user_id', auth()->id());
+            }])
+                ->where('user_id', auth()->id())
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 ->where('is_active', true)
                 ->orderBy('id')
                 ->get();
 
+<<<<<<< HEAD
             // Get all production processes (BTKL data) for dropdown
             $prosesProduksis = ProsesProduksi::where('kapasitas_per_jam', '>', 0)
+=======
+            // 🔒 MULTI-TENANT: Get production processes for logged-in user only
+            $prosesProduksis = ProsesProduksi::where('user_id', auth()->id())
+                ->where('kapasitas_per_jam', '>', 0)
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 ->orderBy('kode_proses')
                 ->get();
 
@@ -309,7 +323,7 @@ class BopController extends Controller
             'proses_produksi_id' => 'required|exists:proses_produksis,id|unique:bop_proses,proses_produksi_id',
             'komponen_bop' => 'required|array|min:1',
             'komponen_bop.*.component' => 'required|string',
-            'komponen_bop.*.rate_per_hour' => 'required|numeric|min:0',
+            'komponen_bop.*.rate_per_produk' => 'required|numeric|min:0',
         ]);
 
         try {
@@ -324,7 +338,7 @@ class BopController extends Controller
 
             // Filter out empty components and validate at least one has rate > 0
             $validComponents = collect($validated['komponen_bop'])->filter(function($component) {
-                return !empty($component['component']) && floatval($component['rate_per_hour']) > 0;
+                return !empty($component['component']) && floatval($component['rate_per_produk']) > 0;
             });
 
             if ($validComponents->isEmpty()) {
@@ -337,24 +351,37 @@ class BopController extends Controller
                 throw new \Exception('Komponen BOP tidak boleh duplikat.');
             }
 
-            // Calculate values from komponen_bop array
-            $totalBopPerJam = $validComponents->sum('rate_per_hour');
+            // Calculate values from komponen_bop array (per produk)
+            $totalBopPerProduk = $validComponents->sum('rate_per_produk');
             $kapasitasPerJam = $prosesProduksi->kapasitas_per_jam;
-            $bopPerUnit = $kapasitasPerJam > 0 ? $totalBopPerJam / $kapasitasPerJam : 0;
+            $btklPerProduk = $kapasitasPerJam > 0 ? floatval($prosesProduksi->tarif_btkl) / $kapasitasPerJam : 0;
+            $totalBiayaPerProduk = $btklPerProduk + $totalBopPerProduk;
+
+            // Prepare component data for storage (all components in JSON)
+            $komponenData = [];
+            foreach ($validComponents as $komponen) {
+                $komponenData[] = [
+                    'component' => $komponen['component'],
+                    'rate_per_produk' => floatval($komponen['rate_per_produk']),
+                    'description' => $komponen['description'] ?? ''
+                ];
+            }
 
             // Debug: Log the calculated values
-            \Log::info('BOP Debug - Total BOP per Jam: ' . $totalBopPerJam);
-            \Log::info('BOP Debug - Komponen BOP: ' . json_encode($validComponents->values()->all()));
+            \Log::info('BOP Debug - Total BOP per Produk: ' . $totalBopPerProduk);
+            \Log::info('BOP Debug - BTKL per Produk: ' . $btklPerProduk);
+            \Log::info('BOP Debug - Total Biaya per Produk: ' . $totalBiayaPerProduk);
+            \Log::info('BOP Debug - Komponen BOP: ' . json_encode($komponenData));
 
-            // Create or Update BOP Proses with JSON data
+            // Create or Update BOP Proses with new structure
             $bopProses = BopProses::updateOrCreate(
                 ['proses_produksi_id' => $validated['proses_produksi_id']],
                 [
-                    'komponen_bop' => $validComponents->values()->all(),
-                    'total_bop_per_jam' => $totalBopPerJam,
+                    'komponen_bop' => $komponenData,
+                    'total_bop_per_produk' => $totalBopPerProduk,
+                    'total_biaya_per_produk' => $totalBiayaPerProduk,
+                    'bop_per_unit' => $totalBopPerProduk,
                     'kapasitas_per_jam' => $kapasitasPerJam,
-                    'bop_per_unit' => $bopPerUnit,
-                                        'periode' => date('Y-m'),
                     'keterangan' => "BOP untuk proses {$prosesProduksi->nama_proses}",
                     'is_active' => true,
                 ]
@@ -400,6 +427,7 @@ class BopController extends Controller
     }
 
     /**
+<<<<<<< HEAD
      * Get BOP Proses data for editing (AJAX)
      */
     public function getProses($id)
@@ -441,6 +469,8 @@ class BopController extends Controller
     }
 
     /**
+=======
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
      * Show form for editing BOP Proses
      */
     public function editProses($id)

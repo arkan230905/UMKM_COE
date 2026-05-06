@@ -14,8 +14,10 @@ class BahanBakuController extends Controller
     // Menampilkan semua data bahan baku
     public function index()
     {
+        // MULTI-TENANT: Filter by user_id to prevent data leakage
         // Sort by created_at ascending (oldest to newest)
         $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])
+            ->where('user_id', auth()->id())
             ->orderBy('created_at', 'asc')
             ->get();
         
@@ -37,7 +39,10 @@ class BahanBakuController extends Controller
     // Menampilkan detail bahan baku
     public function show($id)
     {
-        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])->findOrFail($id);
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
         
         // Hitung harga rata-rata untuk display
         $averageHarga = $this->getAverageHargaSatuan($bahanBaku->id);
@@ -59,8 +64,9 @@ class BahanBakuController extends Controller
     // Menampilkan form tambah data
     public function create()
     {
-        $satuans = Satuan::all();
-        $coas = \App\Models\Coa::all();
+        // 🔒 SECURITY: Filter satuan and coa by user_id for multi-tenant isolation
+        $satuans = Satuan::where('user_id', auth()->id())->get();
+        $coas = \App\Models\Coa::where('user_id', auth()->id())->get();
         return view('master-data.bahan-baku.create', compact('satuans', 'coas'));
     }
 
@@ -75,7 +81,12 @@ class BahanBakuController extends Controller
             'satuan_id' => 'required|exists:satuans,id',
             'stok' => 'nullable|numeric|min:0',
             'harga_satuan' => 'required|numeric|min:0',
+<<<<<<< HEAD
             'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan,NULL,id,user_id,'.auth()->id(),
+=======
+            // CRITICAL: Add user_id to unique validation for multi-tenant isolation
+            'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan,NULL,id,user_id,' . auth()->id(),
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             'stok_minimum' => 'nullable|numeric|min:0',
             'deskripsi' => 'nullable|string|max:1000',
             'sub_satuan_1_id' => 'required|exists:satuans,id',
@@ -100,7 +111,9 @@ class BahanBakuController extends Controller
             $kodeBahan = 'BB' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
         }
         
+        // CRITICAL: Add user_id for multi-tenant isolation
         $bahanBaku = BahanBaku::create([
+            'user_id' => auth()->id(),
             'nama_bahan' => $request->nama_bahan,
             'kode_bahan' => $kodeBahan,
             'satuan_id' => $request->satuan_id,
@@ -138,6 +151,19 @@ class BahanBakuController extends Controller
                 'ref_id' => 0,
                 'keterangan' => 'Stok awal ' . $request->nama_bahan,
             ]);
+            
+            // Update COA Persediaan saldo_awal
+            if ($request->coa_persediaan_id) {
+                $coa = \App\Models\Coa::where('kode_akun', $request->coa_persediaan_id)
+                    ->where('user_id', auth()->id())
+                    ->first();
+                    
+                if ($coa) {
+                    $nilaiSaldoAwal = ($request->stok ?? 0) * ($request->harga_satuan ?? 0);
+                    $coa->saldo_awal = ($coa->saldo_awal ?? 0) + $nilaiSaldoAwal;
+                    $coa->save();
+                }
+            }
         }
 
         return redirect()->route('master-data.bahan-baku.index')->with('success', 'Data bahan baku berhasil ditambahkan!');
@@ -146,9 +172,14 @@ class BahanBakuController extends Controller
     // Menampilkan form edit
     public function edit($id)
     {
-        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])->findOrFail($id);
-        $satuans = Satuan::all();
-        $coas = \App\Models\Coa::all();
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $bahanBaku = BahanBaku::with(['satuan', 'subSatuan1', 'subSatuan2', 'subSatuan3', 'coaPembelian', 'coaPersediaan', 'coaHpp'])
+            ->where('user_id', auth()->id())
+            ->findOrFail($id);
+        
+        // 🔒 SECURITY: Filter satuan and coa by user_id for multi-tenant isolation
+        $satuans = Satuan::where('user_id', auth()->id())->get();
+        $coas = \App\Models\Coa::where('user_id', auth()->id())->get();
         return view('master-data.bahan-baku.edit', compact('bahanBaku', 'satuans', 'coas'));
     }
 
@@ -179,7 +210,8 @@ class BahanBakuController extends Controller
             'coa_hpp_id' => 'nullable|exists:coas,kode_akun',
         ]);
 
-        $bahanBaku = BahanBaku::findOrFail($id);
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $bahanBaku = BahanBaku::where('user_id', auth()->id())->findOrFail($id);
         
         // Update properties one by one and save
         $bahanBaku->nama_bahan = $request->nama_bahan;
@@ -216,7 +248,8 @@ class BahanBakuController extends Controller
     public function destroy($id)
     {
         try {
-            $bahanBaku = BahanBaku::findOrFail($id);
+            // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+            $bahanBaku = BahanBaku::where('user_id', auth()->id())->findOrFail($id);
             
             // Check for foreign key constraints before deleting
             $constraints = [];

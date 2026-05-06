@@ -4,201 +4,90 @@
 
 @section('content')
 <style>
-/* CSS Reset untuk menghilangkan underline - HIGHEST PRIORITY */
-* {
-    text-decoration: none !important;
+/* =====================================================
+   PRESENSI PAGE - Scoped CSS (tidak merusak sidebar)
+   Semua selector di-prefix dengan .presensi-page
+   ===================================================== */
+
+/* Variabel warna cokelat - hanya untuk halaman ini */
+.presensi-page {
+    --primary-gold: #8B5E3C;
+    --secondary-gold: #A0714F;
+    --light-gold: #C49A6C;
+    --accent-gold: #B07D4F;
+    --dark: #3E2723;
+    --white: #ffffff;
+    --shadow: rgba(139, 94, 60, 0.25);
 }
 
-a {
-    text-decoration: none !important;
-    color: inherit !important;
-}
-
-a:hover {
-    text-decoration: none !important;
-    color: inherit !important;
-}
-
-a:focus {
-    text-decoration: none !important;
-    outline: none !important;
-}
-
-a:visited {
-    text-decoration: none !important;
-    color: inherit !important;
-}
-
-a:active {
-    text-decoration: none !important;
-    color: inherit !important;
-}
-
-/* Bootstrap override */
-.btn {
-    text-decoration: none !important;
-}
-
-.btn:hover {
-    text-decoration: none !important;
-}
-
-.btn:focus {
-    text-decoration: none !important;
-    outline: none !important;
-}
-
-.btn:visited {
-    text-decoration: none !important;
-}
-
-.btn:active {
-    text-decoration: none !important;
-}
-
-/* FontAwesome override */
-.fa, .fas, .far, .fab {
-    text-decoration: none !important;
-}
-
-/* Custom Styles untuk Presensi Page - Konsisten dengan tema cokelat */
-.presensi-header {
-    background: linear-gradient(135deg, var(--secondary-gold) 0%, var(--primary-gold) 100%);
+/* Header banner cokelat */
+.presensi-page .presensi-header {
+    background: linear-gradient(135deg, #A0714F 0%, #8B5E3C 100%);
     border-radius: 15px;
     padding: 2rem;
     margin-bottom: 2rem;
-    box-shadow: 0 10px 30px var(--shadow);
+    box-shadow: 0 10px 30px rgba(139, 94, 60, 0.25);
 }
 
-.presensi-header h1 {
-    color: var(--white) !important;
+.presensi-page .presensi-header h1 {
+    color: #ffffff !important;
     font-weight: 700;
     margin: 0;
     font-size: 2rem;
 }
 
-.presensi-header .btn-group {
-    gap: 0.5rem;
+.presensi-page .presensi-header p {
+    color: rgba(255,255,255,0.85);
 }
 
-.presensi-header .btn {
+/* Tombol Tambah Presensi */
+.presensi-page .presensi-header .btn-tambah {
+    background: linear-gradient(135deg, #C49A6C 0%, #B07D4F 100%);
+    color: #3E2723 !important;
+    border: 1px solid rgba(255,255,255,0.3);
     border-radius: 25px;
     padding: 0.6rem 1.5rem;
     font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px var(--shadow);
-    text-decoration: none !important;
+    text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    outline: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(139, 94, 60, 0.3);
 }
 
-.presensi-header .btn:hover {
+.presensi-page .presensi-header .btn-tambah:hover {
+    background: linear-gradient(135deg, #B07D4F 0%, #A0714F 100%);
+    color: #ffffff !important;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px var(--shadow);
+    box-shadow: 0 6px 20px rgba(139, 94, 60, 0.4);
+    text-decoration: none;
 }
 
-.presensi-header .btn:focus {
-    outline: none;
-    box-shadow: 0 4px 15px var(--shadow);
-}
-
-.presensi-header .btn:active {
-    outline: none;
-    transform: translateY(0);
-}
-
-.presensi-header .btn i {
-    font-size: 0.9rem;
-    margin: 0;
-    text-decoration: none !important;
-}
-
-.presensi-header .btn-primary {
-    background: linear-gradient(135deg, var(--light-gold) 0%, var(--accent-gold) 100%);
-    color: var(--dark) !important;
-    border: 1px solid rgba(255,255,255,0.2);
-}
-
-.presensi-header .btn-primary:hover {
-    background: linear-gradient(135deg, var(--accent-gold) 0%, var(--secondary-gold) 100%);
-    color: var(--white) !important;
-}
-
-.presensi-header .btn-success {
-    background: linear-gradient(135deg, var(--light-gold) 0%, var(--secondary-gold) 100%);
-    color: var(--white) !important;
-}
-
-.presensi-header .btn-warning {
-    background: linear-gradient(135deg, var(--light-gold) 0%, var(--accent-gold) 100%);
-    color: var(--dark) !important;
-}
-
-.presensi-header .btn-danger {
-    background: linear-gradient(135deg, var(--secondary-gold) 0%, var(--primary-gold) 100%);
-    color: var(--white) !important;
-}
-
-/* Card header dengan tema cokelat */
-.card-header {
-    background: linear-gradient(135deg, var(--light-gold) 0%, var(--accent-gold) 100%) !important;
-    border-bottom: 1px solid var(--primary-gold) !important;
-    color: var(--dark) !important;
-    font-weight: 600;
-}
-
-.card-header h6 {
-    color: var(--dark) !important;
-    margin: 0;
-}
-
-.alert-custom {
-    border-radius: 10px;
-    border: none;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
-}
-
-.alert-warning {
-    background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
-    border-left: 4px solid #ffc107;
-}
-
-.alert-info {
-    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
-    border-left: 4px solid #17a2b8;
-}
-
-.alert-success {
-    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-    border-left: 4px solid #28a745;
-}
-
-.card {
+/* Card */
+.presensi-page .card {
     border-radius: 15px;
     border: none;
     box-shadow: 0 5px 20px rgba(0,0,0,0.08);
 }
 
-.card-header {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+.presensi-page .card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
     border-radius: 15px 15px 0 0 !important;
-    border-bottom: 2px solid #dee2e6;
+    border-bottom: 2px solid #dee2e6 !important;
+    color: #495057 !important;
+    font-weight: 600;
 }
 
-.card-header h6 {
+.presensi-page .card-header h6 {
     font-weight: 700;
-    color: #495057;
+    color: #495057 !important;
+    margin: 0;
 }
 
-.table {
-    border-radius: 10px;
-    overflow: hidden;
-}
-
-.table thead th {
-    background: linear-gradient(135deg, var(--secondary-gold) 0%, var(--primary-gold) 100%);
+/* Tabel */
+.presensi-page .table thead th {
+    background: linear-gradient(135deg, #A0714F 0%, #8B5E3C 100%);
     color: white;
     font-weight: 600;
     border: none;
@@ -207,153 +96,158 @@ a:active {
     letter-spacing: 0.5px;
 }
 
-.table tbody tr {
-    transition: all 0.3s ease;
+.presensi-page .table tbody tr {
+    transition: background-color 0.2s ease;
 }
 
-.table tbody tr:hover {
-    background-color: #f8f9fa;
-    transform: scale(1.01);
+.presensi-page .table tbody tr:hover {
+    background-color: #fdf6f0;
 }
 
-.table tbody td {
+.presensi-page .table tbody td {
     vertical-align: middle;
-    padding: 1rem 0.75rem;
+    padding: 0.85rem 0.75rem;
     color: #212529;
-    font-weight: 500;
 }
 
-.employee-avatar {
-    width: 45px;
-    height: 45px;
+/* Avatar pegawai */
+.presensi-page .employee-avatar {
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #e9ecef;
+    border: 2px solid #e9ecef;
 }
 
-.employee-avatar-placeholder {
-    width: 45px;
-    height: 45px;
+.presensi-page .employee-avatar-placeholder {
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 3px solid #e9ecef;
+    border: 2px solid #e9ecef;
+    flex-shrink: 0;
 }
 
-.badge {
-    font-weight: 600;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-}
-
-.badge-success {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-}
-
-.badge-warning {
+/* Tombol aksi di tabel */
+.presensi-page .btn-edit {
     background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
     color: #212529;
-}
-
-.badge-danger {
-    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-}
-
-.badge-secondary {
-    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-}
-
-.btn-group .btn {
-    border-radius: 8px;
-    padding: 0.5rem 0.8rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
     border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
 }
 
-.btn-group .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.btn-warning {
-    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+.presensi-page .btn-edit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
     color: #212529;
+    text-decoration: none;
 }
 
-.btn-danger {
+.presensi-page .btn-hapus {
     background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.7rem;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
 }
 
-.empty-state {
+.presensi-page .btn-hapus:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    color: #ffffff;
+}
+
+/* Tombol filter & search */
+.presensi-page .btn-filter {
+    background: linear-gradient(135deg, #A0714F 0%, #8B5E3C 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1.2rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.presensi-page .btn-filter:hover {
+    background: linear-gradient(135deg, #8B5E3C 0%, #7a5234 100%);
+    color: #ffffff;
+    text-decoration: none;
+}
+
+/* Tombol cetak */
+.presensi-page .btn-cetak {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1.2rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s ease;
+}
+
+.presensi-page .btn-cetak:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40,167,69,0.3);
+    color: #ffffff;
+    text-decoration: none;
+}
+
+/* Empty state */
+.presensi-page .empty-state {
     padding: 3rem;
     text-align: center;
 }
 
-.empty-state i {
-    font-size: 4rem;
-    color: #6c757d;
+.presensi-page .empty-state i {
+    font-size: 3.5rem;
+    color: #adb5bd;
+    display: block;
     margin-bottom: 1rem;
 }
 
-.empty-state h5 {
+.presensi-page .empty-state h5 {
     color: #495057;
     font-weight: 600;
 }
 
-.empty-state p {
+.presensi-page .empty-state p {
     color: #6c757d;
 }
 
-.pagination .page-link {
-    border-radius: 8px;
+/* Alert sukses */
+.presensi-page .alert-success {
+    border-radius: 10px;
     border: none;
-    margin: 0 2px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.pagination .page-link:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.jam-masuk {
-    color: #212529;
-    font-weight: 700;
-}
-
-.jam-keluar {
-    color: #212529;
-    font-weight: 700;
-}
-
-.jumlah-jam {
-    color: #212529;
-    font-weight: 700;
-}
-
-.fw-bold {
-    font-weight: 700 !important;
-    color: #212529 !important;
+    border-left: 4px solid #28a745;
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.06);
 }
 </style>
 
-<div class="container-fluid">
-    <!-- Header dengan gradient -->
+<div class="container-fluid presensi-page">
+    <!-- Header banner cokelat -->
     <div class="presensi-header">
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h1 class="mb-0">
                     <i class="fas fa-calendar-check me-3"></i>Data Presensi
                 </h1>
-                <p class="text-white mb-0 mt-2 opacity-75">Kelola data kehadiran pegawai</p>
+                <p class="mb-0 mt-2">Kelola data kehadiran pegawai</p>
             </div>
-            <div class="btn-group">
-                <a href="{{ route('transaksi.presensi.create') }}" class="btn btn-primary">
+            <div>
+                <a href="{{ route('transaksi.presensi.create') }}" class="btn-tambah">
                     <i class="fas fa-plus"></i> Tambah Presensi
                 </a>
             </div>
@@ -361,13 +255,13 @@ a:active {
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success fade show alert-custom" role="alert">
+        <div class="alert alert-success mb-3" role="alert">
             <i class="fas fa-check-circle me-2"></i>
             {{ session('success') }}
         </div>
     @endif
 
-    <!-- Card dengan desain modern -->
+    <!-- Card utama -->
     <div class="card">
         <div class="card-header py-3">
             <h6 class="m-0">
@@ -380,6 +274,7 @@ a:active {
                 <div class="col-md-8">
                     <form method="GET" action="{{ route('transaksi.presensi.index') }}">
                         <div class="row g-3">
+<<<<<<< HEAD
                             <div class="col-md-3">
                                 <label class="form-label small">Bulan</label>
                                 <select name="bulan" class="form-select">
@@ -416,6 +311,17 @@ a:active {
                                 <input type="hidden" name="search" value="{{ $search ?? '' }}">
                                 <button type="submit" class="btn btn-primary w-100">
                                     <i class="fas fa-search"></i> Filter
+=======
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold">Filter Tanggal</label>
+                                <input type="date" name="date_filter" class="form-control"
+                                       value="{{ $dateFilter ?? '' }}">
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <input type="hidden" name="search" value="{{ $search ?? '' }}">
+                                <button type="submit" class="btn-filter">
+                                    <i class="fas fa-search me-1"></i> Filter
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                 </button>
                             </div>
                         </div>
@@ -423,13 +329,13 @@ a:active {
                 </div>
                 <div class="col-md-4">
                     <form method="GET" action="{{ route('transaksi.presensi.index') }}">
-                        <label class="form-label small">Cari Pegawai</label>
+                        <label class="form-label small fw-semibold">Cari Pegawai</label>
                         <div class="input-group">
                             <input type="hidden" name="bulan" value="{{ $filters['bulan'] ?? '' }}">
                             <input type="hidden" name="tahun" value="{{ $filters['tahun'] ?? '' }}">
                             <input type="hidden" name="status" value="{{ $filters['status'] ?? '' }}">
                             <input type="text" name="search" class="form-control"
-                                   placeholder="Cari pegawai..." value="{{ $search }}">
+                                   placeholder="Cari nama pegawai..." value="{{ $search ?? '' }}">
                             <button class="btn btn-outline-secondary" type="submit">
                                 <i class="fas fa-search"></i>
                             </button>
@@ -438,21 +344,26 @@ a:active {
                 </div>
             </div>
 
-            <!-- Cetak Laporan Button (Owner/Admin Only) -->
+            <!-- Cetak Laporan (Owner/Admin Only) -->
             @if(auth()->user()->role === 'owner' || auth()->user()->role === 'admin')
             <div class="row mb-3">
                 <div class="col-12 text-end">
+<<<<<<< HEAD
                     <a href="{{ route('transaksi.presensi.cetak', ['bulan' => $filters['bulan'] ?? '', 'tahun' => $filters['tahun'] ?? '', 'search' => $search ?? '']) }}"
                        target="_blank" class="btn btn-success">
+=======
+                    <a href="{{ route('transaksi.presensi.cetak', ['date_filter' => $dateFilter ?? '', 'search' => $search ?? '']) }}"
+                       target="_blank" class="btn-cetak">
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                         <i class="fas fa-print"></i> Cetak Laporan
                     </a>
                 </div>
             </div>
             @endif
 
-            <!-- Table dengan desain menarik -->
+            <!-- Tabel -->
             <div class="table-responsive">
-                <table class="table table-hover" id="dataTable" width="100%" cellspacing="0">
+                <table class="table table-hover mb-0" id="dataTable" width="100%" cellspacing="0">
                     <thead>
                         <tr>
                             <th class="text-center" width="5%">No</th>
@@ -470,48 +381,50 @@ a:active {
                         <tr>
                             <td class="text-center">{{ $loop->iteration }}</td>
                             <td>
-                                <div class="d-flex align-items-center">
+                                <div class="d-flex align-items-center gap-2">
                                     @if($presensi->pegawai && $presensi->pegawai->foto)
-                                        <img src="{{ asset('storage/' . $presensi->pegawai->foto) }}" 
-                                             alt="Foto" class="employee-avatar me-3">
+                                        <img src="{{ storage_url($presensi->pegawai->foto) }}"
+                                             alt="Foto" class="employee-avatar">
                                     @else
-                                        <div class="employee-avatar-placeholder me-3">
-                                            <i class="fas fa-user text-white"></i>
+                                        <div class="employee-avatar-placeholder">
+                                            <i class="fas fa-user text-white" style="font-size:0.9rem;"></i>
                                         </div>
                                     @endif
-                                    <div>
-                                        <div class="fw-bold">
-                                            {{ $presensi->pegawai->nama ?? 'Pegawai Tidak Ditemukan' }}
-                                        </div>
-                                    </div>
+                                    <span class="fw-semibold">
+                                        {{ $presensi->pegawai->nama ?? 'Pegawai Tidak Ditemukan' }} - {{ $presensi->pegawai->jabatan ?? 'Tidak ada jabatan' }}
+                                    </span>
                                 </div>
                             </td>
-                            <td class="text-center">
-                                <span class="fw-bold">{{ $presensi->tgl_presensi ? $presensi->tgl_presensi->format('d/m/Y') : '-' }}</span>
+                            <td class="text-center fw-semibold">
+                                {{ $presensi->tgl_presensi ? $presensi->tgl_presensi->format('d/m/Y') : '-' }}
+                            </td>
+                            <td class="text-center fw-semibold">
+                                {{ $presensi->jam_masuk ? date('H:i', strtotime($presensi->jam_masuk)) : '-' }}
+                            </td>
+                            <td class="text-center fw-semibold">
+                                {{ $presensi->jam_keluar ? date('H:i', strtotime($presensi->jam_keluar)) : '-' }}
+                            </td>
+                            <td class="text-center fw-semibold">
+                                {{ $presensi->jumlah_jam !== null ? $presensi->jumlah_jam . ' jam' : '-' }}
                             </td>
                             <td class="text-center">
-                                <span class="jam-masuk">{{ $presensi->jam_masuk ? date('H.i', strtotime($presensi->jam_masuk)) : '-' }}</span>
+                                <span class="badge
+                                    @if($presensi->status === 'hadir') bg-success
+                                    @elseif($presensi->status === 'terlambat') bg-warning text-dark
+                                    @elseif($presensi->status === 'izin') bg-info text-dark
+                                    @elseif($presensi->status === 'sakit') bg-secondary
+                                    @else bg-danger
+                                    @endif">
+                                    {{ ucfirst($presensi->status) }}
+                                </span>
                             </td>
                             <td class="text-center">
-                                <span class="jam-keluar">{{ $presensi->jam_keluar ? date('H.i', strtotime($presensi->jam_keluar)) : '-' }}</span>
-                            </td>
-                            <td class="text-center">
-                                @if($presensi->jumlah_jam !== null)
-                                    <span class="jumlah-jam">{{ $presensi->jumlah_jam }} jam</span>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                            <td class="text-center">
-                                <span class="fw-bold">{{ ucfirst($presensi->status) }}</span>
-                            </td>
-                            <td class="text-center">
-                                <div class="btn-group" role="group">
-                                    <a href="{{ route('transaksi.presensi.edit', $presensi->id) }}" 
-                                       class="btn btn-warning btn-sm" title="Edit">
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a href="{{ route('transaksi.presensi.edit', $presensi->id) }}"
+                                       class="btn-edit" title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
-                                    <form action="{{ route('transaksi.presensi.destroy', $presensi->id) }}" 
+                                    <form action="{{ route('transaksi.presensi.destroy', $presensi->id) }}"
                                           method="POST" class="d-inline delete-form">
                                         @csrf
                                         @method('DELETE')
@@ -519,7 +432,7 @@ a:active {
                                         <input type="hidden" name="tahun" value="{{ $filters['tahun'] ?? '' }}">
                                         <input type="hidden" name="status" value="{{ $filters['status'] ?? '' }}">
                                         <input type="hidden" name="search" value="{{ $search ?? '' }}">
-                                        <button type="submit" class="btn btn-danger btn-sm" title="Hapus">
+                                        <button type="submit" class="btn-hapus" title="Hapus">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
@@ -542,8 +455,10 @@ a:active {
             <!-- Pagination -->
             @if($presensis->hasPages())
                 <div class="d-flex justify-content-between align-items-center mt-4">
-                    <div class="text-muted">
-                        Menampilkan <strong>{{ $presensis->firstItem() }}</strong> sampai <strong>{{ $presensis->lastItem() }}</strong> dari <strong>{{ $presensis->total() }}</strong> data
+                    <div class="text-muted small">
+                        Menampilkan <strong>{{ $presensis->firstItem() }}</strong>
+                        sampai <strong>{{ $presensis->lastItem() }}</strong>
+                        dari <strong>{{ $presensis->total() }}</strong> data
                     </div>
                     <div>
                         {{ $presensis->withQueryString()->links() }}
@@ -555,30 +470,21 @@ a:active {
 </div>
 
 @push('scripts')
-<!-- jQuery -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- SweetAlert2 -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-$(document).ready(function() {
-    // Initialize tooltips
-    $('[data-toggle="tooltip"]').tooltip();
-    
-    // Delete confirmation
-    $('.delete-btn').on('click', function(e) {
+document.querySelectorAll('.delete-form').forEach(function(form) {
+    form.addEventListener('submit', function(e) {
         e.preventDefault();
-        var form = $(this).closest('form');
-        
         Swal.fire({
-            title: 'Apakah Anda yakin?',
-            text: "Data yang dihapus tidak dapat dikembalikan!",
+            title: 'Hapus data ini?',
+            text: 'Data yang dihapus tidak dapat dikembalikan!',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#dc3545',
             cancelButtonColor: '#6c757d',
             confirmButtonText: 'Ya, hapus!',
             cancelButtonText: 'Batal'
-        }).then((result) => {
+        }).then(function(result) {
             if (result.isConfirmed) {
                 form.submit();
             }

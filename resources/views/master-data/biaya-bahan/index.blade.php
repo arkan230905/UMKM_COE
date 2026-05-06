@@ -24,28 +24,11 @@
         </div>
     @endif
 
-    @if(session('warning'))
-        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>{{ session('warning') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    @if(session('info'))
-        <div class="alert alert-info alert-dismissible fade show" role="alert">
-            <i class="fas fa-info-circle me-2"></i>{{ session('info') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
     <!-- Filter Section -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white">
             <h6 class="mb-0">
                 <i class="fas fa-filter me-2"></i>Filter Data
-                @if(request()->hasAny(['nama_produk', 'harga_min', 'harga_max']))
-                    <small class="text-white-50">(Filter Aktif)</small>
-                @endif
             </h6>
         </div>
         <div class="card-body">
@@ -90,18 +73,30 @@
                     <thead class="table-warning">
                         <tr>
                             <th style="width: 3%;" class="text-center">No</th>
+<<<<<<< HEAD
                             <th style="width: 30%;">Produk</th>
                             <th style="width: 20%;" class="text-center">Bahan Baku</th>
                             <th style="width: 22%;" class="text-end">Total Biaya</th>
+=======
+                            <th style="width: 25%;">Produk</th>
+                            <th style="width: 20%;" class="text-center">Bahan Baku</th>
+                            <th style="width: 22%;" class="text-end">Total Biaya Bahan Baku</th>
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                             <th style="width: 10%;" class="text-center">Status</th>
-                            <th style="width: 15%;" class="text-center">Aksi</th>
+                            <th style="width: 20%;" class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($produks as $produk)
+                        @forelse($produkBiaya as $index => $data)
                             @php
+<<<<<<< HEAD
                                 $biaya = $produkBiaya[$produk->id] ?? [];
                                 $totalBiaya = $biaya['total_biaya_bahan_baku'] ?? 0; // Hanya BBB
+=======
+                                $produk = $data['produk'] ?? null;
+                                $biaya = $data;
+                                $totalBiaya = $biaya['total_biaya'] ?? 0;
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                 $totalBiayaBahanBaku = $biaya['total_biaya_bahan_baku'] ?? 0;
                                 
                                 // HANYA HITUNG ITEM BAHAN BAKU YANG VALID (harga > 0)
@@ -115,8 +110,8 @@
                                 <td class="text-center">{{ $loop->iteration }}</td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        @if($produk->foto)
-                                            <img src="{{ Storage::url($produk->foto) }}" 
+                                        @if($produk && $produk->foto)
+                                            <img src="{{ storage_url($produk->foto) }}" 
                                                  alt="{{ $produk->nama_produk }}" 
                                                  class="rounded me-2"
                                                  style="width: 40px; height: 40px; object-fit: cover;">
@@ -127,8 +122,8 @@
                                             </div>
                                         @endif
                                         <div>
-                                            <div class="fw-bold">{{ $produk->nama_produk }}</div>
-                                            @if($produk->barcode)
+                                            <div class="fw-bold">{{ $produk ? $produk->nama_produk : 'Unknown' }}</div>
+                                            @if($produk && $produk->barcode)
                                                 <small class="text-muted">{{ $produk->barcode }}</small>
                                             @endif
                                         </div>
@@ -143,88 +138,69 @@
                                             Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}
                                         </small>
                                     @else
+<<<<<<< HEAD
                                         <span class="text-muted">-</span>
+=======
+                                        <span class="text-muted">0 item</span>
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    @if($totalBiaya > 0)
-                                        <div class="fw-bold text-success fs-5">
-                                            Rp {{ number_format($totalBiaya, 0, ',', '.') }}
-                                        </div>
-                                        @if($produk->harga_jual)
-                                            @php
-                                                $margin = $produk->harga_jual > 0 ? (($produk->harga_jual - $totalBiaya) / $produk->harga_jual * 100) : 0;
-                                            @endphp
-                                            <small class="text-muted">
-                                                Margin: 
-                                                <span class="badge {{ $margin >= 20 ? 'bg-success' : ($margin >= 10 ? 'bg-warning text-dark' : 'bg-danger') }}">
-                                                    {{ number_format($margin, 1) }}%
-                                                </span>
-                                            </small>
-                                        @endif
-                                    @else
-                                        <span class="text-muted">Rp 0</span>
+                                    <div class="fw-bold text-primary">
+                                        Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}
+                                    </div>
+                                    @if($totalBiayaBahanPendukung > 0)
+                                        <small class="text-muted d-block">
+                                            + Rp {{ number_format($totalBiayaBahanPendukung, 0, ',', '.') }}
+                                        </small>
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @if($totalBiaya > 0)
-                                        <span class="badge bg-success">
-                                            <i class="fas fa-check-circle"></i> Lengkap
-                                        </span>
+                                    @if($jumlahBahanBaku > 0 || $jumlahBahanPendukung > 0)
+                                        <span class="badge bg-success">Valid</span>
                                     @else
-                                        <span class="badge bg-secondary">
-                                            <i class="fas fa-minus-circle"></i> Kosong
-                                        </span>
+                                        <span class="badge bg-secondary">Kosong</span>
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <div class="btn-group btn-group-sm" role="group">
-                                        @if($totalBiaya > 0)
-                                            <a href="{{ route('master-data.biaya-bahan.show', $produk->id) }}" 
-                                               class="btn btn-outline-primary" 
-                                               data-bs-toggle="tooltip" 
-                                               title="Lihat Detail">
+                                    @if($jumlahBahanBaku > 0 || $jumlahBahanPendukung > 0)
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ route('master-data.biaya-bahan.detail', $produk->id) }}" 
+                                               class="btn btn-sm btn-outline-primary" title="Detail Biaya Bahan">
                                                 <i class="fas fa-eye"></i>
                                             </a>
                                             <a href="{{ route('master-data.biaya-bahan.edit', $produk->id) }}" 
-                                               class="btn btn-outline-warning" 
-                                               data-bs-toggle="tooltip" 
-                                               title="Edit">
+                                               class="btn btn-sm btn-outline-warning" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form action="{{ route('master-data.biaya-bahan.destroy', $produk->id) }}" 
-                                                  method="POST" 
-                                                  class="d-inline" 
-                                                  onsubmit="return confirm('Yakin ingin menghapus semua biaya bahan untuk {{ $produk->nama_produk }}?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" 
-                                                        class="btn btn-outline-danger" 
-                                                        data-bs-toggle="tooltip" 
-                                                        title="Hapus">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </form>
-                                        @else
-                                            <a href="{{ route('master-data.biaya-bahan.create', $produk->id) }}" 
-                                               class="btn btn-success btn-sm" 
-                                               data-bs-toggle="tooltip" 
-                                               title="Tambah Biaya Bahan">
-                                                <i class="fas fa-plus"></i> Tambah
-                                            </a>
-                                        @endif
-                                    </div>
+                                        </div>
+                                    @else
+                                        <a href="{{ route('master-data.biaya-bahan.create', $produk->id) }}" 
+                                           class="btn btn-sm btn-primary" title="Input Biaya Bahan">
+                                            <i class="fas fa-plus"></i> Input
+                                        </a>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
+<<<<<<< HEAD
                                 <td colspan="6" class="text-center py-5">
                                     <i class="fas fa-calculator fa-3x text-muted mb-3 d-block"></i>
                                     <p class="text-muted mb-0">Belum ada data perhitungan biaya bahan</p>
+=======
+                                <td colspan="6" class="text-center py-4">
+                                    <div class="text-muted">
+                                        <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                                        <p>Belum ada data biaya bahan</p>
+                                        <small>Silakan input biaya bahan untuk produk yang tersedia</small>
+                                    </div>
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                 </td>
                             </tr>
                         @endforelse
                     </tbody>
+<<<<<<< HEAD
                     @if($produks->count() > 0)
                     <tfoot class="table-light">
                         <tr>
@@ -246,98 +222,56 @@
                         </tr>
                     </tfoot>
                     @endif
+=======
+>>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                 </table>
             </div>
             
-            <!-- Pagination -->
-            <div class="d-flex justify-content-between align-items-center mt-3">
-                <div class="text-muted">
-                    Menampilkan {{ $produks->firstItem() }} sampai {{ $produks->lastItem() }} dari {{ $produks->total() }} data
+            <!-- Summary -->
+            @if(count($produkBiaya) > 0)
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-box text-primary me-2"></i>
+                                            <div>
+                                                <small class="text-muted">Total Keseluruhan:</small>
+                                                <div class="fw-bold">{{ count($produkBiaya) }} item</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-calculator text-success me-2"></i>
+                                            <div>
+                                                <small class="text-muted">Total Biaya Bahan Baku:</small>
+                                                <div class="fw-bold">
+                                                    Rp {{ number_format(array_sum(array_column($produkBiaya, 'total_biaya_bahan_baku')), 0, ',', '.') }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-chart-line text-info me-2"></i>
+                                            <div>
+                                                <small class="text-muted">Total Biaya Keseluruhan:</small>
+                                                <div class="fw-bold">
+                                                    Rp {{ number_format(array_sum(array_column($produkBiaya, 'total_biaya_bahan')), 0, ',', '.') }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                {{ $produks->links() }}
-            </div>
+            @endif
         </div>
     </div>
 </div>
-
-@push('styles')
-<style>
-    .table {
-        margin-bottom: 0;
-    }
-    
-    .table th {
-        border-top: none;
-        font-weight: 600;
-        font-size: 0.875rem;
-        vertical-align: middle;
-        white-space: nowrap;
-    }
-    
-    .table td {
-        vertical-align: middle;
-    }
-    
-    /* Custom cream header style to match filter section */
-    .table-warning th {
-        background-color: #f8f9fa !important;
-        border-color: #dee2e6 !important;
-        color: #495057 !important;
-        font-weight: 600;
-        border-bottom: 2px solid #dee2e6 !important;
-    }
-    
-    .badge {
-        font-size: 0.75rem;
-        padding: 0.375rem 0.75rem;
-        font-weight: 500;
-    }
-    
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
-    }
-    
-    .table-responsive {
-        border-radius: 0.375rem;
-    }
-    
-    .card {
-        border: none;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    }
-    
-    .card-header {
-        border-bottom: 1px solid rgba(0, 0, 0, 0.125);
-    }
-    
-    /* Hover effect untuk row */
-    .table tbody tr:hover {
-        background-color: rgba(0, 123, 255, 0.05);
-        transition: background-color 0.2s ease;
-    }
-    
-    /* Style untuk gambar produk */
-    .table img {
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    /* Style untuk total biaya */
-    .fs-5 {
-        font-size: 1.1rem !important;
-    }
-</style>
-@endpush
-
-@push('scripts')
-<script>
-    // Initialize tooltips
-    document.addEventListener('DOMContentLoaded', function() {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        });
-    });
-</script>
-@endpush
 @endsection

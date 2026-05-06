@@ -13,6 +13,7 @@ class Penjualan extends Model
     protected $table = 'penjualans';
 
     protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation
         'nomor_penjualan',
         'produk_id',
         'tanggal',
@@ -71,12 +72,7 @@ class Penjualan extends Model
         return $this->hasMany(ReturPenjualan::class);
     }
 
-    // Relasi ke bukti pembayaran
-    public function buktiPembayaran()
-    {
-        return $this->hasMany(BuktiPembayaran::class);
-    }
-
+    
     // Accessor untuk status retur
     public function getStatusReturAttribute()
     {
@@ -101,6 +97,11 @@ class Penjualan extends Model
         
         // Auto-generate nomor penjualan saat creating
         static::creating(function ($penjualan) {
+            // CRITICAL: Auto-set user_id untuk multi-tenant isolation
+            if (empty($penjualan->user_id) && auth()->check()) {
+                $penjualan->user_id = auth()->id();
+            }
+            
             if (empty($penjualan->nomor_penjualan)) {
                 $tanggal = $penjualan->tanggal ?? now();
                 $date = is_string($tanggal) ? $tanggal : $tanggal->format('Ymd');

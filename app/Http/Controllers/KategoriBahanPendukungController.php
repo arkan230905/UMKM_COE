@@ -14,18 +14,24 @@ class KategoriBahanPendukungController extends Controller
 
     public function index()
     {
-        $kategoris = KategoriBahanPendukung::withCount('bahanPendukungs')->orderBy('nama')->get();
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $kategoris = KategoriBahanPendukung::where('user_id', auth()->id())
+            ->withCount('bahanPendukungs')
+            ->orderBy('nama')
+            ->get();
         return view('master-data.kategori-bahan-pendukung.index', compact('kategoris'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama' => 'required|string|max:100|unique:kategori_bahan_pendukung,nama',
+            // 🔒 SECURITY: Add user_id to unique validation for multi-tenant isolation
+            'nama' => 'required|string|max:100|unique:kategori_bahan_pendukung,nama,NULL,id,user_id,' . auth()->id(),
             'keterangan' => 'nullable|string|max:255',
         ]);
 
         $validated['is_active'] = true;
+        $validated['user_id'] = auth()->id(); // 🔒 CRITICAL: multi-tenant isolation
         KategoriBahanPendukung::create($validated);
 
         return redirect()->route('master-data.kategori-bahan-pendukung.index')
@@ -34,10 +40,12 @@ class KategoriBahanPendukungController extends Controller
 
     public function update(Request $request, $id)
     {
-        $kategori = KategoriBahanPendukung::findOrFail($id);
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $kategori = KategoriBahanPendukung::where('user_id', auth()->id())->findOrFail($id);
         
         $validated = $request->validate([
-            'nama' => 'required|string|max:100|unique:kategori_bahan_pendukung,nama,' . $id,
+            // 🔒 SECURITY: Add user_id to unique validation for multi-tenant isolation
+            'nama' => 'required|string|max:100|unique:kategori_bahan_pendukung,nama,' . $id . ',id,user_id,' . auth()->id(),
             'keterangan' => 'nullable|string|max:255',
             'is_active' => 'boolean',
         ]);
@@ -51,7 +59,8 @@ class KategoriBahanPendukungController extends Controller
 
     public function destroy($id)
     {
-        $kategori = KategoriBahanPendukung::findOrFail($id);
+        // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
+        $kategori = KategoriBahanPendukung::where('user_id', auth()->id())->findOrFail($id);
         
         if ($kategori->bahanPendukungs()->count() > 0) {
             return back()->with('error', 'Kategori tidak bisa dihapus karena masih digunakan');

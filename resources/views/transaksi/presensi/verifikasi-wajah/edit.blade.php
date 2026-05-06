@@ -16,17 +16,17 @@
                         @method('PUT')
                         
                         <div class="mb-3">
-                            <label for="nomor_induk_pegawai" class="form-label">Pegawai</label>
-                            <select name="nomor_induk_pegawai" id="nomor_induk_pegawai" class="form-select" required>
+                            <label for="kode_pegawai" class="form-label">Pegawai</label>
+                            <select name="kode_pegawai" id="kode_pegawai" class="form-select" required>
                                 <option value="">Pilih Pegawai</option>
                                 @foreach($pegawais as $pegawai)
-                                    <option value="{{ $pegawai->nomor_induk_pegawai }}" 
-                                            @if($pegawai->nomor_induk_pegawai == $verifikasi->nomor_induk_pegawai) selected @endif>
-                                        {{ $pegawai->nama }} ({{ $pegawai->nomor_induk_pegawai }})
+                                    <option value="{{ $pegawai->kode_pegawai }}" 
+                                            @if($pegawai->kode_pegawai == $verifikasi->kode_pegawai) selected @endif>
+                                        {{ $pegawai->nama }}{{ $pegawai->kode_pegawai ? ' (' . $pegawai->kode_pegawai . ')' : '' }}
                                     </option>
                                 @endforeach
                             </select>
-                            @error('nomor_induk_pegawai')
+                            @error('kode_pegawai')
                                 <div class="text-danger">{{ $message }}</div>
                             @enderror
                         </div>

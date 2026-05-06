@@ -9,7 +9,10 @@ class BebanController extends Controller
 {
     public function index()
     {
-        $bebans = Beban::latest()->get();
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $bebans = Beban::where('user_id', auth()->id())
+            ->latest()
+            ->get();
         return view('master-data.beban.index', compact('bebans'));
     }
 
@@ -26,7 +29,7 @@ class BebanController extends Controller
             'tanggal' => 'required|date',
         ]);
 
-        Beban::create($request->all());
+        Beban::create(array_merge($request->all(), ['user_id' => auth()->id()])); // 🔒 SECURITY: Add user_id
 
         return redirect()->route('master-data.beban.index')
             ->with('success', 'Data beban berhasil ditambahkan.');

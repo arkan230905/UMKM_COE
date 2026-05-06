@@ -12,6 +12,7 @@ class Presensi extends Model
     protected $primaryKey = 'id';
     
     protected $fillable = [
+        'user_id',  // CRITICAL: multi-tenant isolation (via pegawai)
         'pegawai_id',
         'tgl_presensi',
         'periode_bulan',
