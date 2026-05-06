@@ -26,11 +26,8 @@
                         <tr>
                             <th>Nama Bahan</th>
                             <th>Satuan Utama</th>
-                            <th class="text-end">Saldo Awal</th>
+                            <th class="text-end">Stok Saat Ini</th>
                             <th class="text-end">Harga Satuan Utama</th>
-                            <th>COA Pembelian</th>
-                            <th>COA Persediaan</th>
-                            <th>COA HPP</th>
                             <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -55,34 +52,24 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    <span class="badge bg-info">{{ number_format($bahan->saldo_awal ?? 0, 2, ',', '.') }}</span>
+                                    @php
+                                        $stokSaatIni = $bahan->stok_real_time ?? 0;
+                                        $stokMinimum = $bahan->stok_minimum ?? 0;
+                                    @endphp
+                                    
+                                    @if($stokSaatIni <= 0)
+                                        <span class="badge bg-danger">{{ number_format($stokSaatIni, 2, ',', '.') }}</span>
+                                        <small class="text-danger d-block">Habis</small>
+                                    @elseif($stokSaatIni <= $stokMinimum)
+                                        <span class="badge bg-warning">{{ number_format($stokSaatIni, 2, ',', '.') }}</span>
+                                        <small class="text-warning d-block">Hampir Habis</small>
+                                    @else
+                                        <span class="badge bg-success">{{ number_format($stokSaatIni, 2, ',', '.') }}</span>
+                                        <small class="text-success d-block">Aman</small>
+                                    @endif
                                 </td>
                                 <td class="text-end fw-semibold">
                                     Rp {{ number_format($bahan->harga_satuan_display ?? $bahan->harga_satuan ?? 0, 0, ',', '.') }}
-                                </td>
-                                <td>
-                                    @if($bahan->coaPembelian)
-                                        <small class="text-muted">{{ $bahan->coaPembelian->kode_akun }}</small><br>
-                                        {{ $bahan->coaPembelian->nama_akun }}
-                                    @else
-                                        -
-                                    @endif
-                                </td>
-                                <td>
-                                    @if($bahan->coaPersediaan)
-                                        <small class="text-muted">{{ $bahan->coaPersediaan->kode_akun }}</small><br>
-                                        {{ $bahan->coaPersediaan->nama_akun }}
-                                    @else
-                                        -
-                                    @endif
-                                </td>
-                                <td>
-                                    @if($bahan->coaHpp)
-                                        <small class="text-muted">{{ $bahan->coaHpp->kode_akun }}</small><br>
-                                        {{ $bahan->coaHpp->nama_akun }}
-                                    @else
-                                        -
-                                    @endif
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
