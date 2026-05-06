@@ -33,30 +33,16 @@ class PelangganController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-<<<<<<< HEAD
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
-            'phone'    => 'required|string|max:20',
-            'address'  => 'nullable|string',
-=======
+
             'name' => 'required|string|max:255',
             // 🔒 SECURITY: Add user_id to unique validation for multi-tenant isolation
             'email' => 'required|email|unique:users,email,NULL,id,user_id,' . auth()->id(),
             'phone' => 'required|string|max:20',
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            'password' => 'required|min:6|confirmed',
+'password' => 'required|min:6|confirmed',
         ]);
 
         $user = User::create([
-<<<<<<< HEAD
-            'name'               => $request->name,
-            'email'              => $request->email,
-            'phone'              => $request->phone,
-            'address'            => $request->address,
-            'password'           => Hash::make($request->password),
-            'role'               => 'pelanggan',
-            'email_verified_at'  => now(),
-=======
+
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
@@ -64,8 +50,7 @@ class PelangganController extends Controller
             'role' => 'pelanggan',
             'email_verified_at' => now(),
             'user_id' => auth()->id(), // 🔒 SECURITY: Add user_id for multi-tenant isolation
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-        ]);
+]);
 
         $user->plain_password = $request->password;
         $user->save();

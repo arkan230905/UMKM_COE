@@ -35,6 +35,9 @@ class Produk extends Model
     {
         parent::boot();
         
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+        
         static::creating(function ($produk) {
             // CRITICAL: Auto-fill user_id for multi-tenant isolation
             if (empty($produk->user_id) && auth()->check()) {

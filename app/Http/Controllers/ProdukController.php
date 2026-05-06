@@ -18,45 +18,33 @@ class ProdukController extends Controller
 {
     public function index(Request $request)
     {
-<<<<<<< HEAD
-        // Get filter parameters
-        $search = $request->get('search', '');
-        $kategoriFilter = $request->get('kategori', null);
-        $statusFilter = $request->get('status', '');
+        // CRITICAL: Filter by user_id untuk multi-tenant isolation
+        $search = $request->get('search');
+        $kategoriFilter = $request->get('kategori');
+        $statusFilter = $request->get('status');
         
-        // Get all categories with product counts
-        $kategoris = KategoriProduk::withCount('produks')->get();
+        // Get all products with filters
+        $query = Produk::where('user_id', auth()->id());
         
-        // Build query
-        $query = Produk::with(['bomJobCosting', 'kategori']);
-        
-        // Apply search filter
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->where('nama_produk', 'like', "%{$search}%")
-                  ->orWhere('barcode', 'like', "%{$search}%");
+                  ->orWhere('kode_produk', 'like', "%{$search}%");
             });
         }
         
-        // Apply category filter
         if ($kategoriFilter) {
             $query->where('kategori_id', $kategoriFilter);
         }
         
-        // Apply status filter
-        if ($statusFilter === 'aktif') {
-            $query->where('stok', '>', 0);
-        } elseif ($statusFilter === 'habis') {
-            $query->where('stok', '<=', 0);
+        if ($statusFilter) {
+            $query->where('status', $statusFilter);
         }
         
         $produks = $query->get();
-=======
-        // Get all products
-        // CRITICAL: Filter by user_id untuk multi-tenant isolation
-        $produks = Produk::where('user_id', auth()->id())
-            ->get();
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
+        
+        // Get kategoris for filter dropdown (CRITICAL: filter by user_id untuk multi-tenant)
+        $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
         
         // Calculate HPP from Harga Pokok Produksi (BBB + BTKL + BOP)
         $hargaBom = [];
@@ -89,7 +77,15 @@ class ProdukController extends Controller
     public function create()
     {
         $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
-        return view('master-data.produk.create', compact('kategoris'));
+        
+        // Get all COA Persediaan (kode 11x = Aset Lancar Persediaan)
+        $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
+            ->where('tipe_akun', 'Aset')
+            ->where('kode_akun', 'LIKE', '11%')
+            ->orderBy('kode_akun')
+            ->get();
+        
+        return view('master-data.produk.create', compact('kategoris', 'coaPersediaan'));
     }
     
     public function show($id)
@@ -121,6 +117,7 @@ class ProdukController extends Controller
         $request->validate([
             'nama_produk' => 'required|string|max:255',
             'kategori_id' => 'nullable|exists:kategori_produks,id',
+            'coa_persediaan_id' => 'required|exists:coas,kode_akun',
             'deskripsi' => 'nullable|string',
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
             'harga_jual' => 'required|numeric|min:0',
@@ -156,6 +153,7 @@ class ProdukController extends Controller
         Produk::create([
             'nama_produk' => $request->nama_produk,
             'kategori_id' => $request->input('kategori_id'),
+            'coa_persediaan_id' => $request->input('coa_persediaan_id'),
             'deskripsi' => $request->deskripsi,
             'foto' => $fotoPath,
             'harga_jual' => $hargaJual,
@@ -169,16 +167,21 @@ class ProdukController extends Controller
 
     public function edit(Produk $produk)
     {
-<<<<<<< HEAD
-        $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
-        return view('master-data.produk.edit', compact('produk', 'kategoris'));
-=======
+
         // 🔒 SECURITY: Filter by user_id for multi-tenant isolation
         $produk = Produk::where('user_id', auth()->id())->findOrFail($produk->id);
         
-        return view('master-data.produk.edit', compact('produk'));
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-    }
+        $kategoris = \App\Models\KategoriProduk::orderBy('nama')->get();
+        
+        // Get all COA Persediaan (kode 11x = Aset Lancar Persediaan)
+        $coaPersediaan = \App\Models\Coa::where('user_id', auth()->id())
+            ->where('tipe_akun', 'Aset')
+            ->where('kode_akun', 'LIKE', '11%')
+            ->orderBy('kode_akun')
+            ->get();
+        
+        return view('master-data.produk.edit', compact('produk', 'kategoris', 'coaPersediaan'));
+}
     
     /**
      * Print barcode labels for a product
@@ -262,6 +265,7 @@ class ProdukController extends Controller
         $request->validate([
             'nama_produk' => 'required|string|max:255',
             'kategori_id' => 'nullable|exists:kategori_produks,id',
+            'coa_persediaan_id' => 'required|exists:coas,kode_akun',
             'deskripsi' => 'nullable|string',
             'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
             'harga_jual' => 'required|string',
@@ -292,16 +296,9 @@ class ProdukController extends Controller
         $data = [
             'nama_produk' => $request->nama_produk,
             'kategori_id' => $request->input('kategori_id'),
+            'coa_persediaan_id' => $request->input('coa_persediaan_id'),
             'deskripsi' => $request->deskripsi,
             'harga_jual' => $hargaJual,
-<<<<<<< HEAD
-            'hpp' => $hppToUse,
-            'harga_bom' => $hppToUse,
-            'bopb_method' => $request->input('bopb_method'),
-            'bopb_rate' => $request->input('bopb_rate'),
-            'labor_hours_per_unit' => $request->input('labor_hours_per_unit'),
-=======
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
             'btkl_per_unit' => $request->input('btkl_per_unit'),
         ];
 

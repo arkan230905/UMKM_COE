@@ -101,14 +101,8 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    @php
-                                        // Calculate tarif BTKL: Jumlah Pegawai × Tarif per Jam Jabatan
-                                        $jumlahPegawai = $proses->jabatan ? $proses->jabatan->pegawais->count() : 0;
-                                        $tarifPerJamJabatan = $proses->jabatan ? $proses->jabatan->tarif : 0;
-                                        $tarifBtklCalculated = $jumlahPegawai * $tarifPerJamJabatan;
-                                    @endphp
-                                    @if($tarifBtklCalculated > 0)
-                                        <div class="fw-semibold">Rp {{ number_format($tarifBtklCalculated, 0, ',', '.') }}</div>
+                                    @if($proses->tarif_btkl > 0)
+                                        <div class="fw-semibold">Rp {{ number_format($proses->tarif_btkl, 0, ',', '.') }}</div>
                                         <small class="text-muted">per {{ $proses->satuan_btkl ?? 'jam' }}</small>
                                     @else
                                         <span class="text-muted">Rp 0</span>
@@ -121,14 +115,11 @@
                                     <span class="badge bg-info">{{ $proses->kapasitas_per_jam ?? 0 }} unit/jam</span>
                                 </td>
                                 <td class="text-end" 
-                                    data-biaya-per-produk="{{ $proses->kapasitas_per_jam > 0 ? number_format($tarifBtklCalculated / $proses->kapasitas_per_jam, 0, ',', '.') : '0' }}"
-                                    data-tarif="{{ number_format($tarifBtklCalculated, 0, ',', '.') }}"
+                                    data-biaya-per-produk="{{ $proses->biaya_btkl_per_produk > 0 ? number_format($proses->biaya_btkl_per_produk, 2, ',', '.') : '0' }}"
+                                    data-tarif="{{ number_format($proses->tarif_btkl, 0, ',', '.') }}"
                                     data-kapasitas="{{ $proses->kapasitas_per_jam }}">
-                                    @if($proses->kapasitas_per_jam > 0 && $tarifBtklCalculated > 0)
-                                        @php
-                                            $biayaPerProduk = $tarifBtklCalculated / $proses->kapasitas_per_jam;
-                                        @endphp
-                                        <div class="fw-semibold text-success">Rp {{ number_format($biayaPerProduk, 0, ',', '.') }}</div>
+                                    @if($proses->biaya_btkl_per_produk > 0)
+                                        <div class="fw-semibold text-success">Rp {{ number_format($proses->biaya_btkl_per_produk, 2, ',', '.') }}</div>
                                         <small class="text-muted">per unit</small>
                                     @else
                                         <span class="text-muted">Rp 0</span>
@@ -182,18 +173,10 @@
                         </div>
                         <div class="col-md-4 text-end">
                             @php
-                                // Calculate total biaya per produk for all processes
-                                $totalBiayaPerProduk = 0;
-                                foreach($prosesProduksis as $proses) {
-                                    if($proses->kapasitas_per_jam > 0 && $proses->jabatan) {
-                                        $jumlahPegawai = $proses->jabatan->pegawais->count();
-                                        $tarifPerJamJabatan = $proses->jabatan->tarif;
-                                        $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
-                                        $totalBiayaPerProduk += ($tarifBtkl / $proses->kapasitas_per_jam);
-                                    }
-                                }
+                                // Use biaya_btkl_per_produk from database
+                                $totalBiayaPerProduk = $prosesProduksis->sum('biaya_btkl_per_produk');
                             @endphp
-                            <div class="display-6 fw-bold text-primary">Rp {{ number_format($totalBiayaPerProduk, 0, ',', '.') }}</div>
+                            <div class="display-6 fw-bold text-primary">Rp {{ number_format($totalBiayaPerProduk, 2, ',', '.') }}</div>
                         </div>
                     </div>
                 </div>
@@ -209,18 +192,8 @@
                         <div class="col-md-3">
                             <div class="border-end">
                                 @php
-                                    // Calculate average tarif using dynamic calculation
-                                    $totalTarif = 0;
-                                    $countProses = 0;
-                                    foreach($prosesProduksis as $proses) {
-                                        if($proses->jabatan) {
-                                            $jumlahPegawai = $proses->jabatan->pegawais->count();
-                                            $tarifPerJamJabatan = $proses->jabatan->tarif;
-                                            $totalTarif += ($jumlahPegawai * $tarifPerJamJabatan);
-                                            $countProses++;
-                                        }
-                                    }
-                                    $avgTarif = $countProses > 0 ? $totalTarif / $countProses : 0;
+                                    // Use tarif_btkl from database
+                                    $avgTarif = $prosesProduksis->avg('tarif_btkl');
                                 @endphp
                                 <div class="fw-bold text-success">Rp {{ number_format($avgTarif, 0, ',', '.') }}</div>
                                 <small class="text-muted">Rata-rata Tarif/Jam</small>
@@ -237,21 +210,10 @@
                         </div>
                         <div class="col-md-3">
                             @php
-                                // Calculate average biaya per unit using dynamic tarif
-                                $totalBiayaPerUnit = 0;
-                                $countValidProses = 0;
-                                foreach($prosesProduksis as $proses) {
-                                    if($proses->kapasitas_per_jam > 0 && $proses->jabatan) {
-                                        $jumlahPegawai = $proses->jabatan->pegawais->count();
-                                        $tarifPerJamJabatan = $proses->jabatan->tarif;
-                                        $tarifBtkl = $jumlahPegawai * $tarifPerJamJabatan;
-                                        $totalBiayaPerUnit += ($tarifBtkl / $proses->kapasitas_per_jam);
-                                        $countValidProses++;
-                                    }
-                                }
-                                $avgBiayaPerUnit = $countValidProses > 0 ? $totalBiayaPerUnit / $countValidProses : 0;
+                                // Use biaya_btkl_per_produk from database
+                                $avgBiayaPerUnit = $prosesProduksis->avg('biaya_btkl_per_produk');
                             @endphp
-                            <div class="fw-bold text-warning">Rp {{ number_format($avgBiayaPerUnit, 0, ',', '.') }}</div>
+                            <div class="fw-bold text-warning">Rp {{ number_format($avgBiayaPerUnit, 2, ',', '.') }}</div>
                             <small class="text-muted">Rata-rata Biaya/Unit</small>
                         </div>
                     </div>

@@ -20,10 +20,12 @@ class ProsesProduksi extends Model
         'satuan_btkl',
         'kapasitas_per_jam',
         'jabatan_id',
+        'biaya_btkl_per_produk',
     ];
 
     protected $casts = [
         'tarif_btkl' => 'decimal:2',
+        'biaya_btkl_per_produk' => 'decimal:2',
         'kapasitas_per_jam' => 'integer',
     ];
 

@@ -77,23 +77,7 @@
         </div>
     </div>
 
-<<<<<<< HEAD
-    <!-- BOP Proses Table -->
-    <div class="card">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0 table-wide">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="text-center" style="width: 5%">No</th>
-                            <th style="width: 35%">Nama BOP Proses</th>
-                            <th style="width: 25%">Total BOP / produk</th>
-                            <th style="width: 15%">Jumlah Komponen</th>
-                            <th style="width: 20%">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-=======
+
     <!-- Tab Content -->
     <div id="bopProsesContent" class="content-section" style="display: block;">
         <!-- BOP Table -->
@@ -104,16 +88,14 @@
                         <thead class="table-light">
                             <tr>
                                 <th class="text-center" style="width: 5%">No</th>
-                                <th style="width: 20%">Nama Proses</th>
-                                <th style="width: 15%">BOP / produk</th>
-                                <th style="width: 15%">Biaya/Produk</th>
-                                <th style="width: 30%">Komponen BOP</th>
+                                <th style="width: 25%">Nama Proses</th>
+                                <th style="width: 20%">BOP / produk</th>
+                                <th style="width: 35%">Komponen BOP</th>
                                 <th style="width: 15%">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                            @forelse($bopProses as $index => $bop)
+@forelse($bopProses as $index => $bop)
                             <tr>
                                 <td class="text-center">
                                     <span class="badge bg-light text-dark">{{ $index + 1 }}</span>
@@ -134,20 +116,6 @@
                                             <div class="fw-semibold text-warning">Rp {{ formatNumberClean($bop->total_bop_per_produk ?? $bop->bop_per_unit) }}</div>
                                             <small class="text-muted">Per produk</small>
                                         </div>
-                                    </div>
-                                </td>
-                                <td>
-<<<<<<< HEAD
-                                    <div class="text-center">
-                                        <span class="badge bg-info">{{ is_array($bop->komponen_bop) ? count($bop->komponen_bop) : 0 }} komponen</span>
-=======
-                                    <div class="d-flex align-items-center">
-                                        <i class="bi bi-cash-stack me-2 text-success opacity-50"></i>
-                                        <div>
-                                            <div class="fw-bold text-success">{{ $bop->total_biaya_per_produk_formatted ?? $bop->biaya_per_produk_formatted }}</div>
-                                            <small class="text-muted">Total biaya</small>
-                                        </div>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                     </div>
                                 </td>
                                 <td>
@@ -232,7 +200,6 @@
                                         <span class="fw-bold text-success fs-6">Rp {{ formatNumberClean($totalBopPerProduk) }}</span>
                                     </div>
                                 </td>
-                                <td>-</td>
                             </tr>
                             @endif
                         </tbody>

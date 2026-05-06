@@ -170,22 +170,11 @@ class AkuntansiController extends Controller
                 $q->where('ju.debit', '!=', 0)
                   ->orWhere('ju.kredit', '!=', 0);
             })
-<<<<<<< HEAD
-->where(function($q) {
-                $q->where('coas.user_id', auth()->id())
-                  ->orWhereNull('coas.user_id');
-            })
-            ->orderBy('je.tanggal','asc')
-            ->orderBy('je.created_at','asc')
-            ->orderBy('je.id','asc')
-            ->orderBy('jl.id','asc');
-=======
+
             ->orderBy('ju.tanggal','asc')
             ->orderBy('ju.created_at','asc')
             ->orderBy('ju.id','asc');
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            
-        if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
+if ($from) { $query->whereDate('ju.tanggal','>=',$from); }
         if ($to)   { $query->whereDate('ju.tanggal','<=',$to); }
         if ($mappedRefType) { $query->where('ju.tipe_referensi', $mappedRefType); }
         if ($mappedRefId)   { $query->where('ju.referensi', $mappedRefId); }
@@ -234,115 +223,8 @@ class AkuntansiController extends Controller
             $entries->push($entry);
         }
         
-<<<<<<< HEAD
-        // TAMBAHAN: Ambil data dari tabel jurnal_umum (untuk penyusutan dan transaksi lain)
-        // Hanya ambil yang tidak ada di journal_entries untuk menghindari duplikasi
-        $jurnalUmumQuery = \DB::table('jurnal_umum as ju')
-            ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
-            ->select([
-                'ju.id',
-                'ju.tanggal',
-                'ju.coa_id',
-                'ju.debit',
-                'ju.kredit',
-                'ju.keterangan',
-                'ju.tipe_referensi',
-                'ju.referensi',
-                'coas.kode_akun',
-                'coas.nama_akun',
-                'coas.tipe_akun',
-                'ju.created_at',
-                \DB::raw("'ju_' as ref_type"),
-                \DB::raw('NULL as ref_id')
-            ])
-            ->where(function($q) {
-                $q->where('ju.debit', '>', 0)
-                  ->orWhere('ju.kredit', '>', 0);
-            })
-// Include all relevant transaction types including purchase
-            ->whereIn('ju.tipe_referensi', [
-                'penyusutan', 'adjustment', 'manual', 'pembelian' // Include purchase journals
-            ])
-            ->where(function($q) {
-                $q->where('coas.user_id', auth()->id())
-                  ->orWhereNull('coas.user_id');
-            })
-            // Exclude production entries that are already in journal_entries
-            ->whereNotIn('ju.tipe_referensi', [
-                'production_material',
-                'production_labor_overhead',
-                'production_bop',
-                'production_finish'
-            ])
-            ->orderBy('ju.tanggal','asc')
-            ->orderBy('ju.created_at','asc')
-            ->orderBy('ju.id','asc');
-            
-        if ($from) { $jurnalUmumQuery->whereDate('ju.tanggal','>=',$from); }
-        if ($to)   { $jurnalUmumQuery->whereDate('ju.tanggal','<=',$to); }
-        
-        // Handle ref_type filtering for purchase transactions
-        if ($refType) { 
-            if ($refType === 'purchase') {
-                $jurnalUmumQuery->where('ju.tipe_referensi', 'pembelian');
-            } else {
-                $jurnalUmumQuery->where('ju.tipe_referensi', $refType);
-            }
-        }
-        
-        // Handle ref_id filtering for purchase transactions
-        if ($refId && $refType === 'purchase') {
-            // Get the pembelian nomor_pembelian for filtering
-            $pembelian = \App\Models\Pembelian::find($refId);
-            if ($pembelian) {
-                $jurnalUmumQuery->where('ju.referensi', $pembelian->nomor_pembelian);
-            }
-        }
-        
-        if ($accountCode) { 
-            $jurnalUmumQuery->where('coas.kode_akun', $accountCode);
-        }
-        
-        $jurnalUmumResults = $jurnalUmumQuery->get();
-        
-        // Group jurnal_umum results by date and keterangan untuk menggabungkan debit/kredit
-        $jurnalUmumGrouped = $jurnalUmumResults->groupBy(function($item) {
-            return $item->tanggal . '|' . $item->keterangan;
-        });
-        
-        foreach ($jurnalUmumGrouped as $key => $group) {
-            $firstItem = $group->first();
-            
-            $entry = (object) [
-                'id' => 'ju_' . $firstItem->id, // Prefix untuk membedakan dengan journal_entries
-                'tanggal' => $firstItem->tanggal,
-                'created_at' => $firstItem->created_at,
-                'ref_type' => $firstItem->ref_type,
-                'ref_id' => null,
-                'memo' => $firstItem->keterangan,
-                'lines' => $group->map(function($item) {
-                    return (object) [
-                        'id' => $item->id,
-                        'debit' => $item->debit,
-                        'credit' => $item->kredit,
-                        'memo' => null,
-                        'account_code' => $item->kode_akun,
-                        'account_name' => $item->nama_akun,
-                        'account_type' => $item->tipe_akun,
-                        'coa' => (object) [
-                            'kode_akun' => $item->kode_akun,
-                            'nama_akun' => $item->nama_akun,
-                            'tipe_akun' => $item->tipe_akun
-                        ]
-                    ];
-                })
-            ];
-            $entries->push($entry);
-        }
-        
-=======
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-        // Sort all entries by date and created_at
+
+// Sort all entries by date and created_at
         $entries = $entries->sortBy(function($entry) {
             return $entry->tanggal . ' ' . $entry->created_at;
         });
@@ -474,18 +356,13 @@ class AkuntansiController extends Controller
                 $saldoAwal = (float)($coa->saldo_awal ?? 0);
             }
 
-<<<<<<< HEAD
-            // Query jurnal umum data for buku besar
-            $query = \DB::table('jurnal_umum as ju')
-                ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
-=======
+
             // MULTI-TENANT: Query jurnal_umum untuk konsistensi dengan sistem lain
             $query = \DB::table('jurnal_umum as ju')
                 ->leftJoin('coas', 'coas.id', '=', 'ju.coa_id')
                 ->where('ju.user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
                 ->where('coas.kode_akun', $accountCode) // Filter akun yang dipilih
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                ->select([
+->select([
                     'ju.*',
                     'coas.kode_akun',
                     'coas.nama_akun',
@@ -495,11 +372,8 @@ class AkuntansiController extends Controller
                     $q->where('ju.debit', '>', 0)
                       ->orWhere('ju.kredit', '>', 0);
                 })
-<<<<<<< HEAD
-                ->where('coas.kode_akun', $accountCode)
-=======
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                ->orderBy('ju.tanggal','asc')
+
+->orderBy('ju.tanggal','asc')
                 ->orderBy('ju.id','asc');
             
             if ($month && $year) {
@@ -509,31 +383,7 @@ class AkuntansiController extends Controller
 
             $journalLines = $query->get();
 
-<<<<<<< HEAD
-            // Group by referensi untuk struktur yang sesuai dengan view
-            $groupedLines = $journalLines->groupBy('referensi');
-            
-            foreach ($groupedLines as $referensi => $entryLines) {
-                $firstLine = $entryLines->first();
-                
-                $lines->push((object) [
-                    'id' => $firstLine->id,
-                    'tanggal' => $firstLine->tanggal,
-                    'memo' => $firstLine->keterangan,
-                    'lines' => $entryLines->map(function($line) {
-                        return (object) [
-                            'id' => $line->id,
-                            'debit' => $line->debit,
-                            'credit' => $line->kredit,
-                            'memo' => $line->keterangan,
-                            'coa' => (object) [
-                                'kode_akun' => $line->kode_akun,
-                                'nama_akun' => $line->nama_akun,
-                                'tipe_akun' => $line->tipe_akun
-                            ]
-                        ];
-                    })
-=======
+
             // DEBUG: Log query results untuk verifikasi multi-tenant
             \Log::info('Buku Besar Query Results', [
                 'user_id' => auth()->id(),
@@ -553,8 +403,7 @@ class AkuntansiController extends Controller
                     'kode_akun' => $line->kode_akun,
                     'nama_akun' => $line->nama_akun,
                     'tipe_akun' => $line->tipe_akun
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                ]);
+]);
             }
 
             $totalDebit = $journalLines->sum('debit');
@@ -900,158 +749,62 @@ class AkuntansiController extends Controller
         $from  = \Carbon\Carbon::create($tahun, $bulan, 1)->format('Y-m-d');
         $to    = \Carbon\Carbon::create($tahun, $bulan, 1)->endOfMonth()->format('Y-m-d');
 
-<<<<<<< HEAD
-        $userId = auth()->id();
-
-        // Ambil mutasi periode dari journal_lines (debit & kredit per coa_id)
-        $mutasi = \DB::table('journal_lines as jl')
-            ->join('journal_entries as je', 'je.id', '=', 'jl.journal_entry_id')
-            ->join('coas as c', 'c.id', '=', 'jl.coa_id')
-            ->whereBetween('je.tanggal', [$from, $to])
-            ->where(function($q) use ($userId) {
-                $q->where('c.user_id', $userId)->orWhereNull('c.user_id');
-            })
-            ->selectRaw('jl.coa_id, SUM(jl.debit) as total_debit, SUM(jl.credit) as total_kredit')
-            ->groupBy('jl.coa_id')
-            ->get()
-            ->keyBy('coa_id');
-
-        // Ambil COA yang punya mutasi di periode ini
-        $coaIds = $mutasi->keys()->toArray();
-        $coas = \App\Models\Coa::withoutGlobalScopes()
-            ->whereIn('id', $coaIds)
-=======
         // Ambil semua COA
-        $coas = \App\Models\Coa::select('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
-            ->where('user_id', auth()->id()) // MULTI-TENANT: Filter by user_id
-            ->groupBy('kode_akun', 'nama_akun', 'tipe_akun', 'saldo_normal', 'saldo_awal', 'kategori_akun')
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
+        $coas = \App\Models\Coa::where('user_id', auth()->id())
             ->orderBy('kode_akun')
             ->get();
 
-        // Hitung net balance per COA
-        // Pendapatan (4xxx): saldo normal kredit → net = kredit - debit
-        // HPP & Beban (5xxx): saldo normal debit → net = debit - kredit
-        $getSaldo = function($coa) use ($mutasi) {
-            $m      = $mutasi[$coa->id] ?? null;
-            $debit  = $m ? (float)$m->total_debit  : 0;
-            $kredit = $m ? (float)$m->total_kredit : 0;
-            $first  = substr($coa->kode_akun, 0, 1);
-            return $first === '4' ? ($kredit - $debit) : ($debit - $kredit);
-        };
+        // Hitung mutasi per COA untuk periode ini
+        $mutasi = \DB::table('jurnal_umum')
+            ->select('coa_id', 
+                \DB::raw('SUM(debit) as total_debit'), 
+                \DB::raw('SUM(kredit) as total_kredit'))
+            ->where('user_id', auth()->id())
+            ->whereDate('tanggal', '>=', $from)
+            ->whereDate('tanggal', '<=', $to)
+            ->groupBy('coa_id')
+            ->get()
+            ->keyBy('coa_id');
 
-        // ── PENDAPATAN: kode 4xxx, saldo normal kredit ────────────────
-        $pendapatan = $coas->filter(function($coa) use ($getSaldo) {
-            return substr($coa->kode_akun, 0, 1) === '4' && $getSaldo($coa) > 0;
-        })->sortBy('kode_akun')->values();
-
-        $totalPendapatan = $pendapatan->sum(fn($c) => $getSaldo($c));
-
-<<<<<<< HEAD
-        // ── DISKON PENJUALAN: kode 4xxx, saldo normal debit (kontra-revenue) ──
-        // Akun seperti "Diskon Penjualan" punya saldo debit → pengurang pendapatan
-        $diskonPenjualan = $coas->filter(function($coa) use ($mutasi) {
-            if (substr($coa->kode_akun, 0, 1) !== '4') return false;
-            $m     = $mutasi[$coa->id] ?? null;
-            $debit = $m ? (float)$m->total_debit  : 0;
-            $kredit = $m ? (float)$m->total_kredit : 0;
-            // Kontra-revenue: debit > kredit (saldo debit)
-            return $debit > $kredit;
-        })->sortBy('kode_akun')->values();
-
-        $totalDiskonPenjualan = $diskonPenjualan->sum(function($coa) use ($mutasi) {
+        // Build account data with final balance
+        $accountData = [];
+        foreach ($coas as $coa) {
             $m = $mutasi[$coa->id] ?? null;
-            return $m ? ((float)$m->total_debit - (float)$m->total_kredit) : 0;
-        });
-
-        // Pendapatan bersih = pendapatan bruto - diskon penjualan
-        $totalPendapatanBersih = $totalPendapatan - $totalDiskonPenjualan;
-
-        // ── HPP: kode 5xxx DAN nama mengandung "HPP" atau "Harga Pokok" ──
-        $hpp = $coas->filter(function($coa) use ($getSaldo) {
-            if (substr($coa->kode_akun, 0, 1) !== '5') return false;
-            $nama = strtolower($coa->nama_akun);
-            $isHpp = str_contains($nama, 'hpp') || str_contains($nama, 'harga pokok');
-            return $isHpp && $getSaldo($coa) > 0;
-        })->sortBy('kode_akun')->values();
-
-        $totalHpp = $hpp->sum(fn($c) => $getSaldo($c));
-
-        // ── LABA KOTOR ─────────────────────────────────────────────
-        $labaKotor = $totalPendapatanBersih - $totalHpp;
-
-        // ── BEBAN OPERASIONAL: kode 5xxx tapi BUKAN HPP ───────────
-        // (BBB, BTKL, BOP, dll — semua yang bukan HPP produk)
-        $beban = $coas->filter(function($coa) use ($getSaldo) {
-            if (substr($coa->kode_akun, 0, 1) !== '5') return false;
-            $nama = strtolower($coa->nama_akun);
-            $isHpp = str_contains($nama, 'hpp') || str_contains($nama, 'harga pokok');
-            return !$isHpp && $getSaldo($coa) > 0;
-        })->sortBy('kode_akun')->values();
-
-        $totalBeban = $beban->sum(fn($c) => $getSaldo($c));
-
-        // ── LABA BERSIH ────────────────────────────────────────────
-        $labaBersih = $labaKotor - $totalBeban;
-
-        // ── DETAIL PENJUALAN PER PRODUK ────────────────────────────
-        // Breakdown penjualan per produk untuk ditampilkan di bawah COA Penjualan
-        $detailPenjualan = \DB::table('penjualan_details as pd')
-            ->join('penjualans as p', 'p.id', '=', 'pd.penjualan_id')
-            ->join('produks as pr', 'pr.id', '=', 'pd.produk_id')
-            ->whereBetween('p.tanggal', [$from, $to])
-            ->selectRaw('pr.nama_produk,
-                         SUM(pd.jumlah) as total_qty,
-                         SUM(pd.subtotal) as total_pendapatan')
-            ->groupBy('pr.id', 'pr.nama_produk')
-            ->orderBy('total_pendapatan', 'desc')
-            ->get();
-
-        // ── DETAIL HPP PER PRODUK ──────────────────────────────────
-        // Sudah ada di $hpp (per COA HPP produk), tapi tambahkan qty dari penjualan
-        $detailHpp = \DB::table('penjualan_details as pd')
-            ->join('penjualans as p', 'p.id', '=', 'pd.penjualan_id')
-            ->join('produks as pr', 'pr.id', '=', 'pd.produk_id')
-            ->whereBetween('p.tanggal', [$from, $to])
-            ->selectRaw('pr.nama_produk,
-                         SUM(pd.jumlah) as total_qty,
-                         SUM(pd.jumlah * COALESCE(pr.hpp, pr.harga_bom, 0)) as total_hpp')
-            ->groupBy('pr.id', 'pr.nama_produk')
-            ->having('total_hpp', '>', 0)
-            ->orderBy('total_hpp', 'desc')
-            ->get();
-
-        return view('akuntansi.laba_rugi', compact(
-            'periode', 'from', 'to',
-            'pendapatan', 'hpp', 'beban',
-            'diskonPenjualan', 'totalDiskonPenjualan',
-            'totalPendapatan', 'totalPendapatanBersih', 'totalHpp', 'totalBeban',
-            'labaKotor', 'labaBersih',
-            'getSaldo',
-            'detailPenjualan', 'detailHpp'
-=======
+            $debit = $m ? (float)$m->total_debit : 0;
+            $kredit = $m ? (float)$m->total_kredit : 0;
+            
+            // Calculate saldo akhir based on account type
+            // Pendapatan (4xxx): saldo normal kredit → saldo = kredit - debit
+            // HPP & Beban (5xxx, 6xxx): saldo normal debit → saldo = debit - kredit
+            $first = substr($coa->kode_akun, 0, 1);
+            $saldoAkhir = $first === '4' ? ($kredit - $debit) : ($debit - $kredit);
+            
             $accountData[$coa->kode_akun] = [
                 'coa' => $coa,
                 'saldo_akhir' => $saldoAkhir
             ];
         }
         
-        // Filter akun pendapatan dan beban
+        // Filter akun pendapatan (4xxx)
         $pendapatan = $coas->filter(function($coa) use ($accountData) {
-            if (!in_array($coa->tipe_akun, ['Revenue', 'revenue', 'Pendapatan'])) return false;
+            $first = substr($coa->kode_akun, 0, 1);
+            if ($first !== '4') return false;
             $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
-            return $saldo != 0;
+            return $saldo > 0;
         })->sortBy('kode_akun');
         
+        // Get HPP (560)
         $hppCoa = $coas->where('kode_akun', '560')->first();
         $hppAmount = $hppCoa ? ($accountData['560']['saldo_akhir'] ?? 0) : 0;
         
+        // Filter akun beban (5xxx, 6xxx) excluding HPP
         $beban = $coas->filter(function($coa) use ($accountData) {
             // Exclude HPP from beban section
             if ($coa->kode_akun == '560') return false;
-            if (!in_array($coa->tipe_akun, ['Expense', 'expense', 'Beban', 'Biaya'])) return false;
+            $first = substr($coa->kode_akun, 0, 1);
+            if (!in_array($first, ['5', '6'])) return false;
             $saldo = $accountData[$coa->kode_akun]['saldo_akhir'] ?? 0;
-            return $saldo != 0;
+            return $saldo > 0;
         })->sortBy('kode_akun');
         
         // Hitung total
@@ -1071,7 +824,6 @@ class AkuntansiController extends Controller
             'periode', 'pendapatan', 'beban', 
             'totalPendapatan', 'totalBeban', 'labaBersih',
             'hppAmount', 'labaKotor', 'accountData'
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
         ));
     }
 }

@@ -81,13 +81,10 @@ class BahanBakuController extends Controller
             'satuan_id' => 'required|exists:satuans,id',
             'stok' => 'nullable|numeric|min:0',
             'harga_satuan' => 'required|numeric|min:0',
-<<<<<<< HEAD
-            'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan,NULL,id,user_id,'.auth()->id(),
-=======
+
             // CRITICAL: Add user_id to unique validation for multi-tenant isolation
             'kode_bahan' => 'nullable|string|max:50|unique:bahan_bakus,kode_bahan,NULL,id,user_id,' . auth()->id(),
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            'stok_minimum' => 'nullable|numeric|min:0',
+'stok_minimum' => 'nullable|numeric|min:0',
             'deskripsi' => 'nullable|string|max:1000',
             'sub_satuan_1_id' => 'required|exists:satuans,id',
             'sub_satuan_1_konversi' => 'required|numeric|min:0.01',
@@ -136,33 +133,19 @@ class BahanBakuController extends Controller
             'user_id' => auth()->id(),
         ]);
 
-        // Create initial stock movement if stock > 0
-        if (($request->stok ?? 0) > 0) {
-            \App\Models\StockMovement::create([
-                'item_type' => 'material',
-                'item_id' => $bahanBaku->id,
-                'tanggal' => now()->format('Y-m-d'),
-                'direction' => 'in',
-                'qty' => $request->stok,
-                'satuan' => $bahanBaku->satuan->nama ?? 'Unit',
-                'unit_cost' => $request->harga_satuan ?? 0,
-                'total_cost' => ($request->stok ?? 0) * ($request->harga_satuan ?? 0),
-                'ref_type' => 'initial_stock',
-                'ref_id' => 0,
-                'keterangan' => 'Stok awal ' . $request->nama_bahan,
-            ]);
-            
-            // Update COA Persediaan saldo_awal
-            if ($request->coa_persediaan_id) {
-                $coa = \App\Models\Coa::where('kode_akun', $request->coa_persediaan_id)
-                    ->where('user_id', auth()->id())
-                    ->first();
-                    
-                if ($coa) {
-                    $nilaiSaldoAwal = ($request->stok ?? 0) * ($request->harga_satuan ?? 0);
-                    $coa->saldo_awal = ($coa->saldo_awal ?? 0) + $nilaiSaldoAwal;
-                    $coa->save();
-                }
+        // IMPORTANT: Stock movement akan dibuat otomatis oleh BahanBakuObserver::created()
+        // JANGAN buat stock movement di sini untuk menghindari duplikasi!
+        
+        // Update COA Persediaan saldo_awal (jika ada)
+        if ($request->coa_persediaan_id && ($request->stok ?? 0) > 0) {
+            $coa = \App\Models\Coa::where('kode_akun', $request->coa_persediaan_id)
+                ->where('user_id', auth()->id())
+                ->first();
+                
+            if ($coa) {
+                $nilaiSaldoAwal = ($request->stok ?? 0) * ($request->harga_satuan ?? 0);
+                $coa->saldo_awal = ($coa->saldo_awal ?? 0) + $nilaiSaldoAwal;
+                $coa->save();
             }
         }
 

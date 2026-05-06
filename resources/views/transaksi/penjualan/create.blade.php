@@ -590,16 +590,12 @@ mark.bg-warning {
         
         // Get total
         const totalInput = document.getElementById('total_final');
-<<<<<<< HEAD
-        const total = parseFloat(totalInput.value) || 0;
-=======
+
         console.log('Total input value:', totalInput ? totalInput.value : 'null');
         
         const total = parseCurrency(totalInput.value);
         console.log('Parsed total:', total);
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-        
-        if (total <= 0) {
+if (total <= 0) {
             console.error('Total is zero or negative');
             alert('Total pembayaran harus lebih dari 0');
             return;
@@ -613,32 +609,7 @@ mark.bg-warning {
         tableRows.forEach(row => {
             const produkSelect = row.querySelector('.produk-select');
             if (produkSelect && produkSelect.value) {
-<<<<<<< HEAD
-                const subtotalEl = row.querySelector('.subtotal');
-                const subtotalRaw = subtotalEl.getAttribute('data-raw');
-                const subtotalVal = subtotalRaw
-                    ? parseFloat(subtotalRaw)
-                    : parseFloat(subtotalEl.value.replace(/\./g, '').replace(',', '.')) || 0;
 
-                const hargaEl = row.querySelector('.harga');
-                const hargaRaw = hargaEl.getAttribute('data-raw');
-                const hargaVal = hargaRaw
-                    ? parseFloat(hargaRaw)
-                    : parseFloat(hargaEl.value.replace(/\./g, '').replace(',', '.')) || 0;
-
-                const diskonPersen = parseFloat(row.querySelector('.diskon').value) || 0;
-                const grossBaris   = hargaVal * (parseFloat(row.querySelector('.jumlah').value) || 0);
-                const diskonNominal = Math.round(grossBaris * diskonPersen / 100);
-
-                tableData.push({
-                    produk_id: produkSelect.value,
-                    jumlah: row.querySelector('.jumlah').value,
-                    harga_satuan: hargaVal,
-                    diskon_persen: diskonPersen,
-                    diskon_nominal: diskonNominal,
-                    subtotal: subtotalVal
-                });
-=======
                 const itemData = {
                     produk_id: produkSelect.value,
                     jumlah: row.querySelector('.jumlah').value,
@@ -648,8 +619,7 @@ mark.bg-warning {
                 };
                 console.log('Adding item:', itemData);
                 tableData.push(itemData);
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            }
+}
         });
         
         console.log('Total items:', tableData.length);

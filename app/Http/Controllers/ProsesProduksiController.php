@@ -20,10 +20,7 @@ class ProsesProduksiController extends Controller
      */
     public function index()
     {
-<<<<<<< HEAD
-        // Load without pegawais relationship to avoid jabatan_id column error
-        $prosesProduksis = ProsesProduksi::with(['jabatan'])
-=======
+
         // 🔒 MULTI-TENANT: Filter by user_id
         // Load with essential relationships only from logged-in user
         $prosesProduksis = ProsesProduksi::with(['jabatan' => function($query) {
@@ -35,8 +32,7 @@ class ProsesProduksiController extends Controller
                       }]);
             }])
             ->where('user_id', auth()->id())
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            ->orderBy('kode_proses')
+->orderBy('kode_proses')
             ->paginate(10);
         
         return view('master-data.proses-produksi.index', compact('prosesProduksis'));
@@ -75,10 +71,7 @@ class ProsesProduksiController extends Controller
         ]);
 
         try {
-<<<<<<< HEAD
-            // Get jabatan data for verification - use string-based relationship
-            $jabatan = \App\Models\Jabatan::findOrFail($validated['jabatan_id']);
-=======
+
             // 🔒 MULTI-TENANT SECURITY: Verify jabatan belongs to logged-in user
             $jabatan = \App\Models\Jabatan::with(['pegawais' => function($query) {
                 // 🔒 SECURITY: Only get pegawais from logged-in user
@@ -86,9 +79,7 @@ class ProsesProduksiController extends Controller
             }])
             ->where('user_id', auth()->id())
             ->findOrFail($validated['jabatan_id']);
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            
-            // Count pegawai manually using jabatan name instead of jabatan_id
+// Count pegawai manually using jabatan name instead of jabatan_id
             $jumlahPegawai = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
             $tarifPerJam = $jabatan->tarif;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
@@ -116,6 +107,9 @@ class ProsesProduksiController extends Controller
                 'satuan_btkl' => $validated['satuan_btkl'],
                 'kapasitas_per_jam' => $validated['kapasitas_per_jam'],
                 'jabatan_id' => $validated['jabatan_id'], // Store jabatan reference
+                'biaya_btkl_per_produk' => $validated['kapasitas_per_jam'] > 0 
+                    ? $validated['tarif_btkl'] / $validated['kapasitas_per_jam'] 
+                    : 0, // CRITICAL: Calculate and store biaya per produk
             ];
 
             \Log::info('BTKL Create Data', $createData);
@@ -204,10 +198,7 @@ class ProsesProduksiController extends Controller
         ]);
 
         try {
-<<<<<<< HEAD
-            // Get jabatan data for verification - use string-based relationship
-            $jabatan = \App\Models\Jabatan::findOrFail($validated['jabatan_id']);
-=======
+
             // 🔒 MULTI-TENANT SECURITY: Verify jabatan belongs to logged-in user
             $jabatan = \App\Models\Jabatan::with(['pegawais' => function($query) {
                 // 🔒 SECURITY: Only get pegawais from logged-in user
@@ -215,9 +206,7 @@ class ProsesProduksiController extends Controller
             }])
             ->where('user_id', auth()->id())
             ->findOrFail($validated['jabatan_id']);
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-            
-            // Count pegawai manually using jabatan name instead of jabatan_id
+// Count pegawai manually using jabatan name instead of jabatan_id
             $jumlahPegawai = \App\Models\Pegawai::where('jabatan', $jabatan->nama)->count();
             $tarifPerJam = $jabatan->tarif;
             $expectedTarifBTKL = $tarifPerJam * $jumlahPegawai;
@@ -245,6 +234,9 @@ class ProsesProduksiController extends Controller
                 'satuan_btkl' => $validated['satuan_btkl'],
                 'kapasitas_per_jam' => $validated['kapasitas_per_jam'],
                 'jabatan_id' => $validated['jabatan_id'], // Store jabatan reference
+                'biaya_btkl_per_produk' => $validated['kapasitas_per_jam'] > 0 
+                    ? $validated['tarif_btkl'] / $validated['kapasitas_per_jam'] 
+                    : 0, // CRITICAL: Calculate and store biaya per produk
             ];
 
             \Log::info('BTKL Update Data', $updateData);

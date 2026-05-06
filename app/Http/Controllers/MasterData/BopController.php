@@ -19,32 +19,21 @@ class BopController extends Controller
     public function index()
     {
         try {
-<<<<<<< HEAD
-            // Auto-fix database if nama_bop_proses column doesn't exist
-            $this->ensureDatabaseStructure();
 
-            // Get all BOP Proses with their production process data
-            $bopProses = BopProses::with('prosesProduksi')
-=======
             // 🔒 MULTI-TENANT: Get BOP Proses for logged-in user only
             $bopProses = BopProses::with(['prosesProduksi' => function($query) {
                 $query->where('user_id', auth()->id());
             }])
                 ->where('user_id', auth()->id())
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                ->where('is_active', true)
+->where('is_active', true)
                 ->orderBy('id')
                 ->get();
 
-<<<<<<< HEAD
-            // Get all production processes (BTKL data) for dropdown
-            $prosesProduksis = ProsesProduksi::where('kapasitas_per_jam', '>', 0)
-=======
+
             // 🔒 MULTI-TENANT: Get production processes for logged-in user only
             $prosesProduksis = ProsesProduksi::where('user_id', auth()->id())
                 ->where('kapasitas_per_jam', '>', 0)
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                ->orderBy('kode_proses')
+->orderBy('kode_proses')
                 ->get();
 
             // Prepare BTKL data for auto-fill functionality
@@ -427,51 +416,8 @@ class BopController extends Controller
     }
 
     /**
-<<<<<<< HEAD
-     * Get BOP Proses data for editing (AJAX)
-     */
-    public function getProses($id)
-    {
-        try {
-            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
-            
-            return response()->json([
-                'success' => true,
-                'bop' => $bopProses
-            ]);
-            
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'BOP Proses tidak ditemukan: ' . $e->getMessage()
-            ], 404);
-        }
-    }
 
-    /**
-     * Show BOP detail page
-     */
-    public function showProses($id)
-    {
-        try {
-            $bopProses = BopProses::with('prosesProduksi')->findOrFail($id);
-            
-            // Get matching BTKL data based on process name
-            $btkl = \App\Models\Btkl::where('nama_btkl', $bopProses->prosesProduksi->nama_proses)->first();
-            
-            return view('master-data.bop.show-proses', compact('bopProses', 'btkl'));
-            
-        } catch (\Exception $e) {
-            return redirect()
-                ->route('master-data.bop.index')
-                ->with('error', 'BOP Proses tidak ditemukan: ' . $e->getMessage());
-        }
-    }
-
-    /**
-=======
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-     * Show form for editing BOP Proses
+* Show form for editing BOP Proses
      */
     public function editProses($id)
     {
@@ -761,14 +707,15 @@ class BopController extends Controller
 
             // Prepare data for insert
             $insertData = [
-                'nama_bop_proses' => $request->input('nama_bop_proses'),
-                'proses_produksi_id' => null,
+                'nama_bop_proses' => $request->input('nama_bop_proses') ?: 'BOP Proses',
                 'komponen_bop' => $components,
                 'total_bop_per_jam' => $totalBopPerProduk,
                 'kapasitas_per_jam' => 1,
                 'bop_per_unit' => $bopPerUnit,
-                'keterangan' => $request->input('keterangan', "BOP untuk {$request->input('nama_bop_proses')}"),
+                'keterangan' => $request->input('keterangan') ?: "BOP Proses",
                 'is_active' => true,
+                'total_bop_per_produk' => $totalBopPerProduk,
+                'total_biaya_per_produk' => $bopPerUnit,
             ];
             
             // Add periode if column exists

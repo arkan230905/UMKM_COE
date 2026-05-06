@@ -130,10 +130,7 @@
             <label>Periode</label>
             <input type="month" name="periode" value="{{ $periode }}">
         </div>
-<<<<<<< HEAD
-        <button type="submit" class="btn-show">Tampilkan</button>
-    </form>
-=======
+
         <div>
           <label class="form-label">&nbsp;</label>
           <button type="submit" class="btn btn-primary">
@@ -289,7 +286,6 @@
       </div>
     </div>
   </div>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
 </div>
 
 {{-- ══════════════════════════════════════════

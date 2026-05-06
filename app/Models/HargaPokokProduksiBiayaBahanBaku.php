@@ -13,13 +13,30 @@ class HargaPokokProduksiBiayaBahanBaku extends Model
 
     protected $fillable = [
         'user_id',
-        'biaya_bahan_baku_id'
+        'bom_job_bbb_id'
     ];
 
     protected $casts = [
         'user_id' => 'integer',
-        'biaya_bahan_baku_id' => 'integer',
+        'bom_job_bbb_id' => 'integer',
     ];
+    
+    /**
+     * Boot method - apply global scope for multi-tenant
+     */
+    protected static function boot()
+    {
+        parent::boot();
+        
+        // CRITICAL: Apply global scope untuk multi-tenant isolation
+        static::addGlobalScope(new \App\Scopes\UserScope);
+        
+        static::creating(function ($model) {
+            if (empty($model->user_id) && auth()->check()) {
+                $model->user_id = auth()->id();
+            }
+        });
+    }
 
     public function user()
     {
@@ -28,13 +45,13 @@ class HargaPokokProduksiBiayaBahanBaku extends Model
 
     public function biayaBahanBaku()
     {
-        return $this->belongsTo(BiayaBahanBaku::class);
+        return $this->belongsTo(BiayaBahanBaku::class, 'bom_job_bbb_id');
     }
 
     // Keep old relationship name for backward compatibility
     public function bomJobBbb()
     {
-        return $this->biayaBahanBaku();
+        return $this->belongsTo(BiayaBahanBaku::class, 'bom_job_bbb_id');
     }
 
     public function scopeByUser($query)

@@ -93,20 +93,7 @@
             <table class="table table-hover align-middle mb-0" style="min-width: 1200px;">
                 <thead class="table-light">
                     <tr>
-<<<<<<< HEAD
-                        <th class="text-center nowrap" style="width: 50px">No</th>
-                        <th class="text-center nowrap">No. Transaksi</th>
-                        <th class="text-center nowrap">No. Faktur</th>
-                        <th class="text-center nowrap">Tanggal</th>
-                        <th class="text-center nowrap">Vendor</th>
-                        <th class="text-center nowrap">Item</th>
-                        <th class="text-center nowrap">Satuan Pembelian</th>
-                        <th class="text-center nowrap">Pembayaran</th>
-                        <th class="text-center nowrap">Status Pembayaran</th>
-                        <th class="text-center nowrap">Total Harga</th>
-                        <th class="text-center nowrap">Status Retur</th>
-                        <th class="text-center nowrap" style="width: 180px">Aksi</th>
-=======
+
                         <th class="text-center" style="width: 50px">No</th>
                         <th class="nowrap">No. Transaksi</th>
                         <th class="nowrap">No. Faktur</th>
@@ -120,8 +107,7 @@
                         <th class="nowrap">Total Harga</th>
                         <th class="nowrap">Status Retur</th>
                         <th class="text-center" style="width: 180px">Aksi</th>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                    </tr>
+</tr>
                 </thead>
                 <tbody>
                     @forelse ($pembelians as $key => $pembelian)
@@ -135,11 +121,7 @@
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-<<<<<<< HEAD
-                            <td class="text-center nowrap">{{ $pembelian->tanggal->format('d-m-Y') }}</td>
-                            <td class="text-center nowrap">
-                                <div class="d-flex align-items-center justify-content-center">
-=======
+
                             <td class="nowrap text-center">
                                 @if($pembelian->bukti_faktur)
                                     @php
@@ -159,8 +141,7 @@
                             <td class="nowrap">{{ $pembelian->tanggal->format('d-m-Y') }}</td>
                             <td class="nowrap">
                                 <div class="d-flex align-items-center">
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                                    <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
+<div class="rounded-circle bg-primary bg-opacity-10 p-2 me-2">
                                         <i class="fas fa-store text-primary"></i>
                                     </div>
                                     <div>

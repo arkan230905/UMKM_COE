@@ -26,7 +26,7 @@
 
     <!-- Filter Section -->
     <div class="card shadow-sm mb-4">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header" style="background-color: #a0826d; color: white;">
             <h6 class="mb-0">
                 <i class="fas fa-filter me-2"></i>Filter Data
             </h6>
@@ -52,7 +52,7 @@
                     <div class="col-md-2">
                         <label class="form-label d-block">&nbsp;</label>
                         <div class="btn-group w-100">
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn" style="background-color: #a0826d; color: white;">
                                 <i class="fas fa-search"></i> Filter
                             </button>
                             <a href="{{ route('master-data.biaya-bahan.index') }}" class="btn btn-outline-secondary">
@@ -73,36 +73,32 @@
                     <thead class="table-warning">
                         <tr>
                             <th style="width: 3%;" class="text-center">No</th>
-<<<<<<< HEAD
-                            <th style="width: 30%;">Produk</th>
-                            <th style="width: 20%;" class="text-center">Bahan Baku</th>
-                            <th style="width: 22%;" class="text-end">Total Biaya</th>
-=======
+
                             <th style="width: 25%;">Produk</th>
                             <th style="width: 20%;" class="text-center">Bahan Baku</th>
                             <th style="width: 22%;" class="text-end">Total Biaya Bahan Baku</th>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                            <th style="width: 10%;" class="text-center">Status</th>
+<th style="width: 10%;" class="text-center">Status</th>
                             <th style="width: 20%;" class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($produkBiaya as $index => $data)
                             @php
-<<<<<<< HEAD
-                                $biaya = $produkBiaya[$produk->id] ?? [];
-                                $totalBiaya = $biaya['total_biaya_bahan_baku'] ?? 0; // Hanya BBB
-=======
                                 $produk = $data['produk'] ?? null;
                                 $biaya = $data;
                                 $totalBiaya = $biaya['total_biaya'] ?? 0;
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
                                 $totalBiayaBahanBaku = $biaya['total_biaya_bahan_baku'] ?? 0;
+                                $totalBiayaBahanPendukung = $biaya['total_biaya_bahan_pendukung'] ?? 0;
                                 
                                 // HANYA HITUNG ITEM BAHAN BAKU YANG VALID (harga > 0)
                                 $detailBahanBaku = $biaya['detail_bahan_baku'] ?? [];
+                                $detailBahanPendukung = $biaya['detail_bahan_pendukung'] ?? [];
                                 
                                 $jumlahBahanBaku = collect($detailBahanBaku)->filter(function($item) {
+                                    return ($item['subtotal'] ?? 0) > 0;
+                                })->count();
+                                
+                                $jumlahBahanPendukung = collect($detailBahanPendukung)->filter(function($item) {
                                     return ($item['subtotal'] ?? 0) > 0;
                                 })->count();
                             @endphp
@@ -138,15 +134,12 @@
                                             Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}
                                         </small>
                                     @else
-<<<<<<< HEAD
-                                        <span class="text-muted">-</span>
-=======
+
                                         <span class="text-muted">0 item</span>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                                    @endif
+@endif
                                 </td>
                                 <td class="text-end">
-                                    <div class="fw-bold text-primary">
+                                    <div class="fw-bold" style="color: #a0826d;">
                                         Rp {{ number_format($totalBiayaBahanBaku, 0, ',', '.') }}
                                     </div>
                                     @if($totalBiayaBahanPendukung > 0)
@@ -176,7 +169,7 @@
                                         </div>
                                     @else
                                         <a href="{{ route('master-data.biaya-bahan.create', $produk->id) }}" 
-                                           class="btn btn-sm btn-primary" title="Input Biaya Bahan">
+                                           class="btn btn-sm" style="background-color: #a0826d; color: white;" title="Input Biaya Bahan">
                                             <i class="fas fa-plus"></i> Input
                                         </a>
                                     @endif
@@ -184,47 +177,19 @@
                             </tr>
                         @empty
                             <tr>
-<<<<<<< HEAD
-                                <td colspan="6" class="text-center py-5">
-                                    <i class="fas fa-calculator fa-3x text-muted mb-3 d-block"></i>
-                                    <p class="text-muted mb-0">Belum ada data perhitungan biaya bahan</p>
-=======
+
                                 <td colspan="6" class="text-center py-4">
                                     <div class="text-muted">
                                         <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
                                         <p>Belum ada data biaya bahan</p>
                                         <small>Silakan input biaya bahan untuk produk yang tersedia</small>
                                     </div>
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                                </td>
+</td>
                             </tr>
                         @endforelse
                     </tbody>
-<<<<<<< HEAD
-                    @if($produks->count() > 0)
-                    <tfoot class="table-light">
-                        <tr>
-                            <th colspan="2" class="text-end">Total Keseluruhan:</th>
-                            <th class="text-center">
-                                <div class="badge bg-info">
-                                    {{ collect($produkBiaya)->sum(fn($item) => count($item['detail_bahan_baku'] ?? [])) }} item
-                                </div>
-                                <div class="small text-muted mt-1">
-                                    Rp {{ number_format(collect($produkBiaya)->sum('total_biaya_bahan_baku'), 0, ',', '.') }}
-                                </div>
-                            </th>
-                            <th class="text-end">
-                                <div class="fw-bold text-success fs-5">
-                                    Rp {{ number_format(collect($produkBiaya)->sum('total_biaya_bahan_baku'), 0, ',', '.') }}
-                                </div>
-                            </th>
-                            <th colspan="2"></th>
-                        </tr>
-                    </tfoot>
-                    @endif
-=======
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-                </table>
+
+</table>
             </div>
             
             <!-- Summary -->
@@ -236,7 +201,7 @@
                                 <div class="row">
                                     <div class="col-md-4">
                                         <div class="d-flex align-items-center">
-                                            <i class="fas fa-box text-primary me-2"></i>
+                                            <i class="fas fa-box me-2" style="color: #a0826d;"></i>
                                             <div>
                                                 <small class="text-muted">Total Keseluruhan:</small>
                                                 <div class="fw-bold">{{ count($produkBiaya) }} item</div>

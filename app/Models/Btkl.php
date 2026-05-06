@@ -122,4 +122,54 @@ class Btkl extends Model
     {
         return 'Rp ' . number_format($this->biaya_per_produk, 2, ',', '.');
     }
+
+    /**
+     * Check if tarif is consistent with jabatan
+     * For compatibility with view
+     *
+     * @return bool
+     */
+    public function getIsConsistentAttribute()
+    {
+        if (!$this->jabatan) {
+            return false;
+        }
+
+        $jumlahPegawai = $this->jabatan->pegawais->count();
+        $tarifPerJam = $this->jabatan->tarif ?? 0;
+        $expectedTarif = $tarifPerJam * $jumlahPegawai;
+        
+        // Toleransi 1 rupiah
+        return abs($this->tarif_per_jam - $expectedTarif) < 1;
+    }
+
+    /**
+     * Get satuan for compatibility with view
+     *
+     * @return string
+     */
+    public function getSatuanAttribute()
+    {
+        return $this->attributes['satuan'] ?? 'Jam';
+    }
+
+    /**
+     * Get deskripsi_proses for compatibility with view
+     *
+     * @return string
+     */
+    public function getDeskripsiProsesAttribute()
+    {
+        return $this->attributes['deskripsi_proses'] ?? '-';
+    }
+
+    /**
+     * Get tarif_btkl for compatibility (alias for tarif_per_jam)
+     *
+     * @return float
+     */
+    public function getTarifBtklAttribute()
+    {
+        return $this->tarif_per_jam;
+    }
 }

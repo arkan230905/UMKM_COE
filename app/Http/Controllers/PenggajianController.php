@@ -696,71 +696,11 @@ class PenggajianController extends Controller
      */
     private function createJournalEntryModern($penggajian, $pegawai)
     {
-<<<<<<< HEAD
-        try {
-            $jenisPegawai = strtolower($pegawai->kategori ?? $pegawai->jenis_pegawai ?? 'btktl');
 
-            // Get COA accounts - otomatis buat jika belum ada
-            // Special handling untuk Bagian Gudang
-            if (strpos(strtolower($pegawai->jabatanRelasi->nama ?? ''), 'gudang') !== false) {
-                // Bagian Gudang = BTKTL (Tenaga Kerja Tidak Langsung)
-                $coaBebanGaji = $this->getOrCreateCoa('54', 'Beban Tenaga Kerja Tidak Langsung', '5');
-            } else if ($jenisPegawai === 'btkl') {
-                $coaBebanGaji = $this->getOrCreateCoa('52', 'Beban Tenaga Kerja Langsung', '5');
-            } else {
-                $coaBebanGaji = $this->getOrCreateCoa('54', 'Beban Tenaga Kerja Tidak Langsung', '5');
-            }
-
-            $coaKasBank = Coa::where('kode_akun', $penggajian->coa_kasbank)->first();
-
-            if (!$coaKasBank) {
-                throw new \Exception('Akun kas/bank tidak valid');
-            }
-            
-            // Create journal entry
-            $journalEntry = \App\Models\JournalEntry::create([
-                'tanggal' => $penggajian->tanggal_penggajian,
-                'ref_type' => 'penggajian',
-                'ref_id' => $penggajian->id,
-                'memo' => "Penggajian {$pegawai->nama}",
-            ]);
-            
-            // Create journal lines
-            // DEBIT: Beban Gaji
-            \App\Models\JournalLine::create([
-                'journal_entry_id' => $journalEntry->id,
-                'coa_id' => $coaBebanGaji->id,
-                'debit' => $penggajian->total_gaji,
-                'credit' => 0,
-                'memo' => "Beban Gaji {$pegawai->nama}",
-            ]);
-            
-            // CREDIT: Kas/Bank
-            \App\Models\JournalLine::create([
-                'journal_entry_id' => $journalEntry->id,
-                'coa_id' => $coaKasBank->id,
-                'debit' => 0,
-                'credit' => $penggajian->total_gaji,
-                'memo' => "Pembayaran Gaji {$pegawai->nama}",
-            ]);
-            
-            \Log::info('Journal entry modern created for penggajian', [
-                'penggajian_id' => $penggajian->id,
-                'journal_entry_id' => $journalEntry->id,
-            ]);
-            
-            return true;
-            
-        } catch (\Exception $e) {
-            \Log::error('Failed to create modern journal entry for penggajian: ' . $e->getMessage());
-            throw $e;
-        }
-=======
         // Method ini dinonaktifkan karena createJournalEntry() sudah bekerja dengan baik
         // dan tidak menyebabkan error field coa_id
         return true;
->>>>>>> cb46e8bf88bbf58f140ce82a4feead3f3abd254b
-    }
+}
     
     /**
      * Update BOP untuk beban gaji

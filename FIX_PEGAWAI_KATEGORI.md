@@ -25,14 +25,9 @@
 **Perubahan:**
 ```javascript
 // BEFORE (Ada merge conflict)
-<<<<<<< HEAD
-    if (kategori) {
-        fetch(`/master-data/api/jabatan/by-kategori?kategori_id=${encodeURIComponent(kategori)}`)
-=======
+
     if (kategoriId) {
         fetch(`/master-data/api/jabatan/by-kategori?kategori_id=${kategoriId}`)
->>>>>>> 09c795ee293c426b3d80634193e2fe2f90e330de
-
 // AFTER (Fixed)
 if (kategori) {
     fetch(`/master-data/api/jabatan/by-kategori?kategori=${encodeURIComponent(kategori)}`)
